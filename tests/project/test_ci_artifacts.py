@@ -3,6 +3,7 @@
 from contextlib import redirect_stderr, redirect_stdout
 from copy import deepcopy
 import base64
+import errno
 from io import BytesIO, StringIO
 import json
 import os
@@ -453,18 +454,18 @@ class PublicationTests(ProjectFixture):
         self.assertTrue((self.destination / 'runs/fixture/ubuntu-preview.log').is_file())
         self.assertEqual('failed', read_json(self.destination / 'test-report.json')['status'])
 
-    def native_revision_report(self):
+    def native_revision_report(self, *, status='failed'):
         check = 'windows-published-revision-access'
         self.add_catalog_checks(check)
         report = self.hosted_report(system='Windows', event='workflow_dispatch')
-        report['status'] = 'failed'
-        self.add_result(report, check, status='failed')
+        report['status'] = status
+        self.add_result(report, check, status=status)
         return report, f'runs/fixture/{check}'
 
     def save_native_revision_observation(self, report, directory, observation, *, marker=None):
         contents = json_bytes(observation)
         self.write(f'{directory}/observation.json', contents)
-        log = f'Synthetic failure\r\nnative_observation_sha256={marker or digest(contents)}\r\n'.encode('ascii')
+        log = f'Synthetic check output\r\nnative_observation_sha256={marker or digest(contents)}\r\n'.encode('ascii')
         self.write(directory + '.log', log)
         report['checks'][-1]['log_sha256'] = digest(log)
         self.save_report(report)
@@ -486,6 +487,118 @@ class PublicationTests(ProjectFixture):
         self.assertEqual(contents, (evidence / 'observation.json').read_bytes())
         self.assertEqual(binary, (evidence / 'scopehub-desktop.exe').read_bytes())
         self.assertEqual('failed', read_json(self.destination / 'test-report.json')['status'])
+
+    def test_failed_native_revision_access_before_build_keeps_available_diagnostics(self):
+        report, directory = self.native_revision_report()
+        self.save_report(report)
+        log = (self.reports / (directory + '.log')).read_bytes()
+        self.assertTrue(stage_artifacts(self.root, self.destination, self.env))
+        self.assertEqual(log, (self.destination / (directory + '.log')).read_bytes())
+        self.assertEqual(report, read_json(self.destination / 'test-report.json'))
+        self.assertFalse((self.destination / directory).exists())
+
+        observation = {'source_commit': report['source']['git_head'], 'source_working_tree_dirty': False,
+                       'outcome': 'failed', 'launch': {'stage': 'build'}}
+        contents = self.save_native_revision_observation(report, directory, observation)
+        destination = self.destination.with_name('build-failure-observation')
+        self.assertTrue(stage_artifacts(self.root, destination, self.env))
+        self.assertEqual(contents, (destination / directory / 'observation.json').read_bytes())
+        self.assertFalse((destination / directory / 'scopehub-desktop.exe').exists())
+
+    def test_passing_native_revision_access_requires_matching_observation_and_executable(self):
+        report, directory = self.native_revision_report(status='passed')
+        binary = b'MZ synthetic compiled bytes'
+        observation = {'source_commit': report['source']['git_head'], 'source_working_tree_dirty': False,
+                       'binary_sha256': digest(binary), 'outcome': 'passed', 'launch': {'stage': 'completed'}}
+        manifest = f'{directory}/observation.json'
+        executable = f'{directory}/scopehub-desktop.exe'
+        contents = self.save_native_revision_observation(report, directory, observation)
+        self.write(executable, binary)
+        self.assertTrue(stage_artifacts(self.root, self.destination, self.env))
+        self.assertEqual(report, read_json(self.destination / 'test-report.json'))
+        self.assertEqual(contents, (self.destination / manifest).read_bytes())
+        self.assertEqual(binary, (self.destination / executable).read_bytes())
+
+        for name, observation_exists, outcome, executable_bytes in (
+            ('missing-executable', True, 'passed', None),
+            ('mismatched-executable', True, 'passed', b'altered'),
+            ('missing-observation', False, 'passed', binary),
+            ('failed-observation', True, 'failed', binary),
+        ):
+            with self.subTest(name=name):
+                self.save_native_revision_observation(report, directory, {**observation, 'outcome': outcome})
+                if not observation_exists:
+                    (self.reports / manifest).unlink()
+                if executable_bytes is None:
+                    (self.reports / executable).unlink()
+                else:
+                    self.write(executable, executable_bytes)
+                destination = self.destination.with_name(name)
+                with self.assertRaises(PublicationError):
+                    stage_artifacts(self.root, destination, self.env)
+                self.assertFalse((destination / 'test-report.json').exists())
+                self.assertFalse((destination / manifest).exists())
+                self.assertFalse((destination / executable).exists())
+
+    def test_native_revision_access_removes_truncated_observation_after_write_failure(self):
+        report, directory = self.native_revision_report()
+        binary = b'MZ synthetic compiled bytes'
+        observation = {'source_commit': report['source']['git_head'], 'source_working_tree_dirty': False,
+                       'binary_sha256': digest(binary), 'outcome': 'failed'}
+        contents = self.save_native_revision_observation(report, directory, observation)
+        self.write(f'{directory}/scopehub-desktop.exe', binary)
+        manifest = Path(directory) / 'observation.json'
+        write_bytes = Path.write_bytes
+
+        def truncate_observation(path, data):
+            if path == self.destination / manifest:
+                self.assertEqual(contents, data)
+                write_bytes(path, data[:17])
+                raise OSError(errno.ENOSPC, 'Synthetic interrupted observation write')
+            return write_bytes(path, data)
+
+        with patch.object(Path, 'write_bytes', truncate_observation):
+            self.assertTrue(stage_artifacts(self.root, self.destination, self.env))
+        self.assertFalse((self.destination / manifest).exists())
+        self.assertFalse((self.destination / directory / 'scopehub-desktop.exe').exists())
+        log = self.reports / (directory + '.log')
+        self.assertEqual(log.read_bytes(), (self.destination / (directory + '.log')).read_bytes())
+        self.assertEqual(report, read_json(self.destination / 'test-report.json'))
+
+    def test_native_revision_access_removes_truncated_executable_and_retains_failed_launch_observation(self):
+        report, directory = self.native_revision_report()
+        for status, exit_code in (('passed', 0), ('failed', 1)):
+            with self.subTest(status=status):
+                report['status'] = status
+                report['checks'][-1].update(status=status, exit_code=exit_code)
+                binary = b'MZ synthetic compiled bytes'
+                observation = {'source_commit': report['source']['git_head'], 'source_working_tree_dirty': False,
+                               'binary_sha256': digest(binary), 'outcome': status}
+                contents = self.save_native_revision_observation(report, directory, observation)
+                executable = self.write(f'{directory}/scopehub-desktop.exe', binary)
+                destination = self.destination.with_name(status)
+                staged_binary = destination / directory / 'scopehub-desktop.exe'
+                staged_observation = destination / directory / 'observation.json'
+                copyfile = shutil.copyfile
+
+                def truncate_executable(source, target):
+                    if target == staged_binary:
+                        self.assertEqual(executable, source)
+                        target.write_bytes(binary[:17])
+                        raise OSError(errno.ENOSPC, 'Synthetic interrupted executable copy')
+                    return copyfile(source, target)
+
+                with patch.object(shutil, 'copyfile', truncate_executable):
+                    if status == 'passed':
+                        with self.assertRaises(PublicationError):
+                            stage_artifacts(self.root, destination, self.env)
+                        self.assertFalse(staged_observation.exists())
+                        self.assertFalse((destination / 'test-report.json').exists())
+                    else:
+                        self.assertTrue(stage_artifacts(self.root, destination, self.env))
+                        self.assertEqual(contents, staged_observation.read_bytes())
+                        self.assertEqual(report, read_json(destination / 'test-report.json'))
+                self.assertFalse(staged_binary.exists())
 
     def test_native_revision_access_omits_unbound_or_oversized_evidence_and_keeps_the_report(self):
         report, directory = self.native_revision_report()

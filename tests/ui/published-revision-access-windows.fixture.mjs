@@ -6,6 +6,7 @@ import { access, copyFile, mkdir, mkdtemp, readFile, realpath, rm, writeFile } f
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { chromium, expect } from '@playwright/test';
@@ -106,9 +107,27 @@ export async function publishFixture(seedExe, profile, folder) {
   }
 }
 
-async function readEndpoint(portFile, observation) {
+async function pollLaunch(desktop, launch, deadline, probe) {
+  while (performance.now() < deadline) {
+    if (desktop.exitCode !== null || desktop.signalCode !== null) {
+      launch.stage = 'early_process_exit';
+      throw new Error(`Native desktop exited before CDP (${desktop.exitCode ?? desktop.signalCode}).`);
+    }
+    const remaining = Math.ceil(deadline - performance.now());
+    if (remaining <= 0) break;
+    const result = await probe(remaining);
+    const afterProbe = deadline - performance.now();
+    if (afterProbe <= 0) break;
+    if (result) return result;
+    await sleep(Math.min(250, afterProbe));
+  }
+  throw new Error(`Native desktop launch reached its ${endpointTimeout} ms deadline at ${launch.stage}.`);
+}
+
+async function readEndpoint(portFile, observation, remaining) {
   try {
-    const [portText, websocketPath] = (await readFile(portFile, 'utf8')).trim().split(/\r?\n/u);
+    const signal = AbortSignal.timeout(Math.min(1000, remaining));
+    const [portText, websocketPath] = (await readFile(portFile, { encoding: 'utf8', signal })).trim().split(/\r?\n/u);
     const port = Number(portText);
     if (!/^\d{1,5}$/u.test(portText) || port < 1 || port > 65535
       || !/^\/devtools\/browser\/[0-9a-f-]+$/u.test(websocketPath ?? '')) {
@@ -117,9 +136,7 @@ async function readEndpoint(portFile, observation) {
     }
     observation.port = port;
     const address = `127.0.0.1:${port}`;
-    const response = await fetch(`http://${address}/json/version`, {
-      redirect: 'error', signal: AbortSignal.timeout(1000),
-    });
+    const response = await fetch(`http://${address}/json/version`, { redirect: 'error', signal });
     observation.http_status = response.status;
     if (!response.ok) {
       observation.endpoint_state = 'http_error';
@@ -136,11 +153,11 @@ async function readEndpoint(portFile, observation) {
   }
 }
 
-function powershell(command) {
-  return runFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { timeout: 15_000 });
+function powershell(command, timeout = 15_000) {
+  return runFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { timeout });
 }
 
-async function processSnapshot(pid, port) {
+async function processSnapshot(pid, port, remaining = 15_000) {
   // Record only facts about the owned app, its WebView2 children and the expected port.
   const { stdout } = await powershell(
     String.raw`$ErrorActionPreference = 'Stop'
@@ -163,6 +180,7 @@ async function processSnapshot(pid, port) {
         user_interactive = [Environment]::UserInteractive; webview_children = $runtimes; listeners = $listeners;
         windows_build = $hostOS.BuildNumber; windows_product_type = $hostOS.ProductType;
         windows_edition = $hostOS.Caption } | ConvertTo-Json -Compress`,
+    Math.min(15_000, remaining),
   );
   return JSON.parse(stdout);
 }
@@ -227,6 +245,7 @@ export async function withNativePublishedProfile(testInfo, observation, run) {
       .filter(([name]) => !/^(WEBVIEW2_.*|SCOPEHUB_DESKTOP_WORKSPACE_DEV)$/iu.test(name)));
     launch.stage = 'spawn';
     started = performance.now();
+    const deadline = started + endpointTimeout;
     desktop = spawn(launchExe, [], { cwd: temp, env, stdio: ['ignore', 'pipe', 'pipe'] });
     exited = once(desktop, 'exit');
     void exited.catch(() => undefined);
@@ -235,31 +254,25 @@ export async function withNativePublishedProfile(testInfo, observation, run) {
     await once(desktop, 'spawn');
     launch.desktop_pid = desktop.pid;
     launch.stage = 'cdp_endpoint';
-    let websocket;
-    await expect.poll(async () => {
-      if (desktop.exitCode !== null || desktop.signalCode !== null) {
-        launch.stage = 'early_process_exit';
-        throw new Error(`Native desktop exited before CDP (${desktop.exitCode ?? desktop.signalCode}).`);
-      }
+    const websocket = await pollLaunch(desktop, launch, deadline, remaining => {
       launch.endpoint_attempts++;
-      websocket = await readEndpoint(join(webviewDirectory, 'DevToolsActivePort'), launch);
-      return Boolean(websocket);
-    }, { timeout: endpointTimeout }).toBe(true);
+      return readEndpoint(join(webviewDirectory, 'DevToolsActivePort'), launch, remaining);
+    });
     launch.endpoint_ready_ms = Math.round(performance.now() - started);
     launch.stage = 'native_identity';
-    let runtime;
-    await expect.poll(async () => {
+    const runtime = await pollLaunch(desktop, launch, deadline, async remaining => {
       try {
-        const snapshot = await processSnapshot(desktop.pid, launch.port);
+        const snapshot = await processSnapshot(desktop.pid, launch.port, remaining);
         launch.process = snapshot;
-        runtime = snapshot.webview_children.find(child => child.version && snapshot.listeners.some(listener =>
-          listener.address === '127.0.0.1' && listener.pid === child.pid));
-        return Boolean(snapshot.window && runtime);
+        if (snapshot.window) {
+          return snapshot.webview_children.find(child => child.version && snapshot.listeners.some(listener =>
+            listener.address === '127.0.0.1' && listener.pid === child.pid));
+        }
       } catch (error) {
         launch.process_error = error.code ?? error.name;
-        return false;
       }
-    }, { timeout: 30_000 }).toBe(true);
+    });
+    launch.identity_ready_ms = Math.round(performance.now() - started);
     launch.stage = 'cdp_attach';
     browser = await chromium.connectOverCDP(websocket, { timeout: 20_000 });
     launch.stage = 'product_page';
@@ -287,9 +300,9 @@ export async function withNativePublishedProfile(testInfo, observation, run) {
       launch.signal_before_cleanup = desktop.signalCode;
       launch.webview_directory_created = await access(webviewDirectory).then(() => true, () => false);
       try {
-        launch.process = await processSnapshot(desktop.pid, launch.port);
+        launch.failure_process = await processSnapshot(desktop.pid, launch.port);
       } catch (snapshotError) {
-        launch.process_error = snapshotError.code ?? snapshotError.name;
+        launch.failure_process_error = snapshotError.code ?? snapshotError.name;
       }
     }
     if (page) {

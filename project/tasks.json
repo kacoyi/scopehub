@@ -26165,7 +26165,7 @@
           "sha256": "fb4345db27bf793accfd0d67401a044be089c0305a0dc51c347691e17756de4a"
         }
       ],
-      "next_action": "Reproduce the independently observed launch deadline overrun and artifact staging defects with synthetic controls. Verify the correction at the fixture and staging entries, then hand the clean source, observations, unchanged compiled-browser replays and original guarded failure to the coordinator for applicable independent decisions and a guarded Windows rerun.",
+      "next_action": "Give the coordinator the clean fixture and staging correction, red and green synthetic entrypoint observations, unchanged compiled-browser replays, and original guarded Windows failure. Obtain applicable independent decisions for M2-034, M2-035 and M2-039, then perform a guarded Windows x64 rerun on the reviewed source to observe the endpoint, owned WebView2 listener, native admission and both public provider journeys, retaining the bound observation and exact executable. Operator physical qualification remains separate.",
       "blocker": null,
       "closure_reason": null,
       "plan": {

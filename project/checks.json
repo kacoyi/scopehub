@@ -869,8 +869,12 @@
       "purpose": "Exercise the compiled-app fixture launch entry with a synthetic monotonic clock and process observations. Require an owned WebView2 listener within the original endpoint deadline and keep rejected launches out of the public journey.",
       "platforms": "all",
       "command": [
+        "pnpm",
+        "exec",
         "node",
         "--test",
+        "--test-isolation=none",
+        "--test-reporter=tap",
         "tests/ui/published-revision-launch-deadline.test.mjs"
       ],
       "timeout_seconds": 60,
