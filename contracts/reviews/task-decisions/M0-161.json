@@ -59,6 +59,15 @@
       },
       "supersedes": "15d08b5440bb806fb5bfd3a3ee7b019bb349a9e7acd99132a9ee56db42197096",
       "evidence_sha256": "1aaed071e3e7c593b54b7eebf64a5647f2b37979502ba23c065243a0a6715769"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e69bd4ca85a59130afe6e276391275ec9d9efbc1",
+      "scope": "Recheck ordinary and read-only project startup with an active major incident, partial and full maintenance acceptance, no engagement, and an unrelated minor item. Preserve the stop rule and accessible feedback details. Exercise major finding ordering after independent 17a0365f rejection.",
+      "supersedes": "f1d0f8f3977c33a0cfda3b3e5b9e5b6ccc565d4d578c72678bf2dc12cd65d60e",
+      "requested_at": "2026-11-26T12:46:02.674622+00:00",
+      "request_id": "0d047910015badc6ef681e673655ad308b13d06028afe1a42a79d2e742a64dea",
+      "evidence_sha256": "ba7c9fbc974fb8151ab1edf0e3a9d0bdffeedff838acc4c89d2e911d5fc4ada2"
     }
   ]
 }
