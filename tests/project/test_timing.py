@@ -100,13 +100,8 @@ SPLIT_CHECKS = ('windows-native-build', 'workspace-timeframe', 'python-contracts
 RECORDS_CHECKS = ('generated-contracts', 'dependency-review')
 OLD_FULL_CHECKS = (*BASIC_CHECKS, 'future-check', 'windows-native-build')
 
-PUBLISHER_LOADER = """INPUT_EXCLUSIONS = []
-def load_project(root=ROOT):
-    catalog = read_json(root / 'project/checks.json')
-    checks = indexed(catalog['checks'], 'check')
-    project = {'catalog': catalog, 'checks': checks}
-    return project
-"""
+PUBLISHER_LOADER = Path(timing.__file__).with_name('project.py').read_text(encoding='utf-8')
+PUBLISHER_DEVELOPMENT = Path(timing.__file__).with_name('development.py').read_text(encoding='utf-8')
 PUBLISHER_CHECK_SELECTION = """
 def select_checks(project, *, profile=None, task_id=None):
     if task_id:
@@ -156,13 +151,26 @@ def split_harness_report(elapsed, *, profile='full'):
     report['selection']['profile'] = profile
     report['run_id'] = 'windows-change-11-1'
     report['environment'].update(system='Windows', machine='AMD64')
+    if profile != 'ci-windows-core':
+        measured = {row['id']: row for row in report['checks']}
+        report['checks'] = [measured.get(check['id'], {
+            'id': check['id'], 'status': 'blocked', 'reason_code': 'not_selected',
+        }) for check in SPLIT_CATALOG['checks']]
     return report
 
 
 def lane_sample(sample, lane):
     key = {'browser': 'workspace-timeframe', 'recovery': 'market-recovery'}[lane]
     row = {'id': key, 'status': 'passed', 'exit_code': 0, 'reason_code': None, 'duration_seconds': 12}
-    checks = [item for item in sample['checks'] if item['id'] == key] or [row]
+    measured = {item['id']: item for item in sample['checks']}
+    if measured.get(key, {}).get('status') == 'passed':
+        row = measured[key]
+    checks = [
+        row if check['id'] == key else {
+            'id': check['id'], 'status': 'blocked', 'exit_code': None,
+            'reason_code': 'not_selected', 'duration_seconds': None,
+        } for check in SPLIT_CATALOG['checks']
+    ]
     return {**sample, 'profile': f'ci-windows-{lane}', 'selected': [key], 'checks': checks}
 
 
@@ -549,8 +557,11 @@ class HostedTimingTests(unittest.TestCase):
         ci = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(split_clock))), 'checkout_sha': 'a' * 40}
         single_report = historical_report()
         single_report['ci'] = ci
+        single_report['status'] = 'passed'
         single_report['environment'].update(system='Windows', machine='AMD64')
-        single_report['checks'][3] = {'id': 'windows-native-build', 'status': 'passed', 'exit_code': 0}
+        single_report['checks'][3] = {
+            'id': 'windows-native-build', 'status': 'passed', 'exit_code': 0, 'duration_seconds': 12,
+        }
         single = timing.report_sample(single_report, cache='warm')
         split = timing.report_sample(dict(split_harness_report(675), ci=ci))
         with_proof = dict(split, generated_contracts={'tree': 'd' * 40})
@@ -608,7 +619,7 @@ class HostedTimingTests(unittest.TestCase):
                     if received is invalid:
                         self.assertTrue(view['input_issues'])
 
-    def test_split_aggregate_cache_requires_a_real_layout_conflict_to_be_withdrawn(self):
+    def test_split_aggregate_cache_does_not_depend_on_incomplete_job_listings(self):
         use_catalog(self, SPLIT_CATALOG)
         run = hosted_run()
         linux = hosted_job(31, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50')
@@ -620,18 +631,17 @@ class HostedTimingTests(unittest.TestCase):
         sample = timing.report_sample(report, cache='warm')
         sample['windows_caches'] = dict(core='warm', browser='warm', python='not_requested', recovery='warm')
 
-        for jobs, cache in ((None, 'warm'), ([], 'warm'), ([linux], 'warm'),
-                            ([linux, dict(windows, run_attempt=2)], 'warm'), ([windows], 'unknown')):
+        for jobs in (None, [], [linux], [linux, dict(windows, run_attempt=2)], [windows]):
             with self.subTest(jobs=jobs):
                 clocks = [] if jobs is None else [timing.hosted_timing(run, jobs)]
                 view = timing.timing_view([sample], hosted=clocks)
                 observed, = view['samples']
-                self.assertEqual(cache, observed['cache'])
-                self.assertIsNone(observed['seconds']['total'])
+                self.assertEqual('warm', observed['cache'])
+                self.assertEqual(360 if jobs == [windows] else None, observed['seconds']['total'])
                 self.assertIsNone(observed['seconds']['runner'])
                 self.assertIsNotNone(observed['review_exclusion'])
                 self.assertEqual([], list(timing.platform_report_receipts([observed])))
-                self.assertEqual(cache == 'unknown', bool(view['input_issues']))
+                self.assertEqual([], view['input_issues'])
 
     def test_split_windows_measurement_and_joint_capture_use_the_identified_layout(self):
         linux, core, browser, python, aggregate = self.split_windows_jobs()
@@ -1322,11 +1332,12 @@ class HostedTimingTests(unittest.TestCase):
         report = split_harness_report(675)
         report['selection']['profile'] = 'full'
         report['source']['sha256'] = 'c' * 64
+        report['generated_at'] = '2026-11-20T00:12:40Z'
         report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(clock))), 'checkout_sha': 'a' * 40}
         caches = dict(core='partial', browser='unknown', python='not_requested', recovery='partial')
         full = dict(timing.report_sample(report), windows_caches=caches)
         browser = {key: value for key, value in full.items() if key != 'windows_caches'}
-        browser = dict(lane_sample(browser, 'browser'), cache='partial')
+        browser = dict(lane_sample(browser, 'browser'), cache='partial', recorded_at='2026-11-20T00:11:30Z')
         variants = (
             ([browser], 'partial', False),
             ([dict(browser, arch='x86_64')], 'partial', False),
@@ -1359,17 +1370,19 @@ class HostedTimingTests(unittest.TestCase):
         complete = timing.hosted_timing(run, all_jobs)
         report = split_harness_report(675)
         report['source']['sha256'] = 'c' * 64
+        report['generated_at'] = '2026-11-20T00:12:40Z'
         report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(complete))), 'checkout_sha': 'a' * 40}
         original = timing.report_sample(report, cache='warm')
         caches = dict(core='warm', browser='warm', python='not_requested', recovery='warm')
         full = dict(original, windows_caches=caches)
-        browser = lane_sample(original, 'browser')
+        browser = dict(lane_sample(original, 'browser'), recorded_at='2026-11-20T00:11:30Z')
         for jobs, totals in (([], (None, None, None)), ([browser_job], (None, 720, None)),
                              ([recovery_job], (None, None, 305)), ([browser_job, recovery_job], (None, 720, 305)),
                              (all_jobs, (765, 720, 305))):
             hosted = [timing.hosted_timing(run, jobs)] if jobs else []
             for recovery_cache in ('warm', 'cold'):
-                recovery = dict(lane_sample(original, 'recovery'), cache=recovery_cache)
+                recovery = dict(lane_sample(original, 'recovery'), cache=recovery_cache,
+                                recorded_at='2026-11-20T00:05:01Z')
                 for samples in ([full, browser, recovery], [recovery, browser, full]):
                     with self.subTest(totals=totals, cache=recovery_cache, first=samples[0]['profile']):
                         view = timing.timing_view(samples, hosted=hosted)
@@ -1391,10 +1404,11 @@ class HostedTimingTests(unittest.TestCase):
         report = split_harness_report(675)
         report['selection']['profile'] = 'full'
         report['source']['sha256'] = 'c' * 64
+        report['generated_at'] = '2026-11-20T00:12:40Z'
         report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(clock))), 'checkout_sha': 'a' * 40}
         full = timing.report_sample(report)
         wrong_lane = dict(lane_sample(full, 'recovery'), profile='ci-windows-browser', cache='warm')
-        browser = dict(lane_sample(full, 'browser'), cache='warm')
+        browser = dict(lane_sample(full, 'browser'), cache='warm', recorded_at='2026-11-20T00:11:30Z')
         for rows, cache, total in (([wrong_lane, full], 'unknown', None),
                                    ([wrong_lane, full, browser], 'unknown', 720)):
             view = timing.timing_view(rows, hosted=[clock])
@@ -1438,9 +1452,10 @@ class HostedTimingTests(unittest.TestCase):
         report = split_harness_report(675)
         report['selection']['profile'] = 'full'
         report['source']['sha256'] = 'c' * 64
+        report['generated_at'] = '2026-11-20T00:12:40Z'
         report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(clock))), 'checkout_sha': 'a' * 40}
         full = timing.report_sample(report, cache='warm')
-        browser = dict(lane_sample(full, 'browser'), cache='partial')
+        browser = dict(lane_sample(full, 'browser'), cache='partial', recorded_at='2026-11-20T00:11:30Z')
         for observations in ([full, browser], [browser, full]):
             view = timing.timing_view(observations, hosted=[clock])
             protected, = [row for row in view['samples'] if row['profile'] == 'full']
@@ -1630,7 +1645,11 @@ def main():
                             'task_id': args.task, 'checks': sorted(selected)}}
     return json.dumps(report, indent=2)
 """)
-        scripts = self.git('mktree', contents=f'100644 blob {harness}\tcheck.py\n100644 blob {policy}\tproject.py\n')
+        development = self.git('hash-object', '-w', '--stdin', contents=PUBLISHER_DEVELOPMENT)
+        scripts = self.git('mktree', contents=(
+            f'100644 blob {harness}\tcheck.py\n100644 blob {policy}\tproject.py\n'
+            f'100644 blob {development}\tdevelopment.py\n'
+        ))
         return self.git('mktree', contents=f'040000 tree {project}\tproject\n040000 tree {scripts}\tscripts\n')
 
     def test_selection_comes_from_committed_publishing_catalog(self):
@@ -1638,10 +1657,10 @@ def main():
         catalog = fixture_catalog(full, non_change=('release-artifacts',))
         newer = fixture_catalog((*full, 'architecture'), non_change=('release-artifacts',))
 
-        publisher = self.commit('Publishing checkout', self.head, tree=self.publishing_tree(catalog))
         newer_head = self.commit('Other catalog', self.head, tree=self.publishing_tree(newer))
+        publisher = self.commit('Publishing checkout', self.base, newer_head, tree=self.publishing_tree(catalog))
         self.assertEqual(timing.git(self.root, 'ls-tree', '-r', '-z', '--name-only', publisher),
-                         b'project/checks.json\0scripts/check.py\0scripts/project.py\0')
+                         b'project/checks.json\0scripts/check.py\0scripts/development.py\0scripts/project.py\0')
         self.assertEqual(timing.git(self.root, 'cat-file', 'blob', f'{publisher}:project/checks.json'),
                          json.dumps(catalog).encode('utf-8'))
         load = timing.native_publishing_catalog
@@ -1694,6 +1713,16 @@ def main():
             for row in original['checks']
         ])
         self.assertTrue(timing.native_report_issue(surplus, None, []))
+        omitted_unselected = dict(original, checks=[row for row in original['checks'] if row['id'] != 'release-artifacts'])
+        self.assertTrue(timing.native_report_issue(omitted_unselected, None, []))
+        invalid_omission = dict(original, checks=[
+            dict(row, status='blocked', reason_code='not_implemented', exit_code=None, duration_seconds=None)
+            if row['id'] == 'generated-contracts' else row for row in original['checks']
+        ])
+        self.assertTrue(timing.native_report_issue(invalid_omission, None, []))
+        failed_summary = dict(original, report_status='failed')
+        self.assertTrue(timing.native_report_issue(failed_summary, None, []))
+        self.assertFalse(timing.sample_eligible(failed_summary))
         missing = 'f' * 40
         expired = dict(original, source_commit=missing,
                        ci=dict(original['ci'], checkout_sha=missing, head_sha=publisher))
@@ -1712,6 +1741,7 @@ def main():
         blob = self.git('rev-parse', f'{tree}:project/checks.json')
         head = self.commit('Topic', self.base, tree=tree)
         preview = self.commit('Merge preview', self.base, head, tree=tree)
+        foreign = self.commit('Unrelated preview with the same inputs', self.base, self.head, tree=tree)
         missing = 'f' * 40
         missing_head = 'e' * 40
         null = '0' * 40
@@ -1730,6 +1760,8 @@ def main():
         artifact = {'name': 'verification-timing-windows-latest', 'expired': False, 'size_in_bytes': 1024}
         for kind, checkout, topic, comparison_base, seconds in (
             ('commit', preview, head, self.base, 360),
+            ('commit-with-invalid-optional-proof', preview, head, blob, 360),
+            ('commit-with-foreign-topic', foreign, head, None, None),
             ('commit-foreign-inputs', preview, head, self.base, None),
             ('missing', missing, head, None, 360),
             ('missing-with-proof', missing, missing_head, self.base, 360),
@@ -1738,6 +1770,7 @@ def main():
             ('missing-with-tree-base', missing, missing_head, tree, None),
             ('missing-with-blob-head', missing, blob, self.base, None),
             ('missing-with-self-parent', missing, missing_head, missing, None),
+            ('missing-with-duplicate-parent', missing, missing_head, missing_head, None),
             ('missing-with-independent-head', missing, head, blob, 360),
             ('tree', tree, head, self.base, None),
             ('null-without-proof', null, head, None, None),
@@ -1747,6 +1780,7 @@ def main():
                 run = dict(hosted_run(), head_sha=topic)
                 clock = timing.hosted_timing(run, [dict(job, head_sha=topic) for job in jobs])
                 report = fast_report(20, 190)
+                report['generated_at'] = '2026-11-20T00:05:45Z'
                 report['environment'].update(system='Windows', machine='AMD64')
                 report['selection']['profile'] = 'full'
                 report['selection']['checks'].append('generated-contracts')
@@ -1785,10 +1819,14 @@ def main():
                     downloaded.write_text(json.dumps(compact), encoding='utf-8')
                     return ''
 
-                with (patch.object(sys, 'argv', argv), patch.dict(os.environ, environment),
+                compact_path = self.root / f'{kind}-input.json'
+                compact_path.write_bytes(timing.json_bytes(compact))
+                run_path, jobs_path = (self.root / name for name in ('run.json', 'jobs.json'))
+                run_path.write_bytes(timing.json_bytes(run))
+                jobs_path.write_bytes(timing.json_bytes([dict(job, head_sha=topic) for job in jobs]))
+                with (patch.dict(os.environ, environment),
                       patch.object(timing, 'ROOT', self.root),
                       patch.object(timing, 'git', side_effect=lambda _, *args, **options: git(self.root, *args, **options)),
-                      redirect_stdout(StringIO()) as stdout,
                       patch.object(timing, 'native_publishing_catalog',
                                    side_effect=lambda rev, **options: load(rev, root=self.root, **options)),
                       patch.object(timing, 'committed_publishing_inputs',
@@ -1799,12 +1837,19 @@ def main():
                       patch.object(timing, 'recent_runs', return_value=[run]),
                       patch.object(timing, 'command', side_effect=actions_command),
                       patch.object(timing, 'inspect_jobs', return_value=clock)):
-                    timing.main()
+                    normal = ['timing.py', '--report', str(compact_path), '--actions', str(run_path), str(jobs_path)]
+                    cold = ['timing.py', '--report', str(archive)]
+                    views = []
+                    for args in (normal, argv, cold):
+                        with patch.object(sys, 'argv', args), redirect_stdout(StringIO()) as stdout:
+                            timing.main()
+                        views.append(json.loads(stdout.getvalue()))
 
-                view = json.loads(stdout.getvalue())
+                ordinary, view, reopened = views
                 saved = json.loads(archive.read_bytes())
                 self.assertEqual(expected, view['recent_collection']['collected_samples'])
                 self.assertEqual(expected, saved['recent_collection']['collected_samples'])
+                self.assertEqual(expected, reopened['recent_collection']['collected_samples'])
                 if checkout == null:
                     self.assertEqual([], view['samples'])
                     self.assertEqual([], view['objective_reviews'])
@@ -1813,6 +1858,8 @@ def main():
                     continue
                 sample, = view['samples']
                 self.assertEqual(seconds, sample['seconds']['total'])
+                self.assertEqual(seconds, ordinary['samples'][0]['seconds']['total'])
+                self.assertEqual(seconds, reopened['samples'][0]['seconds']['total'])
                 self.assertEqual(1, len(view['hosted']))
                 if seconds is None:
                     self.assertIn('publishing catalog is unavailable', view['input_issues'][0]['error'])
@@ -1829,6 +1876,7 @@ def main():
         project.mkdir()
         (project / 'checks.json').write_bytes(timing.json_bytes(fixture_catalog(full)))
         (scripts / 'project.py').write_text(PUBLISHER_LOADER, encoding='utf-8')
+        (scripts / 'development.py').write_text(PUBLISHER_DEVELOPMENT, encoding='utf-8')
         launch = """
 def main():
     args = parser.parse_args()
@@ -1859,10 +1907,10 @@ def main():
             selection = initial_selection or (f'\ndef select_checks({shared_selection}' if shared else legacy_selection)
             (scripts / 'check.py').write_bytes((definition + '\n' + selection + '\n' + launcher).encode())
             scope_file = scripts / 'verification_scope.py'
-            if shared is None:
+            if shared is None and not collector:
                 scope_file.unlink(missing_ok=True)
             else:
-                scope_file.write_bytes(shared.encode())
+                scope_file.write_bytes((shared or Path(verification_scope.__file__).read_text(encoding='utf-8')).encode())
             collector_file = scripts / 'ci_artifacts.py'
             if collector:
                 collector_file.write_text(collector, encoding='utf-8')
@@ -1932,10 +1980,27 @@ select_checks = lambda *args, **kwargs: original_selection(*args, **kwargs) - {'
         )):
             mutated.append(publish(f'Unsupported catalog input amendment {index}', earlier, input_amendment=amendment))
         (scripts / 'project.py').write_text(PUBLISHER_LOADER.replace(
-            "    project =", "    checks.pop('market-recovery-ui')\n    project =",
+            "    project = {'spec': spec", "    checks.pop('market-recovery-ui')\n    project = {'spec': spec",
+            1,
         ), encoding='utf-8')
         mutated.append(publish('Unsupported catalog load amendment', earlier))
+        (scripts / 'project.py').write_text(PUBLISHER_LOADER.replace(
+            '    return project\n',
+            "    for check in checks.values():\n"
+            "        if check['id'] == 'market-recovery-ui':\n"
+            "            check['cadence'] = 'task'\n"
+            "    return project\n",
+            1,
+        ), encoding='utf-8')
+        mutated.append(publish('Unsupported catalog item mutation through a loop binding', earlier))
         (scripts / 'project.py').write_text(PUBLISHER_LOADER, encoding='utf-8')
+        (scripts / 'development.py').write_text(PUBLISHER_DEVELOPMENT.replace(
+            'def validate_record(root, project, record):\n',
+            "def validate_record(root, project, record):\n    project['checks']['market-recovery-ui']['cadence'] = 'task'\n",
+            1,
+        ), encoding='utf-8')
+        mutated.append(publish('Unsupported catalog item mutation in the imported validator', earlier))
+        (scripts / 'development.py').write_text(PUBLISHER_DEVELOPMENT, encoding='utf-8')
         mutated.append(publish('Unsupported helper selection amendment', earlier + """
 def build_window(catalog, selection, environment, index):
     selection.discard('market-recovery-ui')
@@ -1982,8 +2047,10 @@ def windows_lane_checks(selected, lane):
                                        side_effect=lambda revision: snapshot(revision, root=self.root)))
 
         def report(revision, lane, keys, *, checkout=None, digest=None):
-            commit = checkout or revision
+            commit = checkout or self.commit('Publishing preview', self.base, revision,
+                                             tree=self.git('rev-parse', f'{revision}^{{tree}}'))
             report = fast_report(20, 190)
+            executed = dict(report['checks'][0])
             report.update(run_id='windows-change-11-1',
                           environment={'system': 'Windows', 'machine': 'AMD64'},
                           source={'git_head': commit, 'working_tree_dirty': False,
@@ -1991,7 +2058,9 @@ def windows_lane_checks(selected, lane):
                           ci={'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
                               'event': 'pull_request', 'head_sha': revision, 'checkout_sha': commit},
                           selection={'profile': 'ci-windows-' + lane if lane else 'full', 'checks': list(keys)},
-                          checks=[dict(report['checks'][0], id=key) for key in dict.fromkeys(keys)])
+                          checks=[dict(executed, id=key) if key in keys else {
+                              'id': key, 'status': 'blocked', 'reason_code': 'not_selected',
+                          } for key in full])
             return timing.report_sample(report, cache='warm')
 
         browser_old = ['market-recovery-ui', 'workspace-timeframe']
@@ -2015,10 +2084,8 @@ def windows_lane_checks(selected, lane):
         for revision in mutated:
             stale = report(revision, 'browser', browser_old)
             final_selection = report(revision, 'browser', ['workspace-timeframe'])
-            checks = {row['id']: row for row in stale['checks']}
             aggregate = {
-                **stale, 'profile': 'full', 'cache': 'unknown', 'selected': sorted(full),
-                'checks': [dict(stale['checks'][0], id=key) if key not in checks else checks[key] for key in sorted(full)],
+                **report(revision, None, full), 'cache': 'unknown',
                 'windows_caches': {'core': 'warm', 'browser': 'unknown',
                                    'python': 'not_requested', 'recovery': 'warm'},
             }
@@ -2093,7 +2160,8 @@ def windows_lane_checks(selected, lane):
 
     def compare(self, *observations):
         samples, workflows = zip(*observations)
-        comparison, = timing.timing_view(samples, hosted=workflows)['pr_main_comparisons']
+        with patch.object(timing, 'ROOT', self.root):
+            comparison, = timing.timing_view(samples, hosted=workflows)['pr_main_comparisons']
         return comparison
 
     def test_compares_only_generator_durations_on_distinct_merges_with_same_parents_and_tree(self):
@@ -2164,6 +2232,20 @@ def windows_lane_checks(selected, lane):
         self.assertEqual(2, len(view['reviews']))
         tagged = self.observe(self.main, push=True, ref='refs/tags/main')
         self.assertEqual('unknown', self.compare(self.observe(self.preview), tagged)['status'])
+
+    def test_matching_reports_cannot_repeat_a_false_tree_from_known_merges(self):
+        alternate = self.git('mktree', contents=f'040000 tree {self.tree}\tother\n')
+        pr = self.observe(self.preview)
+        main = self.observe(self.main, push=True)
+        # Merely agreeing does not make the claimed tree independent evidence.
+        for sample, _ in (pr, main):
+            sample['generated_contracts']['tree'] = alternate
+        for shallow in (False, True):
+            with self.subTest(shallow=shallow):
+                if shallow:
+                    (self.root / '.git/shallow').write_bytes(f'{self.preview}\n{self.main}\n'.encode('ascii'))
+                timing.commit_facts.cache_clear()
+                self.assertEqual('unknown', self.compare(pr, main)['status'])
 
 
 class TimingRegressionTests(unittest.TestCase):
@@ -2345,8 +2427,8 @@ class TimingRegressionTests(unittest.TestCase):
             native.update(status='passed', exit_code=0, duration_seconds=120)
             if day == 16:
                 report['selection']['checks'].append('chart-history')
-                report['checks'].append({'id': 'chart-history', 'status': 'passed', 'exit_code': 0,
-                                         'duration_seconds': 30})
+                report['checks'].insert(-1, {'id': 'chart-history', 'status': 'passed', 'exit_code': 0,
+                                            'duration_seconds': 30})
             samples.append(timing.report_sample(report))
 
         view = timing.timing_view(samples, hosted=workflows)
@@ -2488,7 +2570,10 @@ class TimingRegressionTests(unittest.TestCase):
         def producer(lane, check_id):
             selection = {'profile': f'ci-windows-{lane}', 'task_id': None, 'checks': [check_id]}
             row = {'id': check_id, 'status': 'passed', 'exit_code': 0, 'duration_seconds': 12}
-            return {**report, 'selection': selection, 'checks': [row], 'timing': {'elapsed_seconds': 14}}
+            checks = [row if check['id'] == check_id else {
+                'id': check['id'], 'status': 'blocked', 'reason_code': 'not_selected',
+            } for check in SPLIT_CATALOG['checks']]
+            return {**report, 'selection': selection, 'checks': checks, 'timing': {'elapsed_seconds': 14}}
 
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -2553,6 +2638,9 @@ class TimingRegressionTests(unittest.TestCase):
             'head_sha': 'b' * 40, 'checkout_sha': 'a' * 40,
         }
         report['selection']['checks'] = sorted([*report['selection']['checks'], 'future-check'])
+        report['checks'].extend(
+            {'id': key, 'status': 'blocked', 'reason_code': 'not_selected'} for key in SPLIT_CHECKS[1:]
+        )
         report['checks'].append({'id': 'future-check', 'status': 'blocked', 'reason_code': 'not_implemented'})
         sample = timing.report_sample(report, cache='partial')
         self.assertFalse(sample['coverage_complete'])
@@ -2790,6 +2878,12 @@ class TimingRegressionTests(unittest.TestCase):
         for platform in ['Linux', 'Windows']:
             report = historical_report()
             report.update(status='failed', environment={'system': platform, 'machine': 'x86_64'})
+            if platform == 'Windows':
+                report['checks'][0].update(status='failed', exit_code=1)
+                for row in report['checks'][1:4]:
+                    row.update(status='blocked', reason_code='earlier_failure')
+                    row.pop('exit_code', None)
+                    row.pop('duration_seconds', None)
             report['ci'] = {'repository': 'fixture/scopehub', 'run_id': str(run_id), 'run_attempt': '1',
                             'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'a' * 40}
             samples.append(timing.report_sample(report))
@@ -2877,6 +2971,9 @@ class RecentTimingTests(unittest.TestCase):
         )))
         self.enterContext(patch.object(timing, 'committed_publishing_inputs', return_value='c' * 64))
         self.enterContext(patch.object(timing, 'committed_windows_assignment', return_value={}))
+        # These timing fixtures supply synthetic publisher inputs. The real Git
+        # checkout/event comparison is exercised in PRMainComparisonTests.
+        self.enterContext(patch.object(timing, 'known_checkout_matches_event', return_value=True))
 
     def budget_run(self, day, finish, *, head='a' * 40, cache='warm', event='pull_request',
                    checkout=None, outcome='success', extra_check=False):

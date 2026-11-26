@@ -24,6 +24,7 @@ if __package__:
     from .verification_scope import (
         SCOPED_PROFILES, WINDOWS_LANES, ci_base, ci_event_checkout, require_ancestor,
         windows_lane_checks, windows_lane_report_matches, windows_lanes_run_id, windows_published_scope,
+        windows_result_issue,
     )
 else:
     from check import PRIVATE_CHECK_LOGS, ci_provenance, redacted_check_log
@@ -40,6 +41,7 @@ else:
     from verification_scope import (
         SCOPED_PROFILES, WINDOWS_LANES, ci_base, ci_event_checkout, require_ancestor,
         windows_lane_checks, windows_lane_report_matches, windows_lanes_run_id, windows_published_scope,
+        windows_result_issue,
     )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -345,7 +347,6 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False):
 
 
 def validate_windows_lane(project, report, source, ci, selected, lane, profile):
-    check_ids = [check['id'] for check in project['catalog']['checks']]
     if (report['ci'] != ci or report['source'] != source or report['source_end'] != source
             or not report['source_unchanged'] or not report['project_unchanged']
             or report['project_definition_sha256'] != project_definition_hash(project)
@@ -354,9 +355,10 @@ def validate_windows_lane(project, report, source, ci, selected, lane, profile):
         raise PublicationError(f'Windows {lane} lane has another checkout, run, platform or project definition.')
     if (not windows_published_scope(selected, profile, WINDOWS_LANES, project['catalog'])
             or report['selection'] != {'profile': profile, 'task_id': None, 'checks': sorted(selected)}
-            or [row['id'] for row in report['checks']] != check_ids
             or report['native_requirement'] != {'requested': False, 'satisfied': True}):
-        raise PublicationError(f'Windows {lane} lane has a different selection or catalog order.')
+        raise PublicationError(f'Windows {lane} lane has a different selection or native requirement.')
+    if issue := windows_result_issue(report['checks'], selected, project['catalog']):
+        raise PublicationError(f'Windows {lane} lane has {issue}.')
     python = report['environment']['python_executable']
     for row in report['checks']:
         key = row['id']
@@ -364,15 +366,6 @@ def validate_windows_lane(project, report, source, ci, selected, lane, profile):
         command = [python if arg == '{python}' else arg for arg in check['command'] or []]
         if row['command'] != command:
             raise PublicationError(f'Windows {lane} lane changed the command for {key}.')
-        if key not in selected or check['status'] != 'implemented':
-            reasons = {'not_selected'} if key not in selected else {
-                'not_implemented' if check['status'] == 'planned' else 'retired', 'earlier_failure',
-            }
-            if (row['status'] != 'blocked' or row.get('reason_code') not in reasons
-                    or {'log', 'log_sha256', 'exit_code'}.intersection(row)):
-                raise PublicationError(f'Windows {lane} lane has an unexpected result for {key}.')
-        elif row['status'] == 'passed' and (row.get('reason_code') or duration(row.get('duration_seconds')) is None):
-            raise PublicationError(f'Windows {lane} lane has an incomplete passing result for {key}.')
     if profile in SCOPED_PROFILES:
         statuses = {row['status'] for row in report['checks'] if row['id'] in selected}
         expected = 'failed' if 'failed' in statuses else 'passed' if statuses == {'passed'} else 'blocked'

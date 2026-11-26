@@ -4,7 +4,9 @@ import argparse
 import ast
 from collections import Counter
 from dataclasses import dataclass
+from datetime import timedelta
 from functools import lru_cache
+from hashlib import sha256
 import json
 import os
 from pathlib import Path
@@ -67,6 +69,36 @@ def windows_published_scope(selected, profile, lanes, catalog, *, assignment=WIN
             expected = (windows_lane_checks(expected, lane, lanes, assignment=assignment)
                         if profile.startswith('ci-windows-') else set())
     return bool(expected) and len(selected) == len(expected) and set(selected) == expected
+
+
+def windows_result_issue(rows, selected, catalog):
+    """Check the ordered results common to a native report and its timing projection."""
+    checks = catalog['checks']
+    if [row['id'] for row in rows] != [check['id'] for check in checks]:
+        return 'a different check result catalog or order'
+    for row, check in zip(rows, checks, strict=True):
+        key = check['id']
+        state, reason, code = row['status'], row.get('reason_code'), row.get('exit_code')
+        measured = row.get('duration_seconds')
+        omitted = all(row.get(field) is None for field in ('exit_code', 'duration_seconds', 'log', 'log_sha256'))
+        if key not in selected:
+            valid = state == 'blocked' and reason == 'not_selected' and omitted
+        elif check['status'] != 'implemented':
+            planned_reason = 'not_implemented' if check['status'] == 'planned' else 'retired'
+            valid = state == 'blocked' and reason in {planned_reason, 'earlier_failure'} and omitted
+        elif state == 'passed':
+            valid = (reason is None and type(code) is int and code == 0
+                     and type(measured) in (int, float) and 0 <= measured <= timedelta.max.total_seconds())
+        elif state == 'blocked':
+            valid = ((reason in {'earlier_failure', 'executable_unavailable'} and omitted)
+                     or (reason == 'observation_unavailable' and code == 77))
+        else:
+            valid = (state == 'failed' and (type(code) is int and code != 0 or reason in {
+                'timeout', 'interrupted', 'cleanup_failed', 'missing_acceptance_evidence',
+            }))
+        if not valid:
+            return f'an unexpected result for {key}'
+    return None
 
 
 SCOPE_REASONS = {
@@ -411,85 +443,37 @@ def _require_publishing_report_uses(main, report, parents):
         raise ValueError('Windows report serialized before the selection projection')
 
 
-def _require_catalog_projection(loader):
-    project_loader = _publishing_selector(loader, 'load_project')
-    if project_loader is None:
-        raise ValueError('Unavailable Windows publishing project loader')
-    catalog = _publishing_assignment_node(project_loader, 'catalog')
-    checks = _publishing_assignment_node(project_loader, 'checks')
-    project = _publishing_assignment_node(project_loader, 'project')
-    returned, = (node for node in ast.walk(project_loader) if isinstance(node, ast.Return))
-    if (ast.unparse(catalog) != "catalog = read_json(root / 'project/checks.json')"
-            or ast.unparse(checks) != "checks = indexed(catalog['checks'], 'check')"
-            or ast.unparse(_publishing_field(project.value, 'catalog')) != 'catalog'
-            or ast.unparse(_publishing_field(project.value, 'checks')) != 'checks'
-            or ast.unparse(returned) != 'return project'):
-        raise ValueError('Unknown Windows publication catalog projection')
-    catalog_uses = {
-        "validate_model(root, 'CheckCatalog', catalog)", "indexed(catalog['milestones'], 'milestone')",
-        "set(catalog['required_change_checks'])", "indexed(catalog['gate_changes'], 'gate replacement', field='removed_check')",
-        "catalog.get('profiles', {}).items()",
-    }
-    project_uses = {'validate_delivery(root, project)', 'validate_record(root, project, record)'}
-    validation = {ast.unparse(statement) for statement in project_loader.body if isinstance(statement, ast.Assign)}
-    if {
-        "definitions = read_json(root / 'contracts/schemas/project.schema.json')['$defs']",
-        'validate = partial(_validate_project_model, definitions)',
-    } <= validation:
-        catalog_uses.add("validate('CheckCatalog', catalog)")
-        project_uses.add('validate_delivery(root, project, validate)')
-    parents = {child: node for node in ast.walk(project_loader) for child in ast.iter_child_nodes(node)}
-    for node in _named_references(project_loader, 'catalog') - {
-        *catalog.targets, _publishing_field(project.value, 'catalog'),
-        *_named_references(checks, 'catalog'),
-    }:
-        parent = parents[node]
-        if isinstance(parent, ast.Attribute) and parent.attr == 'get':
-            parent = parents[parents[parents[parent]]]
-        elif isinstance(parent, ast.Subscript) and ast.unparse(parent.slice) != "'acceptance'":
-            parent = parents[parent]
-        if ast.unparse(parent) in catalog_uses:
-            continue
-        if ast.unparse(parent) == "catalog['acceptance']" and isinstance(parents[parent], (ast.For, ast.comprehension)):
-            continue
-        raise ValueError('Unsupported use of the Windows publishing catalog')
-    for node in _named_references(project_loader, 'checks') - {
-        *checks.targets, _publishing_field(project.value, 'checks'),
-    }:
-        parent = parents[node]
-        if isinstance(parent, ast.Call) and isinstance(parent.func, ast.Name) and parent.func.id == 'require_refs':
-            continue
-        if isinstance(parent, ast.Attribute) and ast.unparse(parent) in {'checks.items', 'checks.values'}:
-            call = parents[parent]
-            if isinstance(call, ast.Call) and not call.args and not call.keywords and isinstance(parents[call], (ast.For, ast.comprehension)):
-                continue
-        if isinstance(parent, ast.Subscript) and isinstance(parents[parent], ast.Subscript):
-            read = parents[parent]
-            if isinstance(read.ctx, ast.Load) and ast.unparse(read.slice) in {"'status'", "'platforms'"}:
-                continue
-        if isinstance(parent, (ast.comprehension, ast.For)) and parent.iter is node:
-            continue
-        if _selection_membership(parent, node):
-            continue
-        raise ValueError('Unsupported use of the Windows publishing check index')
-    for node in _named_references(project_loader, 'project') - {*project.targets, returned.value}:
-        parent = parents[node]
-        if ast.unparse(parent) in project_uses:
-            continue
-        if isinstance(parent, ast.Subscript) and ast.unparse(parent.slice) in {
-            "'delivery'", "'development'", "'manifest'", "'owner_decisions'",
-        }:
-            continue
-        raise ValueError('Unsupported use of the Windows publishing project')
-    history = _publishing_selector(loader, 'local_feedback_history')
-    if history:
-        parents = {child: node for node in ast.walk(history) for child in ast.iter_child_nodes(node)}
-        if any(ast.unparse(parents[node]) not in {
-            'require_periodic_reviews(root, project)', 'require_periodic_transition(root, project, sha)',
-            'validate_feedback_checkpoint(root, project, sha, imports)',
-            'validate_feedback_checkpoint(root, project, sha, predecessor, imports)',
-        } for node in _named_references(history, 'project')):
-            raise ValueError('Windows publishing history check can change its project input')
+# The historical loader shares mutable check rows with the full catalog.
+# Establish the observed whole Python modules before projecting the literal
+# JSON catalog. This includes helpers, loop bodies, aliases, and the imported
+# development validator. Each pair is keyed by the actual publishing Git blobs;
+# the nearby checkpoint helps trace its source. New forms remain unknown until
+# their catalog-to-selection behavior has been verified.
+_CATALOG_PROJECTION_BLOBS = {
+    ('e3af35e0ede7d13aa35bb9a1216d4651688a59be', 'e60d1a6c1a56008b8e12b0ec818b38596df82895'),  # d9102de9
+    ('7cfe2d5dcb642bc6bed87c08ca85209e23e999ce', 'e60d1a6c1a56008b8e12b0ec818b38596df82895'),  # df7587ee
+    ('72e70586f07bab5e79ae952aa931835e75f932ed', 'e60d1a6c1a56008b8e12b0ec818b38596df82895'),  # 6d159be4
+    ('335774be01ab80db11a811205986c4af74608955', 'cdf05d21c69f6d4c76c5821939772a9fefd540c0'),  # e341d1ee
+    ('96d828d551e37d287b4335bdcbd57bb370857b9d', 'ede860086d6c3236d6404b402ca8c86b73083a4c'),  # 64eccbf6
+    ('0ea916ea1a737f0780d6327c660288fe51ae0636', 'cdf05d21c69f6d4c76c5821939772a9fefd540c0'),  # e6f2c917
+    ('3ce47e17c9199c41a2059d721ceb91197f1bdb89', 'cdf05d21c69f6d4c76c5821939772a9fefd540c0'),  # 3491ace8
+    ('f758e3833df4aeb38c115b603ae63b2d278a3cbe', 'cdf05d21c69f6d4c76c5821939772a9fefd540c0'),  # 1b99c03d
+    ('3f9d5367b9069af3c7a1341f003bda101413c32c', 'cdf05d21c69f6d4c76c5821939772a9fefd540c0'),  # 794485aa
+    ('03ef853dfe0e856cf303b61f7e0cf351e756d9aa', 'cdf05d21c69f6d4c76c5821939772a9fefd540c0'),  # 178c7d26
+    ('1e7587ee9ee1e4ed82deaf5f6c16044dee833edb', 'cdf05d21c69f6d4c76c5821939772a9fefd540c0'),  # 44d95310
+    ('3829af24a472718b0d4b650ce10e1372345dc64b', '25b88bb5afb8df0a1fe3b26a0f1c69ddfb26311a'),  # 93ad31e8
+    ('3829af24a472718b0d4b650ce10e1372345dc64b', '2a5444072b9c9821b2d21f4887f77bd7b007e59a'),  # 727b4fb3
+    ('0ad12ea4e57ecde9777dc600324d8aca946d5da9', 'cdf05d21c69f6d4c76c5821939772a9fefd540c0'),  # 2ce9ba4b
+}
+
+
+@lru_cache(maxsize=128)
+def _known_catalog_projection(root, revision):
+    requests = f'{revision}:scripts/project.py\n{revision}:scripts/development.py\n'.encode('ascii')
+    records = git(root, 'cat-file', '--batch-check=%(objectname) %(objecttype)', input=requests).splitlines()
+    if len(records) != 2 or any(not row.endswith(b' blob') for row in records):
+        return False
+    return tuple(row.split()[0].decode('ascii') for row in records) in _CATALOG_PROJECTION_BLOBS
 
 
 def _publishing_lane_call(harness):
@@ -558,7 +542,7 @@ def _publishing_lane_call(harness):
     return partition.body[0].value if partition else None
 
 
-def _require_aggregate_selection(collector):
+def _require_aggregate_selection(root, revision, collector):
     collect = _publishing_selector(collector, 'collect_windows_lanes')
     validate = _publishing_selector(collector, 'validate_windows_lane')
     if not collect or not validate:
@@ -575,11 +559,19 @@ def _require_aggregate_selection(collector):
             continue
         raise ValueError('Unsupported use of the aggregated Windows lane selection')
     parents = {child: node for node in ast.walk(validate) for child in ast.iter_child_nodes(node)}
+    selected_uses = {
+        'sorted(selected)', "windows_published_scope(selected, profile, WINDOWS_LANES, project['catalog'])",
+    }
+    shared_check = "windows_result_issue(report['checks'], selected, project['catalog'])"
+    if any(ast.unparse(parents[node]) == shared_check for node in _named_references(validate, 'selected')):
+        scope = _publishing_module(root, revision, 'verification_scope.py')
+        validator = _check_selection_shape(scope, 'windows_result_issue')
+        if not validator or sha256(validator.encode()).hexdigest() != '10c9937054069cecd80cdd2e6dd77a30be4e4f13bb1b5688fd582cb0a8287d33':
+            raise ValueError('Unsupported aggregate result validator')
+        selected_uses.add(shared_check)
     for node in _named_references(validate, 'selected'):
         parent = parents[node]
-        if _selection_membership(parent, node) or ast.unparse(parent) in {
-            'sorted(selected)', "windows_published_scope(selected, profile, WINDOWS_LANES, project['catalog'])",
-        }:
+        if _selection_membership(parent, node) or ast.unparse(parent) in selected_uses:
             continue
         raise ValueError('Unsupported use of the validated Windows lane selection')
 
@@ -595,10 +587,11 @@ def committed_windows_assignment(root, revision, *, aggregate=False):
         if not isinstance(revision, str) or not OBJECT_ID.fullmatch(revision):
             return None
         harness = _publishing_module(root, revision, 'check.py')
-        _require_catalog_projection(_publishing_module(root, revision, 'project.py'))
+        if not _known_catalog_projection(root, revision):
+            return None
         call = _publishing_lane_call(harness)
         if aggregate and _named_references(harness, 'collect_windows_lanes'):
-            _require_aggregate_selection(_publishing_module(root, revision, 'ci_artifacts.py'))
+            _require_aggregate_selection(root, revision, _publishing_module(root, revision, 'ci_artifacts.py'))
         if call is None:
             _require_initial_windows_selection(harness, None)
             return {}

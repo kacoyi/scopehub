@@ -8699,6 +8699,142 @@
       "diagnostic_reports": [],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "timing-job-scope-dispute-lost-across-listings",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent decisions on e00b088bf70fea095a427b2fa465cd5544ef79a6, recorded at 2ce9ba4b622ff08c4db946052a5ec80a5fd93b64. M0-131 archives/observations/repo-hygiene-20261125/independent-final-m0-131-e00b088b/original-assistant-response.jsonl (SHA-256 3e3f70adbda8727b98ce794b5f8372936745443dad011b463d1073fff26cd30f); M0-133 archives/observations/repo-hygiene-20261125/independent-final-m0-133-e00b088b/original-assistant-response.jsonl (SHA-256 83981f7e797368c5c622da9f3a558eed3f157d12bafd6b6e2cf1f8365a23c402); M0-155 archives/observations/repo-hygiene-20261125/independent-final-m0-155-e00b088b/original-assistant-response.jsonl (SHA-256 aa3bd34b1b9ae6e3e510ef028b4ac7f7c1d91f5f8c362a561df4436d5deee7f2).",
+      "observation": "The same PR 84 full and scoped assertions on Windows job 138982816287 issued zero weekly receipts in one listing and one in separate listings. Ordinary and linked budget reads restored 804 wall seconds and 2467 runner-seconds after rotation and cold reopen.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-nameless-runner-label-erases-job-identity-conflict",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent decisions on e00b088bf70fea095a427b2fa465cd5544ef79a6, recorded at 2ce9ba4b622ff08c4db946052a5ec80a5fd93b64. M0-131 archives/observations/repo-hygiene-20261125/independent-final-m0-131-e00b088b/original-assistant-response.jsonl (SHA-256 3e3f70adbda8727b98ce794b5f8372936745443dad011b463d1073fff26cd30f); M0-145 archives/observations/repo-hygiene-20261125/independent-final-m0-145-e00b088b/original-assistant-response.jsonl (SHA-256 529a23c2476bec7fa48c741f2fd888de76d9717929fb0731628f2ba58654c6b9); M0-155 archives/observations/repo-hygiene-20261125/independent-final-m0-155-e00b088b/original-assistant-response.jsonl (SHA-256 aa3bd34b1b9ae6e3e510ef028b4ac7f7c1d91f5f8c362a561df4436d5deee7f2).",
+      "observation": "An Ubuntu label on a nameless row reused Windows browser job 138978153110. Both weekly collection modes accepted it, and a row with a one-second-later completion supplied an unsupported browser endpoint on ordinary and budget reads.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-publisher-clock-outside-recorded-report-boundary",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent decisions on e00b088bf70fea095a427b2fa465cd5544ef79a6, recorded at 2ce9ba4b622ff08c4db946052a5ec80a5fd93b64. M0-130 archives/observations/repo-hygiene-20261125/independent-final-m0-130-e00b088b/original-assistant-response.jsonl (SHA-256 924d728237f42216bc13c145a9088e64318548e76606daca211f5fafb25f227e).",
+      "observation": "Swapped PR 84 browser and aggregate names with incomplete steps attributed 645 seconds to the platform even though that job finished before the aggregate report was recorded. A saved older review restored the same attribution when the dropped role assertions were unavailable.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-disputed-producer-skips-independent-clock-acquisition",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent decisions on e00b088bf70fea095a427b2fa465cd5544ef79a6, recorded at 2ce9ba4b622ff08c4db946052a5ec80a5fd93b64. M0-155 archives/observations/repo-hygiene-20261125/independent-final-m0-155-e00b088b/original-assistant-response.jsonl (SHA-256 aa3bd34b1b9ae6e3e510ef028b4ac7f7c1d91f5f8c362a561df4436d5deee7f2).",
+      "observation": "With both reports for push 45577003837 and contradictory results on only the browser job, first and second CI budget reads did not request jobs. An explicit original listing recovered the independent Linux 768-second and Windows 718-second walls.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-publisher-selection-ignores-catalog-entry-mutation",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent decisions on e00b088bf70fea095a427b2fa465cd5544ef79a6, recorded at 2ce9ba4b622ff08c4db946052a5ec80a5fd93b64. M0-150 archives/observations/repo-hygiene-20261125/independent-final-m0-150-e00b088b/original-assistant-response.jsonl (SHA-256 fd000926647f2d1f7a5603e55321f3f41dbb1d3bf48e57cf2989b059a41b55f3).",
+      "observation": "A publishing loader changed one catalog entry to task cadence before returning. Both readers rejected the newly selected 34-check aggregates and qualified stale 35-check aggregates from the same source-bound PR 116 and PR 121 controls.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-native-result-rows-exceed-publisher-outcomes",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent decisions on e00b088bf70fea095a427b2fa465cd5544ef79a6, recorded at 2ce9ba4b622ff08c4db946052a5ec80a5fd93b64. M0-148 archives/observations/repo-hygiene-20261125/independent-final-m0-148-e00b088b/original-assistant-response.jsonl (SHA-256 6089333f404eda9df4f611dd48f64e0497aada359f53631a0060031ba80a671a); M0-145 archives/observations/repo-hygiene-20261125/independent-final-m0-145-e00b088b/original-assistant-response.jsonl (SHA-256 529a23c2476bec7fa48c741f2fd888de76d9717929fb0731628f2ba58654c6b9).",
+      "observation": "Swapping planned and implemented result rows in push 45577003837 retained a weekly receipt. A PR 121 producer with a missing catalog row qualified although the publisher rejected it. A compact failed report with coverage_complete true refreshed Windows while the raw harness report did not.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-merge-proof-allows-duplicate-parents",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent decisions on e00b088bf70fea095a427b2fa465cd5544ef79a6, recorded at 2ce9ba4b622ff08c4db946052a5ec80a5fd93b64. M0-156 archives/observations/repo-hygiene-20261125/independent-final-m0-156-e00b088b/original-assistant-response.jsonl (SHA-256 0fd5c34a4277832d0a154a78485cb7bd74eb2aa7d503b6dd45b04d9e32c0641b).",
+      "observation": "PR 84 received a Windows receipt with both merge parents naming the event head and a different claimed tree, on full and shallow history and after cold reopen. The genuinely absent, distinct first parent control still qualified.",
+      "task_ids": [
+        "M0-156"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-known-pr-checkout-has-foreign-event-parent",
+      "status": "open",
+      "severity": "major",
+      "source": "Public checkout-proof comparison against 2ce9ba4b622ff08c4db946052a5ec80a5fd93b64, retained at .reports/m0-156-joint-proof/red-baseline/observations.json (SHA-256 3ba99c36da75a29a61585936fb3e21e813dc5d729b95b7be8a4ed882dd7c789f).",
+      "observation": "A locally available preview with a second parent different from the recorded PR event head retained 804 wall seconds, 2467 runner-seconds and one Windows receipt. The same publisher tree and an independently matching preview produced identical reported clocks.",
+      "task_ids": [
+        "M0-156"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

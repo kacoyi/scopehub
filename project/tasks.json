@@ -26578,7 +26578,8 @@
         "tests/project/test_timing.py",
         "project/tasks.json",
         "project/feedback.json",
-        "tests/project/test_timing_job_roles.py"
+        "tests/project/test_timing_job_roles.py",
+        "tests/project/test_timing_job_observations.py"
       ],
       "decision_refs": [
         "0004",
@@ -26595,7 +26596,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Replay the retained source decisions and genuine original controls through ordinary, weekly, linked budget and cold reads after consolidating per-job evidence. Hand the exact clean joint correction to the coordinator for independent decisions and matching native verification. Keep the 2026-11-28 observation pending.",
+      "next_action": "Compare the per-job facts once through ordinary, weekly, rotated linked-budget and cold reads. Replay the three original PRs, the failed push and an independently selected later native control. Ask the coordinator for the job-facts decision first. Hand the exact clean candidate to t113 for decisions and native verification. Retain the 2026-11-28 scheduled observation as pending.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26617,7 +26618,8 @@
           "A producer report can prove its historical check assignment independently of a partial job listing, while a conflicting job identity can still withdraw the corresponding duration.",
           "A job listing currently decides which assertions to discard before the same attempt is reconciled across readers. Preserve the individual assertions and derive a normalized job once before calculating roles, clock endpoints and complete membership.",
           "A linked archive discovery or the current CI attempt can introduce an attempt after ordinary historical lookup has chosen its exact paths. Seed all attempts before reading any retained sibling capture or failure sidecar under the same budget.",
-          "Lossy per-list role and membership decisions can be replaced with one per-attempt projection of compatible observations keyed by job ID. A disputed participant can withhold membership without erasing the independent clocks of other roles."
+          "Lossy per-list role and membership decisions can be replaced with one per-attempt projection of compatible observations keyed by job ID. A disputed participant can withhold membership without erasing the independent clocks of other roles.",
+          "Successful publishing and lane steps, actual runner labels, job status and clock endpoints can be retained per job before any layout inference. Job time can independently contradict a report attribution when its recorded creation falls outside the observed publishing interval."
         ],
         "risks": [
           {
@@ -26730,6 +26732,34 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "The same PR 84 full and scoped assertions on Windows job 138982816287 issued zero weekly receipts in one listing and one in separate listings. Ordinary and linked budget reads restored 804 wall seconds and 2467 runner-seconds after rotation and cold reopen. Replay the positive and adverse observations through the owning public boundary.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An Ubuntu label on a nameless row reused Windows browser job 138978153110. Both weekly collection modes accepted it, and a row with a one-second-later completion supplied an unsupported browser endpoint on ordinary and budget reads. Replay the positive and adverse observations through the owning public boundary.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Swapped PR 84 browser and aggregate names with incomplete steps attributed 645 seconds to the platform even though that job finished before the aggregate report was recorded. A saved older review restored the same attribution when the dropped role assertions were unavailable. Replay the positive and adverse observations through the owning public boundary.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "With both reports for push 45577003837 and contradictory results on only the browser job, first and second CI budget reads did not request jobs. An explicit original listing recovered the independent Linux 768-second and Windows 718-second walls. Replay the positive and adverse observations through the owning public boundary.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain all source captures, saved reviews and original classifications if a change loses a valid clock or expands the ordinary read without a bound.",
@@ -26739,7 +26769,8 @@
           ],
           "entrypoints": [
             "scripts/timing.py",
-            "tests/project/test_timing.py"
+            "tests/project/test_timing.py",
+            "tests/project/test_timing_job_observations.py"
           ],
           "rules": [
             {
@@ -26764,10 +26795,11 @@
           "change": [
             "Reconcile old adverse timing evidence through the ordinary and budgeted readers when the recent window no longer supplies it.",
             "Make role, conclusion, checkout and clock attribution invariant to equivalent grouping and arrival order, and use attempt identities discovered through either index or live CI before final historical reconciliation.",
-            "Resolve each job field once across the retained observations. Absent assertions may be completed by compatible evidence, and contradictory assertions withdraw only dependent measurements and eligibility."
+            "Resolve each job field once across the retained observations. Absent assertions may be completed by compatible evidence, and contradictory assertions withdraw only dependent measurements and eligibility.",
+            "Derive protected role and profile evidence from all claims for each job ID, delay dependent projections until attempt reconciliation, and allow bounded acquisition of independently missing clocks with a disputed producer."
           ],
-          "data_plan": "Read existing saved reviews and retained per-attempt captures. Cover missing, conflicting and intact historical data.",
-          "cleanup": "Remove superseded lookup or reconciliation only after equivalent accepted and rejected observations pass."
+          "data_plan": "Read existing saved reviews and retained per-attempt captures. Cover missing, conflicting and intact historical data. Retain compatible V1 evidence, including individually supported legacy intervals. Recompute derived layout where the original assertions survive. Use retained report timestamps and job boundaries to withdraw incompatible old attributions and preserve original bytes.",
+          "cleanup": "Remove superseded lookup or reconciliation only after equivalent accepted and rejected observations pass. The coordinator commissions three material decisions first, one for job facts, one for historical publisher selection and outcomes, and one for checkout proof, each with an ordinary genuine positive. Reuse originals by digest and consolidate reproducers and risk assertions under each owner. Hold downstream reviews while a primary decision is red. Obtain the remaining formal decisions before acceptance, and compare against the next genuine capture or product change when available."
         }
       }
     },
@@ -26804,7 +26836,7 @@
       ],
       "diagnostic_reports": [],
       "evidence": [],
-      "next_action": "Replay the known non-commit parents and genuinely missing parents on full and shallow history with both readers. Hand the joint correction to the coordinator and keep the 2026-11-28 scheduled observation pending until it occurs.",
+      "next_action": "Compare exact event and known Git facts against a contradictory merge proof and a genuinely missing object on full and shallow history via both readers. Ask the coordinator for the checkout-proof decision before commissioning downstream reviews. Hand the exact clean candidate to t113 for decisions and native verification. Retain the 2026-11-28 scheduled observation as pending.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26824,7 +26856,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-b12aefdc/original-assistant-response.jsonl"
         ],
         "hypotheses": [
-          "The substitute Git fingerprint is computable with the standard library; importing the full project entry brings an unrelated parser into the weekly job."
+          "The substitute Git fingerprint is computable with the standard library; importing the full project entry brings an unrelated parser into the weekly job.",
+          "Raw Git commit headers keep exact parent and tree facts available at the shallow boundary. An unavailable object cannot contradict a properly bound proof, while a known inconsistent object or impossible parent relation can."
         ],
         "risks": [
           {
@@ -26867,6 +26900,20 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "PR 84 received a Windows receipt with both merge parents naming the event head and a different claimed tree, on full and shallow history and after cold reopen. The genuinely absent, distinct first parent control still qualified. Replay the positive and adverse observations through the owning public boundary.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A known preview with the correct publisher tree and a foreign second parent can bypass the observed PR event identity. Compare otherwise equal known previews on full and shallow history, with the genuinely missing first-parent control.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain the recorded evidence and archived identities; revert an extraction that changes the validated execution inputs or weekly runtime requirements.",
@@ -26905,10 +26952,11 @@
           ],
           "change": [
             "Make the historical substitute verification available in the declared weekly environment.",
-            "Reject the Git null sentinel as a timing identity before publisher fallback or timing attribution."
+            "Reject the Git null sentinel as a timing identity before publisher fallback or timing attribution.",
+            "Validate parent uniqueness and known object facts against the observed event in the shared proof path before admitting substitution. Preserve a separately verified execution-input fallback when the preview is genuinely unavailable."
           ],
-          "data_plan": "Use the retained real run and the existing committed-tree fingerprint format. Compare old and new identity results on supported inputs.",
-          "cleanup": "Share the authoritative identity calculation and remove redundant imports and transitional code after both call sites pass."
+          "data_plan": "Use the retained real run and the existing committed-tree fingerprint format. Compare old and new identity results on supported inputs. Read existing proof shapes through the shared Git checks with system Python. Keep original reports and distinguish unsupported attribution from independently measured harness time.",
+          "cleanup": "Share the authoritative identity calculation and remove redundant imports and transitional code after both call sites pass. The coordinator commissions three material decisions first, one for job facts, one for historical publisher selection and outcomes, and one for checkout proof, each with an ordinary genuine positive. Reuse originals by digest and consolidate reproducers and risk assertions under each owner. Hold downstream reviews while a primary decision is red. Obtain the remaining formal decisions before acceptance, and compare against the next genuine capture or product change when available."
         }
       }
     },
@@ -26942,7 +26990,7 @@
         "The verifier binds a producer to its publishing job, platform, source or verified execution-equivalent catalog and exact ordered scope. Incorrectly swapped, missing, extra and unverifiable assignments cannot establish a warm comparable observation.",
         "Previously supported publishing layouts, incomplete sources and historical evidence retain their respective outcomes. Verify the shared current selection together with its integration consumer."
       ],
-      "next_action": "Replay genuine publisher controls and the retained selector, aggregate, push checkout and duplicate-result decisions against the joint correction. Hand the exact clean source to the coordinator for independent decisions and matching native verification.",
+      "next_action": "Compare a genuine publisher product and distinct invalid selection and result rows through ordinary, weekly and reopened reads. Ask the coordinator for the publisher decision before commissioning downstream reviews. Hand the exact clean candidate to t113 for decisions and native verification. Retain the 2026-11-28 scheduled observation as pending.",
       "blocker": null,
       "evidence": [],
       "closure_reason": null,
@@ -26966,7 +27014,8 @@
           "The earlier and later sources had the same four Windows producer jobs and aggregate catalog. The browser and recovery assignments changed while the reader used one current mapping for both.",
           "A known authenticated source or demonstrably equivalent publishing inputs can distinguish layouts. Inferring a layout solely from the submitted selection would allow an incorrect producer to qualify.",
           "A cache vector supplies the named fields for qualified report reconciliation. Actions job listings supply clock and topology evidence independently.",
-          "The recognized launcher must preserve the lane selector result through its ordered report projection. An unsupported consumer or write invalidates the static proof."
+          "The recognized launcher must preserve the lane selector result through its ordered report projection. An unsupported consumer or write invalidates the static proof.",
+          "Running admission against a proven historical publishing catalog and selector can expose mutations that leave the selector text unchanged. Exact per-check eligibility can distinguish implemented and planned rows with unchanged aggregate work."
         ],
         "risks": [
           {
@@ -27061,6 +27110,20 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "A publishing loader changed one catalog entry to task cadence before returning. Both readers rejected the newly selected 34-check aggregates and qualified stale 35-check aggregates from the same source-bound PR 116 and PR 121 controls. Replay the positive and adverse observations through the owning public boundary.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Swapping planned and implemented result rows in push 45577003837 retained a weekly receipt. A PR 121 producer with a missing catalog row qualified although the publisher rejected it. A compact failed report with coverage_complete true refreshed Windows while the raw harness report did not. Replay the positive and adverse observations through the owning public boundary.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Keep the original artifacts and the explicit unknown result for a source whose publishing selection cannot be established; restore the prior reader if historical coverage cannot be preserved.",
@@ -27098,10 +27161,11 @@
           ],
           "change": [
             "Verify historical producer assignments using the applicable publishing inputs at the normal timing boundary.",
-            "Keep independent producer qualification separate from incomplete aggregate topology and reject source assignments whose final ownership cannot be established."
+            "Keep independent producer qualification separate from incomplete aggregate topology and reject source assignments whose final ownership cannot be established.",
+            "Require source-bound final selection and publisher-allowed outcomes for every native result row. Preserve compatible historical publisher forms and surface unknown qualification when the source cannot establish the final selection."
           ],
-          "data_plan": "Use the four authenticated producer artifacts and original compact measurements. Keep their raw source, artifact IDs, checksums and publishing check selections. Preserve the original reviews and replays in archives/observations/repo-hygiene-20261125/m0-150-review-followup-460248f9/, archives/observations/repo-hygiene-20261125/independent-final-m0-150-73fd4773/ and archives/observations/repo-hygiene-20261125/m0-150-combined-replay-73fd4773/. Retain the resumed contradictory-cache and checkout-marker inputs and raw outputs with their source identities for coordinator handoff.",
-          "cleanup": "Keep synthetic inconsistent controls isolated from the genuine artifacts and preserve any indeterminate original as a diagnostic."
+          "data_plan": "Use the four authenticated producer artifacts and original compact measurements. Keep their raw source, artifact IDs, checksums and publishing check selections. Preserve the original reviews and replays in archives/observations/repo-hygiene-20261125/m0-150-review-followup-460248f9/, archives/observations/repo-hygiene-20261125/independent-final-m0-150-73fd4773/ and archives/observations/repo-hygiene-20261125/m0-150-combined-replay-73fd4773/. Retain the resumed contradictory-cache and checkout-marker inputs and raw outputs with their source identities for coordinator handoff. Preserve original producer, compact and raw aggregate bytes. Recover usable report measurements even when publisher eligibility or job attribution cannot be established.",
+          "cleanup": "Keep synthetic inconsistent controls isolated from the genuine artifacts and preserve any indeterminate original as a diagnostic. The coordinator commissions three material decisions first, one for job facts, one for historical publisher selection and outcomes, and one for checkout proof, each with an ordinary genuine positive. Reuse originals by digest and consolidate reproducers and risk assertions under each owner. Hold downstream reviews while a primary decision is red. Obtain the remaining formal decisions before acceptance, and compare against the next genuine capture or product change when available."
         }
       }
     },
