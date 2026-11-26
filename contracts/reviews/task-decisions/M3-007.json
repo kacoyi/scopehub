@@ -68,6 +68,26 @@
       "requested_at": "2026-11-26T12:46:53.706142+00:00",
       "request_id": "8f7da71c0d2867db5804a7b25874450fc1835710c6023bb1335b59db76fe5828",
       "evidence_sha256": "7c63b3da6950f40895e64356910d176e23d370c0f008c219087c5004649a21cc"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a2edf1f7b0ece2d67249e816a73b29587fee32e3",
+      "verdict": "approved",
+      "decision": "APPROVE M3-007 a2edf1f7b0ece2d67249e816a73b29587fee32e3",
+      "scope": "APPROVE M3-007 a2edf1f7b0ece2d67249e816a73b29587fee32e3",
+      "observation": "After one lost status delivery, the compiled preview displayed 3500.5 for the genuine Rust ready reply and rejected both event-name mismatches with one cleanup request each.",
+      "reviewer": "Independent Astra Standard (t160)",
+      "original_sha256": "a47f263a8a582fd230f99d3cfba6b7b87100c854ccabcc8dfa5ea3c358a6f745",
+      "response_id": "6cdf024ffafe57efdbeecaf3903859ba36e4994e512e1f2a89ad84966db7e745",
+      "response_sha256": "20d7349e79fa07378e109ce29f37c085770bba2e790eddb1d4af76b3cf540653",
+      "legacy_response_sha256": "2945b6f652a43fdb771b0693068ee1c2d7eedc96fb03977fb4af3987a202fcea",
+      "observation_body_sha256": "e6a0320c571482c1aa39667bf97fd742251e95defb156323830c9139fa1939fe",
+      "event": {
+        "id": "msg_02f9caa521fa55ba016b082b9fccac87d18e2f26636ddcb413",
+        "timestamp": "2026-11-26T12:53:02.728Z"
+      },
+      "supersedes": "8f7da71c0d2867db5804a7b25874450fc1835710c6023bb1335b59db76fe5828",
+      "evidence_sha256": "152f04ee589655f6fd6212d8804b48dbfcd1b699dc89b50af6cf8e50816cf196"
     }
   ]
 }
