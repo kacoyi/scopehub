@@ -21,6 +21,9 @@ use tokio::{
 };
 use uuid::Uuid;
 
+#[cfg(any(target_os = "linux", windows))]
+mod deadline;
+
 const SOURCE: &str = r#"def compute(bars, params):
     print("synthetic stdout")
     assert type(params['gain']) is float
@@ -436,30 +439,6 @@ async fn cancels_running_code_reaps_its_interpreter_and_delivers_no_artifact() {
     assert!(
         !process_exists(sleeping),
         "the sleeping child survived cancellation"
-    );
-}
-
-#[tokio::test]
-async fn a_deadline_reaps_running_code_without_retry_or_artifact() {
-    let mut fixture = Fixture::observe_real_worker();
-    fixture.config.deadline = Duration::from_secs(5);
-    let request = request(SPAWNING_LOOP);
-    let operation = compute(&fixture.config, &request, future::pending());
-    tokio::pin!(operation);
-    let ((pid, parent, scratch), sleeping) = tokio::select! {
-        result = &mut operation => panic!("computation ended before entering Python: {result:?}"),
-        witness = async { tokio::join!(fixture.witness(), fixture.sleeping_child()) } => witness,
-    };
-    assert!(process_exists(sleeping));
-    let failure = timeout(Duration::from_secs(5), operation)
-        .await
-        .unwrap()
-        .unwrap_err();
-    assert_eq!(failure.code, ErrorCode::TIMEOUT);
-    fixture.assert_reaped(pid, parent, scratch);
-    assert!(
-        !process_exists(sleeping),
-        "the sleeping child survived the deadline"
     );
 }
 

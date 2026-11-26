@@ -27149,9 +27149,19 @@
           "run_id": "windows-change-45844453865-1",
           "source_commit": "774b5704a2c23a33d3c58230177ba50556e25744",
           "report_sha256": "6b468211eee9b20f4b88479d1de6f0b9e1a18ae27e85269fa3bdae8fff60077e"
+        },
+        {
+          "run_id": "windows-change-45844453865-1",
+          "source_commit": "774b5704a2c23a33d3c58230177ba50556e25744",
+          "report_sha256": "17936b45c6f4c0067a2fc281de760f968c5416cad1579015e14adf895d775623"
+        },
+        {
+          "run_id": "windows-change-45825584085-1",
+          "source_commit": "8d088f7cba3e7d6322ee9eeb396bd2db59bfa4a2",
+          "report_sha256": "49e0b487bd0cd4501a5c5888ae2198149015b40a9cbcc78242d916ff08d4fff8"
         }
       ],
-      "next_action": "Inspect which runtime, process and fixture events are observed in the genuine failed and earlier passing runs. Pair a real running-child deadline observation with a bounded early-timeout control in an isolated synthetic task. Preserve product limits and capture process and filesystem cleanup. Coordinate shared Rust test changes with M0-167.",
+      "next_action": "Review the clean implementation source and its retained local observations. The coordinator qualifies both deadline phases on real Windows and rechecks them at protected integration alongside the separately owned M0-167 cancellation correction.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -27160,6 +27170,7 @@
           "indicators"
         ],
         "context": [
+          "crates/worker-host/tests/deadline/mod.rs",
           "crates/worker-host/tests/trusted_indicator.rs",
           "crates/worker-host/src/indicator.rs",
           "project/checks.json",
@@ -27186,6 +27197,7 @@
             "worker-runtime"
           ],
           "entrypoints": [
+            "crates/worker-host/tests/deadline/mod.rs",
             "crates/worker-host/tests/trusted_indicator.rs",
             "crates/worker-host/src/indicator.rs"
           ],
