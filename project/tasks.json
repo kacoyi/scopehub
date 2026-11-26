@@ -26165,7 +26165,7 @@
           "sha256": "fb4345db27bf793accfd0d67401a044be089c0305a0dc51c347691e17756de4a"
         }
       ],
-      "next_action": "Use the clean common source and retained platform and status controls, prior launch and compiled-browser controls, and original guarded Windows failure for coordinator review. Keep the M2-034 and M2-035 requests pending until the common source qualifies. Obtain applicable independent decisions, then perform a guarded Windows x64 rerun to observe the endpoint, owned WebView2 listener, native admission and both public provider journeys with the bound observation and exact executable. Operator physical qualification remains separate.",
+      "next_action": "Diagnose the first guarded Ubuntu proof snapshot after the peer confirms the replacement. Preserve the actual first-run evidence and typed outcomes, qualify the ordinary two-window and adjacent focus cases, and obtain fresh independent review before matching hosted verification. Collect the existing Windows attempt separately.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26378,6 +26378,12 @@
             "checks": [
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "A proof snapshot can omit its result before the first focus comparison even when the peer showed close 106. Preserve the original response status, code, identity and already-observed peer state, and independently verify legitimate completion and a rejected or missing envelope.",
+            "checks": [
+              "desktop-workspace-transport"
+            ]
           }
         ],
         "rollback": "Revert the UI change while retaining the independent red and green observations. Existing stored revisions and schemas need no migration.",
@@ -26498,6 +26504,11 @@
           "run_id": "20261126T063522.897871Z-dc6a197c",
           "source_commit": "c20a81c462de641e82dd6358dbfea2a0c99f2a4b",
           "report_sha256": "0910e9959c98c0c40bef3493373b6d6d92ca5b49378e2db5e3a5565448fe3db5"
+        },
+        {
+          "run_id": "20261126T132144.208214Z-e6b6c2d4",
+          "source_commit": "07424b3955546ae6ff1c8302caca024a235d1bba",
+          "report_sha256": "281f9a11fed3d407ea81479b0d20f093c4bedd1ce3db47e143c3a87c1e573583"
         }
       ]
     },
