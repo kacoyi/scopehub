@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-163",
+  "task_definition_sha256": "36a4282da45e1ac1baa06b2f66f25d3d28bf3da5c62405c23821204b23bd2678",
+  "run_id": "20261126T072426.622771Z-e8680718",
+  "recorded_at": "2026-11-26T07:27:43.483627+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "139443d1eb3c17edd6385999bb261d61f1c87f833a9e27049b33f0780690a23a",
+    "file_count": 611,
+    "git_head": "a25bcc72f551c095a3a36f9c0046660aae634445",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "0a1e626f3ffd96522af39d24c968355b91b5598146ee2dc689e029804af1c4eb",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-44-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/risk-first-engineering-guidance/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/risk-first-engineering-guidance/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c27a31a020e35887fc4ab716973646332b59e14c80e484764f0d69090d69205c"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/risk-first-engineering-guidance/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "6bf16b267c73745962cc8bebe45314bc470a498b8e7bc0d641402cbc1f9aff44"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/risk-first-engineering-guidance/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "21394e146442aeb8b6a2927b16e5377ec5098398d42b0b7ad4f232b27003b445"
+    }
+  ],
+  "project_definition_sha256": "86e53cb700184fd0c4ddf0675dd7eb486d6510bd8fdf6230544889fdd164bd1f",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

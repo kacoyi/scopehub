@@ -299,7 +299,7 @@
     {
       "id": "market-recovery",
       "status": "implemented",
-      "purpose": "Verify closed-bar repair and unresolved gaps on the ordinary chart through the real worker, including frozen history and rejection of invalid or interrupted repairs.",
+      "purpose": "Verify closed-bar repair and unresolved gaps on the ordinary chart through the real worker, including frozen history and rejection of invalid or interrupted repairs. Qualify cold sample observations with request-bound history admission and actual candles at fitted time and OHLC positions. Distinguish missing or misplaced candles, renderer failure and rejected history.",
       "platforms": "all",
       "command": [
         "pnpm",
