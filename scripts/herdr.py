@@ -43,6 +43,7 @@ LAUNCH_SETTLE_SECONDS = 90
 ONE_SHOT_BIND_SECONDS = 3
 ONE_SHOT_LOCK_SECONDS = 10
 ONE_SHOT_RETRY_SECONDS = 0.2
+ONE_SHOT_DEFERRED_RETRY_SECONDS = 1
 WATCH_FINAL_HOLDS = {'unregistered_assignment', 'foreign_terminal', 'terminal_finished_without_archive',
                      'terminal_turn_changed', 'turn_changed', 'turn_interrupted', 'wrong_core'}
 
@@ -379,7 +380,7 @@ def capture_execution(native, binding, terminal, pid, session):
         time.sleep(0.1)
 
 
-def retry_owned_transition(transition, *args):
+def retry_owned_transition(transition, *args, resume_on_busy=False):
     deadline = time.monotonic() + ONE_SHOT_LOCK_SECONDS
     while True:
         try:
@@ -387,10 +388,18 @@ def retry_owned_transition(transition, *args):
         except LifecycleHold as error:
             if str(error) != 'assignment_busy':
                 raise
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                raise
-        time.sleep(min(ONE_SHOT_RETRY_SECONDS, remaining))
+            if deadline is not None:
+                remaining = deadline - time.monotonic()
+                if remaining > 0:
+                    time.sleep(min(ONE_SHOT_RETRY_SECONDS, remaining))
+                    continue
+                if not resume_on_busy:
+                    raise
+                print('project:herdr run-owned: assignment_busy. Waiting to retry the same owned transition.',
+                      file=sys.stderr, flush=True)
+                deadline = None
+        # Lock acquisition stays nonblocking and each retry resolves the current lane.
+        time.sleep(ONE_SHOT_DEFERRED_RETRY_SECONDS)
 
 
 def run_owned_main():
@@ -429,12 +438,12 @@ def run_owned_main():
                     if execution is not None:
                         raise LifecycleHold('assignment_execution_changed')
                     execution = capture_execution(native, binding, terminal, codex.pid, event.get('thread_id'))
-                    retry_owned_transition(lifecycle.save_execution, binding, execution)
+                    retry_owned_transition(lifecycle.save_execution, binding, execution, resume_on_busy=True)
                 sys.stdout.buffer.write(raw)
                 sys.stdout.buffer.flush()
             if codex.wait() != 0 or execution is None:
                 raise LifecycleHold('one_shot_execution_failed')
-        digest = retry_owned_transition(lifecycle.complete_owned, binding, execution)
+        digest = retry_owned_transition(lifecycle.complete_owned, binding, execution, resume_on_busy=True)
         print(f'Verified assignment return archived ({digest}).', flush=True)
         return 0
     except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:

@@ -1,6 +1,6 @@
 """Exercise the Herdr launch boundary without a running core or model."""
 
-from contextlib import ExitStack, nullcontext, redirect_stderr, redirect_stdout
+from contextlib import ExitStack, contextmanager, nullcontext, redirect_stderr, redirect_stdout
 from hashlib import sha256
 from io import BytesIO, StringIO, TextIOWrapper
 import json
@@ -90,7 +90,7 @@ class HerdrOwnedEntryTests(unittest.TestCase):
         self.enterContext(patch.object(herdr, 'inherited_parent', return_value=self.terminal['address']))
         self.enterContext(patch.object(herdr, 'check_review_source'))
         self.rollout_probe = self.enterContext(patch.object(herdr, 'exec_rollout', return_value=self.rollout))
-        self.enterContext(patch.object(herdr.signal, 'pause', side_effect=RunnerHeld))
+        self.inspection_hold = self.enterContext(patch.object(herdr.signal, 'pause', side_effect=RunnerHeld))
 
     def new_lifecycle(self):
         return herdr_lifecycle.Lifecycle(self.state, self.parent, observe=self.native.observe, probe=self.probe)
@@ -141,7 +141,7 @@ class HerdrOwnedEntryTests(unittest.TestCase):
         path.touch(mode=0o600)
         path.write_text(json.dumps(execution, sort_keys=True) + '\n', encoding='utf-8')
 
-    def compete(self, *, after_lock=None, interrupt=None):
+    def lock_at_completion(self):
         lock = self.enterContext(ExitStack())
 
         def finished_child():
@@ -149,6 +149,10 @@ class HerdrOwnedEntryTests(unittest.TestCase):
             return 0
 
         self.child.wait.side_effect = finished_child
+        return lock
+
+    def compete(self, *, after_lock=None, interrupt=None):
+        lock = self.lock_at_completion()
 
         def publish(_):
             self.assertEqual(self.collect()['reason'], 'assignment_busy')
@@ -163,6 +167,39 @@ class HerdrOwnedEntryTests(unittest.TestCase):
                 after_lock()
 
         return patch.object(herdr.time, 'sleep', side_effect=publish)
+
+    @contextmanager
+    def past_lock_budget(self, release):
+        elapsed = 0
+        released = False
+
+        def release_once():
+            nonlocal released
+            if not released:
+                release()
+                released = True
+
+        def advance(seconds):
+            nonlocal elapsed
+            self.assertGreater(seconds, 0)
+            self.assertLessEqual(seconds, herdr.ONE_SHOT_LOCK_SECONDS)
+            elapsed += seconds
+            self.assertLessEqual(elapsed, 3 * herdr.ONE_SHOT_LOCK_SECONDS)
+            if elapsed > herdr.ONE_SHOT_LOCK_SECONDS:
+                release_once()
+
+        def paused():
+            # Observe the gate reopening even if the runner entered the permanent inspection hold.
+            self.assertGreaterEqual(elapsed, herdr.ONE_SHOT_LOCK_SECONDS)
+            release_once()
+            raise RunnerHeld
+
+        with (patch.object(herdr.time, 'monotonic', side_effect=lambda: elapsed),
+              patch.object(herdr.time, 'sleep', side_effect=advance),
+              patch.object(herdr.signal, 'pause', side_effect=paused)):
+            yield
+        self.assertTrue(released)
+        self.assertGreater(elapsed, herdr.ONE_SHOT_LOCK_SECONDS)
 
     def test_run_owned_without_competition_recovers_its_exact_pair(self):
         self.assertEqual(self.run_owned(), 0)
@@ -194,6 +231,23 @@ class HerdrOwnedEntryTests(unittest.TestCase):
             self.assertEqual(self.run_owned(), 0)
 
         retry.assert_called_once()
+        self.rollout_probe.assert_called_once_with(self.child.pid, Path(self.binding['sessions']), self.session)
+        self.assertEqual(self.lifecycle.execution(self.assignment), self.execution)
+        self.assert_saved_pair()
+        self.assertEqual(self.stdout.getvalue().splitlines(keepends=True)[0], self.thread_started)
+
+    def test_run_owned_saves_the_same_captured_start_after_the_lock_budget(self):
+        lock = self.lock_at_start()
+
+        def release():
+            self.assertEqual(self.collect()['reason'], 'assignment_busy')
+            lock.close()
+            self.assertEqual(self.collect()['reason'], 'one_shot_start_unobserved')
+
+        with self.past_lock_budget(release):
+            self.assertEqual(self.run_owned(), 0)
+
+        self.start_child.assert_called_once()
         self.rollout_probe.assert_called_once_with(self.child.pid, Path(self.binding['sessions']), self.session)
         self.assertEqual(self.lifecycle.execution(self.assignment), self.execution)
         self.assert_saved_pair()
@@ -235,8 +289,38 @@ class HerdrOwnedEntryTests(unittest.TestCase):
         self.assertFalse(self.archived.exists())
         self.probe.assert_not_called()
 
-    def test_run_owned_bounds_a_persistently_locked_start(self):
+    def test_run_owned_paces_a_persistently_locked_captured_start(self):
         self.lock_at_start()
+        budget = herdr.ONE_SHOT_LOCK_SECONDS
+        elapsed = 0
+        slow_delays = []
+
+        def advance(seconds):
+            nonlocal elapsed
+            self.assertGreater(seconds, 0)
+            self.assertLessEqual(seconds, budget)
+            if elapsed >= budget:
+                self.assertGreaterEqual(seconds, 1)
+                slow_delays.append(seconds)
+            elapsed += seconds
+            if elapsed > 3 * budget:
+                raise RunnerHeld
+
+        with (patch.object(herdr.time, 'monotonic', side_effect=lambda: elapsed),
+              patch.object(herdr.time, 'sleep', side_effect=advance),
+              self.assertRaises(RunnerHeld)):
+            self.run_owned()
+
+        self.assertGreater(len(slow_delays), 1)
+        self.assertEqual(self.stderr.getvalue().count('assignment_busy'), 1)
+        self.inspection_hold.assert_not_called()
+        self.start_child.assert_called_once()
+        self.rollout_probe.assert_called_once()
+        self.assertFalse((self.pending / 'execution.json').exists())
+        self.assertFalse(self.archived.exists())
+        self.probe.assert_not_called()
+
+    def test_run_owned_bounds_a_busy_admission_before_starting_a_child(self):
         elapsed = 0
 
         def advance(_):
@@ -244,13 +328,17 @@ class HerdrOwnedEntryTests(unittest.TestCase):
             elapsed += 30
             self.assertLessEqual(elapsed, 30)
 
-        with (patch.object(herdr.time, 'monotonic', side_effect=lambda: elapsed),
+        with (exclusive_git_lock(self.pending / 'operation.lock'),
+              patch.object(herdr.time, 'monotonic', side_effect=lambda: elapsed),
               patch.object(herdr.time, 'sleep', side_effect=advance) as retry,
               self.assertRaises(RunnerHeld)):
             self.run_owned()
 
         retry.assert_called_once()
         self.assertIn('assignment_busy', self.stderr.getvalue())
+        self.inspection_hold.assert_called_once()
+        self.start_child.assert_not_called()
+        self.rollout_probe.assert_not_called()
         self.assertFalse((self.pending / 'execution.json').exists())
         self.assertFalse(self.archived.exists())
         self.probe.assert_not_called()
@@ -261,6 +349,24 @@ class HerdrOwnedEntryTests(unittest.TestCase):
         retry.assert_called_once()
         self.child.wait.assert_called_once()
         self.probe.assert_called_once_with(self.binding, self.execution)
+        self.assert_saved_pair()
+
+    def test_run_owned_exits_after_a_competing_archive_commits_past_the_lock_budget(self):
+        lock = self.lock_at_completion()
+
+        def publish():
+            self.assertEqual(self.collect()['reason'], 'assignment_busy')
+            lock.close()
+            self.assert_saved_pair()
+
+        with self.past_lock_budget(publish):
+            self.assertEqual(self.run_owned(), 0)
+
+        self.child.wait.assert_called_once()
+        self.probe.assert_called_once_with(self.binding, self.execution)
+        self.assertEqual(self.lifecycle.execution(self.assignment), self.execution)
+        self.assertEqual(list(self.archived.parent.iterdir()), [self.archived])
+        self.assertFalse(self.pending.exists())
         self.assert_saved_pair()
 
     def test_run_owned_recovers_pair_after_competing_collector_interrupts(self):
@@ -294,23 +400,29 @@ class HerdrOwnedEntryTests(unittest.TestCase):
         self.assertEqual((self.archived / 'return/original.jsonl').read_bytes(), self.original)
         self.assertNotIn(b'Verified assignment return archived', self.stdout.getvalue())
 
-    def test_run_owned_rejects_competing_archive_for_a_different_execution(self):
+    def test_run_owned_rejects_a_different_execution_after_the_lock_budget(self):
+        lock = self.lock_at_completion()
+
         def change_execution():
+            lock.close()
+            self.assert_saved_pair()
             (self.archived / 'execution.json').write_text(json.dumps(dict(self.execution, pid=1)), encoding='utf-8')
 
-        with self.compete(after_lock=change_execution), self.assertRaises(RunnerHeld):
+        with self.past_lock_budget(change_execution), self.assertRaises(RunnerHeld):
             self.run_owned()
         self.assertIn('assignment_execution_changed', self.stderr.getvalue())
         self.assertEqual((self.archived / 'return/completion.jsonl').read_bytes(), self.completion)
         self.assertNotIn(b'Verified assignment return archived', self.stdout.getvalue())
 
-    def test_run_owned_completion_cannot_recreate_a_missing_start_identity(self):
+    def test_run_owned_cannot_recreate_a_missing_start_identity_after_the_lock_budget(self):
+        lock = self.lock_at_completion()
+
         def lose_start():
             (self.pending / 'execution.json').unlink()
-            return 0
+            lock.close()
+            self.assertEqual(self.collect()['reason'], 'one_shot_start_unobserved')
 
-        self.child.wait.side_effect = lose_start
-        with self.assertRaises(RunnerHeld):
+        with self.past_lock_budget(lose_start), self.assertRaises(RunnerHeld):
             self.run_owned()
 
         self.assertIn('one_shot_start_unobserved', self.stderr.getvalue())
