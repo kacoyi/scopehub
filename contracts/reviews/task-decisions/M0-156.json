@@ -88,6 +88,15 @@
       },
       "supersedes": "1becfbe5747aeddb2f9742ce30923bb1de96d877c79540f100b4f10c32ea60a2",
       "evidence_sha256": "7c53ce39c79fa4da3bda31749371992eeb5c50eed5670ab6a8360b12154417c1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "scope": "Independently replay the weekly system-Python entry on full and shallow history. Check valid commits, known trees and blobs, null object IDs, genuine missing previews with and without matching proof, absent catalog, changed digest and differing selection. Ordinary and weekly consumers must make the same authority decision. Keep actual due-cycle qualification separate. Recheck the original decision on caea2a0a.",
+      "supersedes": "29ba083e5dee1028bf9d092e8ede8cf6bf7abea10beaa409b43e4711fdc4202d",
+      "requested_at": "2026-11-26T05:01:43.248351+00:00",
+      "request_id": "dba47eae97852fa3d92b7a9a2a7e4e2109e923da84be6e023a7d36e688c8bffb",
+      "evidence_sha256": "8bd9fa3faf967971e0076f017ef7ed8f5eb7f46b93a4096260072ae2f5fff1dc"
     }
   ]
 }
