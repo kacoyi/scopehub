@@ -3,30 +3,14 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { expect, test } from '@playwright/test';
-import { withNativePublishedProfile } from './published-revision-access-windows.fixture.mjs';
+import {
+  invokePublishedOperation as invoke, publishedRevisionRequest as request,
+  publishedRevisionStatusRequest as statusRequest, withNativePublishedProfile,
+} from './published-revision-access-windows.fixture.mjs';
 import { expectEmptyRevisionLibrary, expectWithdrawnRevisionDenied, openPublishedRevisionDialog, withdrawPublishedRevision } from './published-revision-controls.mjs';
 import { control } from './workspace-controls.mjs';
 
 const sourcePath = 'daily.csv';
-
-function request(operation, revision_id, rest = {}) {
-  return { operation: 'market.' + operation, payload: { version: 1, revision_id, ...rest }, requestId: randomUUID() };
-}
-
-function statusRequest(kind, revision_id) {
-  return kind === 'folder' ? request('readLocalFolderRevision', revision_id, { include_details: false })
-    : { operation: null, payload: { type: 'frozen_chart_status', revision_id, request_id: randomUUID() } };
-}
-
-async function invoke(page, args) {
-  return page.evaluate(async payload => {
-    try {
-      return { result: await window.__TAURI_INTERNALS__.invoke('execute_operation', payload) };
-    } catch (error) {
-      return { error };
-    }
-  }, args);
-}
 
 function expectAvailable(kind, id, reply) {
   expect(reply.error).toBeUndefined();
@@ -35,11 +19,6 @@ function expectAvailable(kind, id, reply) {
   } else {
     expect(reply.result).toEqual({ available: true });
   }
-}
-
-function expectMissing(kind, reply) {
-  if (kind === 'folder') expect(reply.error?.code).toBe('SNAPSHOT_UNAVAILABLE');
-  else expect(reply).toEqual({ result: { available: false } });
 }
 
 function expectWithdrawn(kind, reply) {
@@ -53,8 +32,7 @@ async function observeAdmission(page, ids, database, observation) {
   const db = new DatabaseSync(database);
   const writeArgs = request('revokeLocalImportRevision', randomUUID());
   try {
-    // Establish the application's persistent connection before taking the lock.
-    expectAvailable('csv', ids.csv, await invoke(page, statusRequest('csv', ids.csv)));
+    // The startup status checks already established the desktop connection.
     db.exec('BEGIN IMMEDIATE');
     const write = invoke(page, writeArgs);
     try {
@@ -350,9 +328,6 @@ test('observe native admission and public CSV and folder access across dialog re
   let outcome = 'failed';
   try {
     await withNativePublishedProfile(testInfo, observation, async ({ page, ids, database }) => {
-      await invoke(page, statusRequest('csv', ids.csv)).then(reply => expectAvailable('csv', ids.csv, reply));
-      expectMissing('csv', await invoke(page, statusRequest('csv', randomUUID())));
-      expectMissing('folder', await invoke(page, statusRequest('folder', randomUUID())));
       await observeAdmission(page, ids, database, observation.admission);
       await observePublicDrawer(page, 'folder', ids.folder, ids.csv, observation.public_drawer);
       await observePublicDrawer(page, 'csv', ids.csv, ids.folder, observation.public_drawer);

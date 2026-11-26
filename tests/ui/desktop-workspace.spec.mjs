@@ -23,13 +23,14 @@ function revisionStatus(dispatch, revisionId, requestId = randomUUID()) {
 function snapshotOutcome({ status, body }) {
   return {
     status, ok: body?.ok ?? null, code: body?.error?.code ?? null, retryable: body?.error?.retryable ?? null,
-    hasResult: Object.hasOwn(body ?? {}, 'result'),
+    hasResult: Object.hasOwn(body ?? {}, 'result'), hasError: Object.hasOwn(body ?? {}, 'error'),
     selection: body?.result?.selection_revision ?? null, source: body?.result?.source ?? null,
   };
 }
 
 async function readProofSnapshot(dispatchResponse, observe) {
   let response;
+  let outcome;
   await expect.poll(async () => {
     try {
       response = await dispatchResponse({ type: 'snapshot' });
@@ -37,13 +38,15 @@ async function readProofSnapshot(dispatchResponse, observe) {
       observe({ transportError: error.name, code: error.code ?? error.cause?.code ?? null });
       throw error;
     }
-    const outcome = snapshotOutcome(response);
+    outcome = snapshotOutcome(response);
     const refused = !outcome.hasResult && preAdmissionBusy(response);
     observe({ ...outcome, refused });
     return !refused;
   }, { timeout: 4_000, message: 'The verified state read must reach a terminal snapshot reply' }).toBe(true);
-  expect(response, 'The independent proof must return a successful workspace snapshot').toMatchObject({
-    status: 200, body: { ok: true, result: { selection_revision: expect.any(Number) } },
+  expect(outcome.hasError && (outcome.ok === true || outcome.hasResult),
+    'The independent proof received a contradictory workspace snapshot').toBe(false);
+  expect(outcome, 'The independent proof must return a successful workspace snapshot').toMatchObject({
+    status: 200, ok: true, hasResult: true, hasError: false, selection: expect.any(Number),
   });
   return response.body.result;
 }
@@ -912,11 +915,19 @@ test('a retryable admission rejection cannot disable authorized selection clear'
   expect(cleared?.workspace_id).toBe(base.workspace.id);
 });
 
-test('the independent snapshot proof retries only a typed pre-admission refusal', async ({}, testInfo) => {
+test('the independent snapshot proof retries only a typed pre-admission refusal', async ({ page }, testInfo) => {
   const source = { kind: 'frozen', revision_id: randomUUID(), status: 'available' };
   const result = { selection_revision: 2, source };
   const admitted = { status: 200, body: { ok: true, result } };
   const refusal = { status: 429, body: { ok: false, error: { code: 'BUSY', retryable: true } } };
+  const permissionError = { code: 'PERMISSION_DENIED', retryable: false };
+  const denied = { status: 403, body: { ok: false, error: permissionError } };
+  const contradictory = { ...admitted, body: { ...admitted.body, error: permissionError } };
+  const frame = { type: 'snapshot' };
+  const bridgeResponses = [admitted, denied, contradictory];
+  const bridgeReplies = [];
+  let bridgeReply;
+  const bridgeCalls = await nativeTransport(page, { optedIn: true }, () => bridgeReply);
   const traces = [];
   const run = (name, first) => {
     const calls = [];
@@ -930,19 +941,44 @@ test('the independent snapshot proof retries only a typed pre-admission refusal'
     }, outcome => outcomes.push(outcome));
     return { calls, outcomes, attempt };
   };
-  const frame = { type: 'snapshot' };
   try {
+    await page.goto('about:blank');
+    for (const response of bridgeResponses) {
+      bridgeReply = response.body;
+      const outcome = await page.evaluate(async payload => {
+        try {
+          return { result: await window.__TAURI_INTERNALS__.invoke('execute_operation', { operation: null, payload }) };
+        } catch (error) {
+          return { error };
+        }
+      }, frame);
+      bridgeReplies.push({ response, outcome });
+    }
+    expect(bridgeReplies.map(entry => entry.outcome)).toEqual([{ result }, { error: permissionError }, { error: permissionError }]);
+    expect(bridgeCalls).toHaveLength(bridgeResponses.length);
+
+    const valid = run('ordinary successful snapshot', admitted);
+    await expect(valid.attempt).resolves.toEqual(result);
+    expect(valid.calls).toEqual([frame]);
+    expect(valid.outcomes).toMatchObject([{
+      status: 200, ok: true, hasResult: true, hasError: false, refused: false, selection: 2, source,
+    }]);
+
     const recovered = run('pre-admission refusal followed by an admitted proof', refusal);
     await expect(recovered.attempt).resolves.toEqual(result);
     expect(recovered.calls).toEqual([frame, frame]);
     expect(recovered.outcomes).toMatchObject([
-      { status: 429, ok: false, code: 'BUSY', retryable: true, hasResult: false, refused: true },
-      { status: 200, ok: true, hasResult: true, refused: false, selection: 2, source },
+      { status: 429, ok: false, code: 'BUSY', retryable: true, hasResult: false, hasError: true, refused: true },
+      { status: 200, ok: true, hasResult: true, hasError: false, refused: false, selection: 2, source },
     ]);
+    const rejected = run('ordinary permission denial', denied);
+    await expect(rejected.attempt).rejects.toThrow('The independent proof must return a successful workspace snapshot');
+    expect(rejected.calls).toEqual([frame]);
+    expect(rejected.outcomes).toMatchObject([{
+      status: 403, ok: false, code: 'PERMISSION_DENIED', retryable: false, hasError: true, hasResult: false, refused: false,
+    }]);
     for (const [name, response] of [
       ['admitted BUSY', { ...refusal, status: 200 }],
-      ['denied', { status: 403, body: { ok: false, error: { code: 'PERMISSION_DENIED', retryable: false } } }],
-      ['contradictory refusal', { ...refusal, body: { ...refusal.body, result } }],
       ['missing envelope', { status: 200, body: undefined }],
       ['missing result', { status: 200, body: { ok: true } }],
     ]) {
@@ -951,6 +987,18 @@ test('the independent snapshot proof retries only a typed pre-admission refusal'
       expect(rejected.calls).toEqual([frame]);
       expect(rejected.outcomes).toEqual([{ ...snapshotOutcome(response), refused: false }]);
     }
+    for (const [name, response] of [
+      ['contradictory success', contradictory],
+      ['contradictory refusal', { ...refusal, body: { ...refusal.body, result } }],
+    ]) {
+      const rejected = run(name, response);
+      await expect(rejected.attempt).rejects.toThrow('The independent proof received a contradictory workspace snapshot');
+      expect(rejected.calls).toEqual([frame]);
+      expect(rejected.outcomes).toMatchObject([{
+        status: response.status, ok: response.body.ok, code: response.body.error.code,
+        retryable: response.body.error.retryable, hasError: true, hasResult: true, refused: false, selection: 2, source,
+      }]);
+    }
     const error = new Error('Synthetic snapshot transport failure');
     const interrupted = run('transport failure', error);
     await expect(interrupted.attempt).rejects.toBe(error);
@@ -958,7 +1006,7 @@ test('the independent snapshot proof retries only a typed pre-admission refusal'
     expect(interrupted.outcomes).toEqual([{ transportError: 'Error', code: null }]);
   } finally {
     await testInfo.attach('independent-snapshot-proof-controls', {
-      body: JSON.stringify(traces, null, 2), contentType: 'application/json',
+      body: JSON.stringify({ bridgeReplies, proofAttempts: traces }, null, 2), contentType: 'application/json',
     });
   }
 });
@@ -1004,7 +1052,8 @@ for (const order of ['before the focus snapshot', 'after the replacement is visi
             const afterFocus = focusRequested;
             const response = await dispatchResponse(payload);
             const outcome = snapshotOutcome(response);
-            const number = outcome.status === 200 && outcome.ok === true && outcome.hasResult ? ++snapshots : null;
+            const successful = outcome.status === 200 && outcome.ok === true && outcome.hasResult && !outcome.hasError;
+            const number = successful ? ++snapshots : null;
             history.push({ number, afterFocus, snapshotReply: outcome });
             if (number === 2) {
               await focusSnapshot.promise;

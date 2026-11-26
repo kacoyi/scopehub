@@ -36,7 +36,7 @@ async function build(file, args, options) {
   if (code !== 0) throw new Error(`Native build failed (${code ?? signal}): ${file} ${args.join(' ')}`);
 }
 
-async function buildProbe(temp) {
+async function buildProbe(temp, profile) {
   const { stdout } = await runFile('cargo', ['metadata', '--locked', '--no-deps', '--format-version', '1'], { cwd: root });
   // Preserve the normal debug and release executables. Keep this build cache reusable.
   const buildEnv = { ...process.env, CARGO_TARGET_DIR: join(JSON.parse(stdout).target_directory, 'published-revision-access') };
@@ -47,7 +47,9 @@ async function buildProbe(temp) {
   await writeFile(configuration, JSON.stringify({
     identifier: 'com.scopehub.revisionaccess',
     app: {
-      appDirectoriesOverride: `./${profileDirectory}`,
+      // A relative override inherits Tauri's canonical Windows executable path.
+      // Seed and desktop must give storage the same ordinary absolute path.
+      appDirectoriesOverride: profile,
       windows: base.app.windows.map(window => window.label === 'main'
         ? { ...window, additionalBrowserArgs: browserArguments } : window),
     },
@@ -57,10 +59,18 @@ async function buildProbe(temp) {
     '--target', targetTriple, '--config', configuration, '--', '--locked'], {
     cwd: join(root, 'apps', 'desktop'), env: buildEnv,
   });
-  await build('cargo', ['build', '--locked', '-p', 'scopehub-desktop', '--example', 'local_import_bridge',
-    '--features', 'portable-test-bridge', '--target', targetTriple], { cwd: root, env: buildEnv });
+  await build('cargo', ['build', '--locked', '-p', 'scopehub-desktop', '-p', 'scopehub-persistence',
+    '--example', 'local_import_bridge', '--bin', 'workspace_bridge',
+    '--features', 'scopehub-desktop/portable-test-bridge', '--target', targetTriple], { cwd: root, env: buildEnv });
   const debug = join(buildEnv.CARGO_TARGET_DIR, targetTriple, 'debug');
-  return { exe: join(debug, exeName), seedExe: join(debug, 'examples', 'local_import_bridge.exe') };
+  return {
+    exe: join(debug, exeName), seedExe: join(debug, 'examples', 'local_import_bridge.exe'),
+    workspaceBridge: join(debug, 'workspace_bridge.exe'),
+  };
+}
+
+export function preparePublishedProfile(workspaceBridge, profile) {
+  return runFile(workspaceBridge, ['--prepare-profile-root', profile], { timeout: 12_000, windowsHide: true });
 }
 
 export async function publishFixture(seedExe, profile, folder) {
@@ -104,6 +114,45 @@ export async function publishFixture(seedExe, profile, folder) {
     return { csv: csv.revision_id, folder: folderRevision.revision_id };
   } finally {
     await bridge.close();
+  }
+}
+
+export function publishedRevisionRequest(operation, revision_id, rest = {}) {
+  return { operation: 'market.' + operation, payload: { version: 1, revision_id, ...rest }, requestId: randomUUID() };
+}
+
+export function publishedRevisionStatusRequest(kind, revision_id) {
+  return kind === 'folder' ? publishedRevisionRequest('readLocalFolderRevision', revision_id, { include_details: false })
+    : { operation: null, payload: { type: 'frozen_chart_status', revision_id, request_id: randomUUID() } };
+}
+
+export async function invokePublishedOperation(page, args) {
+  return page.evaluate(async payload => {
+    try {
+      return { result: await window.__TAURI_INTERNALS__.invoke('execute_operation', payload) };
+    } catch (error) {
+      return { error };
+    }
+  }, args);
+}
+
+function profileStatusControls(ids) {
+  return {
+    seeded_csv: { args: publishedRevisionStatusRequest('csv', ids.csv), expected: { result: { available: true } } },
+    missing_csv: { args: publishedRevisionStatusRequest('csv', randomUUID()), expected: { result: { available: false } } },
+    missing_folder: {
+      args: publishedRevisionStatusRequest('folder', randomUUID()),
+      expected: { error: expect.objectContaining({ code: 'SNAPSHOT_UNAVAILABLE', retryable: false, details: {} }) },
+    },
+  };
+}
+
+async function observeProfileStatus(invokeStatus, controls, observation, stage) {
+  for (const [name, { args, expected }] of Object.entries(controls)) {
+    const call = { args };
+    observation[name] = call;
+    call.reply = await invokeStatus(args);
+    expect(call.reply, `${stage} ${name}`).toEqual(expected);
   }
 }
 
@@ -221,15 +270,14 @@ export async function withNativePublishedProfile(testInfo, observation, run) {
   let stderr = '';
   let failure;
   try {
-    await mkdir(profile, { mode: 0o700 });
     Object.assign(observation, {
       scope: 'Automated compiled Windows WebView2 public revision access with synthetic profile data.',
       source_commit: commit.trim(), source_working_tree_dirty: Boolean(gitStatus.trim()),
       fixture_sha256: fixtureSha,
-      setup: 'Existing test bridge seeds a disposable profile via the Rust registry. The observed journey uses the compiled app.',
+      setup: 'The storage helper prepares the ordinary absolute fixture profile used by the seed bridge and compiled app. A fresh bridge and the app read the same startup status controls.',
       observed_at: new Date().toISOString(),
     });
-    const { exe, seedExe } = await buildProbe(temp);
+    const { exe, seedExe, workspaceBridge } = await buildProbe(temp, profile);
     const artifact = join(dirname(testInfo.project.outputDir), exeName);
     const launchExe = join(temp, exeName);
     await mkdir(dirname(artifact), { recursive: true });
@@ -238,9 +286,32 @@ export async function withNativePublishedProfile(testInfo, observation, run) {
     const hash = createHash('sha256');
     for await (const chunk of createReadStream(launchExe)) hash.update(chunk);
     observation.binary_sha256 = hash.digest('hex');
+    launch.stage = 'prepare_profile';
+    try {
+      await preparePublishedProfile(workspaceBridge, profile);
+      launch.private_profile_prepared = true;
+    } catch (error) {
+      launch.profile_preparation_error = error.code ?? error.name;
+      launch.profile_preparation_stderr = (error.stderr ?? '').slice(-4096)
+        .replaceAll(temp, '<fixture>').replaceAll(root, '<checkout>');
+      throw error;
+    }
     launch.stage = 'seed_profile';
-    const ids = await publishFixture(seedExe, profile, join(temp, 'source'));
+    const folder = join(temp, 'source');
+    const ids = await publishFixture(seedExe, profile, folder);
     observation.publications = ids;
+    const database = join(profile, 'workspace-dev', 'workspace.sqlite3');
+    await access(database);
+    const controls = profileStatusControls(ids);
+    const statuses = { seed: {}, desktop: {} };
+    observation.profile_status = statuses;
+    launch.stage = 'seed_profile_status';
+    const seed = startLocalImportBridge(seedExe, profile, folder);
+    try {
+      await observeProfileStatus(args => seed.request('execute_operation', args), controls, statuses.seed, 'Seed profile');
+    } finally {
+      await seed.close();
+    }
     const env = Object.fromEntries(Object.entries(process.env)
       .filter(([name]) => !/^(WEBVIEW2_.*|SCOPEHUB_DESKTOP_WORKSPACE_DEV)$/iu.test(name)));
     launch.stage = 'spawn';
@@ -287,8 +358,8 @@ export async function withNativePublishedProfile(testInfo, observation, run) {
     launch.stage = 'product_ipc';
     await page.bringToFront();
     await page.waitForFunction(() => typeof window.__TAURI_INTERNALS__?.invoke === 'function', undefined, { timeout: 20_000 });
-    const database = join(profile, 'workspace-dev', 'workspace.sqlite3');
-    await access(database);
+    launch.stage = 'desktop_profile_status';
+    await observeProfileStatus(args => invokePublishedOperation(page, args), controls, statuses.desktop, 'Desktop profile');
     launch.stage = 'public_journey';
     await run({ page, ids, database });
     launch.stage = 'completed';

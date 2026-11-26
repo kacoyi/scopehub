@@ -866,7 +866,7 @@
     {
       "id": "published-revision-launch-deadline",
       "status": "implemented",
-      "purpose": "Exercise the compiled-app fixture launch entry with a synthetic monotonic clock and process observations. Require an owned WebView2 listener within the original endpoint deadline and keep rejected launches out of the public journey.",
+      "purpose": "Exercise private-profile setup at the compiled-app fixture entry and record the first typed storage reply. Use a synthetic monotonic clock and process observations to require an owned WebView2 listener within the original endpoint deadline and keep rejected launches out of the public journey.",
       "platforms": "all",
       "command": [
         "pnpm",
@@ -883,7 +883,7 @@
     {
       "id": "windows-published-revision-access",
       "status": "implemented",
-      "purpose": "Exercise the compiled Windows WebView2 app in a disposable synthetic profile. Record native admission and provider replies, interrupt original-row delivery, and verify withheld content, dialog close and reopen, status-confirmed restoration and confirmed withdrawal in the CSV and folder libraries. Record controlled inputs and response delivery separately.",
+      "purpose": "Exercise the compiled Windows WebView2 app in the same prepared synthetic profile as the seed bridge. Record first status replies and native admission before validating the public journey. Interrupt original-row delivery and verify withheld content, dialog close and reopen, status-confirmed restoration and confirmed withdrawal in the CSV and folder libraries. Record controlled inputs and response delivery separately.",
       "platforms": "windows-x64",
       "command": [
         "pnpm",
