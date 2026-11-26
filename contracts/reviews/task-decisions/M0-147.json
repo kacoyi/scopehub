@@ -59,6 +59,26 @@
       "requested_at": "2026-11-26T02:38:40.577861+00:00",
       "request_id": "fb08d2d8442fecde11ccf6fae317df377d39d549f6bdbb95aede1bd490bab6be",
       "evidence_sha256": "d3186616f14fe99e77b3a26524ef005b4f26e3f17caea7c26c32675f7d51f5c0"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "8c34ff030a889aa43bc83bf026a7893d0b5ec87a",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-147 8c34ff030a889aa43bc83bf026a7893d0b5ec87a",
+      "scope": "CHANGES_REQUESTED M0-147 8c34ff030a889aa43bc83bf026a7893d0b5ec87a",
+      "observation": "All six nonbaseline Windows calibration rows stopped before the write, and the two baseline readers disagreed about the inherited user grant.",
+      "reviewer": "Independent Astra Standard (t11j)",
+      "original_sha256": "a15b9e7dec2a3f87d2a1cee379792a0325a5aec1ac1201fbb3bd972de4ea9a69",
+      "response_id": "c7750aa4ddee96e1537a5db812dc7728a0ca2db0a5a7a8db4c7549e67a41241a",
+      "response_sha256": "ceafc6eff7834823da77d58f98e4b25d29451ea489b165f2c8265a64922943f1",
+      "legacy_response_sha256": "c068a0007ae30146f18af3723daaf6b7351c26035e34bfd72d9b1636f5193dd4",
+      "observation_body_sha256": "d75d5142a5d1cd939bf9a9b7477f1229f8fbcf369e1a3f69732582ad5ca05163",
+      "event": {
+        "id": "msg_0b9d00c6a2e46428016b07a06a7ee087d1a8ea30748bc54924",
+        "timestamp": "2026-11-26T02:59:16.796Z"
+      },
+      "supersedes": "fb08d2d8442fecde11ccf6fae317df377d39d549f6bdbb95aede1bd490bab6be",
+      "evidence_sha256": "efabaafafe5222146667cab0359a96fa6f037805bba051c5964cbe7f8f8b84d1"
     }
   ]
 }
