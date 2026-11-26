@@ -1,0 +1,142 @@
+{
+  "version": 3,
+  "task_id": "M0-147",
+  "events": [
+    {
+      "kind": "decision",
+      "source_commit": "dc5be1ffdcfa6bff97c9f309ea171d054881fbfd",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-147 dc5be1ffdcfa6bff97c9f309ea171d054881fbfd",
+      "scope": "CHANGES_REQUESTED M0-147 dc5be1ffdcfa6bff97c9f309ea171d054881fbfd",
+      "observation": "I verified that a simulated cleanup failure replaced the correct row 19 readback diagnostic with the full path of the row 0 fixture.",
+      "reviewer": "Independent Astra Standard (t10c)",
+      "original_sha256": "ae6da1b3005baf69d6f210a6455965fc0b2518048c8fc6b9545035035a8aa46f",
+      "response_id": "15858256cab38c2f65b4fc383518b76ffa78fadd5d2252f8f6a0e48e31cb9b91",
+      "response_sha256": "3f2387a603ff2240f6a6c4aef5b9676f477d8a48c082ccd0fc1944ab4b871a14",
+      "legacy_response_sha256": "d314aa4214675e2c1cca6c072232e3c15db4e2d55e46ab85681f048555a1178e",
+      "observation_body_sha256": "dfe7e16145d47a7fadb27e2adafa25c3515e1cc17def98dbd995a534b21a8bb9",
+      "event": {
+        "id": "msg_02395960ec1524e8016b074edb268087d098e0405b6ecf9e1d",
+        "timestamp": "2026-11-25T21:11:05.948Z"
+      },
+      "supersedes": null,
+      "evidence_sha256": "fb79f539c74b9dbcbe0a1e3bda75461a350a747a06b49fe3755932baa9a3fff1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "bc89c85dcaf81f359c91adc23e7c87fa08a70966",
+      "scope": "Reassess the bounded fixture diagnostics from the prior rejection, first setup/readback failure and cleanup-only or combined failures, historical native descriptor comparisons, Windows handoff timing and owned fixture cleanup. Confirm the exact tested candidate and unchanged authoritative negative event.",
+      "supersedes": "15858256cab38c2f65b4fc383518b76ffa78fadd5d2252f8f6a0e48e31cb9b91",
+      "requested_at": "2026-11-25T21:39:09.472632+00:00",
+      "request_id": "b46244c11bdf5c033c462c8f801b42de4b9823138e3b7389b5bfd2636722acea",
+      "evidence_sha256": "146c237300277fc9c82f9d92789e13bc80e3d0adf699f5b3f8f4eeacdbe7cda5"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "bc89c85dcaf81f359c91adc23e7c87fa08a70966",
+      "verdict": "approved",
+      "decision": "APPROVE M0-147 bc89c85dcaf81f359c91adc23e7c87fa08a70966",
+      "scope": "APPROVE M0-147 bc89c85dcaf81f359c91adc23e7c87fa08a70966",
+      "observation": "I observed the row 19 readback error appear before the row 0 cleanup error in a 182-byte diagnostic, with all 24 removals attempted and zero witness launches.",
+      "reviewer": "Independent Astra Standard (t10c)",
+      "original_sha256": "83a45ed1a19481a10f6897d885d1ed14d2f1d4a7da01460a74d9f4fd28b1f33e",
+      "response_id": "02424da46c21c04daf4709ca55e8ca97fad7eae6fa915ec3e4e782c58b06fca3",
+      "response_sha256": "1cdc2e5b6740be6e12d09209088aed8c48a9a8b10a3c13b738271e2d36a979e0",
+      "legacy_response_sha256": "a82d8379ab79846464e733438a94a25544c4b639fc01079453ae0a49d6995271",
+      "observation_body_sha256": "265b0d5fb52a1b71582df314d1f0b8f2029a985f0e751254dc0eb2f9eec9aaff",
+      "event": {
+        "id": "msg_02395960ec1524e8016b075c3723f487d09cfb224019f2ca06",
+        "timestamp": "2026-11-25T22:08:04.910Z"
+      },
+      "supersedes": "b46244c11bdf5c033c462c8f801b42de4b9823138e3b7389b5bfd2636722acea",
+      "evidence_sha256": "658f361bf8f7bf852fbc48a1d130b0776f4a2eda7bb7f16c716ee29bcc9cc6b2"
+    },
+    {
+      "kind": "request",
+      "source_commit": "8c34ff030a889aa43bc83bf026a7893d0b5ec87a",
+      "scope": "Recheck the first Windows leaf-permission fixture and the diagnostic marker against both original failed native reports. Verify the submitted and stored descriptor observations, inherited permissions, unchanged production checks and deadlines, rejected controls and cleanup at the public fixture boundary.",
+      "supersedes": "02424da46c21c04daf4709ca55e8ca97fad7eae6fa915ec3e4e782c58b06fca3",
+      "requested_at": "2026-11-26T02:38:40.577861+00:00",
+      "request_id": "fb08d2d8442fecde11ccf6fae317df377d39d549f6bdbb95aede1bd490bab6be",
+      "evidence_sha256": "d3186616f14fe99e77b3a26524ef005b4f26e3f17caea7c26c32675f7d51f5c0"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "8c34ff030a889aa43bc83bf026a7893d0b5ec87a",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-147 8c34ff030a889aa43bc83bf026a7893d0b5ec87a",
+      "scope": "CHANGES_REQUESTED M0-147 8c34ff030a889aa43bc83bf026a7893d0b5ec87a",
+      "observation": "All six nonbaseline Windows calibration rows stopped before the write, and the two baseline readers disagreed about the inherited user grant.",
+      "reviewer": "Independent Astra Standard (t11j)",
+      "original_sha256": "a15b9e7dec2a3f87d2a1cee379792a0325a5aec1ac1201fbb3bd972de4ea9a69",
+      "response_id": "c7750aa4ddee96e1537a5db812dc7728a0ca2db0a5a7a8db4c7549e67a41241a",
+      "response_sha256": "ceafc6eff7834823da77d58f98e4b25d29451ea489b165f2c8265a64922943f1",
+      "legacy_response_sha256": "c068a0007ae30146f18af3723daaf6b7351c26035e34bfd72d9b1636f5193dd4",
+      "observation_body_sha256": "d75d5142a5d1cd939bf9a9b7477f1229f8fbcf369e1a3f69732582ad5ca05163",
+      "event": {
+        "id": "msg_0b9d00c6a2e46428016b07a06a7ee087d1a8ea30748bc54924",
+        "timestamp": "2026-11-26T02:59:16.796Z"
+      },
+      "supersedes": "fb08d2d8442fecde11ccf6fae317df377d39d549f6bdbb95aede1bd490bab6be",
+      "evidence_sha256": "efabaafafe5222146667cab0359a96fa6f037805bba051c5964cbe7f8f8b84d1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "20f32713cd66e54ed66d977f2e76e768b01eb113",
+      "scope": "Independently test whether the ordinary fixture correctly reconciles baseline file and handle views, checks submitted and stored input and inherited access, preserves deadlines and cleanup, and admits the real supported outcomes. Include the native two-control original in run 45748342112 and distinguish it from the previous six inadmissible writes, the two older native failures, and the pending ordinary 24-row matrix.",
+      "supersedes": "c7750aa4ddee96e1537a5db812dc7728a0ca2db0a5a7a8db4c7549e67a41241a",
+      "requested_at": "2026-11-26T03:26:59.280637+00:00",
+      "request_id": "8801370eb78f4108e8eb178486c8a50824b729023f428ba7c9faafa0033b73c6",
+      "evidence_sha256": "583d0889e83fe415df6da147db129ecf8ea261e3d8f028ef375d8289e6ad8675"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "20f32713cd66e54ed66d977f2e76e768b01eb113",
+      "verdict": "approved",
+      "decision": "APPROVE M0-147 20f32713cd66e54ed66d977f2e76e768b01eb113",
+      "scope": "APPROVE M0-147 20f32713cd66e54ed66d977f2e76e768b01eb113",
+      "observation": "I verified that Windows run 45748342112 recorded two actual writes, exact readback of both fixture ACEs and their inherited grants, and matching managed and Rust witness stages of 0 and 58.",
+      "reviewer": "Independent Astra Standard (t124)",
+      "original_sha256": "2edda593aaec2e4b6b183a5c1f2526afe839a70ebd03a8537a79481a3620cea7",
+      "response_id": "f37bb0c2b46e3cd1c69ca8a62fe3e6cc765158c36672e623f284587679af4868",
+      "response_sha256": "59f4601dd4c701e01718e8815716f28d8872cd7441bb7c251f7cd825ca6c50e9",
+      "legacy_response_sha256": "19e04a16b0b7388bd7cd34e405d72538116aa9dd553f8a4828066c7d2b3f434c",
+      "observation_body_sha256": "5df27de36c8cbba5ff60d3cae5e64b1e6126c352cae22de08e59e6791f833e03",
+      "event": {
+        "id": "msg_0405425e1e3232cf016b07aa304da087d1873112a8b8cc8808",
+        "timestamp": "2026-11-26T03:40:52.165Z"
+      },
+      "supersedes": "8801370eb78f4108e8eb178486c8a50824b729023f428ba7c9faafa0033b73c6",
+      "evidence_sha256": "a0647689db2bbd214da8581f57b05d3cc7812f8337693e37ab44af573f33da2c"
+    },
+    {
+      "kind": "request",
+      "source_commit": "5217c54ade6ba44b13c6becdec138d5cbd79aca3",
+      "scope": "Check the reconciled workspace test against both parents and the ordinary and guarded Windows artifacts. Independently derive submitted and read-back fixture behavior, cleanup, the valid and rejected handoff, seven parser tests and capability rotation. Recheck one neighboring actual input. State what was observed directly and what the original protected timeout can establish.",
+      "supersedes": "f37bb0c2b46e3cd1c69ca8a62fe3e6cc765158c36672e623f284587679af4868",
+      "requested_at": "2026-11-26T05:53:06.122196+00:00",
+      "request_id": "2253eb8d36846ce49f4604641b17d117c3b019396b43ebb023712602dde1c442",
+      "evidence_sha256": "c4e694482bc187b0f943503b38b863cf9a93795ee8100393e36a46ae23d489d8"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5217c54ade6ba44b13c6becdec138d5cbd79aca3",
+      "verdict": "approved",
+      "decision": "APPROVE M0-147 5217c54ade6ba44b13c6becdec138d5cbd79aca3",
+      "scope": "APPROVE M0-147 5217c54ade6ba44b13c6becdec138d5cbd79aca3",
+      "observation": "The reconciled handoff test body is byte-for-byte identical to the one that passed on its first attempt in both archived Windows runs.",
+      "reviewer": "Independent Astra Standard (t148)",
+      "original_sha256": "3d9baf617c8669999b470826ef2ec7fadcb5eb31222a32f97f8a0391f92ad5ff",
+      "response_id": "fd48a025b98895e468ae1f8b67b1ba049820edf158d1cf0768af8537152af96f",
+      "response_sha256": "bcc3bcec7a1a6760303553dc4f72cd4df83dc342dfea9dfa9603ee0e2457ccb1",
+      "legacy_response_sha256": "220ffb0214a97da69df73e3dbbfe999b4208915c3cffbe761cd98346cf45e120",
+      "observation_body_sha256": "147de9eb2464c8bd6dff2ccdf36c7c4902cc9dba0c66953ca88d2c17b5b37fa8",
+      "event": {
+        "id": "msg_03eaf7859c9e1d4d016b07d2f0e97087d180df901bea952941",
+        "timestamp": "2026-11-26T06:34:59.818Z"
+      },
+      "supersedes": "2253eb8d36846ce49f4604641b17d117c3b019396b43ebb023712602dde1c442",
+      "evidence_sha256": "52781cdc5c18c98c84e3c30a048bf46d9ca67c21ea70d1b72483b0245f34f8e2"
+    }
+  ]
+}

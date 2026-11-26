@@ -23,11 +23,11 @@
   ],
   "consequences": [
     "Canonical time preserves fractional digits and normalizes supported UTC offset spellings, including compact offsets. Current archive schema and ordinary JSON measurements remain readable. Captures that already lost original precision can recover it only by reprocessing retained Actions responses. Keep original inputs, source snapshots and paired controls for verification and recovery.",
-    "Compact artifacts lack the observations removed by their original publisher. Apply portable admission before compacting raw reports and keep the full publisher responsible for schema and artifact bytes. New publishing closure registration waits for genuine producer artifacts under ADR 0030. Preserve proven expired previews, separate Actions clocks and explicit unresolved ancestry within the existing bounded Git inspection.",
+    "Compact artifacts lack the observations removed by their original publisher. Apply portable admission before compacting raw reports and keep the full publisher responsible for schema and artifact bytes. New publishing closure registration waits for genuine producer artifacts under ADR 0035. Preserve proven expired previews, separate Actions clocks and explicit unresolved ancestry within the existing bounded Git inspection.",
     "Qualify real paired inputs in varied order, both positive and negative public and weekly entries, cold reopen, archive rotation and a separately reserved producer revision. Retain comparison of elapsed time, peak memory and archive size, including a separate comparable run. Future hosted execution and the actual November 28 observation remain separate."
   ],
   "supersedes": [],
-  "related_decisions": ["0007", "0030", "0031", "0032", "0033"],
+  "related_decisions": ["0007", "0035", "0031", "0032", "0033"],
   "revisit_when": [
     "A supported producer changes its admitted report claims, clock format or phase semantics.",
     "A subsequent comparable weekly observation shows a sustained increase in cost or a supported attribution becomes unrecoverable."

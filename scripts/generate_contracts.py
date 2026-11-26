@@ -176,6 +176,11 @@ def main():
     args = parser.parse_args()
     schema = json.loads(SOURCE.read_text())
     outputs = {GENERATED / name: contents for name, contents in generate(schema).items()}
+    market_validators = subprocess.run(
+        ['node', str(ROOT / 'scripts/generate_market_output_validators.mjs')],
+        check=True, capture_output=True, encoding='utf-8',
+    ).stdout
+    outputs.update({GENERATED / name: content for name, content in json.loads(market_validators).items()})
     manifest = json.loads((ROOT / 'contracts/contract.json').read_text())
     worker_contract = json.loads((ROOT / 'contracts/worker-runtime-v1.json').read_text())
     policy = {'protocol_version': manifest['protocol_version'], **worker_contract['runtime']['defaults']}

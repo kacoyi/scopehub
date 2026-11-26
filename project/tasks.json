@@ -26607,7 +26607,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Use the exact-source local evidence in .reports/m0-155-post-318f54c8/handoff.json for independent review intake and matching hosted verification. Keep the five held requests and the November 28 actual observation with the coordinator.",
+      "next_action": "Use the exact-source local evidence in .reports/m0-155-main-774b5704/handoff.json for independent review intake and matching hosted verification. Keep the five held requests and the November 28 actual observation with the coordinator.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26963,7 +26963,7 @@
       ],
       "diagnostic_reports": [],
       "evidence": [],
-      "next_action": "Use the exact-source local evidence in .reports/m0-155-post-318f54c8/handoff.json for independent review intake and matching hosted verification. Keep the five held requests and the November 28 actual observation with the coordinator.",
+      "next_action": "Use the exact-source local evidence in .reports/m0-155-main-774b5704/handoff.json for independent review intake and matching hosted verification. Keep the five held requests and the November 28 actual observation with the coordinator.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -27158,7 +27158,7 @@
         "scripts/timing_clock.py",
         "scripts/timing.py",
         "project/timing-publishers.json",
-        "contracts/decisions/0030-bounded-timing-publisher-evidence.json",
+        "contracts/decisions/0035-bounded-timing-publisher-evidence.json",
         "scripts/verification_scope.py",
         "scripts/ci_artifacts.py",
         "scripts/check.py",
@@ -27178,7 +27178,7 @@
       "decision_refs": [
         "0004",
         "0007",
-        "0030",
+        "0035",
         "0031",
         "0032",
         "0033",
@@ -27195,7 +27195,7 @@
         "At the public timing entry, retain historical genuine publisher controls while distinguishing precision-level recording conflicts, a required native result missing from a complete report, and a contradicted raw integration summary.",
         "Apply portable observation ownership, passing status and integration summary admission to Linux and Windows before compaction. With real paired raw inputs, retain independent Actions clocks and accept equivalent recording offsets at full source precision."
       ],
-      "next_action": "Use the exact-source local evidence in .reports/m0-155-post-318f54c8/handoff.json for independent review intake and matching hosted verification. Keep the five held requests and the November 28 actual observation with the coordinator.",
+      "next_action": "Use the exact-source local evidence in .reports/m0-155-main-774b5704/handoff.json for independent review intake and matching hosted verification. Keep the five held requests and the November 28 actual observation with the coordinator.",
       "blocker": null,
       "evidence": [],
       "closure_reason": null,
@@ -27465,6 +27465,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "The bounded inventory excludes the genuine Windows publishing catalog of main push 45838575346 after its purpose text changed. Verify the exact closure, catalog difference and published raw and compact artifacts with the independently retained job clocks. Compare ordinary, weekly and cold eligibility against the historical producer and keep an ineligible control with independent Actions clocks.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Keep the original artifacts and the explicit unknown result for a source whose publishing selection cannot be established; restore the prior reader if historical coverage cannot be preserved.",
@@ -27646,6 +27653,1075 @@
           ],
           "data_plan": "Use temporary locks, pipes and synthetic verification files. Retain both original CI reports.",
           "cleanup": "Reap the test-owned peer on normal and early exits. Verify that other processes and original reports survive the interrupted check."
+        }
+      }
+    },
+    {
+      "id": "M0-149",
+      "title": "Distinguish refused indicator status reads during delivery recovery",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-099",
+        "M0-101"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "tests/ubuntu-preview",
+        "apps/desktop/src-tauri",
+        "tests/ui"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "ui-build",
+        "market-workflow",
+        "workspace-timeframe",
+        "desktop-workspace-transport",
+        "rust-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45682874140-1",
+          "source_commit": "00dfb23fc59e5e73f964eb574d29edfb48c5bf5e",
+          "report_sha256": "fd2955be884d13462c10aeb350f6ac33569d62ba0aec545a4ec3bc5ef1bacbb3"
+        },
+        {
+          "run_id": "20261125T194525.509241Z-4e48ed14",
+          "source_commit": "2738fa7edc800b37ba3eb3d4196eb86908e36104",
+          "report_sha256": "88266e9796629772a779229c75bbc857111c5dcb104245769e690f891336e025"
+        },
+        {
+          "run_id": "20261125T201655.779125Z-2e9681e2",
+          "source_commit": "1a95eec502041af7903bd9405f5a37cc4f257fbc",
+          "report_sha256": "2ea16881b4c1bf92d66d5b47e91755c7f441eca72daff032baa380418586df37"
+        },
+        {
+          "run_id": "windows-change-45702463807-1",
+          "source_commit": "beb6fa11cee8923675f9fdbcc327b24f8fede2e9",
+          "report_sha256": "291ada56b3627513814fcaeb478508b97e6874ea4cc0ff234b7db221ce9161a0"
+        }
+      ],
+      "acceptance": [
+        "The full, cropped and lost-delivery indicator journeys exercise the actual workspace. When a status read is explicitly refused before admission, the observable result, original admitted task, bounded delivery recovery and user-visible exhaustion remain correct.",
+        "The verification records every raw draft, preview, status and cancellation. An extra admitted status recovery, a new or repeated preview submission, a wrong-task read and an ambiguous refusal cannot satisfy the same-task recovery assertion.",
+        "Retain the original Windows admission sequence, the focused positive and rejected controls, and a passing ordinary Windows exercise of the corrected candidate.",
+        "Native preview status retries only an explicitly refused writer admission. An admitted registry or storage BUSY, an older unclassified reply and an unrelated native error stop and cancel the original task.",
+        "The first-window journal rejects a raw cancellation with no task ID. A valid previous-task cancellation and the cancellation on exhaustion remain accounted for."
+      ],
+      "next_action": null,
+      "blocker": null,
+      "delivery": "current-contract",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-149-986051150484c8f5.json",
+          "sha256": "74dfbda9adea96fc2d922ee8c41066bebaf75e0bff310451890923a9314e00e6"
+        },
+        {
+          "path": "project/evidence/M0-149-798f9be1c30afd19.json",
+          "sha256": "9784b39c69b89dc1c6607111eae300a9acc01462c8e468c216d52f3020397f63"
+        },
+        {
+          "path": "project/evidence/M0-149-65e6b10d5bd355ff.json",
+          "sha256": "79d45758a5d8182ede755ae6dd6a6057f4348bf8d94bff7164b2b655a8080804"
+        }
+      ],
+      "closure_reason": "On the ordinary PR and scoped workflows, Linux and Windows each delivered nine browser journals from seven frozen-preview scenarios and four native transport controls. After losing a ready reply, the bounded held route observed two explicit refusals, the unforwarded request reaching its original browser deadline, and one cancellation of the same task. Full and cropped windows returned zero volatility. The earlier protected run retained two request identities without their HTTP outcomes.",
+      "plan": {
+        "outcome": "Preserve bounded same-task recovery and make the native zero-volatility observation distinguish a definite pre-admission refusal from a second accepted status recovery.",
+        "change_types": [
+          "tooling",
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/indicator-preview.tsx",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "PR 116 run 45682874140",
+          "apps/desktop/src-tauri/src/workspace.rs",
+          "tests/ui/desktop-workspace.spec.mjs",
+          "Independent Astra review of 2738fa7edc800b37ba3eb3d4196eb86908e36104",
+          "archives/observations/repo-hygiene-20261125/m0-149-deadline-abort-45693164625/observations.json",
+          "archives/observations/repo-hygiene-20261125/main-python-and-indicator-45702463807/observations.json"
+        ],
+        "hypotheses": [
+          "The Windows two-loss trial received one explicit HTTP 429 BUSY and one lost HTTP 200 ready response after the original ready delivery reset. The existing raw length assertion counted both as recovery attempts.",
+          "Real Windows and Linux controls separate the original ready delivery reset, an authenticated HTTP 429 before writer admission and the next admitted read. Each status attempt owns a distinct wire ID for the same task.",
+          "The old polling loop retried any BUSY, including HTTP 200 after admission. Use the existing transport admission signal and preserve both the total polling deadline and the single allowed frozen status delivery recovery.",
+          "The native writer lock can be acquired before an application or SQLite BUSY is returned. Only the pre-lock failure can attest to refusal.",
+          "With no previous task, equality against an undefined task ID can hide an invalid raw cancellation.",
+          "The browser can abandon a last intercepted synthetic request at the polling deadline before a refusal becomes observable. The original transport failure alone cannot establish delivery or admission."
+        ],
+        "risks": [
+          {
+            "failure": "A count based only on admitted or unique task IDs hides duplicate status, draft or preview operations, or permits requests for another task.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "Changing the evidence predicate admits a malformed or ambiguous refusal, misses a duplicate cancellation or alters the full and cropped results.",
+            "checks": [
+              "workspace-timeframe",
+              "ui-build",
+              "market-workflow"
+            ]
+          },
+          {
+            "failure": "Treating an admitted native storage error or an older unclassified reply as pre-admission reissues a status read. Moving the signal outside the writer lock boundary also risks changing other workspace and protocol replies.",
+            "checks": [
+              "rust-contracts-workers",
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "An unscoped cancellation is treated as past-task cleanup, or rejecting it disrupts real previous-task or exhaustion cleanup.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A terminal request with ambiguous transport, wrong task, earlier position or possible upstream admission is hidden as a refusal or accepted recovery; an assertion drops the complete bounded journal.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Retain both native reports, their raw request journals and the historical strict replay controls. Restore the prior assertion if the admission boundary cannot be identified.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "desktop"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/indicator-preview.tsx",
+            "apps/desktop/ui/src/use-local-workspace.ts",
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "apps/desktop/src-tauri/src/workspace.rs",
+            "tests/ui/desktop-workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Expanding operation authority, changing the preview result or increasing the recovery allowance or deadline."
+          ],
+          "open_questions": [
+            "Which reliable response fields prove rejection before the same-task status operation is admitted, and how is its request identity related to subsequent polling?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Exact admitted task and artifact, finite delivery recovery, all raw outbound operations, cancellation and honest visible failure."
+          ],
+          "change": [
+            "Qualify the first demonstrated mismatch between a definite refusal and the recovery assertion at its owning entry.",
+            "Separate a terminal browser deadline on a never-forwarded test route from observed HTTP refusal, admitted status and ambiguous transport outcomes."
+          ],
+          "data_plan": "Use the accepted synthetic frozen chart and isolated workspace. Retain response status, operation identity and synthetic results.",
+          "cleanup": "Release response controls, close owned windows and reap the portable writer on every path."
+        }
+      }
+    },
+    {
+      "id": "M0-158",
+      "milestone": "M0",
+      "title": "Recover the owner’s full maintenance outcomes across interrupted coordination",
+      "status": "done",
+      "depends_on": [
+        "M0-134",
+        "M0-135",
+        "M0-136"
+      ],
+      "scope": [
+        "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+        "project/tasks.json",
+        "project/feedback.json",
+        "scripts/project.py",
+        "scripts/development.py",
+        "tests/project/test_development.py",
+        "tests/project/test_review_acceptance.py",
+        "project/evidence"
+      ],
+      "acceptance": [
+        "A new coordinator can use a supported repository entry to recover both owner outcomes, identify actual completion conditions and distinguish a finished operational checkpoint from unresolved delivery.",
+        "Ordinary views stay concise and source-bound. An unrelated isolated checkout, absent optional private archive and an interrupted handoff have explicit appropriate outcomes.",
+        "A fresh independent AI with the normal entry receives no expected answers. Retain its own response, the exact source and contrasting controls, along with required task checks.",
+        "Ordinary overview and handoff end the engagement only after each workstream has an explicit accepted observation for its owner-defined criteria. A single acceptance leaves the other action open. Negative or missing observations cannot validate a declared closure.",
+        "A new coordinator can execute the source commands emitted through the read-only overview and handoff under an unwritable package cache and read the owner terms and any accepted closure."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-158-0b0402de362f34b5.json",
+          "sha256": "3ea421f21c00eee4c67be1c0b6055c31c056e77ea1b89f5b1697c30f5b3119c6"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "A fresh read-only coordinator on successor 683c949a recovered both open undertakings, their separate acceptance, the due review and the stopping condition. Corrections on da5fd0a6 passed the task harness and independent review. The cold original is retained at archives/observations/repo-hygiene-20261125/m0-158-fresh-handoff-683c949a/original-response.jsonl. Both owner workstreams remain open.",
+      "plan": {
+        "outcome": "A fresh coordination session inherits the two accountable workstreams and can act on their outstanding evidence.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+          "project/development.json",
+          "project/delivery.json",
+          "scripts/project.py",
+          "scripts/development.py",
+          "contracts/reviews/task-decisions/M0-158.json",
+          "contracts/schemas/project.schema.json",
+          "contracts/decisions/0030-project-maintenance-engagement.json"
+        ],
+        "hypotheses": [
+          "The prior handoff preserved assignment identities but did not put the owner-defined end conditions on the restore path. Replaying operational tasks and reading the ordinary protected focus alone allowed an intermediate result to be reported as completion. Confirm the exact failure boundary in an unprompted fresh session.",
+          "The dated owner record is reachable through the narrow repair while that task is focused. Closing the repair removes that route. Compare an explicit successor pointer with project-level engagement state by switching to a genuine audit successor and then ending the engagement.",
+          "The common engagement loader verifies identity and observation text but infers acceptance from their presence. The earlier positive fixtures omitted a disposition. Correctly digested rejected, incomplete and accepted observations distinguish evidence identity from acceptance at the public views.",
+          "The overview selects pinned Python, but the handoff invocation loses the read-only mode. Earlier controls extracted arguments or translated the launcher. Execute the exact emitted handoff and source commands with an unwritable uv cache and compare the returned records."
+        ],
+        "risks": [
+          {
+            "failure": "A coordinator can collapse one completed assignment into completion of the whole maintenance effort, or lose the continuing iteration requirement.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A repair overloads routine context, assumes private transcripts exist on every host or silently changes unrelated product scope.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Closing the repair or changing focus hides either open commitment, or a partial or unproven closure permits premature stop while later product work inherits maintenance scope.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A digest-valid rejected or incomplete closure can end the engagement before the workstream meets the owner terms.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A pinned read-only handoff can return an owner or closure source command whose package launcher requires a writable cache.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the authenticated original pause and owner records, restore the prior navigation and use the explicit authoritative workstream reference while verifying the repair.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/project.py",
+            "scripts/development.py",
+            "tests/project/test_development.py"
+          ],
+          "rules": [
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": ""
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/evolution"
+            },
+            {
+              "path": "contracts/reviews/task-decisions/M0-158.json",
+              "pointer": "/events/1"
+            },
+            {
+              "path": "contracts/reviews/task-decisions/M0-158.json",
+              "pointer": "/events/3"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/engagement"
+            }
+          ],
+          "non_goals": [
+            "Product runtime operations, public publication of private transcripts, or a requirement to retain every development conversation."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing status, focused context, protected checks, task scope and evidence identities."
+          ],
+          "change": [
+            "Make the two ongoing commitments reconstructible on the normal coordinator route with separate observed state and closure.",
+            "Keep the engagement discoverable beyond the focus repair. Derive its stop state from independently recorded acceptance for each workstream.",
+            "Retain the focus-independent loader and shared command formatter. The independent successor control supports the engagement boundary. Validate the observation's explicit acceptance in that loader and carry the read-only mode from overview to handoff and its source commands. The two failures involve those existing boundaries and require no separate registry, source or migration."
+          ],
+          "data_plan": "Use the English owner-approved scope and synthetic controls. Keep personal conversation originals in the private development archive.",
+          "cleanup": "Retire any temporary alternate route once the supported entry passes both recovery and unrelated-task controls."
+        }
+      }
+    },
+    {
+      "id": "M0-147",
+      "title": "Recover native Windows private handoff verification after a probe deadline",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-125"
+      ],
+      "scope": [
+        "tests/ubuntu-preview",
+        "crates",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0029"
+      ],
+      "acceptance": [
+        "Resolve the original Windows main-push report and its bound workspace-timeframe log. Preserve the classified deadline at the first handoff verification, including the limits of its attribution.",
+        "Exercise the real Windows verification entry on a valid private handoff and both established unsuitable synthetic fixtures. Preserve independent checks of inherited and effective rights and the fixed subprocess limit.",
+        "When a raw leaf DACL contains zero-mask or inherit-only allow entries, accept the otherwise private handoff as the legacy managed view would. Keep the distinct refusal for a nonzero effective allow to another trustee.",
+        "Validate each known raw ACE layout before applying the legacy leaf filter. Match the real regular-file matrix for allowed, denied, callback and object entries. Reject malformed entries and any surviving unsupported grant.",
+        "The selected ordinary Rust workspace check must execute the existing seven windows_handoff_probe parser tests, including malformed and oversized inert entry refusal. Retain those results separately from the 24 real Windows file comparisons selected by workspace-timeframe.",
+        "Retain the existing subprocess diagnostic controls, cleanup, launch rotation and platform semantics. Verify the exact repair with native Windows and Linux reports and inspect the next protected push.",
+        "A native failure preparing the 24 synthetic leaf fixtures names the fixture and the bounded write, raw readback, or managed comparison reason. Retain the exact on-disk comparison and the later native witness assertion for each fixture.",
+        "Fixture creation and cleanup report only a bounded stage and an isolated fixture name. The first readback error remains primary if cleanup also fails, removal is attempted for every owned file, and an existing file is left intact.",
+        "Independently check the exact ACE submitted by the test-only writer and the ACE stored by Windows. Require the stored row, the legacy managed stage and the real witness stage for each native comparison.",
+        "Use real subprocess controls for a complete stderr marker and a stdout-only lookalike. Require exact bounded diagnostics and fixture cleanup after a preparation failure."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "rust-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-147-9c3db7d433ef1c64.json",
+          "sha256": "713f6f5bc5e093370ee704061dd269ebca75b207ab74ec053f8b1a0ff2b8de99"
+        },
+        {
+          "path": "project/evidence/M0-147-9181c7bb0ba5eef5.json",
+          "sha256": "b57edb59629e558abe68621bb8447e16188726a2600707c693c8148bf9e36e18"
+        },
+        {
+          "path": "project/evidence/M0-147-725748c1387918ec.json",
+          "sha256": "25c591030f8e75545e31032e18c025fcf77e4b8868eb56fe5c4056f3c8148616"
+        },
+        {
+          "path": "project/evidence/M0-147-c9d65f9345dca357.json",
+          "sha256": "f29aad276e573ac57c479fafdf48096cfbdae618d2ca34f442a137cb2c804154"
+        },
+        {
+          "path": "project/evidence/M0-147-b6d3b3d85d9502e1.json",
+          "sha256": "b49c4c438fb6eea3b793a93407d7d329df8e2b1f2a979bf305627a922dfb208b"
+        },
+        {
+          "path": "project/evidence/M0-147-a40de3202f55b845.json",
+          "sha256": "2075b64f59236784a0155e4f13ada2d329588ba40da9ad93bb315b7ce3d07c39"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45668943982-1",
+          "source_commit": "ae0259db9ea0481aaf004b8682023ddfd8350328",
+          "report_sha256": "cbfdfe1b62f5353bee9a15cb588abd3745352ba0ce4e77120ae44dcb48ea6a30"
+        },
+        {
+          "run_id": "windows-change-45689952772-1",
+          "source_commit": "bcd21c0981401d61d9f0c3b087eb8b0f88690956",
+          "report_sha256": "650a1c591652e66e403cdd01400c8e05e32d38b96fd5edb29dc92ebcadb2353d"
+        },
+        {
+          "run_id": "20261125T195735.990394Z-0479c9ec",
+          "source_commit": "d0020d3a1ddc5075dbf10e78ed349212df910d92",
+          "report_sha256": "db6e172b6b87a2c49a82f769a793ff5bfb54cb6088b3ea5c14ed78743bbc9315"
+        },
+        {
+          "run_id": "windows-change-45710866374-1",
+          "source_commit": "97c7fb79b462d6ec438164180b1d21c734838452",
+          "report_sha256": "1c4c6cc8c2117e2aa7a014b50d2d157033bb0050dfa15442ea888fc5e8fb3cd7"
+        },
+        {
+          "run_id": "20261125T221246.075646Z-9b2ba873",
+          "source_commit": "3620427e1f9ca51cf1aaac8a629f067ca75659e6",
+          "report_sha256": "febcca8e29fa0d23ecc437b3f99486d62d13c538886a005fe4ecfb50256aa873"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Pre-merge repair verified. PR 127 run 45769667627 passed ordinary protected verification on merge preview 076662409902a7a72cf5c1e60e65967683c9ccb0 for submitted source 93ad31e8e0793c8a0f4b7c8b16e05025e5697925. The Linux aggregate recorded platform and scope omissions while its four task checks passed. Guarded run 45769688721 passed all selected Linux and Windows checks on the submitted commit. Both Windows originals passed the live handoff under the existing 10-second subprocess limit, the expected refusals, all 24 mandatory leaf comparisons, cleanup and capability rotation. Both guarded Rust logs record all seven parser tests. The independent approval of 5217c54ade6ba44b13c6becdec138d5cbd79aca3 applies across the protected-base reconciliation. The original timeout cause, last internal stage and descriptor verdict remain unknown. The first protected main-push inspection is pending. After merging, the development AI coordinator must record the actual main merge SHA, retain the first ordinary push workflow and its original Windows workspace report, log and browser result, and verify the same handoff assertions on that SHA. Preserve any missing, mismatched or failed outcome and follow the integration incident procedure. Confirm head cleanup after main verification.",
+      "plan": {
+        "outcome": "The protected Windows workspace journey verifies the real private handoff within its existing bound and still rejects both unsuitable synthetic descriptors for the expected reason.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "crates/platform/examples/windows_handoff_probe.rs",
+          "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+          "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "archives/runs/windows-change-45668943982-1/test-report.json",
+          "crates/platform/Cargo.toml",
+          "project/checks.json",
+          "scripts/rust_workspace.py",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-147-7f12b107/final-response.txt",
+          "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.ps1",
+          "crates/platform/src/workspace_acl/windows/tests.rs",
+          "archives/runs/windows-change-45689952772-1/test-report.json",
+          "archives/runs/20261125T195735.990394Z-0479c9ec/test-report.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-147-dc5be1ff/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-147-bc89c85d/final-response.txt",
+          "archives/runs/windows-change-45710866374-1/test-report.json",
+          "archives/runs/20261125T221246.075646Z-9b2ba873/test-report.json",
+          "archives/observations/repo-hygiene-20261125/m0-147-windows-first-row-45744210597/observation.json",
+          "archives/observations/repo-hygiene-20261125/m0-147-windows-reconciled-first-row-45748342112/observation.json"
+        ],
+        "hypotheses": [
+          "A test-owned interpreter startup shares the probe deadline with reading the descriptor. The original report identifies deadline expiry, and records no internal stage. Compare independently measured native paths before assigning the cause.",
+          "The previous managed file ACL projection removed ineffective leaf entries before evaluating trustees. Check the raw and managed views of the same synthetic descriptor.",
+          "Two native runs reached allow-zero-mask and reported no stored ACE for the fixture trustee through GetFileSecurityW. Neither observed the submitted bytes. The subsequent calibration found the inherited user grant through the named reader on the unchanged files, consistent with the Rust witness, while the GetFileSecurityW observation could not find it. Six controls stopped before their write. Qualify the protected writer with a handle reader independent of the named baseline and the witness.",
+          "On this Linux checkout, the portable child emitted no bytes through Node streams even with natural exit, while synchronous writes delivered both streams. This reproduces the independent marker observation and is separate from the native ACL result."
+        ],
+        "risks": [
+          {
+            "failure": "Changing the verification implementation silently drops owner, trustee, inherited rights or effective read/write checks.",
+            "checks": [
+              "workspace-timeframe",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A semantically empty raw allow entry can falsely fail CI, or equivalence filtering accidentally admits an effective broad grant.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "Dispatching a known callback or object type before validating applicability can reject a private handoff. Filtering before structural validation can hide malformed descriptors.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A deadline or rejected descriptor is counted as successful, the original outcome becomes unattributable or temporary fixtures persist.",
+            "checks": [
+              "workspace-timeframe",
+              "project-state"
+            ]
+          },
+          {
+            "failure": "A guarded task can pass after only building the witness example. Verify the actual task selection and task definition, reject the former four-check report as current evidence, and inspect the maintained Cargo test output for all seven cases, including malformed input rejection.",
+            "checks": [
+              "project-state",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An opaque raw readback failure blocks the live handoff journey before its file witness assertions. Keep exact ACE comparison, identify the first failing fixture and bounded property, and exercise valid and rejected public launcher controls without leaking synthetic paths, trustees or subprocess streams.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "rust-contracts-workers",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A raw fixture creation or cleanup error exposes an absolute profile path, or a cleanup rejection overwrites the first calibration diagnostic or abandons remaining owned fixtures. Exclusive creation must preserve a pre-existing file.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The fixture writer can succeed while the stored DACL omits an inert ACE or alters the inherited private grant. Require independently verified submission, stored ACE identity and inherited grant preservation before accepting any fixture verdict.",
+            "checks": [
+              "project-state",
+              "rust-contracts-workers",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A portable child loses the diagnostic marker or a stdout lookalike is accepted as stderr. Exercise real subprocess delivery, exact rejection and cleanup.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Keep the original probe and native reports recoverable, and revert a replacement that cannot demonstrate equivalent acceptance and rejection.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "crates/platform/examples/windows_handoff_probe.rs",
+            "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+            "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "scripts/rust_workspace.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Product permission changes, expanding timeouts, suppressing failures and changes to user files."
+          ],
+          "open_questions": [
+            "Do the handle and named readers agree on the starting fixture, and does the protected file writer preserve the exact zero-mask and effective ACEs alongside the original inherited grant?",
+            "Does the exact native Windows run confirm all 24 matrix rows and live handoff outcomes under the existing deadline?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The existing fixed deadline, Windows ACL expectations, positive and negative native controls, private launch rotation, diagnostic redaction and inherited-pipe outcomes."
+          ],
+          "change": [
+            "Repair the verification path identified by the protected Windows incident and retain its native evidence.",
+            "Require the existing Rust workspace check alongside the real Windows handoff comparison. Keep the existing example test target and native harness dispatch.",
+            "Report fixed fixture creation and cleanup stages while preserving the first independently checked result and attempting cleanup for every acquired synthetic file.",
+            "Use a protected descriptor for isolated regular-file fixtures with matching handle and named baselines. Verify the exact fixture ACE and original inherited grant bytes both before submission and through handle readback. Deliver portable child markers through synchronous writes."
+          ],
+          "data_plan": "Use isolated synthetic profiles and existing private diagnostic archives. Report fixed outcomes without retaining identities, file contents or process arguments.",
+          "cleanup": "Remove temporary observation code and obsolete verification duplication after equivalent native controls pass. Keep the original failed report and log."
+        }
+      }
+    },
+    {
+      "id": "M0-163",
+      "milestone": "M0",
+      "title": "Make first-test and shared-capability guidance unambiguous from the checkout",
+      "status": "done",
+      "depends_on": [
+        "M0-158"
+      ],
+      "scope": [
+        "AGENTS.md",
+        "engineering-contract-v1.json",
+        "project/development.json",
+        "tests/project/test_development.py",
+        "project/evidence",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0030"
+      ],
+      "acceptance": [
+        "A fresh agent can find one consistent rule for choosing a first test. A chart rendering failure starts with an observable plotted-series distinction, while a protocol or permission failure starts at the boundary that can detect it. Use semantic examples and existing validation rather than hard-coding preferred wording.",
+        "A routine local dependency decision and a real shared-capability or external-provider decision lead to the appropriate versioned engineering rules. Preserve applicable organization or provider requirements when actually available and existing grants for costs, user data and access. An optional or missing host service cannot block unrelated local work.",
+        "Retain existing M0 and V1 scope and owner boundaries. Keep the root entry concise; consolidate duplicated detail only where an authoritative usable source exists. Validate changed links and discoverability from a clean checkout with no optional ancestor or private archive."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-163-0a1e626f3ffd9652.json",
+          "sha256": "ecf36e323719f520a4ae28899c42be5d48b035e4bcb7887834b9043832eb90f1"
+        },
+        {
+          "path": "project/evidence/M0-163-52d1e40230840602.json",
+          "sha256": "03fa066cd62638d4a301db76e84234a91e6c86cc5b0604e13e6f62dd2e80be79"
+        },
+        {
+          "path": "project/evidence/M0-163-c215d7446e0780b8.json",
+          "sha256": "4435168349b9381d274152c000a52501385732331e554d8c24b53deccaccd8ad"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The task checks and independent clean-checkout navigation verified the first-test and dependency rules, with separate chart and protocol examples and an accessible provider-authorization rule.",
+      "plan": {
+        "outcome": "The agent can select the first decisive test and recover the applicable dependency rules on a standard checkout.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+          "project/delivery.json",
+          "project/development.json",
+          "AGENTS.md",
+          "engineering-contract-v1.json",
+          "tests/project/test_development.py"
+        ],
+        "hypotheses": [
+          "A universal sequencing sentence and an unresolved host-specific cross-reference can send a fresh agent away from the first observable failure or make it wait for an unnecessary tool."
+        ],
+        "risks": [
+          {
+            "failure": "Clarifying guidance could remove meaningful security, licensing or provider boundaries or make a remote service a prerequisite for ordinary development.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Revert the guidance change and retain both observed interpretations and their source references for independent reconciliation.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "AGENTS.md",
+            "engineering-contract-v1.json",
+            "project/development.json",
+            "tests/project/test_development.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/iteration_policy/during"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/implementation_policy/build_or_reuse"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/evolution"
+            }
+          ],
+          "non_goals": [
+            "Change product runtime behavior, expand owner authorization, or publish private evidence."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The scope of product and engineering roles, existing parent rules when present, M0 exclusions, privacy, generator ownership, and actual release qualification."
+          ],
+          "change": [
+            "Resolve conflicting priorities and the dangling rule reference at their authoritative sources. Align nearby agent-facing navigation with the working directions."
+          ],
+          "data_plan": "Development records only. Keep task originals private and preserve existing product data and permissions.",
+          "cleanup": "Use the supported repository entry for the corrected behavior. Retire superseded local workarounds after matched verification and preserve originals required for audit."
+        }
+      }
+    },
+    {
+      "id": "M0-154",
+      "title": "Qualify cold sample document readiness in the Windows closed-bar repair journey",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M1-022",
+        "M1-023"
+      ],
+      "scope": [
+        "tests/ui/sample-startup.mjs",
+        "tests/ui/chart-pixels.mjs",
+        "tests/ui/history.spec.mjs",
+        "tests/ubuntu-preview",
+        "apps/desktop/ui",
+        "project/tasks.json",
+        "project/checks.json",
+        "project/development.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain the failed protected producer, same-tree native passing control and aggregate diagnostic when available. Identify the last observed startup stage before the chart repair assertion.",
+        "Use the public sample entry to distinguish an absent or failed document, a delivered document with pending required code, and a mounted sample with verified catalog and history. Preserve the original deadline, rejection of a genuine stall and chart expectations.",
+        "Demonstrate the correction or diagnostic on real controlled navigation and in the ordinary native Windows check, with original unsuccessful and successful controls retained. Keep historical cause and Windows acceptance explicit until observed.",
+        "Reject request-bound history contradictions before displaying the sample. A valid history with a failed chart mount stays history-verified. A successful cold sample includes actual candlesticks at the fitted time positions and OHLC price landmarks of the verified history. Missing, unrelated or misplaced price marks with the original last-price line and axis label stay history-verified."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "market-recovery",
+        "ui-build",
+        "generated-contracts",
+        "market-workflow",
+        "chart-history",
+        "architecture",
+        "market-live-stream",
+        "market-quality-states"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-154-531c8c110e824c73.json",
+          "sha256": "8fdd6d6b0d89c6804a2c4826ad9e2b304bc05575e317f02c0b4337748188eef4"
+        },
+        {
+          "path": "project/evidence/M0-154-54aa0eb51119f849.json",
+          "sha256": "5188bfaecc20c46c88a346c28690b28b36435144168f342459a46ddac4b823ba"
+        },
+        {
+          "path": "project/evidence/M0-154-10729f8012c6ad43.json",
+          "sha256": "1aa7c7e38ce631d105e5bdd7f30e69ad64aabc4b21c97495a08f44c31ca8520a"
+        },
+        {
+          "path": "project/evidence/M0-154-8bf9a6ef0193add5.json",
+          "sha256": "15a80ca98b3eb1e32d257a20dca060bc21d765582e525255ab9b482abbb2c51b"
+        },
+        {
+          "path": "project/evidence/M0-154-bfb6958fa70338b3.json",
+          "sha256": "7fafedaf54305dfe2e50eddbdcc6d54ddd3f6666d83f7b40d7c33477029e5509"
+        },
+        {
+          "path": "project/evidence/M0-154-a4209b3465db38fc.json",
+          "sha256": "3e299258a947ba1a905d5c5990e4120625721080666a9446ec8651ad9b31ed1b"
+        },
+        {
+          "path": "project/evidence/M0-154-f8d8b22f62dafa0a.json",
+          "sha256": "b6a730fe7764093a9309e1bdeb7865db1bfd4164b3092fed842305a559d0bb13"
+        },
+        {
+          "path": "project/evidence/M0-154-8e61319c5013374f.json",
+          "sha256": "283aafe29547ce6d6abb77cc71f1aeb41c519725e690304c000317fed8de68d9"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The first ordinary Windows PR 136 run 45823554677 passed all 41 recovery browser cases, including the cold public repair entry, the held-document deadline and fitted candle controls. Both platform receipts cover every task check. The independent approval of 83022759 is retained in contracts/reviews/task-decisions/M0-154.json. Native originals and their evidence limits are indexed in .reports/m0-154-native-closure/handoff.json. The historical timeout's cause remains unresolved and packaged physical Windows acceptance remains separate.",
+      "plan": {
+        "outcome": "A cold closed-bar repair journey reaches its verified initial sample or explains the last observed stage at the existing navigation deadline.",
+        "change_types": [
+          "tooling",
+          "ui"
+        ],
+        "context": [
+          "contracts/schemas/protocol.schema.json",
+          "scripts/generate_market_output_validators.mjs",
+          "tests/ui/sample-startup.mjs",
+          "tests/ubuntu-preview/market-closed-bar-repair.spec.mjs",
+          "tests/ubuntu-preview/market-preview-config.mjs",
+          "apps/desktop/ui/index.html",
+          "archives/observations/repo-hygiene-20261125/m0-154-cold-sample-45709117560/observations.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-232d0902/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-e8b8de61/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-2f02d0f7/final-response.txt",
+          "contracts/market-data-v1.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-222ba13c/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-e11e24fc/final-response.txt",
+          ".reports/m0-154-candle-paint/baseline/observations.json",
+          ".reports/m0-154-candle-paint/regression-before/market-recovery/results.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-6cc6a82f/original-assistant-response.jsonl",
+          ".reports/m0-154-candle-geometry/baseline/market-recovery/results.json"
+        ],
+        "hypotheses": [
+          "The screenshot confirms that the startup panel rendered. A missing or slow deferred module, an unobserved document transition and host delay remain distinguishable hypotheses until there is request and lifecycle evidence.",
+          "On unchanged local Linux Chromium, the sample completed the real catalog and history. Holding the static entry left a committed document with manual reload and no DOMContentLoaded. Holding the dynamically imported entry allowed DOMContentLoaded before any verified sample. These controlled observations do not identify the source of the historical Windows failure.",
+          "The startup attachment previously checked fewer reply fields than readSampleHistory. A same-series, same-revision reply for a shifted range distinguished the two checks.",
+          "Both consumers trust the structural output type after transport decoding. A frozen snapshot can pass their shared first-page comparison even if a required field absent from comparisons is missing. Compare the same archived 40-bar success with a one-field deletion at both public consumers.",
+          "The wrapper carries accepted history metadata before the renderer mounts. A valid equivalent decimal with excessive trailing zeros reaches Intl formatting and distinguishes history admission from successful chart presentation.",
+          "The Rust operation already binds worker output to the request. A loopback response altered after the bridge can pass generated shape checks while contradicting a dataset, snapshot, stream or page relationship at the UI admission boundary.",
+          "On e4cd88ec73e13c9064d53252dc031b83db4ddcd2, suppressing candle bodies and wicks left one price-colored row of 464 pixels in the main pane and 730 pixels in the price axis. The genuine and suppressed renders received byte-identical 40-bar history and both were credited with presentation success. The genuine render had price-colored pixels across 438 rows of the main pane. The original observer also accepted a neighboring case with two same-color rectangles in place of the candles.",
+          "On cfc783280bc1d63cae4a1cdf6c74a25699af4d68 the color-order classifier retained neither the fitted time coordinates nor the OHLC price geometry. The real startup accepted a compressed series of three-pixel marks with all 40 original directions."
+        ],
+        "risks": [
+          {
+            "failure": "A document-only success could release chart assertions before the mounted sample, its correct catalog and history.",
+            "checks": [
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "An added retry, excessive logging or inflated deadline hides a genuine terminal or crosses a privacy boundary.",
+            "checks": [
+              "market-recovery",
+              "project-state"
+            ]
+          },
+          {
+            "failure": "A valid reply to a changed request or reversed startup order advances readiness. Drive the real sample boundary with the ordinary calls, a changed history start, a changed catalog limit and reversed calls, and check each last verified stage.",
+            "checks": [
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "The held-module attachment misstates elapsed time while passing the deadline check. Compare it with an independent elapsed measurement under the original ten-second navigation cutoff and reject false-zero and implausible values.",
+            "checks": [
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "A structurally invalid success reaches the chart and startup readiness, or stricter decoding rejects a supported response. Use comparable current and compatible replies, missing and malformed structures, valid replies to a different request, failed replies and reversed completion at the public entry. Assert application outcome and the last attached stage.",
+            "checks": [
+              "market-recovery",
+              "ui-build",
+              "generated-contracts",
+              "chart-history"
+            ]
+          },
+          {
+            "failure": "The observer marks sample readiness without price marks or rejects a contract-valid decimal spelling. Replay the ordinary and equivalent ticks, force a chart mount failure after valid history, and independently measure price pixels, the visible alert, and the final startup stages.",
+            "checks": [
+              "market-recovery",
+              "ui-build",
+              "architecture"
+            ]
+          },
+          {
+            "failure": "A schema-valid response to a different request or an inconsistent continuation reaches the chart. Exercise the real public history validator before claiming startup history readiness with current and supported legacy inputs, single-field contradictions and real replay preparation.",
+            "checks": [
+              "market-recovery",
+              "chart-history",
+              "market-live-stream",
+              "market-quality-states"
+            ]
+          },
+          {
+            "failure": "The startup observer credits a last-price line, axis label or unrelated same-color marks as visible history. Compare genuine candles, missing candles and unrelated ink through the public entry with the same authoritative bridge responses and verify that a paint timeout stays history-verified without a mount failure flag.",
+            "checks": [
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "Correct color order can mask misplaced bodies and wicks, or pixel quantization can reject a legitimate render. Verify fitted time and OHLC geometry through the public entry with genuine paint, missing and relocated paint, and the genuine sample at fractional device scale and a narrower viewport. Compare ordinary startup and held-document timing.",
+            "checks": [
+              "market-recovery"
+            ]
+          }
+        ],
+        "rollback": "Keep the existing valid sample and cutoff; revert a change that hides a deliberate stall or changes the expected bars.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "ui",
+            "chart-adapter"
+          ],
+          "entrypoints": [
+            "tests/ui/sample-startup.mjs",
+            "tests/ui/chart-pixels.mjs",
+            "tests/ui/history.spec.mjs",
+            "tests/ubuntu-preview/market-closed-bar-repair.spec.mjs",
+            "apps/desktop/ui/src/market.ts",
+            "apps/desktop/ui/src/market-output.ts",
+            "apps/desktop/ui/src/sample-history-validation.ts",
+            "apps/desktop/ui/index.html",
+            "apps/desktop/ui/src/price-chart.tsx",
+            "apps/desktop/ui/src/chart-adapter/history.ts",
+            "apps/desktop/ui/src/chart-adapter/price-format.ts"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/domain/history_snapshots/selection"
+            },
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/MarketHistoryPageOutput"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            },
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/domain/stream_handoff"
+            }
+          ],
+          "non_goals": [
+            "Changing market data, relaxing chart integrity checks, automatic UI reloads or raising the navigation deadline."
+          ],
+          "open_questions": [
+            "What document, required script and workspace-mount events are observable at the failed boundary without reproducing assumptions about the native host?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The explicit synthetic sample, real chart repair path, source ownership, verified bars and manual reload behavior.",
+            "Keep supported legacy market reads, chart styles and no-tick formatting, the fixed required-hash control, partial startup stages, the ten-second document deadline and independently measured elapsed time."
+          ],
+          "change": [
+            "Add only the distinction or removable startup cost that measurements through the ordinary entry support.",
+            "Attach bounded document, pending code and verified market milestones to the normal repair browser check. Retain the ten-second navigation deadline, chart contract and manual reload.",
+            "Generate shared market response validators from the operation output types registered in the canonical JSON Schema. Standalone generation reuses the locked validator without compiling a schema in Chromium or WebView. Keep semantic checks for the application's paginated reads and the startup witness's single-page expectation.",
+            "Replace the two partial UI history comparisons with one request-bound validator at the existing public client entry. Per-field patches to the old first-page check would leave replay preparation and pinned continuations on separate identity rules. Rust retains digest verification.",
+            "Retain the chart renderer and normalize the instrument's decimal tick once for price formatting. The format helper has no renderer dependency. PriceChart owns the mount and its error, while the startup check witnesses visible price marks before recording a successful cold sample.",
+            "Preserve the earlier rejection of missing candles and unrelated price ink. Verify actual painted marks against fitted time coordinates and OHLC landmarks from the admitted history. Keep the generic style color count and chart rendering, viewport, scale and stored-state behavior."
+          ],
+          "data_plan": "Use synthetic sample traffic on a loopback development server and retain bounded stage observations.",
+          "cleanup": "Release owned browser listeners and servers and preserve the native failure and same-tree passing artifacts."
+        }
+      },
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45709117560-1",
+          "source_commit": "00a6ab1ef8c02ebd15144c3e5d65fcff70771ebb",
+          "report_sha256": "495063b876f34779ecd4e844bda70c09d97720bc3caf0f900a14d1af9b23dd8a"
+        }
+      ]
+    },
+    {
+      "id": "M0-166",
+      "title": "Recover or classify the interrupted frozen preview on a cropped window",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-149"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "apps/desktop/src-tauri",
+        "tests/ubuntu-preview",
+        "tests/ui"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Bind the failed browser case, its three bounded journals and the same-tree passing control to their actual OS, scenario, phase and source. Distinguish the failing observation from a wrong numeric result or another task’s calendar preview.",
+        "Reproduce or classify the interruption through the ordinary frozen preview entry with an independently observed valid and interrupted trial. Verify full and cropped equal closes, correct request and task correlation, the existing polling and admission policy, and cleanup. Keep unresolved attribution explicit.",
+        "Correct the confirmed cause or missing diagnostic and independently review it. Qualify the changed public boundary on ordinary Windows with current originals, preserve the first failure and recheck after protected integration."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe",
+        "desktop-workspace-transport",
+        "ui-build",
+        "market-workflow"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-166-0d9980eb56dc3963.json",
+          "sha256": "c19fd78b3720b956e25635413d42285e116cb4fd4302de674ce61207bfb6ae08"
+        },
+        {
+          "path": "project/evidence/M0-166-6e1ce9fbb282ac1a.json",
+          "sha256": "f57d888dda01be09bd8a9eff416c6ccda5b36856a72937f95866e4f3818e9caa"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45823962357-1",
+          "source_commit": "9f3a91950aee9e7c81819a0d27027fa2b9cc7514",
+          "report_sha256": "078717eb8956e711ef6b2262f43f70349a0d1d0901983b395af324135ec03f8c"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Scoped pre-integration delivery verified. Independent review approved the fixture diagnostics and recovery control on 057cc2c2f0638fdd3986e3817d7956868a788b05. The first ordinary PR 139 run 45830747074 passed all six task checks on Linux and Windows Server 2025 for submitted b71bf7dce6465d05f817219a63be8e433d240352 and tested merge preview df296d1a679f2d4c3b39e415986743e5ce5552fe. The Linux aggregate was blocked outside this task. Both browser runs showed three full-window rows and one cropped row with zero terminal volatility, identical same-task ready recovery after one reset and two genuine status refusals, and one same-task cancellation with the terminal alert after two resets and one genuine refusal. The controls covered both phases of the existing 15-second status deadline, complete-upload pre-admission BUSY, and a genuine tagged snapshot refusal with a separately witnessed recovery and cleanup. The original PR 137 abort is retained with its same-tree passing control. Its exact timeout call and internal cause remain unknown. The coordinator owns the recheck on the first protected main push after integration. Physical Windows and both maintenance workstreams retain their separate acceptance gates.",
+      "plan": {
+        "outcome": "Bind the failed browser case, its three bounded journals and the same-tree passing control to their actual OS, scenario, phase and source. Distinguish the failing observation from a wrong numeric result or another task’s calendar preview. Reproduce or classify the interruption through the ordinary frozen preview entry with an independently observed valid and interrupted trial. Verify full and cropped equal closes, correct request and task correlation, the existing polling and admission policy, and cleanup. Keep unresolved attribution explicit.",
+        "change_types": [
+          "tooling",
+          "ui"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "apps/desktop/ui/src/indicator-preview.tsx",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "project/checks.json",
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json"
+        ],
+        "hypotheses": [
+          "The ordinary Windows third journal stops after the fixture intercepted a real ready status. The same-tree guarded Windows journal next records the browser reset, a genuine gated 429, a second reset and cancellation for that task. The original duration is consistent with the fixture's tagged snapshot write wait; the original HTTP and writer events are unavailable."
+        ],
+        "risks": [
+          {
+            "failure": "A longer wait, a repeated preview or an unrelated green sample task could hide the original abort or change frozen results.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "workspace-timeframe",
+              "desktop-workspace-transport",
+              "ui-build",
+              "market-workflow"
+            ]
+          }
+        ],
+        "rollback": "Restore the preceding implementation and retain the diagnosed failures and controls if the ordinary contract changes.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "ui",
+            "desktop"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "apps/desktop/ui/src/indicator-preview.tsx",
+            "apps/desktop/ui/src/use-local-workspace.ts"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/0"
+            }
+          ],
+          "non_goals": [
+            "Preserve the 15-second polling deadline, frozen full and cropped values and ordinary permissions. Omit unrelated feature work and the separate ordinary Python process deadline."
+          ],
+          "open_questions": [
+            "The original timeout call and the cause of the missing writer observation remain unconfirmed. Qualify the updated fixture in the ordinary Windows browser workflow."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Preserve the 15-second polling deadline, frozen full and cropped values and ordinary permissions. Omit unrelated feature work and the separate ordinary Python process deadline."
+          ],
+          "change": [
+            "Journal the intercepted upstream status, tagged snapshot HTTP and writer observations, and browser delivery separately. Fail the fixture explicitly if its snapshot settles before the tagged write. Exercise a real refusal while a competing snapshot holds the writer."
+          ],
+          "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
+          "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
         }
       }
     }

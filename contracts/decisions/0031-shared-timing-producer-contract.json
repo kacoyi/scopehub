@@ -4,8 +4,8 @@
   "title": "Reconcile publisher and job evidence before projecting timing",
   "status": "accepted",
   "recorded_at": "2026-11-26",
-  "context": "The three independent reviews of 9ea5b514 found six qualification defects after the bounded inventory in ADR 0030. Equivalent Actions observations followed different paths depending on row grouping or transport. A shallow checkout hid an object whose ancestry remained readable in Git headers. Raw report fields and internally inconsistent compact measurements survived separate reader rules. A paired local replay also found that the reader selected timed steps before it knew the reconciled job role.",
-  "decision": "Keep the exact reviewed publisher closure and catalog inventory from ADR 0030 as the authority for the supported Windows timing contract. Share the raw source fence and catalog command validation with the native lane producer, and use the same check scope, ordered result rule and check-work calculation before qualifying reader inputs. A raw input must agree with its end snapshot, hosted identity and the verified execution-input snapshot before its additional assertions can be discarded. A compact input must agree with its own result rows and the supported closure. Resolve qualification once against the reconciled Actions observations per read and use that decision for conflicts, cache joins, intake, indexes and receipt projection. Decode local and downloaded Actions evidence with the same strict JSON rules. Union job and step assertions per attempt and job ID before deciding role, membership or clocks. Check available Git parent headers before accepting a proof at a missing-object boundary.",
+  "context": "The three independent reviews of 9ea5b514 found six qualification defects after the bounded inventory in ADR 0035. Equivalent Actions observations followed different paths depending on row grouping or transport. A shallow checkout hid an object whose ancestry remained readable in Git headers. Raw report fields and internally inconsistent compact measurements survived separate reader rules. A paired local replay also found that the reader selected timed steps before it knew the reconciled job role.",
+  "decision": "Keep the exact reviewed publisher closure and catalog inventory from ADR 0035 as the authority for the supported Windows timing contract. Share the raw source fence and catalog command validation with the native lane producer, and use the same check scope, ordered result rule and check-work calculation before qualifying reader inputs. A raw input must agree with its end snapshot, hosted identity and the verified execution-input snapshot before its additional assertions can be discarded. A compact input must agree with its own result rows and the supported closure. Resolve qualification once against the reconciled Actions observations per read and use that decision for conflicts, cache joins, intake, indexes and receipt projection. Decode local and downloaded Actions evidence with the same strict JSON rules. Union job and step assertions per attempt and job ID before deciding role, membership or clocks. Check available Git parent headers before accepting a proof at a missing-object boundary.",
   "authority": "The development AI owns verification implementation and technical evolution under ADR 0007. Existing independent decisions and protected verification remain acceptance gates.",
   "alternatives": [
     {
@@ -27,7 +27,7 @@
   "related_decisions": [
     "0007",
     "0026",
-    "0030"
+    "0035"
   ],
   "revisit_when": [
     "A genuine publication changes a required timing field, source fence, role assignment or canonical result rule.",

@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0",
+  "id": "0030",
+  "title": "Keep repository maintenance engagement state independent of task focus",
+  "status": "accepted",
+  "recorded_at": "2026-11-26",
+  "context": "The independently reviewed 8bbf6e109fa13f235cdb29bb644af465643cc3e0 exposed the owner terms while M0-158 held focus. Its focused route recovered zero of the two still-open commitments and no stop condition after a local transfer to the real M0-157 audit task. The two previous neutral starts exercised the repair focus. An unrelated product checkout had no maintenance engagement.",
+  "decision": "Keep the current engagement in the checkout's scaffold-entrance policy at project/delivery.json under scaffold_maintenance.engagement. Record the next action or the digest-bound closure observation once for each workstream. Derive engagement completion from closure of every workstream required by the digest-bound owner decision. Expose the engagement through the ordinary overview and focused handoff while leaving the task ledger, product requirements and periodic review cadence under their existing owners. The dated owner decision supplies fixed terms and historical intake observations.",
+  "authority": "Technical implementation under ADRs 0004 and 0007 and the owner terms in contracts/reviews/2026-11-26-maintenance-workstreams.json.",
+  "alternatives": [
+    {
+      "option": "Extend the repair's focused handoff and carry its lookup into each chosen successor.",
+      "reason": "The repaired entry worked while its task held focus but disappeared at the next legitimate transition. A handoff link on one successor would need another transfer whenever focus changes. This would couple independent product or audit tasks to engagement closure and repeat the same failure opportunity."
+    },
+    {
+      "option": "Build a separate engagement registry and lifecycle service.",
+      "reason": "The supported workflow has one tracked engagement and two closures. A new service or lookup index would add its own discovery, migration and retention burdens without replacing the repository policy gate."
+    }
+  ],
+  "consequences": [
+    "The tracked engagement follows the evaluated checkout. A checkout without the record keeps its ordinary views. A task in a checkout carrying the engagement retains its own definition and action. Overview exposes one compact route, and handoff follows it to the owner terms and closure observations without private state or a historical task ID.",
+    "Switching, closing or creating a task requires no engagement edit. Updating a next action or attaching a closure changes delivery policy bytes and makes previous execution-input evidence historical. The engagement stays in the existing validation and source identity boundary. No product data migration is needed.",
+    "A single accepted workstream leaves the other workstream actionable. After all listed workstreams have verified closure references, the views show that the engagement has ended. The coordinator delivers the evidence and limits and stops assigning under this engagement. Later feature implementation requires fresh owner direction and scheduled checks keep their existing cadence.",
+    "The previous repair task shortcut is no longer needed for ordinary discovery. Preserve the original review, dated decision and intake history. A fresh neutral coordinator must still exercise discovery after a genuine transfer and distinguish implementation evidence from acceptance of the maintenance itself."
+  ],
+  "supersedes": [],
+  "related_decisions": ["0004", "0007"],
+  "revisit_when": "A real engagement needs concurrent owners across independent checkouts, routine next-action edits cause measured verification churn, or another ordinary coordination handoff loses an outstanding commitment.",
+  "references": [
+    "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+    "contracts/reviews/task-decisions/M0-158.json",
+    "project/delivery.json"
+  ]
+}
