@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-165",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "16444fef187a3319672207576df1bbd5d607fa0d",
+      "scope": "Check the normal engineering navigation for the implemented Python indicator responsibility and Rust declarative ownership. Inspect the actual worker call and accepted fixture evidence, exercise a false planned declaration and an unrelated valid planned module where available. Verify scope and regression cost.",
+      "supersedes": null,
+      "requested_at": "2026-11-26T12:45:06.407432+00:00",
+      "request_id": "7a30a42fd66542eb31be920b08dbf242fa2320b3d33cdd1839a83bccfcc47df2",
+      "evidence_sha256": "e6632efb7a7bffc8eeb26cb517c6fb0a4e3e5f0ac2aae25ef8185bfa5ac8abc4"
+    }
+  ]
+}
