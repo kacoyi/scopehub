@@ -7348,6 +7348,398 @@
       ]
     },
     {
+      "id": "linux-browser-check-retains-preview-server-after-timeout",
+      "source": "archives/runs/20261125T144154.618344Z-990d4693/test-report.json and archives/observations/repo-hygiene-20261125/resumed-coordination-87dd079/resumed-browser-processes-87dd079.json (SHA-256 4eef9030afd8ef2525a1aea1c779d0d2386d03b8b6c90d87ba1cb3885a591a2c).",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "On protected main, desktop-localization timed out after 900.733 seconds. Well after the run finished, seven shell, pnpm and Vite processes still carried its exact SCOPEHUB_RUN_DIR and private temporary path across several sessions. The Vite process still held 127.0.0.1:1472. The cleanup failure is distinct from the cause of the original timeouts.",
+      "task_ids": [
+        "M0-138"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "desktop-localization"
+      ],
+      "resolution": {
+        "cause": "A timed-out browser launcher could leave descendants that had created a separate session outside its process group.",
+        "correction": "Supervise the Linux browser check with its own subreaper, then reap its descendants before returning the check result.",
+        "prevention": "Exercise a detached listener and an unrelated live listener through the normal verification entry on exit, failure, timeout and interruption."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T144154.618344Z-990d4693",
+          "source_commit": "87dd07963b5dfbc648473e8a4f021ff5b8384203",
+          "report_sha256": "555ee0b8ec281ecde392cbd5db6d656a8b673862b23e3d5d688444731eb0d1d9"
+        }
+      ]
+    },
+    {
+      "id": "linux-check-cleanup-unconfirmed-under-sigchld-ignore",
+      "source": "Astra Standard t10k on e11cec5729848235ed7ce066cd20402896b7cb7d. Original: archives/observations/repo-hygiene-20261125/independent-final-m0-138-e11cec57/final-response.txt (SHA-256 0d20eb5a39cd0e72a2fa04638febb9c20a40a87646159b90b877b9ba054056c4).",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "On the reviewed source a check command exited zero and its supervisor failed to read the owned children after a test-only descriptor limit. The harness returned cleanup_failed under default SIGCHLD. With SIGCHLD ignored it returned passed and zero for desktop-localization and market-recovery while the detached fixture still held its lock.",
+      "task_ids": [
+        "M0-138"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "An inherited ignored SIGCHLD disposition allowed a synthetic zero wait status when cleanup confirmation was missing.",
+        "correction": "Require the supervisor to confirm its bounded cleanup through its result channel before accepting the command outcome.",
+        "prevention": "The ordinary Linux tests exercise confirmed cleanup and an unavailable child inventory under default and ignored SIGCHLD dispositions."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "linux-check-late-sigint-drops-result-during-reaping",
+      "source": "Astra Standard t10k on e11cec5729848235ed7ce066cd20402896b7cb7d. Original: archives/observations/repo-hygiene-20261125/independent-final-m0-138-e11cec57/final-response.txt (SHA-256 0d20eb5a39cd0e72a2fa04638febb9c20a40a87646159b90b877b9ba054056c4).",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "One real SIGINT reached the serial check caller after its supervisor started reaping an owned detached tree. The reviewed desktop-localization and market-recovery entries escaped with KeyboardInterrupt and produced no interrupted check record. Independent cleanup confirmed the fixture processes exited.",
+      "task_ids": [
+        "M0-138"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "An interrupt arriving after the command result could escape while the supervisor was still waiting for descendants.",
+        "correction": "Record the interrupt and complete bounded reaping before publishing the interrupted result.",
+        "prevention": "A live supervisor and detached process exercise interruption during reaping and preserve the terminal row and subsequent retry."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "linux-unconfirmed-cleanup-log-remains-writable-after-report",
+      "source": "Astra Standard t10k on 771d2071eff1b9215df7808cf1f51a9897334f07. Original text: archives/observations/repo-hygiene-20261125/independent-final-m0-138-771d2071/final-response.txt (SHA-256 07417c896fa8f2810ee7644e12d106547cd766e263ae7b2b39b7f9f64ee7ead8). Original assistant response JSONL SHA-256 33a5a4a32d39546ef5af753e7fdbe86c06872bb036284f871d90cc7ee07c1378.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "An owned detached descendant kept an inherited stdout handle after a disposable supervisor hit EMFILE. The check correctly reported cleanup_failed. The descendant then appended 34 bytes after execute returned, invalidating the recorded SHA-256 under both tested SIGCHLD dispositions. The retry used its own log and did not restore integrity of the failed report.",
+      "task_ids": [
+        "M0-138"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "A surviving writer retained the original log descriptor after cleanup failed, allowing the digested log bytes to change later.",
+        "correction": "Publish a bounded independent snapshot before computing the log digest when Linux cleanup is unconfirmed.",
+        "prevention": "Retain the failed cleanup and allow the original writer to append after publication, then verify the archived bytes and a separate retry."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "serial-check-sigint-during-log-digest-drops-terminal-report",
+      "source": "Astra Standard t10k on 771d2071eff1b9215df7808cf1f51a9897334f07. Original text: archives/observations/repo-hygiene-20261125/independent-final-m0-138-771d2071/final-response.txt (SHA-256 07417c896fa8f2810ee7644e12d106547cd766e263ae7b2b39b7f9f64ee7ead8). Original assistant response JSONL SHA-256 33a5a4a32d39546ef5af753e7fdbe86c06872bb036284f871d90cc7ee07c1378.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "One standard SIGINT reached the serial caller while hashing a 16 MiB check log after normal command exit and confirmed cleanup. KeyboardInterrupt escaped with only the running row. The same observation was reproduced on the reviewed protected main ae479debd911ae79ffbf74f6208b288f00710978. This occurs without a residual output writer or an unconfirmed cleanup.",
+      "task_ids": [
+        "M0-138"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "A signal delivered during serial diagnostic finalization could escape before the harness saved a terminal result.",
+        "correction": "Defer the interrupt across finalization and report its disposition while preserving an earlier cleanup failure.",
+        "prevention": "Interrupt a real log digest and resolve the original terminal report, its latest copy and the independent retry."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "serial-check-sigint-on-blocked-terminal-output-drops-report",
+      "source": "Astra Standard t10k on 325b32e48b03c034f6080dc53909b9cf3e8e5944. Original: archives/observations/repo-hygiene-20261125/independent-final-m0-138-325b32e4/final-response.txt (SHA-256 f6984eb538dcf7d69ffb19894ddd6beb6f4ae5265dc17605a1bb5bc29d57c288). Original event SHA-256 099069354f40cdbbbc1dcc56a6b23c7468db5ad1a6767444df451fff89c225e8.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-138"
+      ],
+      "observation": "After the check had completed and its log had been hashed, a single SIGINT delivered while the terminal result write was blocked on a full 4 KiB stdout pipe left only the running row. The run report was absent and the latest report still referenced the preceding pass. The protected parent e2fc0a995de65253264e26c6d07f9adf9f9c2949 reproduced this boundary. The separate log-snapshot and digest-time interruption controls passed on the reviewed candidate.",
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "A blocked terminal-result write could receive the interrupt before the durable report was published.",
+        "correction": "Make terminal output interruption observable and finish publishing the recorded check state and log.",
+        "prevention": "Hold a real output pipe full, deliver one interrupt before drainage and independently verify the saved report and retry."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "linux-parallel-console-write-blocks-after-pipe-readiness",
+      "source": "Astra Standard t10k on 5b968c9a96ea385a5efcb675ec7086d454574ecf. Original: archives/observations/repo-hygiene-20261125/independent-final-m0-138-5b968c9a/final-response.txt (SHA-256 0843eda2c110a31aa8d8ad8fc8a2fd4cf6c31c1c338a802ccf502598f321398f). Original event SHA-256 968182378b3727933e75b541f4a49267afbd6c39924079119d6a1bf175e2bce3.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-138"
+      ],
+      "observation": "A second writer filled the same Linux 4 KiB pipe after the parallel console poll reported write readiness and before os.write. One SIGINT set the cooperative stop flag, but the blocking write remained stuck after 5.5 seconds and neither the original report nor the new latest was published until external drainage. Filling before readiness retained the report without drainage. The independent sequential interruption, reaping and immutable-log controls passed.",
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Another writer could fill the shared pipe after a readiness notification, leaving the ensuing blocking write stuck.",
+        "correction": "Use a private nonblocking Linux file description and keep track of the unwritten bytes across short writes and EAGAIN.",
+        "prevention": "Exercise pre-readiness and post-readiness fills, an undrained interrupt, actual short writes, unchanged caller flags and a complete byte-for-byte output line."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-gate-test-replaces-native-platform-with-incomplete-sys",
+      "source": "Guarded native M0-138 run 45682823289 attempt 1 and ordinary PR 124 run 45682766074 attempt 1. Original reports and traces are retained at archives/runs/20261125T191335.690626Z-3716de15/ and archives/runs/windows-change-45682766074-1/.",
+      "observation": "Both Windows Python checks independently recorded two errors in test_windows_gated_launcher_is_the_assigned_process, in the redirector and normal gate subtests. The test replaces processes.sys with a namespace missing platform, and containment selection reads that property before either launcher starts. The logs therefore contain no native gate process identity or Job Object membership result for either subtest. Guarded Linux passed and the ordinary Linux Python check passed. Its aggregate retains its recorded blocked status.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-138"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T191335.690626Z-3716de15",
+          "source_commit": "2c212a68112df03b08978ccca40980c303815dfa",
+          "report_sha256": "1076b60e5d4b7090b1fc006fe4fccff5749228c05cd427456a0d2134a94b3341"
+        },
+        {
+          "run_id": "windows-change-45682766074-1",
+          "source_commit": "a0ec734b445989a42742870b870685c56eaf1974",
+          "report_sha256": "2d743243641b720c1fc98bd8a1267b0995bd4b10228fe9d3be5f7e94e0e237b7"
+        }
+      ],
+      "resolution": {
+        "cause": "The interpreter-path fixture replaced the process module\u2019s runtime namespace with a stub lacking the platform read by process containment before launch. Both the redirector and normal case errored before checking identity.",
+        "correction": "Preserve the actual runtime platform in the two controlled interpreter configurations and let the existing gate-launch test exercise its process identity and containment assertions.",
+        "prevention": "Run the assigned-process test on Windows alongside its redirector control, the timeout cleanup and the external reader. The Linux contrast independently checks a distinct redirector PID and process group."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "interrupt-regression-peer-lock-unheld-at-last-running-stage",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Protected Linux run 45712964544 and identical-tree PR 124 run 45709305124. Original report archives/runs/20261125T222514.810400Z-4ec1e5c9/test-report.json. The retained comparison is archives/observations/repo-hygiene-20261125/m0-157-terminal-lock-45712964544/observation.json (SHA-256 b3cecaac05b7015850f94c1fd80de73cacbc09b2b066d49572024e8eaff45d23). Linux PR 128 run 45716055348 attempt 1 repeated the failure. Original report archives/runs/20261125T224715.532164Z-bac3bdc0/test-report.json. The retained source comparison is archives/observations/repo-hygiene-20261125/m0-157-pull-request-recurrence-45716055348/observation.json (SHA-256 08b406ade058259e18b01270e84943b3cfae607b7ae16277e92f352fb8b15187).",
+      "observation": "The final running-stage subtest acquired the peer lock after one SIGINT. Its seven-scenario test took 30.242 seconds and the helper uses a 30-second lifetime starting before the scenarios. The same-tree PR completed the test in 16.462 seconds. The failing run did not report the helper exit reason or lock-release time. PR 128 hit the identical final running-stage assertion in 30.851 seconds, the sole failure among 838 tests. The protected, submitted and preview sources match on the five involved code paths. The second hosted report also lacks peer exit and lock-release telemetry.",
+      "task_ids": [
+        "M0-157"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T222514.810400Z-4ec1e5c9",
+          "source_commit": "5aedc53645f217b18bdf996f987019d75bb098c2",
+          "report_sha256": "14548f0393830e4c498471ba573ce76a12743c68cc4ca96aaec233123dfa6fe9"
+        },
+        {
+          "run_id": "20261125T224715.532164Z-bac3bdc0",
+          "source_commit": "0d44ea5f13cc4f50e1bbfb7a3f2ff2ce9ae3395e",
+          "report_sha256": "67fce911b24ee381336706ccddc7190909437d577c2dceaa9ce7ef400873ad6c"
+        }
+      ],
+      "resolution": {
+        "cause": "The test peer had a 30-second independent lifetime. A controlled slow run observed it exiting normally and releasing the lock before the final stage. The original hosted runs did not record the exit reason.",
+        "correction": "The test controller owns the stdin writer and the independent peer holds the lock until EOF. Cleanup reaps the peer and verifies release.",
+        "prevention": "The seven-stage public SIGINT test checks that the unrelated peer keeps its lock and that reports, cleanup and retries remain intact. Retained controls verify the old deadline, deliberate early release and controller exit."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "frozen-indicator-post-loss-status-busy-counted-as-admitted",
+      "source": "PR 116 ordinary native Windows run 45682874140 on 00dfb23fc59e5e73f964eb574d29edfb48c5bf5e. Original archives/runs/windows-change-45682874140-1/test-report.json and workspace-timeframe.log. The corresponding native Linux check passed. Protected Windows run 45702463807 and same-tree preview run 45698603142: archives/observations/repo-hygiene-20261125/main-python-and-indicator-45702463807/observations.json SHA-256 31ae8c90aff05cae6779e17f0603ac4fe4431e00ff6adefcb02372146d669ae9.",
+      "observation": "After the first ready status for task 479d7460-afa8-421a-b8bd-34759939826d was reset, status cadf2bd2 received HTTP 429 BUSY and 5175c3ec reached another ready reply whose delivery was reset. The expected terminal message and a cancellation were observed with no new preview submission. The assertion expected one raw status request and rejected both outbound reads. A local Chromium replay with the portable writer reproduced the false count using a real authenticated refusal. When a separate control substituted HTTP 200 BUSY for an admitted ready response, the preview retried and displayed the result. An application BUSY does not establish that a request was refused before admission. The protected failure in the full or cropped zero-volatility case printed two different status request IDs for the same synthetic task. Those HTTP outcomes were not observed. Its preceding preview with the identical Git tree passed the named case.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-149"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45682874140-1",
+          "source_commit": "00dfb23fc59e5e73f964eb574d29edfb48c5bf5e",
+          "report_sha256": "fd2955be884d13462c10aeb350f6ac33569d62ba0aec545a4ec3bc5ef1bacbb3"
+        },
+        {
+          "run_id": "windows-change-45702463807-1",
+          "source_commit": "beb6fa11cee8923675f9fdbcc327b24f8fede2e9",
+          "report_sha256": "291ada56b3627513814fcaeb478508b97e6874ea4cc0ff234b7db221ce9161a0"
+        }
+      ],
+      "resolution": {
+        "cause": "The recovery assertion counted every outgoing status request as an admitted read. Polling also treated an admitted application BUSY as a refusal. The protected equal-closes failure did not retain the HTTP outcomes of its two reads.",
+        "correction": "Classify a retry from the documented admission response, keep polling the original frozen task within one deadline and account for each attempted status and cancellation.",
+        "prevention": "Exercise full and cropped zero-volatility calculations, zero through two lost ready replies, a contradictory or nonretryable 429, admitted BUSY, persistent refusal and wrong-task replies in the real workspace."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-native-admitted-busy-retried",
+      "source": "Independent Astra Standard review of 2738fa7edc800b37ba3eb3d4196eb86908e36104. Private original independent-final-m0-149-2738fa7e/final-response.txt SHA-256 a3408ef80cae92a7bba28f669213a0bc8ea0e51f53ddd66b529ce6863a5146a7.",
+      "observation": "The native polling replay reads the same task again after an admitted retryable BUSY. Tauri treats all retryable BUSY replies as refusals even though reaching a ready indicator job can acquire the writer slot and return SQLite BUSY during its application read.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-149"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "desktop-workspace-transport"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T194525.509241Z-4e48ed14",
+          "source_commit": "2738fa7edc800b37ba3eb3d4196eb86908e36104",
+          "report_sha256": "88266e9796629772a779229c75bbc857111c5dcb104245769e690f891336e025"
+        }
+      ],
+      "resolution": {
+        "cause": "The native transport treated every retryable BUSY as a refusal even when the application had admitted the read and SQLite returned BUSY.",
+        "correction": "The writer marks refused admission in the native error details only before admission. Native polling retries a matching, explicitly refused status read.",
+        "prevention": "A built desktop transport exercises explicit writer refusal, an admitted storage BUSY, an older unclassified reply and the nonretryable shape. The latter three each produce one read and one same-task cancellation."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-first-trial-cancel-without-task-accepted",
+      "source": "Independent Astra Standard review of 2738fa7edc800b37ba3eb3d4196eb86908e36104. Private original independent-final-m0-149-2738fa7e/final-response.txt SHA-256 a3408ef80cae92a7bba28f669213a0bc8ea0e51f53ddd66b529ce6863a5146a7.",
+      "observation": "Adding a raw task.cancel without task_id and with HTTP 400 to the retained cut=0 browser journal passes the recorded verifier. There is no previous task in this trial, but the missing task is classified as previous cleanup and skipped.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-149"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T194525.509241Z-4e48ed14",
+          "source_commit": "2738fa7edc800b37ba3eb3d4196eb86908e36104",
+          "report_sha256": "88266e9796629772a779229c75bbc857111c5dcb104245769e690f891336e025"
+        }
+      ],
+      "resolution": {
+        "cause": "The first trial treated a missing cancellation identity as a match for its absent previous task.",
+        "correction": "Match cancellation against an actual current or prior task identity and count cleanup independently for each trial.",
+        "prevention": "The retained full and cropped trial sequence accepts identified prior-task cleanup, rejects an added first-trial cancellation without a task and verifies one cancellation on exhaustion."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-persistent-admission-terminal-request-unclassified",
+      "source": "PR128 ordinary run 45693164625 attempt 1 on approved 6104e365e2736c3520465e1c31aa5dbf3ab1cad3. archives/observations/repo-hygiene-20261125/m0-149-deadline-abort-45693164625/observations.json SHA-256 283ef56de72e7e35fa1e965bfe386bba784bf1ac4e0de3fccad4b4fdc62b08e0. Retained Linux original archives/runs/20261125T201655.779125Z-2e9681e2/test-report.json and matching Windows case in the private PR128 originals.",
+      "observation": "After an upstream HTTP 200 ready status for the frozen task was reset at 349 ms, the persistent-refusal test saw a different request for the same task at 15247 ms on its explicit synthetic route. Chromium recorded net::ERR_ABORTED with no HTTP status or reply. The journal assertion counted that unresolved request alongside the real ready observation and failed the Linux case. The abort does not identify an admitted read or a delivered refusal. The matching Windows case passed. The failed assertion retained a printed subset and no complete bounded journal attachment.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-149"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T201655.779125Z-2e9681e2",
+          "source_commit": "1a95eec502041af7903bd9405f5a37cc4f257fbc",
+          "report_sha256": "2ea16881b4c1bf92d66d5b47e91755c7f441eca72daff032baa380418586df37"
+        }
+      ],
+      "resolution": {
+        "cause": "The original persistent-refusal browser assertion classified an aborted terminal request with no HTTP result alongside admitted recovery. Its failure retained a partial journal, leaving the original request disposition unclassified.",
+        "correction": "Record the browser deadline, held test route and delivery outcome together and require proof the terminal request was never forwarded before accepting this bounded abort.",
+        "prevention": "Exercise the held browser route and check two delivered refusals, a single terminal abort, no new status or preview after the deadline and one cancellation of the original task. Reject incomplete or contradictory journals."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "coordination-handoff-narrows-two-owner-outcomes",
+      "status": "addressed",
+      "severity": "major",
+      "source": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+      "observation": "On resumption the coordinator reported successful restoration of Herdr dispatches as completion of the current task and focused on one PR. The owner had to reassert whole-repository cleanup and the continuing maintenance and evolution mandate. Both were outstanding.",
+      "task_ids": [
+        "M0-158"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The startup route showed operational assignments without carrying the two owner-defined outcomes and their acceptance.",
+        "correction": "Expose the source-bound engagement in the ordinary overview and focused handoff, with accountable work and a separate acceptance for each outcome.",
+        "prevention": "Compare a new cold coordinator’s response to the owner terms after a focus transfer, with unavailable private originals. Retain its exact source and answer in the development archive."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "maintenance-engagement-disappears-after-repair-closure",
+      "status": "addressed",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-158.json#/events/1 on 8bbf6e109fa13f235cdb29bb644af465643cc3e0. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-158-8bbf6e10/original-assistant-response.jsonl, SHA-256 b6ec4a4f7957d1658d7165f1b7152cb43c87bc5cb57cf5f17d9766098a21a818.",
+      "observation": "The independent reviewer projected the narrow repair done and transferred focus to the genuine M0-157 audit task. Ordinary startup and focused handoff recovered zero of the two open maintenance commitments and no stop condition. The known-path owner record still showed both open. The earlier warm and fresh starts exercised the repair focus and did not detect the loss across task turnover.",
+      "task_ids": [
+        "M0-158"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The engagement depended on the status and focus of the repair task, so closing the repair could hide continuing work.",
+        "correction": "Read engagement terms through the shared scaffold policy across focus changes and keep each workstream open until its declared acceptance is observed.",
+        "prevention": "Exercise a real successor in a controlled checkout, an unrelated product focus and joint completion. Check the original weekly cadence independently."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "maintenance-engagement-accepts-rejected-closure",
+      "status": "addressed",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-158.json#/events/3 on 236bd00c12f1efe58ce44d2b292c4fc389854ece. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-158-236bd00c/original-assistant-response.jsonl, SHA-256 46885dac4cf1b285faa86cf30a132f04f2f448affeba5427a0fc57ff4bc1da21.",
+      "observation": "After audit focus transferred, the independent reviewer replaced one accepted closure observation with an explicitly rejected maintenance observation about the missing due-cycle review and recomputed the digest. Ordinary overview and focused handoff still reported both workstreams accepted and the engagement ended. The one-accepted and two-accepted controls had the expected outcomes.",
+      "task_ids": [
+        "M0-158"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The closure reader checked evidence identity without requiring its observed disposition to accept the relevant workstream.",
+        "correction": "Require an explicit accepted observation for the named workstream and owner criteria before treating that outcome as closed.",
+        "prevention": "Exercise accepted, rejected, missing and partial closure through the public overview and focused handoff. Verify the remaining work and stopping condition."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "read-only-handoff-owner-source-uses-package-cache",
+      "status": "addressed",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-158.json#/events/3 on 236bd00c12f1efe58ce44d2b292c4fc389854ece. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-158-236bd00c/original-assistant-response.jsonl, SHA-256 46885dac4cf1b285faa86cf30a132f04f2f448affeba5427a0fc57ff4bc1da21.",
+      "observation": "The independent reviewer followed the read-only overview into focused handoff and executed its owner-source command as emitted. It invoked pnpm and uv and exited with code 2 when uv could not write its cache lock. The pinned interpreter returned both sets of owner acceptance terms from the same checkout.",
+      "task_ids": [
+        "M0-158"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The read-only handoff emitted a package-managed continuation that required a writable cache to display the owner source.",
+        "correction": "Propagate the pinned interpreter through read-only source navigation so the owner terms can be read in the same environment.",
+        "prevention": "Execute the emitted source commands in an unwritable-cache checkout. The independent successor followed the read-only route and recovered both owner outcomes."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "frozen-reopen-stale-access-status",
       "source": "The built desktop UI red regression at archives/runs/20261125T035923.329201Z-a36ab18a/test-report.json.",
       "severity": "minor",
@@ -7711,319 +8103,6 @@
         }
       ],
       "resolution": null,
-      "deferral_reason": null
-    },
-    {
-      "id": "linux-browser-check-retains-preview-server-after-timeout",
-      "source": "archives/runs/20261125T144154.618344Z-990d4693/test-report.json and archives/observations/repo-hygiene-20261125/resumed-coordination-87dd079/resumed-browser-processes-87dd079.json (SHA-256 4eef9030afd8ef2525a1aea1c779d0d2386d03b8b6c90d87ba1cb3885a591a2c).",
-      "severity": "major",
-      "status": "addressed",
-      "observation": "On protected main, desktop-localization timed out after 900.733 seconds. Well after the run finished, seven shell, pnpm and Vite processes still carried its exact SCOPEHUB_RUN_DIR and private temporary path across several sessions. The Vite process still held 127.0.0.1:1472. The cleanup failure is distinct from the cause of the original timeouts.",
-      "task_ids": [
-        "M0-138"
-      ],
-      "regression_checks": [
-        "python-contracts-workers",
-        "desktop-localization"
-      ],
-      "resolution": {
-        "cause": "A timed-out browser launcher could leave descendants that had created a separate session outside its process group.",
-        "correction": "Supervise the Linux browser check with its own subreaper, then reap its descendants before returning the check result.",
-        "prevention": "Exercise a detached listener and an unrelated live listener through the normal verification entry on exit, failure, timeout and interruption."
-      },
-      "deferral_reason": null,
-      "diagnostic_reports": [
-        {
-          "run_id": "20261125T144154.618344Z-990d4693",
-          "source_commit": "87dd07963b5dfbc648473e8a4f021ff5b8384203",
-          "report_sha256": "555ee0b8ec281ecde392cbd5db6d656a8b673862b23e3d5d688444731eb0d1d9"
-        }
-      ]
-    },
-    {
-      "id": "linux-check-cleanup-unconfirmed-under-sigchld-ignore",
-      "source": "Astra Standard t10k on e11cec5729848235ed7ce066cd20402896b7cb7d. Original: archives/observations/repo-hygiene-20261125/independent-final-m0-138-e11cec57/final-response.txt (SHA-256 0d20eb5a39cd0e72a2fa04638febb9c20a40a87646159b90b877b9ba054056c4).",
-      "severity": "major",
-      "status": "addressed",
-      "observation": "On the reviewed source a check command exited zero and its supervisor failed to read the owned children after a test-only descriptor limit. The harness returned cleanup_failed under default SIGCHLD. With SIGCHLD ignored it returned passed and zero for desktop-localization and market-recovery while the detached fixture still held its lock.",
-      "task_ids": [
-        "M0-138"
-      ],
-      "regression_checks": [
-        "python-contracts-workers"
-      ],
-      "resolution": {
-        "cause": "An inherited ignored SIGCHLD disposition allowed a synthetic zero wait status when cleanup confirmation was missing.",
-        "correction": "Require the supervisor to confirm its bounded cleanup through its result channel before accepting the command outcome.",
-        "prevention": "The ordinary Linux tests exercise confirmed cleanup and an unavailable child inventory under default and ignored SIGCHLD dispositions."
-      },
-      "deferral_reason": null
-    },
-    {
-      "id": "linux-check-late-sigint-drops-result-during-reaping",
-      "source": "Astra Standard t10k on e11cec5729848235ed7ce066cd20402896b7cb7d. Original: archives/observations/repo-hygiene-20261125/independent-final-m0-138-e11cec57/final-response.txt (SHA-256 0d20eb5a39cd0e72a2fa04638febb9c20a40a87646159b90b877b9ba054056c4).",
-      "severity": "major",
-      "status": "addressed",
-      "observation": "One real SIGINT reached the serial check caller after its supervisor started reaping an owned detached tree. The reviewed desktop-localization and market-recovery entries escaped with KeyboardInterrupt and produced no interrupted check record. Independent cleanup confirmed the fixture processes exited.",
-      "task_ids": [
-        "M0-138"
-      ],
-      "regression_checks": [
-        "python-contracts-workers"
-      ],
-      "resolution": {
-        "cause": "An interrupt arriving after the command result could escape while the supervisor was still waiting for descendants.",
-        "correction": "Record the interrupt and complete bounded reaping before publishing the interrupted result.",
-        "prevention": "A live supervisor and detached process exercise interruption during reaping and preserve the terminal row and subsequent retry."
-      },
-      "deferral_reason": null
-    },
-    {
-      "id": "linux-unconfirmed-cleanup-log-remains-writable-after-report",
-      "source": "Astra Standard t10k on 771d2071eff1b9215df7808cf1f51a9897334f07. Original text: archives/observations/repo-hygiene-20261125/independent-final-m0-138-771d2071/final-response.txt (SHA-256 07417c896fa8f2810ee7644e12d106547cd766e263ae7b2b39b7f9f64ee7ead8). Original assistant response JSONL SHA-256 33a5a4a32d39546ef5af753e7fdbe86c06872bb036284f871d90cc7ee07c1378.",
-      "severity": "major",
-      "status": "addressed",
-      "observation": "An owned detached descendant kept an inherited stdout handle after a disposable supervisor hit EMFILE. The check correctly reported cleanup_failed. The descendant then appended 34 bytes after execute returned, invalidating the recorded SHA-256 under both tested SIGCHLD dispositions. The retry used its own log and did not restore integrity of the failed report.",
-      "task_ids": [
-        "M0-138"
-      ],
-      "regression_checks": [
-        "python-contracts-workers"
-      ],
-      "resolution": {
-        "cause": "A surviving writer retained the original log descriptor after cleanup failed, allowing the digested log bytes to change later.",
-        "correction": "Publish a bounded independent snapshot before computing the log digest when Linux cleanup is unconfirmed.",
-        "prevention": "Retain the failed cleanup and allow the original writer to append after publication, then verify the archived bytes and a separate retry."
-      },
-      "deferral_reason": null
-    },
-    {
-      "id": "serial-check-sigint-during-log-digest-drops-terminal-report",
-      "source": "Astra Standard t10k on 771d2071eff1b9215df7808cf1f51a9897334f07. Original text: archives/observations/repo-hygiene-20261125/independent-final-m0-138-771d2071/final-response.txt (SHA-256 07417c896fa8f2810ee7644e12d106547cd766e263ae7b2b39b7f9f64ee7ead8). Original assistant response JSONL SHA-256 33a5a4a32d39546ef5af753e7fdbe86c06872bb036284f871d90cc7ee07c1378.",
-      "severity": "major",
-      "status": "addressed",
-      "observation": "One standard SIGINT reached the serial caller while hashing a 16 MiB check log after normal command exit and confirmed cleanup. KeyboardInterrupt escaped with only the running row. The same observation was reproduced on the reviewed protected main ae479debd911ae79ffbf74f6208b288f00710978. This occurs without a residual output writer or an unconfirmed cleanup.",
-      "task_ids": [
-        "M0-138"
-      ],
-      "regression_checks": [
-        "python-contracts-workers"
-      ],
-      "resolution": {
-        "cause": "A signal delivered during serial diagnostic finalization could escape before the harness saved a terminal result.",
-        "correction": "Defer the interrupt across finalization and report its disposition while preserving an earlier cleanup failure.",
-        "prevention": "Interrupt a real log digest and resolve the original terminal report, its latest copy and the independent retry."
-      },
-      "deferral_reason": null
-    },
-    {
-      "id": "serial-check-sigint-on-blocked-terminal-output-drops-report",
-      "source": "Astra Standard t10k on 325b32e48b03c034f6080dc53909b9cf3e8e5944. Original: archives/observations/repo-hygiene-20261125/independent-final-m0-138-325b32e4/final-response.txt (SHA-256 f6984eb538dcf7d69ffb19894ddd6beb6f4ae5265dc17605a1bb5bc29d57c288). Original event SHA-256 099069354f40cdbbbc1dcc56a6b23c7468db5ad1a6767444df451fff89c225e8.",
-      "severity": "major",
-      "status": "addressed",
-      "task_ids": [
-        "M0-138"
-      ],
-      "observation": "After the check had completed and its log had been hashed, a single SIGINT delivered while the terminal result write was blocked on a full 4 KiB stdout pipe left only the running row. The run report was absent and the latest report still referenced the preceding pass. The protected parent e2fc0a995de65253264e26c6d07f9adf9f9c2949 reproduced this boundary. The separate log-snapshot and digest-time interruption controls passed on the reviewed candidate.",
-      "regression_checks": [
-        "python-contracts-workers"
-      ],
-      "resolution": {
-        "cause": "A blocked terminal-result write could receive the interrupt before the durable report was published.",
-        "correction": "Make terminal output interruption observable and finish publishing the recorded check state and log.",
-        "prevention": "Hold a real output pipe full, deliver one interrupt before drainage and independently verify the saved report and retry."
-      },
-      "deferral_reason": null
-    },
-    {
-      "id": "linux-parallel-console-write-blocks-after-pipe-readiness",
-      "source": "Astra Standard t10k on 5b968c9a96ea385a5efcb675ec7086d454574ecf. Original: archives/observations/repo-hygiene-20261125/independent-final-m0-138-5b968c9a/final-response.txt (SHA-256 0843eda2c110a31aa8d8ad8fc8a2fd4cf6c31c1c338a802ccf502598f321398f). Original event SHA-256 968182378b3727933e75b541f4a49267afbd6c39924079119d6a1bf175e2bce3.",
-      "severity": "major",
-      "status": "addressed",
-      "task_ids": [
-        "M0-138"
-      ],
-      "observation": "A second writer filled the same Linux 4 KiB pipe after the parallel console poll reported write readiness and before os.write. One SIGINT set the cooperative stop flag, but the blocking write remained stuck after 5.5 seconds and neither the original report nor the new latest was published until external drainage. Filling before readiness retained the report without drainage. The independent sequential interruption, reaping and immutable-log controls passed.",
-      "regression_checks": [
-        "python-contracts-workers"
-      ],
-      "resolution": {
-        "cause": "Another writer could fill the shared pipe after a readiness notification, leaving the ensuing blocking write stuck.",
-        "correction": "Use a private nonblocking Linux file description and keep track of the unwritten bytes across short writes and EAGAIN.",
-        "prevention": "Exercise pre-readiness and post-readiness fills, an undrained interrupt, actual short writes, unchanged caller flags and a complete byte-for-byte output line."
-      },
-      "deferral_reason": null
-    },
-    {
-      "id": "windows-gate-test-replaces-native-platform-with-incomplete-sys",
-      "source": "Guarded native M0-138 run 45682823289 attempt 1 and ordinary PR 124 run 45682766074 attempt 1. Original reports and traces are retained at archives/runs/20261125T191335.690626Z-3716de15/ and archives/runs/windows-change-45682766074-1/.",
-      "observation": "Both Windows Python checks independently recorded two errors in test_windows_gated_launcher_is_the_assigned_process, in the redirector and normal gate subtests. The test replaces processes.sys with a namespace missing platform, and containment selection reads that property before either launcher starts. The logs therefore contain no native gate process identity or Job Object membership result for either subtest. Guarded Linux passed and the ordinary Linux Python check passed. Its aggregate retains its recorded blocked status.",
-      "severity": "major",
-      "status": "addressed",
-      "task_ids": [
-        "M0-138"
-      ],
-      "regression_checks": [
-        "python-contracts-workers"
-      ],
-      "diagnostic_reports": [
-        {
-          "run_id": "20261125T191335.690626Z-3716de15",
-          "source_commit": "2c212a68112df03b08978ccca40980c303815dfa",
-          "report_sha256": "1076b60e5d4b7090b1fc006fe4fccff5749228c05cd427456a0d2134a94b3341"
-        },
-        {
-          "run_id": "windows-change-45682766074-1",
-          "source_commit": "a0ec734b445989a42742870b870685c56eaf1974",
-          "report_sha256": "2d743243641b720c1fc98bd8a1267b0995bd4b10228fe9d3be5f7e94e0e237b7"
-        }
-      ],
-      "resolution": {
-        "cause": "The interpreter-path fixture replaced the process module\u2019s runtime namespace with a stub lacking the platform read by process containment before launch. Both the redirector and normal case errored before checking identity.",
-        "correction": "Preserve the actual runtime platform in the two controlled interpreter configurations and let the existing gate-launch test exercise its process identity and containment assertions.",
-        "prevention": "Run the assigned-process test on Windows alongside its redirector control, the timeout cleanup and the external reader. The Linux contrast independently checks a distinct redirector PID and process group."
-      },
-      "deferral_reason": null
-    },
-    {
-      "id": "interrupt-regression-peer-lock-unheld-at-last-running-stage",
-      "status": "addressed",
-      "severity": "major",
-      "source": "Protected Linux run 45712964544 and identical-tree PR 124 run 45709305124. Original report archives/runs/20261125T222514.810400Z-4ec1e5c9/test-report.json. The retained comparison is archives/observations/repo-hygiene-20261125/m0-157-terminal-lock-45712964544/observation.json (SHA-256 b3cecaac05b7015850f94c1fd80de73cacbc09b2b066d49572024e8eaff45d23). Linux PR 128 run 45716055348 attempt 1 repeated the failure. Original report archives/runs/20261125T224715.532164Z-bac3bdc0/test-report.json. The retained source comparison is archives/observations/repo-hygiene-20261125/m0-157-pull-request-recurrence-45716055348/observation.json (SHA-256 08b406ade058259e18b01270e84943b3cfae607b7ae16277e92f352fb8b15187).",
-      "observation": "The final running-stage subtest acquired the peer lock after one SIGINT. Its seven-scenario test took 30.242 seconds and the helper uses a 30-second lifetime starting before the scenarios. The same-tree PR completed the test in 16.462 seconds. The failing run did not report the helper exit reason or lock-release time. PR 128 hit the identical final running-stage assertion in 30.851 seconds, the sole failure among 838 tests. The protected, submitted and preview sources match on the five involved code paths. The second hosted report also lacks peer exit and lock-release telemetry.",
-      "task_ids": [
-        "M0-157"
-      ],
-      "regression_checks": [
-        "python-contracts-workers"
-      ],
-      "diagnostic_reports": [
-        {
-          "run_id": "20261125T222514.810400Z-4ec1e5c9",
-          "source_commit": "5aedc53645f217b18bdf996f987019d75bb098c2",
-          "report_sha256": "14548f0393830e4c498471ba573ce76a12743c68cc4ca96aaec233123dfa6fe9"
-        },
-        {
-          "run_id": "20261125T224715.532164Z-bac3bdc0",
-          "source_commit": "0d44ea5f13cc4f50e1bbfb7a3f2ff2ce9ae3395e",
-          "report_sha256": "67fce911b24ee381336706ccddc7190909437d577c2dceaa9ce7ef400873ad6c"
-        }
-      ],
-      "resolution": {
-        "cause": "The test peer had a 30-second independent lifetime. A controlled slow run observed it exiting normally and releasing the lock before the final stage. The original hosted runs did not record the exit reason.",
-        "correction": "The test controller owns the stdin writer and the independent peer holds the lock until EOF. Cleanup reaps the peer and verifies release.",
-        "prevention": "The seven-stage public SIGINT test checks that the unrelated peer keeps its lock and that reports, cleanup and retries remain intact. Retained controls verify the old deadline, deliberate early release and controller exit."
-      },
-      "deferral_reason": null
-    },
-    {
-      "id": "frozen-indicator-post-loss-status-busy-counted-as-admitted",
-      "source": "PR 116 ordinary native Windows run 45682874140 on 00dfb23fc59e5e73f964eb574d29edfb48c5bf5e. Original archives/runs/windows-change-45682874140-1/test-report.json and workspace-timeframe.log. The corresponding native Linux check passed. Protected Windows run 45702463807 and same-tree preview run 45698603142: archives/observations/repo-hygiene-20261125/main-python-and-indicator-45702463807/observations.json SHA-256 31ae8c90aff05cae6779e17f0603ac4fe4431e00ff6adefcb02372146d669ae9.",
-      "observation": "After the first ready status for task 479d7460-afa8-421a-b8bd-34759939826d was reset, status cadf2bd2 received HTTP 429 BUSY and 5175c3ec reached another ready reply whose delivery was reset. The expected terminal message and a cancellation were observed with no new preview submission. The assertion expected one raw status request and rejected both outbound reads. A local Chromium replay with the portable writer reproduced the false count using a real authenticated refusal. When a separate control substituted HTTP 200 BUSY for an admitted ready response, the preview retried and displayed the result. An application BUSY does not establish that a request was refused before admission. The protected failure in the full or cropped zero-volatility case printed two different status request IDs for the same synthetic task. Those HTTP outcomes were not observed. Its preceding preview with the identical Git tree passed the named case.",
-      "severity": "major",
-      "status": "addressed",
-      "task_ids": [
-        "M0-149"
-      ],
-      "regression_checks": [
-        "workspace-timeframe"
-      ],
-      "diagnostic_reports": [
-        {
-          "run_id": "windows-change-45682874140-1",
-          "source_commit": "00dfb23fc59e5e73f964eb574d29edfb48c5bf5e",
-          "report_sha256": "fd2955be884d13462c10aeb350f6ac33569d62ba0aec545a4ec3bc5ef1bacbb3"
-        },
-        {
-          "run_id": "windows-change-45702463807-1",
-          "source_commit": "beb6fa11cee8923675f9fdbcc327b24f8fede2e9",
-          "report_sha256": "291ada56b3627513814fcaeb478508b97e6874ea4cc0ff234b7db221ce9161a0"
-        }
-      ],
-      "resolution": {
-        "cause": "The recovery assertion counted every outgoing status request as an admitted read. Polling also treated an admitted application BUSY as a refusal. The protected equal-closes failure did not retain the HTTP outcomes of its two reads.",
-        "correction": "Classify a retry from the documented admission response, keep polling the original frozen task within one deadline and account for each attempted status and cancellation.",
-        "prevention": "Exercise full and cropped zero-volatility calculations, zero through two lost ready replies, a contradictory or nonretryable 429, admitted BUSY, persistent refusal and wrong-task replies in the real workspace."
-      },
-      "deferral_reason": null
-    },
-    {
-      "id": "indicator-native-admitted-busy-retried",
-      "source": "Independent Astra Standard review of 2738fa7edc800b37ba3eb3d4196eb86908e36104. Private original independent-final-m0-149-2738fa7e/final-response.txt SHA-256 a3408ef80cae92a7bba28f669213a0bc8ea0e51f53ddd66b529ce6863a5146a7.",
-      "observation": "The native polling replay reads the same task again after an admitted retryable BUSY. Tauri treats all retryable BUSY replies as refusals even though reaching a ready indicator job can acquire the writer slot and return SQLite BUSY during its application read.",
-      "severity": "major",
-      "status": "addressed",
-      "task_ids": [
-        "M0-149"
-      ],
-      "regression_checks": [
-        "rust-contracts-workers",
-        "desktop-workspace-transport"
-      ],
-      "diagnostic_reports": [
-        {
-          "run_id": "20261125T194525.509241Z-4e48ed14",
-          "source_commit": "2738fa7edc800b37ba3eb3d4196eb86908e36104",
-          "report_sha256": "88266e9796629772a779229c75bbc857111c5dcb104245769e690f891336e025"
-        }
-      ],
-      "resolution": {
-        "cause": "The native transport treated every retryable BUSY as a refusal even when the application had admitted the read and SQLite returned BUSY.",
-        "correction": "The writer marks refused admission in the native error details only before admission. Native polling retries a matching, explicitly refused status read.",
-        "prevention": "A built desktop transport exercises explicit writer refusal, an admitted storage BUSY, an older unclassified reply and the nonretryable shape. The latter three each produce one read and one same-task cancellation."
-      },
-      "deferral_reason": null
-    },
-    {
-      "id": "indicator-first-trial-cancel-without-task-accepted",
-      "source": "Independent Astra Standard review of 2738fa7edc800b37ba3eb3d4196eb86908e36104. Private original independent-final-m0-149-2738fa7e/final-response.txt SHA-256 a3408ef80cae92a7bba28f669213a0bc8ea0e51f53ddd66b529ce6863a5146a7.",
-      "observation": "Adding a raw task.cancel without task_id and with HTTP 400 to the retained cut=0 browser journal passes the recorded verifier. There is no previous task in this trial, but the missing task is classified as previous cleanup and skipped.",
-      "severity": "major",
-      "status": "addressed",
-      "task_ids": [
-        "M0-149"
-      ],
-      "regression_checks": [
-        "workspace-timeframe"
-      ],
-      "diagnostic_reports": [
-        {
-          "run_id": "20261125T194525.509241Z-4e48ed14",
-          "source_commit": "2738fa7edc800b37ba3eb3d4196eb86908e36104",
-          "report_sha256": "88266e9796629772a779229c75bbc857111c5dcb104245769e690f891336e025"
-        }
-      ],
-      "resolution": {
-        "cause": "The first trial treated a missing cancellation identity as a match for its absent previous task.",
-        "correction": "Match cancellation against an actual current or prior task identity and count cleanup independently for each trial.",
-        "prevention": "The retained full and cropped trial sequence accepts identified prior-task cleanup, rejects an added first-trial cancellation without a task and verifies one cancellation on exhaustion."
-      },
-      "deferral_reason": null
-    },
-    {
-      "id": "indicator-persistent-admission-terminal-request-unclassified",
-      "source": "PR128 ordinary run 45693164625 attempt 1 on approved 6104e365e2736c3520465e1c31aa5dbf3ab1cad3. archives/observations/repo-hygiene-20261125/m0-149-deadline-abort-45693164625/observations.json SHA-256 283ef56de72e7e35fa1e965bfe386bba784bf1ac4e0de3fccad4b4fdc62b08e0. Retained Linux original archives/runs/20261125T201655.779125Z-2e9681e2/test-report.json and matching Windows case in the private PR128 originals.",
-      "observation": "After an upstream HTTP 200 ready status for the frozen task was reset at 349 ms, the persistent-refusal test saw a different request for the same task at 15247 ms on its explicit synthetic route. Chromium recorded net::ERR_ABORTED with no HTTP status or reply. The journal assertion counted that unresolved request alongside the real ready observation and failed the Linux case. The abort does not identify an admitted read or a delivered refusal. The matching Windows case passed. The failed assertion retained a printed subset and no complete bounded journal attachment.",
-      "severity": "major",
-      "status": "addressed",
-      "task_ids": [
-        "M0-149"
-      ],
-      "regression_checks": [
-        "workspace-timeframe"
-      ],
-      "diagnostic_reports": [
-        {
-          "run_id": "20261125T201655.779125Z-2e9681e2",
-          "source_commit": "1a95eec502041af7903bd9405f5a37cc4f257fbc",
-          "report_sha256": "2ea16881b4c1bf92d66d5b47e91755c7f441eca72daff032baa380418586df37"
-        }
-      ],
-      "resolution": {
-        "cause": "The original persistent-refusal browser assertion classified an aborted terminal request with no HTTP result alongside admitted recovery. Its failure retained a partial journal, leaving the original request disposition unclassified.",
-        "correction": "Record the browser deadline, held test route and delivery outcome together and require proof the terminal request was never forwarded before accepting this bounded abort.",
-        "prevention": "Exercise the held browser route and check two delivered refusals, a single terminal abort, no new status or preview after the deadline and one cancellation of the original task. Reject incomplete or contradictory journals."
-      },
       "deferral_reason": null
     },
     {
