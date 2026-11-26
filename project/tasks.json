@@ -26403,6 +26403,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "Synchronous test output can run directly into the real unittest outcome on the same line or contain a misleading standalone status. The interim e919bcfb verifier rejected a genuine passing original with progressok. Exercise normal producer publication with both forms and preserve the same-shape outcome-swap rejection.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain the original reports, revert a change that loses coverage or increases measured cost, and keep the open budget finding assigned until a qualifying observation is available.",

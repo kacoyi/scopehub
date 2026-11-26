@@ -579,6 +579,13 @@ class WindowsLaneTests(ProjectFixture):
                 'class Second(unittest.TestCase):\n'
                 '    def test_bad(self):\n'
                 '        mode = os.environ.get("SCOPEHUB_CASE_EVENTS")\n'
+                '        if mode == "inline_stdout":\n'
+                '            print("progress", end="", flush=True)\n'
+                '            return\n'
+                '        if mode == "status_stdout":\n'
+                '            print("progress", flush=True)\n'
+                '            print("ERROR", flush=True)\n'
+                '            return\n'
                 '        if mode == "subtest":\n'
                 '            with self.subTest(step=1): self.fail("subtest assertion")\n'
                 '            with self.subTest(step=2): self.skipTest("subtest skip")\n'
@@ -1385,12 +1392,14 @@ class WindowsLaneTests(ProjectFixture):
         self.partition_fixture('case_events')
         self.produce()
         recovery = self.downloads / 'verification-windows-2-recovery'
-        for mode in ('', 'multiple', 'header', 'subtest', 'fixture', 'relabeled'):
+        passing = ('', 'inline_stdout', 'status_stdout')
+        for mode in (*passing, 'multiple', 'header', 'subtest', 'fixture', 'relabeled'):
             with self.subTest(mode=mode):
                 shutil.rmtree(recovery, ignore_errors=True)
                 with patch.dict(os.environ, {'SCOPEHUB_CASE_EVENTS': mode}):
                     code, producer = self.run_harness('--ci-windows-lane', 'recovery')
-                self.assertEqual(int(bool(mode)), code)
+                expected = int(mode not in passing)
+                self.assertEqual(expected, code)
                 part = producer['windows_python']['recovery']
                 raw_path = self.root / part['log']
                 raw = raw_path.read_bytes()
@@ -1410,7 +1419,7 @@ class WindowsLaneTests(ProjectFixture):
                     shutil.rmtree(self.reports)
                     code, aggregate = self.run_harness('--require-windows', '--ci-windows-aggregate',
                                                         str(self.downloads))
-                    self.assertEqual(int(bool(mode)), code)
+                    self.assertEqual(expected, code)
                     self.assertEqual('2.1', aggregate['report_version'])
                     row = next(row for row in aggregate['checks'] if row['id'] == windows_python.CHECK)
                     combined = (self.root / row['log']).read_bytes()
@@ -1434,6 +1443,13 @@ class WindowsLaneTests(ProjectFixture):
                         self.assertIn(b'... ok', raw)
                         self.assertIn(b'ordinary unittest shutdown output', raw)
                         self.assertIn(b'\nok', raw.replace(b'\r\n', b'\n'))
+                    if mode in {'inline_stdout', 'status_stdout'}:
+                        raw_progress = raw.replace(b'\r\n', b'\n')
+                        self.assertIn(b'... progressok\n' if mode == 'inline_stdout' else
+                                      b'... progress\nERROR\nok\n', raw_progress)
+                        self.assertIn(b'test_bad (tests.project.test_verification_scope.Second.test_bad) ... ok', combined)
+                        self.assertNotIn(b'progress', combined)
+                        self.assertNotIn(b'ERROR', combined)
                     latest = self.downloads / 'published'
                     self.assertTrue(ci_artifacts.stage_artifacts(self.root, latest, os.environ))
                     self.assertEqual(raw, (latest / part['log'].removeprefix('.reports/')).read_bytes())

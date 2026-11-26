@@ -29,8 +29,7 @@ RUNNER_SUMMARY = re.compile(
     re.MULTILINE,
 )
 RUNNER_OUTCOME = re.compile(
-    rb'''^(ok|FAIL|ERROR|expected failure|unexpected success|skipped (?:'[^\n]*'|"[^\n]*"))\n''',
-    re.MULTILINE,
+    rb'''(ok|FAIL|ERROR|expected failure|unexpected success|skipped (?:'[^\n]*'|"[^\n]*"))(?=\n)''',
 )
 RUNNER_DETAILS = re.compile(rb'^(?:={70}|Slowest test durations)\n', re.MULTILINE)
 # Redirected legacy Windows stderr used the host ANSI code page unless Python
@@ -382,7 +381,7 @@ def runner_execution(raw, progress):
             footer = RUNNER_SUMMARY.search(raw, offset, start)
             if footer is not None and RUNNER_OUTCOME.search(raw[offset:footer.start()]):
                 return None
-        if offset and set(RUNNER_OUTCOME.findall(raw[offset:start + 1])) != outcome_set(previous):
+        if previous is not None and runner_outcome(raw[offset:start + 1]) != previous:
             return None
         offset = end
         previous = status
@@ -394,15 +393,18 @@ def runner_execution(raw, progress):
         # nested footers before the final primary callback completed.
         details = RUNNER_DETAILS.search(raw, offset, footer.start())
         stop = details.start() if details else footer.start()
-        outcomes = set(RUNNER_OUTCOME.findall(raw[offset:stop]))
-        if outcomes:
-            return footer.groups() if outcomes == outcome_set(previous) else None
+        outcome = runner_outcome(raw[offset:stop])
+        if outcome is not None:
+            return footer.groups() if outcome == previous else None
         offset = footer.end()
     return None
 
 
-def outcome_set(status):
-    return {status} if status is not None else set()
+def runner_outcome(segment):
+    # Unittest flushes the named prefix, runs the body, then writes its
+    # outcome and newline. Test output may precede it, even on the same line.
+    outcomes = RUNNER_OUTCOME.findall(segment)
+    return outcomes[-1] if outcomes else None
 
 
 def verify_execution(raw, progress, count, verdict):

@@ -7947,6 +7947,17 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-python-inline-test-output-outcome",
+      "source": "Local genuine unittest subprocess replay on the reviewed 6c4effe33210598993fcd8bf7bca26d40d8569ba and interim e919bcfb207c0fdefef705d2b1f0352560f8e11f. Retained .reports/audit-20261125/m0-146-exact-review-6c4effe3/inline-stdout-reviewed/observation.json (SHA-256 868e1538e84ebf64b225cac7a39f3a240fbd17670deba888380f1a985095ef00) and .reports/audit-20261125/m0-146-exact-review-6c4effe3/inline-stdout-current/observation.json (SHA-256 7c73cac9bc296d167d051923d4b6b7573989309ac47fb09a7824ef27be1d26df).",
+      "observation": "A synchronous test printed progress without a newline. Both real runners exited zero and produced the identical original log with progressok on the named test line. The interim verifier rejected it at producer publication, while the reviewed verifier accepted it. Earlier output coverage printed standalone lines that matched the actual outcome and missed both inline output and misleading standalone test text. Verify the actual terminal outcome, preserving synchronous output and the rejection of an exchanged pass and skip.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-146"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
