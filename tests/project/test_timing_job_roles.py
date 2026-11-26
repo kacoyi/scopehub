@@ -54,8 +54,8 @@ class TimingJobRoleTests(unittest.TestCase):
             timing.main()
         return json.loads(stdout.getvalue())
 
-    def read_modes(self, jobs, label, *, additional=()):
-        args = [arg for path in self.report_paths for arg in ('--report', path)]
+    def read_modes(self, jobs, label, *, additional=(), retained=()):
+        args = [arg for path in (*self.report_paths, *retained) for arg in ('--report', path)]
         listing = self.write(f'{label}-jobs.json', {'jobs': jobs})
         imports = [arg for index, rows in enumerate(additional)
                    for arg in ('--actions', self.run_path, self.write(f'{label}-{index}.json', {'jobs': rows}))]
@@ -70,6 +70,63 @@ class TimingJobRoleTests(unittest.TestCase):
             weekly = self.cli([*args[2:], *imports, '--recent', '12', '--github-actions', '--save', archive,
                                '--summary', summary])
         return ordinary, weekly, self.cli(['--report', archive])
+
+    def assert_public_clocks(self, views, *, wall, runner, receipts):
+        ordinary, weekly, reopened = views
+        for view in (ordinary, weekly, reopened):
+            rows = {row['profile']: row for row in view['samples']}
+            aggregate = rows['full']
+            self.assertEqual((wall, runner), (aggregate['seconds']['total'], aggregate['seconds']['runner']))
+            self.assertEqual(('warm', 675), (aggregate['cache'], aggregate['seconds']['harness']))
+            self.assertEqual(720, rows['ci-windows-browser']['seconds']['total'])
+            self.assertEqual(300, rows['ci-windows-recovery']['seconds']['total'])
+            self.assertEqual(receipts, len(list(timing.platform_report_receipts(view['samples']))))
+        self.assertEqual(receipts, len(weekly['recent_collection']['collected_samples']))
+
+    def test_explicit_legacy_scope_joins_current_publisher_claims(self):
+        aggregate = dict(self.jobs[1], steps=[{'name': 'Verify tooling changes', 'conclusion': 'success'}])
+        for profile, expected in (('tooling', (None, None, 0)), ('full', (765, 1957, 1)),
+                                  (None, (765, 1957, 1))):
+            with self.subTest(legacy_profile=profile):
+                # V1 captures saved the untimed scope on the attempt, before
+                # per-job publishing evidence was retained.
+                legacy = timing.hosted_timing(self.run, [aggregate, self.jobs[-1]])
+                legacy.pop('job_facts')
+                legacy['workflow']['windows_profile'] = profile
+                for job in (*legacy['jobs'], *legacy['sibling_jobs']):
+                    job.pop('publishing_steps', None)
+                archive = self.write(f'legacy-{profile}.json', {
+                    'kind': timing.ARCHIVE_KIND, 'samples': [], 'hosted': [legacy],
+                })
+                wall, runner, receipts = expected
+                self.assert_public_clocks(self.read_modes(self.jobs, f'scope-{profile}', retained=(archive,)),
+                                          wall=wall, runner=runner, receipts=receipts)
+
+    def test_nameless_aggregate_requires_executed_role_evidence(self):
+        source = self.jobs[1]
+        for conclusion, expected in ((None, (None, None, 0)), ('skipped', (None, None, 0)),
+                                     ('failure', (None, None, 0)),
+                                     ('success', (765, 1957, 1))):
+            with self.subTest(marker=conclusion):
+                steps = [] if conclusion is None else [{'name': timing.WINDOWS_RECOVERY_MARKER,
+                                                        'conclusion': conclusion}]
+                aggregate = dict(source, name=None, labels=['windows-latest'], steps=steps)
+                jobs = [self.jobs[0], aggregate, *self.jobs[2:]]
+                wall, runner, receipts = expected
+                self.assert_public_clocks(self.read_modes(jobs, f'nameless-{conclusion}'),
+                                          wall=wall, runner=runner, receipts=receipts)
+
+        # A pre-correction capture only retained the marker's name. Reopening
+        # it cannot establish whether the marker executed.
+        legacy = timing.hosted_timing(self.run, jobs)
+        for row in legacy['sibling_jobs']:
+            row.pop('executed_layout_steps', None)
+        archive = self.write('legacy-nameless.json', {
+            'kind': timing.ARCHIVE_KIND, 'samples': [], 'hosted': [legacy],
+        })
+        without_aggregate = [self.jobs[0], *self.jobs[2:]]
+        self.assert_public_clocks(self.read_modes(without_aggregate, 'legacy-marker', retained=(archive,)),
+                                  wall=None, runner=None, receipts=0)
 
     def test_swapped_jobs_cannot_qualify_but_independent_report_and_recovery_survive(self):
         swapped = deepcopy(self.jobs)

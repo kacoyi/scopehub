@@ -31,7 +31,7 @@ def historical_report():
         'selection': {
             'profile': 'full',
             'task_id': None,
-            'checks': ['environment', 'project-state', 'future-check', 'windows-native-build'],
+            'checks': ['environment', 'future-check', 'project-state', 'windows-native-build'],
         },
         'checks': [
             {'id': 'environment', 'status': 'passed', 'exit_code': 0, 'duration_seconds': 100},
@@ -123,8 +123,10 @@ def fixture_catalog(full=BASIC_CHECKS, *, records=(), non_change=()):
     extras = (*records, *non_change)
     return {'checks': [
         {'id': key, 'status': 'planned' if key == 'future-check' else 'implemented',
+         'command': None if key == 'future-check' else ['{python}', 'check.py'],
          'cadence': 'task' if key in extras else 'change'} for key in (*full, *extras)
-    ], 'profiles': {'records': [*BASIC_CHECKS, *records]} if records else {}}
+    ], 'profiles': {'records': [*BASIC_CHECKS, *records]} if records else {},
+        'required_change_checks': sorted(key for key in full if key != 'future-check')}
 
 
 SPLIT_CATALOG = fixture_catalog((*BASIC_CHECKS, *SPLIT_CHECKS), records=RECORDS_CHECKS)
@@ -148,6 +150,7 @@ def split_harness_report(elapsed, *, profile='full'):
     for key in checks[profile]:
         report['selection']['checks'].append(key)
         report['checks'].append({'id': key, 'status': 'passed', 'exit_code': 0, 'duration_seconds': 12})
+    report['selection']['checks'].sort()
     report['selection']['profile'] = profile
     report['run_id'] = 'windows-change-11-1'
     report['environment'].update(system='Windows', machine='AMD64')
@@ -1700,11 +1703,40 @@ def main():
         report['source'].update(git_head=publisher, sha256=published_digest, working_tree_dirty=False)
         report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
                         'event': 'pull_request', 'head_sha': newer_head, 'checkout_sha': publisher}
-        report['selection'].update(profile='full', checks=list(full))
+        report['selection'].update(profile='full', checks=sorted(full))
         report['checks'] = [dict(report['checks'][0], id=key) for key in full]
         report['checks'].append({'id': 'release-artifacts', 'status': 'blocked', 'reason_code': 'not_selected'})
         original = timing.report_sample(report)
         self.assertFalse(timing.native_report_issue(original, None, []))
+        reordered = {**original, 'selected': [*original['selected'][::-1]]}
+        reordered_report = {**report, 'selection': {**report['selection'], 'checks': reordered['selected']}}
+        self.assertEqual(reordered, timing.report_sample(reordered_report))
+        issues = []
+        self.assertTrue(timing.native_report_issue(reordered, None, issues))
+        self.assertIn('job layout or check scope', issues[0]['error'])
+        groups = timing.coalesce_samples([original, reordered], [])
+        self.assertEqual([[original], [reordered]], groups)
+
+        def changed_catalog_sample(changed):
+            checkout = self.commit('Changed publishing catalog', self.base, newer_head,
+                                   tree=self.publishing_tree(changed))
+            sample = deepcopy(original)
+            sample.update(source_commit=checkout, inputs_sha256=snapshot(checkout, root=self.root))
+            sample['ci']['checkout_sha'] = checkout
+            sample['selected'].remove('generated-contracts')
+            row = next(row for row in sample['checks'] if row['id'] == 'generated-contracts')
+            row.update(status='blocked', reason_code='not_selected', exit_code=None, duration_seconds=None)
+            return sample
+
+        changed = deepcopy(catalog)
+        check = next(check for check in changed['checks'] if check['id'] == 'generated-contracts')
+        check['cadence'] = 'task'
+        issues = []
+        self.assertTrue(timing.native_report_issue(changed_catalog_sample(changed), None, issues))
+        self.assertIn('publishing catalog is unavailable', issues[0]['error'])
+        changed['required_change_checks'].remove('generated-contracts')
+        self.assertFalse(timing.native_report_issue(changed_catalog_sample(changed), None, []))
+
         for id in ('generated-contracts', 'release-artifacts'):
             with self.subTest(duplicate=id):
                 duplicate = {'id': id, 'status': 'blocked', 'reason_code': 'not_selected'}
@@ -1747,7 +1779,13 @@ def main():
             (project / name).write_bytes((timing.ROOT / 'project' / name).read_bytes())
         tree = self.publishing_tree(fixture_catalog((*BASIC_CHECKS, 'generated-contracts')))
         blob = self.git('rev-parse', f'{tree}:project/checks.json')
-        head = self.commit('Topic', self.base, tree=tree)
+        direct_base = self.commit('Direct topic parent', self.base, tree=tree)
+        head = self.commit('Topic', direct_base, tree=tree)
+        workflows = self.git('mktree', contents=f'100644 blob {blob}\tverify.yml\n')
+        github = self.git('mktree', contents=f'040000 tree {workflows}\tworkflows\n')
+        other_tree = self.git('mktree', contents=f'{self.git("ls-tree", tree)}\n040000 tree {github}\t.github\n')
+        other_inputs = timing.committed_publishing_inputs(other_tree, root=self.root)
+        self.assertIsNotNone(other_inputs)
         preview = self.commit('Merge preview', self.base, head, tree=tree)
         foreign = self.commit('Unrelated preview with the same inputs', self.base, self.head, tree=tree)
         missing = 'f' * 40
@@ -1760,6 +1798,7 @@ def main():
             self.assertEqual(f'{name} missing', self.git('cat-file', '--batch-check', contents=f'{name}\n'))
         inputs = timing.committed_publishing_inputs(head, root=self.root)
         self.assertIsNotNone(inputs)
+        self.assertNotEqual(inputs, other_inputs)
         jobs = [
             hosted_job(31, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50'),
             hosted_job(32, 'windows', '00:20', '06:00', 'Run pnpm check', '00:50', '05:20'),
@@ -1780,11 +1819,20 @@ def main():
             ('missing-with-self-parent', missing, missing_head, missing, None),
             ('missing-with-duplicate-parent', missing, missing_head, missing_head, None),
             ('missing-with-independent-head', missing, head, blob, 360),
+            ('missing-with-matching-direct-parent', missing, head, direct_base, 360),
+            ('other-tree-with-missing-parent', missing, head, 'd' * 40, 360),
+            ('other-tree-with-direct-parent', missing, head, direct_base, None),
+            ('other-tree-with-direct-parent-shallow', missing, head, direct_base, None),
             ('tree', tree, head, self.base, None),
             ('null-without-proof', null, head, None, None),
             ('null-with-proof', null, missing_head, self.base, None),
         ):
             with self.subTest(kind=kind):
+                if kind.endswith('-shallow'):
+                    # Traversal hides the parent, while the event head still carries its raw header.
+                    (self.root / '.git/shallow').write_bytes(f'{head}\n'.encode('ascii'))
+                    self.assertEqual(head, self.git('rev-list', '-2', head))
+                    timing.commit_facts.cache_clear()
                 run = dict(hosted_run(), head_sha=topic)
                 clock = timing.hosted_timing(run, [dict(job, head_sha=topic) for job in jobs])
                 report = fast_report(20, 190)
@@ -1792,6 +1840,7 @@ def main():
                 report['environment'].update(system='Windows', machine='AMD64')
                 report['selection']['profile'] = 'full'
                 report['selection']['checks'].append('generated-contracts')
+                report['selection']['checks'].sort()
                 report['checks'].append(dict(report['checks'][0], id='generated-contracts'))
                 report['source'].update(git_head=preview, sha256=inputs, working_tree_dirty=False)
                 report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
@@ -1802,9 +1851,13 @@ def main():
                     compact['inputs_sha256'] = timing.committed_publishing_inputs(
                         self.commit('Different publisher', tree=self.publishing_tree(fixture_catalog())), root=self.root,
                     )
+                proof_tree = tree
+                if kind.startswith('other-tree-'):
+                    proof_tree = other_tree
+                    compact['inputs_sha256'] = other_inputs
                 if comparison_base:
                     compact['generated_contracts'] = {
-                        'checkout': checkout, 'tree': tree, 'parents': [comparison_base, topic],
+                        'checkout': checkout, 'tree': proof_tree, 'parents': [comparison_base, topic],
                         'comparison_base': comparison_base, 'ref': 'refs/pull/84/merge',
                         'command': timing.GENERATED_COMMAND,
                         'tools': {'python': '3.12.0', 'rustfmt': 'rustfmt 1.8.0 (abcdef 2026-01-01)'},
@@ -1845,6 +1898,9 @@ def main():
                       patch.object(timing, 'recent_runs', return_value=[run]),
                       patch.object(timing, 'command', side_effect=actions_command),
                       patch.object(timing, 'inspect_jobs', return_value=clock)):
+                    if kind == 'missing-with-matching-direct-parent':
+                        self.assertEqual(compact['generated_contracts'],
+                                         timing.generated_contracts_proof(compact, eligible_only=False))
                     normal = ['timing.py', '--report', str(compact_path), '--actions', str(run_path), str(jobs_path)]
                     cold = ['timing.py', '--report', str(archive)]
                     views = []
@@ -1868,6 +1924,10 @@ def main():
                 self.assertEqual(seconds, sample['seconds']['total'])
                 self.assertEqual(seconds, ordinary['samples'][0]['seconds']['total'])
                 self.assertEqual(seconds, reopened['samples'][0]['seconds']['total'])
+                for decision in views:
+                    self.assertEqual(340 if seconds is not None else None, decision['samples'][0]['seconds']['runner'])
+                    linux, = (row for row in decision['hosted'][0]['jobs'] if row['platform'] == 'Linux')
+                    self.assertEqual(240, linux['seconds']['total'])
                 self.assertEqual(1, len(view['hosted']))
                 if seconds is None:
                     self.assertIn('publishing catalog is unavailable', view['input_issues'][0]['error'])
@@ -2073,7 +2133,8 @@ def windows_lane_checks(selected, lane):
                                   'sha256': digest if digest is not None else snapshot(revision, root=self.root)},
                           ci={'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
                               'event': 'pull_request', 'head_sha': revision, 'checkout_sha': commit},
-                          selection={'profile': 'ci-windows-' + lane if lane else 'full', 'checks': list(keys)},
+                          selection={'profile': 'ci-windows-' + lane if lane else 'full',
+                                     'checks': list(keys) if lane else sorted(keys)},
                           checks=[dict(executed, id=key) if key in keys else {
                               'id': key, 'status': 'blocked', 'reason_code': 'not_selected',
                           } for key in full])
@@ -2443,6 +2504,7 @@ class TimingRegressionTests(unittest.TestCase):
             native.update(status='passed', exit_code=0, duration_seconds=120)
             if day == 16:
                 report['selection']['checks'].append('chart-history')
+                report['selection']['checks'].sort()
                 report['checks'].insert(-1, {'id': 'chart-history', 'status': 'passed', 'exit_code': 0,
                                             'duration_seconds': 30})
             samples.append(timing.report_sample(report))

@@ -50,6 +50,50 @@ def windows_lane_checks(selected, lane, lanes=WINDOWS_LANES, *, assignment=WINDO
 
 
 SCOPED_PROFILES = frozenset({'records', 'tooling', 'localization'})
+
+
+def publishing_check_catalog(catalog):
+    """Validate the check inventory and references used by hosted selection."""
+    rows = catalog['checks']
+    if not isinstance(rows, list) or not rows:
+        raise ValueError('Invalid check catalog')
+    checks = {}
+    for check in rows:
+        key, status, command = check['id'], check['status'], check['command']
+        if (not isinstance(key, str) or not CHECK_ID.fullmatch(key)
+                or status not in {'implemented', 'planned', 'retired'}
+                or check.get('cadence', 'change') not in {'change', 'task', 'release'}):
+            raise ValueError('Invalid check catalog entry')
+        if key in checks:
+            raise ValueError('Duplicate check ID')
+        if (status == 'implemented') != (command is not None):
+            raise ValueError(f'Check command/status mismatch: {key}')
+        if command is not None and (not isinstance(command, list) or not command
+                                    or any(not isinstance(arg, str) or not arg for arg in command)):
+            raise ValueError(f'Invalid check command: {key}')
+        checks[key] = check
+
+    def catalog_refs(values, label):
+        if not isinstance(values, list) or not values or len(set(values)) != len(values):
+            raise ValueError(f'{label}: invalid check list')
+        missing = set(values) - checks.keys()
+        if missing:
+            raise ValueError(f'{label}: unknown references {sorted(missing)}')
+        return set(values)
+
+    required = catalog_refs(catalog['required_change_checks'], 'Required change checks')
+    implemented = {key for key, check in checks.items()
+                   if check['status'] == 'implemented' and check.get('cadence', 'change') == 'change'}
+    if required != implemented:
+        raise ValueError('Required change checks must equal the implemented change checks')
+    profiles = catalog.get('profiles', {})
+    if not isinstance(profiles, dict):
+        raise ValueError('Invalid check profiles')
+    for name, values in profiles.items():
+        catalog_refs(values, f'Profile {name}')
+    return checks
+
+
 def hosted_check_selection(catalog, profile):
     if profile:
         return set(catalog.get('profiles', {}).get(profile, ()))

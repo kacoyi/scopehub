@@ -21,7 +21,10 @@ if __package__:
     from .retained_failures import retained_failure_view
     from .operational_paths import OPERATIONAL_PATHS, is_operational_path
     from .review_tree import CommittedPath
-    from .verification_scope import ScopeError, checkout_git_environment, exact_commit, git, nul_fields, oid, require_ancestor, windows_x64
+    from .verification_scope import (
+        ScopeError, checkout_git_environment, exact_commit, git, nul_fields, oid, publishing_check_catalog,
+        require_ancestor, windows_x64,
+    )
     from .worktree import WorktreeError, exclusive_git_lock, git as worktree_git, git_path, has_git_metadata
 else:
     import execution_inputs
@@ -32,7 +35,10 @@ else:
     from retained_failures import retained_failure_view
     from operational_paths import OPERATIONAL_PATHS, is_operational_path
     from review_tree import CommittedPath
-    from verification_scope import ScopeError, checkout_git_environment, exact_commit, git, nul_fields, oid, require_ancestor, windows_x64
+    from verification_scope import (
+        ScopeError, checkout_git_environment, exact_commit, git, nul_fields, oid, publishing_check_catalog,
+        require_ancestor, windows_x64,
+    )
     from worktree import WorktreeError, exclusive_git_lock, git as worktree_git, git_path, has_git_metadata
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -381,19 +387,13 @@ def load_project(root=ROOT):
     validate_model(root, 'TaskLedger', ledger)
     validate_model(root, 'CheckCatalog', catalog)
     tasks = indexed(ledger['tasks'], 'task')
-    checks = indexed(catalog['checks'], 'check')
     gates = indexed(catalog['milestones'], 'milestone')
     if set(gates) != {item['id'] for item in spec['milestones']}:
         raise ProjectError('Milestone catalog differs from the engineering contract')
-    for check in checks.values():
-        if (check['status'] == 'implemented') != (check['command'] is not None):
-            raise ProjectError(f"Check command/status mismatch: {check['id']}")
-    required = set(catalog['required_change_checks'])
-    require_refs(required, checks, 'Required change checks')
-    implemented = {key for key, check in checks.items()
-                   if check['status'] == 'implemented' and check.get('cadence', 'change') == 'change'}
-    if required != implemented:
-        raise ProjectError('Required change checks must equal the implemented change checks')
+    try:
+        checks = publishing_check_catalog(catalog)
+    except ValueError as error:
+        raise ProjectError(str(error)) from error
     changes = indexed(catalog['gate_changes'], 'gate replacement', field='removed_check')
     successors = {key: [] for key in checks}
     for key, change in changes.items():
@@ -407,8 +407,6 @@ def load_project(root=ROOT):
     validate_graph(successors, 'Gate replacement')
     for gate in gates.values():
         require_refs(gate['checks'], checks, f"Milestone {gate['id']}")
-    for name, check_ids in catalog.get('profiles', {}).items():
-        require_refs(check_ids, checks, f'Profile {name}')
     for label, check_ids in [
         *[(f"Milestone {gate['id']}", gate['checks']) for gate in gates.values()],
         *[(f"Acceptance {item['requirement']}", item['checks']) for item in catalog['acceptance']],

@@ -22,8 +22,8 @@ if __package__:
     from .execution_inputs import committed_source_identity, is_source_input
     from .verification_scope import (
         LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit,
-        git, json_object, oid, read_windows_assignment, require_complete_history, windows_lane_report_matches, windows_published_scope,
-        windows_result_issue, windows_x64,
+        git, json_object, oid, publishing_check_catalog, read_windows_assignment, require_complete_history,
+        windows_lane_report_matches, windows_published_scope, windows_result_issue, windows_x64,
     )
     from .worktree import WorktreeError, entry_info, exclusive_git_lock, git_path, reparse_point
 else:
@@ -31,8 +31,8 @@ else:
     from execution_inputs import committed_source_identity, is_source_input
     from verification_scope import (
         LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit,
-        git, json_object, oid, read_windows_assignment, require_complete_history, windows_lane_report_matches, windows_published_scope,
-        windows_result_issue, windows_x64,
+        git, json_object, oid, publishing_check_catalog, read_windows_assignment, require_complete_history,
+        windows_lane_report_matches, windows_published_scope, windows_result_issue, windows_x64,
     )
     from worktree import WorktreeError, entry_info, exclusive_git_lock, git_path, reparse_point
 
@@ -311,10 +311,12 @@ def report_sample(report, *, cache=None):
     if profile is not None and short_label(profile) is None:
         raise TimingError('Invalid verification profile in harness report.')
     selected = list(filter(None, (short_label(key) for key in selection.get('checks', []))))
-    if not (profile and profile.startswith('ci-windows-')):
+    platform = short_label(environment.get('system'))
+    native_publisher = (platform == 'Windows' and ci and ci['event'] in NORMAL_EVENTS
+                        and profile in AUTOMATIC_PROFILES)
+    if not (native_publisher or (profile and profile.startswith('ci-windows-'))):
         selected.sort()
     status = short_label(report.get('status'))
-    platform = short_label(environment.get('system'))
     coverage_complete = (
         len(selected) == len(selection.get('checks', []))
         and report_coverage(checks, selected, status, profile, platform)
@@ -544,6 +546,9 @@ def observe_job(job, *, identity, requested, label=None, harness_steps=HARNESS_S
     }
     if job.get('labels'):
         row['runner_labels'] = sorted(set(job['labels']))
+    executed_layout_steps = {step['name'] for step in job.get('steps', ())
+                             if step.get('name') in WINDOWS_LAYOUT_STEPS
+                             and step.get('conclusion') == 'success' and eligible_step(step)}
     recorded_steps = {step.get('name') for step in job.get('steps', ())
                       if step.get('name') in WINDOWS_LAYOUT_STEPS
                       or (step.get('name') in WINDOWS_ROLE_STEPS and step.get('conclusion') == 'success')
@@ -551,6 +556,8 @@ def observe_job(job, *, identity, requested, label=None, harness_steps=HARNESS_S
                           and (step.get('conclusion') or step.get('started_at') or step.get('completed_at')))}
     if recorded_steps:
         row['publishing_steps'] = sorted(recorded_steps)
+    if executed_layout_steps:
+        row['executed_layout_steps'] = sorted(executed_layout_steps)
     if steps:
         row['step_identities'] = steps
     if job.get('checkout_sha') is not None:
@@ -823,6 +830,10 @@ def valid_clock(run):
                 and (isinstance(job.get('publishing_steps', []), list)
                      and all(isinstance(step, str) and step in WINDOWS_ROLE_STEPS | WINDOWS_PROFILE_STEPS.keys()
                              for step in job.get('publishing_steps', ())))
+                and (isinstance(job.get('executed_layout_steps', []), list)
+                     and all(isinstance(step, str) and step in WINDOWS_LAYOUT_STEPS
+                             and step in job.get('publishing_steps', ())
+                             for step in job.get('executed_layout_steps', ())))
                 and valid_step_facts(job)
                 and valid_seconds(job['seconds'], ATTEMPT_SECONDS) for job in [*jobs, *siblings]
             ) and all(job.get('name') not in WINDOWS_PRODUCERS.values() for job in jobs))
@@ -1055,12 +1066,19 @@ def job_role_claims(claims, event):
     if event not in NORMAL_EVENTS:
         return JobClaims(claims, roles, False, set(), False)
     steps = {step for _, _, job in claims if job['conclusion'] != 'skipped' for step in job_publication_steps(job)}
+    executed_layout = {step for _, _, job in claims if job['conclusion'] != 'skipped'
+                       for step in job.get('executed_layout_steps', ())}
     labels = {label for _, _, job in claims for label in job.get('runner_labels', ())}
-    windows = 'windows-latest' in labels or any(role == ('platform', 'Windows') or role[0] == 'producer'
+    aggregate_role = ('platform', 'Windows')
+    windows = 'windows-latest' in labels or any(role == aggregate_role or role[0] == 'producer'
                                                for role in roles)
     step_roles = {('producer', WINDOWS_LANE_STEPS[step]) for step in steps & WINDOWS_LANE_STEPS.keys()}
-    if steps & WINDOWS_LAYOUT_STEPS.keys() or (windows and WINDOWS_FULL_STEP in steps):
-        step_roles.add(('platform', 'Windows'))
+    if executed_layout or (windows and WINDOWS_FULL_STEP in steps):
+        step_roles.add(aggregate_role)
+    # Older captures retained layout names even when the steps were skipped.
+    # Their names describe the layout once other evidence identifies the aggregate.
+    if aggregate_role not in roles | step_roles:
+        steps.difference_update(WINDOWS_LAYOUT_STEPS)
     producer_family = WINDOWS_LANE_SELECTOR in steps or any(job.get('producer_family') for _, _, job in claims)
     disputed = bool(roles and step_roles - roles)
     return JobClaims(claims, roles or step_roles, producer_family, steps, disputed)
@@ -1118,6 +1136,7 @@ def reconcile_job_clocks(by_id, attempt, layout, issues):
         projected = role == ('platform', 'Windows') and split_windows_clock(layout)
         job, disputed, endpoint_disputes, unplaced = merge_job_clock(jobs, projected=projected)
         job.pop('publishing_steps', None)
+        job.pop('executed_layout_steps', None)
         job.pop('runner_labels', None)
         job.pop('producer_family', None)
         platform = name if scope == 'platform' else 'Windows' if producer else None
@@ -1173,9 +1192,10 @@ def attempt_layout(runs, by_id, attempt, issues):
         widths.add(True)
     recovery, layout_disputed = known_value(widths)
     layout_disputed |= any(row.get('windows_layout_disputed') for row in old_workflows)
-    # Some early captures could retain the scope only at attempt level. A
-    # row-level witness takes precedence over the legacy inferred default.
-    profile, profile_disputed = known_value(scopes or {row.get('windows_profile') for row in old_workflows})
+    # Early captures retained an observed scope at attempt level. Its explicit
+    # value remains a claim alongside newer per-job publishing observations.
+    scopes.update(row.get('windows_profile') for row in old_workflows)
+    profile, profile_disputed = known_value(scopes)
     profile_disputed |= any(row.get('windows_profile_disputed') for row in old_workflows)
     if layout_disputed:
         timing_issue(issues, {'run_id': attempt[1], 'platform': 'Windows',
@@ -1629,19 +1649,7 @@ def native_publishing_catalog(revision, *, root=ROOT, object_type=b'commit'):
         if int(git(root, 'cat-file', '-s', path)) > COMPACT_LIMIT:
             return True, None
         catalog = json_object(git(root, 'cat-file', 'blob', path))
-        rows = catalog['checks']
-        ids = {row['id'] for row in rows}
-        if (not isinstance(rows, list) or not ids or len(rows) != len(ids)
-                or not all(short_label(key) for key in ids)
-                or not all(row['status'] in {'implemented', 'planned', 'retired'}
-                           and row.get('cadence', 'change') in {'change', 'task', 'release'} for row in rows)):
-            return True, None
-        profiles = catalog.get('profiles', {})
-        if not isinstance(profiles, dict) or any(
-            not isinstance(keys, list) or len(set(keys)) != len(keys) or not set(keys) <= ids
-            for name, keys in profiles.items() if name in SCOPED_PROFILES
-        ):
-            return True, None
+        publishing_check_catalog(catalog)
         return True, catalog
     except (ScopeError, OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS):
         return True, None
@@ -1802,6 +1810,13 @@ _WINDOWS_PUBLISHING_FORMS = {
         '66eac43da97d82c4f37f288bdc2ffd8c1ed64819',
         '5167fc0195605f9c123bb097b05e8de2f1f443a2',
     ),
+    (  # Publisher and reader share the check inventory validator
+        '061adf2d3c3eed33adacb6cc7808f038e291c128',
+        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
+        '7a52882adfdc438a536af081051da65f572cbfa5',
+        '4cb4088b385d511eb4510c8176415f8ea57829e4',
+        '5167fc0195605f9c123bb097b05e8de2f1f443a2',
+    ),
 }
 
 
@@ -1905,9 +1920,8 @@ def native_report_issue(sample, run, issues):
         # An incomplete listing can still prove the identity of a producer's job.
         # Compare widths only when the Actions capture actually identified the layout.
         observed_lanes = windows_clock_lanes(run, identified=True)
-        matching_producer = (bool(expected_lanes) and (not observed_lanes or observed_lanes == expected_lanes)
-                             and sample['selected'] == sorted(selected))
-        if ((not producer or matching_producer)
+        matching_producer = bool(expected_lanes) and (not observed_lanes or observed_lanes == expected_lanes)
+        if (sample['selected'] == sorted(selected) and (not producer or matching_producer)
                 and windows_published_scope(sample['selected'], profile, expected_lanes, catalog, assignment=assignment)):
             result_issue = windows_result_issue(sample['checks'], selected, catalog)
             if not result_issue and (not sample['coverage_complete'] or sample_eligible(sample)):
@@ -2043,8 +2057,15 @@ def generated_contracts_proof(sample, *, eligible_only=True):
     if (types is None or types[0] not in {b'commit', b'missing'} or types[1] not in {b'tree', b'missing'}
             or not possible_commit_types(types[2:])):
         return None
-    if types[0] == b'commit' and commit_facts(ROOT, proof['checkout']) != GitCommitFacts(proof['tree'], tuple(parents)):
-        return None
+    checkout_type, _, _, topic_type = types
+    if checkout_type == b'commit':
+        return proof if commit_facts(ROOT, proof['checkout']) == GitCommitFacts(proof['tree'], tuple(parents)) else None
+    if ci['event'] == 'pull_request' and topic_type == b'commit':
+        # The merge of a direct ancestor and its topic has the topic tree.
+        # Read the object header so a shallow traversal cannot hide the parent.
+        head = commit_facts(ROOT, ci['head_sha'])
+        if head is None or (parents[0] in head.parents and proof['tree'] != head.tree):
+            return None
     return proof
 
 

@@ -26800,7 +26800,9 @@
           "non_goals": [
             "Changing protected platform objectives, test deadlines or measurement provenance."
           ],
-          "open_questions": []
+          "open_questions": [
+            "Check legacy scope against direct job facts, skipped and executed layout markers, and whether the same role and independent clocks survive save, rotation, linked reads and reopen."
+          ]
         },
         "evolution": {
           "kind": "refactor",
@@ -26811,7 +26813,8 @@
             "Reconcile old adverse timing evidence through the ordinary and budgeted readers when the recent window no longer supplies it.",
             "Make role, conclusion, checkout and clock attribution invariant to equivalent grouping and arrival order, and use attempt identities discovered through either index or live CI before final historical reconciliation.",
             "Resolve each job field once across the retained observations. Absent assertions may be completed by compatible evidence, and contradictory assertions withdraw only dependent measurements and eligibility.",
-            "Derive protected role and profile evidence from all claims for each job ID, delay dependent projections until attempt reconciliation, and allow bounded acquisition of independently missing clocks with a disputed producer."
+            "Derive protected role and profile evidence from all claims for each job ID, delay dependent projections until attempt reconciliation, and allow bounded acquisition of independently missing clocks with a disputed producer.",
+            "Keep explicit legacy publishing scope claims alongside new compatible role observations; use successful execution evidence for role inference and retain name-only legacy layout context for independently known roles."
           ],
           "data_plan": "Read existing saved reviews and retained per-attempt captures. Cover missing, conflicting and intact historical data. Retain compatible V1 evidence, including individually supported legacy intervals. Recompute derived layout where the original assertions survive. Use retained report timestamps and job boundaries to withdraw incompatible old attributions and preserve original bytes.",
           "cleanup": "Remove superseded lookup or reconciliation only after equivalent accepted and rejected observations pass. The coordinator commissions three material decisions first, one for job facts, one for historical publisher selection and outcomes, and one for checkout proof, each with an ordinary genuine positive. Reuse originals by digest and consolidate reproducers and risk assertions under each owner. Hold downstream reviews while a primary decision is red. Obtain the remaining formal decisions before acceptance, and compare against the next genuine capture or product change when available."
@@ -26965,7 +26968,8 @@
             "Changing the performance objective, routinely downloading dependency packages for the weekly reader, or accepting incomplete captures."
           ],
           "open_questions": [
-            "Which existing source-identity dependencies can be shared between the weekly reader and project commands while preserving the recorded digest format?"
+            "Which existing source-identity dependencies can be shared between the weekly reader and project commands while preserving the recorded digest format?",
+            "Compare a contradictory claim, the same direct ancestry with the event head tree and an unrelated truly missing first parent on full and shallow Git."
           ]
         },
         "evolution": {
@@ -26976,7 +26980,8 @@
           "change": [
             "Make the historical substitute verification available in the declared weekly environment.",
             "Reject the Git null sentinel as a timing identity before publisher fallback or timing attribution.",
-            "Validate parent uniqueness and known object facts against the observed event in the shared proof path before admitting substitution. Preserve a separately verified execution-input fallback when the preview is genuinely unavailable."
+            "Validate parent uniqueness and known object facts against the observed event in the shared proof path before admitting substitution. Preserve a separately verified execution-input fallback when the preview is genuinely unavailable.",
+            "When a PR preview is unavailable, compare the claimed merge tree with locally observable direct ancestry from the event head header, including at shallow boundaries."
           ],
           "data_plan": "Use the retained real run and the existing committed-tree fingerprint format. Compare old and new identity results on supported inputs. Read existing proof shapes through the shared Git checks with system Python. Keep original reports and distinguish unsupported attribution from independently measured harness time.",
           "cleanup": "Share the authoritative identity calculation and remove redundant imports and transitional code after both call sites pass. The coordinator commissions three material decisions first, one for job facts, one for historical publisher selection and outcomes, and one for checkout proof, each with an ordinary genuine positive. Reuse originals by digest and consolidate reproducers and risk assertions under each owner. Hold downstream reviews while a primary decision is red. Obtain the remaining formal decisions before acceptance, and compare against the next genuine capture or product change when available."
@@ -26998,7 +27003,9 @@
         "scripts/check.py",
         "tests/project",
         "project/tasks.json",
-        "project/feedback.json"
+        "project/feedback.json",
+        "scripts/project.py",
+        "tests/project/test_timing.py"
       ],
       "decision_refs": [
         "0004",
@@ -27196,7 +27203,8 @@
             "Changing check coverage or measured durations to fit a budget, altering previous receipt bytes, or treating an aggregate alone as an individual producer."
           ],
           "open_questions": [
-            "Which committed input identifies the assignment of the publishing job across old and new implementations, including when an ephemeral preview is unavailable locally?"
+            "Which committed input identifies the assignment of the publishing job across old and new implementations, including when an ephemeral preview is unavailable locally?",
+            "Compare changes to the publisher schema, scope bindings, and selection and result-order behavior before admitting a substantively different publisher form."
           ]
         },
         "evolution": {
@@ -27207,9 +27215,10 @@
           "change": [
             "Verify historical producer assignments using the applicable publishing inputs at the normal timing boundary.",
             "Keep independent producer qualification separate from incomplete aggregate topology and reject source assignments whose final ownership cannot be established.",
-            "Require source-bound final selection and publisher-allowed outcomes for every native result row. Preserve compatible historical publisher forms and surface unknown qualification when the source cannot establish the final selection."
+            "Require source-bound final selection and publisher-allowed outcomes for every native result row. Preserve compatible historical publisher forms and surface unknown qualification when the source cannot establish the final selection.",
+            "Share the bounded publishing check inventory, cadence and profile-reference rules with the current project loader. Preserve publisher order on raw Windows reports and validate it before aggregate reconciliation."
           ],
-          "data_plan": "Use the four authenticated producer artifacts and original compact measurements. Keep their raw source, artifact IDs, checksums and publishing check selections. Preserve the original reviews and replays in archives/observations/repo-hygiene-20261125/m0-150-review-followup-460248f9/, archives/observations/repo-hygiene-20261125/independent-final-m0-150-73fd4773/ and archives/observations/repo-hygiene-20261125/m0-150-combined-replay-73fd4773/. Retain the resumed contradictory-cache and checkout-marker inputs and raw outputs with their source identities for coordinator handoff. Preserve original producer, compact and raw aggregate bytes. Recover usable report measurements even when publisher eligibility or job attribution cannot be established.",
+          "data_plan": "Use the four authenticated producer artifacts and original compact measurements. Keep their raw source, artifact IDs, checksums and publishing check selections. Preserve the original reviews and replays in archives/observations/repo-hygiene-20261125/m0-150-review-followup-460248f9/, archives/observations/repo-hygiene-20261125/independent-final-m0-150-73fd4773/ and archives/observations/repo-hygiene-20261125/m0-150-combined-replay-73fd4773/. Retain the resumed contradictory-cache and checkout-marker inputs and raw outputs with their source identities for coordinator handoff. Preserve original producer, compact and raw aggregate bytes. Recover usable report measurements even when publisher eligibility or job attribution cannot be established. Compare the shared selection projection against statically inspected, observed historical publisher forms. Read their committed data and identities without executing historical programs. The full project loader also depends on schema and project state validation, which the scheduled system Python reader does not replay.",
           "cleanup": "Keep synthetic inconsistent controls isolated from the genuine artifacts and preserve any indeterminate original as a diagnostic. The coordinator commissions three material decisions first, one for job facts, one for historical publisher selection and outcomes, and one for checkout proof, each with an ordinary genuine positive. Reuse originals by digest and consolidate reproducers and risk assertions under each owner. Hold downstream reviews while a primary decision is red. Obtain the remaining formal decisions before acceptance, and compare against the next genuine capture or product change when available."
         }
       }

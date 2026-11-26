@@ -104,6 +104,7 @@ class PublicJobObservationTests(unittest.TestCase):
                     clock['workflow'].update(windows_split=True, windows_layout_identified=True, windows_profile='full')
                     for job in (*clock['jobs'], *clock.get('sibling_jobs', ())):
                         job.pop('publishing_steps', None)
+                        job.pop('executed_layout_steps', None)
                         job.pop('runner_labels', None)
                     saved = root / f'{name}.json'
                     saved.write_bytes(timing.json_bytes({'kind': timing.ARCHIVE_KIND,
