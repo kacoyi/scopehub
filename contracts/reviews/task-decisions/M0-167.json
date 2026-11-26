@@ -39,6 +39,26 @@
       "requested_at": "2026-11-26T13:39:49.533296+00:00",
       "request_id": "588c8f28a39c8dd9e8658187953b251be81ca8656e691d0bede75349adc13047",
       "evidence_sha256": "39a875eca894a80e1a4f579b42965ae1fae4108fd6686a729460dfdec63ceeaa"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5585d26a63ebe8a54885b1aa5d9046a78218d38a",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-167 5585d26a63ebe8a54885b1aa5d9046a78218d38a",
+      "scope": "CHANGES_REQUESTED M0-167 5585d26a63ebe8a54885b1aa5d9046a78218d38a",
+      "observation": "In my preview transport test, a complete WORKER_EXITED frame remained pending until the child emitted its close event.",
+      "reviewer": "Independent Astra Standard (t17n)",
+      "original_sha256": "81b6a7ec76e77105d5c5f015cdfcc2b68056eb916ef809572640a164e02f7c2d",
+      "response_id": "79a4e2545b3c89e4c0fc339290a1a51dc927763c185ee8b1b094538ee3d654d4",
+      "response_sha256": "6ce2a3a51b84d2d03a8df4462927a8f9d4eaa45f19260b196fc99b488783f678",
+      "legacy_response_sha256": "11416405bd98a87db6705968a6176b1ca0a80604ec81d6f88bb49cc011a3c362",
+      "observation_body_sha256": "0f03b95608c80977acfed5d975c393cb603af35fdedb874cbc36f988f2f6d230",
+      "event": {
+        "id": "msg_0ff8beadb84db529016b0837e106b087d18e160ad3598f125f",
+        "timestamp": "2026-11-26T13:45:27.593Z"
+      },
+      "supersedes": "588c8f28a39c8dd9e8658187953b251be81ca8656e691d0bede75349adc13047",
+      "evidence_sha256": "5411ccf4deae1d81c242ef7946b3f1ceabd1110e7c473fa8cc5418fb03cd867e"
     }
   ]
 }
