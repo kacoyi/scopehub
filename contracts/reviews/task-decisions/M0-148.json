@@ -155,6 +155,15 @@
       "requested_at": "2026-11-26T12:29:20.670267+00:00",
       "request_id": "c0186ff6e14ef89c033a02b38bd1e555ec4cdb85a80c5a2369fdcf1893ac5421",
       "evidence_sha256": "2208d8eb5e14e96d3ff2cdb1d02ec4f483df631d2f68dd8e06503eb8b6002cb1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "3eeb59bc39219905204e6aab95bd16af4d22a65e",
+      "scope": "Check a real Windows publishing catalog and digest at the recorded publishing checkout, adjacent unsupported historical combinations and the ordinary and weekly entry in a clean environment. Distinguish the candidate checks from native qualification. Recheck the original decision on e00b088b.",
+      "supersedes": "c0186ff6e14ef89c033a02b38bd1e555ec4cdb85a80c5a2369fdcf1893ac5421",
+      "requested_at": "2026-11-26T12:55:47.920276+00:00",
+      "request_id": "7f32e0313da51070a904a759dc2a0d3b6090873f26d49d73cc7016b9af1835ec",
+      "evidence_sha256": "dff8941dca6012c722d249c0c7b5af2b4004f06dced709553d92d874f86fabd0"
     }
   ]
 }
