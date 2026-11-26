@@ -10,6 +10,26 @@
       "requested_at": "2026-11-26T06:14:21.549917+00:00",
       "request_id": "5c5b010ba79ded36557dedee9d9482c0aabbb85145c5f7778b6e00d7dca4bbdc",
       "evidence_sha256": "e5614561c24ee9c2e56ab2f3af7a05decf942de839f05c03f3336b9a6d7b64e8"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c1cefee5537c5ef4b80dd1ce7a6f28eaaaa69540",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M3-007 c1cefee5537c5ef4b80dd1ce7a6f28eaaaa69540",
+      "scope": "CHANGES_REQUESTED M3-007 c1cefee5537c5ef4b80dd1ce7a6f28eaaaa69540",
+      "observation": "In my component replay, cancelling the preview while its recovery read was pending sent two distinct cancellation requests for the same admitted task.",
+      "reviewer": "Independent Astra Standard (t14g)",
+      "original_sha256": "65db0068c6a2b014f3e610fb98a35e32d611713a0945758510a905f76580d8ee",
+      "response_id": "b501ae7c5cada5665e507f47ae86af76ff4c04ab476e30506ebea13e74b623bf",
+      "response_sha256": "0b4a403b82e55d1c57444bb1bf32cd1fc52c33718514334aa15e313077dbc018",
+      "legacy_response_sha256": "4337dc7244b3986dac7e65b1aa289fcbde85d2cdff4220d286b94ef3b993b010",
+      "observation_body_sha256": "50ac46f5bcb81b5cc26c6a66e872749bdaf47ade6f750e14e95c55e03dd5c891",
+      "event": {
+        "id": "msg_08144eec3f9c5b47016b07d8172aac87d1945444484547bb94",
+        "timestamp": "2026-11-26T06:56:44.587Z"
+      },
+      "supersedes": "5c5b010ba79ded36557dedee9d9482c0aabbb85145c5f7778b6e00d7dca4bbdc",
+      "evidence_sha256": "216f904d985a1d8beae5c7aca1342fd7d66f4c337a5138a567d68ebd192a77d6"
     }
   ]
 }
