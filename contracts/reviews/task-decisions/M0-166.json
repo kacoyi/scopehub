@@ -10,6 +10,26 @@
       "requested_at": "2026-11-26T13:32:22.318255+00:00",
       "request_id": "c46e6c803eb5216a52b54b28f2a359be06262e6890d7a423990e72e94cbf29e9",
       "evidence_sha256": "49eeb9f03dfae1b25d42ab6b5861f57406e3907373bb62e9a91ef39dc676333c"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "057cc2c2f0638fdd3986e3817d7956868a788b05",
+      "verdict": "approved",
+      "decision": "APPROVE M0-166 057cc2c2f0638fdd3986e3817d7956868a788b05",
+      "scope": "APPROVE M0-166 057cc2c2f0638fdd3986e3817d7956868a788b05",
+      "observation": "In the compiled Linux contention trial, the tagged snapshot returned HTTP 429 without a writer event, and a fresh browser request recovered the same ready result before chart closure cancelled that task.",
+      "reviewer": "Independent Astra Standard (t17h)",
+      "original_sha256": "23ce42b7b65d2b74584c422493fe96a878095500635a5453fca432f10a9370bb",
+      "response_id": "f4c6e276db5421442a1709d392260fc0572547a7d0aa7116a35db9ef113ae051",
+      "response_sha256": "6fd7395a13af226b47f1f0bb7c96b39d1b4c25eedfa612be30b50dbef05e4606",
+      "legacy_response_sha256": "23fb23e9b116a225c32d762efcbae9d42ff546c9aeb1067e1d23a11379723f9a",
+      "observation_body_sha256": "1ea68c46c7d2cab68702d5e18b30c26889f85cd17bdd71e18f17ee8672a2ae70",
+      "event": {
+        "id": "msg_05f8c752e8a39043016b083573ec1c87d28a4748a3bbbdf91d",
+        "timestamp": "2026-11-26T13:35:01.374Z"
+      },
+      "supersedes": "c46e6c803eb5216a52b54b28f2a359be06262e6890d7a423990e72e94cbf29e9",
+      "evidence_sha256": "433e5dbc7ce6ea1956897c01a85b179c49fe72d5402cfebace92d8c9cf686d7c"
     }
   ]
 }
