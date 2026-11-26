@@ -27143,7 +27143,11 @@
       "checks": [
         "project-state",
         "rust-contracts-workers",
-        "local-folder-import"
+        "local-folder-import",
+        "architecture",
+        "market-fixtures",
+        "python-contracts-workers",
+        "python-types"
       ],
       "evidence": [],
       "diagnostic_reports": [
