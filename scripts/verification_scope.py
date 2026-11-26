@@ -144,6 +144,65 @@ def windows_result_issue(rows, selected, catalog):
     return None
 
 
+def windows_raw_timing_issue(report, *, catalog=None, source=None):
+    """Validate native publisher inputs that the compact timing format omits."""
+    initial = report.get('source')
+    final = report.get('source_end')
+    ci = report['ci']
+    if (not isinstance(initial, dict) or not isinstance(final, dict)
+            or any(set(snapshot) != {'snapshot_kind', 'sha256', 'file_count', 'git_head',
+                                     'working_tree_dirty', 'exclusions'}
+                   or snapshot['snapshot_kind'] != 'execution-inputs-v1'
+                   or not isinstance(snapshot['sha256'], str) or not re.fullmatch(r'[0-9a-f]{64}', snapshot['sha256'])
+                   or type(snapshot['file_count']) is not int or snapshot['file_count'] < 1
+                   or snapshot['git_head'] != ci.get('checkout_sha') or snapshot['working_tree_dirty'] is not False
+                   or not isinstance(snapshot['exclusions'], list)
+                   or not all(isinstance(path, str) and path for path in snapshot['exclusions'])
+                   or len(set(snapshot['exclusions'])) != len(snapshot['exclusions'])
+                   for snapshot in (initial, final))
+            or initial != final or (source is not None and initial != source)
+            or report.get('source_unchanged') is not True or report.get('project_unchanged') is not True):
+        return 'an invalid native harness source fence'
+
+    selection = report['selection']
+    profile = selection['profile']
+    selected = selection.get('checks')
+    requirement = report.get('native_requirement')
+    python = report['environment'].get('python_executable')
+    if (set(selection) != {'profile', 'task_id', 'checks'} or selection['task_id'] is not None
+            or not isinstance(selected, list) or not all(isinstance(key, str) and key for key in selected)
+            or selected != sorted(set(selected))):
+        return 'an invalid native harness report selection'
+    if (not isinstance(requirement, dict) or set(requirement) != {'requested', 'satisfied'}
+            or requirement['requested'] is not (profile == 'full') or requirement['satisfied'] is not True
+            or not isinstance(python, str) or not python
+            or report.get('report_version') != '2.0'
+            or report.get('status') not in {'passed', 'failed', 'blocked'}
+            or not isinstance(report.get('project_definition_sha256'), str)
+            or not re.fullmatch(r'[0-9a-f]{64}', report['project_definition_sha256'])
+            or not isinstance(report.get('task_definitions'), dict)
+            or not all(isinstance(value, str) and re.fullmatch(r'[0-9a-f]{64}', value)
+                       for value in report['task_definitions'].values())
+            or ci.get('provider') != 'github-actions'
+            or ci.get('run_url') != f"https://github.com/{ci.get('repository')}/actions/runs/{ci.get('run_id')}"):
+        return 'invalid native harness metadata'
+
+    commands = {row['id']: row['command'] for row in catalog['checks']} if catalog is not None else None
+    for row in report['checks']:
+        key = row['id']
+        command = row.get('command')
+        if (not isinstance(command, list) or not all(isinstance(arg, str) and arg for arg in command)
+                or (commands is not None and (key not in commands
+                    or command != [python if arg == '{python}' else arg for arg in commands[key] or ()]))):
+            return f'an invalid native harness command for {key}'
+        if 'log' in row or row['status'] == 'passed':
+            if (row.get('log') != f".reports/runs/{report['run_id']}/{key}.log"
+                    or not isinstance(row.get('log_sha256'), str)
+                    or not re.fullmatch(r'[0-9a-f]{64}', row['log_sha256'])):
+                return f'an invalid native harness log reference for {key}'
+    return None
+
+
 SCOPE_REASONS = {
     'records': 'Only reviewed record paths or approved narrative fields changed.',
     'tooling': 'Only isolated Herdr tooling and eligible records changed.',

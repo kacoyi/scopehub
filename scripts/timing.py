@@ -24,7 +24,7 @@ if __package__:
         LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit,
         git, invalid_number, oid, publishing_check_catalog, require_complete_history,
         unique_object,
-        windows_lane_report_matches, windows_published_scope, windows_result_issue, windows_x64,
+        windows_lane_report_matches, windows_published_scope, windows_raw_timing_issue, windows_result_issue, windows_x64,
     )
     from .worktree import WorktreeError, entry_info, exclusive_git_lock, git_path, reparse_point
 else:
@@ -34,7 +34,7 @@ else:
         LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit,
         git, invalid_number, oid, publishing_check_catalog, require_complete_history,
         unique_object,
-        windows_lane_report_matches, windows_published_scope, windows_result_issue, windows_x64,
+        windows_lane_report_matches, windows_published_scope, windows_raw_timing_issue, windows_result_issue, windows_x64,
     )
     from worktree import WorktreeError, entry_info, exclusive_git_lock, git_path, reparse_point
 
@@ -151,6 +151,10 @@ def read_json(path):
 
 def json_bytes(data):
     return (json.dumps(data, indent=2) + '\n').encode('utf-8')
+
+
+def decode_timing_input(data):
+    return json.loads(data, object_pairs_hook=unique_object, parse_constant=invalid_number)
 
 
 def github_identity(root):
@@ -296,6 +300,13 @@ def report_coverage(checks, selected, status, profile, platform):
     )
 
 
+def report_check_work(checks):
+    measured = [row['duration_seconds'] for row in checks if row['duration_seconds'] is not None]
+    return (round(sum(measured), 3) if measured else None,
+            bool(measured) and all(row['duration_seconds'] is not None for row in checks
+                                   if row['status'] in {'passed', 'failed'}))
+
+
 def report_sample(report, *, cache=None):
     """Project only coverage, timing and run identity. Commands, paths and logs stay out."""
     environment = report.get('environment', {})
@@ -326,7 +337,7 @@ def report_sample(report, *, cache=None):
         and report.get('source_unchanged') is not False and report.get('project_unchanged') is not False
         and report.get('native_requirement', {}).get('satisfied') is not False
     )
-    measured = [item['duration_seconds'] for item in checks if item['duration_seconds'] is not None]
+    check_work, check_work_complete = report_check_work(checks)
     recorded_at = timestamp(report.get('generated_at'))
     source = report.get('source', {})
     source_commit = source.get('git_head')
@@ -348,13 +359,11 @@ def report_sample(report, *, cache=None):
         'platform': platform, 'arch': short_label(environment.get('machine')),
         'cache': cache if cache in CACHE_STATES else 'unknown',
         'report_status': status, 'coverage_complete': coverage_complete, 'identity_complete': identity_complete,
-        'check_work_complete': bool(measured) and all(
-            item['duration_seconds'] is not None for item in checks if item['status'] in {'passed', 'failed'}
-        ),
+        'check_work_complete': check_work_complete,
         'selected': selected, 'checks': checks, 'ci': ci,
         'seconds': {
             'harness': duration(report.get('timing', {}).get('elapsed_seconds')),
-            'check_work': round(sum(measured), 3) if measured else None,
+            'check_work': check_work,
         },
     }
 
@@ -367,10 +376,20 @@ def input_report_sample(report):
               and (report.get('ci') or {}).get('event') in NORMAL_EVENTS
               and (profile in AUTOMATIC_PROFILES or profile in WINDOWS_PRODUCER_PROFILES))
     if native:
-        if ('task_id' not in selection or selection['task_id'] is not None
-                or not isinstance(selection.get('checks'), list)
-                or not all(short_label(key) for key in selection['checks'])):
-            raise TimingError('Invalid native harness report selection.')
+        ci = report['ci']
+        source = report.get('source') or {}
+        publishing, assignment = native_publisher_contract({
+            'ci': ci, 'source_commit': source.get('git_head'), 'inputs_sha256': source.get('sha256'),
+            'working_tree_dirty': source.get('working_tree_dirty'),
+        }) if commit_id(ci.get('checkout_sha')) and commit_id(ci.get('head_sha')) else (None, None)
+        revision, catalog = publishing or (None, None)
+        snapshot = committed_publishing_snapshot(revision, root=ROOT) if revision is not None else None
+        expected_source = {**snapshot, 'git_head': ci['checkout_sha']} if snapshot is not None else None
+        if issue := windows_raw_timing_issue(report, catalog=catalog, source=expected_source):
+            raise TimingError(f'Timing report has {issue}.')
+        if (timestamp(report.get('generated_at')) is None
+                or duration(report.get('timing', {}).get('elapsed_seconds')) is None):
+            raise TimingError('Invalid native harness report timing.')
         for row in report['checks']:
             reason = row.get('reason_code')
             if reason is not None and not short_label(reason):
@@ -382,7 +401,12 @@ def input_report_sample(report):
                 'not_selected', 'not_implemented', 'retired', 'earlier_failure', 'executable_unavailable',
             } and {'exit_code', 'log', 'log_sha256'} & row.keys():
                 raise TimingError('Unexpected execution fields in a blocked native harness result.')
-    return report_sample(report)
+    sample = report_sample(report)
+    if native and (expected_source is None or assignment is None):
+        # Retained compacts cannot recover fields lost by projection. An
+        # unbound raw input must stay diagnostic on archive reopen.
+        sample['raw_publisher_unverified'] = True
+    return sample
 
 
 def slowest_checks(sample):
@@ -468,6 +492,20 @@ def active_step(steps, names):
         field: None if disputed else join_timestamp_choices({fact[index]} for fact in facts if fact[index] is not None)
         for index, field in enumerate(('start', 'end'), start=1)
     }
+
+
+def timed_step_observations(steps):
+    observations = defaultdict(list)
+    for step in steps:
+        name = step.get('name')
+        if name in TIMED_STEPS:
+            observations[name].append(step)
+    timed = {}
+    for name, grouped in observations.items():
+        identity, choices = active_step(grouped, {name})
+        if identity:
+            timed[name] = {'number': identity[0], **retain_endpoint_choices(choices)}
+    return timed
 
 
 def job_endpoint_choices(job):
@@ -584,22 +622,23 @@ def observe_job(job, *, identity, requested, label=None, harness_steps=HARNESS_S
     }
     if job.get('labels'):
         row['runner_labels'] = sorted(set(job['labels']))
-    if conclusions := explicit_step_conclusions(job.get('steps', ())):
-        row['step_conclusions'] = conclusions
+    row['step_conclusions'] = explicit_step_conclusions(job.get('steps', ()))
     executed_layout_steps = {step['name'] for step in job.get('steps', ())
                              if step.get('name') in WINDOWS_LAYOUT_STEPS
                              and step.get('conclusion') == 'success' and eligible_step(step)}
     recorded_steps = {step.get('name') for step in job.get('steps', ())
                       if step.get('name') in WINDOWS_LAYOUT_STEPS
-                      or (step.get('name') in WINDOWS_ROLE_STEPS and step.get('conclusion') == 'success')
+                      or (step.get('name') in WINDOWS_ROLE_STEPS and step.get('conclusion') == 'success'
+                          and eligible_step(step))
                       or (step.get('name') in WINDOWS_PROFILE_STEPS and eligible_step(step)
-                          and (step.get('conclusion') or step.get('started_at') or step.get('completed_at')))}
+                          and step.get('conclusion'))}
     if recorded_steps:
         row['publishing_steps'] = sorted(recorded_steps)
     if executed_layout_steps:
         row['executed_layout_steps'] = sorted(executed_layout_steps)
     if steps:
         row['step_identities'] = steps
+    row['timed_steps'] = timed_step_observations(job.get('steps', ()))
     if job.get('checkout_sha') is not None:
         if commit_id(job['checkout_sha']):
             row['checkout_sha'] = job['checkout_sha']
@@ -702,9 +741,7 @@ def hosted_timing(run, jobs):
         label = protected[1] if protected else 'windows-latest' if lane else None
         steps = HARNESS_STEPS if protected else TIMED_STEPS - BROWSER_STEPS if not name else ()
         if lane:
-            steps = {f'Verify the Windows {lane} lane'}
-            if lane == 'core':
-                steps.update(SCOPED_HARNESS_STEPS)
+            steps = job_harness_steps(('producer', name))
         row = observe_job(job, identity=identity, requested=requested, label=label, harness_steps=steps)
         if protected:
             rows.append(row)
@@ -821,6 +858,7 @@ def valid_step_facts(job):
     disputes = job.get('endpoint_disputes', [])
     choices = job.get('endpoint_choices', {})
     conclusions = job.get('step_conclusions', {})
+    timed = job.get('timed_steps', {})
     return (isinstance(identities, dict) and identities.keys() <= set(STEP_KINDS)
             and all(isinstance(key, list) and len(key) == 2
                     and (key[0] is None or type(key[0]) is int and key[0] > 0)
@@ -834,7 +872,22 @@ def valid_step_facts(job):
             and isinstance(conclusions, dict) and conclusions.keys() <= OBSERVED_STEPS
             and all(isinstance(values, list) and values and all(short_label(value) is not None for value in values)
                     and len(set(values)) == len(values) for values in conclusions.values())
-            and (not (identities or disputes) or 'endpoints' in job))
+            and isinstance(timed, dict) and timed.keys() <= TIMED_STEPS
+            and all(valid_timed_step(row) for row in timed.values())
+            and (not (identities or disputes or timed) or 'endpoints' in job))
+
+
+def valid_timed_step(row):
+    fields, endpoints = {'start', 'end'}, row['endpoints']
+    disputes = row.get('endpoint_disputes', [])
+    choices = row.get('endpoint_choices', {})
+    number = row['number']
+    return ((number is None or type(number) is int and number > 0)
+            and isinstance(endpoints, dict) and endpoints.keys() == fields
+            and all(value is None or timestamp(value) is not None for value in endpoints.values())
+            and isinstance(disputes, list) and len(disputes) <= len(fields) and set(disputes) <= fields
+            and isinstance(choices, dict) and choices.keys() <= set(disputes)
+            and all(valid_timestamp_choices(values) and endpoints[field] is None for field, values in choices.items()))
 
 
 def valid_clock(run):
@@ -1018,14 +1071,6 @@ def listed_job_role(job, *, protected=False):
     return ('platform', job['platform']) if protected else named_job_role(job.get('name'), job['job_id'])
 
 
-def job_publication_steps(job):
-    if 'publishing_steps' in job:
-        return job['publishing_steps']
-    # Some older captures retain the executed harness name but no other steps.
-    _, step = job.get('step_identities', {}).get('harness', (None, None))
-    return (step,) if step in WINDOWS_PROFILE_STEPS or step in WINDOWS_LANE_STEPS else ()
-
-
 def merge_clock_fields(rows, fields):
     values, disputes = {}, []
     for field in fields:
@@ -1035,18 +1080,50 @@ def merge_clock_fields(rows, fields):
     return values, disputes
 
 
-def merge_job_clock(jobs, *, projected=False, blocked_steps=()):
-    primary = [job_endpoint_choices(job) for job in jobs if 'endpoints' in job]
+def job_harness_steps(role):
+    scope, name = role
+    if scope == 'platform':
+        return HARNESS_STEPS
+    if scope == 'producer':
+        lane = WINDOWS_PRODUCER_LANES[name]
+        lane_step = {f'Verify the Windows {lane} lane'}
+        return lane_step | SCOPED_HARNESS_STEPS if lane == 'core' else lane_step
+    return set()
+
+
+def joined_step_clock(primary, kind, names, blocked_steps):
+    clocks, identities = [], []
+    fields = ('start', 'end')
+    for job, endpoints in primary:
+        if 'timed_steps' in job:
+            timed = job['timed_steps']
+            for name in names & timed.keys():
+                identities.append([timed[name]['number'], name])
+                clocks.append(job_endpoint_choices(timed[name]))
+        else:
+            old_identity = job.get('step_identities', {}).get(kind)
+            if old_identity:
+                if old_identity[1] not in names:
+                    continue
+                identities.append(old_identity)
+            clocks.append({field: endpoints.get(f'{kind}_{field}', ()) for field in fields})
+    identity, disputed = step_identity(identities)
+    if disputed or (identity and identity[1] in blocked_steps):
+        return None, {f'{kind}_{field}': None for field in fields}
+    return identity, {f'{kind}_{field}': join_timestamp_choices(clock.get(field, ()) for clock in clocks)
+                      for field in fields}
+
+
+def merge_job_clock(jobs, role, *, projected=False, blocked_steps=()):
+    primary = [(job, job_endpoint_choices(job)) for job in jobs if 'endpoints' in job]
     legacy = [job['seconds'] for job in jobs if 'endpoints' not in job]
-    choices = {field: join_timestamp_choices(row.get(field, ()) for row in primary)
-               for field in sorted(JOB_ENDPOINTS)}
+    choices = {field: join_timestamp_choices(row.get(field, ()) for _, row in primary)
+               for field in ('requested', 'start', 'end')}
     step_identities = {}
-    for kind in STEP_KINDS:
-        identity, disputed = step_identity([job['step_identities'][kind] for job in jobs
-                                            if kind in job.get('step_identities', {})])
-        if disputed or (identity and identity[1] in blocked_steps):
-            choices[f'{kind}_start'] = choices[f'{kind}_end'] = None
-        elif identity is not None:
+    for kind, names in zip(STEP_KINDS, (job_harness_steps(role), BROWSER_STEPS), strict=True):
+        identity, options = joined_step_clock(primary, kind, names, blocked_steps)
+        choices.update(options)
+        if identity is not None:
             step_identities[kind] = identity
     points, unplaced = project_job_points(choices)
     retained = retain_endpoint_choices(choices)
@@ -1108,15 +1185,24 @@ def attempt_job_claims(runs, event, issues):
 
 def job_role_claims(claims, event, issues):
     conclusions = defaultdict(set)
+    steps, executed_layout, legacy_timed = set(), set(), set()
     for _, _, job in claims:
         for step, values in job.get('step_conclusions', {}).items():
             conclusions[step].update(values)
+        if job['conclusion'] == 'skipped':
+            continue
+        recorded = set(job.get('publishing_steps', ()))
+        executed = set(job.get('executed_layout_steps', ()))
+        steps.update(recorded)
+        executed_layout.update(executed)
         # Earlier captures kept successful role steps without their conclusions.
         # Layout names alone never implied success, even on a named aggregate.
-        for step in job.get('executed_layout_steps', ()):
+        for step in executed | (recorded & (WINDOWS_LANE_STEPS.keys() | {WINDOWS_LANE_SELECTOR})):
             conclusions[step].add('success')
-        for step in set(job.get('publishing_steps', ())) & (WINDOWS_LANE_STEPS.keys() | {WINDOWS_LANE_SELECTOR}):
-            conclusions[step].add('success')
+        if 'step_conclusions' not in job and 'publishing_steps' not in job:
+            _, step = job.get('step_identities', {}).get('harness', (None, None))
+            if step in WINDOWS_PROFILE_STEPS or step in WINDOWS_LANE_STEPS:
+                legacy_timed.add(step)
     disputes = {step: sorted(values) for step, values in sorted(conclusions.items()) if len(values) > 1}
     if disputes:
         _, run, job = claims[0]
@@ -1126,9 +1212,9 @@ def job_role_claims(claims, event, issues):
     roles = {role for role, _, _ in claims if role}
     if event not in NORMAL_EVENTS:
         return JobClaims(claims, roles, False, set(), False, blocked_steps)
-    steps = {step for _, _, job in claims if job['conclusion'] != 'skipped' for step in job_publication_steps(job)}
-    executed_layout = {step for _, _, job in claims if job['conclusion'] != 'skipped'
-                       for step in job.get('executed_layout_steps', ())}
+    # Only older captures without an explicit conclusion for this step can
+    # infer a role from a retained timed identity.
+    steps.update(legacy_timed - conclusions.keys())
     # A skipped layout marker can describe the workflow shape after a name or
     # another step identifies its job. Its conclusion cannot establish a role.
     steps.difference_update(disputes.keys() | (blocked_steps - WINDOWS_LAYOUT_STEPS.keys()))
@@ -1138,7 +1224,8 @@ def job_role_claims(claims, event, issues):
     windows = 'windows-latest' in labels or any(role == aggregate_role or role[0] == 'producer'
                                                for role in roles)
     step_roles = {('producer', WINDOWS_LANE_STEPS[step]) for step in steps & WINDOWS_LANE_STEPS.keys()}
-    if executed_layout or (windows and WINDOWS_FULL_STEP in steps):
+    if executed_layout or (windows and WINDOWS_FULL_STEP in steps
+                           and conclusions.get(WINDOWS_FULL_STEP, {'success'}) == {'success'}):
         step_roles.add(aggregate_role)
     # Older captures retained layout names even when the steps were skipped.
     # Their names describe the layout once other evidence identifies the aggregate.
@@ -1199,10 +1286,12 @@ def reconcile_job_clocks(by_id, attempt, layout, issues):
             continue
         ((jobs, status, conclusion, _, blocked_steps),) = participants
         projected = role == ('platform', 'Windows') and split_windows_clock(layout)
-        job, disputed, endpoint_disputes, unplaced = merge_job_clock(jobs, projected=projected, blocked_steps=blocked_steps)
+        job, disputed, endpoint_disputes, unplaced = merge_job_clock(jobs, role, projected=projected,
+                                                                  blocked_steps=blocked_steps)
         job.pop('publishing_steps', None)
         job.pop('executed_layout_steps', None)
         job.pop('step_conclusions', None)
+        job.pop('timed_steps', None)
         job.pop('runner_labels', None)
         job.pop('producer_family', None)
         platform = name if scope == 'platform' else 'Windows' if producer else None
@@ -1371,6 +1460,7 @@ class ClockEvidence(NamedTuple):
     jobs: dict
     checkout_disputes: set
     producer_disputes: set
+    unqualified_native: frozenset = frozenset()
 
 
 def project_listed_clocks(run):
@@ -1529,14 +1619,28 @@ def job_outside_report(job, recorded):
     return bool(upper and max(upper) < recorded)
 
 
+def report_clock_role(sample):
+    ci = sample['ci']
+    if not ci:
+        return None
+    if producer := windows_producer_job_name(sample):
+        return ('producer', producer)
+    if ci['event'] not in NORMAL_EVENTS or sample['profile'] in AUTOMATIC_PROFILES:
+        return ('platform', sample['platform'])
+    return None
+
+
 def report_job_disputes(samples, evidence, issues):
     disputes = set()
     for sample in samples:
         attempt = ci_key(sample['ci'] or {})
         if sample['platform'] != 'Windows' or not sample.get('inputs_sha256') or not sample_eligible(sample):
             continue
-        producer = windows_producer_job_name(sample)
-        role = ('producer', producer) if producer else ('platform', 'Windows')
+        role = report_clock_role(sample)
+        if role is None or (role[0] == 'platform'
+                            and not protected_profile_matches(evidence.attempts.get(attempt),
+                                                              'Windows', sample['profile'])):
+            continue
         fact = evidence.jobs.get((attempt, role))
         if not (fact and fact.job):
             continue
@@ -1548,10 +1652,10 @@ def report_job_disputes(samples, evidence, issues):
     return disputes
 
 
-def reconcile_timing_clocks(samples, hosted, issues):
+def reconcile_timing_clocks(samples, hosted, issues, *, report_issues=None):
     evidence = attempt_clocks(hosted, issues)
-    claims = [row for row in samples
-              if not native_report_issue(row, evidence.attempts.get(ci_key(row['ci'] or {})), [])]
+    unqualified = native_report_inputs(samples, evidence.attempts, issues if report_issues is None else report_issues)
+    claims = [row for row in samples if id(row) not in unqualified]
     disputes = timing_checkout_conflicts(claims, hosted, issues)
     job_disputes = report_job_disputes(claims, evidence, issues)
     return ClockEvidence({key: run for key, run in evidence.attempts.items() if key not in disputes},
@@ -1559,18 +1663,30 @@ def reconcile_timing_clocks(samples, hosted, issues):
                          {key: JobClockEvidence(None, ()) if key in job_disputes else fact
                           for key, fact in evidence.jobs.items() if key[0] not in disputes},
                          disputes, (evidence.producer_disputes | {attempt for attempt, role in job_disputes
-                                                                   if role[0] == 'producer'}) - disputes)
+                                                                   if role[0] == 'producer'}) - disputes,
+                         unqualified)
 
 
-def coalesced_sample_groups(samples, issues, *, clocks=None):
+def native_report_inputs(samples, clocks, issues):
+    diagnostics = []
+    unqualified = frozenset(id(row) for row in samples
+                            if native_report_issue(row, clocks.get(ci_key(row['ci'] or {})), diagnostics))
+    for issue in sorted(diagnostics, key=lambda note: json.dumps(note, sort_keys=True)):
+        timing_issue(issues, issue)
+    return unqualified
+
+
+def coalesced_sample_groups(samples, issues, *, evidence=None):
     observations, producers = defaultdict(list), defaultdict(list)
-    clock_by_attempt = clocks or {}
+    clock_by_attempt = evidence.attempts if evidence is not None else {}
+    unqualified = (evidence.unqualified_native if evidence is not None
+                   else native_report_inputs(samples, clock_by_attempt, issues))
     diagnostics = []
     for sample in samples:
         ci = sample['ci']
         attempt = ci_key(ci or {})
         scope = windows_producer_job_name(sample)
-        if native_report_issue(sample, clock_by_attempt.get(attempt), diagnostics):
+        if id(sample) in unqualified:
             scope = ('native diagnostic', sample['profile'], sample['run_id'], sample['arch'], tuple(sample['selected']))
         elif ci and scope:
             producers[attempt].append(sample)
@@ -1588,8 +1704,8 @@ def coalesced_sample_groups(samples, issues, *, clocks=None):
     return groups
 
 
-def coalesce_samples(samples, issues, *, clocks=None):
-    return [resolved for _, resolved in coalesced_sample_groups(samples, issues, clocks=clocks)]
+def coalesce_samples(samples, issues):
+    return [resolved for _, resolved in coalesced_sample_groups(samples, issues)]
 
 
 def coalesce_sample_group(group, producers, run, issues):
@@ -1811,15 +1927,20 @@ def publishing_catalog_supported(root, revision, catalog):
 
 
 @lru_cache(maxsize=128)
-def committed_publishing_inputs(revision, *, root=ROOT):
+def committed_publishing_snapshot(revision, *, root=ROOT):
     try:
         source = committed_source_identity(root, revision)
         publishing_paths = ('project/checks.json', *WINDOWS_PUBLISHING_PATHS)
         if not all(is_source_input(path, source['exclusions']) for path in publishing_paths):
             return None
-        return source['sha256']
+        return source
     except (ScopeError, OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS):
         return None
+
+
+def committed_publishing_inputs(revision, *, root=ROOT):
+    source = committed_publishing_snapshot(revision, root=root)
+    return source['sha256'] if source is not None else None
 
 
 def known_checkout_matches_event(ci):
@@ -1858,6 +1979,13 @@ def publishing_catalog_source(sample):
     return None
 
 
+def native_publisher_contract(sample):
+    publishing = publishing_catalog_source(sample)
+    if publishing and publishing_catalog_supported(ROOT, *publishing):
+        return publishing, committed_windows_assignment(ROOT, publishing[0])
+    return None, None
+
+
 def native_report_issue(sample, run, issues):
     ci, profile = sample['ci'], sample['profile']
     producer = windows_producer_job_name(sample)
@@ -1873,10 +2001,9 @@ def native_report_issue(sample, run, issues):
         profile != 'full' or not (split_report or lanes) or split_identity
     )
     selected = set(sample['selected'])
-    publishing = publishing_catalog_source(sample) if identity and sample['task_id'] is None else None
-    if publishing and not publishing_catalog_supported(ROOT, *publishing):
-        publishing = None
-    assignment = committed_windows_assignment(ROOT, publishing[0]) if publishing else None
+    publishing, assignment = (native_publisher_contract(sample)
+                              if identity and sample['task_id'] is None and not sample.get('raw_publisher_unverified')
+                              else (None, None))
     result_issue = None
     if assignment is not None:
         _, catalog = publishing
@@ -1888,6 +2015,10 @@ def native_report_issue(sample, run, issues):
         if (sample['selected'] == sorted(selected) and (not producer or matching_producer)
                 and windows_published_scope(sample['selected'], profile, expected_lanes, catalog, assignment=assignment)):
             result_issue = windows_result_issue(sample['checks'], selected, catalog)
+            if not result_issue:
+                work, work_complete = report_check_work(sample['checks'])
+                if sample['seconds']['check_work'] != work or sample.get('check_work_complete') is not work_complete:
+                    result_issue = 'a check work summary that contradicts its check results'
             if not result_issue and (not sample['coverage_complete'] or sample_eligible(sample)):
                 return False
             if not result_issue:
@@ -1917,19 +2048,20 @@ def merge_samples(samples, hosted, issues):
                   if note.get('retained_capture_unverified') in ('checkout', 'shared')}
     checked = [clock for clock in hosted if clock.get('authenticated_failure') or capture_attempt(clock) not in unverified]
     evidence = reconcile_timing_clocks(samples, checked, issues)
-    for inputs, group in coalesced_sample_groups(samples, issues, clocks=evidence.attempts):
+    for inputs, group in coalesced_sample_groups(samples, issues, evidence=evidence):
         if len(group) > 1:
             continue
         sample = group[0]
         ci = sample['ci']
         attempt = ci_key(ci) if ci else None
         run = evidence.attempts.get(attempt)
-        producer = windows_producer_job_name(sample)
+        role = report_clock_role(sample)
+        producer = role[1] if role and role[0] == 'producer' else None
         fact = None
-        if run:
+        if run and role:
             if producer:
-                fact = evidence.jobs.get((attempt, ('producer', producer)))
-            elif ci['event'] not in NORMAL_EVENTS or sample['profile'] in AUTOMATIC_PROFILES:
+                fact = evidence.jobs.get((attempt, role))
+            else:
                 fact = protected_job(evidence, attempt, sample['platform'], sample['profile'], issues)
         job = fact.job if fact else None
         complete = attempt in evidence.complete
@@ -1937,7 +2069,7 @@ def merge_samples(samples, hosted, issues):
             complete = False
             if job:
                 job = unconfirmed_split_job(fact)
-        unqualified_native = native_report_issue(sample, run, issues)
+        unqualified_native = id(inputs[0]) in evidence.unqualified_native
         if unqualified_native:
             job = None
         if job and not sample_identity_complete(sample):
@@ -1948,6 +2080,8 @@ def merge_samples(samples, hosted, issues):
             issues.append(issue)
             job = None
         seconds = {key: sample['seconds'][key] for key in ('harness', 'check_work')}
+        if unqualified_native and seconds['check_work'] != report_check_work(sample['checks'])[0]:
+            seconds['check_work'] = None
         seconds.update({key: job['seconds'][key] if job else None for key in ATTEMPT_SECONDS})
         seconds.update({key: duration(job['seconds'].get(key)) if job else None for key in SPLIT_SECONDS})
         cache = 'unknown' if unqualified_native else sample['cache']
@@ -1998,6 +2132,32 @@ def possible_commit_types(types):
     return types is not None and all(kind in {b'commit', b'missing'} for kind in types)
 
 
+EXPIRED_ANCESTRY_LIMIT = 128
+
+
+def readable_commit_ancestor(root, facts, ancestor):
+    """Look for a parent edge at the shallow boundary, including missing objects."""
+    pending, searched = set(facts.parents), set()
+    while pending:
+        if ancestor in pending:
+            return True
+        if len(pending) + len(searched) > EXPIRED_ANCESTRY_LIMIT:
+            return None
+        revisions = tuple(sorted(pending))
+        kinds = proof_object_types(root, revisions)
+        if not possible_commit_types(kinds):
+            return None
+        searched.update(pending)
+        pending.clear()
+        for revision, kind in zip(revisions, kinds, strict=True):
+            if kind == b'missing':
+                continue
+            if (commit := commit_facts(root, revision)) is None:
+                return None
+            pending.update(set(commit.parents) - searched)
+    return False
+
+
 def expired_pr_merge_tree_matches(root, parents, parent_types, tree):
     facts = tuple(commit_facts(root, parent) if kind == b'commit' else None
                   for parent, kind in zip(parents, parent_types))
@@ -2008,18 +2168,29 @@ def expired_pr_merge_tree_matches(root, parents, parent_types, tree):
     for fact, other in zip(facts, reversed(parents)):
         if fact and other in fact.parents:
             return tree == fact.tree
-    if None in facts:
-        return True
-    try:
-        merge_bases = git(root, 'merge-base', '--all', *parents).split()
-    except (ScopeError, OSError, subprocess.SubprocessError):
-        return False
+    matching_parent_trees = False
+    if None not in facts:
+        try:
+            merge_bases = git(root, 'merge-base', '--all', *parents).split()
+            shallow = git(root, 'rev-parse', '--is-shallow-repository').strip()
+        except (ScopeError, OSError, subprocess.SubprocessError):
+            shallow, merge_bases = None, []
+        for fact, other in zip(facts, reversed(parents)):
+            if merge_bases == [other.encode('ascii')]:
+                return tree == fact.tree
+        matching_parent_trees = len(merge_bases) == 1 and facts[0].tree == facts[1].tree == tree
+        if shallow == b'false':
+            return matching_parent_trees
+    # Git traversal stops at shallow commits. Their raw headers can still
+    # prove ancestry through visible commits and name an unavailable ancestor.
+    incomplete = False
     for fact, other in zip(facts, reversed(parents)):
-        if merge_bases == [other.encode('ascii')]:
-            return tree == fact.tree
-    # Equal parent trees with a common base give a determinate result. Expired
-    # previews with other divergent trees need independent checkout evidence.
-    return len(merge_bases) == 1 and facts[0].tree == facts[1].tree == tree
+        if fact is not None:
+            ancestor = readable_commit_ancestor(root, fact, other)
+            if ancestor is True:
+                return tree == fact.tree
+            incomplete |= ancestor is None
+    return not incomplete and (None in facts or matching_parent_trees)
 
 
 def generated_contracts_proof(sample, *, eligible_only=True):
@@ -2571,7 +2742,7 @@ def read_bounded_timing(path, *, manual_archive=False, budget=None):
         budget.remaining = max(0, budget.remaining - len(raw))
     if len(raw) > limit:
         raise TimingError(limit_error)
-    data = json.loads(raw, object_pairs_hook=unique_object, parse_constant=invalid_number)
+    data = decode_timing_input(raw)
     if len(raw) > TIMING_READ_LIMIT and (not isinstance(data, dict) or data.get('kind') != ARCHIVE_KIND):
         raise TimingError('Report exceeds the compact timing read limit.')
     return data
@@ -2704,16 +2875,16 @@ def sample_belongs_to_capture(sample, path):
 
 
 def indexable_capture_samples(path, samples, hosted, issues):
-    evidence = reconcile_timing_clocks(samples, hosted, [])
+    evidence = reconcile_timing_clocks(samples, hosted, [], report_issues=issues)
     clocks = evidence.attempts
     # Index ownership needs identity, not derived measurements. Reopening
     # replays the original observations and reports their numeric disputes.
-    return [group[0] for group in coalesce_samples(samples, [], clocks=clocks) if len(group) == 1
+    return [group[0] for inputs, group in coalesced_sample_groups(samples, [], evidence=evidence) if len(group) == 1
             and sample_belongs_to_capture(group[0], path)
             and ci_key(group[0]['ci']) not in evidence.checkout_disputes
             and protected_profile_matches(clocks.get(ci_key(group[0]['ci'])),
                                           group[0]['platform'], group[0]['profile'])
-            and not native_report_issue(group[0], clocks.get(ci_key(group[0]['ci'])), issues)]
+            and id(inputs[0]) not in evidence.unqualified_native]
 
 
 def index_capture(path, samples, hosted=(), issues=None):
@@ -2975,9 +3146,10 @@ def capture_observations(identity, samples, hosted, issues, *, conclusion=None):
     clocks = distinct_observations(row for row in hosted if ci_key(row) == identity)
     clock_evidence = reconcile_timing_clocks(samples, clocks, issues)
     clock = clock_evidence.attempts.get(identity)
-    groups = coalesce_samples(samples, issues, clocks=clock_evidence.attempts)
-    platforms = [group for group in groups if platform_timing_identity(group[0])
-                 and not native_report_issue(group[0], clock, issues)]
+    joined = coalesced_sample_groups(samples, issues, evidence=clock_evidence)
+    groups = [group for _, group in joined]
+    platforms = [group for inputs, group in joined if platform_timing_identity(group[0])
+                 and id(inputs[0]) not in clock_evidence.unqualified_native]
     disputed_platforms = {group[0]['platform'] for group in platforms if len(group) > 1}
     checkout_disputed = identity in clock_evidence.checkout_disputes
     producer_disputed = identity in clock_evidence.producer_disputes
@@ -3218,7 +3390,7 @@ def download_timing(repository, run_id, attempt, *, platforms=None, issues=None)
     if issues is None:
         issues = []
     endpoint = f'repos/{repository}/actions/runs/{run_id}/artifacts?per_page=100'
-    artifacts = json.loads(command(['gh', 'api', endpoint]))['artifacts']
+    artifacts = decode_timing_input(command(['gh', 'api', endpoint]))['artifacts']
     expected = {f'verification-timing-{label}': platform for label, platform in PLATFORMS.items()
                 if platforms is None or platform in platforms}
     names = sorted({item['name'] for item in artifacts if item['name'] in expected and not item['expired']}
@@ -3235,7 +3407,7 @@ def download_timing(repository, run_id, attempt, *, platforms=None, issues=None)
                     raise TimingError('Expected the published compact timing file.')
                 if info.st_size > COMPACT_LIMIT:
                     raise TimingError('Compact timing artifact exceeds the read limit.')
-                sample = read_json(path)
+                sample = read_bounded_timing(path)
                 if not valid_sample(sample):
                     raise TimingError('Invalid compact timing sample.')
                 if ci_key(sample['ci'] or {})[:3] != (repository, run_id, attempt):
@@ -3250,16 +3422,19 @@ def download_timing(repository, run_id, attempt, *, platforms=None, issues=None)
 
 
 def inspect_jobs(run, repository):
+    validate_actions_run(run)
     endpoint = f'repos/{repository}/actions/runs/{run["id"]}/attempts/{run["run_attempt"]}/jobs?per_page=100'
-    jobs = actions_jobs(json.loads(command(['gh', 'api', endpoint])))
-    return hosted_timing(run, jobs)
+    listing = command(['gh', 'api', endpoint])
+    if len(listing.encode('utf-8')) > TIMING_READ_LIMIT:
+        raise TimingError('Report exceeds the compact timing read limit.')
+    return actions_clock(run, decode_timing_input(listing))
 
 
 def inspect_hosted(run_id, attempt, repository, samples, issues):
     endpoint = f'repos/{repository}/actions/runs/{run_id}'
     if attempt:
         endpoint += f'/attempts/{attempt}'
-    run = json.loads(command(['gh', 'api', endpoint]))
+    run = decode_timing_input(command(['gh', 'api', endpoint]))
     if str(run['id']) != str(run_id) or run.get('path') != WORKFLOW:
         raise TimingError('Selected run is outside the repository verification workflow')
     samples.extend(download_timing(repository, str(run_id), str(run['run_attempt']), issues=issues))
@@ -3273,9 +3448,9 @@ def recent_runs(repository, limit):
     selected = []
     for event in ('pull_request', 'push'):
         fields = ['-f', 'branch=main'] if event == 'push' else []
-        response = json.loads(command(['gh', 'api', '--method', 'GET', endpoint,
-                                       '-f', f'event={event}', '-f', 'status=completed',
-                                       '-f', f'per_page={limit}', *fields]))
+        response = decode_timing_input(command(['gh', 'api', '--method', 'GET', endpoint,
+                                                '-f', f'event={event}', '-f', 'status=completed',
+                                                '-f', f'per_page={limit}', *fields]))
         selected.extend(run for run in response['workflow_runs'][:limit]
                         if run.get('path') == WORKFLOW and run.get('event') == event
                         and run.get('status') == 'completed'
@@ -3495,6 +3670,13 @@ def actions_jobs(data):
     return jobs
 
 
+def actions_clock(run, data):
+    clock = hosted_timing(run, actions_jobs(data))
+    if not valid_clock(clock):
+        raise TimingError('Invalid attempt clock derived from Actions input.')
+    return clock
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument('--report', action='append', type=Path, help='Harness report, timing sample, or saved archive; repeatable')
@@ -3590,11 +3772,7 @@ def main():
                 run = read_bounded_timing(run_path, budget=read_budget)
                 validate_actions_run(run)
                 path = jobs_path
-                jobs = actions_jobs(read_bounded_timing(jobs_path, budget=read_budget))
-                clock = hosted_timing(run, jobs)
-                if not valid_clock(clock):
-                    raise TimingError('Invalid attempt clock derived from Actions input.')
-                workflows.append(clock)
+                workflows.append(actions_clock(run, read_bounded_timing(jobs_path, budget=read_budget)))
             except (OSError, *TIMING_INPUT_ERRORS) as error:
                 explicit_input_failed = True
                 issues.append({'file': path.name, 'error': input_error(error)})

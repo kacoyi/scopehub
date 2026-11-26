@@ -46,7 +46,7 @@ class TimingJobRoleTests(unittest.TestCase):
 
     def write(self, name, data):
         path = self.root / name
-        path.write_bytes(timing.json_bytes(data))
+        path.write_bytes(data if isinstance(data, bytes) else timing.json_bytes(data))
         return str(path)
 
     def cli(self, argv):
@@ -56,7 +56,7 @@ class TimingJobRoleTests(unittest.TestCase):
 
     def read_modes(self, jobs, label, *, additional=(), retained=()):
         args = [arg for path in (*self.report_paths, *retained) for arg in ('--report', path)]
-        listing = self.write(f'{label}-jobs.json', {'jobs': jobs})
+        listing = self.write(f'{label}-jobs.json', jobs if isinstance(jobs, bytes) else {'jobs': jobs})
         imports = [arg for index, rows in enumerate(additional)
                    for arg in ('--actions', self.run_path, self.write(f'{label}-{index}.json', {'jobs': rows}))]
         ordinary = self.cli([*args, '--actions', self.run_path, listing, *imports])
@@ -66,7 +66,7 @@ class TimingJobRoleTests(unittest.TestCase):
               patch.object(timing, 'collection_source', return_value='b' * 40),
               patch.object(timing, 'recent_runs', return_value=[self.run]),
               patch.object(timing, 'download_timing', return_value=[self.aggregate]),
-              patch.object(timing, 'command', return_value=json.dumps({'jobs': jobs}))):
+              patch.object(timing, 'command', return_value=Path(listing).read_text(encoding='utf-8'))):
             weekly = self.cli([*args[2:], *imports, '--recent', '12', '--github-actions', '--save', archive,
                                '--summary', summary])
         return ordinary, weekly, self.cli(['--report', archive])
@@ -220,6 +220,74 @@ class TimingJobRoleTests(unittest.TestCase):
             for view in modes:
                 rows = {row['profile']: row['seconds'] for row in view['samples']}
                 self.assertEqual(None if conflict else 210, rows['ci-windows-browser']['browser_step'])
+
+    def test_role_facts_do_not_depend_on_rows_grouping_a_failed_timed_step(self):
+        browser = dict(self.jobs[3], name=None)
+        success = browser['steps'][0]
+        failed = dict(success, conclusion='failure')
+        marker = {'name': timing.WINDOWS_RECOVERY_MARKER, 'number': 14, 'conclusion': 'skipped'}
+        others = [*self.jobs[:3], *self.jobs[4:]]
+        for step, expected in ((success, (720, 1957, 1)), (failed, (None, None, 0))):
+            single = [dict(browser, steps=[step, marker])]
+            split = [dict(browser, steps=[step]), dict(browser, steps=[marker])]
+            for index, rows in enumerate((single, split, split[::-1])):
+                with self.subTest(conclusion=step['conclusion'], grouping=index):
+                    modes = self.read_modes([*others, *rows], f"layout-{step['conclusion']}-{index}")
+                    for view in modes:
+                        profiles = {row['profile']: row['seconds'] for row in view['samples']}
+                        full = profiles['full']
+                        self.assertEqual((765, 300), (full['total'], profiles['ci-windows-recovery']['total']))
+                        receipts = list(timing.platform_report_receipts(view['samples']))
+                        self.assertEqual(expected, (profiles['ci-windows-browser']['total'], full['runner'],
+                                                    len(receipts)))
+                        if view['recent_collection'] is not None:
+                            self.assertEqual(expected[-1], len(view['recent_collection']['collected_samples']))
+
+        timestamp_only = {key: value for key, value in success.items() if key != 'conclusion'}
+        unnamed = dict(browser, steps=[timestamp_only])
+        current = self.read_modes([*others, unnamed], 'timestamp-only')
+        self.assertTrue(all(not list(timing.platform_report_receipts(view['samples'])) for view in current))
+        historical_clock = timing.hosted_timing(self.run, [unnamed])
+        historical_clock['sibling_jobs'][0].pop('step_conclusions', None)
+        archived = self.write('historical-timed-step-input.json', {
+            'kind': timing.ARCHIVE_KIND, 'samples': [], 'hosted': [historical_clock],
+        })
+        self.assert_public_clocks(self.read_modes(others, 'historical-timed-step', retained=(archived,)),
+                                  wall=765, runner=1957, receipts=1, collected=0)
+
+    def test_duplicate_job_json_keys_are_rejected_by_both_public_readers(self):
+        marker = {'name': timing.WINDOWS_RECOVERY_MARKER, 'number': 14, 'conclusion': 'success'}
+        aggregate = dict(self.jobs[1], name=None, labels=['windows-latest'], steps=[marker])
+        jobs = [self.jobs[0], aggregate, *self.jobs[2:]]
+        reference = json.dumps({'jobs': jobs}, separators=(',', ':')).encode()
+        self.assert_public_clocks(self.read_modes(reference, 'valid-job-json'), wall=765, runner=1957, receipts=1)
+
+        fragment = b'"number":14,"conclusion":"success"'
+        self.assertEqual(1, reference.count(fragment))
+        for first, last in (('success', 'skipped'), ('skipped', 'success')):
+            duplicate = f'"number":14,"conclusion":"{first}","conclusion":"{last}"'.encode()
+            with self.subTest(first=first):
+                for view in self.read_modes(reference.replace(fragment, duplicate), f'duplicate-key-{first}'):
+                    self.assertEqual({'Duplicate JSON key'}, {row['error'] for row in view['input_issues']})
+                    self.assertEqual([], list(timing.platform_report_receipts(view['samples'])))
+                    if view['recent_collection'] is not None:
+                        self.assertEqual([], view['recent_collection']['collected_samples'])
+
+    def test_untagged_fragments_cannot_replace_a_known_roles_harness_step(self):
+        browser = self.jobs[3]
+        step = browser['steps'][0]
+        unrelated = dict(step, name='Verify the Windows core lane', number=13, conclusion='failure')
+        others = [*self.jobs[:3], *self.jobs[4:]]
+        combined = [dict(browser, steps=[step, unrelated])]
+        partitioned = [browser, dict(browser, name=None, steps=[unrelated])]
+        separate_role = [dict(browser, steps=[]), dict(browser, name=None, steps=[step, unrelated])]
+        for index, rows in enumerate((combined, partitioned, partitioned[::-1], separate_role)):
+            with self.subTest(grouping=index):
+                modes = self.read_modes([*others, *rows], f'producer-timing-{index}')
+                self.assert_public_clocks(modes, wall=765, runner=1957, receipts=1)
+                for view in modes:
+                    record = next(row for row in view['samples'] if row['profile'] == 'ci-windows-browser')
+                    self.assertEqual(210, record['seconds']['harness_step'])
 
     def test_partial_role_steps_prevent_clock_swaps(self):
         jobs = deepcopy(self.jobs)

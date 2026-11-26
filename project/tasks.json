@@ -26579,11 +26579,13 @@
         "project/tasks.json",
         "project/feedback.json",
         "tests/project/test_timing_job_roles.py",
-        "tests/project/test_timing_job_observations.py"
+        "tests/project/test_timing_job_observations.py",
+        "contracts/decisions/0031-shared-timing-producer-contract.json"
       ],
       "decision_refs": [
         "0004",
-        "0007"
+        "0007",
+        "0031"
       ],
       "acceptance": [
         "Retain the original independent rejection. Through the ordinary timing and budget-review entries, observe the browser-job and checkout conflicts both before and after twelve later captures rotate the original attempt out of the recent window.",
@@ -26596,7 +26598,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Qualify one supported historical publisher contract and one input reconciliation path against the three owning 9ea5b514 rejections, paired controls and a reserved genuine input. Hand off a clean source and original observations for three owning decisions. Keep five dependent reviews held and the November 28 actual observation pending.",
+      "next_action": "Review the clean source and handoff in .reports/m0-155-bounded-reconciliation/post-9ea5b514/handoff.json. Obtain the three independent decisions for the candidate before resuming the five dependent reviews. Hosted checks and the November 28 actual observation remain pending.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26614,7 +26616,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-145-b12aefdc/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-155-39413fd3/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-155-3eeb59bc/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-155-9ea5b514/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-155-9ea5b514/original-assistant-response.jsonl",
+          "contracts/decisions/0031-shared-timing-producer-contract.json"
         ],
         "hypotheses": [
           "Recent preload and historical linked reads can see different retained evidence when a conflict removes the platform index entry or an attempt is older than the routine window.",
@@ -26799,6 +26802,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "Select a timed step from the reconciled role after union. Compare grouped and split same-ID fragments with a failed step for a different role and a successful browser step. Preserve independently proven durations and receipt eligibility.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain all source captures, saved reviews and original classifications if a change loses a valid clock or expands the ordinary read without a bound.",
@@ -26865,7 +26875,8 @@
       ],
       "decision_refs": [
         "0004",
-        "0007"
+        "0007",
+        "0031"
       ],
       "acceptance": [
         "Run the ordinary weekly timing CLI in the supported system Python environment with the archived full Windows selection, unavailable preview and a source-equivalent historical substitute. Confirm it writes the weekly summary and current comparison with the original clocks.",
@@ -26899,7 +26910,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-b12aefdc/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-39413fd3/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-3eeb59bc/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-9ea5b514/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-9ea5b514/original-assistant-response.jsonl",
+          "contracts/decisions/0031-shared-timing-producer-contract.json"
         ],
         "hypotheses": [
           "The substitute Git fingerprint is computable with the standard library; importing the full project entry brings an unrelated parser into the weekly job.",
@@ -27048,12 +27060,14 @@
         "project/tasks.json",
         "project/feedback.json",
         "scripts/project.py",
-        "tests/project/test_timing.py"
+        "tests/project/test_timing.py",
+        "contracts/decisions/0031-shared-timing-producer-contract.json"
       ],
       "decision_refs": [
         "0004",
         "0007",
-        "0030"
+        "0030",
+        "0031"
       ],
       "checks": [
         "project-state",
@@ -27085,7 +27099,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-150-b12aefdc/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-150-39413fd3/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-150-3eeb59bc/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-9ea5b514/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-9ea5b514/original-assistant-response.jsonl",
+          "contracts/decisions/0031-shared-timing-producer-contract.json"
         ],
         "hypotheses": [
           "The earlier and later sources had the same four Windows producer jobs and aggregate catalog. The browser and recovery assignments changed while the reader used one current mapping for both.",

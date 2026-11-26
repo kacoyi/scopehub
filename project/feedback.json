@@ -9124,6 +9124,23 @@
       "diagnostic_reports": [],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "timing-step-clock-uses-unjoined-job-role",
+      "status": "open",
+      "severity": "major",
+      "source": "M0-155 public-entry paired observation after intake 73641157 and replay against 9ea5b5140042ac013e022c2edd7d0a79e93fee67. Original PR 84 replay .reports/m0-155-shared-contract/jobs-exact-red-expanded/summary.json (SHA-256 9266c6d39e665036fd92727d3cfbd587ba0b4345c3432ab5851e8b7dd1b12271).",
+      "observation": "A Windows browser job with a successful timed browser step and a failed core step at those endpoints reported a 210-second browser harness step when grouped. Moving the failed core step to a nameless row for the same job ID made the harness step unknown in either order. In genuine PR 84 replay against 9ea5b514, the equivalent regrouping also removed the original 474-second harness step, 645-second browser wall, 2467 runner seconds and Windows receipt.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

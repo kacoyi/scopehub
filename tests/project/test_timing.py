@@ -176,7 +176,30 @@ def lane_sample(sample, lane):
             'reason_code': 'not_selected', 'duration_seconds': None,
         } for check in SPLIT_CATALOG['checks']
     ]
-    return {**sample, 'profile': f'ci-windows-{lane}', 'selected': [key], 'checks': checks}
+    return {**sample, 'profile': f'ci-windows-{lane}', 'selected': [key], 'checks': checks,
+            'seconds': {**sample['seconds'], 'check_work': row['duration_seconds']}}
+
+
+def native_raw_fixture(test, report, catalog):
+    source = {'snapshot_kind': 'execution-inputs-v1', 'sha256': 'c' * 64, 'file_count': 2,
+              'git_head': report['ci']['checkout_sha'], 'working_tree_dirty': False, 'exclusions': []}
+    test.enterContext(patch.object(timing, 'committed_publishing_snapshot', return_value=source))
+    report.update(report_version='2.0', source=source, source_end=source.copy(),
+                  project_definition_sha256='d' * 64, task_definitions={},
+                  native_requirement={'requested': report['selection']['profile'] == 'full', 'satisfied': True})
+    report['ci'].update(provider='github-actions', run_url='https://github.com/fixture/scopehub/actions/runs/11')
+    report['environment']['python_executable'] = 'C:/fixture/python.exe'
+    populate_raw_commands(report, catalog)
+
+
+def populate_raw_commands(report, catalog):
+    commands = {row['id']: row['command'] for row in catalog['checks']}
+    for row in report['checks']:
+        key = row['id']
+        row['command'] = [report['environment']['python_executable'] if arg == '{python}' else arg
+                          for arg in commands[key] or ()]
+        if row['status'] == 'passed':
+            row.update(log=f".reports/runs/{report['run_id']}/{key}.log", log_sha256='f' * 64)
 
 
 class ReportTimingTests(unittest.TestCase):
@@ -359,6 +382,24 @@ class HostedTimingTests(unittest.TestCase):
                                  {row['metric']: row['recent_median_seconds'] for row in review['metrics']
                                   if row['metric'] in {'total', 'queue', 'aggregate_setup', 'harness_step'}})
 
+    def test_only_a_bound_report_can_dispute_the_platform_job_time(self):
+        report = split_harness_report(675)
+        report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
+                        'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'a' * 40}
+        report['source'].update(sha256='c' * 64, working_tree_dirty=False)
+        report['generated_at'] = '2026-11-20T00:12:35Z'
+        full = timing.report_sample(report)
+        early = dict(full, recorded_at='2026-11-20T00:01:45Z')
+        clock = timing.hosted_timing(hosted_run(), self.split_windows_jobs())
+
+        view = timing.timing_view([full, dict(early, profile='fast')], hosted=[clock])
+        measured = {sample['profile']: sample['seconds']['total'] for sample in view['samples']}
+        self.assertEqual({'full': 765, 'fast': None}, measured)
+        self.assertEqual([], view['input_issues'])
+        bound = timing.timing_view([early], hosted=[clock])
+        self.assertIsNone(bound['samples'][0]['seconds']['total'])
+        self.assertIn('outside the publishing job boundaries', bound['input_issues'][0]['error'])
+
     def test_numbered_step_facts_are_independent_of_order_and_listing_boundaries(self):
         jobs = list(self.split_windows_jobs())
         browser_index = 2
@@ -501,6 +542,7 @@ class HostedTimingTests(unittest.TestCase):
         legacy = timing.hosted_timing(run, [*lanes, legacy_job])
         previous = next(job for job in legacy['jobs'] if job['platform'] == 'Windows')
         previous.pop('endpoint_choices')
+        previous.pop('timed_steps')
         self.assertTrue(timing.valid_clock(legacy))
         check([legacy, official], (None, None, None), False)
 
@@ -1726,6 +1768,12 @@ def main():
         groups = timing.coalesce_samples([original, reordered], [])
         self.assertEqual([[original], [reordered]], groups)
 
+        for forged in (dict(original, seconds={**original['seconds'], 'check_work': 1}),
+                       dict(original, check_work_complete=False)):
+            issues = []
+            self.assertTrue(timing.native_report_issue(forged, None, issues))
+            self.assertIn('contradicts its check results', issues[0]['error'])
+
         def changed_catalog_sample(changed):
             checkout = self.commit('Changed publishing catalog', self.base, newer_head,
                                    tree=self.publishing_tree(changed, observed=False))
@@ -1734,6 +1782,7 @@ def main():
             sample['ci']['checkout_sha'] = checkout
             sample['selected'].remove('generated-contracts')
             row = next(row for row in sample['checks'] if row['id'] == 'generated-contracts')
+            sample['seconds']['check_work'] -= row['duration_seconds']
             row.update(status='blocked', reason_code='not_selected', exit_code=None, duration_seconds=None)
             return sample
 
@@ -1794,6 +1843,10 @@ def main():
         head = self.commit('Topic', direct_base, tree=tree)
         descendant_base = self.commit('Base containing the topic', head, tree=other_tree)
         equal_tree_base = self.commit('Divergent base with the topic tree', direct_base, tree=tree)
+        absent_base = self.commit('Unavailable base', self.base, tree=other_tree)
+        shallow_parent = self.commit('Visible intermediate parent', absent_base, tree=other_tree)
+        shallow_head = self.commit('Shallow topic', shallow_parent, tree=tree)
+        (self.root / '.git/objects' / absent_base[:2] / absent_base[2:]).unlink()
         other_inputs = timing.committed_publishing_inputs(other_tree, root=self.root)
         self.assertIsNotNone(other_inputs)
         preview = self.commit('Merge preview', self.base, head, tree=tree)
@@ -1804,7 +1857,7 @@ def main():
         self.assertEqual('commit', self.git('cat-file', '-t', preview))
         self.assertEqual('tree', self.git('cat-file', '-t', tree))
         self.assertEqual('blob', self.git('cat-file', '-t', blob))
-        for name in (missing, missing_head, null):
+        for name in (missing, missing_head, null, absent_base):
             self.assertEqual(f'{name} missing', self.git('cat-file', '--batch-check', contents=f'{name}\n'))
         inputs = timing.committed_publishing_inputs(head, root=self.root)
         self.assertIsNotNone(inputs)
@@ -1839,6 +1892,9 @@ def main():
             ('other-tree-with-known-ancestor-shallow', missing, head, ancestor_base, None),
             ('other-tree-with-direct-parent', missing, head, direct_base, None),
             ('other-tree-with-direct-parent-shallow', missing, head, direct_base, None),
+            ('other-tree-with-readable-missing-ancestor', missing, shallow_head, absent_base, None),
+            ('other-tree-with-unrelated-missing-ancestor', missing, shallow_head, 'd' * 40, 360),
+            ('shallow-missing-ancestor-with-matching-head', missing, shallow_head, None, 360),
             ('tree', tree, head, self.base, None),
             ('null-without-proof', null, head, None, None),
             ('null-with-proof', null, missing_head, self.base, None),
@@ -1853,6 +1909,9 @@ def main():
                     # Traversal hides the parent, while the event head still carries its raw header.
                     shallow.write_bytes(f'{head}\n'.encode('ascii'))
                     self.assertEqual(head, self.git('rev-list', '-2', head))
+                if topic == shallow_head:
+                    shallow.write_bytes(f'{shallow_parent}\n'.encode('ascii'))
+                    self.assertEqual([shallow_head, shallow_parent], self.git('rev-list', topic).splitlines())
                 run = dict(hosted_run(), head_sha=topic)
                 clock = timing.hosted_timing(run, [dict(job, head_sha=topic) for job in jobs])
                 report = fast_report(20, 190)
@@ -2562,6 +2621,7 @@ class TimingRegressionTests(unittest.TestCase):
         # Only an equivalent cache and coverage cohort can trigger recurrence.
         source = samples[-2]['source_commit']
         samples[-1] = dict(samples[-1], checks=samples[-2]['checks'], selected=samples[-2]['selected'],
+                           seconds={**samples[-1]['seconds'], 'check_work': samples[-2]['seconds']['check_work']},
                            source_commit=source, ci=dict(samples[-1]['ci'], head_sha=source, checkout_sha=source))
         workflows[-1] = dict(workflows[-1], head_sha=source)
         mixed = timing.timing_view([*samples[:-1], dict(samples[-1], cache='cold')], hosted=workflows)
@@ -2678,6 +2738,7 @@ class TimingRegressionTests(unittest.TestCase):
             'head_sha': 'b' * 40, 'checkout_sha': 'a' * 40,
         }
         report['selection']['profile'] = 'full'
+        native_raw_fixture(self, report, SPLIT_CATALOG)
 
         def producer(lane, check_id):
             selection = {'profile': f'ci-windows-{lane}', 'task_id': None, 'checks': [check_id]}
@@ -2685,7 +2746,10 @@ class TimingRegressionTests(unittest.TestCase):
             checks = [row if check['id'] == check_id else {
                 'id': check['id'], 'status': 'blocked', 'reason_code': 'not_selected',
             } for check in SPLIT_CATALOG['checks']]
-            return {**report, 'selection': selection, 'checks': checks, 'timing': {'elapsed_seconds': 14}}
+            produced = {**report, 'selection': selection, 'checks': checks, 'timing': {'elapsed_seconds': 14},
+                        'native_requirement': {'requested': False, 'satisfied': True}}
+            populate_raw_commands(produced, SPLIT_CATALOG)
+            return produced
 
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -2709,6 +2773,12 @@ class TimingRegressionTests(unittest.TestCase):
             for label, edit, message in (
                 ('absent-task', lambda row: row['selection'].pop('task_id'), 'selection'),
                 ('invalid-reason', lambda row: row['checks'][2].update(reason_code='invalid reason'), 'reason code'),
+                ('absent-command', lambda row: row['checks'][2].pop('command'), 'command'),
+                ('changed-command', lambda row: row['checks'][2].update(command=['other']), 'command'),
+                ('end-digest', lambda row: row['source_end'].update(sha256='a' * 64), 'source fence'),
+                ('matching-wrong-endpoints', lambda row: (
+                    row['source'].update(file_count=3), row['source_end'].update(file_count=3)
+                ), 'source fence'),
             ):
                 for original_report in (raw, report):
                     with self.subTest(label=label, profile=original_report['selection']['profile']):
@@ -2756,7 +2826,8 @@ class TimingRegressionTests(unittest.TestCase):
             self.assertEqual([{'file': incomplete.name, 'error': 'Invalid timing sample.'}], view['input_issues'])
 
     def test_cli_scope_validation_and_matching_compact_siblings(self):
-        use_catalog(self, fixture_catalog((*BASIC_CHECKS, *SPLIT_CHECKS, 'future-check')))
+        catalog = fixture_catalog((*BASIC_CHECKS, *SPLIT_CHECKS, 'future-check'))
+        use_catalog(self, catalog)
         report = split_harness_report(500, profile='ci-windows-core')
         report['ci'] = {
             'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1', 'event': 'pull_request',
@@ -2767,6 +2838,7 @@ class TimingRegressionTests(unittest.TestCase):
             {'id': key, 'status': 'blocked', 'reason_code': 'not_selected'} for key in SPLIT_CHECKS[1:]
         )
         report['checks'].append({'id': 'future-check', 'status': 'blocked', 'reason_code': 'not_implemented'})
+        native_raw_fixture(self, report, catalog)
         sample = timing.report_sample(report, cache='partial')
         self.assertFalse(sample['coverage_complete'])
         with tempfile.TemporaryDirectory() as directory:
@@ -3405,6 +3477,7 @@ class RecentTimingTests(unittest.TestCase):
                 sample['selected'].append(timing.GENERATED_CHECK)
                 sample['selected'].sort()
                 sample['checks'].append(dict(sample['checks'][0], id=timing.GENERATED_CHECK))
+                sample['seconds']['check_work'] += sample['checks'][0]['duration_seconds']
         proof = {'checkout': unavailable, 'tree': tree, 'parents': [repair, topic], 'comparison_base': repair,
                  'ref': 'refs/pull/77/merge', 'command': timing.GENERATED_COMMAND,
                  'tools': {'python': '3.12.0', 'rustfmt': 'rustfmt 1.8.0 (abcdef 2026-01-01)'}}

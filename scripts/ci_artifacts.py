@@ -24,7 +24,7 @@ if __package__:
     from .verification_scope import (
         SCOPED_PROFILES, WINDOWS_LANES, ci_base, ci_event_checkout, require_ancestor,
         windows_lane_checks, windows_lane_report_matches, windows_lanes_run_id, windows_published_scope,
-        windows_result_issue,
+        windows_raw_timing_issue, windows_result_issue,
     )
 else:
     from check import PRIVATE_CHECK_LOGS, ci_provenance, redacted_check_log
@@ -41,7 +41,7 @@ else:
     from verification_scope import (
         SCOPED_PROFILES, WINDOWS_LANES, ci_base, ci_event_checkout, require_ancestor,
         windows_lane_checks, windows_lane_report_matches, windows_lanes_run_id, windows_published_scope,
-        windows_result_issue,
+        windows_raw_timing_issue, windows_result_issue,
     )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -347,25 +347,17 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False):
 
 
 def validate_windows_lane(project, report, source, ci, selected, lane, profile):
-    if (report['ci'] != ci or report['source'] != source or report['source_end'] != source
-            or not report['source_unchanged'] or not report['project_unchanged']
-            or report['project_definition_sha256'] != project_definition_hash(project)
+    if (report['ci'] != ci or report['project_definition_sha256'] != project_definition_hash(project)
             or report['task_definitions'] != {key: task_definition_hash(task) for key, task in project['tasks'].items()}
             or not windows_x64(report['environment'])):
         raise PublicationError(f'Windows {lane} lane has another checkout, run, platform or project definition.')
     if (not windows_published_scope(selected, profile, WINDOWS_LANES, project['catalog'])
-            or report['selection'] != {'profile': profile, 'task_id': None, 'checks': sorted(selected)}
-            or report['native_requirement'] != {'requested': False, 'satisfied': True}):
+            or report['selection'] != {'profile': profile, 'task_id': None, 'checks': sorted(selected)}):
         raise PublicationError(f'Windows {lane} lane has a different selection or native requirement.')
+    if issue := windows_raw_timing_issue(report, catalog=project['catalog'], source=source):
+        raise PublicationError(f'Windows {lane} lane has {issue}.')
     if issue := windows_result_issue(report['checks'], selected, project['catalog']):
         raise PublicationError(f'Windows {lane} lane has {issue}.')
-    python = report['environment']['python_executable']
-    for row in report['checks']:
-        key = row['id']
-        check = project['checks'][key]
-        command = [python if arg == '{python}' else arg for arg in check['command'] or []]
-        if row['command'] != command:
-            raise PublicationError(f'Windows {lane} lane changed the command for {key}.')
     if profile in SCOPED_PROFILES:
         statuses = {row['status'] for row in report['checks'] if row['id'] in selected}
         expected = 'failed' if 'failed' in statuses else 'passed' if statuses == {'passed'} else 'blocked'
