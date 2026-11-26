@@ -319,7 +319,7 @@ class MaintenanceHandoffTests(ProjectFixture):
                     with self.assertRaisesRegex(ProjectError, rf'{expected}.*{identity}'):
                         view()
 
-    def test_read_only_handoff_commands_run_verbatim_with_an_unwritable_cache(self):
+    def fixture_cli(self):
         scripts = Path(__file__).resolve().parents[2] / 'scripts'
         shutil.copytree(scripts, self.root / 'scripts', ignore=shutil.ignore_patterns('__pycache__'))
         with (self.root / '.gitignore').open('a', encoding='utf-8') as ignores:
@@ -342,14 +342,87 @@ class MaintenanceHandoffTests(ProjectFixture):
             self.assertEqual(0, result.returncode, f'{command}\n{result.stderr or result.stdout}')
             return json.loads(result.stdout)
 
+        executable = './.venv/Scripts/python.exe' if os.name == 'nt' else './.venv/bin/python'
+        return cli, f'{executable} -B scripts/project.py'
+
+    def test_unassigned_major_has_a_public_route_through_engagement_lifecycle(self):
+        self.retire_fixture_review()
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+        feature = self.focus_ready_feature()
+        finding = {'id': 'synthetic-unassigned-incident', 'status': 'open', 'severity': 'major',
+                   'source': 'Fixture startup observation.', 'observation': 'An incident needs corrective ownership.',
+                   'task_ids': ['M0-001'], 'regression_checks': ['project-state'],
+                   'resolution': None, 'deferral_reason': None}
+        feedback = self.root / 'project/feedback.json'
+        feedback.write_bytes(json_bytes({'schema_version': '1.0', 'items': [finding]}))
+        cli, entry = self.fixture_cli()
+
+        def follow(command, read_only):
+            if not read_only:
+                # The Python-only verification lane has no package manager.
+                self.assertTrue(command.startswith('pnpm project:'), command)
+                command = f"{entry} {command.removeprefix('pnpm project:')}"
+            return cli(command)
+
+        for status in ('active', 'ended', None):
+            if status == 'ended':
+                self.accept_workstream('repository-cleanup')
+                self.accept_workstream('ongoing-maintenance')
+            if status is None:
+                del self.delivery['scaffold_maintenance']['engagement']
+                self.delivery_path.write_bytes(json_bytes(self.delivery))
+            else:
+                self.save_engagement()
+            self.assertEqual('passed', cli(f'{entry} check')['status'])
+            records = (self.root / 'project/tasks.json', self.delivery_path, feedback)
+            before = [path.read_bytes() for path in records]
+            for read_only in (False, True):
+                with self.subTest(engagement=status, read_only=read_only):
+                    mode = ' --read-only' if read_only else ''
+                    overview = cli(f'{entry} status --overview{mode}')
+                    self.assertEqual((feature, 'planned'), (overview['focus']['id'], overview['focus']['status']))
+                    self.assertEqual(0, overview['backlog']['active'])
+                    self.assertEqual(1, overview['backlog']['unassigned_findings'])
+                    action = overview['next']
+                    self.assertEqual((finding['id'], 'assignment_needed'), (action['id'], action['state']))
+                    self.assertEqual(finding, follow(action['command'], read_only)['value'])
+                    summary = overview['maintenance'].get('engagement')
+                    if status is None:
+                        self.assertIsNone(summary)
+                        continue
+                    handoff = follow(summary['handoff_command'], read_only)['maintenance_engagement']
+                    self.assertEqual(status, handoff['status'])
+                    self.assertEqual(self.authority['engagement'], handoff['stop_when'])
+                    if status == 'ended':
+                        self.assertEqual(0, handoff['open_count'])
+                        self.assertTrue(all(row['status'] == 'accepted' and 'next_action' not in row
+                                            for row in handoff['workstreams']))
+            self.assertEqual(before, [path.read_bytes() for path in records])
+            if status == 'active':
+                minor = {**finding, 'id': 'synthetic-minor-incident', 'severity': 'minor'}
+                feedback.write_bytes(json_bytes({'schema_version': '1.0', 'items': [minor, finding]}))
+                with self.subTest(engagement=status, findings='major and minor'):
+                    mixed = cli(f'{entry} status --overview')
+                    self.assertEqual(2, mixed['backlog']['unassigned_findings'])
+                    self.assertEqual(finding['id'], mixed['next']['id'])
+                    self.assertEqual(finding, follow(mixed['next']['command'], False)['value'])
+                critical = {**finding, 'id': 'synthetic-critical-incident', 'severity': 'critical'}
+                feedback.write_bytes(json_bytes({'schema_version': '1.0', 'items': [finding, critical]}))
+                with self.subTest(engagement=status, findings='critical and major'):
+                    urgent = cli(f'{entry} status --overview')
+                    self.assertEqual(critical, follow(urgent['next']['command'], False)['value'])
+                    self.assertEqual(finding, follow(urgent['also_urgent']['command'], False)['value'])
+                feedback.write_bytes(before[-1])
+
+    def test_read_only_handoff_commands_run_verbatim_with_an_unwritable_cache(self):
+        cli, entry = self.fixture_cli()
         self.engagement['authority'] = self.retain('fixture owner scope', '', self.authority)
         _, observation = self.accept_workstream('repository-cleanup')
         self.focus_ready_feature()
         self.save_engagement()
         ordinary = task_context(self.root, phase='handoff')['maintenance_engagement']
         self.assertTrue(ordinary['owner_source_command'].startswith('pnpm project:source '))
-        executable = './.venv/Scripts/python.exe' if os.name == 'nt' else './.venv/bin/python'
-        overview = cli(f'{executable} -B scripts/project.py status --overview --read-only')
+        overview = cli(f'{entry} status --overview --read-only')
         summary = overview['maintenance']['engagement']
         self.assertEqual(summary['handoff_command'], overview['next']['command'])
         handoff = cli(overview['next']['command'])

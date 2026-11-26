@@ -26408,14 +26408,15 @@
       "acceptance": [
         "On a clean checkout with the two currently open workstreams and an unrelated planned product focus, following the ordinary overview next action recovers their owners, acceptance and next actions without private evidence or conversation memory.",
         "Preserve higher-priority actionable failures and legitimate ongoing work. An ordinary product checkout without an engagement keeps its existing navigation. One accepted workstream leaves the other actionable, and the ended engagement communicates its stop and permits a later separately authorized product session.",
-        "Exercise default and read-only public CLI navigation, executed continuation commands, missing focus, and relevant routine or urgent controls. Keep the overview concise; preserve the product focus as context."
+        "Exercise default and read-only public CLI navigation, executed continuation commands, missing focus, and relevant routine or urgent controls. Keep the overview concise; preserve the product focus as context.",
+        "With a valid startup ledger and no higher-priority action, the first overview action opens an unassigned major finding linked only to completed work with an open, ended or absent engagement. Viewing the finding or handing off an ended engagement preserves its stop after both workstreams are accepted. Later feature work still requires separate owner authorization."
       ],
       "checks": [
         "project-state",
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Review the clean candidate independently against the retained protected baseline, public navigation controls and matching local task checks.",
+      "next_action": "Review the clean candidate independently against the genuine protected ledgers, the retained rejection, public navigation controls and matching local task checks.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26425,17 +26426,26 @@
         ],
         "context": [
           "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+          "contracts/reviews/task-decisions/M0-161.json",
           "project/delivery.json",
           "project/development.json",
           "scripts/development.py",
           "tests/project/test_development.py"
         ],
         "hypotheses": [
-          "The overview computes its first action before considering the engagement. A detached summary presents the correct authority but leaves the fallback action on the unrelated product plan."
+          "The overview computes its first action before considering the engagement. A detached summary presents the correct authority but leaves the fallback action on the unrelated product plan.",
+          "The engagement takes priority over pending assignment, while the major feedback route before the engagement only considers findings linked to active work. This can hide the finding from the first command even when the overview counts it."
         ],
         "risks": [
           {
             "failure": "A global priority change could hide real critical failures, actual task work, or later authorized product work. A package-managed continuation could break read-only use.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A major finding awaiting assignment can lose its actionable route to an open or ended engagement. Viewing the finding could also be read as permission to resume a closed engagement or begin unrelated feature work.",
             "checks": [
               "project-state",
               "python-contracts-workers"
@@ -26464,6 +26474,10 @@
             {
               "path": "project/development.json",
               "pointer": "/collaboration"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
             }
           ],
           "non_goals": [
@@ -26477,7 +26491,8 @@
             "The registered product focus, targeted task contexts, urgent diagnostics, source-bound accepted closures, command quoting and no-engagement behavior."
           ],
           "change": [
-            "Route the autonomous coordinator to its applicable next action using existing engagement state and navigation."
+            "Route the autonomous coordinator to its applicable next action using existing engagement state and navigation.",
+            "Use the existing overview priority rule and record lookup to make a major finding awaiting assignment actionable ahead of engagement handoff. Retain accepted workstream state and the owner stop terms."
           ],
           "data_plan": "Development records only. Keep task originals private and preserve existing product data and permissions.",
           "cleanup": "Use the supported repository entry for the corrected behavior. Retire superseded local workarounds after matched verification and preserve originals required for audit."

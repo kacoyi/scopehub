@@ -650,6 +650,8 @@ def project_overview(state, *, read_only=False):
             failure.update(id=original['check_id'], command=navigation('diagnostic', 'identify', report))
     missing = action(first) if first and first['state'] in {'evidence_missing', 'evidence_invalid', 'intake_needed'} else None
     needs_assignment = next((finding_action(finding) for finding in opened if finding['id'] in unassigned), None)
+    unassigned_major = next((finding_action(finding) for finding in opened
+                             if finding['severity'] == 'major' and finding['id'] in unassigned), None)
     engagement = state.get('maintenance_engagement')
     engagement_summary = {}
     engagement_action = None
@@ -670,9 +672,10 @@ def project_overview(state, *, read_only=False):
                                  'owner': 'development AI', 'command': handoff,
                                  'trigger': (engagement['stop_when']['on_completion'] if engagement['status'] == 'ended'
                                              else 'Open maintenance engagement')}
-    next_action = (critical or failure or missing or owned or engagement_action or (action(first) if first else None)
-                   or needs_assignment or {'owner': 'development AI', 'command': context})
-    other_urgent = next((candidate for candidate in (critical, failure, missing, owned)
+    next_action = (critical or failure or missing or owned or (unassigned_major if engagement_action else None)
+                   or engagement_action or (action(first) if first else None) or needs_assignment
+                   or {'owner': 'development AI', 'command': context})
+    other_urgent = next((candidate for candidate in (critical, failure, missing, owned, unassigned_major)
                          if candidate and candidate != next_action), None)
     calendar = next((review for review in reviews if review['review_due']
                      and review['state'] not in {'evidence_missing', 'evidence_invalid'}), None)

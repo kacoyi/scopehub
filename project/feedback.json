@@ -7754,6 +7754,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "maintenance-next-action-hides-unassigned-major-feedback",
+      "status": "open",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-161.json#/events/1 retained on a5111629c6a2a1be69ff063b00d873e637696d01 for 727b4fb34ba87a731a159123e39f9531ba9ffb7c. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-161-727b4fb3/original-assistant-response.jsonl, SHA-256 e49daf361b45b1117381d732477d3b7b6252ca9a99924932f2daf601ef00cbf5.",
+      "observation": "With the protected task ledger focused on planned M2-003 and an open major finding linked only to completed M0-158, ordinary and read-only startup showed the unassigned finding in the backlog but routed the first action to engagement handoff. This occurred with both workstreams open and with both accepted. The ended handoff instructed the coordinator to stop assigning work and the finding was absent from also_urgent. The same candidate routed to the finding when the engagement was absent or the finding was critical.",
+      "task_ids": [
+        "M0-161"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
