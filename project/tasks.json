@@ -26118,6 +26118,7 @@
         "tests/ui/published-revision-access-windows.config.mjs",
         "tests/ui/published-revision-access-windows.fixture.mjs",
         "tests/ui/published-revision-access-windows.spec.mjs",
+        "tests/ui/published-revision-launch-deadline.test.mjs",
         "scripts/ci_artifacts.py",
         "tests/project/test_ci_artifacts.py"
       ],
@@ -26140,9 +26141,12 @@
         "Inspect original rows through the ordinary published CSV and folder charts. Hide private chart and row content immediately after SNAPSHOT_UNAVAILABLE and discard late replies. An explicit retry restores only a revision confirmed available by its source status. A confirmed withdrawal stays hidden on later retry, and access checks leave the saved selection and its undo unchanged.",
         "With Revision ID blank, refresh the published CSV and folder libraries after a source-row interruption. Only temporarily withheld revisions on the current page receive the matching status reads. A verified revision becomes discoverable without opening its chart. Missing and revoked revisions stay hidden across refresh and dialog reopen. Verify the selected revision, its original rows and bars on explicit open, and preserve workspace selection and undo.",
         "For a real published CSV and a real published folder, hold a status lookup for the same ID in the other library across close, reopen and repeated refresh of the correct library. Complete the old lookup and observe the still-open page recover its entry after its own status read without another refresh or overlapping status dispatch. The obsolete lookup does not grant or withdraw access in the owning library.",
-        "On explicit retry for a published folder and a published CSV without a workspace, show temporary unavailability when status is missing and withhold content until status confirms access. Show permission denial only for confirmed withdrawal and retain a generic failure for an unconfirmed read. Verify recovered bars and source rows, keep revoked data hidden on later retries, and preserve the changed-workspace guard."
+        "On explicit retry for a published folder and a published CSV without a workspace, show temporary unavailability when status is missing and withhold content until status confirms access. Show permission denial only for confirmed withdrawal and retain a generic failure for an unconfirmed read. Verify recovered bars and source rows, keep revoked data hidden on later retries, and preserve the changed-workspace guard.",
+        "Require the compiled Windows fixture to confirm the endpoint and its owned WebView2 listener within one 60-second deadline from native spawn. Enter the public journey only after both checks pass on time.",
+        "Require the hosted staging entry to retain both the log-bound observation and matching executable for a passing native check. Preserve verified diagnostics from a failed check and remove incomplete files from the upload directory when a write fails."
       ],
       "checks": [
+        "project-state",
         "ui-build",
         "market-workflow",
         "desktop-workspace-transport",
@@ -26152,6 +26156,7 @@
         "workspace-timeframe",
         "model-connection-workflow",
         "python-contracts-workers",
+        "published-revision-launch-deadline",
         "windows-published-revision-access"
       ],
       "evidence": [
@@ -26160,13 +26165,14 @@
           "sha256": "fb4345db27bf793accfd0d67401a044be089c0305a0dc51c347691e17756de4a"
         }
       ],
-      "next_action": "Give the coordinator the clean launch correction, compiled-browser withdrawal regression and original guarded failure for independent M2-034, M2-035 and M2-039 decisions and a guarded Windows rerun. Observe the endpoint and owned WebView2 process, native admission, and both public provider journeys. Retain the exact compiled executable and bounded launch and status observations. Keep operator physical qualification separate.",
+      "next_action": "Reproduce the independently observed launch deadline overrun and artifact staging defects with synthetic controls. Verify the correction at the fixture and staging entries, then hand the clean source, observations, unchanged compiled-browser replays and original guarded failure to the coordinator for applicable independent decisions and a guarded Windows rerun.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
         "outcome": "Reconcile first chart restore and CSV and folder revision discovery against current access. The public dialog recovers eligible entries after a matching serialized status read and explains temporary unavailability separately from confirmed withdrawal.",
         "change_types": [
-          "ui"
+          "ui",
+          "tooling"
         ],
         "context": [
           "apps/desktop/ui/src/workspace-source.ts",
@@ -26187,13 +26193,17 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m2-034-359e3323/final-response.txt",
           "archives/observations/repo-hygiene-20261125/independent-final-m2-035-359e3323/final-response.txt",
           "archives/observations/repo-hygiene-20261125/independent-final-m2-039-359e3323/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m2-039-a1866052/original-assistant-response.jsonl",
           ".reports/runs/20261126T041510.475356Z-783b4a68/test-report.json",
           ".reports/m2-039-native-access-gap/coverage.json",
         ".reports/m2-039-withdrawal-status/red/local-folder-refresh-preview/browser-results.json",
         "tests/ui/published-revision-controls.mjs",
           "tests/ui/published-revision-access-windows.config.mjs",
           "tests/ui/published-revision-access-windows.fixture.mjs",
-          "tests/ui/published-revision-access-windows.spec.mjs"
+          "tests/ui/published-revision-access-windows.spec.mjs",
+          "tests/ui/published-revision-launch-deadline.test.mjs",
+          "scripts/ci_artifacts.py",
+          "tests/project/test_ci_artifacts.py"
         ],
         "hypotheses": [
           "The focus observer starts only after the initial chart read settles. A first read must be fenced until a focus-initiated snapshot confirms the selected source.",
@@ -26204,7 +26214,9 @@
           "The shared source-row inspection handler makes an ambiguous missing reply terminal. Fence the old read and let the existing kind-specific status path determine whether the current grant can be used.",
           "The access owner retains withheld IDs across dialog mounts, but the dialog only sends a ready folder page for status reconciliation. Inspect the discovery, explicit ID, chart, original-row and focus callers before deciding where the provider dispatch and temporary-only policy belong.",
           "The request map is keyed by unqualified revision ID, so a CSV caller can join a folder lookup and vice versa. Check whether an obsolete waiting page can occupy the serial reader after the real page is replaced, and ensure supersession is checked before admitting its deferred work.",
-          "Explicit open chooses an error code from the workspace and library kind after discarding the verified status result. The native CSV status envelope already represents availability, temporary absence and withdrawal. The folder summary read already separates a matching result, SNAPSHOT_UNAVAILABLE and registry PERMISSION_DENIED. Transport failure and supersession must never be interpreted as confirmed withdrawal."
+          "Explicit open chooses an error code from the workspace and library kind after discarding the verified status result. The native CSV status envelope already represents availability, temporary absence and withdrawal. The folder summary read already separates a matching result, SNAPSHOT_UNAVAILABLE and registry PERMISSION_DENIED. Transport failure and supersession must never be interpreted as confirmed withdrawal.",
+          "Fresh polling timeouts for endpoint discovery and listener ownership permit a launch after the original deadline. Compare both observations against the same monotonic deadline and verify a response that completes after it.",
+          "The staging entry treats a passing check's files as optional and can leave a truncated observation after a write error. Use the check result and log to distinguish required evidence from available failure diagnostics, and test interrupted writes at the upload boundary."
         ],
         "risks": [
           {
@@ -26345,6 +26357,19 @@
               "windows-published-revision-access",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "A late listener owner or an in-flight observation can renew the launch deadline and admit the public journey. Use the controlled clock at the fixture entry to distinguish a timely owner, late owner, absent endpoint and foreign listener. Confirm cleanup and leave native qualification to the actual Windows check.",
+            "checks": [
+              "published-revision-launch-deadline",
+              "windows-published-revision-access"
+            ]
+          },
+          {
+            "failure": "A passing native check stages without both bound files, or an interrupted write leaves a corrupt upload file. Exercise the staging entry with the successful marker and matching bytes, missing or mismatched counterparts, an ENOSPC short write and failed-run diagnostic retention.",
+            "checks": [
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Revert the UI change while retaining the independent red and green observations. Existing stored revisions and schemas need no migration.",
@@ -26364,7 +26389,9 @@
             "tests/ui/workspace-writer-gate.mjs",
             "tests/ui/local-import.spec.mjs",
             "tests/ui/published-revision-controls.mjs",
-            "tests/ui/published-revision-access-windows.spec.mjs"
+            "tests/ui/published-revision-access-windows.spec.mjs",
+            "tests/ui/published-revision-access-windows.fixture.mjs",
+            "scripts/ci_artifacts.py"
           ],
           "rules": [
             {
@@ -26402,7 +26429,8 @@
             "A dialog-only branch could repair CSV refresh but would leave provider dispatch and temporary-only eligibility in individual callers. Route status verification and current-page rechecks through the existing profile access owner. The dialog supplies the page identity and stops scheduling obsolete page reads. An admitted status can settle with the profile subject to the owner's existing revocation and supersession fences.",
             "Directly refactor the profile access owner to track state and requests by publication kind and revision ID on a shared serial status lane. Check the current page lifetime before dispatching queued work and let an issued read settle against its own profile state. Return the observed access outcome to the dialog, preserving the changed-workspace guard. Extending the split paths would require parallel scheduling and failure classification in the dialog and watcher. A full replacement would discard unrelated focus, selection and chart guards while the existing native replies can express the observed outcomes.",
             "Qualify the Windows interaction through the compiled application with local synthetic publications. Capture native admission separately from controlled row interruption and late reply delivery.",
-            "Configure the test binary's WebView2 debugging through the native environment options. Use a relative profile in a disposable executable directory, collect the allocated endpoint and owned process facts, and stage only bounded synthetic observations and the matching fixture executable."
+            "Configure the test binary's WebView2 debugging through the native environment options. Use a relative profile in a disposable executable directory, collect the allocated endpoint and owned process facts, and stage only bounded synthetic observations and the matching fixture executable.",
+            "Share the original native startup deadline between endpoint discovery and listener ownership. Require the digest-bound observation and matching executable for a passing check. Preserve verified artifacts available from an unsuccessful check and clean up incomplete staged files."
           ],
           "data_plan": "Only synthetic profiles, chart values and source rows in the local scoped checks.",
           "cleanup": "Release delayed test replies, close both owned windows and bridges, remove test profiles, and retain original red and green evidence."

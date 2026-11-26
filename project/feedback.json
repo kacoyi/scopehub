@@ -8220,6 +8220,52 @@
           "report_sha256": "0910e9959c98c0c40bef3493373b6d6d92ca5b49378e2db5e3a5565448fe3db5"
         }
       ]
+    },
+    {
+      "id": "published-revision-probe-renews-launch-deadline",
+      "source": "Independent Astra Standard t157 requested changes on a1866052ec539edaf7925c3fd426c0f66b21b91c. Decision: contracts/reviews/task-decisions/M2-039.json#/events/15. Original: archives/observations/repo-hygiene-20261125/independent-final-m2-039-a1866052/original-assistant-response.jsonl (SHA-256 34cb062a68b70d3e7f2c192f4acb2ce8a655bf59b81d5d8749572f90a3801a3c).",
+      "observation": "With a controlled clock, the public fixture entered the journey at 64 seconds when the endpoint first responded at 59 seconds and listener ownership first matched at 64 seconds. The endpoint-absent control failed at 60 seconds and the foreign-listener control never connected.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "published-revision-launch-deadline",
+        "windows-published-revision-access"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "native-revision-observation-write-leaves-uploadable-fragment",
+      "source": "Independent Astra Standard t157 requested changes on a1866052ec539edaf7925c3fd426c0f66b21b91c. Decision: contracts/reviews/task-decisions/M2-039.json#/events/15. Original: archives/observations/repo-hygiene-20261125/independent-final-m2-039-a1866052/original-assistant-response.jsonl (SHA-256 34cb062a68b70d3e7f2c192f4acb2ce8a655bf59b81d5d8749572f90a3801a3c).",
+      "observation": "At stage_artifacts, a synthetic destination write stored 17 observation bytes and raised ENOSPC. Staging warned that it had omitted the observation and returned success, leaving the truncated file in the upload directory with a different digest from the bound check log. The interrupted executable copy removed its partial file.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "passed-native-revision-check-can-stage-without-executable",
+      "source": "Independent Astra Standard t157 requested changes on a1866052ec539edaf7925c3fd426c0f66b21b91c. Decision: contracts/reviews/task-decisions/M2-039.json#/events/15. Original: archives/observations/repo-hygiene-20261125/independent-final-m2-039-a1866052/original-assistant-response.jsonl (SHA-256 34cb062a68b70d3e7f2c192f4acb2ce8a655bf59b81d5d8749572f90a3801a3c).",
+      "observation": "A synthetic passing Windows native check with a valid log-bound observation still staged successfully after the executable was removed. The staged report marked the check passed while the upload directory lacked the matching executable.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

@@ -864,6 +864,19 @@
       "cadence": "change"
     },
     {
+      "id": "published-revision-launch-deadline",
+      "status": "implemented",
+      "purpose": "Exercise the compiled-app fixture launch entry with a synthetic monotonic clock and process observations. Require an owned WebView2 listener within the original endpoint deadline and keep rejected launches out of the public journey.",
+      "platforms": "all",
+      "command": [
+        "node",
+        "--test",
+        "tests/ui/published-revision-launch-deadline.test.mjs"
+      ],
+      "timeout_seconds": 60,
+      "cadence": "task"
+    },
+    {
       "id": "windows-published-revision-access",
       "status": "implemented",
       "purpose": "Exercise the compiled Windows WebView2 app in a disposable synthetic profile. Record native admission and provider replies, interrupt original-row delivery, and verify withheld content, dialog close and reopen, status-confirmed restoration and confirmed withdrawal in the CSV and folder libraries. Record controlled inputs and response delivery separately.",
