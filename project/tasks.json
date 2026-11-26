@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-154",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -26389,7 +26389,7 @@
       "id": "M0-154",
       "title": "Qualify cold sample document readiness in the Windows closed-bar repair journey",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-022",
         "M1-023"
@@ -26452,11 +26452,19 @@
         {
           "path": "project/evidence/M0-154-a4209b3465db38fc.json",
           "sha256": "3e299258a947ba1a905d5c5990e4120625721080666a9446ec8651ad9b31ed1b"
+        },
+        {
+          "path": "project/evidence/M0-154-f8d8b22f62dafa0a.json",
+          "sha256": "b6a730fe7764093a9309e1bdeb7865db1bfd4164b3092fed842305a559d0bb13"
+        },
+        {
+          "path": "project/evidence/M0-154-8e61319c5013374f.json",
+          "sha256": "283aafe29547ce6d6abb77cc71f1aeb41c519725e690304c000317fed8de68d9"
         }
       ],
-      "next_action": "Use .reports/m0-154-candle-geometry/handoff.json for the reproduced failure, candidate measurements and exact source. Obtain fresh independent review on the clean candidate. The coordinator owns publication and one ordinary first-attempt Windows qualification. Packaged physical Windows acceptance is separate and historical Windows asset attribution remains unknown.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The first ordinary Windows PR 136 run 45823554677 passed all 41 recovery browser cases, including the cold public repair entry, the held-document deadline and fitted candle controls. Both platform receipts cover every task check. The independent approval of 83022759 is retained in contracts/reviews/task-decisions/M0-154.json. Native originals and their evidence limits are indexed in .reports/m0-154-native-closure/handoff.json. The historical timeout's cause remains unresolved and packaged physical Windows acceptance remains separate.",
       "plan": {
         "outcome": "A cold closed-bar repair journey reaches its verified initial sample or explains the last observed stage at the existing navigation deadline.",
         "change_types": [
