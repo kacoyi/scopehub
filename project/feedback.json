@@ -7939,8 +7939,8 @@
       "id": "windows-cancelled-indicator-scratch-survives-completion",
       "status": "open",
       "severity": "major",
-      "source": "First native observation archives/observations/repo-hygiene-20261125/main-producer-45825584085-core/observation.json (SHA-256 f23ddb7c013e30d93646825be88687fb316419a46db23daaf0d1ccdb82882a68).",
-      "observation": "First protected main push 45825584085 failed its Windows core producer. In the trusted-indicator suite the existing cancellation test reached the assertion that its scratch directory had been removed, which failed at trusted_indicator.rs:340. Thirteen adjacent cases passed. The original does not identify the surviving entry, elapsed cleanup or underlying filesystem error.",
+      "source": "First native observation archives/observations/repo-hygiene-20261125/main-producer-45825584085-core/observation.json (SHA-256 f23ddb7c013e30d93646825be88687fb316419a46db23daaf0d1ccdb82882a68). Resolve its producer report with the observation's files directory as the archive root. The supplementary linked aggregate is retained at archives/observations/repo-hygiene-20261125/main-native-original-45825584085/manifest.json (SHA-256 aa5bc4a30d63ab2c7f9c3984abd01464ab61cd7f740cf1eccfcab3059e0446a9). Resolve its Windows report with the aggregate's artifacts/windows directory as the archive root.",
+      "observation": "First protected main push 45825584085 failed its Windows core producer. After the typed cancellation check, cancellation_discards_a_correlated_result_from_a_child_that_has_not_exited failed at the scratch absence assertion at trusted_indicator.rs:340:9. Thirteen adjacent cases passed. The process assertions did not run. The linked protected aggregate retained rust-contracts-workers as its only failed check. The same case passed in both retained PR 135 Windows runs with identical worker and test source blobs. The original does not identify the surviving entry, a process or handle, elapsed cleanup or a filesystem error.",
       "task_ids": [
         "M0-167"
       ],
@@ -7954,7 +7954,43 @@
           "run_id": "windows-change-45825584085-1",
           "source_commit": "8d088f7cba3e7d6322ee9eeb396bd2db59bfa4a2",
           "report_sha256": "49e0b487bd0cd4501a5c5888ae2198149015b40a9cbcc78242d916ff08d4fff8"
+        },
+        {
+          "run_id": "windows-change-45825584085-1",
+          "source_commit": "8d088f7cba3e7d6322ee9eeb396bd2db59bfa4a2",
+          "report_sha256": "224cf1a54de8ed450870007188fd2b81ec999eaad48374cda7e40081e5b1f9b9"
         }
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-scratch-removal-retries-after-cleanup-deadline",
+      "source": "Independent Astra Standard review of 5623272d990220dab2bffd3e11556d3cb8d134cb at archives/observations/repo-hygiene-20261125/independent-final-m0-167-5623272d/original-assistant-response.jsonl (SHA-256 92ce12ad7c8d0bbb7c1b3fc4aba62333023d2a03b7515aa05f29e668afb789ca).",
+      "observation": "The retry loop can invoke removal after a transient error and a partial backoff that reaches the cleanup deadline. The prior test covered an already expired deadline at the first removal and omitted expiry during backoff.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-167"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-scratch-removal-blocks-single-thread-cancellation",
+      "source": "Independent Astra Standard review of 5623272d990220dab2bffd3e11556d3cb8d134cb at archives/observations/repo-hygiene-20261125/independent-final-m0-167-5623272d/original-assistant-response.jsonl (SHA-256 92ce12ad7c8d0bbb7c1b3fc4aba62333023d2a03b7515aa05f29e668afb789ca).",
+      "observation": "Synchronous directory removal on the current-thread runtime can prevent the caller's cleanup timer from polling. Returning while a slow operation is queued or active requires the actual task scratch and admission permit to stay with that operation until cleanup finishes.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-167"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "indicator-workflow"
       ],
       "resolution": null,
       "deferral_reason": null

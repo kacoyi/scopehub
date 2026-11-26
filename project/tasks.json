@@ -26654,9 +26654,14 @@
           "run_id": "windows-change-45825584085-1",
           "source_commit": "8d088f7cba3e7d6322ee9eeb396bd2db59bfa4a2",
           "report_sha256": "49e0b487bd0cd4501a5c5888ae2198149015b40a9cbcc78242d916ff08d4fff8"
+        },
+        {
+          "run_id": "windows-change-45825584085-1",
+          "source_commit": "8d088f7cba3e7d6322ee9eeb396bd2db59bfa4a2",
+          "report_sha256": "224cf1a54de8ed450870007188fd2b81ec999eaad48374cda7e40081e5b1f9b9"
         }
       ],
-      "next_action": "Independently review the clean worker-host candidate and obtain the required Windows native and integrated rechecks. Compare process state, scratch metadata and cleanup diagnostics with the retained first failure and Linux controls before attributing the original Windows failure or closing feedback.",
+      "next_action": "Correct the reviewed retry boundary and single-thread cleanup ownership, compare rejected and passing controls on exact sources, and hand the clean candidate and retained reports to the coordinator for independent review and Windows native and integrated rechecks.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26667,18 +26672,34 @@
         "context": [
           "crates/worker-host/tests/trusted_indicator.rs",
           "crates/worker-host/src/indicator.rs",
+          "crates/worker-host/src/indicator/carrier.rs",
           "project/checks.json",
           "contracts/reviews/2026-11-26-maintenance-workstreams.json"
         ],
         "hypotheses": [
           "The first Windows failure did not distinguish a reaper wait that exceeded the caller grace from a filesystem removal error. The test previously checked the path before checking the processes.",
-          "An injected Linux interruption of the first scratch removal reproduced the surviving directory after cancellation with both processes gone. An ordinary success and an uninjected cancellation removed their scratch directories. This establishes a silent removal failure mechanism, while attribution of the original Windows failure remains open."
+          "An injected Linux interruption of the first scratch removal reproduced the surviving directory after cancellation with both processes gone. An ordinary success and an uninjected cancellation removed their scratch directories. This establishes a silent removal failure mechanism, while attribution of the original Windows failure remains open.",
+          "The first protected producer and the linked Windows aggregate both recorded the same failed scratch assertion before the process assertions. Both PR 135 Windows reports passed the same test with identical worker and test source blobs. These observations provide no process, handle or filesystem error evidence for the original failure.",
+          "The independent review of 5623272d found that partial backoff can initiate a retry at the deadline and that synchronous scratch removal can block the current-thread caller's timer. The deadline test and the controlled slow filesystem test distinguish these from the historical Windows assertion."
         ],
         "risks": [
           {
             "failure": "Suppressing a remove error, broad directory cleanup, or delaying the assertion indiscriminately could hide a leak or affect another task.",
             "checks": [
               "project-state",
+              "rust-contracts-workers",
+              "indicator-workflow"
+            ]
+          },
+          {
+            "failure": "An expired or queued retry could start another filesystem operation. Check the first attempt after budget exhaustion, a retry within budget, and the partial backoff boundary with deterministic time.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A slow deletion or carrier shutdown could delay terminal cancellation or release scratch ownership or the admission permit early. Hold deletion under test control while observing the native caller, the scratch data, the permit and the independent task.",
+            "checks": [
               "rust-contracts-workers",
               "indicator-workflow"
             ]
@@ -26718,7 +26739,7 @@
             "Preserve task boundaries, approved interpreter authority, resource limits and user data. Only inspect the owned synthetic workspace; avoid changes to product permissions."
           ],
           "change": [
-            "Observe scratch removal after supervisor exit and retry only transient interruptions or Windows sharing and lock failures within the existing cleanup budget. Report a failed or unconfirmed cleanup without replacing an established cancellation. Require confirmed cleanup before returning a successful result."
+            "Observe scratch removal after supervisor exit. Allow one initial removal and only retry transient interruptions or Windows sharing and lock failures before the same deadline used for the caller wait. Offload blocking removal with the task-owned scratch and permit, and make the terminal response observable while cleanup continues. Require confirmed cleanup before returning a successful result."
           ],
           "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
           "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
