@@ -54,10 +54,12 @@ class TimingJobRoleTests(unittest.TestCase):
             timing.main()
         return json.loads(stdout.getvalue())
 
-    def read_modes(self, jobs, label):
+    def read_modes(self, jobs, label, *, additional=()):
         args = [arg for path in self.report_paths for arg in ('--report', path)]
         listing = self.write(f'{label}-jobs.json', {'jobs': jobs})
-        ordinary = self.cli([*args, '--actions', self.run_path, listing])
+        imports = [arg for index, rows in enumerate(additional)
+                   for arg in ('--actions', self.run_path, self.write(f'{label}-{index}.json', {'jobs': rows}))]
+        ordinary = self.cli([*args, '--actions', self.run_path, listing, *imports])
         archive, summary = (str(self.root / f'{label}.{extension}') for extension in ('json', 'md'))
         environment = {'GITHUB_ACTIONS': 'true', 'GITHUB_REPOSITORY': 'fixture/scopehub', 'GH_TOKEN': 'fixture'}
         with (patch.dict(os.environ, environment),
@@ -65,7 +67,7 @@ class TimingJobRoleTests(unittest.TestCase):
               patch.object(timing, 'recent_runs', return_value=[self.run]),
               patch.object(timing, 'download_timing', return_value=[self.aggregate]),
               patch.object(timing, 'command', return_value=json.dumps({'jobs': jobs}))):
-            weekly = self.cli([*args[2:], '--recent', '12', '--github-actions', '--save', archive,
+            weekly = self.cli([*args[2:], *imports, '--recent', '12', '--github-actions', '--save', archive,
                                '--summary', summary])
         return ordinary, weekly, self.cli(['--report', archive])
 
@@ -104,3 +106,57 @@ class TimingJobRoleTests(unittest.TestCase):
             rows = {row['profile']: row['seconds'] for row in view['samples']}
             self.assertEqual(expected, (rows['full']['total'], rows['ci-windows-browser']['total'],
                                         rows['ci-windows-recovery']['total'], rows['full']['runner']))
+
+    def test_partial_role_steps_prevent_clock_swaps(self):
+        jobs = deepcopy(self.jobs)
+        aggregate, browser = jobs[1], jobs[3]
+        aggregate['labels'] = browser['labels']
+        browser['steps'] = [{'name': 'Select the Windows lane work', 'conclusion': 'success'}]
+        aggregate['steps'].pop()
+        for swapped in (False, True):
+            if swapped:
+                aggregate['name'], browser['name'] = browser['name'], aggregate['name']
+            for view in self.read_modes(jobs, str(swapped)):
+                rows = {row['profile']: row['seconds']['total'] for row in view['samples']}
+                self.assertEqual({'full': None if swapped else 765,
+                                  'ci-windows-browser': None if swapped else 720,
+                                  'ci-windows-recovery': 300}, rows)
+                self.assertEqual(not swapped, bool(list(timing.platform_report_receipts(view['samples']))))
+
+    def test_job_claims_join_before_membership_and_measurement(self):
+        browser = self.jobs[3]
+        missing = dict(browser, conclusion=None, status=None, name=None, steps=[], labels=None)
+        extra = fixtures.hosted_job(41, 'ubuntu', '01:00', '02:00', 'Inspect routing', '01:10', '01:30')
+        extra.update(name='Check reviewed task dispatch', conclusion='skipped')
+        for case, (alternate, expected) in enumerate((
+                (browser, (765, 720, 300, 1957, True)),
+                (extra, (765, 720, 300, 1957, True)),
+                (dict(extra, id=browser['id']), (765, None, 300, None, False)),
+                (dict(extra, id=browser['id'], checkout_sha='b' * 40), (None, None, None, None, False)),
+                (dict(browser, id=42), (765, None, 300, None, False)),
+                (dict(browser, conclusion='failure'), (765, None, 300, None, False)),
+                (dict(browser, started_at='2026-11-20T00:00:31Z'), (765, 720, 300, None, True)))):
+            for grouping, (current, additional) in enumerate((
+                    ([missing, *self.jobs, alternate], ()),
+                    ([alternate, *reversed(self.jobs), missing], ()),
+                    (self.jobs, ([missing], [alternate])),
+                    (self.jobs, ([alternate, missing],)))):
+                with self.subTest(expected=expected, listings=1 + len(additional)):
+                    for view in self.read_modes(current, f'joined-{case}-{grouping}', additional=additional):
+                        rows = {row['profile']: row['seconds'] for row in view['samples']}
+                        receipts = list(timing.platform_report_receipts(view['samples']))
+                        self.assertEqual(expected, (rows['full']['total'], rows['ci-windows-browser']['total'],
+                                                    rows['ci-windows-recovery']['total'], rows['full']['runner'],
+                                                    bool(receipts)))
+                        if view['recent_collection'] is not None:
+                            self.assertEqual(int(expected[-1]), len(view['recent_collection']['collected_samples']))
+
+    def test_complete_role_evidence_can_be_partitioned(self):
+        args = [arg for path in self.report_paths for arg in ('--report', path)]
+        complete = self.read_modes(self.jobs, 'complete')[0]
+        for pivot in range(1, len(self.jobs)):
+            first = self.write(f'part-{pivot}-first.json', {'jobs': self.jobs[:pivot]})
+            second = self.write(f'part-{pivot}-second.json', {'jobs': self.jobs[pivot:]})
+            for inputs in ((first, second), (second, first)):
+                observed = self.cli([*args, *(arg for path in inputs for arg in ('--actions', self.run_path, path))])
+                self.assertEqual(complete['samples'], observed['samples'])

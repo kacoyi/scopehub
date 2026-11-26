@@ -240,6 +240,10 @@ _LEGACY_WINDOWS_CHECK_SELECTION = _WINDOWS_CHECK_SELECTION_PREFIX + """    if pr
             raise ProjectError(f'Unknown check profile: {profile}')
         return set(project['catalog']['profiles'][profile])
     return {key for key, check in project['checks'].items() if check.get('cadence', 'change') == 'change' and check['status'] != 'retired'}"""
+_MONOLITHIC_WINDOWS_CHECK_SELECTION = _LEGACY_WINDOWS_CHECK_SELECTION.replace(
+    'return release_checks(project)',
+    "return {key for key, check in project['checks'].items() if check['status'] != 'retired' and check.get('cadence') != 'task'}",
+)
 _SHARED_WINDOWS_CHECK_SELECTION = _WINDOWS_CHECK_SELECTION_PREFIX + """    if profile == 'release':
         return release_checks(project)
     if profile and profile not in project['catalog'].get('profiles', {}):
@@ -289,7 +293,7 @@ def _check_selection_shape(module, name):
 
 def _require_initial_windows_selection(harness, shared):
     shape = _check_selection_shape(harness, 'select_checks')
-    if shape == _LEGACY_WINDOWS_CHECK_SELECTION:
+    if shape in {_LEGACY_WINDOWS_CHECK_SELECTION, _MONOLITHIC_WINDOWS_CHECK_SELECTION}:
         return
     if shape == _SHARED_WINDOWS_CHECK_SELECTION and shared is not None:
         if _check_selection_shape(shared, 'hosted_check_selection') == _HOSTED_CHECK_SELECTION:
@@ -407,25 +411,127 @@ def _require_publishing_report_uses(main, report, parents):
         raise ValueError('Windows report serialized before the selection projection')
 
 
+def _require_catalog_projection(loader):
+    project_loader = _publishing_selector(loader, 'load_project')
+    if project_loader is None:
+        raise ValueError('Unavailable Windows publishing project loader')
+    catalog = _publishing_assignment_node(project_loader, 'catalog')
+    checks = _publishing_assignment_node(project_loader, 'checks')
+    project = _publishing_assignment_node(project_loader, 'project')
+    returned, = (node for node in ast.walk(project_loader) if isinstance(node, ast.Return))
+    if (ast.unparse(catalog) != "catalog = read_json(root / 'project/checks.json')"
+            or ast.unparse(checks) != "checks = indexed(catalog['checks'], 'check')"
+            or ast.unparse(_publishing_field(project.value, 'catalog')) != 'catalog'
+            or ast.unparse(_publishing_field(project.value, 'checks')) != 'checks'
+            or ast.unparse(returned) != 'return project'):
+        raise ValueError('Unknown Windows publication catalog projection')
+    catalog_uses = {
+        "validate_model(root, 'CheckCatalog', catalog)", "indexed(catalog['milestones'], 'milestone')",
+        "set(catalog['required_change_checks'])", "indexed(catalog['gate_changes'], 'gate replacement', field='removed_check')",
+        "catalog.get('profiles', {}).items()",
+    }
+    project_uses = {'validate_delivery(root, project)', 'validate_record(root, project, record)'}
+    validation = {ast.unparse(statement) for statement in project_loader.body if isinstance(statement, ast.Assign)}
+    if {
+        "definitions = read_json(root / 'contracts/schemas/project.schema.json')['$defs']",
+        'validate = partial(_validate_project_model, definitions)',
+    } <= validation:
+        catalog_uses.add("validate('CheckCatalog', catalog)")
+        project_uses.add('validate_delivery(root, project, validate)')
+    parents = {child: node for node in ast.walk(project_loader) for child in ast.iter_child_nodes(node)}
+    for node in _named_references(project_loader, 'catalog') - {
+        *catalog.targets, _publishing_field(project.value, 'catalog'),
+        *_named_references(checks, 'catalog'),
+    }:
+        parent = parents[node]
+        if isinstance(parent, ast.Attribute) and parent.attr == 'get':
+            parent = parents[parents[parents[parent]]]
+        elif isinstance(parent, ast.Subscript) and ast.unparse(parent.slice) != "'acceptance'":
+            parent = parents[parent]
+        if ast.unparse(parent) in catalog_uses:
+            continue
+        if ast.unparse(parent) == "catalog['acceptance']" and isinstance(parents[parent], (ast.For, ast.comprehension)):
+            continue
+        raise ValueError('Unsupported use of the Windows publishing catalog')
+    for node in _named_references(project_loader, 'checks') - {
+        *checks.targets, _publishing_field(project.value, 'checks'),
+    }:
+        parent = parents[node]
+        if isinstance(parent, ast.Call) and isinstance(parent.func, ast.Name) and parent.func.id == 'require_refs':
+            continue
+        if isinstance(parent, ast.Attribute) and ast.unparse(parent) in {'checks.items', 'checks.values'}:
+            call = parents[parent]
+            if isinstance(call, ast.Call) and not call.args and not call.keywords and isinstance(parents[call], (ast.For, ast.comprehension)):
+                continue
+        if isinstance(parent, ast.Subscript) and isinstance(parents[parent], ast.Subscript):
+            read = parents[parent]
+            if isinstance(read.ctx, ast.Load) and ast.unparse(read.slice) in {"'status'", "'platforms'"}:
+                continue
+        if isinstance(parent, (ast.comprehension, ast.For)) and parent.iter is node:
+            continue
+        if _selection_membership(parent, node):
+            continue
+        raise ValueError('Unsupported use of the Windows publishing check index')
+    for node in _named_references(project_loader, 'project') - {*project.targets, returned.value}:
+        parent = parents[node]
+        if ast.unparse(parent) in project_uses:
+            continue
+        if isinstance(parent, ast.Subscript) and ast.unparse(parent.slice) in {
+            "'delivery'", "'development'", "'manifest'", "'owner_decisions'",
+        }:
+            continue
+        raise ValueError('Unsupported use of the Windows publishing project')
+    history = _publishing_selector(loader, 'local_feedback_history')
+    if history:
+        parents = {child: node for node in ast.walk(history) for child in ast.iter_child_nodes(node)}
+        if any(ast.unparse(parents[node]) not in {
+            'require_periodic_reviews(root, project)', 'require_periodic_transition(root, project, sha)',
+            'validate_feedback_checkpoint(root, project, sha, imports)',
+            'validate_feedback_checkpoint(root, project, sha, predecessor, imports)',
+        } for node in _named_references(history, 'project')):
+            raise ValueError('Windows publishing history check can change its project input')
+
+
 def _publishing_lane_call(harness):
     main, = (node for node in harness.body if isinstance(node, ast.FunctionDef) and node.name == 'main')
     initial = _publishing_assignment_node(main, 'selected')
     if ast.unparse(initial) != 'selected = select_checks(project, profile=args.profile, task_id=args.task)':
         raise ValueError('Unknown initial Windows check selection')
-    partition, = (stmt for stmt in main.body if isinstance(stmt, ast.If) and ast.unparse(stmt) == (
+    load = _publishing_assignment_node(main, 'project')
+    if ast.unparse(load) != 'project = load_project(ROOT)':
+        raise ValueError('Unknown Windows selection catalog input')
+    load_index, initial_index = main.body.index(load), main.body.index(initial)
+    if load_index >= initial_index or [ast.unparse(stmt) for stmt in main.body[load_index + 1:initial_index]] not in (
+        [], ['local_feedback_history(ROOT, project)'],
+    ):
+        raise ValueError('Unsupported transformation before Windows check selection')
+    partitions = [stmt for stmt in main.body if isinstance(stmt, ast.If) and ast.unparse(stmt) == (
         'if args.ci_windows_lane:\n    selected = windows_lane_checks(selected, args.ci_windows_lane)'
-    ))
+    )]
     report = _publishing_assignment_node(main, 'report')
-    published = _publishing_field(_publishing_field(report.value, 'selection'), 'checks')
-    partition_index = main.body.index(partition)
-    if (not main.body.index(initial) < partition_index < main.body.index(report)
+    selection = _publishing_field(report.value, 'selection')
+    published = _publishing_field(selection, 'checks')
+    partition, = partitions or [None]
+    partition_index = main.body.index(partition) if partition else initial_index
+    profile = "args.profile or ('task' if args.task else 'full')"
+    if partition:
+        profile = f"f'ci-windows-{{args.ci_windows_lane}}' if args.ci_windows_lane else {profile}"
+    if (not initial_index <= partition_index < main.body.index(report)
+            or ast.unparse(_publishing_field(selection, 'profile')) != profile
+            or ast.unparse(_publishing_field(selection, 'task_id')) != 'args.task'
             or ast.unparse(published) != 'sorted(selected)'):
         raise ValueError('Unknown Windows publishing selection projection')
 
     # Check the caller as well as the selector. A mutable result can change
     # ownership through reassignment, a method, or an alias before publication.
-    known = set().union(*(_named_references(part, 'selected') for part in (initial, partition, published)))
+    known = set().union(*(_named_references(part, 'selected') for part in (initial, partition, published) if part))
     parents = {child: node for node in ast.walk(main) for child in ast.iter_child_nodes(node)}
+    for node in _named_references(main, 'args'):
+        parent = parents[node]
+        if ast.unparse(parent) == 'args = parser.parse_args()':
+            continue
+        if not isinstance(parent, ast.Attribute) or not isinstance(parent.ctx, ast.Load):
+            raise ValueError('Unsupported change to Windows publishing arguments')
     for node in _named_references(main, 'selected') - known:
         parent = parents[node]
         if _selection_membership(parent, node):
@@ -449,17 +555,53 @@ def _publishing_lane_call(harness):
                 continue
         raise ValueError('Unsupported use of the Windows publishing selection')
     _require_publishing_report_uses(main, report, parents)
-    return partition.body[0].value
+    return partition.body[0].value if partition else None
+
+
+def _require_aggregate_selection(collector):
+    collect = _publishing_selector(collector, 'collect_windows_lanes')
+    validate = _publishing_selector(collector, 'validate_windows_lane')
+    if not collect or not validate:
+        raise ValueError('Unavailable Windows aggregate selection consumer')
+    parents = {child: node for node in ast.walk(collect) for child in ast.iter_child_nodes(node)}
+    partition = 'lane_selection = selected if profile else windows_lane_checks(selected, lane)'
+    validation = "validate_windows_lane(project, report, source, ci, lane_selection, lane, profile or f'ci-windows-{lane}')"
+    assignment, = (node for node in ast.walk(collect) if isinstance(node, ast.Assign) and ast.unparse(node) == partition)
+    if _named_references(collect, 'selected') != _named_references(assignment, 'selected'):
+        raise ValueError('Unsupported use of the Windows aggregate selection')
+    for node in _named_references(collect, 'lane_selection') - set(assignment.targets):
+        parent = parents[node]
+        if ast.unparse(parent) == validation or _selection_membership(parent, node):
+            continue
+        raise ValueError('Unsupported use of the aggregated Windows lane selection')
+    parents = {child: node for node in ast.walk(validate) for child in ast.iter_child_nodes(node)}
+    for node in _named_references(validate, 'selected'):
+        parent = parents[node]
+        if _selection_membership(parent, node) or ast.unparse(parent) in {
+            'sorted(selected)', "windows_published_scope(selected, profile, WINDOWS_LANES, project['catalog'])",
+        }:
+            continue
+        raise ValueError('Unsupported use of the validated Windows lane selection')
 
 
 @lru_cache(maxsize=128)
-def committed_windows_assignment(root, revision):
-    """Read a known publisher's assignment as bounded Git data, without importing it."""
+def committed_windows_assignment(root, revision, *, aggregate=False):
+    """Prove the report selection and read the publisher's lane partition without importing its source.
+
+    An empty assignment identifies a monolithic publisher. None means the
+    catalog-to-report selection could not be established.
+    """
     try:
         if not isinstance(revision, str) or not OBJECT_ID.fullmatch(revision):
             return None
         harness = _publishing_module(root, revision, 'check.py')
+        _require_catalog_projection(_publishing_module(root, revision, 'project.py'))
         call = _publishing_lane_call(harness)
+        if aggregate and _named_references(harness, 'collect_windows_lanes'):
+            _require_aggregate_selection(_publishing_module(root, revision, 'ci_artifacts.py'))
+        if call is None:
+            _require_initial_windows_selection(harness, None)
+            return {}
         module = harness
         selector = _publishing_selector(harness, 'windows_lane_checks')
         imports = {(node.module, name.name) for node in ast.walk(harness) if isinstance(node, ast.ImportFrom)
@@ -512,7 +654,7 @@ def committed_windows_assignment(root, revision):
         if sum(map(len, assignment.values())) != len(set().union(*assignment.values())):
             return None
         return assignment
-    except (ScopeError, OSError, subprocess.SubprocessError, SyntaxError, ValueError, TypeError, RecursionError):
+    except (ScopeError, OSError, subprocess.SubprocessError, SyntaxError, ValueError, KeyError, TypeError, RecursionError):
         return None
 
 

@@ -26595,7 +26595,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Use the combined reader, publisher and weekly replay outcomes to request fresh independent decisions and matching native verification on the exact clean candidate. Keep the 2026-11-28 scheduled weekly observation pending.",
+      "next_action": "Replay the retained source decisions and genuine original controls through ordinary, weekly, linked budget and cold reads after consolidating per-job evidence. Hand the exact clean joint correction to the coordinator for independent decisions and matching native verification. Keep the 2026-11-28 observation pending.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26608,13 +26608,16 @@
           "tests/project/test_timing.py",
           "project/delivery.json",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-133-57f1c772/final-response.txt",
-          "archives/observations/repo-hygiene-20261125/combined-timing-caea2a0a58/SHA256SUMS"
+          "archives/observations/repo-hygiene-20261125/combined-timing-caea2a0a58/SHA256SUMS",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-155-b12aefdc/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-145-b12aefdc/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "Recent preload and historical linked reads can see different retained evidence when a conflict removes the platform index entry or an attempt is older than the routine window.",
           "A producer report can prove its historical check assignment independently of a partial job listing, while a conflicting job identity can still withdraw the corresponding duration.",
           "A job listing currently decides which assertions to discard before the same attempt is reconciled across readers. Preserve the individual assertions and derive a normalized job once before calculating roles, clock endpoints and complete membership.",
-          "A linked archive discovery or the current CI attempt can introduce an attempt after ordinary historical lookup has chosen its exact paths. Seed all attempts before reading any retained sibling capture or failure sidecar under the same budget."
+          "A linked archive discovery or the current CI attempt can introduce an attempt after ordinary historical lookup has chosen its exact paths. Seed all attempts before reading any retained sibling capture or failure sidecar under the same budget.",
+          "Lossy per-list role and membership decisions can be replaced with one per-attempt projection of compatible observations keyed by job ID. A disputed participant can withhold membership without erasing the independent clocks of other roles."
         ],
         "risks": [
           {
@@ -26699,6 +26702,34 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "Partial named steps can assign browser wall time to the aggregate. Replay both independent role markers and their absence, and preserve the recovery clock and report time.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Skipped rows can challenge the identity of a protected job without contributing time. Compare genuine independent skipped jobs with reused IDs and checkouts, before and after rotation, including saved and linked replay.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Regrouping can manufacture or remove eligible membership. Compare all small partitions and input orders of both known and absent conclusions and competing IDs.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Disputed membership can erase proven independent clocks. Exercise split and joined listings, both orders, rotation, ordinary display, weekly reindexing, linked budgets and cold reopen.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain all source captures, saved reviews and original classifications if a change loses a valid clock or expands the ordinary read without a bound.",
@@ -26732,7 +26763,8 @@
           ],
           "change": [
             "Reconcile old adverse timing evidence through the ordinary and budgeted readers when the recent window no longer supplies it.",
-            "Make role, conclusion, checkout and clock attribution invariant to equivalent grouping and arrival order, and use attempt identities discovered through either index or live CI before final historical reconciliation."
+            "Make role, conclusion, checkout and clock attribution invariant to equivalent grouping and arrival order, and use attempt identities discovered through either index or live CI before final historical reconciliation.",
+            "Resolve each job field once across the retained observations. Absent assertions may be completed by compatible evidence, and contradictory assertions withdraw only dependent measurements and eligibility."
           ],
           "data_plan": "Read existing saved reviews and retained per-attempt captures. Cover missing, conflicting and intact historical data.",
           "cleanup": "Remove superseded lookup or reconciliation only after equivalent accepted and rejected observations pass."
@@ -26772,7 +26804,7 @@
       ],
       "diagnostic_reports": [],
       "evidence": [],
-      "next_action": "Hand the exact null-checkout correction and both public reader replays of run 45546767887 to the coordinator for combined M0-150, M0-155 and M0-156 independent review and native checks. Retain the 2026-11-28 scheduled observation as pending until it occurs.",
+      "next_action": "Replay the known non-commit parents and genuinely missing parents on full and shallow history with both readers. Hand the joint correction to the coordinator and keep the 2026-11-28 scheduled observation pending until it occurs.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26788,7 +26820,8 @@
           "tests/project/test_timing.py",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-148-57f1c772/final-response.txt",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-e6e5a46d/final-response.txt",
-          "archives/observations/repo-hygiene-20261125/combined-timing-caea2a0a58/SHA256SUMS"
+          "archives/observations/repo-hygiene-20261125/combined-timing-caea2a0a58/SHA256SUMS",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-b12aefdc/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "The substitute Git fingerprint is computable with the standard library; importing the full project entry brings an unrelated parser into the weekly job."
@@ -26823,6 +26856,13 @@
           },
           {
             "failure": "An artifact from one platform can supply a receipt for another platform. Bind downloadable timing artifact origin to the report platform before collection issues receipts; replay the same original Windows bytes under Windows and Ubuntu artifacts through both collection modes.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A merge-tree fallback can adopt a known non-commit parent. Probe both parents, preserve truly absent objects and matching head evidence, and compare full and shallow histories.",
             "checks": [
               "project-state",
               "python-contracts-workers"
@@ -26902,7 +26942,7 @@
         "The verifier binds a producer to its publishing job, platform, source or verified execution-equivalent catalog and exact ordered scope. Incorrectly swapped, missing, extra and unverifiable assignments cannot establish a warm comparable observation.",
         "Previously supported publishing layouts, incomplete sources and historical evidence retain their respective outcomes. Verify the shared current selection together with its integration consumer."
       ],
-      "next_action": "Give the coordinator the clean correction and retained PR 121 and PR 116 job-list and checkout-marker matrices. Obtain renewed independent review and matching hosted verification on the exact combined candidate with M0-155, and keep the inherited PR 122 review gates explicit.",
+      "next_action": "Replay genuine publisher controls and the retained selector, aggregate, push checkout and duplicate-result decisions against the joint correction. Hand the exact clean source to the coordinator for independent decisions and matching native verification.",
       "blocker": null,
       "evidence": [],
       "closure_reason": null,
@@ -26919,7 +26959,8 @@
           "scripts/ci_artifacts.py",
           "tests/project/test_timing.py",
           "PR 121 run 45678058104 and PR 116 run 45680128413",
-          "archives/observations/repo-hygiene-20261125/combined-timing-caea2a0a58/SHA256SUMS"
+          "archives/observations/repo-hygiene-20261125/combined-timing-caea2a0a58/SHA256SUMS",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-b12aefdc/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "The earlier and later sources had the same four Windows producer jobs and aggregate catalog. The browser and recovery assignments changed while the reader used one current mapping for both.",
@@ -26988,6 +27029,34 @@
           },
           {
             "failure": "An incomplete report can interrupt valid companions. Reject a native report with absent task_id at admission, preserving the explicit null used by ordinary hosted reports and leaving independent genuine observations available.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A report on a push can claim a different publishing revision. Use genuine matched and substituted commit-digest pairs through both readers with and without an independently published second platform.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Filtering results can conceal conflicting duplicate check IDs. Check the full result set before scope selection and preserve valid reports and independent harness time.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A modified selector input can qualify an obsolete report. Compare the original caller, transformed catalog and in-order assignment against genuine producer controls.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Aggregate qualification can diverge from producers. Use one source-bound selection proof for both, reject unsupported sources and preserve known historical publishers.",
             "checks": [
               "project-state",
               "python-contracts-workers"

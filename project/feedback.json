@@ -8529,6 +8529,159 @@
       "diagnostic_reports": [],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "timing-partial-publisher-steps-allow-swapped-roles",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-130 decision on b12aefdc7e8dc74d6f26b0bf37071f798becd947, recorded at 359104236b04b60ba227abdf768ca43875b73a21. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-130-b12aefdc/original-assistant-response.jsonl (SHA-256 8207483377afbb6edb9c0a79c0b41b27e711145081cbd2ae62e89fa03a073c2c).",
+      "observation": "With the original PR 84 browser and aggregate names swapped and one role-specific step omitted from each, both readers swapped 645 and 804 seconds and the weekly reader issued a platform receipt despite surviving producer and aggregate markers.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-skipped-job-reuse-hides-role-and-checkout-conflicts",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-131 decision on b12aefdc7e8dc74d6f26b0bf37071f798becd947, recorded at 359104236b04b60ba227abdf768ca43875b73a21. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-131-b12aefdc/original-assistant-response.jsonl (SHA-256 d9afcd473ae3091d93e5fe7dbc05afbbcc1a820b03a4ae26b3a50bfd3e64a77c).",
+      "observation": "A skipped dispatch job reused an actual browser job ID. Both readers retained PR 84 browser 645 seconds and 2467 runner-seconds after rotation, and PR 116 retained 2775 runner-seconds and a weekly receipt. A skipped claim for another checkout also left PR 84 platform timing qualified.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-platform-completeness-depends-on-job-partition",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-133 decision on b12aefdc7e8dc74d6f26b0bf37071f798becd947, recorded at 359104236b04b60ba227abdf768ca43875b73a21. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-133-b12aefdc/original-assistant-response.jsonl (SHA-256 45554c3d5f0151822c89dcbbdf250db543efd4680ee42b5ef64845606f72a5f1).",
+      "observation": "The same omitted, successful and failed conclusion claims produced one Windows platform receipt in one listing and zero across three. A second browser ID reversed the grouping bias.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-disputed-membership-erases-independent-job-clocks",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-155 decision on b12aefdc7e8dc74d6f26b0bf37071f798becd947, recorded at 359104236b04b60ba227abdf768ca43875b73a21. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-155-b12aefdc/original-assistant-response.jsonl (SHA-256 9e7d45dd8aca96351b2570ca8edd4671f17363945982ffd6696eea7fc1e38cae).",
+      "observation": "Two complete PR 84 listings differing only in the browser ID erased independent 804-second platform and 321-second recovery clocks. Joining the same rows restored both. The difference survived rotation, linked budgets and cold reopen.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-push-accepts-foreign-checkout-with-matching-inputs",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-148 decision on b12aefdc7e8dc74d6f26b0bf37071f798becd947, recorded at 359104236b04b60ba227abdf768ca43875b73a21. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-148-b12aefdc/original-assistant-response.jsonl (SHA-256 b0f31091c5fdc9bb9dba9f40b6444e651209608da57e64c24c25874cb810b612).",
+      "observation": "With only the Windows artifact, changing the source checkout and digest to a different genuine publishing pair kept 718 wall seconds, 2346 runner-seconds and a weekly receipt for the changed push report.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-native-report-hides-duplicate-unselected-check",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-148 decision on b12aefdc7e8dc74d6f26b0bf37071f798becd947, recorded at 359104236b04b60ba227abdf768ca43875b73a21. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-148-b12aefdc/original-assistant-response.jsonl (SHA-256 b0f31091c5fdc9bb9dba9f40b6444e651209608da57e64c24c25874cb810b612).",
+      "observation": "Adding a blocked, not-selected generated-contracts row to a full Windows report that already recorded it as passed retained 718 wall seconds, 2346 runner-seconds and a changed weekly receipt.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-publisher-proof-ignores-selector-input-transformation",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 decision on b12aefdc7e8dc74d6f26b0bf37071f798becd947, recorded at 359104236b04b60ba227abdf768ca43875b73a21. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-150-b12aefdc/original-assistant-response.jsonl (SHA-256 15fd3516b04b2f4aa0796472a87bb3d79911f229291acf09da9c7865e0a30ca2).",
+      "observation": "The unchanged selector called with a filtered check catalog was assumed to select the original PR 121 browser and PR 116 recovery scopes, restoring stale durations and warm cache.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-aggregate-bypasses-historical-publisher-scope",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 decision on b12aefdc7e8dc74d6f26b0bf37071f798becd947, recorded at 359104236b04b60ba227abdf768ca43875b73a21. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-150-b12aefdc/original-assistant-response.jsonl (SHA-256 15fd3516b04b2f4aa0796472a87bb3d79911f229291acf09da9c7865e0a30ca2).",
+      "observation": "A publisher selecting 34 checks still qualified the prior 35-check aggregate and issued a weekly receipt in both PR 121 and PR 116 source-bound controls.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-merge-proof-accepts-known-noncommit-parent",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-156 decision on b12aefdc7e8dc74d6f26b0bf37071f798becd947, recorded at 359104236b04b60ba227abdf768ca43875b73a21. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-156-b12aefdc/original-assistant-response.jsonl (SHA-256 ed6c1d39080965eeab849b181c297de3a81e6c3a6da25f6475166202312151fa).",
+      "observation": "The ordinary and weekly readers accepted a publishing tree whose first parent and comparison base were a Git blob, retaining 804 wall seconds, 2467 runner-seconds and one receipt on full and shallow history.",
+      "task_ids": [
+        "M0-156"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

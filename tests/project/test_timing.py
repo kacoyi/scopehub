@@ -100,6 +100,29 @@ SPLIT_CHECKS = ('windows-native-build', 'workspace-timeframe', 'python-contracts
 RECORDS_CHECKS = ('generated-contracts', 'dependency-review')
 OLD_FULL_CHECKS = (*BASIC_CHECKS, 'future-check', 'windows-native-build')
 
+PUBLISHER_LOADER = """INPUT_EXCLUSIONS = []
+def load_project(root=ROOT):
+    catalog = read_json(root / 'project/checks.json')
+    checks = indexed(catalog['checks'], 'check')
+    project = {'catalog': catalog, 'checks': checks}
+    return project
+"""
+PUBLISHER_CHECK_SELECTION = """
+def select_checks(project, *, profile=None, task_id=None):
+    if task_id:
+        if task_id not in project['tasks']:
+            raise ProjectError(f'Unknown task: {task_id}')
+        return set(project['tasks'][task_id]['checks']) | {'environment', 'project-state'}
+    if profile:
+        if profile == 'release':
+            return release_checks(project)
+        if profile not in project['catalog'].get('profiles', {}):
+            raise ProjectError(f'Unknown check profile: {profile}')
+        return set(project['catalog']['profiles'][profile])
+    return {key for key, check in project['checks'].items()
+            if check.get('cadence', 'change') == 'change' and check['status'] != 'retired'}
+"""
+
 
 def fixture_catalog(full=BASIC_CHECKS, *, records=(), non_change=()):
     extras = (*records, *non_change)
@@ -309,7 +332,7 @@ class HostedTimingTests(unittest.TestCase):
                           'harness_step': 695, 'tail': 10, 'runner': 1687, 'total': 765, 'browser_step': 30},
                          windows['seconds'])
         self.assertCountEqual(['Windows change checks (core)', 'Windows change checks (browser)',
-                               'Windows change checks (python)', 'Verification scope'],
+                               'Windows change checks (python)', 'Verification scope', 'Unused job'],
                               [row['name'] for row in result['sibling_jobs']])
         report = split_harness_report(675)
         report['selection']['profile'] = 'full'
@@ -569,7 +592,8 @@ class HostedTimingTests(unittest.TestCase):
                           patch.object(timing, 'recent_runs', return_value=[run]),
                           patch.object(timing, 'download_timing', return_value=[received]),
                           patch.object(timing, 'inspect_jobs', return_value=clock),
-                          patch.object(timing, 'publishing_catalog_source', side_effect=catalog)):
+                          patch.object(timing, 'publishing_catalog_source', side_effect=catalog),
+                          patch.object(timing, 'committed_windows_assignment', return_value=verification_scope.WINDOWS_LANE_CHECKS)):
                         timing.main()
                     view = json.loads(out.getvalue())
                     self.assertEqual(expected, view['recent_collection']['collected_samples'])
@@ -860,18 +884,20 @@ class HostedTimingTests(unittest.TestCase):
         swapped = timing.hosted_timing(raw_run, swapped_jobs)
         for pair in ([clock, swapped], [swapped, clock]):
             view = timing.timing_view(samples, hosted=pair)
-            self.assertTrue(all(row['seconds']['total'] is None for row in view['samples']))
-            self.assertEqual(['Conflicting complete attempt clocks.'], [issue['error'] for issue in view['input_issues']])
+            self.assertEqual([720, None], [row['seconds']['total'] for row in view['samples']])
+            self.assertEqual({timing.WINDOWS_PRODUCERS[lane] for lane in ('core', 'recovery')},
+                             {issue['producer'] for issue in view['input_issues']
+                              if issue['error'] == 'Conflicting Windows producer job observations.'})
 
         partial = [timing.hosted_timing(raw_run, [job for job in jobs if job['id'] != omitted]) for omitted in (33, 36)]
         for pair in (partial, partial[::-1]):
             view = timing.timing_view(samples, hosted=pair)
             self.assertEqual([], view['input_issues'])
             self.assertEqual([720, 305], [row['seconds']['total'] for row in view['samples']])
-            self.assertFalse(any(row['hosted_success_complete'] for row in view['samples']))
+            self.assertTrue(all(row['hosted_success_complete'] for row in view['samples']))
             capture = timing.capture_observations(identity, samples, pair, [])
             self.assertEqual({'Linux', 'Windows'}, capture.missing)
-            self.assertFalse(capture.complete_clock)
+            self.assertTrue(capture.complete_clock)
 
         invalid_id = deepcopy(clock)
         next(row for row in invalid_id['sibling_jobs'] if row['job_id'] == '33')['job_id'] = None
@@ -912,7 +938,7 @@ class HostedTimingTests(unittest.TestCase):
                 view = timing.timing_view(samples, hosted=[complete, *partial])
                 rows = {row['profile']: row for row in view['samples']}
                 self.assertEqual(765, rows['full']['seconds']['total'])
-                self.assertIsNone(rows['full']['review_exclusion'])
+                self.assertIs(disputed, rows['full']['review_exclusion'] is not None)
                 self.assertEqual(None if disputed else 1957, rows['full']['seconds']['runner'])
                 self.assertEqual(None if disputed else 30, rows['full']['seconds']['browser_step'])
                 self.assertEqual(None if disputed else 720, rows['ci-windows-browser']['seconds']['total'])
@@ -936,8 +962,8 @@ class HostedTimingTests(unittest.TestCase):
         cases = (
             (browser, (765, 1687, 720, True), None),
             (dict(browser, conclusion=None), (765, 1687, 720, True), None),
-            (dict(browser, conclusion='failure'), (765, None, None, True), 'Conflicting Windows producer job observations.'),
-            (dict(browser, name='Other job', steps=[]), (765, None, None, True),
+            (dict(browser, conclusion='failure'), (765, None, None, False), 'Conflicting Windows producer job observations.'),
+            (dict(browser, name='Other job', steps=[]), (765, None, None, False),
              'Conflicting Windows producer job observations.'),
             (dict(browser, conclusion='failure', checkout_sha='e' * 40), (None, None, None, False),
              'Conflicting timing checkouts for this attempt.'),
@@ -1102,7 +1128,7 @@ class HostedTimingTests(unittest.TestCase):
 
         for case, adverse, expected, qualified in (
             ('valid', None, (765, 1687, 720, True), True),
-            ('producer', partial, (765, None, None, True), True),
+            ('producer', partial, (765, None, None, False), True),
             ('checkout', alternate_checkout, (None, None, None, False), False),
         ):
             for reverse in ((False, True) if adverse else (False,)):
@@ -1594,8 +1620,17 @@ class PRMainComparisonTests(unittest.TestCase):
     def publishing_tree(self, catalog):
         blob = self.git('hash-object', '-w', '--stdin', contents=json.dumps(catalog))
         project = self.git('mktree', contents=f'100644 blob {blob}\tchecks.json\n')
-        policy = self.git('hash-object', '-w', '--stdin', contents='INPUT_EXCLUSIONS = []')
-        scripts = self.git('mktree', contents=f'100644 blob {policy}\tproject.py\n')
+        policy = self.git('hash-object', '-w', '--stdin', contents=PUBLISHER_LOADER)
+        harness = self.git('hash-object', '-w', '--stdin', contents=PUBLISHER_CHECK_SELECTION + """
+def main():
+    args = parser.parse_args()
+    project = load_project(ROOT)
+    selected = select_checks(project, profile=args.profile, task_id=args.task)
+    report = {'selection': {'profile': args.profile or ('task' if args.task else 'full'),
+                            'task_id': args.task, 'checks': sorted(selected)}}
+    return json.dumps(report, indent=2)
+""")
+        scripts = self.git('mktree', contents=f'100644 blob {harness}\tcheck.py\n100644 blob {policy}\tproject.py\n')
         return self.git('mktree', contents=f'040000 tree {project}\tproject\n040000 tree {scripts}\tscripts\n')
 
     def test_selection_comes_from_committed_publishing_catalog(self):
@@ -1606,13 +1641,14 @@ class PRMainComparisonTests(unittest.TestCase):
         publisher = self.commit('Publishing checkout', self.head, tree=self.publishing_tree(catalog))
         newer_head = self.commit('Other catalog', self.head, tree=self.publishing_tree(newer))
         self.assertEqual(timing.git(self.root, 'ls-tree', '-r', '-z', '--name-only', publisher),
-                         b'project/checks.json\0scripts/project.py\0')
+                         b'project/checks.json\0scripts/check.py\0scripts/project.py\0')
         self.assertEqual(timing.git(self.root, 'cat-file', 'blob', f'{publisher}:project/checks.json'),
                          json.dumps(catalog).encode('utf-8'))
         load = timing.native_publishing_catalog
         self.enterContext(patch.object(timing, 'native_publishing_catalog',
                                        side_effect=lambda revision, **options: load(revision, root=self.root, **options)))
         snapshot = timing.committed_publishing_inputs
+        self.enterContext(patch.object(timing, 'ROOT', self.root))
         self.enterContext(patch.object(timing, 'committed_publishing_inputs',
                                        side_effect=lambda revision: snapshot(revision, root=self.root)))
         report = fast_report(20, 190)
@@ -1624,7 +1660,7 @@ class PRMainComparisonTests(unittest.TestCase):
              'import sys; from pathlib import Path; sys.path.insert(0, sys.argv[1]); '
              'from timing import committed_publishing_inputs; '
              'print(committed_publishing_inputs(sys.argv[3], root=Path(sys.argv[2])))',
-             str(timing.ROOT / 'scripts'), str(self.root), publisher],
+             str(Path(timing.__file__).parent), str(self.root), publisher],
             text=True, capture_output=True,
         )
         self.assertEqual(weekly.returncode, 0, weekly.stderr)
@@ -1642,6 +1678,11 @@ class PRMainComparisonTests(unittest.TestCase):
         report['checks'].append({'id': 'release-artifacts', 'status': 'blocked', 'reason_code': 'not_selected'})
         original = timing.report_sample(report)
         self.assertFalse(timing.native_report_issue(original, None, []))
+        for id in ('generated-contracts', 'release-artifacts'):
+            with self.subTest(duplicate=id):
+                duplicate = {'id': id, 'status': 'blocked', 'reason_code': 'not_selected'}
+                broken = dict(original, checks=[*original['checks'], duplicate])
+                self.assertTrue(timing.native_report_issue(broken, None, []))
         self.assertTrue(timing.native_report_issue(dict(original, inputs_sha256=newer_digest), None, []))
         for omitted in full:
             with self.subTest(omitted=omitted):
@@ -1663,7 +1704,12 @@ class PRMainComparisonTests(unittest.TestCase):
         self.assertIn('publishing catalog is unavailable', issues[0]['error'])
 
     def test_weekly_receipts_require_a_commit_or_genuinely_missing_checkout(self):
+        project = self.root / 'project'
+        project.mkdir()
+        for name in ('tasks.json', 'feedback.json', 'delivery.json'):
+            (project / name).write_bytes((timing.ROOT / 'project' / name).read_bytes())
         tree = self.publishing_tree(fixture_catalog((*BASIC_CHECKS, 'generated-contracts')))
+        blob = self.git('rev-parse', f'{tree}:project/checks.json')
         head = self.commit('Topic', self.base, tree=tree)
         preview = self.commit('Merge preview', self.base, head, tree=tree)
         missing = 'f' * 40
@@ -1671,6 +1717,7 @@ class PRMainComparisonTests(unittest.TestCase):
         null = '0' * 40
         self.assertEqual('commit', self.git('cat-file', '-t', preview))
         self.assertEqual('tree', self.git('cat-file', '-t', tree))
+        self.assertEqual('blob', self.git('cat-file', '-t', blob))
         for name in (missing, missing_head, null):
             self.assertEqual(f'{name} missing', self.git('cat-file', '--batch-check', contents=f'{name}\n'))
         inputs = timing.committed_publishing_inputs(head, root=self.root)
@@ -1681,11 +1728,20 @@ class PRMainComparisonTests(unittest.TestCase):
         ]
         environment = {'GITHUB_ACTIONS': 'true', 'GITHUB_REPOSITORY': 'fixture/scopehub', 'GH_TOKEN': 'fixture'}
         artifact = {'name': 'verification-timing-windows-latest', 'expired': False, 'size_in_bytes': 1024}
-        for kind, checkout, topic, proof, seconds in (
-            ('commit', preview, head, True, 360), ('commit-foreign-inputs', preview, head, True, None),
-            ('missing', missing, head, False, 360),
-            ('missing-with-proof', missing, missing_head, True, 360), ('tree', tree, head, True, None),
-            ('null-without-proof', null, head, False, None), ('null-with-proof', null, missing_head, True, None),
+        for kind, checkout, topic, comparison_base, seconds in (
+            ('commit', preview, head, self.base, 360),
+            ('commit-foreign-inputs', preview, head, self.base, None),
+            ('missing', missing, head, None, 360),
+            ('missing-with-proof', missing, missing_head, self.base, 360),
+            ('missing-with-missing-parents', missing, missing_head, 'd' * 40, 360),
+            ('missing-with-blob-base', missing, missing_head, blob, None),
+            ('missing-with-tree-base', missing, missing_head, tree, None),
+            ('missing-with-blob-head', missing, blob, self.base, None),
+            ('missing-with-self-parent', missing, missing_head, missing, None),
+            ('missing-with-independent-head', missing, head, blob, 360),
+            ('tree', tree, head, self.base, None),
+            ('null-without-proof', null, head, None, None),
+            ('null-with-proof', null, missing_head, self.base, None),
         ):
             with self.subTest(kind=kind):
                 run = dict(hosted_run(), head_sha=topic)
@@ -1704,10 +1760,10 @@ class PRMainComparisonTests(unittest.TestCase):
                     compact['inputs_sha256'] = timing.committed_publishing_inputs(
                         self.commit('Different publisher', tree=self.publishing_tree(fixture_catalog())), root=self.root,
                     )
-                if proof:
+                if comparison_base:
                     compact['generated_contracts'] = {
-                        'checkout': checkout, 'tree': tree, 'parents': [self.base, topic],
-                        'comparison_base': self.base, 'ref': 'refs/pull/84/merge',
+                        'checkout': checkout, 'tree': tree, 'parents': [comparison_base, topic],
+                        'comparison_base': comparison_base, 'ref': 'refs/pull/84/merge',
                         'command': timing.GENERATED_COMMAND,
                         'tools': {'python': '3.12.0', 'rustfmt': 'rustfmt 1.8.0 (abcdef 2026-01-01)'},
                     }
@@ -1719,6 +1775,7 @@ class PRMainComparisonTests(unittest.TestCase):
                         '--summary', str(summary)]
                 load = timing.native_publishing_catalog
                 fingerprint = timing.committed_publishing_inputs
+                git = timing.git
 
                 def actions_command(args):
                     if args[:2] == ['gh', 'api']:
@@ -1729,6 +1786,8 @@ class PRMainComparisonTests(unittest.TestCase):
                     return ''
 
                 with (patch.object(sys, 'argv', argv), patch.dict(os.environ, environment),
+                      patch.object(timing, 'ROOT', self.root),
+                      patch.object(timing, 'git', side_effect=lambda _, *args, **options: git(self.root, *args, **options)),
                       redirect_stdout(StringIO()) as stdout,
                       patch.object(timing, 'native_publishing_catalog',
                                    side_effect=lambda rev, **options: load(rev, root=self.root, **options)),
@@ -1769,35 +1828,34 @@ class PRMainComparisonTests(unittest.TestCase):
         project = self.root / 'project'
         project.mkdir()
         (project / 'checks.json').write_bytes(timing.json_bytes(fixture_catalog(full)))
-        (scripts / 'project.py').write_bytes(b'INPUT_EXCLUSIONS = []\n')
+        (scripts / 'project.py').write_text(PUBLISHER_LOADER, encoding='utf-8')
         launch = """
-def main(args, project):
-    selected = select_checks(project, profile=args.profile, task_id=args.task)
+def main():
+    args = parser.parse_args()
+    project = load_project(ROOT)
+{input_amendment}    selected = select_checks(project, profile=args.profile, task_id=args.task)
+    if args.ci_windows_lane and (args.profile or args.ci_windows_aggregate or args.require_windows):
+        parser.error('A Windows lane uses its fixed selection')
     if args.ci_windows_lane:
         selected = windows_lane_checks(selected, args.ci_windows_lane)
-{amendment}    report = {{'selection': {{'checks': sorted(selected)}}}}
+{amendment}{aggregate}    report = {{'selection': {{'profile': (f'ci-windows-{{args.ci_windows_lane}}' if args.ci_windows_lane
+                                                else args.profile or ('task' if args.task else 'full')),
+                              'task_id': args.task, 'checks': sorted(selected)}}}}
 {report_amendment}    return json.dumps(report, indent=2)
 """
-        legacy_selection = """
-def select_checks(project, *, profile=None, task_id=None):
-    if task_id:
-        if task_id not in project['tasks']:
-            raise ProjectError(f'Unknown task: {task_id}')
-        return set(project['tasks'][task_id]['checks']) | {'environment', 'project-state'}
-    if profile:
-        if profile == 'release':
-            return release_checks(project)
-        if profile not in project['catalog'].get('profiles', {}):
-            raise ProjectError(f'Unknown check profile: {profile}')
-        return set(project['catalog']['profiles'][profile])
-    return {key for key, check in project['checks'].items()
-            if check.get('cadence', 'change') == 'change' and check['status'] != 'retired'}
-"""
+        legacy_selection = PUBLISHER_CHECK_SELECTION
         check_script = Path(timing.__file__).with_name('check.py').read_text(encoding='utf-8')
         shared_selection = check_script.split('\ndef select_checks(', 1)[1].split('\n\ndef ', 1)[0]
 
-        def publish(label, definition, *, shared=None, amendment='', report_amendment='', initial_selection=None):
-            launcher = launch.format(amendment=amendment, report_amendment=report_amendment)
+        def publish(label, definition, *, shared=None, amendment='', report_amendment='', initial_selection=None,
+                    input_amendment='', collector=None):
+            collect = (
+                "    if args.ci_windows_aggregate:\n"
+                "        imported, elapsed = collect_windows_lanes(ROOT, args.ci_windows_aggregate, project, source, ci, "
+                "selected, os.environ, profile=args.profile)\n"
+            ) if collector else ''
+            launcher = launch.format(input_amendment=input_amendment, amendment=amendment,
+                                     report_amendment=report_amendment, aggregate=collect)
             selection = initial_selection or (f'\ndef select_checks({shared_selection}' if shared else legacy_selection)
             (scripts / 'check.py').write_bytes((definition + '\n' + selection + '\n' + launcher).encode())
             scope_file = scripts / 'verification_scope.py'
@@ -1805,6 +1863,11 @@ def select_checks(project, *, profile=None, task_id=None):
                 scope_file.unlink(missing_ok=True)
             else:
                 scope_file.write_bytes(shared.encode())
+            collector_file = scripts / 'ci_artifacts.py'
+            if collector:
+                collector_file.write_text(collector, encoding='utf-8')
+            else:
+                collector_file.unlink(missing_ok=True)
             self.git('add', '-A')
             return self.commit(label, self.head, tree=self.git('write-tree'))
 
@@ -1861,6 +1924,18 @@ original_selection = select_checks
 select_checks = lambda *args, **kwargs: original_selection(*args, **kwargs) - {'market-recovery-ui'}
 '''
         )))
+        for index, amendment in enumerate((
+            "    if args.ci_windows_lane in {None, 'browser'}:\n"
+            "        project['checks'].pop('market-recovery-ui')\n",
+            "    copied = project['checks']\n"
+            "    copied.pop('market-recovery-ui')\n",
+        )):
+            mutated.append(publish(f'Unsupported catalog input amendment {index}', earlier, input_amendment=amendment))
+        (scripts / 'project.py').write_text(PUBLISHER_LOADER.replace(
+            "    project =", "    checks.pop('market-recovery-ui')\n    project =",
+        ), encoding='utf-8')
+        mutated.append(publish('Unsupported catalog load amendment', earlier))
+        (scripts / 'project.py').write_text(PUBLISHER_LOADER, encoding='utf-8')
         mutated.append(publish('Unsupported helper selection amendment', earlier + """
 def build_window(catalog, selection, environment, index):
     selection.discard('market-recovery-ui')
@@ -1883,6 +1958,12 @@ def windows_lane_checks(selected, lane):
         delegated = publish('The shared selector owns current publishing',
                             'from verification_scope import windows_lane_checks',
                             shared=shared_source)
+        collector = Path(ci_artifacts.__file__).read_text(encoding='utf-8')
+        aggregate_valid = publish('Unchanged aggregate consumer', earlier, collector=collector)
+        aggregate_changed = publish('Aggregate consumer filters only its own selection', earlier, collector=(
+            collector.replace('    checkout = source[\'git_head\']\n    _, head',
+                              "    selected.discard('market-recovery-ui')\n    checkout = source['git_head']\n    _, head")
+        ))
         mutated.append(publish(
             'Unsupported shared initial selection amendment', 'from verification_scope import windows_lane_checks',
             shared=shared_source.replace("check['status'] != 'retired'}",
@@ -1909,7 +1990,7 @@ def windows_lane_checks(selected, lane):
                                   'sha256': digest if digest is not None else snapshot(revision, root=self.root)},
                           ci={'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
                               'event': 'pull_request', 'head_sha': revision, 'checkout_sha': commit},
-                          selection={'profile': 'ci-windows-' + lane, 'checks': list(keys)},
+                          selection={'profile': 'ci-windows-' + lane if lane else 'full', 'checks': list(keys)},
                           checks=[dict(report['checks'][0], id=key) for key in dict.fromkeys(keys)])
             return timing.report_sample(report, cache='warm')
 
@@ -1917,6 +1998,9 @@ def windows_lane_checks(selected, lane):
         recovery_new = ['market-recovery', 'market-recovery-ui']
         self.assertEqual(verification_scope.WINDOWS_LANE_CHECKS,
                          verification_scope.committed_windows_assignment(self.root, delegated))
+        self.assertFalse(timing.native_report_issue(report(aggregate_valid, None, full), None, []))
+        self.assertTrue(timing.native_report_issue(report(aggregate_changed, None, full), None, []))
+        self.assertFalse(timing.native_report_issue(report(aggregate_changed, 'browser', browser_old), None, []))
         for sample in (
             report(previous, 'browser', browser_old),
             report(previous, 'recovery', ['market-recovery']),
@@ -1941,6 +2025,7 @@ def windows_lane_checks(selected, lane):
             with self.subTest(mutation=revision):
                 view = timing.timing_view([aggregate, stale])
                 self.assertEqual(['unknown', 'unknown'], sorted(row['cache'] for row in view['samples']))
+                self.assertTrue(timing.native_report_issue(aggregate, None, []))
                 self.assertIn('publishing assignment is unavailable', view['input_issues'][0]['error'])
                 view = timing.timing_view([final_selection])
                 self.assertEqual('unknown', view['samples'][0]['cache'])
@@ -2232,6 +2317,7 @@ class TimingRegressionTests(unittest.TestCase):
         self.enterContext(patch.object(timing, 'publishing_catalog_source', side_effect=lambda sample: (
             sample['source_commit'], changed_catalog if sample['source_commit'] == changed_commit else OLD_FULL_CATALOG,
         )))
+        self.enterContext(patch.object(timing, 'committed_windows_assignment', return_value={}))
         samples, workflows = [], []
         for day, finish in enumerate(('14:50', '15:01', '18:01'), start=14):
             run = hosted_run(run_id=day, day=day)
@@ -2790,6 +2876,7 @@ class RecentTimingTests(unittest.TestCase):
             (False, None) if revision in self.missing_catalogs else (True, self.catalogs.get(revision, default_catalog))
         )))
         self.enterContext(patch.object(timing, 'committed_publishing_inputs', return_value='c' * 64))
+        self.enterContext(patch.object(timing, 'committed_windows_assignment', return_value={}))
 
     def budget_run(self, day, finish, *, head='a' * 40, cache='warm', event='pull_request',
                    checkout=None, outcome='success', extra_check=False):
