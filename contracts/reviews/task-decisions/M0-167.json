@@ -10,6 +10,26 @@
       "requested_at": "2026-11-26T13:27:16.262206+00:00",
       "request_id": "54a83b888c8a8062fdacfc0fd3de286c6ebcf576ace6921eeee7a6d69c96c437",
       "evidence_sha256": "4224b2113f398b60f4baf19ad2ae38f232ea570b3154c9a62eb0084873a8f6b7"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5623272d990220dab2bffd3e11556d3cb8d134cb",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-167 5623272d990220dab2bffd3e11556d3cb8d134cb",
+      "scope": "CHANGES_REQUESTED M0-167 5623272d990220dab2bffd3e11556d3cb8d134cb",
+      "observation": "The scratch cleanup loop can start another removal after its retry deadline because it checks the clock only after calling remove.",
+      "reviewer": "Independent Astra Standard (t17b)",
+      "original_sha256": "92ce12ad7c8d0bbb7c1b3fc4aba62333023d2a03b7515aa05f29e668afb789ca",
+      "response_id": "459c6b88b986049e5e772090d8b36e1f67df09775c5c02e36a55805fa4db0f6a",
+      "response_sha256": "457901ff269592984d12afa7865e84665a7312f77c6c69771e8a0f3a47dd7609",
+      "legacy_response_sha256": "1496aebd3892a598bd7988ec74f812b8c511e82a03ff3c808d1b921b9eb07ee7",
+      "observation_body_sha256": "0b4c9c702bfd64b050cd6c56b8b879e2d9fd6a92c3dfe2fd6d484af7252468a4",
+      "event": {
+        "id": "msg_0d37f75f3b8a1ae7016b08343a27dc87d1a810ebb3b8397c51",
+        "timestamp": "2026-11-26T13:29:54.770Z"
+      },
+      "supersedes": "54a83b888c8a8062fdacfc0fd3de286c6ebcf576ace6921eeee7a6d69c96c437",
+      "evidence_sha256": "f8a5076d2e74fbed2d8d646fef0fb7f7c2e1a1006253ad960440cda4a7cb0cb2"
     }
   ]
 }
