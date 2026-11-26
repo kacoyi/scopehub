@@ -26278,13 +26278,17 @@
           "report_sha256": "c0ec1dc7ccf4eda159ccb2edd29f0ae73e09e3fc44e48d46acb3331de5abe7f3"
         }
       ],
-      "next_action": "Verify the correction through the compiled sample chart and Rust writer and hand the clean candidate and paired reports to the coordinator for independent and native review.",
+      "next_action": "The clean correction 89054cc36b7310d2c2af620d5e91ad0b01d94c62 passed all six local task checks including 104 workspace browser cases. The coordinator should obtain fresh independent review and native verification using the paired reports .reports/runs/20261126T073858.234369Z-31cf891c/test-report.json and .reports/runs/20261126T074256.955634Z-96e81d74/test-report.json and their workspace-timeframe browser and Rust writer observations. Keep the two earlier calendar timeouts separately unclassified.",
       "blocker": null,
       "closure_reason": null,
       "evidence": [
         {
           "path": "project/evidence/M3-007-88e2331c7d8c9804.json",
           "sha256": "8f724e7bb6c03fbf6142ff23b584304f2d16ad59cba57a9062e3f79201caca29"
+        },
+        {
+          "path": "project/evidence/M3-007-2d860098bc0f2871.json",
+          "sha256": "7843802f91dbdd071dbf5badb55a1e297237e73665200ae39fde5d3be01cbcda"
         }
       ],
       "plan": {
