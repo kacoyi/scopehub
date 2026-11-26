@@ -7770,6 +7770,38 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "feedback-lookup-directs-assignment-after-maintenance-ends",
+      "status": "open",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-161.json#/events/3 retained on ca19ce1489ce807106120651b5c85a4a2ad0c221 for 17a0365fbc1462e6154806c18020b654dbbc39ef. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-161-17a0365f/original-assistant-response.jsonl, SHA-256 fc5918f012832f1c3aca7a1e03c86f6c2360320aa7aa289acce87ef20035c538.",
+      "observation": "With both workstreams accepted and an unassigned major finding, the first overview command opened the canonical record. Its follow-through instructed the coordinator to link the finding to an unfinished corrective task and verify its checks, while the separate handoff instructed the coordinator to stop assigning work. Both ordinary and read-only navigation showed the conflict.",
+      "task_ids": [
+        "M0-161"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "unassigned-feedback-priority-depends-on-ledger-order",
+      "status": "open",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-161.json#/events/3 retained on ca19ce1489ce807106120651b5c85a4a2ad0c221 for 17a0365fbc1462e6154806c18020b654dbbc39ef. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-161-17a0365f/original-assistant-response.jsonl, SHA-256 fc5918f012832f1c3aca7a1e03c86f6c2360320aa7aa289acce87ef20035c538.",
+      "observation": "With the protected ledger focused on planned M2-003, no engagement and open minor then major findings linked only to completed M0-158, record validation passed and both overview modes put the minor finding first, leaving the major in also_urgent. Restoring the open engagement made the major finding first in both modes.",
+      "task_ids": [
+        "M0-161"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
