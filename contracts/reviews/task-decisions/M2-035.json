@@ -318,6 +318,26 @@
       "requested_at": "2026-11-26T14:22:07.721103+00:00",
       "request_id": "5edb53a5a3579e9b7162b067fdc20e9b5704ff022f46f2342db641d4430c8c99",
       "evidence_sha256": "36c635b1fd1a82855edc697e2d75bc14017f35d8227621d3f312360bf781a933"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "aeb1763f21237fd897877ef9bba08219223f7615",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-035 aeb1763f21237fd897877ef9bba08219223f7615",
+      "scope": "CHANGES_REQUESTED M2-035 aeb1763f21237fd897877ef9bba08219223f7615",
+      "observation": "In my replay, one HTTP 200 response carrying both `available: true` and `PERMISSION_DENIED` changed `canDisplay('csv', id)` from `false` to `true` for a temporarily withheld revision.",
+      "reviewer": "Independent Astra Standard (t18r)",
+      "original_sha256": "4eb6b71f0879e61c110a63f336d3a316b0470bb4650900a95e41f3463934d57b",
+      "response_id": "314fe3ff75861e558fa0f595004b9f22f1c11c57f01c869d3aff16d40f06aa0c",
+      "response_sha256": "d3529c14fac80d61cfded264ef471ee8b6192216d0fe8e5d797ee8880a0e8953",
+      "legacy_response_sha256": "a20f9dcde2c6b872cf6d1b88b766ea8dfb787ad0ff4a1e40d2a97a32d7f85f8a",
+      "observation_body_sha256": "01dc1914d228e771d4078d45f100aa2b2f70d5904e2c1693bdcf30cfc0319512",
+      "event": {
+        "id": "msg_05abab237ccfa86c016b0844fbe06c87d29175ab5b90e186f4",
+        "timestamp": "2026-11-26T14:41:17.887Z"
+      },
+      "supersedes": "5edb53a5a3579e9b7162b067fdc20e9b5704ff022f46f2342db641d4430c8c99",
+      "evidence_sha256": "d836cdc3d8db2ba29cd490485d3249162b8d89834fcc2b7fcda72de6b9e1f268"
     }
   ]
 }

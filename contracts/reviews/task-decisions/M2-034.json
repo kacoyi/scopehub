@@ -298,6 +298,26 @@
       "requested_at": "2026-11-26T14:22:07.033951+00:00",
       "request_id": "8d6c496acdab0e735581ac0b951ef1c84fef65dbfb5ea3d83752d980a28ee8b6",
       "evidence_sha256": "1d05db46b0ffe42ea29bf7ffb7b3d8669f931d75a62dc69d7bdebb63bbf3323e"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "aeb1763f21237fd897877ef9bba08219223f7615",
+      "verdict": "approved",
+      "decision": "APPROVE M2-034 aeb1763f21237fd897877ef9bba08219223f7615",
+      "scope": "APPROVE M2-034 aeb1763f21237fd897877ef9bba08219223f7615",
+      "observation": "I replayed the first-reopen proof helper and observed that it accepted selection revision 2, rejected both HTTP 403 and an HTTP 200 reply carrying a result and an error on the first read, and retried after a typed HTTP 429 BUSY refusal.",
+      "reviewer": "Independent Astra Standard (t18q)",
+      "original_sha256": "5d92daed4eb98e088d82c23456dfaebbcfdaa80bfd18f94830c10d4e54014214",
+      "response_id": "1bbc80f0c20a23e2555cc1ae365a7e5fb579afad59764c72f90235dcee60bbd3",
+      "response_sha256": "15780e756fdfffb23fbd4b6b500de081db18d398cabb896992b65cc60e638df3",
+      "legacy_response_sha256": "d04695b0371cd94762328bb630753295f74db659d4d83e45623ef3e0eda01ce2",
+      "observation_body_sha256": "60f3abd17a83b34c15adc9c07db884ba6f82ff96d6fec03fccb1fe6a7da9ee10",
+      "event": {
+        "id": "msg_0e6c257710dac60c016b084499cb8c87d1bb7ecaa4b5f1d175",
+        "timestamp": "2026-11-26T14:39:39.837Z"
+      },
+      "supersedes": "8d6c496acdab0e735581ac0b951ef1c84fef65dbfb5ea3d83752d980a28ee8b6",
+      "evidence_sha256": "44cb353b836a359f4625c1ce64809768909014db771635e8e53d33ea23edce8a"
     }
   ]
 }

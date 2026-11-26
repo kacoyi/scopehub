@@ -387,6 +387,26 @@
       "requested_at": "2026-11-26T14:22:06.332851+00:00",
       "request_id": "4ba2195be3acc14048201bdee2c7919c06aba7412a5aa5f77269ea87f928f773",
       "evidence_sha256": "4fe8ded53edd21e621dc5759106ff52b44e4780a34e8d9955969b6bb434ed8d4"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "aeb1763f21237fd897877ef9bba08219223f7615",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 aeb1763f21237fd897877ef9bba08219223f7615",
+      "scope": "APPROVE M2-039 aeb1763f21237fd897877ef9bba08219223f7615",
+      "observation": "In my replay, the independent proof accepted B at selection revision 2 and rejected the same HTTP 200 reply on the first read when it also carried a PERMISSION_DENIED error.",
+      "reviewer": "Independent Astra Standard (t18f)",
+      "original_sha256": "e59525a2dee1949d29cddd896ddbd6302e08649923ea9ecedcb33b6b479e008e",
+      "response_id": "615a1d05e8fe123aac1889e01a448684a357b53308a38c1cef9a4b4f9b226c86",
+      "response_sha256": "92cde138c89f23ef3748c966df12e61b4d5bcfa48af78c0d98a35e452c0b3c53",
+      "legacy_response_sha256": "0127021789d2e032a644cc9d9a937d2e656990462068e76b22a2b59959b48ebd",
+      "observation_body_sha256": "8e2939fc02f0940829582783c0fedeff5082f6e92447175bedacccb200555712",
+      "event": {
+        "id": "msg_0c8b31e46fe30aa9016b084383ec2887d2ad7cd5b6e5c4898c",
+        "timestamp": "2026-11-26T14:35:13.082Z"
+      },
+      "supersedes": "4ba2195be3acc14048201bdee2c7919c06aba7412a5aa5f77269ea87f928f773",
+      "evidence_sha256": "9251a3ebba661bd615159e89a28d0d52fdc2f3f60095369d0e39e3e8ad531de9"
     }
   ]
 }
