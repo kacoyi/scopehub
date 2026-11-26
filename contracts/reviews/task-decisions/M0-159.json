@@ -97,6 +97,15 @@
       },
       "supersedes": "e899c83275dd1f36594dbcb69e8f83506122df0730d2b8898d04ddcc074a73a3",
       "evidence_sha256": "643588382550bf5c93d2b11447f22b14ebd65800063a3d2be5ff0c1befe7e109"
+    },
+    {
+      "kind": "request",
+      "source_commit": "94609e1ecaafdc0c77ad4bd3a3db4bf1abf407ef",
+      "scope": "Review whether reopening or losing access to a nominated original can turn an unresolved conflict into a pass. Exercise the ordinary integration decision with the actual selected receipt, conflicting reports and proven independent evidence across interruption.",
+      "supersedes": "2c25946094e05b12b97d75802953cf7bf56438bafcf4346b5d5f0cf3b635bde3",
+      "requested_at": "2026-11-26T13:23:48.576096+00:00",
+      "request_id": "9712969eb971c6a00ae508b4f172df8a63bab3996430f94e8a2b8ec2da311b6a",
+      "evidence_sha256": "e76970e05a0b4cdc786e68e99f44c2729022efa22c76ced2cb612b333da470da"
     }
   ]
 }
