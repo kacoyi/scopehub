@@ -8376,6 +8376,159 @@
         "prevention": "The seven-stage public SIGINT test checks that the unrelated peer keeps its lock and that reports, cleanup and retries remain intact. Retained controls verify the old deadline, deliberate early release and controller exit."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "timing-job-label-conflicts-with-successful-publisher-step",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-130 decision on caea2a0a580fb4905b75558cbe0f171505b813a7, recorded at d5fa176c915b68d56253a821ef2de07d9d676169. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-130-caea2a0a/original-assistant-response.jsonl (SHA-256 95d8516d056eb47114e90aa78f4ecc4ac9721e3b5a2b26e9404990fff96df277).",
+      "observation": "Swapping only the browser and aggregate job names in the retained PR 84 listing caused the weekly reader to qualify the browser job’s 645-second clock as Windows platform timing and return one receipt.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-job-dispute-depends-on-listing-boundaries",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-131 decision on caea2a0a580fb4905b75558cbe0f171505b813a7, recorded at d5fa176c915b68d56253a821ef2de07d9d676169. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-131-caea2a0a/original-assistant-response.jsonl (SHA-256 3a4b9bcaa36867d2fe09952a592bab65b7cbcd148c7b76397b50521ed25807f1).",
+      "observation": "A repeated browser job with opposite known conclusions lost its dispute inside one listing after rotation. Combining the same job ID with a conflicting role and checkout lost the checkout rejection inside one listing. Submitting an ordinary-name claim for the same job ID by itself lost the role dispute. Separate and combined listings must agree on clocks, runner totals, eligibility and diagnostics.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-partial-job-conclusion-prevents-compatible-join",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-133 decision on caea2a0a580fb4905b75558cbe0f171505b813a7, recorded at d5fa176c915b68d56253a821ef2de07d9d676169. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-133-caea2a0a/original-assistant-response.jsonl (SHA-256 7b8a431972c61b13917c3b4e8b6c00ce552549409eb00b6485bdf917b5b63b06).",
+      "observation": "For run 45546767887, repeating the same browser job with only its conclusion omitted produced one Windows platform receipt across two job listings and zero when both observations appeared in one listing.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-artifact-origin-allows-cross-platform-freshness",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-145 decision on caea2a0a580fb4905b75558cbe0f171505b813a7, recorded at d5fa176c915b68d56253a821ef2de07d9d676169. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-145-caea2a0a/original-assistant-response.jsonl (SHA-256 3966175f44310155c87ae821cedd6a37c5299f40eeb5a5b8580fc2b0857f756a).",
+      "observation": "In an offline replay of run 45546767887, both recent-collection modes issued a Windows freshness receipt when only the Ubuntu timing artifact was available and its payload contained the authentic Windows report.",
+      "task_ids": [
+        "M0-156"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-known-publisher-accepts-substituted-execution-digest",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-148 decision on caea2a0a580fb4905b75558cbe0f171505b813a7, recorded at d5fa176c915b68d56253a821ef2de07d9d676169. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-148-caea2a0a/original-assistant-response.jsonl (SHA-256 2caa979d2d9fc795616f2383f149007810731fff11b061c0e6c0c2b044bc5633).",
+      "observation": "After I replaced only the execution-input digest in Windows run 45577003837 with the digest from run 45570358218, the ordinary reader retained 718 wall seconds and 2,346 runner-seconds, and the weekly reader issued a receipt for the altered sample.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-catalog-assumes-unproved-base-publisher-selection",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 decision on caea2a0a580fb4905b75558cbe0f171505b813a7, recorded at d5fa176c915b68d56253a821ef2de07d9d676169. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-150-caea2a0a/original-assistant-response.jsonl (SHA-256 5d3f2be57fafa64097402cef0d51bc7abda51b569076ef9ecd114c1c4b332f82).",
+      "observation": "In two source-bound controls, the reader accepted stale producer selections and promoted the aggregate cache to warm after the publisher excluded market-recovery-ui.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-report-missing-task-id-interrupts-batch",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 decision on caea2a0a580fb4905b75558cbe0f171505b813a7, recorded at d5fa176c915b68d56253a821ef2de07d9d676169. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-150-caea2a0a/original-assistant-response.jsonl (SHA-256 5d3f2be57fafa64097402cef0d51bc7abda51b569076ef9ecd114c1c4b332f82).",
+      "observation": "Deleting task_id from just one authentic browser report caused the ordinary reader, weekly collection and linked indexing to raise KeyError before publishing the accompanying valid aggregate timing.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-linked-attempt-omits-sibling-capture-after-rotation",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-155 decision on caea2a0a580fb4905b75558cbe0f171505b813a7, recorded at d5fa176c915b68d56253a821ef2de07d9d676169. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-155-caea2a0a/original-assistant-response.jsonl (SHA-256 eedd4a0622131f502ea21d760988c467c726250784b7f9f0eb9d37d20a834072).",
+      "observation": "After twelve newer captures, the linked budget reader counted 804 seconds of Windows wall time and 2467 runner-seconds for run 45546767887 while its retained checkout conflict remained readable.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-first-ci-budget-omits-retained-failure",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-155 decision on caea2a0a580fb4905b75558cbe0f171505b813a7, recorded at d5fa176c915b68d56253a821ef2de07d9d676169. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-155-caea2a0a/original-assistant-response.jsonl (SHA-256 eedd4a0622131f502ea21d760988c467c726250784b7f9f0eb9d37d20a834072).",
+      "observation": "The first current CI query of a rotated attempt incorporated a stale success with 889 wall seconds and 2578 runner-seconds despite an authentic retained failure. In a separate eligible PR control the first budget counted one Windows full observation and a second identical query counted zero.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
