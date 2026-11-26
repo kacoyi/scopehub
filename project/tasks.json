@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-166",
   "tasks": [
     {
       "id": "M0-001",
@@ -26618,6 +26618,119 @@
           ],
           "data_plan": "Use isolated synthetic profiles and existing private diagnostic archives. Report fixed outcomes without retaining identities, file contents or process arguments.",
           "cleanup": "Remove temporary observation code and obsolete verification duplication after equivalent native controls pass. Keep the original failed report and log."
+        }
+      }
+    },
+    {
+      "id": "M0-166",
+      "title": "Recover or classify the interrupted frozen preview on a cropped window",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-149"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "apps/desktop/src-tauri",
+        "tests/ubuntu-preview",
+        "tests/ui"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Bind the failed browser case, its three bounded journals and the same-tree passing control to their actual OS, scenario, phase and source. Distinguish the failing observation from a wrong numeric result or another task’s calendar preview.",
+        "Reproduce or classify the interruption through the ordinary frozen preview entry with an independently observed valid and interrupted trial. Verify full and cropped equal closes, correct request and task correlation, the existing polling and admission policy, and cleanup. Keep unresolved attribution explicit.",
+        "Correct the confirmed cause or missing diagnostic and independently review it. Qualify the changed public boundary on ordinary Windows with current originals, preserve the first failure and recheck after protected integration."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe",
+        "desktop-workspace-transport",
+        "ui-build",
+        "market-workflow"
+      ],
+      "evidence": [],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45823962357-1",
+          "source_commit": "9f3a91950aee9e7c81819a0d27027fa2b9cc7514",
+          "report_sha256": "078717eb8956e711ef6b2262f43f70349a0d1d0901983b395af324135ec03f8c"
+        }
+      ],
+      "next_action": "Compare the ordinary failed frozen preview with the same-tree guarded pass, find the first divergent consumer observation, then retain a bounded positive and interrupted control.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Bind the failed browser case, its three bounded journals and the same-tree passing control to their actual OS, scenario, phase and source. Distinguish the failing observation from a wrong numeric result or another task’s calendar preview. Reproduce or classify the interruption through the ordinary frozen preview entry with an independently observed valid and interrupted trial. Verify full and cropped equal closes, correct request and task correlation, the existing polling and admission policy, and cleanup. Keep unresolved attribution explicit.",
+        "change_types": [
+          "tooling",
+          "ui"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "apps/desktop/ui/src/indicator-preview.tsx",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "project/checks.json",
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json"
+        ],
+        "hypotheses": [
+          "The truncated third journal is consistent with a fixture or transport interruption between the admitted status and the next observable recovery step. Determine the actual boundary before selecting a repair."
+        ],
+        "risks": [
+          {
+            "failure": "A longer wait, a repeated preview or an unrelated green sample task could hide the original abort or change frozen results.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "workspace-timeframe",
+              "desktop-workspace-transport",
+              "ui-build",
+              "market-workflow"
+            ]
+          }
+        ],
+        "rollback": "Restore the preceding implementation and retain the diagnosed failures and controls if the ordinary contract changes.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "ui",
+            "desktop"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "apps/desktop/ui/src/indicator-preview.tsx",
+            "apps/desktop/ui/src/use-local-workspace.ts"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/0"
+            }
+          ],
+          "non_goals": [
+            "Preserve the 15-second polling deadline, frozen full and cropped values and ordinary permissions. Omit unrelated feature work and the separate ordinary Python process deadline."
+          ],
+          "open_questions": [
+            "The truncated third journal is consistent with a fixture or transport interruption between the admitted status and the next observable recovery step. Determine the actual boundary before selecting a repair."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Preserve the 15-second polling deadline, frozen full and cropped values and ordinary permissions. Omit unrelated feature work and the separate ordinary Python process deadline."
+          ],
+          "change": [
+            "Compare the ordinary failed frozen preview with the same-tree guarded pass, find the first divergent consumer observation, then retain a bounded positive and interrupted control."
+          ],
+          "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
+          "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
         }
       }
     }

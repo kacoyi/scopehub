@@ -7934,6 +7934,33 @@
         "prevention": "The real-child control asserts the exact bounded row and field for stderr, fixed fallback for a stdout-only lookalike, cleanup of all acquired fixtures and no witness launch after failed preparation. Independent review replayed both cases and guarded workspace-timeframe passed on Linux and Windows."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "frozen-indicator-cropped-window-aborted-before-status-delivery",
+      "status": "open",
+      "severity": "major",
+      "source": "First native observation archives/observations/repo-hygiene-20261125/pr137-native-original-45823962357/manifest.json (SHA-256 c6dd51e2ca444c08639241eb14492ea9d1b47d2f4ec3ae0853d80a96bcff96fe).",
+      "observation": "Ordinary PR 137 Windows run 45823962357 failed at the cropped-window frozen indicator after a full-window ready result and a recovered status delivery. The third journal retained a committed draft and preview and one ready reply recorded before simulated loss. It ended after 3325 ms with four attempts, without a recorded next status delivery. Playwright reported AbortError with TimeoutError. The same candidate passed the scoped Linux and Windows task. The failed report does not establish which call timed out.",
+      "task_ids": [
+        "M0-166"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe",
+        "desktop-workspace-transport",
+        "ui-build",
+        "market-workflow"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45823962357-1",
+          "source_commit": "9f3a91950aee9e7c81819a0d27027fa2b9cc7514",
+          "report_sha256": "078717eb8956e711ef6b2262f43f70349a0d1d0901983b395af324135ec03f8c"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
