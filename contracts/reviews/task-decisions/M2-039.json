@@ -184,6 +184,26 @@
       "requested_at": "2026-11-26T06:06:33.823690+00:00",
       "request_id": "14296f04a0f694d4b7e77f250b2c5bb8ef81c71a3dcbba11687fbfb9048808d6",
       "evidence_sha256": "31f8bc15262f55666bbd05f64336061a105c55bc3f783411766bd5da6257d219"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "f30e5235cf9270116b6f1e37e1425898f1822d7b",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 f30e5235cf9270116b6f1e37e1425898f1822d7b",
+      "scope": "APPROVE M2-039 f30e5235cf9270116b6f1e37e1425898f1822d7b",
+      "observation": "In my replay of the public React dialog, both libraries denied the withdrawn revision without another chart read and still opened a second revision when one remained.",
+      "reviewer": "Independent Astra Standard (t146)",
+      "original_sha256": "3843d8a1162aa1ff2698689bdb6ca25f723a3ddf12c8c326edcb06996acb67ad",
+      "response_id": "bb130c5ec9e335cfea56ea321b5ee9ce4a2afa1e4879990b45c07b840bbfaf9f",
+      "response_sha256": "eee5966fa1efdae42ea5fd57ebfc9548a92fe3aa3923dd53dfb8e6c2c5ed070d",
+      "legacy_response_sha256": "ae5073bbf7b21e2db2a9966e6002b959d6256b1bbe57600e1284654374827e34",
+      "observation_body_sha256": "f8e1668c13eb3c6abcbcd543f256be9a095844f91dd95cdf9c69fe37b60a0a1e",
+      "event": {
+        "id": "msg_02769b072c21826b016b07d12473bc87d2ba828356d850ec87",
+        "timestamp": "2026-11-26T06:27:09.239Z"
+      },
+      "supersedes": "14296f04a0f694d4b7e77f250b2c5bb8ef81c71a3dcbba11687fbfb9048808d6",
+      "evidence_sha256": "1f30a5984c5c5218477c5e4a2dc2b2e0bcdc74ed9a6674f741beacdf871e86be"
     }
   ]
 }

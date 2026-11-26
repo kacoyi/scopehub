@@ -204,6 +204,26 @@
       "requested_at": "2026-11-26T06:06:32.765006+00:00",
       "request_id": "76b90077c3e81f02a08e58c19533e1bfd76906026e19afde688ea1056971cc94",
       "evidence_sha256": "c880b76bb4f6832a7e2738b2b77dac756ce5126c238521275b7fe3604723dacb"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "f30e5235cf9270116b6f1e37e1425898f1822d7b",
+      "verdict": "approved",
+      "decision": "APPROVE M2-035 f30e5235cf9270116b6f1e37e1425898f1822d7b",
+      "scope": "APPROVE M2-035 f30e5235cf9270116b6f1e37e1425898f1822d7b",
+      "observation": "For both CSV and folder revisions, fresh authorization restored the chart and a newly read source row, and reopening a withdrawn revision by ID showed a permission denial with zero additional chart reads.",
+      "reviewer": "Independent Astra Standard (t145)",
+      "original_sha256": "892fcf5526c0524cbcc25d2dc29888f22b900e6db1636596ee67fea5462050d7",
+      "response_id": "6e3256b8b6b3ab64bba840ed29d821de50833bfaa2a04debd4f645a0ef8bc37f",
+      "response_sha256": "f8936656f85aecfa244fbd43e883e74cfa51ce68d6949b26df5e6132625c7118",
+      "legacy_response_sha256": "21d9ff149850703c88560b0c97ca6d92ffe1d15ad32889b3df0f9cece848ee8f",
+      "observation_body_sha256": "cc2ce7e3dab4c17259216fd1ca6227290463f0ea63788d2d17619671318eec52",
+      "event": {
+        "id": "msg_09882cbc637fb227016b07d18a33f887d2b01e031d613c53dd",
+        "timestamp": "2026-11-26T06:28:47.671Z"
+      },
+      "supersedes": "76b90077c3e81f02a08e58c19533e1bfd76906026e19afde688ea1056971cc94",
+      "evidence_sha256": "f9b34d940d6b5ef43c5c9756ab290c4a7c0f0ee2fcb87984cc1e2514a9939cb8"
     }
   ]
 }

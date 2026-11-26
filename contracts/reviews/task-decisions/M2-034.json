@@ -184,6 +184,26 @@
       "requested_at": "2026-11-26T06:06:31.719912+00:00",
       "request_id": "1b9970cd71ba3dd048952235c6a1ffd82d8a72fe69bbaca476ab47c805f5f1d9",
       "evidence_sha256": "abf8a828ab53533743861a3d6a23a466be7f3e84d9c799b1026adf7c7a56a2e1"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "f30e5235cf9270116b6f1e37e1425898f1822d7b",
+      "verdict": "approved",
+      "decision": "APPROVE M2-034 f30e5235cf9270116b6f1e37e1425898f1822d7b",
+      "scope": "APPROVE M2-034 f30e5235cf9270116b6f1e37e1425898f1822d7b",
+      "observation": "In Chromium with controlled IPC, clearing the saved bar while its access check was pending advanced the selection revision from 13 to 14, and reopening after withdrawal issued zero frozen-chart reads and zero selection writes.",
+      "reviewer": "Independent Astra Standard (t144)",
+      "original_sha256": "4baac832b2c55ef9397e3c2a2a182a3e8670f78c0cbd29997e0b1b3189c7ceab",
+      "response_id": "e3a2a5221c80c92e380cf1c57f6f2b6ee0a4a717940fa76b9c36016ffdc4096f",
+      "response_sha256": "dea6c54b4fe6252da5e006db59edee59b4c1be31537ae40847c23f2078d891f3",
+      "legacy_response_sha256": "5b287501b476ee51bf5f91d956aa1bc9fb9cf040a29e94377bdf2a2e8e1d7ca3",
+      "observation_body_sha256": "b91ded0946fe1a5a469e3ab3c010cca6862af734f673483c32c0a512478cdf92",
+      "event": {
+        "id": "msg_0b9d2b21b6e1d212016b07ce3c667c87d1894f3222af938e4c",
+        "timestamp": "2026-11-26T06:14:40.865Z"
+      },
+      "supersedes": "1b9970cd71ba3dd048952235c6a1ffd82d8a72fe69bbaca476ab47c805f5f1d9",
+      "evidence_sha256": "ef5254fa3829a9666ad976f3e45210ea63abe9ec8f2f5439935927542c8fbdba"
     }
   ]
 }
