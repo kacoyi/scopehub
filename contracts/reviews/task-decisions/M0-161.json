@@ -10,6 +10,26 @@
       "requested_at": "2026-11-26T07:24:22.653438+00:00",
       "request_id": "997734e91648f8261344d4e0ee1bed27bec028fecf2099f3b3e4cc28521fc0c3",
       "evidence_sha256": "bfa37a796b26425d6e0b9ffcb558b1d0163e67d986e293d9dffee49cac5fd267"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "727b4fb34ba87a731a159123e39f9531ba9ffb7c",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-161 727b4fb34ba87a731a159123e39f9531ba9ffb7c",
+      "scope": "CHANGES_REQUESTED M0-161 727b4fb34ba87a731a159123e39f9531ba9ffb7c",
+      "observation": "With one unassigned major finding and both workstreams accepted, the candidate’s first action directed the coordinator to stop assigning work.",
+      "reviewer": "Independent Astra Standard (t14y)",
+      "original_sha256": "e49daf361b45b1117381d732477d3b7b6252ca9a99924932f2daf601ef00cbf5",
+      "response_id": "167670508d7dd87418fc69a9580a40b9f70cf54a8173d0dc35c0ee5f7444dd8d",
+      "response_sha256": "e3a5048bc41c39626181ff47a0e6250f74d2f7a5f04e8a4559d7509f2bd3b8e1",
+      "legacy_response_sha256": "e09662314255fbaf8d497c5404ed4071cd97eaeccbf531e538faf15a54b835fc",
+      "observation_body_sha256": "f8d090c805e8ac4e84d4ccc6072775f9e0f8e8d05b1505b8b273e8a8d3801f0c",
+      "event": {
+        "id": "msg_04484f5e519cb17b016b07e185af8887d28820616235126bb0",
+        "timestamp": "2026-11-26T07:36:50.580Z"
+      },
+      "supersedes": "997734e91648f8261344d4e0ee1bed27bec028fecf2099f3b3e4cc28521fc0c3",
+      "evidence_sha256": "7020d55265f08f5020ee5e4203e3647559b16b490eb5af1271399aab888b0f9c"
     }
   ]
 }
