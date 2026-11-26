@@ -1,0 +1,57 @@
+name: Measure repeated maintenance policy reads on Windows
+on:
+  push:
+    branches: [codex/probe-m0-153-policy-9877c170]
+permissions:
+  contents: read
+jobs:
+  measure:
+    if: github.repository == 'kacoyi/scopehub' && !github.event.deleted
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Select the original measured source
+        shell: pwsh
+        run: git switch --detach 9877c170643b673c58a7d167fe38c2e7978ed83c
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d
+        with:
+          version-file: pyproject.toml
+          checksum: edd61f7f5728a56cc62455386661860bdfc7bab65872f39b0c25bdcc1d8e1beb
+          python-version: '3.12'
+          enable-cache: false
+          download-from-astral-mirror: false
+      - run: uv sync --locked
+      - name: Compare the public interactions on this runner
+        shell: pwsh
+        run: |
+          $driver = Join-Path $env:RUNNER_TEMP 'm0-153-policy.py'
+          $output = Join-Path $env:RUNNER_TEMP 'm0-153-policy-results'
+          $extract = @'
+          from hashlib import sha256
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+
+          ref = os.environ["GITHUB_SHA"] + ":.github/probes/m0-153-policy.py"
+          data = subprocess.check_output(["git", "show", ref])
+          assert sha256(data).hexdigest() == "102462ff7fc86d0f74bebf4d504c5de8722c6ebecf48d7e7112a7cac61119ebf"
+          Path(sys.argv[1]).write_bytes(data)
+          '@
+          $extractor = Join-Path $env:RUNNER_TEMP 'm0-153-extract.py'
+          Set-Content -LiteralPath $extractor -Value $extract -Encoding utf8NoBOM
+          & ./.venv/Scripts/python.exe $extractor $driver
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          & ./.venv/Scripts/python.exe -B $driver $output
+          exit $LASTEXITCODE
+      - name: Retain timings, exit codes and original command transcripts
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: m0-153-windows-policy
+          path: ${{ runner.temp }}/m0-153-policy-results
+          if-no-files-found: error
