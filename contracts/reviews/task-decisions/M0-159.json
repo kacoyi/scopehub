@@ -39,6 +39,15 @@
       },
       "supersedes": "c3af62e4333327cb208f0ff69e641711579e7a4235bf7e567a37c964e1b0db9a",
       "evidence_sha256": "95e997aefd4562f11b8ee4057eb801737f6e0949819a0e3e6852fa0f9a0d0f2d"
+    },
+    {
+      "kind": "request",
+      "source_commit": "5a542187023202b74d128acaefed4ebee32da8a8",
+      "scope": "Exercise the integration decision with all three protected policies, absent and present prior findings, and the PR 131 native originals. Check qualified pre-merge evidence, explicit ownership of the first matching protected push, source and ordered case identity, rejected substitutions and actual success before closure.",
+      "supersedes": "a79d95a3e19c74170edd4c9cb6bc463df5eb12b7320f3970182fdfef39375832",
+      "requested_at": "2026-11-26T12:39:51.069261+00:00",
+      "request_id": "eb97fb1bd3a4aca1bcc8f811ba0738f16b6a771b3420b4acb87cb557eb9cb347",
+      "evidence_sha256": "1e8a4cf17f747eef47b609e54b0d4614dd850f32fb7ae391e02838684a3ae7b6"
     }
   ]
 }
