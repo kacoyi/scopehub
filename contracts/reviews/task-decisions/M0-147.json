@@ -117,6 +117,26 @@
       "requested_at": "2026-11-26T05:53:06.122196+00:00",
       "request_id": "2253eb8d36846ce49f4604641b17d117c3b019396b43ebb023712602dde1c442",
       "evidence_sha256": "c4e694482bc187b0f943503b38b863cf9a93795ee8100393e36a46ae23d489d8"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5217c54ade6ba44b13c6becdec138d5cbd79aca3",
+      "verdict": "approved",
+      "decision": "APPROVE M0-147 5217c54ade6ba44b13c6becdec138d5cbd79aca3",
+      "scope": "APPROVE M0-147 5217c54ade6ba44b13c6becdec138d5cbd79aca3",
+      "observation": "The reconciled handoff test body is byte-for-byte identical to the one that passed on its first attempt in both archived Windows runs.",
+      "reviewer": "Independent Astra Standard (t148)",
+      "original_sha256": "3d9baf617c8669999b470826ef2ec7fadcb5eb31222a32f97f8a0391f92ad5ff",
+      "response_id": "fd48a025b98895e468ae1f8b67b1ba049820edf158d1cf0768af8537152af96f",
+      "response_sha256": "bcc3bcec7a1a6760303553dc4f72cd4df83dc342dfea9dfa9603ee0e2457ccb1",
+      "legacy_response_sha256": "220ffb0214a97da69df73e3dbbfe999b4208915c3cffbe761cd98346cf45e120",
+      "observation_body_sha256": "147de9eb2464c8bd6dff2ccdf36c7c4902cc9dba0c66953ca88d2c17b5b37fa8",
+      "event": {
+        "id": "msg_03eaf7859c9e1d4d016b07d2f0e97087d180df901bea952941",
+        "timestamp": "2026-11-26T06:34:59.818Z"
+      },
+      "supersedes": "2253eb8d36846ce49f4604641b17d117c3b019396b43ebb023712602dde1c442",
+      "evidence_sha256": "52781cdc5c18c98c84e3c30a048bf46d9ca67c21ea70d1b72483b0245f34f8e2"
     }
   ]
 }
