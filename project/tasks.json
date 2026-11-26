@@ -26622,6 +26622,380 @@
       }
     },
     {
+      "id": "M0-163",
+      "milestone": "M0",
+      "title": "Make first-test and shared-capability guidance unambiguous from the checkout",
+      "status": "done",
+      "depends_on": [
+        "M0-158"
+      ],
+      "scope": [
+        "AGENTS.md",
+        "engineering-contract-v1.json",
+        "project/development.json",
+        "tests/project/test_development.py",
+        "project/evidence",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0030"
+      ],
+      "acceptance": [
+        "A fresh agent can find one consistent rule for choosing a first test. A chart rendering failure starts with an observable plotted-series distinction, while a protocol or permission failure starts at the boundary that can detect it. Use semantic examples and existing validation rather than hard-coding preferred wording.",
+        "A routine local dependency decision and a real shared-capability or external-provider decision lead to the appropriate versioned engineering rules. Preserve applicable organization or provider requirements when actually available and existing grants for costs, user data and access. An optional or missing host service cannot block unrelated local work.",
+        "Retain existing M0 and V1 scope and owner boundaries. Keep the root entry concise; consolidate duplicated detail only where an authoritative usable source exists. Validate changed links and discoverability from a clean checkout with no optional ancestor or private archive."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-163-0a1e626f3ffd9652.json",
+          "sha256": "ecf36e323719f520a4ae28899c42be5d48b035e4bcb7887834b9043832eb90f1"
+        },
+        {
+          "path": "project/evidence/M0-163-52d1e40230840602.json",
+          "sha256": "03fa066cd62638d4a301db76e84234a91e6c86cc5b0604e13e6f62dd2e80be79"
+        },
+        {
+          "path": "project/evidence/M0-163-c215d7446e0780b8.json",
+          "sha256": "4435168349b9381d274152c000a52501385732331e554d8c24b53deccaccd8ad"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The task checks and independent clean-checkout navigation verified the first-test and dependency rules, with separate chart and protocol examples and an accessible provider-authorization rule.",
+      "plan": {
+        "outcome": "The agent can select the first decisive test and recover the applicable dependency rules on a standard checkout.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+          "project/delivery.json",
+          "project/development.json",
+          "AGENTS.md",
+          "engineering-contract-v1.json",
+          "tests/project/test_development.py"
+        ],
+        "hypotheses": [
+          "A universal sequencing sentence and an unresolved host-specific cross-reference can send a fresh agent away from the first observable failure or make it wait for an unnecessary tool."
+        ],
+        "risks": [
+          {
+            "failure": "Clarifying guidance could remove meaningful security, licensing or provider boundaries or make a remote service a prerequisite for ordinary development.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Revert the guidance change and retain both observed interpretations and their source references for independent reconciliation.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "AGENTS.md",
+            "engineering-contract-v1.json",
+            "project/development.json",
+            "tests/project/test_development.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/iteration_policy/during"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/implementation_policy/build_or_reuse"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/evolution"
+            }
+          ],
+          "non_goals": [
+            "Change product runtime behavior, expand owner authorization, or publish private evidence."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The scope of product and engineering roles, existing parent rules when present, M0 exclusions, privacy, generator ownership, and actual release qualification."
+          ],
+          "change": [
+            "Resolve conflicting priorities and the dangling rule reference at their authoritative sources. Align nearby agent-facing navigation with the working directions."
+          ],
+          "data_plan": "Development records only. Keep task originals private and preserve existing product data and permissions.",
+          "cleanup": "Use the supported repository entry for the corrected behavior. Retire superseded local workarounds after matched verification and preserve originals required for audit."
+        }
+      }
+    },
+    {
+      "id": "M0-154",
+      "title": "Qualify cold sample document readiness in the Windows closed-bar repair journey",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M1-022",
+        "M1-023"
+      ],
+      "scope": [
+        "tests/ui/sample-startup.mjs",
+        "tests/ui/chart-pixels.mjs",
+        "tests/ui/history.spec.mjs",
+        "tests/ubuntu-preview",
+        "apps/desktop/ui",
+        "project/tasks.json",
+        "project/checks.json",
+        "project/development.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain the failed protected producer, same-tree native passing control and aggregate diagnostic when available. Identify the last observed startup stage before the chart repair assertion.",
+        "Use the public sample entry to distinguish an absent or failed document, a delivered document with pending required code, and a mounted sample with verified catalog and history. Preserve the original deadline, rejection of a genuine stall and chart expectations.",
+        "Demonstrate the correction or diagnostic on real controlled navigation and in the ordinary native Windows check, with original unsuccessful and successful controls retained. Keep historical cause and Windows acceptance explicit until observed.",
+        "Reject request-bound history contradictions before displaying the sample. A valid history with a failed chart mount stays history-verified. A successful cold sample includes actual candlesticks at the fitted time positions and OHLC price landmarks of the verified history. Missing, unrelated or misplaced price marks with the original last-price line and axis label stay history-verified."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "market-recovery",
+        "ui-build",
+        "generated-contracts",
+        "market-workflow",
+        "chart-history",
+        "architecture",
+        "market-live-stream",
+        "market-quality-states"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-154-531c8c110e824c73.json",
+          "sha256": "8fdd6d6b0d89c6804a2c4826ad9e2b304bc05575e317f02c0b4337748188eef4"
+        },
+        {
+          "path": "project/evidence/M0-154-54aa0eb51119f849.json",
+          "sha256": "5188bfaecc20c46c88a346c28690b28b36435144168f342459a46ddac4b823ba"
+        },
+        {
+          "path": "project/evidence/M0-154-10729f8012c6ad43.json",
+          "sha256": "1aa7c7e38ce631d105e5bdd7f30e69ad64aabc4b21c97495a08f44c31ca8520a"
+        },
+        {
+          "path": "project/evidence/M0-154-8bf9a6ef0193add5.json",
+          "sha256": "15a80ca98b3eb1e32d257a20dca060bc21d765582e525255ab9b482abbb2c51b"
+        },
+        {
+          "path": "project/evidence/M0-154-bfb6958fa70338b3.json",
+          "sha256": "7fafedaf54305dfe2e50eddbdcc6d54ddd3f6666d83f7b40d7c33477029e5509"
+        },
+        {
+          "path": "project/evidence/M0-154-a4209b3465db38fc.json",
+          "sha256": "3e299258a947ba1a905d5c5990e4120625721080666a9446ec8651ad9b31ed1b"
+        },
+        {
+          "path": "project/evidence/M0-154-f8d8b22f62dafa0a.json",
+          "sha256": "b6a730fe7764093a9309e1bdeb7865db1bfd4164b3092fed842305a559d0bb13"
+        },
+        {
+          "path": "project/evidence/M0-154-8e61319c5013374f.json",
+          "sha256": "283aafe29547ce6d6abb77cc71f1aeb41c519725e690304c000317fed8de68d9"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The first ordinary Windows PR 136 run 45823554677 passed all 41 recovery browser cases, including the cold public repair entry, the held-document deadline and fitted candle controls. Both platform receipts cover every task check. The independent approval of 83022759 is retained in contracts/reviews/task-decisions/M0-154.json. Native originals and their evidence limits are indexed in .reports/m0-154-native-closure/handoff.json. The historical timeout's cause remains unresolved and packaged physical Windows acceptance remains separate.",
+      "plan": {
+        "outcome": "A cold closed-bar repair journey reaches its verified initial sample or explains the last observed stage at the existing navigation deadline.",
+        "change_types": [
+          "tooling",
+          "ui"
+        ],
+        "context": [
+          "contracts/schemas/protocol.schema.json",
+          "scripts/generate_market_output_validators.mjs",
+          "tests/ui/sample-startup.mjs",
+          "tests/ubuntu-preview/market-closed-bar-repair.spec.mjs",
+          "tests/ubuntu-preview/market-preview-config.mjs",
+          "apps/desktop/ui/index.html",
+          "archives/observations/repo-hygiene-20261125/m0-154-cold-sample-45709117560/observations.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-232d0902/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-e8b8de61/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-2f02d0f7/final-response.txt",
+          "contracts/market-data-v1.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-222ba13c/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-e11e24fc/final-response.txt",
+          ".reports/m0-154-candle-paint/baseline/observations.json",
+          ".reports/m0-154-candle-paint/regression-before/market-recovery/results.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-6cc6a82f/original-assistant-response.jsonl",
+          ".reports/m0-154-candle-geometry/baseline/market-recovery/results.json"
+        ],
+        "hypotheses": [
+          "The screenshot confirms that the startup panel rendered. A missing or slow deferred module, an unobserved document transition and host delay remain distinguishable hypotheses until there is request and lifecycle evidence.",
+          "On unchanged local Linux Chromium, the sample completed the real catalog and history. Holding the static entry left a committed document with manual reload and no DOMContentLoaded. Holding the dynamically imported entry allowed DOMContentLoaded before any verified sample. These controlled observations do not identify the source of the historical Windows failure.",
+          "The startup attachment previously checked fewer reply fields than readSampleHistory. A same-series, same-revision reply for a shifted range distinguished the two checks.",
+          "Both consumers trust the structural output type after transport decoding. A frozen snapshot can pass their shared first-page comparison even if a required field absent from comparisons is missing. Compare the same archived 40-bar success with a one-field deletion at both public consumers.",
+          "The wrapper carries accepted history metadata before the renderer mounts. A valid equivalent decimal with excessive trailing zeros reaches Intl formatting and distinguishes history admission from successful chart presentation.",
+          "The Rust operation already binds worker output to the request. A loopback response altered after the bridge can pass generated shape checks while contradicting a dataset, snapshot, stream or page relationship at the UI admission boundary.",
+          "On e4cd88ec73e13c9064d53252dc031b83db4ddcd2, suppressing candle bodies and wicks left one price-colored row of 464 pixels in the main pane and 730 pixels in the price axis. The genuine and suppressed renders received byte-identical 40-bar history and both were credited with presentation success. The genuine render had price-colored pixels across 438 rows of the main pane. The original observer also accepted a neighboring case with two same-color rectangles in place of the candles.",
+          "On cfc783280bc1d63cae4a1cdf6c74a25699af4d68 the color-order classifier retained neither the fitted time coordinates nor the OHLC price geometry. The real startup accepted a compressed series of three-pixel marks with all 40 original directions."
+        ],
+        "risks": [
+          {
+            "failure": "A document-only success could release chart assertions before the mounted sample, its correct catalog and history.",
+            "checks": [
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "An added retry, excessive logging or inflated deadline hides a genuine terminal or crosses a privacy boundary.",
+            "checks": [
+              "market-recovery",
+              "project-state"
+            ]
+          },
+          {
+            "failure": "A valid reply to a changed request or reversed startup order advances readiness. Drive the real sample boundary with the ordinary calls, a changed history start, a changed catalog limit and reversed calls, and check each last verified stage.",
+            "checks": [
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "The held-module attachment misstates elapsed time while passing the deadline check. Compare it with an independent elapsed measurement under the original ten-second navigation cutoff and reject false-zero and implausible values.",
+            "checks": [
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "A structurally invalid success reaches the chart and startup readiness, or stricter decoding rejects a supported response. Use comparable current and compatible replies, missing and malformed structures, valid replies to a different request, failed replies and reversed completion at the public entry. Assert application outcome and the last attached stage.",
+            "checks": [
+              "market-recovery",
+              "ui-build",
+              "generated-contracts",
+              "chart-history"
+            ]
+          },
+          {
+            "failure": "The observer marks sample readiness without price marks or rejects a contract-valid decimal spelling. Replay the ordinary and equivalent ticks, force a chart mount failure after valid history, and independently measure price pixels, the visible alert, and the final startup stages.",
+            "checks": [
+              "market-recovery",
+              "ui-build",
+              "architecture"
+            ]
+          },
+          {
+            "failure": "A schema-valid response to a different request or an inconsistent continuation reaches the chart. Exercise the real public history validator before claiming startup history readiness with current and supported legacy inputs, single-field contradictions and real replay preparation.",
+            "checks": [
+              "market-recovery",
+              "chart-history",
+              "market-live-stream",
+              "market-quality-states"
+            ]
+          },
+          {
+            "failure": "The startup observer credits a last-price line, axis label or unrelated same-color marks as visible history. Compare genuine candles, missing candles and unrelated ink through the public entry with the same authoritative bridge responses and verify that a paint timeout stays history-verified without a mount failure flag.",
+            "checks": [
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "Correct color order can mask misplaced bodies and wicks, or pixel quantization can reject a legitimate render. Verify fitted time and OHLC geometry through the public entry with genuine paint, missing and relocated paint, and the genuine sample at fractional device scale and a narrower viewport. Compare ordinary startup and held-document timing.",
+            "checks": [
+              "market-recovery"
+            ]
+          }
+        ],
+        "rollback": "Keep the existing valid sample and cutoff; revert a change that hides a deliberate stall or changes the expected bars.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "ui",
+            "chart-adapter"
+          ],
+          "entrypoints": [
+            "tests/ui/sample-startup.mjs",
+            "tests/ui/chart-pixels.mjs",
+            "tests/ui/history.spec.mjs",
+            "tests/ubuntu-preview/market-closed-bar-repair.spec.mjs",
+            "apps/desktop/ui/src/market.ts",
+            "apps/desktop/ui/src/market-output.ts",
+            "apps/desktop/ui/src/sample-history-validation.ts",
+            "apps/desktop/ui/index.html",
+            "apps/desktop/ui/src/price-chart.tsx",
+            "apps/desktop/ui/src/chart-adapter/history.ts",
+            "apps/desktop/ui/src/chart-adapter/price-format.ts"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/domain/history_snapshots/selection"
+            },
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/MarketHistoryPageOutput"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            },
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/domain/stream_handoff"
+            }
+          ],
+          "non_goals": [
+            "Changing market data, relaxing chart integrity checks, automatic UI reloads or raising the navigation deadline."
+          ],
+          "open_questions": [
+            "What document, required script and workspace-mount events are observable at the failed boundary without reproducing assumptions about the native host?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The explicit synthetic sample, real chart repair path, source ownership, verified bars and manual reload behavior.",
+            "Keep supported legacy market reads, chart styles and no-tick formatting, the fixed required-hash control, partial startup stages, the ten-second document deadline and independently measured elapsed time."
+          ],
+          "change": [
+            "Add only the distinction or removable startup cost that measurements through the ordinary entry support.",
+            "Attach bounded document, pending code and verified market milestones to the normal repair browser check. Retain the ten-second navigation deadline, chart contract and manual reload.",
+            "Generate shared market response validators from the operation output types registered in the canonical JSON Schema. Standalone generation reuses the locked validator without compiling a schema in Chromium or WebView. Keep semantic checks for the application's paginated reads and the startup witness's single-page expectation.",
+            "Replace the two partial UI history comparisons with one request-bound validator at the existing public client entry. Per-field patches to the old first-page check would leave replay preparation and pinned continuations on separate identity rules. Rust retains digest verification.",
+            "Retain the chart renderer and normalize the instrument's decimal tick once for price formatting. The format helper has no renderer dependency. PriceChart owns the mount and its error, while the startup check witnesses visible price marks before recording a successful cold sample.",
+            "Preserve the earlier rejection of missing candles and unrelated price ink. Verify actual painted marks against fitted time coordinates and OHLC landmarks from the admitted history. Keep the generic style color count and chart rendering, viewport, scale and stored-state behavior."
+          ],
+          "data_plan": "Use synthetic sample traffic on a loopback development server and retain bounded stage observations.",
+          "cleanup": "Release owned browser listeners and servers and preserve the native failure and same-tree passing artifacts."
+        }
+      },
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45709117560-1",
+          "source_commit": "00a6ab1ef8c02ebd15144c3e5d65fcff70771ebb",
+          "report_sha256": "495063b876f34779ecd4e844bda70c09d97720bc3caf0f900a14d1af9b23dd8a"
+        }
+      ]
+    },
+    {
       "id": "M0-167",
       "title": "Verify scratch cleanup when an admitted indicator is cancelled before child exit",
       "milestone": "M0",
