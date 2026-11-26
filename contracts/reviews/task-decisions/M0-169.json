@@ -30,6 +30,15 @@
       },
       "supersedes": "53652cdd3d2880ae1751c557e70fd8e7c0056709218bbe218e2d5ee948789c27",
       "evidence_sha256": "024984a77dc0c4e7ce7fc262778afd6eb76c9ea923e04f8e1c15c52cb13210f0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "87bb428743835b71b2c7bd09a7808255d3231979",
+      "scope": "Resolve the previous Windows process observation refusal against 87bb4287 and the genuine earlier response. Review capture of live native process references, exactly one bounded immediate group sample after compute returns, timing precision, the actual known-live mixed-group rejection and all-exited positive. Verify identity and ownership, normal and cancellation controls, both deadline stages, scratch and no artifact. Distinguish local observations and native platform coverage. Use archived originals and the task handoff.",
+      "supersedes": "721196f7574afce99a3aa14e840a9698d831c57c5ba25919be10b3e47f0b6b47",
+      "requested_at": "2026-11-26T15:40:39.946732+00:00",
+      "request_id": "73219a963f4c86d35fdd890e3e8a0b0f613231dae73e5e3e263aceed6fdcb307",
+      "evidence_sha256": "967f2ec7b4a8f14463893555fa020d8411fcff810357e33c5c56045a8df75748"
     }
   ]
 }
