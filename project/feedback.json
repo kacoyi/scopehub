@@ -8751,6 +8751,38 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-selected-market-check-dropped-at-publication",
+      "source": "Independent M0-146 changes-requested decision on 07cc51a941fe209608fa32b69663f0f47a17420c, contracts/reviews/task-decisions/M0-146.json#/events/23. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-146-07cc51a9/original-assistant-response.jsonl (SHA-256 3d69a0b8823a737092be8da5dafd3b545a0930765b432d0c6b89466b26a0348e).",
+      "observation": "The exact 07cc51a9 publisher accepted the core lane not_selected rows in place of the passed market-workflow and market-recovery rows from their respective browser and recovery owners in the original Windows PR 45839731781. All 35 selection identifiers remained present, but the passed results and original logs disappeared from publication. Regress actual owner assignments, selected and unselected rows, and genuine interrupted earlier_failure omissions through the hosted report boundary.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-market-producer-result-diverges-from-aggregate",
+      "source": "Independent M0-139 changes-requested decision on 07cc51a941fe209608fa32b69663f0f47a17420c, contracts/reviews/task-decisions/M0-139.json#/events/23. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-139-07cc51a9/original-assistant-response.jsonl (SHA-256 f118679fa8d91e488f78ffa35fc2573006cd62917320deb568740f280b718494).",
+      "observation": "The exact 07cc51a9 publisher accepted a market-recovery-ui log from Windows run 45680128413 after the aggregate digest was edited, despite the unchanged 45839731781 recovery producer digest. Ordinary 2.1 receipt import accepted a passing aggregate exit 0 for the same check while its recovery producer reported exit 7. Verify original market rows at both entries, including receipts for tasks that do not require the combined Python check, and repeat the import after restoring the original bytes.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

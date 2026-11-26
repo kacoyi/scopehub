@@ -26175,7 +26175,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Review the exact clean candidate and qualification at .reports/audit-20261126/m0-146-composition-qualification/handoff.json. Use the isolated and real overlap controls and the first retained storage report on any recurrence. Obtain independent M0-139 and M0-146 decisions for the combined source. The coordinator owns the stale review gate and a comparable ordinary full warm Windows PR with all 35 selected checks within 900 seconds and the separate 1200-second Python execution deadline.",
+      "next_action": "Use .reports/audit-20261126/m0-146-producer-parity/handoff.json for the common clean source, retained controls and independent M0-139 and M0-146 requests. The coordinator owns the decisions on that source and the first comparable full warm Windows pull request with 35 selected checks within 900 seconds. Keep its 1200-second Python deadline, Linux overlap and the first retained storage diagnosis separate.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -26231,6 +26231,8 @@
           "tooling"
         ],
         "context": [
+          "Independent M0-139 rejection on 07cc51a941fe209608fa32b69663f0f47a17420c: contracts/reviews/task-decisions/M0-139.json#/events/23 and retained archives/observations/repo-hygiene-20261125/independent-final-m0-139-07cc51a9/original-assistant-response.jsonl (SHA-256 f118679fa8d91e488f78ffa35fc2573006cd62917320deb568740f280b718494).",
+          "Independent M0-146 rejection on 07cc51a941fe209608fa32b69663f0f47a17420c: contracts/reviews/task-decisions/M0-146.json#/events/23 and retained archives/observations/repo-hygiene-20261125/independent-final-m0-146-07cc51a9/original-assistant-response.jsonl (SHA-256 3d69a0b8823a737092be8da5dafd3b545a0930765b432d0c6b89466b26a0348e).",
           "Exact independent review 8adbc265: archives/observations/repo-hygiene-20261125/independent-final-m0-146-8adbc265/final-response.txt.",
           "scripts/check.py",
           "scripts/project.py",
@@ -26286,6 +26288,13 @@
           "Seven unskipped public maintenance controls spent 3625 Git process starts before and 3136 after pinning immutable review inputs per comparison. Committed policy opens fell from 169 to 51. Verify that a fresh command still observes modified or rejected candidate data and that the native run retains the same verdicts."
         ],
         "risks": [
+          {
+            "failure": "A selected market check loses its producer result or original log in aggregate publication or ordinary receipt import. Exercise the versioned owner assignments, original recovery rows, log substitution, outcome and reason changes, valid skips, genuine earlier_failure, unselected rows, and restored receipt identity at the shared public boundary.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
           {
             "failure": "The exact combined source ran 804 Python tests with one failure and four skips. The regression fixture still expected only market-recovery, while reviewed M0-139 also assigns market-recovery-ui to recovery. Prove that both checks execute exactly once and preserve their outcomes.",
             "checks": [
@@ -26564,7 +26573,8 @@
             "Move market-workflow and the review-acceptance-through-verification-scheduling Python modules to recovery for full Windows PRs using the standard Python suite. Run the recovery Python part and serial market checks concurrently on that existing runner. Preserve canonical catalog and discovery order, terminal outcomes, cancellation and cleanup.",
             "Select the original cutoff and producer assignment from the tested committed runner during publication, collection and receipt reopening. Keep earlier sources and serial and main push paths compatible. Restore original report bytes in repeatable publication and receipt regressions.",
             "Reuse immutable Git branch-policy reads and the protected observation basis only within a single maintenance comparison.",
-            "Keep the managed-storage fixture's complete report on assertion failure and verify the real Cargo lock hold reason within the existing Linux suite."
+            "Keep the managed-storage fixture's complete report on assertion failure and verify the real Cargo lock hold reason within the existing Linux suite.",
+          "Validate full Windows aggregate selection, omissions and owner row identity at the shared publication and ordinary receipt import boundary, independent of the task check list. Preserve original browser reports and, for unsplit runs, recovery reports in a source-declared digest map. Reuse the existing original split recovery report and verify its ordinary rows. Historical aggregates keep their original layout and the validation supported by their retained producer evidence. Verify the archived attachment digests during diagnostic reopen."
           ],
           "data_plan": "Use synthetic fixtures, read-only hosted originals and matching check logs. Preserve actual job durations, original identifiers and coverage for comparison. Archived 2.0 and legacy 2.1 evidence depends on authenticated retrieval for attempt lineage within canonical paths. Legacy merged output supports identifiable printed events under the historical runner format. The stream cannot prove unprinted discovery members or recover ambiguous callbacks. Diagnostic resolution checks the pinned report bytes, identities and attachment digests and returns the recorded check outcome. This path can reopen an ambiguous legacy original with all its bound attachments and grants no per-case receipt. The record command revalidates the supplied report and originals before returning either a new or existing receipt. The two genuine teardown executions with identical merged output and opposite outer callbacks establish that historical per-case recovery is mathematically impossible for those bytes. A newly submitted manifest or a chosen prefix cannot supply the missing ownership. Qualification relies on the supported historical runner's visible standard writes. Exact high-resolution durations, unprinted details and overridden or obscured runner writes require independently bound evidence.",
           "cleanup": "Remove temporary profiling from the delivery path, archive the focused comparison and retain any unresolved timing investigation with its next observable action."
