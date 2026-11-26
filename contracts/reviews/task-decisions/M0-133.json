@@ -117,6 +117,15 @@
       },
       "supersedes": "d085cd2bbb3a0d1054515fa322a21425b8f49c917e4e160191abc53138cb6606",
       "evidence_sha256": "706f7a8e3849096e459234f031abed29c98d9fd16edc0298a7d16eb6141b3251"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "scope": "Recheck the consistency of public timing reads, capture, on-disk saves, reindex and cold reopen. Verify ordering, duplicate or incomplete records, conflicting clocks and the retention of the original failed push after capture rotation. Recheck the original decision on b12aefdc.",
+      "supersedes": "b030ab3b1c4b35708ce6f8fab38c061ca02aaa3dc5df599b81473aef3f7d0a10",
+      "requested_at": "2026-11-26T06:32:09.936348+00:00",
+      "request_id": "a60faa596556e5a717fcc17aa72e9316b7d07c653a597dc6065cebadeebcb166",
+      "evidence_sha256": "aee3e91faeb64cc46ec9a6c321d0e50ac90a15b81eebd634d11617f4c8dbc912"
     }
   ]
 }
