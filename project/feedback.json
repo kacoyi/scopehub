@@ -7979,6 +7979,17 @@
       "regression_checks": ["project-state", "python-contracts-workers"],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-python-legacy-multiline-cleanup-outcomes",
+      "source": "Independent M0-146 decision 6cb654e3272d9dac21ffd5ca0414e55a626cd1fa7f2d7b2800aaf93726a2d36c on a47fe65ae18064d3147f86e6a3cb32784bca4d9d, recorded at contracts/reviews/task-decisions/M0-146.json#/events/13 by 48c81e51d5931635d568eec2ab7fe6c76a913e69. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-146-a47fe65a/final-response.txt (SHA-256 1b8c4cc5c80e255aa6425dd9548a9ce8bbc03d3d4446436a0fd745b2aeb20ab0) and original-assistant-response.jsonl (SHA-256 624cd9af629eb0bf378210d7ca3203e15a263faee6f7b223c188eeab016d984f).",
+      "observation": "With the original a3d20309 legacy runner, a test writes several progress lines and the real outcome closes an unterminated progress line. Class cleanup then prints a standalone status that looks like the opposite outcome. The genuine pass and skip inventory is rejected, while swapping only the two outcomes and their skip flags allows producer publication, aggregation, aggregate publication, ordinary receipt import and reopen. Both original logs, ordered cases, duration values and footer totals are unchanged. Regress those public entries for both inventories, and retain the unambiguous legacy and current callback controls.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-146"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

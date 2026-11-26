@@ -408,9 +408,9 @@ def runner_execution(raw, progress):
             # A footer after a completed callback closes this run. Later
             # shutdown runners cannot supply missing primary callbacks.
             footer = RUNNER_SUMMARY.search(raw, offset, start)
-            if footer is not None and runner_outcome(raw[offset:footer.start()]) is not None:
+            if footer is not None and runner_outcomes(raw[offset:footer.start()]):
                 return None
-        if previous is not None and runner_outcome(raw[offset:start + 1]) != previous:
+        if previous is not None and runner_outcomes(raw[offset:start + 1]) != {previous}:
             return None
         offset = end
         previous = status
@@ -422,24 +422,25 @@ def runner_execution(raw, progress):
         # nested footers before the final primary callback completed.
         details = RUNNER_DETAILS.search(raw, offset, footer.start())
         stop = details.start() if details else footer.start()
-        outcome = runner_outcome(raw[offset:stop])
-        if outcome is not None:
-            return footer.groups() if outcome == previous else None
+        outcomes = runner_outcomes(raw[offset:stop])
+        if outcomes:
+            return footer.groups() if outcomes == {previous} else None
         offset = footer.end()
     return None
 
 
-def runner_outcome(segment):
-    # Legacy unittest did not distinguish callback bytes from fixture output.
-    # A status can close the named header or occupy its own line when test
-    # output splits the header. Suffixes of subsequent prose are cleanup text.
+def runner_outcomes(segment):
+    # A status directly after the named header is the canonical legacy form.
+    # In that form later prose is opaque, but standalone statuses can conflict.
+    # With an open header, a callback can end any line, including unterminated
+    # progress. Later cleanup can render exactly the same suffix.
+    # Keep all plausible outcomes so a standalone lookalike cannot win and
+    # ambiguity cannot make a later shutdown footer stand in for this one.
     lines = segment.split(b'\n')[:-1]
     if not lines:
-        return None
-    outcomes = {match[1] for line in lines[1:] if (match := RUNNER_OUTCOME.fullmatch(line))}
-    if match := RUNNER_OUTCOME.search(lines[0]):
-        outcomes.add(match[1])
-    return outcomes.pop() if len(outcomes) == 1 else None
+        return set()
+    find_outcome = RUNNER_OUTCOME.fullmatch if RUNNER_OUTCOME.fullmatch(lines[0]) else RUNNER_OUTCOME.search
+    return {match[1] for line in lines if (match := find_outcome(line))}
 
 
 def verify_execution(raw, progress, count, verdict):
@@ -453,7 +454,7 @@ def verify_execution(raw, progress, count, verdict):
                    for label, status in progress]
         if runner_execution(raw, encoded) == expected:
             return
-    raise ValueError('Original unittest progress, run count or verdict differs from the case manifest.')
+    raise ValueError('Original unittest progress, run count or verdict does not establish the case manifest.')
 
 
 def verify_callback_record(raw, manifest):
