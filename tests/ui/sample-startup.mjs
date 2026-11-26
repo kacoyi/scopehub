@@ -2,7 +2,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { expect } from '@playwright/test';
 import { isMarketOutput } from '../../apps/desktop/ui/src/market-output.ts';
 import { sampleHistoryPageMatchesRequest } from '../../apps/desktop/ui/src/sample-history-validation.ts';
-import { painted } from './chart-pixels.mjs';
+import { paintedCandleDirections } from './chart-pixels.mjs';
 import { replayStage } from './replay-stages.mjs';
 
 const operation = '/__scopehub/operation';
@@ -242,11 +242,14 @@ export async function openDefaultSample(page, { trigger, verifyChart, reportStar
     await expect(chart(page)).toHaveAttribute('data-timeframe', '1m');
     await expect(chart(page)).toHaveAttribute('data-bars', '40');
     if (startup) {
+      // The first backing canvas holds the main price pane, before overlays and axes.
+      const priceCanvas = chart(page).locator('.chart canvas').first();
+      const directions = history.bars.map(bar => bar.close >= bar.open ? 'up' : 'down');
       let presentation;
       await expect.poll(async () => {
         if (await chart(page).getByRole('alert').count()) presentation = 'failed';
-        else if (await chart(page).locator('.chart canvas').first().isVisible()
-          && await painted(page, 'candlestick') > 20) presentation = 'painted';
+        else if (await priceCanvas.isVisible()
+          && isDeepStrictEqual(await paintedCandleDirections(priceCanvas), directions)) presentation = 'painted';
         return presentation;
       }, { message: 'Wait for initial sample chart presentation' }).toBeDefined();
       if (presentation === 'failed') startup.mark('chart_failed_ms');

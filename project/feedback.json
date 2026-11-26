@@ -7633,6 +7633,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "sample-startup-verified-without-candle-paint",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent changes-requested decision 985ad89feb9dd836325744647162a0d52801aa17181bcca2688c4ea00456c433 for e11e24fcb079430b0e13414c5d969e63108411fa. Original material is retained under archives/observations/repo-hygiene-20261125/independent-final-m0-154-e11e24fc: final-response.txt SHA-256 e593f5a74093e355419c52f0417ee8a73cff70dd111247979fb1481882a737e7, original-assistant-response.jsonl SHA-256 7b10d48f04e8d0f865efe4999455181608f0cfb5f255d93f60860b113a99ffd7, console-logs/console-2026-11-26T05-57-35-431Z.log SHA-256 4d0107c3731a96084c6942c165c3ce8d7e68d848b0a10d564d36584c6c73024d and console-logs/console-2026-11-26T06-03-03-458Z.log SHA-256 0edd8e70ea2f4db1203bb7cd0bb6a73ee29545625ccb4be79129be14867fccb8. The independent Linux Chromium reproduction at clean e4cd88ec73e13c9064d53252dc031b83db4ddcd2 retains original bridge replies, screenshots, console events, the startup attachments and the reproducer in .reports/m0-154-candle-paint/baseline; observations.json SHA-256 355e2024e9f300c85fdb360aabfdd1e9ebd818df8fdb4c8619abb04f269c2080. Before the correction, the new market-recovery case passed the genuine render and failed both negative controls at the stage assertion. The raw reporter, input diff, screenshots and traces are retained in .reports/m0-154-candle-paint/regression-before; market-recovery/results.json SHA-256 2b875097e7cf6a695738fa567fdea33afdc4315fcad1e2bb14e50aa31559b37d.",
+      "observation": "At the ordinary /#demo entry, the same genuine catalog and 40-bar bridge history reached sample-verified with and without candle drawing. Suppressing only price-colored candle rectangles left 464 matches on one horizontal row of the price pane and 730 on its axis label. The old test counted all 1,194 as price ink without an alert. The genuine control showed 27,163 matching price-pane pixels across 438 rows and returned the same frozen snapshot.",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
