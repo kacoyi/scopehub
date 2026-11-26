@@ -7884,6 +7884,22 @@
         "prevention": "Run the assigned-process test on Windows alongside its redirector control, the timeout cleanup and the external reader. The Linux contrast independently checks a distinct redirector PID and process group."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "source-row-unavailability-becomes-terminal-revocation",
+      "source": "Independent Astra Standard t11n returned M2-035 for changes on a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26. Original: archives/observations/repo-hygiene-20261125/independent-final-m2-035-a66c84af/final-response.txt (SHA-256 072e394155baba020e1d621afaa30bd5e8f8ec38b6b2ee59729dd566cbe2964b). Original event SHA-256 2ebb6aa7e8c1de622a4e9217844418e674d80263940bedaf80fe6d2f08af6924.",
+      "observation": "Inspecting an original row of a published CSV or folder revision hid the chart after SNAPSHOT_UNAVAILABLE, then all later refreshes and retries left it hidden and issued zero revision status reads. The same error during a whole-chart read was recoverable when the corresponding source status confirmed access.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "local-import-ui",
+        "local-folder-refresh-preview"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

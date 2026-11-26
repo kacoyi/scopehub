@@ -3362,6 +3362,176 @@ base('reviews conflicting declarations in a reopened historical CSV without chan
   }
 });
 
+for (const kind of ['CSV', 'folder']) {
+  for (const decision of ['available', 'revoked']) {
+    base(`source-row absence keeps ${kind} hidden until retry confirms ${decision} access`, {
+      tag: '@profile-folder-refresh',
+    }, async ({ page }, testInfo) => {
+      const isFolder = kind === 'folder';
+      const id = randomUUID();
+      const path = 'daily.csv';
+      const sourceHash = createHash('sha256').update(`${kind}:${path}`).digest('hex');
+      const series = { ...equity.settings, roll_method: null };
+      const revision = {
+        revision_id: id, symbol: '000731', bar_count: 2, series,
+        bar_summary: { final_close: 40, final_trading_day: '2026-04-15', first_trading_day: '2026-04-14' },
+        ...(isFolder ? { origin_path: path, source_count: 1, base_revision_id: randomUUID(), parent_revision_id: null }
+          : { relative_path: path, timeframe: series.timeframe, source_sha256: sourceHash, source_record_count: 2,
+            review_revision: 1, mapping_sha256: 'a'.repeat(64) }),
+      };
+      const locators = [1, 2].map(record_number => ({ record_number, line_start: record_number + 1, line_end: record_number + 1 }));
+      const sources = locators.map(locator => ({ ...locator, relative_path: path, source_sha256: sourceHash }));
+      const bars = equity.rows.map((row, index) => ({
+        bar: { time_ms: Date.parse(equity.times[index]), trading_day: row[1], open: Number(row[2]), high: Number(row[3]),
+          low: Number(row[4]), close: Number(row[5]), volume: Number(row[6]) || null, is_closed: true },
+        ...(isFolder ? { sources: [sources[index]] } : { locators: [locators[index]] }),
+      }));
+      const result = { version: 1, revision, bars,
+        ...(isFolder ? { files: [{ relative_path: path, source_sha256: sourceHash, record_count: 2 }] } : {}) };
+      const lateRow = Promise.withResolvers();
+      const retryStatus = Promise.withResolvers();
+      const calls = [];
+      const visibility = [];
+      let phase = 'original';
+      const rowOperation = isFolder ? 'market.readLocalFolderSourceRow' : readSourceRow;
+      const chartOperation = isFolder ? 'market.readLocalFolderRevision' : 'market.readLocalImportRevision';
+      const listingOperation = isFolder ? 'market.listLocalFolderRevisions' : 'market.listLocalImportRevisions';
+      const original = 'Authorized original source row';
+      const stale = 'Late original source row';
+      await page.exposeBinding('testNativeInvoke', async (_, command, { operation, payload, requestId }) => {
+        expect(command).toBe('execute_operation');
+        if (operation === 'instrument.search') return { result: { instruments: [] } };
+        if (operation === 'market.listLocalImportRevisions' || operation === 'market.listLocalFolderRevisions') {
+          calls.push({ phase, kind: 'list', operation });
+          return { result: { version: 1, revisions: operation === listingOperation ? [revision] : [], next_after_revision_id: null } };
+        }
+        expect(payload.revision_id).toBe(id);
+        if (payload.type === 'frozen_chart_status' || operation === chartOperation && payload.include_details === false) {
+          expect(operation ?? payload.type).toBe(isFolder ? chartOperation : 'frozen_chart_status');
+          const access = phase === 'retry' ? decision : phase === 'absent' ? 'missing' : 'available';
+          calls.push({ phase, kind: 'status', operation: operation ?? payload.type, access });
+          if (phase === 'retry') await retryStatus.promise;
+          if (isFolder) {
+            if (access === 'available') return { result: { version: 1, revision, bars: [], files: [] } };
+            return { error: { code: access === 'revoked' ? 'PERMISSION_DENIED' : 'SNAPSHOT_UNAVAILABLE' } };
+          }
+          return { result: { available: access === 'available', ...(access === 'revoked' ? { revoked: true } : {}) } };
+        }
+        if (operation === chartOperation) {
+          calls.push({ phase, kind: 'chart', operation });
+          return { result };
+        }
+        expect(operation).toBe(rowOperation);
+        expect(payload.review_declarations).toBe(true);
+        const locator = isFolder ? payload.source : payload.locator;
+        const record = locator.record_number;
+        expect(locator).toEqual((isFolder ? sources : locators)[record - 1]);
+        const outcome = phase === 'absent' ? 'SNAPSHOT_UNAVAILABLE' : record === 1 ? 'late' : 'available';
+        calls.push({ phase, kind: 'row', operation, requestId, record, outcome });
+        if (outcome === 'SNAPSHOT_UNAVAILABLE') return { error: { code: outcome } };
+        if (outcome === 'late') await lateRow.promise;
+        return { result: { version: 1, revision_id: id, header: ['Memo'], raw_fields: [record === 1 ? stale : original],
+          declaration_conflicts: [], ...(isFolder ? { source: sources[record - 1] }
+            : { locator: locators[record - 1], source_sha256: sourceHash }) } };
+      });
+      await page.addInitScript(operation => {
+        window.isTauri = true;
+        window.__TAURI_INTERNALS__ = {
+          async invoke(command, args) {
+            const reply = await window.testNativeInvoke(command, args);
+            if (reply.error) throw reply.error;
+            if (args.operation === operation && (args.payload.source ?? args.payload.locator).record_number === 1) {
+              window.lateSourceRowDelivered = true;
+            }
+            return reply.result;
+          },
+        };
+      }, rowOperation);
+
+      const clock = new Date('2026-04-16T08:00:00Z');
+      await page.clock.install({ time: clock });
+      await page.clock.pauseAt(new Date(clock.getTime() + 1000));
+      const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+      const chart = dialog.getByRole('region', { name: `Frozen local ${kind} chart` });
+      const provenance = dialog.getByRole('region', { name: `Published ${isFolder ? 'folder ' : ''}source provenance` });
+      const rows = dialog.getByRole('table', { name: `Published ${isFolder ? 'folder ' : ''}source rows` });
+      const rawFields = dialog.getByRole('region', { name: 'Original CSV fields', exact: true });
+      const entry = dialog.getByRole('button', { name: /Final close 40/ });
+      const open = control(dialog, isFolder ? 'Open frozen folder revision' : 'Open frozen chart');
+      const inspect = record => control(dialog, `Inspect record ${record}${isFolder ? ` from ${path}` : ''}`).click();
+      const observe = async label => visibility.push({ label, chart: await chart.count(), provenance: await provenance.count(),
+        rows: await rows.count(), original: await rawFields.count(), entry: await entry.count() });
+      const expectWithheld = async label => {
+        for (const item of [chart, provenance, rows, rawFields, entry]) await expect(item).toHaveCount(0);
+        await observe(label);
+      };
+      try {
+        await page.goto('/');
+        await control(page, 'Open published CSV').last().click();
+        if (isFolder) await control(dialog, 'Folder revisions').click();
+        await dialog.getByLabel('Revision ID').fill(id);
+        await expect(entry).toBeVisible();
+        await entry.click();
+        await expect(chart.getByLabel('Selected bar')).toContainText('C 40');
+        await dialog.getByText('Source rows (2)', { exact: true }).click();
+        await inspect(2);
+        await expect(rawFields).toContainText(original);
+        await observe('authorized original');
+
+        await inspect(1);
+        await expect.poll(() => calls.filter(call => call.outcome === 'late')).toHaveLength(1);
+        phase = 'absent';
+        await inspect(2);
+        await expectWithheld('source row reported absent');
+
+        phase = 'retry';
+        await open.click();
+        await expect.poll(() => calls.filter(call => call.kind === 'status' && call.phase === 'retry').length,
+          { timeout: 2000, message: 'A public retry must ask the source to confirm access' }).toBe(1);
+        await expectWithheld('retry status pending');
+        expect(calls.filter(call => call.kind === 'chart')).toHaveLength(1);
+        retryStatus.resolve();
+
+        if (decision === 'available') {
+          await expect(chart.getByLabel('Selected bar')).toContainText('C 40');
+          await expect(provenance).toContainText(id);
+          await expect(entry).toBeVisible();
+          await expect(rawFields).toHaveCount(0);
+          await observe('available status confirmed and reread chart');
+          expect(calls.filter(call => call.kind === 'chart')).toHaveLength(2);
+        } else {
+          await expect(dialog.getByRole('alert')).toBeVisible();
+          await expectWithheld('revoked status confirmed');
+          phase = 'confirmed';
+          await open.click();
+          await expect(dialog.getByRole('alert')).toBeVisible();
+          await expectWithheld('retry after confirmed revocation');
+          expect(calls.filter(call => call.kind === 'status' && call.phase === 'confirmed')).toEqual([]);
+          expect(calls.filter(call => call.kind === 'chart')).toHaveLength(1);
+        }
+
+        lateRow.resolve();
+        await expect.poll(() => page.evaluate(() => window.lateSourceRowDelivered === true)).toBe(true);
+        await expect(dialog.getByText(stale, { exact: true })).toHaveCount(0);
+        if (decision === 'available') {
+          phase = 'confirmed';
+          await dialog.getByText('Source rows (2)', { exact: true }).click();
+          await inspect(2);
+          await expect(rawFields).toContainText(original);
+        } else await expectWithheld('late original response delivered');
+      } finally {
+        lateRow.resolve();
+        retryStatus.resolve();
+        await testInfo.attach('source-row-access', {
+          body: JSON.stringify({ kind, decision, revision: id, calls, visibility,
+            lateRowDelivered: await page.evaluate(() => window.lateSourceRowDelivered === true) }, null, 2),
+          contentType: 'application/json',
+        });
+      }
+    });
+  }
+}
+
 base('a silent folder status releases the published drawer and cannot reopen it late', async ({ page }) => {
   const id = randomUUID();
   const statusEntered = Promise.withResolvers();
