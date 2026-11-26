@@ -233,6 +233,15 @@
       },
       "supersedes": "d706465e9923a6f59e153acd92bc2b7148ccd3533dd38974eac9f25558e139f6",
       "evidence_sha256": "61da175b926697f47d47900e2b2c22d76f990e0c71a224d6b9ea36cf09e4aef8"
+    },
+    {
+      "kind": "request",
+      "source_commit": "da5d83da108ab15a6e10965452457457390899a0",
+      "scope": "Independently review whether normalized per-job and per-step facts preserve every supported clock through ordinary reads, offline weekly acquisition, cold reopen and attempt rotation. Recheck 45765544396 and use independently chosen full, partial and contrary controls. Preserve independent job attribution and keep the actual November 28 observation separate.",
+      "supersedes": "417d3f3d74e5feb22075fa48415b81588f4c73b4b763c01064a316d01e3128ed",
+      "requested_at": "2026-11-26T14:21:25.646137+00:00",
+      "request_id": "a3dcc61e3af197fc3d95ddf1a0f0ebc3cb2cbe9d1e4d094333a53cdd520e0e64",
+      "evidence_sha256": "97aeed00efc099951bec1c115bd8fdb1ffc86cfcda57c763ff404e1957cb25f7"
     }
   ]
 }

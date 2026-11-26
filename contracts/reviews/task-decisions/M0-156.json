@@ -262,6 +262,15 @@
       },
       "supersedes": "ba3b3053b1108f97ae4ca13fd3baa245301ac7aaf0a27d60cbf8cab6db7d9d26",
       "evidence_sha256": "ea2ff0885a84aab0984373268607152bb78fccad4c71a4901f44b5f128467d8b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "da5d83da108ab15a6e10965452457457390899a0",
+      "scope": "Independently review PR checkout qualification using real shallow Git and a fresh ancestry pair. Compare genuine expired previews with a provable event-head ancestor, both with and without the merge proof. Verify ordinary, offline weekly and fresh archive reads and preserve independent Action job clocks.",
+      "supersedes": "b01f1cae1fb601987dad1c77e61609b45190b928cb66d5b7065025848e8006d2",
+      "requested_at": "2026-11-26T14:21:27.552746+00:00",
+      "request_id": "1f8698026331035846c001702bd73f117e6e5174cac0a8ecf7aa4554e715f96a",
+      "evidence_sha256": "064f8e4bb4ce8be94addbae6d5115fdf86fa9301bba378f0a5e9ead846c72108"
     }
   ]
 }

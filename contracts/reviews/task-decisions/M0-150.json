@@ -253,6 +253,15 @@
       },
       "supersedes": "9bd765852bd702edddc1306281d8fba0c6d281f08eec242cecd3e77568e06eef",
       "evidence_sha256": "1c11a007866da71182bd6ec4873a1728915e9f21e628957ce58e94386d061e65"
+    },
+    {
+      "kind": "request",
+      "source_commit": "da5d83da108ab15a6e10965452457457390899a0",
+      "scope": "Independently review source and result qualification for PR 121 and PR 116. Compare the genuine and contradicted aggregates, raw producer definition claims, catalog decoding and equivalent recording instants. Include a fresh pair, preserve independently supported clocks and distinguish the new publisher closure from genuine publications.",
+      "supersedes": "24c291b61a07bde71683194ed43d48700af13fe44e0f06d8d80ed60a50daec89",
+      "requested_at": "2026-11-26T14:21:26.588554+00:00",
+      "request_id": "6ce73f59b004420c8c4780fd26ef73515f2431cc6ec8ca9b199b6107e4a3e5a8",
+      "evidence_sha256": "138f1c04823c3b5fe2de121508869cd35c3c44633d321af46481fe099c6049c7"
     }
   ]
 }
