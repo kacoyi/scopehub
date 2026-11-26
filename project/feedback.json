@@ -7661,6 +7661,85 @@
       "deferral_reason": null
     },
     {
+      "id": "coordination-handoff-narrows-two-owner-outcomes",
+      "status": "addressed",
+      "severity": "major",
+      "source": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+      "observation": "On resumption the coordinator reported successful restoration of Herdr dispatches as completion of the current task and focused on one PR. The owner had to reassert whole-repository cleanup and the continuing maintenance and evolution mandate. Both were outstanding.",
+      "task_ids": [
+        "M0-158"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The startup route showed operational assignments without carrying the two owner-defined outcomes and their acceptance.",
+        "correction": "Expose the source-bound engagement in the ordinary overview and focused handoff, with accountable work and a separate acceptance for each outcome.",
+        "prevention": "Compare a new cold coordinator’s response to the owner terms after a focus transfer, with unavailable private originals. Retain its exact source and answer in the development archive."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "maintenance-engagement-disappears-after-repair-closure",
+      "status": "addressed",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-158.json#/events/1 on 8bbf6e109fa13f235cdb29bb644af465643cc3e0. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-158-8bbf6e10/original-assistant-response.jsonl, SHA-256 b6ec4a4f7957d1658d7165f1b7152cb43c87bc5cb57cf5f17d9766098a21a818.",
+      "observation": "The independent reviewer projected the narrow repair done and transferred focus to the genuine M0-157 audit task. Ordinary startup and focused handoff recovered zero of the two open maintenance commitments and no stop condition. The known-path owner record still showed both open. The earlier warm and fresh starts exercised the repair focus and did not detect the loss across task turnover.",
+      "task_ids": [
+        "M0-158"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The engagement depended on the status and focus of the repair task, so closing the repair could hide continuing work.",
+        "correction": "Read engagement terms through the shared scaffold policy across focus changes and keep each workstream open until its declared acceptance is observed.",
+        "prevention": "Exercise a real successor in a controlled checkout, an unrelated product focus and joint completion. Check the original weekly cadence independently."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "maintenance-engagement-accepts-rejected-closure",
+      "status": "addressed",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-158.json#/events/3 on 236bd00c12f1efe58ce44d2b292c4fc389854ece. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-158-236bd00c/original-assistant-response.jsonl, SHA-256 46885dac4cf1b285faa86cf30a132f04f2f448affeba5427a0fc57ff4bc1da21.",
+      "observation": "After audit focus transferred, the independent reviewer replaced one accepted closure observation with an explicitly rejected maintenance observation about the missing due-cycle review and recomputed the digest. Ordinary overview and focused handoff still reported both workstreams accepted and the engagement ended. The one-accepted and two-accepted controls had the expected outcomes.",
+      "task_ids": [
+        "M0-158"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The closure reader checked evidence identity without requiring its observed disposition to accept the relevant workstream.",
+        "correction": "Require an explicit accepted observation for the named workstream and owner criteria before treating that outcome as closed.",
+        "prevention": "Exercise accepted, rejected, missing and partial closure through the public overview and focused handoff. Verify the remaining work and stopping condition."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "read-only-handoff-owner-source-uses-package-cache",
+      "status": "addressed",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-158.json#/events/3 on 236bd00c12f1efe58ce44d2b292c4fc389854ece. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-158-236bd00c/original-assistant-response.jsonl, SHA-256 46885dac4cf1b285faa86cf30a132f04f2f448affeba5427a0fc57ff4bc1da21.",
+      "observation": "The independent reviewer followed the read-only overview into focused handoff and executed its owner-source command as emitted. It invoked pnpm and uv and exited with code 2 when uv could not write its cache lock. The pinned interpreter returned both sets of owner acceptance terms from the same checkout.",
+      "task_ids": [
+        "M0-158"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The read-only handoff emitted a package-managed continuation that required a writable cache to display the owner source.",
+        "correction": "Propagate the pinned interpreter through read-only source navigation so the owner terms can be read in the same environment.",
+        "prevention": "Execute the emitted source commands in an unwritable-cache checkout. The independent successor followed the read-only route and recovered both owner outcomes."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "windows-main-python-discovery-process-deadline",
       "status": "open",
       "severity": "major",
