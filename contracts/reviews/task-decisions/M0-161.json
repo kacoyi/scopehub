@@ -30,6 +30,15 @@
       },
       "supersedes": "997734e91648f8261344d4e0ee1bed27bec028fecf2099f3b3e4cc28521fc0c3",
       "evidence_sha256": "7020d55265f08f5020ee5e4203e3647559b16b490eb5af1271399aab888b0f9c"
+    },
+    {
+      "kind": "request",
+      "source_commit": "17a0365fbc1462e6154806c18020b654dbbc39ef",
+      "scope": "Follow the first public action on an ordinary and read-only clean checkout. Test open, ended and absent engagements alongside actionable failures and unrelated product focus. Inspect historical compatibility and the effective command a new agent actually receives. Recheck the original decision on 727b4fb3.",
+      "supersedes": "167670508d7dd87418fc69a9580a40b9f70cf54a8173d0dc35c0ee5f7444dd8d",
+      "requested_at": "2026-11-26T12:29:03.886255+00:00",
+      "request_id": "15d08b5440bb806fb5bfd3a3ee7b019bb349a9e7acd99132a9ee56db42197096",
+      "evidence_sha256": "e4e1a0c04c998ea78bc1ec1fcf1ae4c48dd007898e2a59ead3f1bd26cadf9af3"
     }
   ]
 }
