@@ -126,6 +126,26 @@
       "requested_at": "2026-11-26T15:06:19.961557+00:00",
       "request_id": "c8521ba1e9ba0748a72e932ae9075e56e5e71255dc372f519f00a73748f93e87",
       "evidence_sha256": "b4fe3b6761793efe5ff160ddfabe537e5515a639c0a42e3247bf2a9626faf308"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "6e8b80b18a9cc7af0c7869c809a444f73934aeb4",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-167 6e8b80b18a9cc7af0c7869c809a444f73934aeb4",
+      "scope": "CHANGES_REQUESTED M0-167 6e8b80b18a9cc7af0c7869c809a444f73934aeb4",
+      "observation": "Playwright stopped during global setup when Cargo could not open `target/debug/.cargo-build-lock` on the read-only filesystem, so none of the selected browser cases ran on the merge commit.",
+      "reviewer": "Independent Astra Standard (t194)",
+      "original_sha256": "f9a998a2ca889373be647ed1736acbd07fc241419853dd4a796e53cd4c4921ff",
+      "response_id": "0dfd41f9f8e33e3fb906ace905f2e95eb273e4262c5d8e778f0940ef8931a82e",
+      "response_sha256": "03d1fd0699adfec4ad763297015b3f24ca04f00941179adf9010b01ef386ac2f",
+      "legacy_response_sha256": "21513cac44bb4a6d273e7fc1642acd4e82d6db4f7fcf9ae77afff83107f3ad46",
+      "observation_body_sha256": "38ec2e6c3526a117831a113390d5b7e1b952ef6ea58377e963fd8b0c771a2cd2",
+      "event": {
+        "id": "msg_0ce1eb5e7d800441016b084c1a1bac87d2a229244f78bf19ef",
+        "timestamp": "2026-11-26T15:11:42.327Z"
+      },
+      "supersedes": "c8521ba1e9ba0748a72e932ae9075e56e5e71255dc372f519f00a73748f93e87",
+      "evidence_sha256": "4d1c923dff5c992385765f0e5abda239253ab41399256e4145fd6e2aa4be7411"
     }
   ]
 }
