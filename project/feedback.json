@@ -7799,6 +7799,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "protected-python-observation-drops-unreadable-diagnostics",
+      "status": "open",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-159.json#/events/6. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-159-10104031/original-assistant-response.jsonl, SHA-256 256f6c5fb291e33055614d0bb9cfc6542fb6a031909451ad4faade688a18c071.",
+      "observation": "On 1010403186cc9004da907cbdf90774b4ad271a20, the public delivery_scope replay of protected push 45747974114 reported a missing observation for two digest-verified Windows originals with conflicting ordered Python outcomes. Reopening with one original unreadable returned passed and removed the closure blocker with the same diagnostic references, receipt and hosted jobs.",
+      "task_ids": [
+        "M0-159"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
