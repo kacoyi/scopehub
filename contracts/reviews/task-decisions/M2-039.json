@@ -59,6 +59,15 @@
       },
       "supersedes": "cf53d1c0a5ef1624fd8144784bd5f67df9bdac7e0e32c4504c4931e00f48d9eb",
       "evidence_sha256": "33d299bb0e07299d724df3d3f23beef3da53f2d03b234a60edb402a865afe2e2"
+    },
+    {
+      "kind": "request",
+      "source_commit": "83303f3546ddb5385d4c6e5c768e7737705628e5",
+      "scope": "Verify the current public workspace and chart recovery journeys after the independent M2-035 finding. Use the actual Chromium controls on both raw-row paths, Rust workspace selection, peer note fallback and first chart reopen. Recheck adjacent callers, original evidence and separate Windows verification.",
+      "supersedes": "5bfd581bb374f72312d2335de22b5e1b343b8f10d2647dcb95f802bfc3045190",
+      "requested_at": "2026-11-26T03:38:01.844642+00:00",
+      "request_id": "36cf783a3913642126deb3617fd6164cf738eaea806709da0d5af468d4d0cba3",
+      "evidence_sha256": "f7446f0632daa880cdff5899e56f705e7232f31205bbe7f88eec7764ee1c035f"
     }
   ]
 }

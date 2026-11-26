@@ -79,6 +79,15 @@
       },
       "supersedes": "4a915978c154d442649a887670cf68638ee99b5691a74b77f4a0d9471929ce77",
       "evidence_sha256": "cec3dce1923e78628144e9c37761c2c7fdf2095b042b460836bfb93e86fd14c0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "83303f3546ddb5385d4c6e5c768e7737705628e5",
+      "scope": "Reproduce the original SNAPSHOT_UNAVAILABLE behavior from raw rows for both CSV and folder publications. Distinguish temporary unavailability from confirmed permission loss at retry. Test stale, reordered and late results, contents remaining hidden until fresh authorization, and a recovered source row and chart via the public interface.",
+      "supersedes": "76e1e91374ac836779495e27d5cda73a9e989ee1038b3418ade84f0cc2924e28",
+      "requested_at": "2026-11-26T03:38:00.913515+00:00",
+      "request_id": "160f3eaa3f1b1ef366a44fcadbe36539d43baebc313af41e77acd62dc357cb62",
+      "evidence_sha256": "710db302c49e41bc2a596c6c9c6aad58850e187cce5b23699ed3d14af2467389"
     }
   ]
 }
