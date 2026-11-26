@@ -59,6 +59,26 @@
       "requested_at": "2026-11-25T23:01:41.460874+00:00",
       "request_id": "15c13b67de8e01814ec8b70e4bd42119c40b665b01cae299ec09492b0ac7d5b5",
       "evidence_sha256": "aaab147e5e132fbd8bccfbf9c7c3fbea715a2b95fcc077c67e414d25cdd3bfc2"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "3f74a1e9b149464a35c4b31657bc624ae1f47b47",
+      "verdict": "approved",
+      "decision": "APPROVE M0-139 3f74a1e9b149464a35c4b31657bc624ae1f47b47",
+      "scope": "APPROVE M0-139 3f74a1e9b149464a35c4b31657bc624ae1f47b47",
+      "observation": "I verified that the full Windows main-push schedule keeps Python serial, assigns market-recovery-ui exactly once, and rejects a passing aggregate when any required producer is missing or cancelled.",
+      "reviewer": "Independent Astra Standard (t111)",
+      "original_sha256": "025a06d1ffab96e5ef08265c1b7d04f15bb2b74ae96589f0971760df48ea0f87",
+      "response_id": "a3654052a0f9e837078acf030716f84fa1b6f291c73bf2eb7eb47acff3a81a1d",
+      "response_sha256": "23feddb0a7cc12328f3b11b15360dbb64db2f53448259fe0d49f9ba988748f17",
+      "legacy_response_sha256": "d488049b6675a968e67c50399004c71330651d7ccb94665ef1f1f9925d8a3953",
+      "observation_body_sha256": "396c44f7de6412d1257de8585a3fbabab2d1d5c55ef0f186d7ba26dfe9ba45dc",
+      "event": {
+        "id": "msg_01a7f09ec8c5b980016b076ba4747087d0bdadf8b663e867b8",
+        "timestamp": "2026-11-25T23:13:52.437Z"
+      },
+      "supersedes": "15c13b67de8e01814ec8b70e4bd42119c40b665b01cae299ec09492b0ac7d5b5",
+      "evidence_sha256": "9bdf7592abd14ea792a6bc06157158ba47f6382089ecce391721ad1406b1316b"
     }
   ]
 }

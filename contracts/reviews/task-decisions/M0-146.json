@@ -59,6 +59,26 @@
       "requested_at": "2026-11-25T23:01:43.189356+00:00",
       "request_id": "64ae20e8b0ab7bfbc6c4510215c2f36c12768097dc648aa5bac8683c505bfb0e",
       "evidence_sha256": "8c0c2274f1bb9528634b9696a46368a9253ae407f8df1d5a4560b99bf15aefa7"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "3f74a1e9b149464a35c4b31657bc624ae1f47b47",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 3f74a1e9b149464a35c4b31657bc624ae1f47b47",
+      "scope": "CHANGES_REQUESTED M0-146 3f74a1e9b149464a35c4b31657bc624ae1f47b47",
+      "observation": "I reproduced a passing task receipt with the wrong recovery manifest and a publication failure from two workers that both exited successfully.",
+      "reviewer": "Independent Astra Standard (t10d)",
+      "original_sha256": "ca1b96c7da455f7d5c8d5dfc2ba4e5d491fc8fdc66889b2f53b40ac72a886c16",
+      "response_id": "7e30766ba9be6d8a58073e8b630257072852cf631362da2aafd7e071244e7633",
+      "response_sha256": "641c5feeed52f78abb32473635e1a8da4a009ff44c02929820f3a46724e5e1ac",
+      "legacy_response_sha256": "6670efb04d5c12be0c316fb687099b19e9a2e833758377d77ff2f9ac581ac2a3",
+      "observation_body_sha256": "b09ee0360cc8bb40198c0cd6c358c254bf9d2a707fb8ccf769e569e34e1ac5b0",
+      "event": {
+        "id": "msg_0009ccfe113b430d016b076c8ae84087d0a5360ea6b8926757",
+        "timestamp": "2026-11-25T23:17:58.518Z"
+      },
+      "supersedes": "64ae20e8b0ab7bfbc6c4510215c2f36c12768097dc648aa5bac8683c505bfb0e",
+      "evidence_sha256": "7c0227f91f1299e987d154453926d031e6e57b418cabb214d577eeb3823d6366"
     }
   ]
 }
