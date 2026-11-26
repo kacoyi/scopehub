@@ -68,6 +68,26 @@
       "requested_at": "2026-11-26T12:46:02.674622+00:00",
       "request_id": "0d047910015badc6ef681e673655ad308b13d06028afe1a42a79d2e742a64dea",
       "evidence_sha256": "ba7c9fbc974fb8151ab1edf0e3a9d0bdffeedff838acc4c89d2e911d5fc4ada2"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e69bd4ca85a59130afe6e276391275ec9d9efbc1",
+      "verdict": "approved",
+      "decision": "APPROVE M0-161 e69bd4ca85a59130afe6e276391275ec9d9efbc1",
+      "scope": "APPROVE M0-161 e69bd4ca85a59130afe6e276391275ec9d9efbc1",
+      "observation": "After both workstreams were accepted, the first action in both startup modes opened the major finding and displayed the instruction to stop assigning work.",
+      "reviewer": "Independent Astra Standard (t15z)",
+      "original_sha256": "17240b8d72272acdd28b02649248a98434c2e3e070032457053a946f7f7bf4a3",
+      "response_id": "501f49aad7b3b4d2e6df091cb1a336bfc920b3f9a42c5e469201d3f2dcfb9a08",
+      "response_sha256": "7d9d33c7f6b1a59eac8653ebe17a75458d708cae1e1be276d941ce5423f2e103",
+      "legacy_response_sha256": "d6f2c7c25ac49605b1bc68bc5eff666369a370c1af0e7a02bba2ed5e1f759574",
+      "observation_body_sha256": "44ac800db58e121a052df0cd121cda2a3e9baf6cc1f2490ae6965e216dd3c444",
+      "event": {
+        "id": "msg_0a0379c3abf71c9f016b082b65363087d18dd88137263ee14a",
+        "timestamp": "2026-11-26T12:52:05.357Z"
+      },
+      "supersedes": "0d047910015badc6ef681e673655ad308b13d06028afe1a42a79d2e742a64dea",
+      "evidence_sha256": "9d7710ef022a8666eafcbdee0a16e23177843625a29ffab2831534def87669b3"
     }
   ]
 }
