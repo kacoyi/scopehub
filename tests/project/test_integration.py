@@ -454,6 +454,11 @@ class IntegrationHistoryTests(IntegrationFixture):
                 self.assertFalse(result['technical_ready'])
 
     def measured_main_push_fixture(self, *, evidence_event='push'):
+        # These timing controls archive a pre-aggregate 2.0 report.
+        schema_path = self.root / 'contracts/schemas/project.schema.json'
+        schema = read_json(schema_path)
+        schema['$defs']['HostedHarnessReport']['properties'].pop('windows_producers')
+        schema_path.write_bytes(json_bytes(schema))
         base, repair = self.budget_handoff_fixture()
         main = self.merge_observation(base, source_identity(self.root)['git_head'])['sha']
         self.git('checkout', '--quiet', '--detach', main)

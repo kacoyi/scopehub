@@ -8894,6 +8894,29 @@
         "prevention": "The retained local public-registry comparison and guarded indicator-workflow on Ubuntu and Windows exercise the same success payload at exit 0, exit 1 and Node-observed SIGTERM. The abnormal cases return WORKER_EXITED with no artifact or committed effects and allow adjacent approval before the first status read."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-legacy-timing-fixture-claims-binding-schema",
+      "source": "Exact Linux M0-146 harness on e8876dd666e853f7ea8d6d6fc2a39c95d744833d. Original .reports/runs/20261126T155336.330534Z-c7df6b09/test-report.json.",
+      "observation": "Four protected main-push timing receipt controls stopped before their verdict assertions. The synthetic historical 2.0 report uses the pre-aggregate run layout but inherited the current source schema declaring required Windows producer bindings. Model the historical source explicitly and rerun the unchanged closed, missing and wrong-event timing verdict assertions.",
+      "severity": "minor",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261126T155336.330534Z-c7df6b09",
+          "source_commit": "e8876dd666e853f7ea8d6d6fc2a39c95d744833d",
+          "report_sha256": "5260fc5a79213f7e4d4e2384a3657df0c83ac3cf44b15ccac2e54c4056b24764"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
