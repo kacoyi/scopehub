@@ -251,6 +251,26 @@
       "requested_at": "2026-11-26T12:58:53.184244+00:00",
       "request_id": "c363cc7ea021eb50009d108a647be72fcc845401c033e8fe1d559c4a8cbfe0bd",
       "evidence_sha256": "7ad7d8af2a5182e297cba4c30a63d90049b134ff80d166709191fbd8adcedac2"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b39a02e2130ed16f9ccbef223839752aa7ad9ffd",
+      "verdict": "approved",
+      "decision": "APPROVE M2-035 b39a02e2130ed16f9ccbef223839752aa7ad9ffd",
+      "scope": "APPROVE M2-035 b39a02e2130ed16f9ccbef223839752aa7ad9ffd",
+      "observation": "For both CSV and folder revisions, my replay kept a timed-out availability reply from restoring access, and the retained Linux browser runs showed zero additional chart reads when a withdrawn revision was reopened by ID.",
+      "reviewer": "Independent Astra Standard (t16j)",
+      "original_sha256": "0303aafd2429cfd760377060880e6888de6a92d87f5df3ad06c9d77735d6b3ad",
+      "response_id": "4506a963008929094284e002bbcbb2d495e8fb3b6fbe94accc1376ac662b6d32",
+      "response_sha256": "d63ef7dd7b27c6acadd633254edef5a432c5bbaa74aade972b0e3c30e6e3c51e",
+      "legacy_response_sha256": "17f7869bbbbc78d4ef77f2f4f330ef0a05b10876502402522a2ebe8c50d64b78",
+      "observation_body_sha256": "550484d45788956d8924a856e7f6abf7a1968a3e8497003761f54e137735e9aa",
+      "event": {
+        "id": "msg_005854bb89f0363e016b082f4015b487d18f3e13468da2b4dd",
+        "timestamp": "2026-11-26T13:08:32.599Z"
+      },
+      "supersedes": "c363cc7ea021eb50009d108a647be72fcc845401c033e8fe1d559c4a8cbfe0bd",
+      "evidence_sha256": "2751eccc704077d8dad9a11caf942149077af1e669103b37b73bf62b55761ba9"
     }
   ]
 }

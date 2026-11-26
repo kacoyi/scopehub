@@ -271,6 +271,26 @@
       "requested_at": "2026-11-26T12:58:53.891531+00:00",
       "request_id": "eb139a955ea2345862cf20b7a2e611f0cb9e7b4470eedd7c190445285d42b394",
       "evidence_sha256": "faa4bc56e1a568f7d39e20183885143fca59a969be39624c6c17825eb083400c"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b39a02e2130ed16f9ccbef223839752aa7ad9ffd",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 b39a02e2130ed16f9ccbef223839752aa7ad9ffd",
+      "scope": "APPROVE M2-039 b39a02e2130ed16f9ccbef223839752aa7ad9ffd",
+      "observation": "In my local replay, the public staging entry preserved both bound artifacts for the retained Windows AMD64 passing fixture and rejected the same complete evidence when I changed the reported architecture to ARM64.",
+      "reviewer": "Independent Astra Standard (t16d)",
+      "original_sha256": "dc729457ab9aac0706239c7efad259484b6cdb637b26ac193f77b40ac7bd57a5",
+      "response_id": "7aec827f7cfc17a90d3af07161fe1b623559e38addf038d8f511d444bda7e61e",
+      "response_sha256": "525a07cd235f7fff30ef354b491ca9118a2984c21a8120fe13869db264da2619",
+      "legacy_response_sha256": "0b5bf16f6115097fbe482e61eece9a9acd092cbc2881bc817b5d8b13d9adccfb",
+      "observation_body_sha256": "e2832d4e49f9d9159bb8c49e8df736046cbca8de3771c65cbd7e72fcd2d80746",
+      "event": {
+        "id": "msg_0571b23626c49280016b082e0428d487d1a13dc23c6d41d6fe",
+        "timestamp": "2026-11-26T13:03:18.417Z"
+      },
+      "supersedes": "eb139a955ea2345862cf20b7a2e611f0cb9e7b4470eedd7c190445285d42b394",
+      "evidence_sha256": "39b85acaaa71d2d0f6d09e9697372362ba1ed74d6cb733c3048ebddcf22c7234"
     }
   ]
 }

@@ -231,6 +231,26 @@
       "requested_at": "2026-11-26T12:58:52.368690+00:00",
       "request_id": "78e23dd3db5efe54eaec41a2a60f8757c5c9e03d5c7998c4d8aff6ef832a2625",
       "evidence_sha256": "5ea981a0b03fef195db3c9c175584b5a7f7142ab5967e7d78afa18ed9744665e"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b39a02e2130ed16f9ccbef223839752aa7ad9ffd",
+      "verdict": "approved",
+      "decision": "APPROVE M2-034 b39a02e2130ed16f9ccbef223839752aa7ad9ffd",
+      "scope": "APPROVE M2-034 b39a02e2130ed16f9ccbef223839752aa7ad9ffd",
+      "observation": "Guarded Windows run 45769045630 timed out after 60 seconds while waiting for the debugging endpoint, and its original log contains no admission events or public drawer actions.",
+      "reviewer": "Independent Astra Standard (t16h)",
+      "original_sha256": "bf428bd29b1926c5c0d0fb2e1ba3036e5b36bb2aece36cdaa492e323f1dfd6bf",
+      "response_id": "de754d0f1ed30f96f55a325fefdc0083987b5304b6454f3fffd36372edf42294",
+      "response_sha256": "06def3a75c7cbe361657701cf7fac7228fb5b08ec9224c5526e4f52d38a3cbfb",
+      "legacy_response_sha256": "098e2d1c73717f3328992a053c6c7ba2d6daa3880e122b83178cf46daad1c916",
+      "observation_body_sha256": "251d8def96af5834b310d1c07b863fe1976ac53daa46e8db71795ae682ab346b",
+      "event": {
+        "id": "msg_07c64e0f16f6e605016b082ebb85dc87d297dcd67cd356a9d4",
+        "timestamp": "2026-11-26T13:06:23.110Z"
+      },
+      "supersedes": "78e23dd3db5efe54eaec41a2a60f8757c5c9e03d5c7998c4d8aff6ef832a2625",
+      "evidence_sha256": "e283c7d271b2b4335a90ee4591cb934239301019aac47bd3b90bc6c6e766bfab"
     }
   ]
 }
