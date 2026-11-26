@@ -9158,6 +9158,108 @@
       "diagnostic_reports": [],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "timing-unjoined-step-eligibility-erases-independent-clock",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-155 decision on 438302ef9ebb720039a5f0dd77e6b051c5010560, recorded at 3aecab3786826839d27a37de2bd44729d7be611d. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-155-438302ef/original-assistant-response.jsonl (SHA-256 d6bd71d73c2749b640b8ee4300dd83ab8f41723be8829ad266f20834d341d3e6).",
+      "observation": "For protected push 45765544396, partitioning skipped Linux step 19 across rows, or adding a sparse duplicate of step 19, erased independently supported preparation, execution and finishing clocks of 66, 864 and 9 seconds. Complete duplicate rows and a split of successful step 21 retained the clocks. Ordinary, weekly, cold and rotated reads reproduced the loss while retaining a 941-second wall, 939 runner seconds and one Windows receipt.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-windows-aggregate-status-disagrees-with-complete-results",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 decision on 438302ef9ebb720039a5f0dd77e6b051c5010560, recorded at 3aecab3786826839d27a37de2bd44729d7be611d. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-150-438302ef/original-assistant-response.jsonl (SHA-256 1725ce3f687b48029040557843ef48df8842dff91a4e346e587175d032259920).",
+      "observation": "PR 121 and PR 116 each retained a weekly Windows receipt after only the aggregate status changed from passed to blocked. Combining the contradicted sample with the genuine archive also removed the 903- and 883-second walls and their genuine receipts.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-raw-producer-discards-definition-conflicts",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 decision on 438302ef9ebb720039a5f0dd77e6b051c5010560, recorded at 3aecab3786826839d27a37de2bd44729d7be611d. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-150-438302ef/original-assistant-response.jsonl (SHA-256 1725ce3f687b48029040557843ef48df8842dff91a4e346e587175d032259920).",
+      "observation": "Swapping project_definition_sha256 or task_definitions independently between the PR 121 browser and PR 116 recovery raw producers left 702 and 421 seconds attributed to those producers when the genuine same-attempt aggregate was present. The compact projection erased the contradictory raw claims.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-aggregate-equivalent-generated-instant-revokes-receipt",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 decision on 438302ef9ebb720039a5f0dd77e6b051c5010560, recorded at 3aecab3786826839d27a37de2bd44729d7be611d. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-150-438302ef/original-assistant-response.jsonl (SHA-256 1725ce3f687b48029040557843ef48df8842dff91a4e346e587175d032259920).",
+      "observation": "Changing only the generated_at timezone spelling from UTC to an equivalent -08:00 timestamp retained isolated Windows timing for PR 121 and PR 116 but revoked both receipts on cold archive join. Equivalent Z spelling retained both receipts.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-committed-catalog-decoding-diverges-from-publisher",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 decision on 438302ef9ebb720039a5f0dd77e6b051c5010560, recorded at 3aecab3786826839d27a37de2bd44729d7be611d. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-150-438302ef/original-assistant-response.jsonl (SHA-256 1725ce3f687b48029040557843ef48df8842dff91a4e346e587175d032259920).",
+      "observation": "At the Git blob boundary, UTF-8 BOM and UTF-16 catalog bytes accepted by the timing reader were rejected by the publisher. A 1e309 catalog timeout caused fingerprint serialization to raise and stopped unrelated Linux evidence from returning. Ordinary and reformatted UTF-8 catalogs remained valid.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-shallow-checkout-accepts-provable-event-ancestor",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-156 decision on 438302ef9ebb720039a5f0dd77e6b051c5010560, recorded at 3aecab3786826839d27a37de2bd44729d7be611d. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-156-438302ef/original-assistant-response.jsonl (SHA-256 797bfa07054036c85a1c623830121920d1104d2e0aa2123e8d7f9c1b12d3ca52).",
+      "observation": "PR 84 attributed 804 Windows wall seconds, 2467 runner seconds and one weekly receipt at Git depth two when the claimed missing checkout was a provable ancestor of the event head, both with and without merge proof. Readable child headers contained the ancestor edge. Full history withdrew the sample and the genuine expired preview qualified at depth two.",
+      "task_ids": [
+        "M0-156"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
