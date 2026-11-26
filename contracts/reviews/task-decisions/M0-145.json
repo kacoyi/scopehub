@@ -173,6 +173,15 @@
       "requested_at": "2026-11-26T13:20:01.876150+00:00",
       "request_id": "169d5c7a85755b97194155c6576fb524f9336851560557b8f26a2af4eef34e78",
       "evidence_sha256": "9357844f9262e6bebcf04a0451f5d34bdc37a732eaa3aacef6bdc9554235ddec"
+    },
+    {
+      "kind": "request",
+      "source_commit": "438302ef9ebb720039a5f0dd77e6b051c5010560",
+      "scope": "Check the weekly freshness and publication boundary. Exercise previous observations, current bounded collection, missing originals, conflicting current records and genuine qualified evidence. Keep the November 28 actual due-cycle observation outstanding.",
+      "supersedes": "169d5c7a85755b97194155c6576fb524f9336851560557b8f26a2af4eef34e78",
+      "requested_at": "2026-11-26T13:58:54.814744+00:00",
+      "request_id": "a9d971dc81e64505aa12be6376d86307c014e7639f798ed0657ad8af4166cf3c",
+      "evidence_sha256": "987474ffa66133d0e0d08b92286ca601b1c1aefea5e573d42c653454716545ba"
     }
   ]
 }

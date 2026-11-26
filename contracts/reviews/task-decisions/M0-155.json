@@ -204,6 +204,15 @@
       },
       "supersedes": "57176d91352a49cc8f5d6d1461b6ddec3596304b92119d35ca658f9e79b775d9",
       "evidence_sha256": "7ebb99ce7b3dce3ded63ba18bf1290dfd9a2dfdcfb8aed707a4febb7c4cb8acd"
+    },
+    {
+      "kind": "request",
+      "source_commit": "438302ef9ebb720039a5f0dd77e6b051c5010560",
+      "scope": "Review the complete combined public behavior for authentic failed push 45565130414, retained rotations, conflicts, partial evidence and the committed identity. Exercise the earlier independent findings on ordinary capture, save, cold read and budget lookup. Check whether the shared ownership removed recurrence across consumers.",
+      "supersedes": "537cc10e55d19c9a95842a96e390a665ce0194132782e6f4807a396ec02f4da1",
+      "requested_at": "2026-11-26T13:58:56.830307+00:00",
+      "request_id": "d706465e9923a6f59e153acd92bc2b7148ccd3533dd38974eac9f25558e139f6",
+      "evidence_sha256": "6aa1262d39eaa65c7bd4d342e37e17dbbb3df62a7427746936c31fff27f24d5d"
     }
   ]
 }
