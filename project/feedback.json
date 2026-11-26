@@ -8490,6 +8490,187 @@
         "prevention": "Focused checks resolve the portable references and their source rules. Independent review exercised normal navigation, a rejected pointer, and valid and oversized frames."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-closed-bar-repair-sample-document-deadline",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Protected Windows main run 45709117560, first attempt, and the same-tree first ordinary PR 129 run 45705520154. The authenticated recovery producer, original chart screenshot and both test reporters are indexed in archives/observations/repo-hygiene-20261125/m0-154-cold-sample-45709117560/observations.json (SHA-256 73542c6956547a0746dad8eba3bed2f2b2b599f6b38d4c78ae379b00b0957736). Complete protected aggregate archived at archives/runs/windows-change-45709117560-1/test-report.json. The recovery producer original with SHA-256 b5c7067e1d0e54c69b7d27e09f148d98b4eaede2b48c703abe182ccfdbf0e981 remains separately retained.",
+      "observation": "The first closed-bar repair browser case stopped at the ten-second DOMContentLoaded deadline. Its retained screenshot shows the static Opening ScopeHub panel and the manual reload control. Eleven other recovery cases passed. The same-tree ordinary Windows PR passed all twelve cases, including the original case in 5.549 seconds. The failed trace does not identify the document response stage or timing of individual module loads. It contains no failing chart repair assertion.",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery"
+      ],
+      "resolution": {
+        "cause": "The former DOMContentLoaded wait stopped before chart assertions and did not report document or asset milestones. The precise trigger for the historical Windows timeout remains unknown.",
+        "correction": "Observe the public sample navigation and report a failed document, a committed document with pending code, or verified catalog, history and chart milestones. Keep the 10,000 ms navigation deadline and manual reload.",
+        "prevention": "The first ordinary Windows run 45823554677 verified the cold repair sample at 2,154 ms. The held required module stayed document-committed at 10,011 ms against an independent 10,012 ms reading. The failed-document and held dynamic entry controls also passed."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45709117560-1",
+          "source_commit": "00a6ab1ef8c02ebd15144c3e5d65fcff70771ebb",
+          "report_sha256": "495063b876f34779ecd4e844bda70c09d97720bc3caf0f900a14d1af9b23dd8a"
+        }
+      ]
+    },
+    {
+      "id": "sample-startup-verified-before-request-check",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent changes-requested decision for M0-154 source 232d0902bd5013392c5edd9ccacd7a875d655d12. Original final response retained at archives/observations/repo-hygiene-20261125/independent-final-m0-154-232d0902/final-response.txt (SHA-256 e9856f900204e62e36880df2820256811e53f9cb4bceb8c2ac6e096d2f2bad21). Local browser replay on the unchanged startup implementation is retained at archives/observations/repo-hygiene-20261125/m0-154-rejected-startup-232d0902/repro-replies/observations.json (SHA-256 3036c550a2afd67020aa64bc59ddf6643ade395d65e078295d566265e69073a4).",
+      "observation": "The real startup entry reported sample-verified with ordinary requests. Shifting the history start by one minute, changing the catalog limit from 50 to 49 or reversing the two requests each made the startup entry reject, but the attachment reported history-verified in every rejected case.",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery"
+      ],
+      "resolution": {
+        "cause": "The witness credited successful replies before validating the exact outgoing requests and their order.",
+        "correction": "Bind startup milestones to the expected request payloads and ordered catalog and history completion.",
+        "prevention": "The market-recovery controls now stop at catalog-verified for a shifted history start and at dom-content-loaded for a changed catalog limit or reversed requests."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "sample-startup-held-module-elapsed-unqualified",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent changes-requested decision for M0-154 source 232d0902bd5013392c5edd9ccacd7a875d655d12. Original final response retained at archives/observations/repo-hygiene-20261125/independent-final-m0-154-232d0902/final-response.txt (SHA-256 e9856f900204e62e36880df2820256811e53f9cb4bceb8c2ac6e096d2f2bad21). Replay of the original timing qualifier is retained at archives/observations/repo-hygiene-20261125/m0-154-rejected-startup-232d0902/repro/old-timing-qualifier-replay.json (SHA-256 ee688d5cf76a95224d612a66ba6213260d06f43627d5d6b00070d02cab5137b0).",
+      "observation": "The real held-module attachment recorded 10,018 ms. The retained observation qualifier accepted copies reporting 0 ms and 60,000 ms, while rejecting a wrong pending script path. The browser check asserted the ten-second timeout text, stage and script path without checking attachment elapsed time.",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery"
+      ],
+      "resolution": {
+        "cause": "The original held-module check validated the timeout text, stage and asset without checking the reported elapsed time.",
+        "correction": "Qualify elapsed time against the existing 10,000 ms deadline and an independent monotonic clock reading.",
+        "prevention": "The held-module case retains both readings and rejects copied observations of 0 and 60,000 ms. The Windows first-attempt values were 10,011 and 10,012 ms."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "sample-startup-verified-incompatible-history-response",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent changes-requested decision c2ca1c11fed0dfa1fbd354224fa82acde1b2bd7954b4c85c685d337733dd8c43 for M0-154 source e8b8de61a0e98283a70bcef39b4a0aa765f035e6. Original final response retained at archives/observations/repo-hygiene-20261125/independent-final-m0-154-e8b8de61/final-response.txt (SHA-256 366cd57e60f55bd028d8ae77dc1e8de3ae887520afa094d0fe7fcd2aa3088f7c). The unchanged product and observer behavior was reproduced in Chromium with exact archived HTTP bodies in .reports/m0-154-history-response/before/observations.json (SHA-256 06212aabab7c0b7f0458d2decd46d032f4baea5d7884b4b05f4e481cb91481c4).",
+      "observation": "Replaying a correct startup history request with a real 40-bar reply whose snapshot started one minute later produced OUTPUT_INVALID in the application. The startup attachment nevertheless recorded history_verified_ms and history-verified before the chart visibility assertion failed.",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery"
+      ],
+      "resolution": {
+        "cause": "The witness compared fewer response fields than the application and accepted a snapshot with shifted bounds for the correct request.",
+        "correction": "Use the shared request-bound history checks for the application and startup witness before crediting the frozen sample.",
+        "prevention": "The public startup case pairs the ordinary history control with the schema-valid shifted snapshot. The shifted reply stops at catalog-verified with a validation alert and zero chart bars."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "sample-startup-accepts-structurally-invalid-frozen-history",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent changes-requested decision 25f18c909377b012f42761502c36a36bb32c99dd46f8b4539cce6c9a2a39d98b for source 2f02d0f7d674bf1fb83b507f1e3303f3a7edaad5. The original response is retained at archives/observations/repo-hygiene-20261125/independent-final-m0-154-2f02d0f7/final-response.txt (SHA-256 e1a9a386def352c803a74161243a6fcd2611dd4338b08f6eda91c3346ed7d765). Matched traffic and its authenticated trace references are indexed in .reports/m0-154-history-response/traffic/archive-provenance.json and SHA256SUMS. The unchanged application and observer were replayed on Chromium with the archived control and the single-field deletion. The responses, startup attachments and unchanged execution inputs are bound by .reports/m0-154-response-admission/before/observations.json (SHA-256 63fcf6ba5f8464b2422dbb71a203f82b01755d8545a64064bfbcf8296fbaf276).",
+      "observation": "Removing only the required snapshot.content_hash from the matched 40-bar success reply still rendered all 40 bars in Chromium and produced sample-verified when the recorded events were replayed through the startup observer. Existing browser cases removed a field the request comparison already checked, omitted the whole result, shifted the range or changed event order. They did not reject a schema-invalid success that passed the shared comparisons. The first-page check compared the absent hash with itself and treated equality as proof of identity.",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery",
+        "ui-build"
+      ],
+      "resolution": {
+        "cause": "Both consumers trusted the runtime shape of the decoded reply, and equality of two missing hash fields passed the identity comparison.",
+        "correction": "Require generated operation output validation before the application and the startup witness admit catalog or history data.",
+        "prevention": "The public startup controls admit compatible history and reject missing or malformed content hashes, other structural omissions and a legacy bars reply supplied as frozen history."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "sample-startup-verified-without-chart-paint",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent changes-requested decision 3f2e7b36e1e1819b7ff73165bbe3b16965eaa63017b2c2bbf177abe081f5a6ad for source 222ba13c9ac8fca4e6e9962cd8a8c79e5e73843c. The original response is retained under archives/observations/repo-hygiene-20261125/independent-final-m0-154-222ba13c/ (original-assistant-response.jsonl SHA-256 914d34e7fb9bdadb4ca9304c0b1ebc6ea840fb158cd3a39fae1f9c72570ac5c8, final-response.txt SHA-256 b0133e5226b8091baf7c0b7a84a283eae876ab18f87125741eb8759990b28d33). Linux Chromium baseline on product source d82aa466250e9872978c92a0a2b735e1e5cf5049 is retained at .reports/m0-154-chart-presentation/baseline/observations.json (SHA-256 88eb8b3d9f976ae550f8f4f169ef4f1d38e07cecb990aaaa5ba225599f083079).",
+      "observation": "Appending 100 trailing zeros to the valid catalog price tick 0.2, with the archived 40-bar history unchanged, made the real React chart show its rendering error and draw no candles. Replaying startup events still produced sample_verified_ms because the element had data-bars=40. Linux Chromium reproduced the same false success with the equivalent tick and with a controlled renderer mount failure.",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery",
+        "ui-build"
+      ],
+      "resolution": {
+        "cause": "Trailing zeros in a valid tick reached Intl as excessive fraction digits. The readiness check took accepted bar metadata as evidence of a mounted and painted chart.",
+        "correction": "Normalize equivalent ticks for price formatting, expose renderer mount failure, and require painted candles before recording sample readiness.",
+        "prevention": "The public entry paints equivalent-tick history. A controlled mount failure retains history-verified with a chart failure marker, a visible alert and zero price pixels."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "sample-history-admits-contradictory-dataset-or-stream-position",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent changes-requested decision 3f2e7b36e1e1819b7ff73165bbe3b16965eaa63017b2c2bbf177abe081f5a6ad for source 222ba13c9ac8fca4e6e9962cd8a8c79e5e73843c. The original response is retained under archives/observations/repo-hygiene-20261125/independent-final-m0-154-222ba13c/ (original-assistant-response.jsonl SHA-256 914d34e7fb9bdadb4ca9304c0b1ebc6ea840fb158cd3a39fae1f9c72570ac5c8, final-response.txt SHA-256 b0133e5226b8091baf7c0b7a84a283eae876ab18f87125741eb8759990b28d33). Linux Chromium baseline on product source d82aa466250e9872978c92a0a2b735e1e5cf5049 is retained at .reports/m0-154-chart-presentation/baseline/observations.json (SHA-256 88eb8b3d9f976ae550f8f4f169ef4f1d38e07cecb990aaaa5ba225599f083079).",
+      "observation": "Changing only the history dataset adjustment to split_adjusted with a raw request and raw snapshot, or returning a valid non-null stream position without a request for it, each let the UI draw all 40 candles and startup report sample-verified. The reviewer injected replies after the Rust/Python operation boundary. The Linux browser baseline also admitted a contradictory quality source and invalid OHLC bounds. The desktop history client separately admitted contradictory continuation data or sent it as a later request, as shown in .reports/m0-154-chart-presentation/validator-before/product-observations/observations.json (SHA-256 9ce0755b78e3c3a773526c0013c0a87f19a44984bb6801a6dc7276d406a21184).",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery",
+        "chart-history"
+      ],
+      "resolution": {
+        "cause": "The UI admitted shape-valid responses without fully binding the dataset, frozen snapshot, stream, quality and page to the active request.",
+        "correction": "Share request-bound page validation across initial history, replay preparation, continuations and the startup witness.",
+        "prevention": "Public startup rejects schema-valid adjustment, stream-position, quality and bar-price contradictions at catalog-verified. Chart-history exercises pinned-page contradictions and valid assembly."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "sample-startup-verified-without-candle-paint",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent changes-requested decision 985ad89feb9dd836325744647162a0d52801aa17181bcca2688c4ea00456c433 for e11e24fcb079430b0e13414c5d969e63108411fa. Original material is retained under archives/observations/repo-hygiene-20261125/independent-final-m0-154-e11e24fc: final-response.txt SHA-256 e593f5a74093e355419c52f0417ee8a73cff70dd111247979fb1481882a737e7, original-assistant-response.jsonl SHA-256 7b10d48f04e8d0f865efe4999455181608f0cfb5f255d93f60860b113a99ffd7, console-logs/console-2026-11-26T05-57-35-431Z.log SHA-256 4d0107c3731a96084c6942c165c3ce8d7e68d848b0a10d564d36584c6c73024d and console-logs/console-2026-11-26T06-03-03-458Z.log SHA-256 0edd8e70ea2f4db1203bb7cd0bb6a73ee29545625ccb4be79129be14867fccb8. The independent Linux Chromium reproduction at clean e4cd88ec73e13c9064d53252dc031b83db4ddcd2 retains original bridge replies, screenshots, console events, the startup attachments and the reproducer in .reports/m0-154-candle-paint/baseline; observations.json SHA-256 355e2024e9f300c85fdb360aabfdd1e9ebd818df8fdb4c8619abb04f269c2080. Before the correction, the new market-recovery case passed the genuine render and failed both negative controls at the stage assertion. The raw reporter, input diff, screenshots and traces are retained in .reports/m0-154-candle-paint/regression-before; market-recovery/results.json SHA-256 2b875097e7cf6a695738fa567fdea33afdc4315fcad1e2bb14e50aa31559b37d.",
+      "observation": "At the ordinary /#demo entry, the same genuine catalog and 40-bar bridge history reached sample-verified with and without candle drawing. Suppressing only price-colored candle rectangles left 464 matches on one horizontal row of the price pane and 730 on its axis label. The old test counted all 1,194 as price ink without an alert. The genuine control showed 27,163 matching price-pane pixels across 438 rows and returned the same frozen snapshot.",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery"
+      ],
+      "resolution": {
+        "cause": "Price-color counts included the last-price line and axis label and could also count unrelated same-color ink.",
+        "correction": "Witness candlestick bodies and wicks in the main price pane, accounting for the last-price line.",
+        "prevention": "The Windows first-attempt missing-candle and unrelated-ink cases held the admitted 40-bar snapshot and genuine axis and last-price marks. Both stopped at history-verified after the presentation wait."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "sample-startup-verified-with-misplaced-candles",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent changes-requested decision 0526cedf93d2538cd86ea558680dd0e8a7424cc0d82862c59d9994546232ad60 for 6cc6a82f9703bc732c733f5e0d172a9473ca907b. The original-assistant-response.jsonl under archives/observations/repo-hygiene-20261125/independent-final-m0-154-6cc6a82f has SHA-256 f799265ce5a61c29d40cc8e8c95a194c5a8cf94c652351bb3cfd04f07dea1d3a. The Linux Chromium reproduction on cfc783280bc1d63cae4a1cdf6c74a25699af4d68 retains the test-only input diff, raw startup attachments, browser traces and failure screenshot under .reports/m0-154-candle-geometry/baseline. Its market-recovery/results.json has SHA-256 784e3e9ca1417c0a75b8d251e56b0fc4e6c13dacfdf6642ce4238459fe6f1fd5.",
+      "observation": "At /#demo with the same verified 40-bar snapshot as the genuine control, the observer reported sample-verified when every candle was replaced by a three-pixel-high mark of the corresponding direction. The marks occupied x=1 to 460 and y=22 to 24 on a 928-pixel-wide main price pane. The last-price line remained at y=390, and the axis label and chart mount were intact. The genuine control covered 438 price-colored rows. The missing-candle and unrelated-ink controls stayed history-verified.",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery"
+      ],
+      "resolution": {
+        "cause": "The color-order check did not verify candle time positions or OHLC spans.",
+        "correction": "Validate each candle's fitted time position and body and wick spans on the painted price pane, allowing pixel rounding and exposure beside dashed price marks.",
+        "prevention": "The Windows first-attempt desktop and 720 by 820 fractional-scale controls reached sample-verified. Replacement marks on pane rows 22 to 24 stayed history-verified with the original last-price line and axis label. The independent review also rejected a genuine image with one upper wick removed."
+      },
+      "deferral_reason": null
     }
   ]
 }
