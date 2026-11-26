@@ -30,6 +30,26 @@
       "requested_at": "2026-11-25T22:14:45.961218+00:00",
       "request_id": "146865d5117e855c05346abd84b47a155e91f72b1556969797dac1dc73646ca0",
       "evidence_sha256": "005852f7cd4797c19460718d5faae9f7e004497886825eb1cb41e29b21d8fbce"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "73fd47738b1dfb2c3e2497565a5eb0a43e2d2456",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 73fd47738b1dfb2c3e2497565a5eb0a43e2d2456",
+      "scope": "CHANGES_REQUESTED M0-150 73fd47738b1dfb2c3e2497565a5eb0a43e2d2456",
+      "observation": "For both historical runs, adding only the authentic browser job hid a controlled recovery cache conflict and changed the aggregate from unknown to warm.",
+      "reviewer": "Independent Astra Standard (t119)",
+      "original_sha256": "3c3d46e8428156b44070dd13ed5d8a79a58569679c69da5105356e3387aaebca",
+      "response_id": "aed6db8c3f2b43789abeaa5e38bca98d84325e574f245a7832f8b74db9a3d037",
+      "response_sha256": "d444c0bf6839f5f7ef274860fed2cf2fea2bddf2540c2d32b0a42924a1209144",
+      "legacy_response_sha256": "3f72ae78d3da18035dee7f8b8ae40b6a8532824ce21b98a1479e7c8ef5526fbf",
+      "observation_body_sha256": "66520da5b0bb6e73e100f495ea3ba3591812ad4427c323aa77c6f90e5db4fb4a",
+      "event": {
+        "id": "msg_08907633116e182f016b079d97d75887d2bd778031f2a5c5e1",
+        "timestamp": "2026-11-26T02:47:03.395Z"
+      },
+      "supersedes": "146865d5117e855c05346abd84b47a155e91f72b1556969797dac1dc73646ca0",
+      "evidence_sha256": "4ff82317263b6ca2ee4521c24c89873ddad1e400703c7927bd858f34217655f4"
     }
   ]
 }
