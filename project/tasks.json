@@ -26907,7 +26907,12 @@
         "python-contracts-workers",
         "architecture"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-163-0a1e626f3ffd9652.json",
+          "sha256": "ecf36e323719f520a4ae28899c42be5d48b035e4bcb7887834b9043832eb90f1"
+        }
+      ],
       "next_action": "Obtain independent review on the exact clean implementation candidate and coordinate protected verification before closure.",
       "blocker": null,
       "closure_reason": null,
