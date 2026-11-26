@@ -5,6 +5,7 @@ authority or upgrades archived evidence into current verification.
 """
 
 from functools import cache
+import hashlib
 import json
 import os
 import shlex
@@ -120,6 +121,63 @@ def resolve_source(root, reference):
     path = repository_path(root, reference['path']).resolve()
     engineering_root = root if path == (root / 'engineering-contract-v1.json').resolve() else None
     return select_source(json.loads(path.read_text(encoding='utf-8')), reference, engineering_root)
+
+
+def read_engagement_source(root, reference):
+    data = repository_path(root, reference['path']).read_bytes()
+    if hashlib.sha256(data).hexdigest() != reference['sha256']:
+        raise ValueError(f"Engagement source digest mismatch: {reference['path']}")
+    return select_source(json.loads(data), reference)
+
+
+def load_maintenance_engagement(root, engagement):
+    """Resolve the owner's fixed terms and the checkout's current workstream state."""
+    reference = engagement['authority']
+    authority = read_engagement_source(root, reference)
+    workstreams = engagement['workstreams']
+    try:
+        outcomes = {row['id']: row for row in authority['outcomes']}
+        stop = authority['engagement']
+        complete_when = stop['complete_when']
+        required_terms = [stop[key] for key in ('on_completion', 'later_implementation', 'scheduled_checks')]
+        archive_limit = authority['resume']['unavailable_private_archive']
+        required_terms.append(archive_limit)
+        for outcome in outcomes.values():
+            required_terms.append(outcome['owner'])
+            acceptance = outcome['acceptance']
+            if not isinstance(acceptance, list) or not acceptance:
+                raise ValueError('An engagement workstream needs acceptance criteria')
+            required_terms.extend(acceptance)
+        if not all(isinstance(term, str) and term.strip() for term in required_terms):
+            raise ValueError('Engagement authority needs owners, acceptance and stop terms')
+        if (len(outcomes) != len(authority['outcomes']) or not isinstance(complete_when, list)
+                or len(complete_when) != len(workstreams) or set(complete_when) != set(workstreams)
+                or outcomes.keys() != workstreams.keys()):
+            raise ValueError('Engagement workstreams must match owner acceptance and all stop requirements')
+    except (KeyError, TypeError) as error:
+        raise ValueError('Invalid engagement authority') from error
+
+    rows = []
+    for key, outcome in outcomes.items():
+        row = {'id': key, 'owner': outcome['owner']}
+        record = workstreams[key]
+        closure = record.get('closure')
+        if closure is None:
+            if not record['next_action'].strip():
+                raise ValueError(f'Open engagement workstream needs a next action: {key}')
+            row.update(status='open', next_action=record['next_action'])
+        else:
+            evidence = read_engagement_source(root, closure)
+            if (not isinstance(evidence, dict) or evidence.get('workstream_id') != key
+                    or not isinstance(evidence.get('observation'), str) or not evidence['observation'].strip()):
+                raise ValueError(f'Engagement closure needs an observation for workstream {key}')
+            if evidence.get('status') != 'accepted':
+                raise ValueError(f'Engagement closure needs explicit acceptance for workstream {key}')
+            row.update(status='accepted', closure=closure)
+        rows.append(row)
+    open_count = sum(row['status'] == 'open' for row in rows)
+    return {'status': 'active' if open_count else 'ended', 'open_count': open_count,
+            'workstreams': rows, 'stop_when': stop, 'authority': reference, 'unavailable_private_archive': archive_limit}
 
 
 def validate_record(root, project, record):
@@ -492,10 +550,26 @@ def evidence_view(root, project, source, latest, current, *, report_error=None):
 
 def project_navigation(*arguments, read_only=False, source_commit=None):
     if read_only or source_commit is not None:
-        if arguments[0] == 'status':
+        if arguments[0] == 'status' or (read_only and arguments[0] == 'context'):
             arguments += ('--read-only',)
         return read_only_project_command(*arguments, source_commit=source_commit)
     return shlex.join(('pnpm', 'project:' + arguments[0], *arguments[1:]))
+
+
+def engagement_handoff(engagement, *, read_only=False, source_commit=None):
+    def source_command(reference):
+        return project_navigation('source', reference['path'], reference['pointer'],
+                                  read_only=read_only, source_commit=source_commit)
+
+    return {
+        **engagement,
+        'owner_source_basis': 'Owner terms and historical intake observations.',
+        'owner_source_command': source_command(engagement['authority']),
+        'workstreams': [
+            {**row, **({'closure_command': source_command(row['closure'])} if 'closure' in row else {})}
+            for row in engagement['workstreams']
+        ],
+    }
 
 
 def unassigned_feedback(items, tasks):
@@ -585,6 +659,19 @@ def project_overview(state, *, read_only=False):
     maintenance_action = first if first and first['id'] != next_action.get('id') else calendar
     additional = (action(maintenance_action) if maintenance_action
                   and maintenance_action['id'] != next_action.get('id') else None)
+    engagement = state.get('maintenance_engagement')
+    engagement_summary = {}
+    if engagement:
+        engagement_summary = {'engagement': {
+            'status': engagement['status'],
+            'open_count': engagement['open_count'],
+            'workstreams': [{key: row[key] for key in ('id', 'status')} for row in engagement['workstreams']],
+            'handoff_command': navigation('context', '--phase', 'handoff') if focus else
+                navigation('source', 'project/delivery.json', '/scaffold_maintenance/engagement'),
+        }}
+        if not focus:
+            ref = engagement['authority']
+            engagement_summary['engagement']['owner_source_command'] = navigation('source', ref['path'], ref['pointer'])
     return {
         'purpose': state.get('purpose'),
         'focus': {key: focus[key] for key in ('id', 'title', 'status')} if focus else None,
@@ -614,7 +701,8 @@ def project_overview(state, *, read_only=False):
                                                  review.get('repair_recovery', {}).get('state') == 'waiting_for_event'
                                                  for review in reviews),
                         'dependency_review_due': (state.get('dependency_maintenance') or {}).get('review_due'),
-                        'follow_through': additional},
+                        'follow_through': additional,
+                        **engagement_summary},
         'next': next_action,
         'also_urgent': other_urgent,
         'details': {'delivery': navigation('brief'), 'focused_work': context,

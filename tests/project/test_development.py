@@ -2,17 +2,252 @@
 
 import copy
 import json
+import os
 from pathlib import Path
+import shlex
+import shutil
+import subprocess
+import sys
+import unittest
 from unittest.mock import patch
 
 from scripts.check_architecture import declared_source_boundaries
 from scripts.development import product_brief, resolve_source, status_view
 from scripts.project import (
-    ProjectError, archive_evidence, json_bytes, load_project, product_progress,
+    ProjectError, archive_evidence, digest, json_bytes, load_project, product_progress,
     read_json, task_context, task_definition_hash, workfront,
 )
 from tests.project.fixtures import task_by_id
 from tests.project.test_continuity import ProjectFixture
+
+
+class MaintenanceHandoffTests(ProjectFixture):
+    def setUp(self):
+        super().setUp()
+        self.enterContext(patch.dict('os.environ', {'SCOPEHUB_ARCHIVE_ROOT': str(self.root / 'missing-archive')}))
+        self.delivery_path = self.root / 'project/delivery.json'
+        self.delivery = read_json(self.delivery_path)
+        self.authority = {
+            'outcomes': [
+                {'id': 'repository-cleanup', 'status': 'open', 'owner': 'Audit coordinator',
+                 'acceptance': ['Recheck the integrated inventory.'], 'next_action': 'Read the initial inventory.'},
+                {'id': 'ongoing-maintenance', 'status': 'open', 'owner': 'Maintenance coordinator',
+                 'acceptance': ['Observe a due review.'], 'next_action': 'Read the initial schedule.'},
+            ],
+            'engagement': {
+                'complete_when': ['repository-cleanup', 'ongoing-maintenance'],
+                'on_completion': 'Deliver the evidence and stop assigning work.',
+                'later_implementation': 'Obtain a fresh owner instruction for later features.',
+                'scheduled_checks': 'Keep the existing cadence.',
+            },
+            'resume': {'unavailable_private_archive': 'Missing originals leave their evidence obligations open.'},
+            'evolution': {'trigger': 'Recurring failures.', 'action': 'Compare replacement and repair.',
+                          'verify': 'Observe the next comparable change.'},
+        }
+        self.engagement = {
+            'authority': self.retain('fixture-owner-scope', '/owner_scope', {'owner_scope': self.authority}),
+            'workstreams': {
+                'repository-cleanup': {'next_action': 'Assign the independently observed audit finding.'},
+                'ongoing-maintenance': {'next_action': 'Reconcile producer originals before the next due review.'},
+            },
+        }
+
+    def retain(self, name, pointer, record):
+        path = f'contracts/reviews/{name}.json'
+        destination = self.root / path
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        raw = json_bytes(record)
+        destination.write_bytes(raw)
+        return {'path': path, 'pointer': pointer, 'sha256': digest(raw)}
+
+    def save_engagement(self):
+        self.delivery['scaffold_maintenance']['engagement'] = self.engagement
+        self.delivery_path.write_bytes(json_bytes(self.delivery))
+
+    def observe(self):
+        overview = status_view(workfront(self.root), overview=True, read_only=True)
+        return overview, task_context(self.root, phase='handoff')
+
+    def follow_source(self, command):
+        arguments = shlex.split(command)
+        source = 'project:source' if 'project:source' in arguments else 'source'
+        path, pointer = arguments[arguments.index(source) + 1:][:2]
+        return resolve_source(self.root, {'path': path, 'pointer': pointer})
+
+    def accept_workstream(self, identity):
+        observation = {'workstream_id': identity, 'status': 'accepted',
+                       'observation': f'Retained fixture acceptance of {identity}.'}
+        closure = self.retain(f'fixture-closure-{identity}', '/closure', {'closure': observation})
+        self.engagement['workstreams'][identity] = {'next_action': None, 'closure': closure}
+        return closure, observation
+
+    def test_public_handoff_recovers_commitments_after_a_closed_repair_transfers_focus(self):
+        ledger = self.ledger()
+        repair = task_by_id(ledger, 'M0-001')
+        repair.update(title='Repair an interrupted handoff', status='active')
+        audit = task_by_id(ledger, 'M0-002')
+        audit.update(title='Audit a peer lock during an interrupted check', depends_on=['M0-001'],
+                     next_action='Exercise the running peer and rejected released-lock control.',
+                     plan=copy.deepcopy(repair['plan']))
+        self.save_ledger(ledger)
+        self.save_engagement()
+        initial, _ = self.observe()
+        evidence = archive_evidence(self.root, repair['id'], self.report(repair['id']))
+        self.finish_first(evidence)
+        ledger = self.ledger()
+        task_by_id(ledger, audit['id'])['status'] = 'active'
+        self.save_ledger(ledger)
+
+        overview, handoff = self.observe()
+        self.assertEqual('active', overview['focus']['status'])
+        self.assertEqual(audit['id'], overview['focus']['id'])
+        self.assertEqual('done', load_project(self.root)['tasks'][repair['id']]['status'])
+        self.assertEqual(audit['next_action'], handoff['task']['next_action'])
+        summary = overview['maintenance']['engagement']
+        self.assertEqual(initial['maintenance']['engagement'], summary)
+        self.assertEqual('active', summary['status'])
+        self.assertEqual(2, summary['open_count'])
+        self.assertEqual({'repository-cleanup': 'open', 'ongoing-maintenance': 'open'},
+                         {row['id']: row['status'] for row in summary['workstreams']})
+        self.assertIn('scripts/project.py context --phase handoff', summary['handoff_command'])
+        self.assertNotIn(self.engagement['authority']['path'], json.dumps(summary))
+
+        continuation = handoff['maintenance_engagement']
+        current = {row['id']: row for row in continuation['workstreams']}
+        source = self.follow_source(continuation['owner_source_command'])
+        self.assertEqual(self.authority, source)
+        self.assertEqual(source['engagement'], continuation['stop_when'])
+        self.assertEqual(source['resume']['unavailable_private_archive'], continuation['unavailable_private_archive'])
+        for original in source['outcomes']:
+            row = current[original['id']]
+            self.assertEqual('open', row['status'])
+            self.assertEqual(original['owner'], row['owner'])
+            self.assertTrue(original['acceptance'])
+            self.assertEqual(self.engagement['workstreams'][row['id']]['next_action'], row['next_action'])
+            self.assertNotIn('closure', row)
+
+    def test_individual_closures_end_coordination_without_changing_the_feature_task(self):
+        ledger = self.ledger()
+        feature = task_by_id(ledger, 'M1-002')
+        feature.update(title='Implement an unrelated product feature', next_action='Exercise the product interaction.')
+        ledger['focus_task_id'] = feature['id']
+        self.save_ledger(ledger)
+        ordinary, ordinary_handoff = self.observe()
+        self.assertNotIn('engagement', ordinary['maintenance'])
+        self.assertNotIn('maintenance_engagement', ordinary_handoff)
+
+        cleanup_closure, cleanup_observation = self.accept_workstream('repository-cleanup')
+        self.save_engagement()
+        overview, handoff = self.observe()
+        self.assertEqual('active', overview['maintenance']['engagement']['status'])
+        self.assertEqual(1, overview['maintenance']['engagement']['open_count'])
+        first = {row['id']: row for row in handoff['maintenance_engagement']['workstreams']}
+        self.assertEqual('open', first['ongoing-maintenance']['status'])
+        cleanup = first['repository-cleanup']
+        self.assertEqual('accepted', cleanup['status'])
+        self.assertNotIn('next_action', cleanup)
+        self.assertEqual(cleanup_closure, cleanup['closure'])
+        self.assertEqual(cleanup_observation, self.follow_source(cleanup['closure_command']))
+
+        self.accept_workstream('ongoing-maintenance')
+        self.save_engagement()
+        overview, handoff = self.observe()
+        ended = overview['maintenance'].pop('engagement')
+        self.assertEqual('ended', ended['status'])
+        self.assertEqual(0, ended['open_count'])
+        self.assertEqual(ordinary['maintenance'], overview['maintenance'])
+        continuation = handoff.pop('maintenance_engagement')
+        self.assertEqual('ended', continuation['status'])
+        self.assertEqual(self.authority['engagement'], continuation['stop_when'])
+        self.assertTrue(all(row['status'] == 'accepted' and 'next_action' not in row and row['closure']
+                            for row in continuation['workstreams']))
+        self.assertEqual(self.authority, self.follow_source(continuation['owner_source_command']))
+        self.assertEqual(ordinary_handoff, handoff)
+        self.assertEqual(ordinary_handoff['task'], task_context(self.root)['task'])
+
+    def test_handoff_rejects_unverified_authority_or_closure(self):
+        closure, _ = self.accept_workstream('repository-cleanup')
+        authority = self.engagement['authority']
+        for reference in (authority, closure):
+            with self.subTest(path=reference['path']):
+                destination = self.root / reference['path']
+                original = destination.read_bytes()
+                self.save_engagement()
+                destination.write_bytes(original + b'\n')
+                with self.assertRaisesRegex(ProjectError, 'Engagement source digest mismatch'):
+                    task_context(self.root, phase='handoff')
+                destination.write_bytes(original)
+                pointer = reference['pointer']
+                reference['pointer'] = '/missing'
+                self.save_engagement()
+                with self.assertRaisesRegex(ProjectError, 'Missing source pointer'):
+                    workfront(self.root)
+                reference['pointer'] = pointer
+
+        wrong = {'workstream_id': 'ongoing-maintenance', 'status': 'accepted',
+                 'observation': 'Fixture closure for a different workstream.'}
+        self.engagement['workstreams']['repository-cleanup']['closure'] = self.retain('fixture-wrong-closure', '', wrong)
+        self.save_engagement()
+        with self.assertRaisesRegex(ProjectError, 'Engagement closure needs an observation for workstream repository-cleanup'):
+            task_context(self.root, phase='handoff')
+
+    def test_valid_digest_cannot_turn_rejected_or_incomplete_observation_into_acceptance(self):
+        self.accept_workstream('repository-cleanup')
+        identity = 'ongoing-maintenance'
+        _, accepted = self.accept_workstream(identity)
+        rejected = {**accepted, 'status': 'rejected', 'observation': 'The due review was missing.'}
+        missing_status = {key: value for key, value in accepted.items() if key != 'status'}
+        missing_observation = {key: value for key, value in accepted.items() if key != 'observation'}
+        for observation, expected in (
+            (rejected, 'explicit acceptance'), (missing_status, 'explicit acceptance'),
+            (missing_observation, 'needs an observation'),
+        ):
+            with self.subTest(observation=observation):
+                closure = self.retain('fixture-maintenance-observation', '', observation)
+                self.engagement['workstreams'][identity]['closure'] = closure
+                self.save_engagement()
+                for view in (lambda: status_view(workfront(self.root), overview=True),
+                             lambda: task_context(self.root, phase='handoff')):
+                    with self.assertRaisesRegex(ProjectError, rf'{expected}.*{identity}'):
+                        view()
+
+    def test_read_only_handoff_commands_run_verbatim_with_an_unwritable_cache(self):
+        scripts = Path(__file__).resolve().parents[2] / 'scripts'
+        shutil.copytree(scripts, self.root / 'scripts', ignore=shutil.ignore_patterns('__pycache__'))
+        with (self.root / '.gitignore').open('a', encoding='utf-8') as ignores:
+            ignores.write('.venv/\n')
+        interpreter_environment = self.root / '.venv'
+        if os.name == 'nt':
+            from _winapi import CreateJunction
+            CreateJunction(sys.prefix, str(interpreter_environment))
+            self.addCleanup(interpreter_environment.rmdir)
+        else:
+            interpreter_environment.symlink_to(sys.prefix, target_is_directory=True)
+            self.addCleanup(interpreter_environment.unlink)
+        unwritable_cache = self.root / 'cache-is-a-file'
+        unwritable_cache.touch()
+        env = {**os.environ, 'UV_CACHE_DIR': str(unwritable_cache), 'UV_OFFLINE': '1'}
+
+        def cli(command):
+            arguments = command if os.name == 'nt' else shlex.split(command)
+            result = subprocess.run(arguments, cwd=self.root, env=env, capture_output=True, text=True, timeout=30)
+            self.assertEqual(0, result.returncode, f'{command}\n{result.stderr or result.stdout}')
+            return json.loads(result.stdout)
+
+        self.engagement['authority'] = self.retain('fixture owner scope', '', self.authority)
+        _, observation = self.accept_workstream('repository-cleanup')
+        self.save_engagement()
+        ordinary = task_context(self.root, phase='handoff')['maintenance_engagement']
+        self.assertTrue(ordinary['owner_source_command'].startswith('pnpm project:source '))
+        executable = './.venv/Scripts/python.exe' if os.name == 'nt' else './.venv/bin/python'
+        overview = cli(f'{executable} -B scripts/project.py status --overview --read-only')
+        summary = overview['maintenance']['engagement']
+        handoff = cli(summary['handoff_command'])
+        self.assertEqual(overview['focus']['id'], handoff['task']['id'])
+        engagement = handoff['maintenance_engagement']
+        self.assertEqual(self.authority, cli(engagement['owner_source_command'])['value'])
+        accepted, = (row for row in engagement['workstreams'] if row['status'] == 'accepted')
+        self.assertEqual(observation, cli(accepted['closure_command'])['value'])
 
 
 class DevelopmentTests(ProjectFixture):

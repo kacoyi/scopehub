@@ -905,6 +905,21 @@
     ]
   },
   "scaffold_maintenance": {
+    "engagement": {
+      "authority": {
+        "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+        "pointer": "",
+        "sha256": "43eba699f0a2d78614dd689c11630e116a9bb6dbbe38fff4b4d1c3ce1fcd29ae"
+      },
+      "workstreams": {
+        "repository-cleanup": {
+          "next_action": "Reconcile the implemented component, consumer, platform and repository hygiene inventory against the current integrated source. Record uncovered boundaries and assign verified in-scope findings to corrective tasks."
+        },
+        "ongoing-maintenance": {
+          "next_action": "Reconcile the timing provenance corrections against their producer originals. Use project:status to identify the next due review and retain its actual observation. The baseline verification-timing review is due November 28."
+        }
+      }
+    },
     "triggers": [
       "A check, build, task command or evidence import fails, including failure before a harness report exists.",
       "Observed product or scaffold behavior contradicts an accepted requirement even when all existing checks pass.",

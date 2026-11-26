@@ -1,0 +1,93 @@
+{
+  "version": 3,
+  "task_id": "M0-158",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "8bbf6e109fa13f235cdb29bb644af465643cc3e0",
+      "scope": "Independently verify the engineering handoff through ordinary startup and focused context. Check the two registered commitments, actionable ownership, acceptance, finite engagement boundary, separate later product work, normal scheduled cadence, and evolution follow-through. Inspect a comparable unrelated checkout and a missing private archive. Compare the neutral fresh-session observation with the source and retained before controls. Keep this narrow task and portfolio completion distinct.",
+      "supersedes": null,
+      "requested_at": "2026-11-26T03:38:02.814202+00:00",
+      "request_id": "42a5bece770e23427d57aa9cadd7f010a23f59914e2e293701dd8fcf8acbb4e9",
+      "evidence_sha256": "5ffea8d1bcda1641ccb0836abca385bb59f23eaf812ce98ee7d9cf680ade6322"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "8bbf6e109fa13f235cdb29bb644af465643cc3e0",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-158 8bbf6e109fa13f235cdb29bb644af465643cc3e0",
+      "scope": "CHANGES_REQUESTED M0-158 8bbf6e109fa13f235cdb29bb644af465643cc3e0",
+      "observation": "In the isolated transfer to M0-157, the startup overview and focused context omitted both open commitments and their stop condition.",
+      "reviewer": "Independent Astra Standard (t127)",
+      "original_sha256": "b6ec4a4f7957d1658d7165f1b7152cb43c87bc5cb57cf5f17d9766098a21a818",
+      "response_id": "a473a907209cb2ae730a5ea5936db612b627336ffb4ca0b389c14fe355b39fc6",
+      "response_sha256": "a0a0897048d26b512ae972ef20acc08a9f476f83a766bbd36a645716a83622da",
+      "legacy_response_sha256": "e702af6ddd08541cd9d0887d65b64bcccf7a98debaf8b3b98b4bbfa7e405e4b8",
+      "observation_body_sha256": "a1c6664211ac49926cdd0d92b92e4f59e503aaadcc346174c1bdcebe8e5a4d58",
+      "event": {
+        "id": "msg_0d7e844fa2548bb1016b07abff57b087d295b7c1b52dff3a14",
+        "timestamp": "2026-11-26T03:48:34.167Z"
+      },
+      "supersedes": "42a5bece770e23427d57aa9cadd7f010a23f59914e2e293701dd8fcf8acbb4e9",
+      "evidence_sha256": "d121e8de9b8037518736913164e74b3e1065fe3e1569d580361c45838806ef8f"
+    },
+    {
+      "kind": "request",
+      "source_commit": "236bd00c12f1efe58ce44d2b292c4fc389854ece",
+      "scope": "Use ordinary startup and focused handoff after the narrow repair finishes and a separate genuine audit successor owns work. Check discoverability of both open commitments, acceptance, ownership, finite stopping point, future independent work and unchanged schedules without prior task ID or a private archive. Verify the active positive, unrelated product focus, and completed-engagement contrasts. Retain the actual source and observations.",
+      "supersedes": "a473a907209cb2ae730a5ea5936db612b627336ffb4ca0b389c14fe355b39fc6",
+      "requested_at": "2026-11-26T04:19:49.323806+00:00",
+      "request_id": "f61cd91ae37e11c45ae4093df8e19ce0ff24ce552b963412ece4af8a8aab9275",
+      "evidence_sha256": "231f372e0fa5674b9edff32f15a2bbaafe7d0d872ed432f95d211195b2fbcc24"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "236bd00c12f1efe58ce44d2b292c4fc389854ece",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-158 236bd00c12f1efe58ce44d2b292c4fc389854ece",
+      "scope": "CHANGES_REQUESTED M0-158 236bd00c12f1efe58ce44d2b292c4fc389854ece",
+      "observation": "The overview and handoff showed both workstreams as accepted when one digest-verified closure record explicitly reported rejection.",
+      "reviewer": "Independent Astra Standard (t12x)",
+      "original_sha256": "46885dac4cf1b285faa86cf30a132f04f2f448affeba5427a0fc57ff4bc1da21",
+      "response_id": "389e58faea2732182da846bc9bc2d03d6d26a48e97c532c6e69f4d2660db818d",
+      "response_sha256": "d2fc308f02dc2c32afe2f25c169a0c170c62cafe938b6aeb7fadfefcb47693fd",
+      "legacy_response_sha256": "792f63284faf9e5b4c2a433f3c82f72f974d2ca40c99603246c28f4c1651732c",
+      "observation_body_sha256": "99fac5ee118f8aee75590606083281be94caf5ecbafbe2d34a196fec2da64572",
+      "event": {
+        "id": "msg_0c614aa78e8f3df8016b07b8860f8887d2a5baace23de2e879",
+        "timestamp": "2026-11-26T04:42:03.064Z"
+      },
+      "supersedes": "f61cd91ae37e11c45ae4093df8e19ce0ff24ce552b963412ece4af8a8aab9275",
+      "evidence_sha256": "545774c5cb2dd4d83cfe990cc7febbc29907da22388f23e2cac692045d1045b4"
+    },
+    {
+      "kind": "request",
+      "source_commit": "da5fd0a6f56c6308d116e95d7174849bf62d70d2",
+      "scope": "Exercise ordinary and read-only successor handoff after a change of audit focus. Run the source command actually printed. Check accepted, rejected, pending and partially complete evidence, the resulting stop condition, unrelated product focus and unchanged schedules. Recheck both findings on 236bd00c and independently try one more transition.",
+      "supersedes": "389e58faea2732182da846bc9bc2d03d6d26a48e97c532c6e69f4d2660db818d",
+      "requested_at": "2026-11-26T05:00:07.570276+00:00",
+      "request_id": "7697357d71c741c3193e6e5a2107481efdf7c53698f8c7f51eb9b3df18c34990",
+      "evidence_sha256": "718ce52bbefcbc4050103c508fa4da42f5beef82dcb7a101598a9311e5be24bb"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "da5fd0a6f56c6308d116e95d7174849bf62d70d2",
+      "verdict": "approved",
+      "decision": "APPROVE M0-158 da5fd0a6f56c6308d116e95d7174849bf62d70d2",
+      "scope": "APPROVE M0-158 da5fd0a6f56c6308d116e95d7174849bf62d70d2",
+      "observation": "After audit focus moved to M0-157, the overview and handoff showed both workstreams as open, and the emitted read-only source command returned all six acceptance criteria with an unwritable cache.",
+      "reviewer": "Independent Astra Standard (t139)",
+      "original_sha256": "fabc3525a0750a083af1e6032234dd282e0147312d7dcc86d24c490501d19a65",
+      "response_id": "c0d8efa8ca297fcd6249c472f10f00bff294aef47ec599cbe1411bde9800f080",
+      "response_sha256": "96fe51fdbb3187c65df4020dcbd9c0e4dc183abc590ee48e5da3011cca8c8504",
+      "legacy_response_sha256": "ff6ef50c29fa707f05cc617c3dfcf5a0d78417489e724164de015b8b2736735d",
+      "observation_body_sha256": "f665633dd8d7844f7423a86155a9fde4ef899a2fc8942abab4cde4b993ec75b5",
+      "event": {
+        "id": "msg_034c8f7247482b9d016b07be860cc487d18d17a9d9c1f4a981",
+        "timestamp": "2026-11-26T05:07:39.460Z"
+      },
+      "supersedes": "7697357d71c741c3193e6e5a2107481efdf7c53698f8c7f51eb9b3df18c34990",
+      "evidence_sha256": "8f1febc69b30586ce89903b87c27b715f2c8f018b0e7c925205014d7a763f970"
+    }
+  ]
+}
