@@ -175,6 +175,15 @@
       "requested_at": "2026-11-26T06:07:07.817397+00:00",
       "request_id": "de0d2cb5fc9aed6639df34b704694834d55d6d307168b87d3468fe08bb984d77",
       "evidence_sha256": "325cfa2d0e383376a8b15ca305dbec724e2ad00c87cdb8d20c953cc38408759f"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a47fe65ae18064d3147f86e6a3cb32784bca4d9d",
+      "scope": "Verify scheduling compatibility, producer identity and the public native receipt importer with genuine and wrong-attempt paired logs. Check the earlier independent decision and the historical cache and publication controls. Evaluate which natural timing outcomes apply to the accepted scheduling behavior.",
+      "supersedes": "de0d2cb5fc9aed6639df34b704694834d55d6d307168b87d3468fe08bb984d77",
+      "requested_at": "2026-11-26T06:21:22.208186+00:00",
+      "request_id": "f62e6a7ca1083726bd5cfc3abc9c2314f1d99eece90dc2bef5c964c5d95d30be",
+      "evidence_sha256": "09f5fd15e30a0b6d41f2b6b8366e622eef7f6bd456872a9041ea32f4ab08d258"
     }
   ]
 }

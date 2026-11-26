@@ -175,6 +175,15 @@
       "requested_at": "2026-11-26T06:07:08.617023+00:00",
       "request_id": "91213af24bc2f77de758219d32ed9803e8aa31d3dc062ce0714e7116f92cbc30",
       "evidence_sha256": "2e4c3ae378fe6fe2aaab39619096c2d1a58c43bab20fae741c10e9b8da355718"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a47fe65ae18064d3147f86e6a3cb32784bca4d9d",
+      "scope": "Exercise actual retained and current producer outputs through aggregation, import and reopen. Challenge false outcomes and failures across case output, fixture cleanup, attempt identity and clocks. Verify the newly linked warm PRs against the original job timings and distinguish comparable observations before and after the partition.",
+      "supersedes": "91213af24bc2f77de758219d32ed9803e8aa31d3dc062ce0714e7116f92cbc30",
+      "requested_at": "2026-11-26T06:21:22.815615+00:00",
+      "request_id": "7d56f8db8864dc969f748cbcc55d7c91678bc930b2d956349220b1025c1366ba",
+      "evidence_sha256": "fb0ea287b70553a1f635314b371566806a10497ba58b22d61dd3a6670f30328c"
     }
   ]
 }
