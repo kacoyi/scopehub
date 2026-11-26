@@ -26645,6 +26645,7 @@
         "Retain the first protected Windows failure, its named assertion and neighboring results. Determine what the application guarantees when returning a cancelled task and distinguish a remaining child, handle or scratch path using observations.",
         "Exercise the ordinary trusted worker cancellation entry with an approved benign fixture. Verify one terminal cancellation, absence of a persistable result and cleanup of only its owned scratch files. Preserve normal completion, deadlines, task isolation and interruption. Retain a controlled failure that distinguishes the chosen correction.",
         "Through the preview transport and its ordinary registry, observe a complete worker failure before the carrier exits, no artifact, and an independently approved run during the first run's cleanup. Preserve the success and cancellation lifecycles, and observe bounded carrier ownership and shutdown.",
+        "Through the ordinary preview and public registry, submit the same valid indicator success frame before exit 0, exit 1 and signal termination. Require close with exit 0 for success. For both abnormal closes require WORKER_EXITED, no artifact, no committed effects, and available adjacent admission. Preserve previously delivered terminal errors, explicit cancellation, late-frame rejection and bounded carrier cleanup.",
         "Obtain independent review and qualifying Windows and Linux observations for the corrected responsibility, including an integrated Windows recheck. Record remaining limits and account for cleanup failures without loosening the terminal contract."
       ],
       "checks": [
@@ -26665,7 +26666,7 @@
           "report_sha256": "224cf1a54de8ed450870007188fd2b81ec999eaad48374cda7e40081e5b1f9b9"
         }
       ],
-      "next_action": "Use the implementation handoff and retained baseline and candidate controls for independent review of terminal delivery and carrier ownership. Then obtain native and integrated Windows rechecks, including the sharing-denied handle case. Keep the original Windows cause unknown unless new evidence identifies it.",
+      "next_action": "Retain public registry controls for exit 0, exit 1 and signal termination against the reviewed transport and the corrected candidate. Hand off the exact local source and evidence for independent review and coordinated native and integrated Windows rechecks, including the sharing-denied handle case. Keep the original Windows cause unknown unless new evidence identifies it.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26689,7 +26690,8 @@
           "An injected Linux interruption of the first scratch removal reproduced the surviving directory after cancellation with both processes gone. An ordinary success and an uninjected cancellation removed their scratch directories. This establishes a silent removal failure mechanism, while attribution of the original Windows failure remains open.",
           "The first protected producer and the linked Windows aggregate both recorded the same failed scratch assertion before the process assertions. Both PR 135 Windows reports passed the same test with identical worker and test source blobs. These observations provide no process, handle or filesystem error evidence for the original failure.",
           "The independent review of 5623272d found that partial backoff can initiate a retry at the deadline and that synchronous scratch removal can block the current-thread caller's timer. The deadline test and the controlled slow filesystem test distinguish these from the historical Windows assertion.",
-          "The independent review of 5585d26a observed the preview transport waiting for child close before relaying a complete WORKER_EXITED frame. The carrier already owns the reaper beyond terminal publication. Exercise the public writer path with separate frame delivery, child close and scratch removal observations."
+        "The independent review of 5585d26a observed the preview transport waiting for child close before relaying a complete WORKER_EXITED frame. The carrier already owns the reaper beyond terminal publication. Exercise the public writer path with separate frame delivery, child close and scratch removal observations.",
+        "The independent review of cf1eb9da observed identical success delivery after exit 0, exit 1 and SIGTERM. The preview closes over stdout length when evaluating the exit status, and the writer only receives the resulting frame. Exercise the same valid frame through the public registry with each close outcome."
         ],
         "risks": [
           {
@@ -26719,6 +26721,12 @@
               "rust-contracts-workers",
               "indicator-workflow"
             ]
+        },
+        {
+          "failure": "A valid indicator success can pass through an abnormal close, or correcting close validation can overwrite an already delivered error or explicit cancellation. Exercise the ordinary preview registry with zero, nonzero and signal termination, the same valid frame and no effects on rejection, then verify neighboring admission, late frames and bounded cleanup.",
+          "checks": [
+            "indicator-workflow"
+          ]
           }
         ],
         "rollback": "Restore the preceding implementation and retain the diagnosed failures and controls if the ordinary contract changes.",
@@ -26763,7 +26771,7 @@
           ],
           "change": [
             "Observe scratch removal after supervisor exit. Allow one initial removal and only retry transient interruptions or Windows sharing and lock failures before the same deadline used for the caller wait. Offload blocking removal with the task-owned scratch and permit, and make the terminal response observable while cleanup continues. Require confirmed cleanup before returning a successful result.",
-            "Replace the status-coupled preview reply with an ordered, private completion notification. Deliver a validated indicator failure while the carrier owns cleanup. Stage a success after carrier close and continue to publish only through an ordinary status read. Bound the preview to two live indicator carriers and wait for their close during shutdown."
+          "Replace the status-coupled preview reply with an ordered, private completion notification. Deliver a validated indicator failure while the carrier owns cleanup. Stage a success only after carrier close with exit status 0 and continue to publish only through an ordinary status read. Bound the preview to two live indicator carriers and wait for their close during shutdown."
           ],
           "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
           "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."

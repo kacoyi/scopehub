@@ -8010,6 +8010,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "preview-indicator-success-survives-abnormal-carrier-exit",
+      "source": "Independent Astra Standard review of cf1eb9da0acb97e1dc74c59377280f1a4bcf3274 at archives/observations/repo-hygiene-20261125/independent-final-m0-167-cf1eb9da/original-assistant-response.jsonl (SHA-256 105cc38ebe5ba8119ec8dc3400a1f6ea0406a4dbe7bbf92188aff519e13b6c82). The retained decision is contracts/reviews/task-decisions/M0-167.json#/events/5.",
+      "observation": "The exact preview transport returned the same valid success after the controlled indicator carrier exited with status 0, exited with status 1 or terminated by SIGTERM. Each result stayed pending until close. The transport checks abnormal close only when stdout is empty and the preview writer receives the accepted frame without the carrier exit status. The independent reproduction observed transport delivery. The original Windows scratch failure did not establish this mechanism.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-167"
+      ],
+      "regression_checks": [
+        "indicator-workflow"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
