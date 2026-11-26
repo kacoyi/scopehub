@@ -20,7 +20,11 @@ from typing import NamedTuple
 if __package__:
     from .doctor import tool_version
     from .execution_inputs import committed_project_definition_claims, committed_source_identity, is_source_input
-    from .verification_report import integration_summary_matches
+    from .timing_clock import (
+        can_order, encode_timestamp, extrema, interval_bounds, ordered_choices, paired_minima,
+        seconds as interval_seconds, sum_intervals, timestamp,
+    )
+    from .verification_report import report_observation_issue
     from .verification_scope import (
         LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit,
         decode_publishing_catalog, git, invalid_number, oid, publishing_check_catalog, require_complete_history,
@@ -32,7 +36,11 @@ if __package__:
 else:
     from doctor import tool_version
     from execution_inputs import committed_project_definition_claims, committed_source_identity, is_source_input
-    from verification_report import integration_summary_matches
+    from timing_clock import (
+        can_order, encode_timestamp, extrema, interval_bounds, ordered_choices, paired_minima,
+        seconds as interval_seconds, sum_intervals, timestamp,
+    )
+    from verification_report import report_observation_issue
     from verification_scope import (
         LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit,
         decode_publishing_catalog, git, invalid_number, oid, publishing_check_catalog, require_complete_history,
@@ -67,7 +75,7 @@ JOB_INTERVALS = {
 JOB_ENDPOINTS = frozenset(endpoint for pair in JOB_INTERVALS.values() for endpoint in pair)
 STEP_KINDS = ('harness', 'browser')
 MAX_TIMESTAMP_CHOICES = 8
-REPORT_RECORDING_TIME = re.compile(
+LEGACY_RECORDING_SPELLING = re.compile(
     r'[0-9]{4}-[0-9]{2}-[0-9]{2}[Tt][0-9]{2}:[0-9]{2}:[0-9]{2}(?:[.,]([0-9]+))?(?:Z|[+-][0-9]{2}:[0-9]{2})'
 )
 SPLIT_SECONDS = ('initial_queue', 'aggregate_setup')
@@ -187,28 +195,13 @@ def duration(value):
     return value if type(value) in (int, float) and 0 <= value <= timedelta.max.total_seconds() else None
 
 
-def timestamp(value):
-    try:
-        result = datetime.fromisoformat(value)
-    except (TypeError, ValueError):
+def report_recording_spelling(value):
+    if timestamp(value) is None:
         return None
-    return result if result.tzinfo is not None else None
-
-
-def report_recording_time(value):
-    point = timestamp(value)
-    if point is None:
-        return None
-    # datetime represents the first six fractional digits. Preserve the rest
-    # for exact comparison across equivalent minute-offset spellings. An older
-    # timestamp outside this shape retains its exact spelling as a distinct fact.
-    match = REPORT_RECORDING_TIME.fullmatch(value)
-    extra_precision = (match[1] or '')[6:].rstrip('0') if match else value
-    return point, extra_precision
-
-
-def elapsed(start, end):
-    return (end - start).total_seconds() if start and end and start <= end else None
+    # Preserve the raw-to-compact spelling used in earlier receipt digests.
+    # Reconciliation always compares the exact instant independently.
+    match = LEGACY_RECORDING_SPELLING.fullmatch(value)
+    return datetime.fromisoformat(value).isoformat() if match and not (match[1] or '')[6:].rstrip('0') else value
 
 
 def short_label(value):
@@ -358,11 +351,7 @@ def report_sample(report, *, cache=None):
         and report.get('native_requirement', {}).get('satisfied') is not False
     )
     check_work, check_work_complete = report_check_work(checks)
-    recorded = report_recording_time(report.get('generated_at'))
-    recorded_at = None
-    if recorded:
-        point, extra_precision = recorded
-        recorded_at = report['generated_at'] if extra_precision else point.isoformat()
+    recorded_at = report_recording_spelling(report.get('generated_at'))
     source = report.get('source', {})
     source_commit = source.get('git_head')
     inputs_digest = source.get('sha256')
@@ -393,14 +382,16 @@ def report_sample(report, *, cache=None):
 
 
 def input_report_sample(report):
-    """Check native raw fields before the compact projection can erase them."""
+    """Check raw publisher claims before the compact projection can erase them."""
     selection = report.get('selection') or {}
     profile = selection.get('profile')
-    native = (report.get('environment', {}).get('system') == 'Windows'
-              and (report.get('ci') or {}).get('event') in NORMAL_EVENTS
+    platform = report.get('environment', {}).get('system')
+    ci = report.get('ci')
+    if ci and platform in PLATFORMS.values() and (issue := report_observation_issue(report)):
+        raise TimingError(f'Timing report has {issue}.')
+    native = (platform == 'Windows' and ci and ci.get('event') in NORMAL_EVENTS
               and (profile in AUTOMATIC_PROFILES or profile in WINDOWS_PRODUCER_PROFILES))
     if native:
-        ci = report['ci']
         source = report.get('source') or {}
         publishing, assignment, _ = native_publisher_contract({
             'ci': ci, 'source_commit': source.get('git_head'), 'inputs_sha256': source.get('sha256'),
@@ -411,9 +402,6 @@ def input_report_sample(report):
         expected_source = {**snapshot, 'git_head': ci['checkout_sha']} if snapshot is not None else None
         if issue := windows_raw_timing_issue(report, catalog=catalog, source=expected_source):
             raise TimingError(f'Timing report has {issue}.')
-        if ('integration_validation' in report
-                and not integration_summary_matches(report['integration_validation'], report['checks'])):
-            raise TimingError('Timing report has an integration summary that contradicts its check results.')
         if (timestamp(report.get('generated_at')) is None
                 or duration(report.get('timing', {}).get('elapsed_seconds')) is None):
             raise TimingError('Invalid native harness report timing.')
@@ -509,7 +497,7 @@ def observed_step_rows(steps):
                     row[field] = value
             if name is None or name in TIMED_STEPS:
                 for field in ('started_at', 'completed_at'):
-                    if value := timestamp(step.get(field)):
+                    if (value := timestamp(step.get(field))) is not None:
                         row[field] = encode_timestamp(value)
         rows.append(row)
     return distinct_observations(rows)
@@ -534,10 +522,6 @@ def unique_endpoint(choices):
     return next(iter(choices)) if choices and len(choices) == 1 else None
 
 
-def encode_timestamp(point):
-    return point.astimezone(timezone.utc).isoformat() if point is not None else None
-
-
 def retain_endpoint_choices(choices):
     result = {'endpoints': {field: encode_timestamp(unique_endpoint(values)) for field, values in choices.items()}}
     disputed = sorted(field for field, values in choices.items() if values is None or len(values) > 1)
@@ -550,36 +534,32 @@ def retain_endpoint_choices(choices):
     return result
 
 
-def can_order_endpoints(choices, fields):
-    # For a nondecreasing chain the earliest feasible witness leaves every
-    # later endpoint the widest possible choice. An absent field adds no bound.
-    earliest = None
-    for field in fields:
-        values = choices.get(field, ())
-        if values is None:
-            return False
-        if values:
-            earliest = min((value for value in values if earliest is None or value >= earliest), default=None)
-            if earliest is None:
-                return False
-    return True
+def phase_order(kind):
+    return 'requested', 'start', f'{kind}_start', f'{kind}_end', 'end'
 
 
-def project_job_points(choices):
-    points = {field: unique_endpoint(values) for field, values in choices.items()}
+def job_boundary_choices(choices, fields):
+    return ordered_choices(choices, fields, within=('requested', 'start', 'end'))
+
+
+def unplaced_phases(choices):
     unplaced = set()
     for part in STEP_KINDS:
         start, end = f'{part}_start', f'{part}_end'
         observed = (choices.get(start, ()), choices.get(end, ()))
-        if any(values is None or values for values in observed) and not can_order_endpoints(
-                choices, ('requested', 'start', start, end, 'end')):
-            points[start] = points[end] = None
+        if any(values is None or values for values in observed) and not can_order(choices, phase_order(part)):
             unplaced.update((start, end))
-    return points, unplaced
+    return unplaced
 
 
-def job_seconds(points):
-    return {field: elapsed(points.get(left), points.get(right)) for field, (left, right) in JOB_INTERVALS.items()}
+def job_intervals(choices):
+    intervals = {}
+    for metric, endpoints in JOB_INTERVALS.items():
+        phase = next((kind for kind in STEP_KINDS if any(field.startswith(kind) for field in endpoints)), None)
+        pairs = (ordered_choices(choices, endpoints, within=phase_order(phase)) if phase
+                 else job_boundary_choices(choices, endpoints))
+        intervals[metric] = interval_bounds(pairs)
+    return intervals
 
 
 def job_identity(run_id, attempt, head_sha, repository, job):
@@ -618,7 +598,6 @@ def observe_job(job, *, identity, requested, label=None, harness_steps=HARNESS_S
     # selector to its local rows that a reopened review applies to the union.
     for kind, names in zip(STEP_KINDS, (harness_steps, BROWSER_STEPS), strict=True):
         choices.update(joined_step_clock((), kind, set(names), evidence))
-    points, _ = project_job_points(choices)
     row = {
         'job_id': str(job['id']) if job.get('id') is not None else None,
         'platform': PLATFORMS.get(label), 'runner_label': label,
@@ -626,7 +605,7 @@ def observe_job(job, *, identity, requested, label=None, harness_steps=HARNESS_S
         'identity_issues': {'missing': missing, 'conflicts': conflicts},
         'step_observations': rows,
         **retain_endpoint_choices(choices),
-        'seconds': job_seconds(points),
+        'seconds': {metric: interval_seconds(bounds) for metric, bounds in job_intervals(choices).items()},
     }
     if job.get('labels'):
         row['runner_labels'] = sorted(set(job['labels']))
@@ -648,40 +627,79 @@ def windows_aggregate_cache(caches):
     return 'unknown'
 
 
-def split_stage_seconds(parent, members, scoped):
-    points, unplaced = project_job_points(job_endpoint_choices(parent))
-    stages = dict.fromkeys((*WINDOWS_DERIVED_STAGES, *WINDOWS_COPIED_STAGES))
-    stages['aggregate_setup'] = elapsed(points.get('start'), points.get('harness_start'))
+def split_stage_intervals(parent, members, scoped):
+    parent = job_endpoint_choices(parent)
+    unplaced = unplaced_phases(parent)
     blocked = {stage for stage, endpoints in WINDOWS_PARENT_ENDPOINTS.items() if unplaced.intersection(endpoints)}
+    stages = dict.fromkeys(WINDOWS_DERIVED_STAGES)
     if not members:
         return stages, blocked
-    sources = {}
-    for lane, member in members.items():
-        sources[lane], unplaced = project_job_points(job_endpoint_choices(member))
-        if 'harness_start' in unplaced and (not scoped or lane == 'core'):
-            blocked.update(('setup', 'harness_step'))
-    starts = [source.get('start') for source in sources.values()]
-    ends = [source.get('end') for source in sources.values()]
-    start = points.get('start')
-    if all(starts):
-        stages['initial_queue'] = elapsed(points.get('requested'), min(starts))
-    if all(ends):
-        last_finish = max(ends)
-        stages['queue'] = elapsed(last_finish, start)
-        if start is not None and last_finish > start:
-            blocked.update(('queue', 'harness_step'))
+    sources = {lane: job_endpoint_choices(member) for lane, member in members.items()}
     active = ('core',) if scoped else sources
-    harness_starts = [sources[lane].get('harness_start') if sources[lane].get('start') else None for lane in active]
-    if all(harness_starts):
-        first_harness = min(harness_starts)
-        stages['setup'] = elapsed(min(starts), first_harness) if all(starts) else None
-        if all(ends) and start and 'harness_step' not in blocked:
-            stages['harness_step'] = elapsed(first_harness, points.get('harness_end'))
-    runners = [elapsed(source.get('start'), source.get('end')) for source in (points, *sources.values())]
-    if all(value is not None for value in runners):
-        stages['runner'] = sum(runners)
-    for stage, (lane, metric) in WINDOWS_COPIED_STAGES.items():
-        stages[stage] = members[lane]['seconds'][metric]
+    if any('harness_start' in unplaced_phases(sources[lane]) for lane in active):
+        blocked.update(('setup', 'harness_step'))
+
+    starts = {lane: tuple(point for point, in job_boundary_choices(source, ('start',)))
+              for lane, source in sources.items()}
+    requests = tuple(point for point, in job_boundary_choices(parent, ('requested',)))
+    if any(source.get('start') and not starts[lane] for lane, source in sources.items()):
+        blocked.update(('initial_queue', 'setup', 'runner'))
+    if parent.get('requested') and not requests:
+        blocked.add('initial_queue')
+    if requests and all(starts.values()):
+        queues = []
+        for requested in requests:
+            eligible = [tuple(value for value in lane if value >= requested) for lane in starts.values()]
+            if all(eligible):
+                queues.extend((requested, start) for start in extrema(eligible, min))
+        stages['initial_queue'] = interval_bounds(queues)
+        if not queues:
+            blocked.add('initial_queue')
+
+    # Minima may come from the same lane. Preserve start/harness pairings
+    # within every lane while combining minima across independent jobs.
+    paired = [ordered_choices(sources[lane], ('start', 'harness_start'), within=phase_order('harness'))
+              for lane in active]
+    inactive_starts = [values for lane, values in starts.items() if lane not in active]
+    if all(paired) and all(inactive_starts):
+        starts_and_harnesses = paired_minima(paired)
+        if inactive_starts:
+            starts_and_harnesses = {(min(start, inactive), harness) for start, harness in starts_and_harnesses
+                                    for inactive in extrema(inactive_starts, min)}
+        stages['setup'] = interval_bounds(starts_and_harnesses)
+
+    ends = {lane: tuple(point for point, in job_boundary_choices(source, ('end',)))
+            for lane, source in sources.items()}
+    parent_starts = tuple(point for point, in job_boundary_choices(parent, ('start',)))
+    if (parent.get('start') and not parent_starts
+            or any(source.get('end') and not ends[lane] for lane, source in sources.items())):
+        blocked.update(('queue', 'harness_step', 'runner'))
+    if parent_starts and all(ends.values()):
+        finish_choices = {start: [tuple(end for end in lane if end <= start) for lane in ends.values()]
+                          for start in parent_starts}
+        viable = {start: choices for start, choices in finish_choices.items() if all(choices)}
+        stages['queue'] = interval_bounds(
+            (end, start) for start, choices in viable.items() for end in extrema(choices, max)
+        )
+        if not viable:
+            blocked.update(('queue', 'harness_step'))
+        executing = [
+            ordered_choices(sources[lane], ('harness_start', 'end'), within=phase_order('harness'))
+            for lane in active
+        ]
+        if all(executing) and all(sources[lane].get('start') for lane in active):
+            executions = []
+            for start, end in ordered_choices(parent, ('start', 'harness_end'), within=phase_order('harness')):
+                if start not in viable:
+                    continue
+                eligible = [tuple(harness for harness, finish in lane if finish <= start) for lane in executing]
+                if all(eligible):
+                    executions.extend((harness, end) for harness in extrema(eligible, min))
+            stages['harness_step'] = interval_bounds(executions)
+            if parent.get('harness_end') and not executions:
+                blocked.add('harness_step')
+    stages['runner'] = sum_intervals([interval_bounds(job_boundary_choices(source, ('start', 'end')))
+                                      for source in (parent, *sources.values())])
     return stages, blocked
 
 
@@ -789,13 +807,9 @@ def authenticated_failure(run, identity):
 
 def sample_core(sample):
     core = {key: value for key, value in sample.items() if key not in {'cache', 'generated_contracts', 'windows_caches'}}
-    if recorded := report_recording_time(core.get('recorded_at')):
+    if (recorded := timestamp(core.get('recorded_at'))) is not None:
         # Use the same instant for reconciliation while keeping original receipt inputs.
-        point, extra_precision = recorded
-        try:
-            core['recorded_at'] = (point.astimezone(timezone.utc).isoformat(), extra_precision)
-        except OverflowError:
-            pass
+        core['recorded_at'] = encode_timestamp(recorded)
     return core
 
 
@@ -1240,20 +1254,25 @@ def merge_job_clock(jobs, role, steps, *, projected=False):
                for field in ('requested', 'start', 'end')}
     for kind, names in zip(STEP_KINDS, (job_harness_steps(role), BROWSER_STEPS), strict=True):
         choices.update(joined_step_clock(primary, kind, names, steps))
-    points, unplaced = project_job_points(choices)
+    unplaced = unplaced_phases(choices)
     retained = retain_endpoint_choices(choices)
     endpoint_disputes = frozenset(retained.get('endpoint_disputes', ()))
-    derived = job_seconds(points)
+    derived = job_intervals(choices)
     dependencies = dict(JOB_INTERVALS)
     if projected:
         derived = {'total': derived['total'], 'tail': derived['tail'], 'aggregate_setup': derived['setup']}
         dependencies['aggregate_setup'] = dependencies['setup']
     seconds, disputes = {}, []
     for field in (*ATTEMPT_SECONDS, *SPLIT_SECONDS):
-        value, disputed = known_value([derived.get(field), *(row.get(field) for row in legacy)])
-        if field in derived and unplaced.intersection(dependencies[field]):
+        bounds = derived.get(field)
+        measured = interval_seconds(bounds)
+        value, disputed = known_value([measured, *(row.get(field) for row in legacy)])
+        endpoints = dependencies.get(field, ())
+        all_observed = all(choices[endpoint] for endpoint in endpoints)
+        if field in derived and (unplaced.intersection(endpoints) or bounds is None and all_observed):
             value = None
-        elif disputed or (field in derived and endpoint_disputes.intersection(dependencies[field])):
+        elif disputed or (field in derived and measured is None and (
+                bounds is not None or endpoint_disputes.intersection(endpoints))):
             disputes.append(field)
             value = None
         seconds[field] = value
@@ -1580,7 +1599,7 @@ class ClockEvidence(NamedTuple):
     jobs: dict
     checkout_disputes: set
     producer_disputes: set
-    unqualified_native: frozenset = frozenset()
+    unqualified_reports: frozenset = frozenset()
 
 
 def project_listed_clocks(run):
@@ -1603,18 +1622,20 @@ def project_listed_clocks(run):
     if attempt not in evidence.complete:
         return
     protected, siblings = attempt_membership(clock)
-    totals = [job['seconds']['total'] for job in protected]
-    if all(value is not None for value in totals):
-        workflow['total_elapsed_seconds'] = max(totals)
-    runners = [elapsed(*(unique_endpoint(job_endpoint_choices(job)[field]) for field in ('start', 'end')))
+    totals = [interval_bounds(job_boundary_choices(job_endpoint_choices(job), JOB_INTERVALS['total']))
+              for job in protected]
+    if all(totals):
+        workflow['total_elapsed_seconds'] = interval_seconds(extrema(totals, max))
+    runners = [interval_bounds(job_boundary_choices(job_endpoint_choices(job), JOB_INTERVALS['runner']))
                for job in (*protected, *siblings)]
-    if all(value is not None for value in runners):
-        workflow['runner_work_seconds'] = sum(runners)
+    workflow['runner_work_seconds'] = interval_seconds(sum_intervals(runners))
 
 
-def disputed_member_input(source, metric, endpoints):
+def disputed_stage_input(source, metric, endpoints, bounds):
     return source is not None and (
-        source.job is None or not source.endpoint_disputes.isdisjoint(endpoints)
+        source.job is None
+        or bool(source.endpoint_disputes.intersection(endpoints)
+                - (source.job.get('endpoint_choices', {}).keys() if bounds is not None else set()))
         or (metric in source.disputed and source.endpoint_disputes.isdisjoint(JOB_INTERVALS[metric]))
     )
 
@@ -1631,16 +1652,22 @@ def project_windows_stages(evidence, attempt, run, fact, profile, issues):
     scoped = profile in SCOPED_PROFILES
     groups = {'all': lanes, 'active': ('core',) if scoped else lanes}
     seconds = dict(fact.job['seconds'])
-    derived, blocked = split_stage_seconds(fact.job, members, scoped)
+    derived, blocked = split_stage_intervals(fact.job, members, scoped)
     disputed = set()
     for stage, inputs in WINDOWS_DERIVED_STAGES.items():
         if stage in blocked:
             seconds[stage] = None
             continue
-        competing_member = any(disputed_member_input(sources[lane], metric, endpoints)
+        bounds = derived[stage]
+        measured = interval_seconds(bounds)
+        competing_member = any(disputed_stage_input(sources[lane], metric, endpoints, bounds)
                                for group, metric, endpoints in inputs for lane in groups[group])
-        value, competing_stage = known_value([seconds[stage], derived[stage]])
-        if competing_member or competing_stage or fact.endpoint_disputes & WINDOWS_PARENT_ENDPOINTS[stage]:
+        value, competing_stage = known_value([seconds[stage], measured])
+        parent_dispute = fact.endpoint_disputes & WINDOWS_PARENT_ENDPOINTS[stage]
+        if bounds is not None:
+            parent_dispute -= fact.job.get('endpoint_choices', {}).keys()
+        if (competing_member or competing_stage or parent_dispute or stage in fact.disputed
+                or bounds is not None and measured is None):
             disputed.add(stage)
         seconds[stage] = None if stage in disputed or not have_members else value
     for stage, (lane, metric) in WINDOWS_COPIED_STAGES.items():
@@ -1729,14 +1756,16 @@ def missing_independent_job_clock(evidence, attempt):
 
 def job_outside_report(job, recorded):
     # Actions exposes whole-second bounds while the publisher records
-    # fractional seconds. Equal reported seconds are compatible.
+    # fractional seconds. Coarse bounds cover their whole second; precise
+    # bounds can be compared directly.
+    second = int(recorded)
     choices = job_endpoint_choices(job)
     for field in ('requested', 'start'):
         lower = choices.get(field)
-        if lower and min(lower) > recorded:
+        if lower and all(point > (second if point == int(point) else recorded) for point in lower):
             return True
     upper = choices.get('end')
-    return bool(upper and max(upper) < recorded)
+    return bool(upper and all(point < (second if point == int(point) else recorded) for point in upper))
 
 
 def report_clock_role(sample):
@@ -1764,7 +1793,7 @@ def report_job_disputes(samples, evidence, issues):
         fact = evidence.jobs.get((attempt, role))
         if not (fact and fact.job):
             continue
-        recorded = timestamp(sample['recorded_at']).replace(microsecond=0)
+        recorded = timestamp(sample['recorded_at'])
         if job_outside_report(fact.job, recorded):
             timing_issue(issues, {'run_id': attempt[1], role[0]: role[1], 'job_id': fact.job['job_id'],
                                   'error': 'The recorded report creation is outside the publishing job boundaries.'})
@@ -1774,7 +1803,7 @@ def report_job_disputes(samples, evidence, issues):
 
 def reconcile_timing_clocks(samples, hosted, issues, *, report_issues=None):
     evidence = attempt_clocks(hosted, issues)
-    unqualified = native_report_inputs(samples, evidence.attempts, issues if report_issues is None else report_issues)
+    unqualified = unqualified_report_inputs(samples, evidence.attempts, issues if report_issues is None else report_issues)
     claims = [row for row in samples if id(row) not in unqualified]
     disputes = timing_checkout_conflicts(claims, hosted, issues)
     job_disputes = report_job_disputes(claims, evidence, issues)
@@ -1787,10 +1816,10 @@ def reconcile_timing_clocks(samples, hosted, issues, *, report_issues=None):
                          unqualified)
 
 
-def native_report_inputs(samples, clocks, issues):
+def unqualified_report_inputs(samples, clocks, issues):
     diagnostics = []
     unqualified = frozenset(id(row) for row in samples
-                            if native_report_issue(row, clocks.get(ci_key(row['ci'] or {})), diagnostics))
+                            if report_attribution_issue(row, clocks.get(ci_key(row['ci'] or {})), diagnostics))
     for issue in sorted(diagnostics, key=lambda note: json.dumps(note, sort_keys=True)):
         timing_issue(issues, issue)
     return unqualified
@@ -1799,15 +1828,15 @@ def native_report_inputs(samples, clocks, issues):
 def coalesced_sample_groups(samples, issues, *, evidence=None):
     observations, producers = defaultdict(list), defaultdict(list)
     clock_by_attempt = evidence.attempts if evidence is not None else {}
-    unqualified = (evidence.unqualified_native if evidence is not None
-                   else native_report_inputs(samples, clock_by_attempt, issues))
+    unqualified = (evidence.unqualified_reports if evidence is not None
+                   else unqualified_report_inputs(samples, clock_by_attempt, issues))
     diagnostics = []
     for sample in samples:
         ci = sample['ci']
         attempt = ci_key(ci or {})
         scope = windows_producer_job_name(sample)
         if id(sample) in unqualified:
-            scope = ('native diagnostic', sample['profile'], sample['run_id'], sample['arch'], tuple(sample['selected']))
+            scope = ('unqualified report', sample['profile'], sample['run_id'], sample['arch'], tuple(sample['selected']))
         elif ci and scope:
             producers[attempt].append(sample)
         if ci and scope is None and ci['event'] in NORMAL_EVENTS and sample['profile'] not in AUTOMATIC_PROFILES:
@@ -1979,6 +2008,7 @@ WINDOWS_PUBLISHING_PATHS = (
     'scripts/review_tree.py',
     'scripts/storage.py',
     'scripts/timing.py',
+    'scripts/timing_clock.py',
     'scripts/verification_evidence.py',
     'scripts/verification_report.py',
     'scripts/verification_scope.py',
@@ -2135,6 +2165,21 @@ def windows_full_summary_issue(sample, selected, catalog, platform):
     return None
 
 
+def report_attribution_issue(sample, run, issues):
+    ci = sample['ci']
+    if (ci and ci['event'] == 'pull_request' and sample['platform'] in PLATFORMS.values()
+            and report_clock_role(sample) and sample_identity_complete(sample)
+            and (issue := disproved_pr_checkout(ci))):
+        if sample['platform'] == 'Windows':
+            issue = ('Native timing check selection is unknown because the publishing catalog is unavailable. ' + issue)
+        diagnostic = {'run_id': observation_id(sample), 'platform': sample['platform'], 'error': issue}
+        if producer := windows_producer_job_name(sample):
+            diagnostic['producer'] = producer
+        timing_issue(issues, diagnostic)
+        return True
+    return native_report_issue(sample, run, issues)
+
+
 def native_report_issue(sample, run, issues):
     ci, profile = sample['ci'], sample['profile']
     producer = windows_producer_job_name(sample)
@@ -2225,8 +2270,8 @@ def merge_samples(samples, hosted, issues):
             complete = False
             if job:
                 job = unconfirmed_split_job(fact)
-        unqualified_native = id(inputs[0]) in evidence.unqualified_native
-        if unqualified_native:
+        unqualified = id(inputs[0]) in evidence.unqualified_reports
+        if unqualified:
             job = None
         if job and not sample_identity_complete(sample):
             issue = {'run_id': observation_id(sample), 'platform': sample['platform'],
@@ -2236,11 +2281,11 @@ def merge_samples(samples, hosted, issues):
             issues.append(issue)
             job = None
         seconds = {key: sample['seconds'][key] for key in ('harness', 'check_work')}
-        if unqualified_native and seconds['check_work'] != report_check_work(sample['checks'])[0]:
+        if unqualified and seconds['check_work'] != report_check_work(sample['checks'])[0]:
             seconds['check_work'] = None
         seconds.update({key: job['seconds'][key] if job else None for key in ATTEMPT_SECONDS})
         seconds.update({key: duration(job['seconds'].get(key)) if job else None for key in SPLIT_SECONDS})
-        cache = 'unknown' if unqualified_native else sample['cache']
+        cache = 'unknown' if unqualified else sample['cache']
         if (run and run['workflow'].get('windows_recovery_producer') and sample['platform'] == 'Windows'
                 and sample['profile'] == 'full' and 'windows_caches' not in sample):
             cache = 'unknown'
@@ -2345,12 +2390,38 @@ def missing_commit_parent_edges(root, parent):
         return None
 
 
+PR_CHECKOUT_ANCESTOR = 'The claimed PR checkout is a parent or ancestor of the proposed merge.'
+
+
+def disproved_pr_checkout(ci):
+    """Check only contradictions established by Git independently of a report proof."""
+    checkout, head = ci['checkout_sha'], ci['head_sha']
+    if checkout == head:
+        return PR_CHECKOUT_ANCESTOR
+    types = git_object_types(ROOT, (checkout, head))
+    if types is None:
+        return None
+    checkout_type, head_type = types
+    if not possible_commit_types(types):
+        return 'The claimed PR checkout or event head identifies a noncommit Git object.'
+    if checkout_type == b'missing':
+        if head_type == b'commit' and readable_commit_ancestor(ROOT, head, checkout, ancestor_missing=True) is True:
+            return PR_CHECKOUT_ANCESTOR
+        return None
+    facts = commit_facts(ROOT, checkout)
+    if facts is None or event_merge_parents(ci, facts.parents):
+        return None
+    head_facts = commit_facts(ROOT, head) if head_type == b'commit' else None
+    if head_facts is not None and checkout in head_facts.parents:
+        return PR_CHECKOUT_ANCESTOR
+    return 'The claimed PR checkout does not have the event head as its second parent.'
+
+
 def missing_pr_checkout_issue(root, checkout, parent):
     """Contradiction or uncertainty in a claim that an absent object was a merge preview."""
-    contradiction = 'The claimed PR checkout is a parent or ancestor of the proposed merge.'
     uncertainty = 'Available PR parent ancestry could not be verified within the local Git traversal limits.'
     if checkout == parent:
-        return contradiction
+        return PR_CHECKOUT_ANCESTOR
     parent_type = git_object_types(root, (parent,))
     if parent_type == (b'missing',):
         return None  # A retained proof can supply an independently absent parent.
@@ -2359,7 +2430,7 @@ def missing_pr_checkout_issue(root, checkout, parent):
     ancestry = readable_commit_ancestor(root, parent, checkout, ancestor_missing=True)
     if ancestry is None:
         return uncertainty
-    return contradiction if ancestry else None
+    return PR_CHECKOUT_ANCESTOR if ancestry else None
 
 
 def expired_pr_merge_tree_issue(root, parents, parent_types, tree):
@@ -2557,8 +2628,8 @@ def timing_view(samples, *, hosted=(), issues=None):
         issues = []
     samples = admitted_records(list(samples), valid_sample, 'timing sample', issues)
     hosted = admitted_records(list(hosted), valid_clock, 'attempt clock', issues)
-    merged = sorted(merge_samples(samples, hosted, issues), key=lambda sample: report_recording_time(sample['recorded_at'])
-                    or (datetime.min.replace(tzinfo=timezone.utc), ''))
+    merged = sorted(merge_samples(samples, hosted, issues),
+                    key=lambda sample: value if (value := timestamp(sample['recorded_at'])) is not None else -1)
     cohorts = defaultdict(list)
     objective_scopes = defaultdict(list)
     for sample in merged:
@@ -2636,7 +2707,7 @@ def has_hosted_inputs(sample):
             and positive_id(ci['run_id']) and commit_id(ci['head_sha'])
             and commit_id(ci['checkout_sha']) and ci['checkout_sha'] == sample['source_commit']
             and (ci['event'] != 'push' or ci['checkout_sha'] == ci['head_sha'])
-            and sample.get('identity_complete') is True and timestamp(sample['recorded_at'])
+            and sample.get('identity_complete') is True and timestamp(sample['recorded_at']) is not None
             and sample.get('working_tree_dirty') is False and sample['arch'] and sample['cache'] in CACHE_STATES
             and isinstance(digest, str) and re.fullmatch(r'[0-9a-f]{64}', digest)
             and sample['job'] and sample['job']['runner_label'] and sample['job']['status'] == 'completed'
@@ -2707,7 +2778,7 @@ def measure_budget_recovery(scope, repair, reports, growth_baseline, samples, an
     linked = [row for row in linked if report_key(row) not in conflicts]
     unavailable = sorted(required_reports - {report_key(row) for row in linked})
     # All linked observations in this scope bound the correction, even when they belong to another cohort.
-    last_time = max((report_recording_time(row['recorded_at']) for row in linked), default=None)
+    last_time = max((timestamp(row['recorded_at']) for row in linked), default=None)
     last_run = max((int(row['ci']['run_id']) for row in linked), default=0)
     cohorts = defaultdict(list)
     for row in rows if linked else ():
@@ -2722,7 +2793,7 @@ def measure_budget_recovery(scope, repair, reports, growth_baseline, samples, an
         selected = tuple(key for key, *_ in cohort[3])
         candidates, successful, recovered_window, history_missing = [], [], [], False
         for row in rows if commit_id(repair) else ():
-            if (report_recording_time(row['recorded_at']) <= last_time or int(row['ci']['run_id']) <= last_run
+            if (timestamp(row['recorded_at']) <= last_time or int(row['ci']['run_id']) <= last_run
                     or budget_cohort(row, row['selected']) != (*cohort[:3], selected)):
                 continue
             elapsed = row['seconds']['total']
@@ -2745,7 +2816,7 @@ def measure_budget_recovery(scope, repair, reports, growth_baseline, samples, an
                 if not restored['material_growth'] and restored['recent_objective_breaches'] < 2:
                     recovered_window = recent
             if recovered_window:
-                cutoffs[cohort] = (int(row['ci']['run_id']), report_recording_time(row['recorded_at']))
+                cutoffs[cohort] = (int(row['ci']['run_id']), timestamp(row['recorded_at']))
         baseline_median = median(row['seconds']['total'] for row in baseline)
         latest = recovery_observation(candidates[-1]) if candidates else None
         if latest and latest['conclusion'] == 'success':
@@ -2876,7 +2947,7 @@ def budget_follow_up(view, feedback, tasks, *, root=ROOT, indexed_conflicts=froz
                 last_run, last_time = cutoff
                 after = [row for row in view['samples'] if row['review_exclusion'] is None and row['ci']
                          and positive_id(row['ci']['run_id']) and int(row['ci']['run_id']) > last_run
-                         and report_recording_time(row['recorded_at']) > last_time
+                         and timestamp(row['recorded_at']) > last_time
                          and matches_budget_scope(row, scope) and budget_cohort(row, coverage_key(row)) == cohort]
                 metric = metric_review(after, metric['metric'], metric['objective_seconds'])
             comparable.append({**group, **metric})
@@ -3100,7 +3171,7 @@ def indexable_capture_samples(path, samples, hosted, issues):
             and ci_key(group[0]['ci']) not in evidence.checkout_disputes
             and protected_profile_matches(clocks.get(ci_key(group[0]['ci'])),
                                           group[0]['platform'], group[0]['profile'])
-            and id(inputs[0]) not in evidence.unqualified_native]
+            and id(inputs[0]) not in evidence.unqualified_reports]
 
 
 def index_capture(path, samples, hosted=(), issues=None):
@@ -3365,7 +3436,7 @@ def capture_observations(identity, samples, hosted, issues, *, conclusion=None):
     joined = coalesced_sample_groups(samples, issues, evidence=clock_evidence)
     groups = [group for _, group in joined]
     platforms = [group for inputs, group in joined if platform_timing_identity(group[0])
-                 and id(inputs[0]) not in clock_evidence.unqualified_native]
+                 and id(inputs[0]) not in clock_evidence.unqualified_reports]
     disputed_platforms = {group[0]['platform'] for group in platforms if len(group) > 1}
     checkout_disputed = identity in clock_evidence.checkout_disputes
     producer_disputed = identity in clock_evidence.producer_disputes

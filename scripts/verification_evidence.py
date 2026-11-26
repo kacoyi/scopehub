@@ -12,14 +12,16 @@ from statistics import median
 
 if __package__:
     from .project import ProjectError, digest, file_digest, json_bytes, load_project, local_path, read_json, source_identity, validate_model
-    from .verification_report import SESSION_CHECKS
+    from .verification_report import (
+        EXTERNAL_CLIENT_CHECK, PHYSICAL_WINDOWS_CHECK, RUN_OBSERVATION_CHECKS, SESSION_CHECKS, UBUNTU_WORKSPACE_CHECK,
+    )
 else:
     from project import ProjectError, digest, file_digest, json_bytes, load_project, local_path, read_json, source_identity, validate_model
-    from verification_report import SESSION_CHECKS
+    from verification_report import (
+        EXTERNAL_CLIENT_CHECK, PHYSICAL_WINDOWS_CHECK, RUN_OBSERVATION_CHECKS, SESSION_CHECKS, UBUNTU_WORKSPACE_CHECK,
+    )
 
 ROOT = Path(__file__).resolve().parents[1]
-EXTERNAL_CLIENT_CHECK = 'configured-external-ai-clients'
-RUN_OBSERVATION_CHECKS = SESSION_CHECKS.keys() | {EXTERNAL_CLIENT_CHECK}
 EXTERNAL_CLIENT_MAX_BYTES = 8192
 WORKBENCH_OBSERVATION_VERSION = 2
 MANUAL_CLOCK_ALLOWANCE = timedelta(minutes=5)
@@ -27,7 +29,7 @@ UBUNTU_SURFACE = 'native-ubuntu-tauri-webkitgtk'
 WORKBENCH_EDIT = {'workbench-edit', 'workbench-recover', 'workbench-reopen'}
 OWNER_WORKBENCH_ACTIONS = {'workbench-from-blank', 'workbench-edit', 'workbench-refresh', 'workbench-reopen'}
 FIELD_ACTIONS = {
-    'physical-windows-workspace': {
+    PHYSICAL_WINDOWS_CHECK: {
         'unconfigured-entry',
         'sample',
         'instrument',
@@ -38,7 +40,7 @@ FIELD_ACTIONS = {
         'data-inspection',
         'exit', 'workbench-selection', 'workbench-display-scaling',
     } | WORKBENCH_EDIT,
-    'ubuntu-workspace-observation': {
+    UBUNTU_WORKSPACE_CHECK: {
         'history',
         'live',
         'reconnect',

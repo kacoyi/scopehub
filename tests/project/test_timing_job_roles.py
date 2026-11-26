@@ -34,7 +34,7 @@ class TimingJobRoleTests(unittest.TestCase):
             self.jobs.append(dict(job, name=timing.WINDOWS_PRODUCERS[lane], labels=['windows-latest']))
         report = fixtures.split_harness_report(675)
         report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
-                        'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'a' * 40}
+                        'event': 'pull_request', 'head_sha': fixtures.FIXTURE_PR_HEAD, 'checkout_sha': 'a' * 40}
         self.aggregate = timing.report_sample(report, cache='warm')
         self.aggregate['windows_caches'] = {
             'core': 'warm', 'browser': 'warm', 'python': 'not_requested', 'recovery': 'warm',

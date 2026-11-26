@@ -2,7 +2,6 @@
 
 from contextlib import redirect_stderr, redirect_stdout
 from copy import deepcopy
-from datetime import timedelta
 from hashlib import sha256
 from io import StringIO
 import json
@@ -17,6 +16,9 @@ from urllib.parse import parse_qs, urlsplit
 
 from scripts import ci, ci_artifacts, timing, verification_scope
 from tests.project.fixtures import isolated_git_environment
+
+
+FIXTURE_PR_HEAD = '9' * 40
 
 
 def historical_report():
@@ -49,7 +51,7 @@ def hosted_run(*, run_id=11, day=20):
         'run_attempt': 1,
         'path': '.github/workflows/verify.yml',
         'event': 'pull_request',
-        'head_sha': 'a' * 40,
+        'head_sha': FIXTURE_PR_HEAD,
         'repository': {'full_name': 'fixture/scopehub'},
         'created_at': f'2026-11-{day:02}T00:00:00Z',
         'run_started_at': f'2026-11-{day:02}T00:00:10Z',
@@ -66,7 +68,7 @@ def hosted_job(job_id, platform, start, finish, step_name, step_start, step_fini
         'run_attempt': 1,
         'run_url': f'https://api.github.com/repos/fixture/scopehub/actions/runs/{run_id}',
         'name': f'verify ({platform}-latest)',
-        'head_sha': 'a' * 40,
+        'head_sha': FIXTURE_PR_HEAD,
         'status': 'completed',
         'conclusion': 'success',
         'started_at': f'2026-11-{day:02}T00:{start}Z',
@@ -230,7 +232,7 @@ class ReportTimingTests(unittest.TestCase):
         report = split_harness_report(600)
         report['selection']['profile'] = 'full'
         report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
-                        'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'a' * 40}
+                        'event': 'pull_request', 'head_sha': FIXTURE_PR_HEAD, 'checkout_sha': 'a' * 40}
         warm = timing.report_sample(report, cache='warm')
         states = dict(core='warm', browser='warm', python='not_requested', recovery='warm')
         current = dict(warm, windows_caches=states)
@@ -378,7 +380,7 @@ class HostedTimingTests(unittest.TestCase):
         report = split_harness_report(675)
         report['selection']['profile'] = 'full'
         report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
-                        'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'a' * 40}
+                        'event': 'pull_request', 'head_sha': FIXTURE_PR_HEAD, 'checkout_sha': 'a' * 40}
         for cache in ('warm', 'unknown'):
             with self.subTest(cache=cache):
                 review, = timing.timing_view([timing.report_sample(report, cache=cache)], hosted=[result])['reviews']
@@ -390,7 +392,7 @@ class HostedTimingTests(unittest.TestCase):
     def test_only_a_bound_report_can_dispute_the_platform_job_time(self):
         report = split_harness_report(675)
         report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
-                        'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'a' * 40}
+                        'event': 'pull_request', 'head_sha': FIXTURE_PR_HEAD, 'checkout_sha': 'a' * 40}
         report['source'].update(sha256='c' * 64, working_tree_dirty=False)
         report['generated_at'] = '2026-11-20T00:12:35Z'
         full = timing.report_sample(report)
@@ -447,13 +449,15 @@ class HostedTimingTests(unittest.TestCase):
         sample = timing.report_sample(report)
         fields = ('aggregate_setup', 'setup', 'harness_step', 'tail', 'queue', 'runner', 'total')
         baseline = (19, 40, 695, 10, 8, 1687, 765)
+        unknown_lane_start = (19, None, None, 10, 8, 1687, 765)
         cases = (
-            (4, 'started_at', '12:28', 'harness_start', (None, 40, 695, 10, 8, 1687, 765)),
-            (4, 'completed_at', '12:36', 'harness_end', (19, 40, None, None, 8, 1687, 765)),
-            (3, 'started_at', '01:01', 'harness_start', (19, None, None, 10, 8, 1687, 765)),
-            (3, 'completed_at', '07:51', 'harness_end', baseline),
+            (4, 'started_at', '12:28', 'harness_start', (None, 40, 695, 10, 8, 1687, 765), None),
+            (4, 'completed_at', '12:36', 'harness_end', (19, 40, None, None, 8, 1687, 765), None),
+            (3, 'started_at', '01:01', 'harness_start', unknown_lane_start, None),
+            (3, 'completed_at', '07:51', 'harness_end', baseline, None),
+            (2, 'started_at', '02:01', 'harness_start', baseline, unknown_lane_start),
         )
-        for index, key, alternate, endpoint, expected in cases:
+        for index, key, alternate, endpoint, expected, missing_expected in cases:
             changed = deepcopy(jobs)
             changed[index]['steps'][0][key] = f'2026-11-20T00:{alternate}Z'
             other = timing.hosted_timing(run, changed)
@@ -465,7 +469,7 @@ class HostedTimingTests(unittest.TestCase):
                 ([before, other], expected, endpoint),
                 ([other, before, other], expected, endpoint),
                 ([grouped], expected, endpoint),
-                ([incomplete], expected, None),
+                ([incomplete], missing_expected or expected, None),
                 ([incomplete, before, incomplete], baseline, None),
             )
             for clocks, readings, disputed_endpoint in variants:
@@ -485,6 +489,19 @@ class HostedTimingTests(unittest.TestCase):
         result, = view['samples']
         self.assertEqual((19, 40, 695, 10, 8, 1687, None), tuple(result['seconds'][key] for key in fields))
         self.assertIsNone(result['seconds']['initial_queue'])
+
+        # The alternate lane finish occurs before that lane starts. Its
+        # presence still diagnoses conflicting facts, but cannot change the
+        # aggregate queue or runner under any valid combination.
+        inadmissible = [dict(row, completed_at='2026-11-20T00:00:30Z') if index == 2 else row
+                        for index, row in enumerate(jobs)]
+        competing = timing.hosted_timing(run, inadmissible)
+        for clocks in ([before, competing], [competing, before]):
+            view = timing.timing_view([sample], hosted=clocks)
+            result, = view['samples']
+            self.assertEqual(baseline, tuple(result['seconds'][key] for key in fields))
+            self.assertEqual({'end'}, {endpoint for issue in view['input_issues']
+                                      for endpoint in issue.get('endpoints', ())})
 
     def test_phase_ordering_survives_same_job_and_cross_listing_joins(self):
         *lanes, parent = self.split_windows_jobs()
@@ -519,7 +536,7 @@ class HostedTimingTests(unittest.TestCase):
             ([('12:27', None), (None, '12:26')], (None, None, None), False),
             ([('12:27', None), ('12:28', None), (None, '12:26')], (None, None, None), False),
             ([('12:27', None), ('12:28', None), (None, '12:35')], (None, 695, 10), True),
-            ([('12:27', None), ('12:30', None), (None, '12:28')], (None, 688, 17), True),
+            ([('12:27', None), ('12:30', None), (None, '12:28')], (19, 688, 17), True),
             ([('12:07', None), ('12:28', None), (None, '12:26')], (None, None, None), False),
         )
         for intervals, expected, ready in cases:
@@ -550,7 +567,7 @@ class HostedTimingTests(unittest.TestCase):
         previous.pop('step_observations')
         previous['step_identities'] = {'harness': [12, timing.WINDOWS_FULL_STEP]}
         self.assertTrue(timing.valid_clock(legacy))
-        check([legacy, official], (None, None, None), False)
+        check([legacy, official], (None, 695, 10), True)
 
         too_many = [fragment(f'12:{second:02d}', None)
                     for second in range(20, 21 + timing.MAX_TIMESTAMP_CHOICES)]
@@ -559,7 +576,7 @@ class HostedTimingTests(unittest.TestCase):
         self.assertIn('harness_start', disputed['endpoint_disputes'])
         self.assertNotIn('harness_start', disputed.get('endpoint_choices', {}))
         self.assertTrue(timing.valid_clock(overflow))
-        check([overflow], (None, None, None), False)
+        check([overflow], (None, 695, 10), True)
 
     def test_recent_collection_only_credits_received_qualified_platform_report(self):
         run = hosted_run()
@@ -681,7 +698,7 @@ class HostedTimingTests(unittest.TestCase):
                              'Run uv run python scripts/check.py --require-windows', '00:50', '05:20')
         report = split_harness_report(675)
         report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
-                        'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'a' * 40}
+                        'event': 'pull_request', 'head_sha': FIXTURE_PR_HEAD, 'checkout_sha': 'a' * 40}
         sample = timing.report_sample(report, cache='warm')
         sample['windows_caches'] = dict(core='warm', browser='warm', python='not_requested', recovery='warm')
 
@@ -829,7 +846,7 @@ class HostedTimingTests(unittest.TestCase):
         report = split_harness_report(675)
         report['selection']['profile'] = 'full'
         report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
-                        'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'a' * 40}
+                        'event': 'pull_request', 'head_sha': FIXTURE_PR_HEAD, 'checkout_sha': 'a' * 40}
         scalar = timing.report_sample(report, cache='warm')
         states = dict(core='warm', browser='warm', python='not_requested', recovery='warm')
         for clock, sample, cache in ((current, scalar, 'unknown'),
@@ -1630,7 +1647,7 @@ class HostedTimingTests(unittest.TestCase):
         report['source']['git_head'] = 'b' * 40
         report['ci'] = {
             'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
-            'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'b' * 40,
+            'event': 'pull_request', 'head_sha': FIXTURE_PR_HEAD, 'checkout_sha': 'b' * 40,
         }
         run = hosted_run()
         linux = hosted_job(31, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50')
@@ -2581,7 +2598,7 @@ class TimingRegressionTests(unittest.TestCase):
             report['selection']['checks'].append('windows-native-build')
             report['checks'].append(dict(report['checks'][0], id='windows-native-build'))
             report['ci'] = {'repository': 'fixture/scopehub', 'run_id': str(day), 'run_attempt': '1',
-                            'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'a' * 40}
+                            'event': 'pull_request', 'head_sha': FIXTURE_PR_HEAD, 'checkout_sha': 'a' * 40}
             samples.append(timing.report_sample(report, cache='warm'))
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -2615,7 +2632,7 @@ class TimingRegressionTests(unittest.TestCase):
             report['source']['git_head'] = 'b' * 40
             report['selection']['profile'] = profile
             report['ci'] = {'repository': 'fixture/scopehub', 'run_id': str(day), 'run_attempt': '1',
-                            'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'b' * 40}
+                            'event': 'pull_request', 'head_sha': FIXTURE_PR_HEAD, 'checkout_sha': 'b' * 40}
             samples.append(timing.report_sample(report))
 
         view = timing.timing_view(samples, hosted=workflows)
@@ -3164,7 +3181,7 @@ class TimingRegressionTests(unittest.TestCase):
                     row.pop('exit_code', None)
                     row.pop('duration_seconds', None)
             report['ci'] = {'repository': 'fixture/scopehub', 'run_id': str(run_id), 'run_attempt': '1',
-                            'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'a' * 40}
+                            'event': 'pull_request', 'head_sha': FIXTURE_PR_HEAD, 'checkout_sha': 'a' * 40}
             samples.append(timing.report_sample(report))
         self.assertTrue(timing.capture_is_complete(timing.ci_key(clock), samples, [clock]))
         private = '/private/review/old-jobs.json'
@@ -3254,10 +3271,10 @@ class RecentTimingTests(unittest.TestCase):
         # checkout/event comparison is exercised in PRMainComparisonTests.
         self.enterContext(patch.object(timing, 'known_checkout_matches_event', return_value=True))
 
-    def budget_run(self, day, finish, *, head='a' * 40, cache='warm', event='pull_request',
+    def budget_run(self, day, finish, *, head=FIXTURE_PR_HEAD, cache='warm', event='pull_request',
                    checkout=None, outcome='success', extra_check=False):
         repository = 'fixture/scopehub'
-        checkout = checkout or head
+        checkout = checkout or ('a' * 40 if event == 'pull_request' else head)
         if extra_check:
             self.catalogs[checkout] = fixture_catalog((*NATIVE_FULL_CHECKS, 'extra-check'))
         run = dict(hosted_run(run_id=day, day=day), head_sha=head, event=event, conclusion=outcome,
@@ -3556,7 +3573,9 @@ class RecentTimingTests(unittest.TestCase):
         unavailable = 'f' * 40
         historical = self.budget_run(18, '14:40', head=topic, checkout=unavailable)
         self.missing_catalogs.add(unavailable)
-        self.catalogs.update(dict.fromkeys((before, topic), fixture_catalog((*NATIVE_FULL_CHECKS, timing.GENERATED_CHECK))))
+        control_checkout = older[1][-1]['source_commit']
+        self.catalogs.update(dict.fromkeys((control_checkout, topic),
+                                          fixture_catalog((*NATIVE_FULL_CHECKS, timing.GENERATED_CHECK))))
         self.enterContext(patch.object(timing, 'committed_publishing_inputs', return_value='c' * 64))
         for observation in (older, baseline, historical):
             for sample in observation[1]:
@@ -3917,8 +3936,8 @@ class RecentTimingTests(unittest.TestCase):
         conflicting_jobs = []
         for row in b['jobs']:
             if row['platform'] == 'Windows':
-                finish = timing.timestamp(row['endpoints']['requested']) + timedelta(seconds=840)
-                row = dict(row, endpoints={**row['endpoints'], 'end': finish.isoformat()})
+                finish = timing.timestamp(row['endpoints']['requested']) + 840
+                row = dict(row, endpoints={**row['endpoints'], 'end': timing.encode_timestamp(finish)})
             conflicting_jobs.append(row)
         conflict = dict(b, jobs=conflicting_jobs, workflow={**b['workflow'], 'total_elapsed_seconds': 840})
         for duplicates in ((b, conflict), (conflict, b)):
@@ -4198,8 +4217,8 @@ class RecentTimingTests(unittest.TestCase):
             (records / f'{name}.json').write_bytes(timing.json_bytes(value))
         valid = timing.offline_budget_status(root, [finding], {})
         self.assertEqual('recovered', valid['budget_recovery'][0]['recovery']['status'])
-        run, claimant, _ = self.budget_run(15, '17:00', head=after, checkout=before)
         claimed = {key: controls[0][1][-1][key] for key in ('run_id', 'source_commit')}
+        run, claimant, _ = self.budget_run(15, '17:00', head=after, checkout=claimed['source_commit'])
         claimant[-1].update(run_id=claimed['run_id'])
         untouched = timing.report_key(controls[1][1][-1])
 
@@ -4422,7 +4441,7 @@ class RecentTimingTests(unittest.TestCase):
             report['source'] = source
             report['environment']['system'] = platform
             report['ci'] = {'repository': repository, 'run_id': '11', 'run_attempt': '1', 'event': 'pull_request',
-                            'head_sha': source['git_head'], 'checkout_sha': source['git_head']}
+                            'head_sha': run['head_sha'], 'checkout_sha': source['git_head']}
             if platform == 'Windows':
                 report['selection']['checks'].append('windows-native-build')
                 report['checks'].append(dict(report['checks'][0], id='windows-native-build'))
@@ -4436,7 +4455,7 @@ class RecentTimingTests(unittest.TestCase):
                     path.parent.mkdir(exist_ok=True)
                     path.write_bytes(timing.json_bytes(content))
                 with (patch.object(ci, 'github_identity', return_value=repository),
-                      patch.object(ci, 'source_identity', return_value=source),
+                      patch.object(ci, 'source_identity', return_value=dict(source, git_head=run['head_sha'])),
                       patch.object(ci, 'checkout_branch', return_value='topic'),
                       patch.object(ci, 'independent_status', return_value={'status': 'missing', 'run': None}),
                       patch.object(ci, 'workflow_runs', return_value=[run]),
@@ -4527,7 +4546,7 @@ class RecentTimingTests(unittest.TestCase):
         report = historical_report()
         report['ci'] = {
             'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
-            'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': report['source']['git_head'],
+            'event': 'pull_request', 'head_sha': FIXTURE_PR_HEAD, 'checkout_sha': report['source']['git_head'],
         }
         compact = timing.report_sample(report)
         with tempfile.TemporaryDirectory() as temp:

@@ -486,6 +486,30 @@ class PublicationTests(ProjectFixture):
             stage_artifacts(self.root, self.destination, self.env)
         self.assertFalse((self.destination / 'test-report.json').exists())
 
+    def test_publication_rejects_unowned_observations_and_summary_claims_on_both_platforms(self):
+        self.add_catalog_checks('configured-model-session')
+        original = self.hosted_report()
+        self.add_result(original, 'configured-model-session', status='failed')
+        original['integration_validation'] = integration_validation(original['checks'])
+        for platform in ('Linux', 'Windows'):
+            report = deepcopy(original)
+            report['environment']['system'] = platform
+            self.save_report(report)
+            self.assertTrue(stage_artifacts(self.root, self.destination.with_name(platform), self.env))
+            for name, issue in (('summary', 'an integration summary that contradicts its check results'),
+                                ('observation', 'an unexpected observation')):
+                with self.subTest(platform=platform, variant=name):
+                    mutated = deepcopy(report)
+                    if name == 'summary':
+                        mutated['integration_validation']['mock_ai_evaluated'] = True
+                    else:
+                        mutated['checks'][-1]['observation'] = {'deployment': 'cloud'}
+                    self.save_report(mutated)
+                    rejected = self.destination.with_name(f'{platform}-{name}')
+                    with self.assertRaisesRegex(PublicationError, issue):
+                        stage_artifacts(self.root, rejected, self.env)
+                    self.assertFalse(rejected.exists())
+
     def test_private_check_only_publishes_its_redacted_exit_status_even_on_failure(self):
         check = 'credential-boundaries'
         self.add_catalog_checks(check)

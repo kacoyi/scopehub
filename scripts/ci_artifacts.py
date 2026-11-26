@@ -22,7 +22,7 @@ if __package__:
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, release_artifacts, validate_notice,
     )
-    from .verification_report import integration_summary_matches
+    from .verification_report import report_observation_issue
     from .verification_scope import (
         SCOPED_PROFILES, WINDOWS_LANES, ci_base, ci_event_checkout, require_ancestor,
         windows_lane_checks, windows_lane_report_matches, windows_lanes_run_id, windows_published_scope,
@@ -41,7 +41,7 @@ else:
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, release_artifacts, validate_notice,
     )
-    from verification_report import integration_summary_matches
+    from verification_report import report_observation_issue
     from verification_scope import (
         SCOPED_PROFILES, WINDOWS_LANES, ci_base, ci_event_checkout, require_ancestor,
         windows_lane_checks, windows_lane_report_matches, windows_lanes_run_id, windows_published_scope,
@@ -272,6 +272,8 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False):
     expected = ci_provenance(report['source'], env, root)
     if not expected or report.get('ci') != expected or expected['checkout_sha'] != env['GITHUB_SHA']:
         raise PublicationError('Report provenance does not match the current hosted job.')
+    if issue := report_observation_issue(report):
+        raise PublicationError(f'The report has {issue}.')
     run_id = report['run_id']
     if not re.fullmatch(r'[a-zA-Z0-9_-][a-zA-Z0-9._-]*', run_id):
         raise PublicationError('Invalid verification run identifier.')
@@ -288,9 +290,6 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False):
     for result in report['checks']:
         check = result['id']
         passed = result['status'] == 'passed'
-        if (('observation' in result and (check not in RUN_OBSERVATION_CHECKS or not passed))
-                or ('field_observation' in result and (check not in FIELD_ACTIONS or not passed))):
-            raise PublicationError('The check has an unexpected observation.')
         if 'log' not in result:
             continue
         if project['checks'].get(check, {}).get('status') != 'implemented' or check in executed:
@@ -315,9 +314,6 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False):
                     stage_field_observation(root, reports, destination, result)
                 except LocalFieldObservation:
                     print(f'Omitted local-only field observation: {check}.')
-    if 'integration_validation' in report and not integration_summary_matches(report['integration_validation'], report['checks']):
-        raise PublicationError('The integration summary differs from the checked observations.')
-
     browser_roots = {'chart-history': f'chart-history/{run}', 'ubuntu-preview': f'ubuntu-preview/{run_id}'}
     for check in BROWSER_OUTPUTS:
         if check in executed:

@@ -5,6 +5,11 @@ SESSION_CHECKS = {
     'configured-voice-session': ('configured_models', 'voice'),
     'configured-market-source': ('real_market_data', 'market'),
 }
+EXTERNAL_CLIENT_CHECK = 'configured-external-ai-clients'
+RUN_OBSERVATION_CHECKS = SESSION_CHECKS.keys() | {EXTERNAL_CLIENT_CHECK}
+PHYSICAL_WINDOWS_CHECK = 'physical-windows-workspace'
+UBUNTU_WORKSPACE_CHECK = 'ubuntu-workspace-observation'
+FIELD_OBSERVATION_CHECKS = {PHYSICAL_WINDOWS_CHECK, UBUNTU_WORKSPACE_CHECK}
 
 
 def integration_validation(results):
@@ -35,3 +40,24 @@ def integration_summary_matches(summary, checks):
     expected = integration_validation(checks)
     return (isinstance(summary, dict) and summary.get('mock_ai_evaluated') is expected['mock_ai_evaluated']
             and summary == expected)
+
+
+def report_observation_issue(report):
+    """Validate observation claims available in both raw publication and timing inputs."""
+    checks = report['checks']
+    for row in checks:
+        check, passed = row['id'], row['status'] == 'passed'
+        for field, owners in (('observation', RUN_OBSERVATION_CHECKS),
+                              ('field_observation', FIELD_OBSERVATION_CHECKS)):
+            expected = passed and check in owners
+            if field in row and (not expected or not isinstance(row[field], dict)):
+                return 'an unexpected observation'
+            if expected and field not in row:
+                return 'a passing check without its observation'
+        if passed and check in SESSION_CHECKS and SESSION_CHECKS[check][0] == 'configured_models':
+            if row['observation'].get('deployment') not in ('local', 'cloud'):
+                return 'a configured model observation without a valid deployment'
+    if ('integration_validation' in report
+            and not integration_summary_matches(report['integration_validation'], checks)):
+        return 'an integration summary that contradicts its check results'
+    return None

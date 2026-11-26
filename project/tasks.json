@@ -26580,6 +26580,7 @@
         "project/feedback.json",
         "tests/project/test_timing_job_roles.py",
         "tests/project/test_timing_job_observations.py",
+        "scripts/timing_clock.py",
         "contracts/decisions/0031-shared-timing-producer-contract.json",
         "contracts/decisions/0032-normalized-timing-evidence.json",
         "contracts/decisions/0033-source-evidence-before-timing-attribution.json",
@@ -26606,7 +26607,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Qualify the common correction against the complete independent originals on 318f54c8 and retain exact-source public and weekly replay. The coordinator owns hosted verification, held requests and the November 28 actual observation.",
+      "next_action": "Use the exact-source local evidence in .reports/m0-155-post-318f54c8/handoff.json for independent review intake and matching hosted verification. Keep the five held requests and the November 28 actual observation with the coordinator.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26888,7 +26889,10 @@
               "path": "project/development.json",
               "pointer": "/quality/feedback_loop"
             },
-            "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json"
+            {
+              "path": "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json",
+              "pointer": "/decision"
+            }
           ],
           "non_goals": [
             "Changing protected platform objectives, test deadlines or measurement provenance."
@@ -26925,6 +26929,7 @@
         "M0-148"
       ],
       "scope": [
+        "tests/project/test_timing_publisher_observations.py",
         "scripts/timing.py",
         "scripts/project.py",
         "scripts/execution_inputs.py",
@@ -26958,7 +26963,7 @@
       ],
       "diagnostic_reports": [],
       "evidence": [],
-      "next_action": "Qualify the common correction against the complete independent originals on 318f54c8 and retain exact-source public and weekly replay. The coordinator owns hosted verification, held requests and the November 28 actual observation.",
+      "next_action": "Use the exact-source local evidence in .reports/m0-155-post-318f54c8/handoff.json for independent review intake and matching hosted verification. Keep the five held requests and the November 28 actual observation with the coordinator.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -27111,7 +27116,10 @@
               "path": "project/delivery.json",
               "pointer": "/source_control/scaling"
             },
-            "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json"
+            {
+              "path": "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json",
+              "pointer": "/decision"
+            }
           ],
           "non_goals": [
             "Changing the performance objective, routinely downloading dependency packages for the weekly reader, or accepting incomplete captures."
@@ -27147,6 +27155,7 @@
         "M0-148"
       ],
       "scope": [
+        "scripts/timing_clock.py",
         "scripts/timing.py",
         "project/timing-publishers.json",
         "contracts/decisions/0030-bounded-timing-publisher-evidence.json",
@@ -27186,7 +27195,7 @@
         "At the public timing entry, retain historical genuine publisher controls while distinguishing precision-level recording conflicts, a required native result missing from a complete report, and a contradicted raw integration summary.",
         "Apply portable observation ownership, passing status and integration summary admission to Linux and Windows before compaction. With real paired raw inputs, retain independent Actions clocks and accept equivalent recording offsets at full source precision."
       ],
-      "next_action": "Qualify the common correction against the complete independent originals on 318f54c8 and retain exact-source public and weekly replay. The coordinator owns hosted verification, held requests and the November 28 actual observation.",
+      "next_action": "Use the exact-source local evidence in .reports/m0-155-post-318f54c8/handoff.json for independent review intake and matching hosted verification. Keep the five held requests and the November 28 actual observation with the coordinator.",
       "blocker": null,
       "evidence": [],
       "closure_reason": null,
@@ -27480,7 +27489,10 @@
               "path": "project/delivery.json",
               "pointer": "/scaffold_maintenance/periodic_reviews"
             },
-            "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json"
+            {
+              "path": "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json",
+              "pointer": "/decision"
+            }
           ],
           "non_goals": [
             "Changing check coverage or measured durations to fit a budget, altering previous receipt bytes, or treating an aggregate alone as an individual producer."

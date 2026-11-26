@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 from scripts import timing
 from tests.project.test_timing import (
-    SPLIT_CATALOG, fast_report, hosted_job, hosted_run, lane_sample, split_harness_report, use_catalog,
+    FIXTURE_PR_HEAD, SPLIT_CATALOG, fast_report, hosted_job, hosted_run, lane_sample, split_harness_report, use_catalog,
 )
 
 
@@ -47,6 +47,9 @@ class PublicJobObservationTests(unittest.TestCase):
         active_start = {key: value for key, value in active.items() if key != 'completed_at'}
         numbered_end = {key: active[key] for key in ('number', 'completed_at')}
         conflicting_numbered_end = dict(numbered_end, completed_at=conflicting_end['completed_at'])
+        exact_offset_end = dict(numbered_end, completed_at='2026-11-20T05:51:40.000000001+05:45:00.000000001')
+        compact_offset_end = dict(numbered_end, completed_at='2026-11-19T18:21:40-0545')
+        submicrosecond_end = dict(numbered_end, completed_at='2026-11-20T00:06:40.000000001Z')
         incompatible_name = dict(numbered_end, name='An unrelated step')
         pending = {**active, 'status': 'queued', 'conclusion': None}
         pending_state = {key: value for key, value in pending.items() if key not in ('started_at', 'completed_at')}
@@ -54,7 +57,7 @@ class PublicJobObservationTests(unittest.TestCase):
         report = fast_report(20, 450)
         report['selection']['profile'] = 'full'
         report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
-                        'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'a' * 40}
+                        'event': 'pull_request', 'head_sha': FIXTURE_PR_HEAD, 'checkout_sha': 'a' * 40}
 
         root = self.timing_checkout()
         run_path, report_path = root / 'run.json', root / 'report.json'
@@ -74,6 +77,11 @@ class PublicJobObservationTests(unittest.TestCase):
                 ('numbered completion reversed', ([numbered_end], [active_start]), (55, 335, 20)),
                 ('absent completion', ([active_start],), (55, None, None)),
                 ('conflicting numbered completion', ([active], [conflicting_numbered_end]), (55, None, None)),
+                ('equivalent fractional offset', ([active], [exact_offset_end]), (55, 335, 20)),
+                ('equivalent compact negative offset', ([compact_offset_end], [active]), (55, 335, 20)),
+                ('distinct sub-microsecond completion', ([active], [submicrosecond_end]), (55, None, None)),
+                ('distinct completion in reverse', ([submicrosecond_end], [active]), (55, None, None)),
+                ('distinct completion in one listing', ([active, submicrosecond_end],), (55, None, None)),
                 ('contradicted number binding', ([active], [incompatible_name]), (None, None, None)),
                 ('two executed candidates', ([active, {**times, 'conclusion': 'success'}],), (None, None, None)),
                 ('pending stale times', ([pending],), (None, None, None)),
@@ -113,7 +121,7 @@ class PublicJobObservationTests(unittest.TestCase):
         jobs = [linux, core, browser, python, aggregate]
         report = split_harness_report(675)
         report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
-                        'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'a' * 40}
+                        'event': 'pull_request', 'head_sha': FIXTURE_PR_HEAD, 'checkout_sha': 'a' * 40}
         report['generated_at'] = '2026-11-20T00:12:34Z'
         sample = timing.report_sample(report)
 
