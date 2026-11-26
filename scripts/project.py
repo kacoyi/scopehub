@@ -2644,7 +2644,7 @@ def source_navigation(root, args):
             raise ValueError('Expected one canonical feedback item with that ID.')
         result = {'source': {'path': args.path, 'id': args.id}, 'value': matches[0]}
         if matches[0]['status'] == 'open':
-            policy = read_json(records / 'project/delivery.json')['scaffold_maintenance']
+            policy = read_json(records / 'project/delivery.json').get('scaffold_maintenance', {})
             engagement = read_maintenance_engagement(records, policy)
             if engagement and engagement['status'] == 'ended':
                 stop = engagement['stop_when']
