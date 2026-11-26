@@ -10,6 +10,26 @@
       "requested_at": "2026-11-26T15:30:30.234925+00:00",
       "request_id": "53652cdd3d2880ae1751c557e70fd8e7c0056709218bbe218e2d5ee948789c27",
       "evidence_sha256": "2dff36099fb4211be1078f698df4652f919758dd99f63aba359fa7199d6dcd67"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "2727e7b359dc1b6ef9e26dcb9467063417458075",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-169 2727e7b359dc1b6ef9e26dcb9467063417458075",
+      "scope": "CHANGES_REQUESTED M0-169 2727e7b359dc1b6ef9e26dcb9467063417458075",
+      "observation": "The Windows fixture checks the scratch directory when `compute` returns, then reads the witness files and launches a separate `tasklist.exe` query for each PID.",
+      "reviewer": "Independent Astra Standard (t19q)",
+      "original_sha256": "8f73eb1b2826147431e73e62fcecf59176565816091629730f711bc339ccc316",
+      "response_id": "721196f7574afce99a3aa14e840a9698d831c57c5ba25919be10b3e47f0b6b47",
+      "response_sha256": "1fa0166857c045763dd03690f46ea30106ae2e8427a3848c2c38ccfb348dda14",
+      "legacy_response_sha256": "c7a79c63110041312381938a1f4ee08a19e3c82fa4a37557473b76b68532fa6e",
+      "observation_body_sha256": "0695f9429ce6aeadc6aa802ce7b3678ce4d4861b3b7e939448cbcc7d7aa25e6a",
+      "event": {
+        "id": "msg_09613808d420a098016b08511e93f887d1a7526b0cc06ae470",
+        "timestamp": "2026-11-26T15:33:04.843Z"
+      },
+      "supersedes": "53652cdd3d2880ae1751c557e70fd8e7c0056709218bbe218e2d5ee948789c27",
+      "evidence_sha256": "024984a77dc0c4e7ce7fc262778afd6eb76c9ea923e04f8e1c15c52cb13210f0"
     }
   ]
 }
