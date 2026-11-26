@@ -14,7 +14,7 @@ from scripts.project import (
     ProjectError, archive_evidence, digest, feedback_fingerprint,
     json_bytes, load_project, read_json, source_identity,
 )
-from tests.project.test_continuity import ProjectFixture
+from tests.project.test_continuity import ProjectFixture, REPO
 from tests.project.fixtures import task_by_id
 
 
@@ -1283,7 +1283,7 @@ class ProtectedPythonObservationTests(IntegrationFixture):
             ledger['focus_task_id'] = self.follow_up_task if task_id == self.repair_task else 'M0-003'
         self.save_ledger(ledger)
 
-    def qualification_fixture(self, *, protected=True, finish_repair=True, extra_finding=False):
+    def qualification_fixture(self, *, protected=True, finish_repair=True, extra_finding=False, timing_rules=False):
         self.git('remote', 'add', 'origin', 'https://github.com/fixture/project')
         (self.root / 'project/branch-protection.json').write_bytes(json_bytes(observations()['policy']))
         path = self.root / 'project/checks.json'
@@ -1308,6 +1308,9 @@ class ProtectedPythonObservationTests(IntegrationFixture):
         follow_up.update(depends_on=[self.repair_task], checks=['project-state', self.python_check],
                          plan=deepcopy(repair['plan']),
                          next_action='Retain and verify the first protected main push containing the repair.')
+        if timing_rules:
+            for task_id in (REPAIR_TASK, FOLLOW_UP_TASK, 'M0-139', 'M0-141'):
+                ledger['tasks'].append({**deepcopy(follow_up), 'id': task_id, 'depends_on': []})
         self.save_ledger(ledger)
         initial = self.commit()
 
@@ -1328,6 +1331,16 @@ class ProtectedPythonObservationTests(IntegrationFixture):
         path = self.root / 'project/delivery.json'
         delivery = read_json(path)
         delivery['source_control'][self.policy_key] = rule
+        findings = []
+        if timing_rules:
+            adopted = read_json(REPO / 'project/delivery.json')['source_control']
+            for key in ('post_merge_main_push_budget', 'recurring_main_push_budget'):
+                delivery['source_control'][key] = adopted[key]
+            findings = [
+                dict(finding, id=key, task_ids=[owner]) for key, owner in
+                ((PR_BUDGET, REPAIR_TASK), (PUSH_BUDGET, FOLLOW_UP_TASK))
+            ]
+            self.save_feedback(*findings)
         if protected:
             path.write_bytes(json_bytes(delivery))
             self.commit()
@@ -1340,9 +1353,8 @@ class ProtectedPythonObservationTests(IntegrationFixture):
         if not protected:
             path.write_bytes(json_bytes(delivery))
         if extra_finding:
-            self.save_feedback(finding, dict(finding, id='unrelated-major-repair-finding'))
-        else:
-            self.save_feedback(finding)
+            findings.append(dict(finding, id='unrelated-major-repair-finding'))
+        self.save_feedback(finding, *findings)
         ledger = self.ledger()
         task_by_id(ledger, self.repair_task)['status'] = 'active'
         self.save_ledger(ledger)
@@ -1412,8 +1424,14 @@ class ProtectedPythonObservationTests(IntegrationFixture):
     def test_python_observation_policy_cannot_adopt_and_use_itself(self):
         base, _, _ = self.qualification_fixture(protected=False)
         result = self.scope(base)
+        self.assertIn('The Windows Python observation binding requires separate protected adoption.', result['blockers'])
         self.assertIn(f'Unresolved major feedback: {self.finding_id}', result['blockers'])
         self.assertNotIn(self.policy_key, result)
+
+        omitted = self.scope(base, modify=lambda project: project['delivery']['source_control'].pop(self.policy_key))
+        self.assertIn('Windows Python repair delivery requires a separately adopted protected observation binding.',
+                      omitted['blockers'])
+        self.assertNotIn(self.policy_key, omitted)
 
     def test_python_observation_cannot_close_from_pre_integration_receipts(self):
         base, _, finding = self.qualification_fixture()
@@ -1425,25 +1443,41 @@ class ProtectedPythonObservationTests(IntegrationFixture):
         self.assertNotIn(self.policy_key, result)
 
     def test_python_observation_retains_failures_and_only_closes_after_first_main_success(self):
-        base, binding, finding = self.qualification_fixture()
+        base, binding, finding = self.qualification_fixture(timing_rules=True)
+        pending = self.scope(base)
+        self.assertEqual([], pending['blockers'], pending)
+        self.assertEqual('pending', pending[self.policy_key]['status'])
         head = source_identity(self.root)['git_head']
         main = self.merge_observation(base, head)['sha']
         self.git('checkout', '--quiet', '--detach', main)
-        self.git('update-ref', 'refs/remotes/origin/main', main)
-        later = self.git('commit-tree', f'{main}^{{tree}}', '-p', main, '-m', 'Later protected commit')
-        missing = integration.python_push_observation(self.root, load_project(self.root), later, binding,
+        project = load_project(self.root)
+        findings = project['feedback']['items']
+        recurring_id = project['delivery']['source_control']['recurring_main_push_budget']['main_push_feedback_id']
+        self.assertNotIn(recurring_id, {item['id'] for item in findings})
+        recurring = dict(finding, id=recurring_id, task_ids=['M0-139', 'M0-141'])
+        self.save_feedback(*findings, recurring)
+        with_prior_timing_finding = self.commit()
+        self.git('update-ref', 'refs/remotes/origin/main', with_prior_timing_finding)
+        unchanged = self.scope(with_prior_timing_finding)
+        self.assertNotIn(self.policy_key, unchanged)
+        self.assertEqual(['The PR has no completed delivery task with archived evidence.'], unchanged['blockers'])
+        missing = integration.python_push_observation(self.root, load_project(self.root), with_prior_timing_finding, binding,
                                                      {}, observations()['policy'])
         self.assertEqual(('missing', main), (missing['status'], missing['first_push_commit']))
 
         self.finish(self.follow_up_task, finding=finding, event='push')
-        self.save_feedback(dict(finding, status='addressed', resolution=self.resolution))
+        self.save_feedback(dict(finding, status='addressed', resolution=self.resolution), *findings[1:], recurring)
         self.commit()
-        for status in ('missing', 'failed', 'passed'):
-            with self.subTest(status=status):
-                push = {'status': status, 'first_push_commit': main, 'next_action': 'Fixture follow-through.'}
-                result = self.scope(main, push=push)
-                self.assertEqual(status == 'passed', not result['blockers'], result)
-                self.assertEqual(status, result[self.policy_key]['status'])
+        for protected_base in (main, with_prior_timing_finding):
+            for status in ('missing', 'failed', 'passed'):
+                with self.subTest(prior_timing_finding=protected_base != main, status=status):
+                    push = {'status': status, 'first_push_commit': main, 'next_action': 'Fixture follow-through.'}
+                    result = self.scope(protected_base, push=push)
+                    self.assertEqual(status == 'passed', not result['blockers'], result)
+                    observation = result[self.policy_key]
+                    self.assertEqual((self.follow_up_task, status, main),
+                                     (observation['follow_up_task_id'], observation['status'],
+                                      observation['first_push_commit']))
 
     def test_failed_first_python_push_can_record_follow_through_with_the_finding_open(self):
         base, _, _ = self.qualification_fixture()

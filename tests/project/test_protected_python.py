@@ -4,7 +4,9 @@ import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 
+from scripts import integration
 from scripts.diagnostic_archive import DiagnosticArchiveError
 from scripts.protected_python import read_native, serial_inventory, serial_result
 
@@ -141,3 +143,97 @@ class NativeSerialResultTests(unittest.TestCase):
             original.write_bytes(raw + b'\n')
             with self.assertRaises((DiagnosticArchiveError, ValueError)):
                 read_native(archive, locator)
+
+    def test_protected_push_distinguishes_verified_failure_and_incomplete_evidence(self):
+        repository = 'owner/scopehub'
+        ci = {'provider': 'github-actions', 'repository': repository, 'event': 'push',
+              'run_id': '100', 'run_attempt': '1', 'head_sha': COMMIT, 'checkout_sha': COMMIT}
+        source = {**self.report['source'], 'sha256': '3' * 64}
+        original = {**self.report, 'ci': ci, 'source': source, 'source_end': source,
+                    'project_definition_sha256': '4' * 64}
+        receipt = {'ci': {**ci, 'event': 'workflow_dispatch'}, 'source': source,
+                   'environment': original['environment']}
+        binding = {'repair_commit': COMMIT, 'repair_task_id': 'M0-153', 'feedback_id': 'deadline'}
+        project = {'checks': {CHECK: self.check}, 'feedback': {'items': [{'id': 'deadline'}]}}
+        policy = {'repository': repository, 'branch': 'main'}
+        job = {'name': 'Windows change checks (python)', 'head_sha': COMMIT,
+               'status': 'completed', 'conclusion': 'success'}
+        attempt = {'path': integration.WORKFLOW, 'id': 100, 'run_attempt': 1, 'head_sha': COMMIT,
+                   'event': 'push', 'status': 'completed', 'head_branch': 'main'}
+        ledger = {'tasks': [{'id': 'M0-153', 'status': 'done'}]}
+
+        def git(_root, operation, *args):
+            if operation == 'show':
+                self.assertEqual((f'{COMMIT}:project/tasks.json',), args)
+                return json.dumps(ledger).encode()
+            self.assertEqual('rev-list', operation)
+            return COMMIT.encode()
+
+        with TemporaryDirectory() as directory:
+            archive = Path(directory)
+            run = archive / 'runs' / RUN
+            run.mkdir(parents=True)
+            with (patch.object(integration, 'require_complete_history'),
+                  patch.object(integration, 'exact_commit'),
+                  patch.object(integration, 'require_ancestor'),
+                  patch.object(integration, 'git', side_effect=git),
+                  patch.object(integration, 'committed_source_identity', return_value=source),
+                  patch.object(integration, 'diagnostic_archive_root', return_value=archive),
+                  patch.object(integration, 'budget_regression_receipts', return_value=[('', receipt)]),
+                  patch.object(integration, 'command') as command,
+                  patch.object(integration, 'python_receipt_original') as guard):
+                def observe(*, profile='full', failed=False, report_event='push', branch='main',
+                            jobs=(job,), guard_log=LOG, report_log=LOG, other_check_failure=False):
+                    report = deepcopy(original)
+                    report['selection'] = {'profile': profile, 'task_id': None, 'checks': [CHECK]}
+                    report['native_requirement']['requested'] = profile == 'full'
+                    report['ci']['event'] = report_event
+                    row, = report['checks']
+                    row['log_sha256'] = sha256(report_log).hexdigest()
+                    if failed:
+                        report['status'] = 'failed'
+                        row.update(status='failed', exit_code=None, duration_seconds=1200.047, reason_code='timeout')
+                    if other_check_failure:
+                        report['status'] = 'failed'
+                        report['selection']['checks'].append('workspace-timeframe')
+                        report['checks'].append({'id': 'workspace-timeframe', 'status': 'failed', 'exit_code': 1,
+                                                 'log': f'.reports/runs/{RUN}/workspace-timeframe.log',
+                                                 'log_sha256': sha256(b'Browser failure').hexdigest()})
+                        (run / 'workspace-timeframe.log').write_bytes(b'Browser failure')
+                    raw = json.dumps(report).encode()
+                    (run / 'test-report.json').write_bytes(raw)
+                    (run / f'{CHECK}.log').write_bytes(report_log)
+                    locator = {'run_id': RUN, 'source_commit': COMMIT, 'report_sha256': sha256(raw).hexdigest()}
+                    endpoint = f'repos/{repository}/actions/runs/100/attempts/1'
+                    responses = {endpoint: {**attempt, 'head_branch': branch},
+                                 endpoint + '/jobs?per_page=100': {'jobs': jobs}}
+                    command.side_effect = lambda args, _: json.dumps(responses[args[2]])
+                    guard.side_effect = FileNotFoundError() if guard_log is None else None
+                    guard_report = deepcopy(original)
+                    if guard_log is not None:
+                        guard_report['checks'][0]['log_sha256'] = sha256(guard_log).hexdigest()
+                    guard.return_value = (guard_report, guard_log)
+                    return integration.python_push_observation(
+                        archive, project, COMMIT, binding, {'diagnostic_reports': [locator]}, policy)
+
+                timeout_log = LOG.split(b'continuation')[0]
+                failed_job = {**job, 'conclusion': 'failure'}
+                for profile in ('full', 'ci-windows-python'):
+                    with self.subTest(profile=profile):
+                        failed = observe(profile=profile, failed=True, report_log=timeout_log, jobs=(failed_job,))
+                        self.assertEqual(('failed', 'timeout'), (failed['status'], failed['reason_code']))
+                        self.assertEqual(COMMIT, failed['diagnostic']['source_commit'])
+                self.assertEqual('passed', observe()['status'])
+                self.assertEqual('passed', observe(other_check_failure=True)['status'])
+                mismatch = observe(guard_log=LOG.replace(b'test_posix', b'test_other'))
+                self.assertEqual(('failed', 'inventory_mismatch'), (mismatch['status'], mismatch['reason_code']))
+                for case in ({'profile': 'ci-windows-python'}, {'guard_log': None}, {'branch': 'other'},
+                             {'report_event': 'pull_request'}, {'jobs': (job, job)},
+                             {'jobs': ({**job, 'status': 'in_progress'},)},
+                             {'jobs': ({**job, 'conclusion': 'cancelled'},), 'failed': True},
+                             {'jobs': ({**job, 'head_sha': 'a2' * 20},)}, {'report_log': timeout_log},
+                             {'jobs': (failed_job,)}):
+                    with self.subTest(case=case):
+                        missing = observe(**case)
+                        self.assertEqual(('missing', COMMIT), (missing['status'], missing['first_push_commit']))
+                        self.assertNotIn('diagnostic', missing)

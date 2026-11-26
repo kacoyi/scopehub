@@ -15,7 +15,8 @@ if __package__:
     from .project import (ProjectError, committed_source_identity, compare_history, diagnostic_archive_root, digest, feedback_fingerprint,
                          json_bytes, load_project, project_definition_hash, read_json, read_review_report, source_identity,
                          task_definition_hash, windows_x64)
-    from .protected_python import PYTHON_CHECK, read_native, serial_result
+    from .protected_python import (PYTHON_CHECK, SERIAL_COMMAND, WINDOWS_DEADLINE_SECONDS,
+                                    python_row, read_native, serial_result)
     from .protection import violations
     from .verification_evidence import hosted_artifact_path
     from .verification_scope import (SCOPED_PROFILES, ScopeError, checkout_git_environment, committed_scope,
@@ -27,7 +28,8 @@ else:
     from project import (ProjectError, committed_source_identity, compare_history, diagnostic_archive_root, digest, feedback_fingerprint,
                          json_bytes, load_project, project_definition_hash, read_json, read_review_report, source_identity,
                          task_definition_hash, windows_x64)
-    from protected_python import PYTHON_CHECK, read_native, serial_result
+    from protected_python import (PYTHON_CHECK, SERIAL_COMMAND, WINDOWS_DEADLINE_SECONDS,
+                                  python_row, read_native, serial_result)
     from protection import violations
     from verification_evidence import hosted_artifact_path
     from verification_scope import (SCOPED_PROFILES, ScopeError, checkout_git_environment, committed_scope,
@@ -468,7 +470,7 @@ def recurring_pr_evidence(root, project, base, rule, push, source, workflow, clo
     return True
 
 
-def recurring_full_workflow(workflow, jobs):
+def exact_full_pr_jobs(workflow, jobs):
     checkout, run = workflow['checkout'], workflow['run']
     if run['run_attempt'] != 1 or run.get('event') != 'pull_request' or run.get('head_sha') != checkout['head']:
         return False
@@ -482,21 +484,26 @@ def recurring_full_workflow(workflow, jobs):
     return True
 
 
-def main_push_budget_handoff(root, project, base, completed, items, rule, *, source, policy, workflow, jobs):
-    if not rule or not source or not policy or not workflow or source['working_tree_dirty']:
-        return None
+def protected_full_pr(base, source, policy, workflow, jobs):
+    if not source or not policy or not workflow or source['working_tree_dirty']:
+        return False
     if policy['branch'] != 'main' or workflow['status'] != 'passed' or workflow.get('expected_profile') != 'full':
-        return None
+        return False
     head = source['git_head']
     checkout = workflow.get('checkout', {})
     if checkout.get('base') != base or checkout.get('head') != head:
-        return None
+        return False
     contexts = {item['context'] for item in policy['configuration']['required_status_checks']['checks']}
-    if not FULL_HARNESS_STEPS.keys() <= contexts or not all(required_job_succeeded(jobs, name, head) for name in contexts):
+    return FULL_HARNESS_STEPS.keys() <= contexts and all(required_job_succeeded(jobs, name, head) for name in contexts)
+
+
+def main_push_budget_handoff(root, project, base, completed, items, rule, *, source, policy, workflow, jobs):
+    if not rule or not protected_full_pr(base, source, policy, workflow, jobs):
         return None
+    head = source['git_head']
 
     recurring = 'control_reports_sha256' in rule
-    if recurring and not recurring_full_workflow(workflow, jobs):
+    if recurring and not exact_full_pr_jobs(workflow, jobs):
         return None
     repair_task, follow_up = rule['repair_task_id'], rule['follow_up_task_id']
     task = project['tasks'].get(follow_up, {})
@@ -661,6 +668,11 @@ def python_observation_rule(root, project, base, affected, completed, items, pre
                 or items.get(finding) != previous_feedback.get(finding)
                 or python_repair_in_source(root, source, candidate)):
             return None, 'The Windows Python observation binding requires separate protected adoption.'
+    finding = PYTHON_OBSERVATION_RECORDS['feedback_id']
+    newly_addressed = (items.get(finding, {}).get('status') == 'addressed'
+                       and previous_feedback.get(finding, {}).get('status') != 'addressed')
+    if PYTHON_OBSERVATION_RECORDS['repair_task_id'] in completed or newly_addressed:
+        return None, 'Windows Python repair delivery requires a separately adopted protected observation binding.'
     return None, None
 
 
@@ -740,20 +752,23 @@ def python_pr_inventory(root, project, policy, source, workflow, receipt_path):
     return None
 
 
-def python_hosted_report(report, repository, event, head, checkout):
+def python_hosted_report(report, repository, event, head, checkout, *, profile='full'):
     ci = report['ci']
+    environment = report['environment']
+    native = report['native_requirement']
     return (ci['provider'] == 'github-actions' and ci['repository'] == repository
             and ci['event'] == event and ci['run_attempt'] == '1'
             and ci['head_sha'] == head and ci['checkout_sha'] == report['source']['git_head'] == checkout
-            and not report['source']['working_tree_dirty'] and report['source_unchanged']
-            and report['project_unchanged']
-            and report['native_requirement'] == {'requested': True, 'satisfied': True}
-            and report['selection']['profile'] == 'full' and report['selection']['task_id'] is None)
+            and report['source']['working_tree_dirty'] is False and report['source_end'] == report['source']
+            and report['source_unchanged'] is True and report['project_unchanged'] is True
+            and isinstance(environment, dict) and isinstance(environment.get('machine'), str) and windows_x64(environment)
+            and native['requested'] is (profile == 'full') and native['satisfied'] is True
+            and report['selection']['profile'] == profile and report['selection']['task_id'] is None)
 
 
 def python_push_observation(root, project, base, binding, follow_up, policy):
     missing = {'status': 'missing', 'first_push_commit': None,
-               'next_action': 'Retain the first protected main push aggregate and its Windows Python producer.'}
+               'next_action': 'Verify the first protected main push, its Windows Python producer and the guarded original.'}
     try:
         repair = binding['repair_commit']
         require_complete_history(root)
@@ -770,43 +785,59 @@ def python_push_observation(root, project, base, binding, follow_up, policy):
         locator, = locators
         report, log = read_native(diagnostic_archive_root(root), locator)
         repository = policy['repository']
-        if (not python_hosted_report(report, repository, 'push', first, first)
+        profile = report['selection']['profile']
+        selected = report['selection']['checks']
+        if (profile not in {'full', 'ci-windows-python'}
+                or not python_hosted_report(report, repository, 'push', first, first, profile=profile)
+                or not isinstance(selected, list) or selected.count(PYTHON_CHECK) != 1
+                or (profile == 'ci-windows-python' and selected != [PYTHON_CHECK])
                 or report['source'] != committed_source_identity(root, first)):
             return missing
         jobs = python_attempt_jobs(root, report['ci'], branch='main')
-        producer = 'Windows change checks (python)'
-        if not any(job['name'] == producer and job['head_sha'] == first and job['status'] == 'completed'
-                   for job in jobs):
+        producers = [job for job in jobs if job['name'] == timing.WINDOWS_PRODUCERS['python']]
+        if len(producers) != 1 or producers[0]['head_sha'] != first or producers[0]['status'] != 'completed':
             return missing
+        conclusion = producers[0]['conclusion']
         ledger = json.loads(git(root, 'show', f'{first}:project/tasks.json'))
         task = next(row for row in ledger['tasks'] if row['id'] == binding['repair_task_id'])
         finding = next(row for row in project['feedback']['items'] if row['id'] == binding['feedback_id'])
         if task['status'] != 'done':
             return missing
-        failed = {**missing, 'status': 'failed', 'diagnostic': locator,
+        observed = {**missing, 'diagnostic': locator}
+        failed = {**observed, 'status': 'failed',
                   'next_action': 'Keep the finding open, retain the first push, and assign a corrective task.'}
         check = project['checks'][PYTHON_CHECK]
-        try:
-            inventory = serial_result(report, log, check)
-        except ValueError:
-            return failed
-        if not required_job_succeeded(jobs, producer, first):
-            return failed
+        row = python_row(report)
+        python = report['environment']['python_executable']
+        if (conclusion in {'failure', 'timed_out'} and report['status'] == row['status'] == 'failed'
+                and check['status'] == 'implemented' and check['command'] == SERIAL_COMMAND
+                and check['windows_timeout_seconds'] == WINDOWS_DEADLINE_SECONDS
+                and isinstance(python, str) and python and row['command'] == [python, *SERIAL_COMMAND[1:]]):
+            return {**failed, 'reason_code': row.get('reason_code', 'python_check_failed')}
+        if profile != 'full' or conclusion != 'success':
+            return missing
+        inventory = serial_result(report, log, check)
+        compared = False
         for _, receipt in budget_regression_receipts(root, task, finding):
             if (not python_dispatch_receipt(receipt, repository)
                     or receipt['source']['sha256'] != report['source']['sha256']):
                 continue
             try:
                 guard, guard_log = python_receipt_original(root, receipt)
+                if guard['project_definition_sha256'] != report['project_definition_sha256']:
+                    continue
                 comparison = serial_result(guard, guard_log, check)
             except (OSError, ValueError, KeyError, TypeError):
                 continue
+            compared = True
             if inventory == comparison:
-                return {**failed, 'status': 'passed',
+                return {**observed, 'status': 'passed',
                         'next_action': 'Complete the observation task and record closure of the Python deadline finding. '
                                        'Evaluate the separate 900-second whole-workflow objective.'}
-        return failed
-    except (OSError, ValueError, ScopeError, TypeError, KeyError, RuntimeError, StopIteration):
+        if compared:
+            return {**failed, 'reason_code': 'inventory_mismatch'}
+        return missing
+    except (OSError, ValueError, ScopeError, TypeError, KeyError, RuntimeError, StopIteration, subprocess.SubprocessError):
         return missing
 
 
@@ -819,6 +850,10 @@ def python_observation_scope(root, project, base, completed, previous_tasks, ite
         return None, failure if python_repair_in_source(root, source, binding) else None
     finding = items.get(binding['feedback_id'], {})
     task = project['tasks'].get(follow_up, {})
+    prior_finding = previous_feedback.get(binding['feedback_id'], {})
+    prior_task = previous_tasks.get(follow_up, {})
+    if repair_on_base and task == prior_task and finding == prior_finding:
+        return None, None
     matches = (finding.get('severity') == 'major' and finding.get('diagnostic_reports')
                and python_finding_identity(finding) == binding['finding_sha256']
                and set(finding['task_ids']) == {repair, follow_up}
@@ -830,18 +865,14 @@ def python_observation_scope(root, project, base, completed, previous_tasks, ite
     if not matches:
         return None, 'Windows Python delivery requires the original open finding and its protected observation owner.'
     if repair_on_base:
-        previous = previous_feedback.get(finding['id'], {})
-        if previous.get('status') == 'addressed' and finding == previous:
-            return None, None
         observation = python_push_observation(root, project, base, binding, task, policy)
-        prior_task = previous_tasks.get(follow_up, {})
         prior_locators = prior_task.get('diagnostic_reports', [])
         retained = all(locator in task.get('diagnostic_reports', []) for locator in prior_locators)
         if (not retained or finding['status'] not in {'open', 'addressed'}
                 or (finding['status'] == 'addressed') != (task['status'] == 'done')
                 or (finding['status'] == 'addressed' and observation['status'] != 'passed')):
             return {**details, **observation}, 'Windows Python deadline closure requires the verified first protected push.'
-        if (observation['status'] == 'failed' and finding == previous and task['status'] == 'planned'
+        if (observation['status'] == 'failed' and finding == prior_finding and task['status'] == 'planned'
                 and project['tasks'][repair] == previous_tasks[repair]
                 and observation.get('diagnostic') in task.get('diagnostic_reports', [])
                 and task == {**prior_task, 'diagnostic_reports': task['diagnostic_reports'],
@@ -849,16 +880,10 @@ def python_observation_scope(root, project, base, completed, previous_tasks, ite
             observation['recording_failed_observation'] = True
         return {**details, **observation}, None
     if (finding['status'] != 'open' or task['status'] != 'planned' or not task.get('next_action')
-            or task.get('diagnostic_reports') or not source or source['working_tree_dirty']
-            or not policy or policy['branch'] != 'main' or not workflow or workflow['status'] != 'passed'
-            or workflow.get('expected_profile') != 'full'):
+            or task.get('diagnostic_reports') or not protected_full_pr(base, source, policy, workflow, jobs)
+            or not exact_full_pr_jobs(workflow, jobs)):
         return None, failure
-    head, checkout = source['git_head'], workflow.get('checkout', {})
-    contexts = {row['context'] for row in policy['configuration']['required_status_checks']['checks']}
-    if (checkout.get('base') != base or checkout.get('head') != head or not FULL_HARNESS_STEPS.keys() <= contexts
-            or not all(required_job_succeeded(jobs, name, head) for name in contexts)
-            or not recurring_full_workflow(workflow, jobs)):
-        return None, failure
+    head = source['git_head']
     try:
         require_ancestor(root, base, head)
         exact_commit(root, binding['repair_commit'])
@@ -882,8 +907,9 @@ def delivery_scope(root, project, base, *, source=None, policy=None, workflow=No
     history, previous_feedback = compare_history(root, base)
     previous_file = subprocess.run(['git', 'show', f'{base}:project/tasks.json'], cwd=root, env=checkout_git_environment(),
                                    capture_output=True, check=False)
-    previous = {task['id']: task for task in json.loads(previous_file.stdout)['tasks']} if previous_file.returncode == 0 else {}
-    changed = [task for key, task in project['tasks'].items() if task != previous.get(key)]
+    previous_tasks = ({task['id']: task for task in json.loads(previous_file.stdout)['tasks']}
+                      if previous_file.returncode == 0 else {})
+    changed = [task for key, task in project['tasks'].items() if task != previous_tasks.get(key)]
     completed = [task['id'] for task in changed if task['status'] == 'done']
     unfinished = [task['id'] for task in changed if task['status'] in {'active', 'blocked'}]
     blockers = []
@@ -908,30 +934,30 @@ def delivery_scope(root, project, base, *, source=None, policy=None, workflow=No
         push_id = binding['main_push_feedback_id']
         repair_task = binding['repair_task_id']
         if (name == RECURRING_PUSH_BUDGET_POLICY and repair_task in completed
-                and previous.get(repair_task, {}).get('status') != 'done' and not handoff):
+                and previous_tasks.get(repair_task, {}).get('status') != 'done' and not handoff):
             blockers.append(f'Recurring repair delivery requires the verified open handoff: {push_id}')
         if binding['repair_task_id'] in affected:
             reviewed_budgets.add(push_id)
             if 'pull_request_feedback_id' in binding:
                 reviewed_budgets.add(binding['pull_request_feedback_id'])
-        push, previous = items.get(push_id), previous_feedback.get(push_id)
+        push, prior_finding = items.get(push_id), previous_feedback.get(push_id)
         if push and push['status'] == 'addressed':
-            recorded = (previous and previous['status'] == 'addressed'
-                        and previous.get('verification_budget') == push.get('verification_budget')
-                        and set(previous['task_ids']) == set(push['task_ids'])
-                        and feedback_fingerprint(previous) == feedback_fingerprint(push))
-            if not recorded and not main_push_budget_closure(root, project, base, binding, push, previous, policy):
+            recorded = (prior_finding and prior_finding['status'] == 'addressed'
+                        and prior_finding.get('verification_budget') == push.get('verification_budget')
+                        and set(prior_finding['task_ids']) == set(push['task_ids'])
+                        and feedback_fingerprint(prior_finding) == feedback_fingerprint(push))
+            if not recorded and not main_push_budget_closure(root, project, base, binding, push, prior_finding, policy):
                 blockers.append(f'Main-push timing closure lacks a verified main-push observation: {push_id}')
     handed_off = {handoff['feedback_id'] for handoff in handoffs.values()}
     python_rule, python_blocker = python_observation_rule(
         root, project, history.get('base_commit'), affected, completed, items, previous_feedback, source)
     if python_rule:
         observation, python_blocker = python_observation_scope(
-            root, project, base, completed, previous, items, previous_feedback, python_rule,
+            root, project, base, completed, previous_tasks, items, previous_feedback, python_rule,
             source=source, policy=policy, workflow=workflow, jobs=jobs)
         if observation:
             handoffs[PYTHON_OBSERVATION_POLICY] = observation
-            if observation['status'] == 'pending' or (not python_blocker and observation.get('recording_failed_observation')):
+            if not python_blocker and (observation['status'] == 'pending' or observation.get('recording_failed_observation')):
                 handed_off.add(observation['feedback_id'])
     if python_blocker:
         blockers.append(python_blocker)
