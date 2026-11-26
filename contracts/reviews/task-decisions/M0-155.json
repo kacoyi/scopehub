@@ -300,6 +300,26 @@
       "requested_at": "2026-11-26T15:31:03.486920+00:00",
       "request_id": "133ca40065632598934aa3bf5b67829831156bdacda9775573bde244b16447ad",
       "evidence_sha256": "d52e1176bef375532e2d724a94e831ad3d62f2bbafe0da022cfeef0de1ea1415"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "de7e2376d216e0fe943c1301c336ef837b58c48a",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 de7e2376d216e0fe943c1301c336ef837b58c48a",
+      "scope": "CHANGES_REQUESTED M0-155 de7e2376d216e0fe943c1301c336ef837b58c48a",
+      "observation": "Removing only the recovery job’s start time from run 45838575346 made both readers report an unknown Windows execution duration even though its two endpoints still established 1242 seconds.",
+      "reviewer": "Independent Astra Standard (t19r)",
+      "original_sha256": "0a05cf443dcc923861c7efb02150fd2a64f56e638fba72f93be52e08bd46c204",
+      "response_id": "228b1bece5972835df5d2a2d46e8c83a04fabf46103931651e8f0c224cb79a10",
+      "response_sha256": "5387513517fd50403893492e42285aeb66d39301f948a74291dd84f9c91d2f22",
+      "legacy_response_sha256": "c0e6f057f5ae4d10c86079a0e91420418a6a7f3db524962b3aaa4b6483ba89d5",
+      "observation_body_sha256": "d703c9502358ff36569a0dd6187c5da754817327f887a2cdec53832129680ce6",
+      "event": {
+        "id": "msg_0aa616ef6ed95d91016b085261088087d1bef4830b54049f4e",
+        "timestamp": "2026-11-26T15:38:28.287Z"
+      },
+      "supersedes": "133ca40065632598934aa3bf5b67829831156bdacda9775573bde244b16447ad",
+      "evidence_sha256": "5f9ca3735c4a07b1112fe50cddbb5cb0619c35f97b2603d61aac5842504b451b"
     }
   ]
 }

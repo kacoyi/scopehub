@@ -329,6 +329,26 @@
       "requested_at": "2026-11-26T15:31:04.233453+00:00",
       "request_id": "e7e152d9a6654aaeb7ed7cef11bb57eef07e91f1d5dc0eede72c659e792fb63d",
       "evidence_sha256": "e53bb39e23b7556429923813a109a32be5ef66d4f902e737033d129c00844adf"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "de7e2376d216e0fe943c1301c336ef837b58c48a",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 de7e2376d216e0fe943c1301c336ef837b58c48a",
+      "scope": "CHANGES_REQUESTED M0-156 de7e2376d216e0fe943c1301c336ef837b58c48a",
+      "observation": "When ancestry enumeration was unavailable in the PR 133 replay, adding the Linux ancestor report removed the genuine Windows receipt.",
+      "reviewer": "Independent Astra Standard (t19t)",
+      "original_sha256": "c2fbdb2fe6cd197b39ba3a5780558dc3539cfaa2bd0a128cf001348d843c9cd1",
+      "response_id": "8c1c9c071bacf253782f1f9d64df98e78cddaee41cc58fb4115ce4b4c4dec613",
+      "response_sha256": "8232a77291752725e616232db83d8b130f65fcda555d617b5a401cf81ebfa451",
+      "legacy_response_sha256": "99350441a110dbb74f512da60f5dbec5ac440bae7c36b8e71d6ef3c4eec8286d",
+      "observation_body_sha256": "450018b46b955838d52b6e79968cb263b3519325ae4e20e793d3ad4c5210e0b2",
+      "event": {
+        "id": "msg_0188e1a6b849f68d016b08533865e487d2af6b8adee8ff1daa",
+        "timestamp": "2026-11-26T15:42:06.837Z"
+      },
+      "supersedes": "e7e152d9a6654aaeb7ed7cef11bb57eef07e91f1d5dc0eede72c659e792fb63d",
+      "evidence_sha256": "ea6e3c90becd35927e01771a0157dfa65330375ee8d6a09d23e78d84e62168d0"
     }
   ]
 }

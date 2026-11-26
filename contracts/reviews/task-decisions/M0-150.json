@@ -320,6 +320,26 @@
       "requested_at": "2026-11-26T15:31:02.724196+00:00",
       "request_id": "0a0ecad30c3da79d75c2c912e1e89d2e0aafa54f77d91168c5b5d8ae68e704b3",
       "evidence_sha256": "e60a4cb77772c392528bb8da991b78293731876fbe0bc60c0bd751189f5c84e6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "de7e2376d216e0fe943c1301c336ef837b58c48a",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 de7e2376d216e0fe943c1301c336ef837b58c48a",
+      "scope": "CHANGES_REQUESTED M0-150 de7e2376d216e0fe943c1301c336ef837b58c48a",
+      "observation": "The offline weekly reader issued a Linux receipt for run 45838575346 when the report timestamp fell beyond the publishing job’s final second.",
+      "reviewer": "Independent Astra Standard (t19s)",
+      "original_sha256": "9f93ec0ee6dfa91ce169832e6509850c7bff24dddb0450b999e7c42729c52121",
+      "response_id": "8cec27806783b38f670d7eb077d6a7bd5be7ed7db201c307c05fe6c5f79e20ab",
+      "response_sha256": "e542ed3975f6b92baff27301ef8aa941a84ef7ac27bfdcbff6f831f6d61e1634",
+      "legacy_response_sha256": "ba279b499b2cf165ca4a64c9df40194ac38d14fc76cfeb2e19fc5743d058b681",
+      "observation_body_sha256": "a15ce7fe986779c3816ef85cd8b09a19ef87208a4d3d7831439f8989c62b2d5d",
+      "event": {
+        "id": "msg_08d335ada47776c3016b085250e7d887d1a02149576e672652",
+        "timestamp": "2026-11-26T15:38:12.595Z"
+      },
+      "supersedes": "0a0ecad30c3da79d75c2c912e1e89d2e0aafa54f77d91168c5b5d8ae68e704b3",
+      "evidence_sha256": "c08d578269c4ad822bf55e848a6dc1f1108e115bd5fb1ee8f17bd75860708bfa"
     }
   ]
 }
