@@ -88,6 +88,26 @@
       "requested_at": "2026-11-26T03:26:59.280637+00:00",
       "request_id": "8801370eb78f4108e8eb178486c8a50824b729023f428ba7c9faafa0033b73c6",
       "evidence_sha256": "583d0889e83fe415df6da147db129ecf8ea261e3d8f028ef375d8289e6ad8675"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "20f32713cd66e54ed66d977f2e76e768b01eb113",
+      "verdict": "approved",
+      "decision": "APPROVE M0-147 20f32713cd66e54ed66d977f2e76e768b01eb113",
+      "scope": "APPROVE M0-147 20f32713cd66e54ed66d977f2e76e768b01eb113",
+      "observation": "I verified that Windows run 45748342112 recorded two actual writes, exact readback of both fixture ACEs and their inherited grants, and matching managed and Rust witness stages of 0 and 58.",
+      "reviewer": "Independent Astra Standard (t124)",
+      "original_sha256": "2edda593aaec2e4b6b183a5c1f2526afe839a70ebd03a8537a79481a3620cea7",
+      "response_id": "f37bb0c2b46e3cd1c69ca8a62fe3e6cc765158c36672e623f284587679af4868",
+      "response_sha256": "59f4601dd4c701e01718e8815716f28d8872cd7441bb7c251f7cd825ca6c50e9",
+      "legacy_response_sha256": "19e04a16b0b7388bd7cd34e405d72538116aa9dd553f8a4828066c7d2b3f434c",
+      "observation_body_sha256": "5df27de36c8cbba5ff60d3cae5e64b1e6126c352cae22de08e59e6791f833e03",
+      "event": {
+        "id": "msg_0405425e1e3232cf016b07aa304da087d1873112a8b8cc8808",
+        "timestamp": "2026-11-26T03:40:52.165Z"
+      },
+      "supersedes": "8801370eb78f4108e8eb178486c8a50824b729023f428ba7c9faafa0033b73c6",
+      "evidence_sha256": "a0647689db2bbd214da8581f57b05d3cc7812f8337693e37ab44af573f33da2c"
     }
   ]
 }
