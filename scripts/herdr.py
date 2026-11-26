@@ -296,6 +296,19 @@ def collector(state, parent):
     return lifecycle, native
 
 
+def inherited_parent():
+    address = os.environ.get('HC_TERMINAL_ID')
+    endpoint = os.environ.get('HC_TERMINAL_SOCKET')
+    if not address or not ADDRESS.fullmatch(address) or not endpoint:
+        return None
+    try:
+        if Path(endpoint).absolute() == core_socket():
+            return address
+    except LifecycleHold:
+        pass
+    return None
+
+
 def launch_managed(root, args, command):
     state = state_directory(root, args.state_dir)
     lifecycle, native = collector(state, args.parent)
@@ -398,8 +411,10 @@ def main() -> int:
     parser.add_argument('--parent', metavar='TERMINAL', help='Explicit local Herdr parent terminal address.')
     parser.add_argument('--no-notify', action='store_true', help='Suppress Herdr messages to the parent.')
     parser.add_argument('--tier', choices=('priority', 'default'), help='Codex service tier (Fast or Standard).')
-    parser.add_argument('--managed', action='store_true', help='Register and automatically retire this one assignment.')
-    parser.add_argument('--state-dir', type=Path, help='Private lifecycle root override with --managed.')
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--managed', action='store_true', help='Explicitly register and automatically retire this assignment.')
+    mode.add_argument('--standalone', action='store_true', help='Keep this terminal interactive without automatic retirement.')
+    parser.add_argument('--state-dir', type=Path, help='Private root override for a managed assignment.')
     parser.add_argument('--effort', help='Reasoning effort for this assignment with a family-based profile.')
     parser.add_argument('--escalate-model', action='store_true',
                         help='Use the supervise model family for this implementation assignment.')
@@ -416,10 +431,20 @@ def main() -> int:
         parser.error('--source requires the review role.')
     if args.parent is not None and not ADDRESS.fullmatch(args.parent):
         parser.error('--parent must be an exact local terminal address.')
-    if args.managed and (args.parent is None or args.role == 'coordinate' or args.role == 'review' and args.source is None):
-        parser.error('--managed requires an explicit --parent and an implementation or source-bound review.')
+    eligible_role = args.role == 'implement' or args.role == 'review' and args.source is not None
+    legacy_preview = None
+    if not args.standalone and sys.platform == 'linux' and eligible_role and (args.space or args.managed):
+        parent = args.parent or inherited_parent()
+        if parent is not None:
+            if args.dry_run and args.parent is None and not args.managed:
+                # Preserve the original argv contract for coordinators which hand it to hc themselves.
+                legacy_preview = argparse.Namespace(**vars(args))
+            args.parent = parent
+            args.managed = True
+    if args.managed and (args.parent is None or not eligible_role):
+        parser.error('--managed requires a matching local parent and an implementation or source-bound review.')
     if args.state_dir is not None and not args.managed:
-        parser.error('--state-dir requires --managed.')
+        parser.error('--state-dir requires a managed assignment.')
     if args.managed:
         args.assignment_id = uuid4().hex
         args.tier = args.tier or MANAGED_TIERS[args.role]
@@ -430,6 +455,8 @@ def main() -> int:
             if args.source is not None:
                 check_review_source(root, args.source)
             plan = {'cwd': str(root), 'argv': command}
+            if legacy_preview is not None:
+                plan.update(argv=launch_argv(root, legacy_preview), managed_argv=command)
             if args.managed:
                 plan['lifecycle'] = {'version': 1, 'managed_entry_required': True,
                                      'parent': args.parent, 'tier': args.tier, 'host': 'linux'}

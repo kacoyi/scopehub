@@ -103,6 +103,8 @@ class WorktreeFixture(unittest.TestCase):
                 'recent': [{'id': 's-recent', 'machine': None}],
             }),
         }
+        for key in ('HC_TERMINAL_ID', 'HC_TERMINAL_SOCKET'):
+            self.env.pop(key, None)
 
     def write_records(self, root, task_id, *, implement=IMPLEMENT, supervise=SUPERVISE, efforts=None):
         project = root / 'project'
@@ -129,6 +131,83 @@ class WorktreeFixture(unittest.TestCase):
 
 
 class DryRunTests(WorktreeFixture):
+    def local_native_context(self):
+        socket = str(self.root / 'native.sock')
+        self.env.update(HC_SOCKET=socket, HC_TERMINAL_ID='t25', HC_TERMINAL_SOCKET=socket)
+
+    @unittest.skipUnless(sys.platform == 'linux', 'Managed sockets are local Linux only')
+    def test_ordinary_visible_launch_adopts_its_native_owner_without_side_effects(self):
+        self.local_native_context()
+        self.use_family_profiles()
+        (self.codex_home / 'models_cache.json').write_text(json.dumps(FUTURE_CATALOG), encoding='utf-8')
+        state = self.root / 'absent private state'
+        result = self.cli('M0-025', 'implement', '--assignment', 'One bounded return', '--space', 's-local',
+                          '--effort', 'ultra', '--state-dir', str(state), '--dry-run')
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        plan = json.loads(result.stdout)
+        self.assertNotIn('--parent', plan['argv'])
+        self.assertFalse(any(item.startswith('scopehub.assignment=') for item in plan['argv']))
+        argv = plan['managed_argv']
+        self.assertEqual(plan['lifecycle']['parent'], 't25')
+        self.assertEqual(plan['lifecycle']['tier'], 'priority')
+        self.assertEqual(argv[argv.index('--parent') + 1], 't25')
+        self.assertIn('herdr.space=s-local', argv)
+        self.assertIn('model_reasoning_effort="ultra"', argv)
+        self.assertIn('service_tier="priority"', argv)
+        self.assertEqual(argv[argv.index('--model') + 1], 'gpt-10.9-sol')
+        self.assertFalse(state.exists())
+        self.assertFalse(Path(self.env['HC_SOCKET']).exists())
+        self.assertFalse(self.log.exists())
+
+    def test_explicit_standalone_preserves_ordinary_visible_launch_inside_native_owner(self):
+        self.local_native_context()
+        result = self.cli('M0-025', 'implement', '--assignment', 'An interactive terminal', '--space', 's-local',
+                          '--standalone', '--dry-run')
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        plan = json.loads(result.stdout)
+        self.assertNotIn('lifecycle', plan)
+        self.assertNotIn('managed_argv', plan)
+        self.assertNotIn('--parent', plan['argv'])
+        self.assertFalse(any(item.startswith('scopehub.assignment=') for item in plan['argv']))
+        self.assertIn('herdr.space=s-local', plan['argv'])
+        self.assertFalse(self.log.exists())
+
+    def test_absent_incomplete_or_other_core_context_does_not_adopt_a_native_owner(self):
+        arguments = ('M0-025', 'implement', '--assignment', 'An unowned terminal', '--space', 's-local', '--dry-run')
+        for scenario in ('absent', 'unowned', 'incomplete', 'other-core'):
+            with self.subTest(context=scenario):
+                self.local_native_context()
+                if scenario == 'absent':
+                    self.env.pop('HC_TERMINAL_ID')
+                    self.env.pop('HC_TERMINAL_SOCKET')
+                elif scenario == 'unowned':
+                    self.env['HC_TERMINAL_ID'] = 'virtual-terminal'
+                elif scenario == 'incomplete':
+                    self.env.pop('HC_TERMINAL_SOCKET')
+                else:
+                    self.env['HC_TERMINAL_SOCKET'] = str(self.root / 'other-core.sock')
+                result = self.cli(*arguments)
+                self.assertEqual(0, result.returncode, result.stderr)
+                plan = json.loads(result.stdout)
+                self.assertNotIn('lifecycle', plan)
+                self.assertNotIn('managed_argv', plan)
+                self.assertNotIn('--parent', plan['argv'])
+        self.assertFalse(self.log.exists())
+
+    def test_coordination_and_review_without_bound_source_stay_usable_in_a_native_owner(self):
+        self.local_native_context()
+        for role in ('coordinate', 'review'):
+            with self.subTest(role=role):
+                result = self.cli('M0-025', role, '--assignment', 'Inspect one file', '--space', 's-local', '--dry-run')
+                self.assertEqual(0, result.returncode, result.stderr)
+                plan = json.loads(result.stdout)
+                self.assertNotIn('lifecycle', plan)
+                self.assertNotIn('managed_argv', plan)
+                self.assertNotIn('--parent', plan['argv'])
+        self.assertFalse(self.log.exists())
+
     def test_managed_plan_serves_the_explicit_native_coordinator_launch(self):
         self.use_family_profiles()
         (self.codex_home / 'models_cache.json').write_text(json.dumps(FUTURE_CATALOG), encoding='utf-8')

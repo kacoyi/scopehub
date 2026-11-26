@@ -26884,6 +26884,7 @@
         "M0-158"
       ],
       "scope": [
+        "AGENTS.md",
         "scripts/herdr.py",
         "scripts/herdr_lifecycle.py",
         "scripts/herdr_native.py",
@@ -26976,7 +26977,7 @@
           ],
           "change": [
             "Make a scoped and resumable result/retirement path available through the repository-owned Herdr workflow with direct behavior checks.",
-          "Expose explicit native parent, visibility and service tier, and schedule an independent watcher at launch so a final assignment is collectable without a later dispatch."
+          "Register the ordinary visible coordinator launch with an exact local parent, preserve deliberate standalone sessions and native service tiers, and schedule an independent watcher so a final assignment is collectable without a later dispatch."
           ],
           "data_plan": "Development records only. Keep task originals private and preserve existing product data and permissions.",
           "cleanup": "Use the supported repository entry for the corrected behavior. Retire superseded local workarounds after matched verification and preserve originals required for audit."
