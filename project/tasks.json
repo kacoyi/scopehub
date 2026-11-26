@@ -26908,7 +26908,7 @@
         "architecture"
       ],
       "evidence": [],
-      "next_action": "Reproduce the recorded baseline, implement and exercise the accepted public controls, then obtain independent review on the exact candidate.",
+      "next_action": "Obtain independent review on the exact clean implementation candidate and coordinate protected verification before closure.",
       "blocker": null,
       "closure_reason": null,
       "plan": {

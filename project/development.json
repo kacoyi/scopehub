@@ -917,7 +917,7 @@
       "All dynamic operations must pass through the Rust registry first; do not add generic execute/shell/sql tools",
       "Keep mock implementations until a provider is confirmed; do not temporarily scrape market data from the internet to pretend that integration exists",
       "Implement the native Ubuntu development host and the Windows v1 release. Reserve other host integrations for a separately approved platform scope.",
-      "Tests cover protocols, identity, permissions, and computation semantics first, then the UI",
+      "Use engineering-contract-v1.json#/implementation_policy/first_test to choose the first check and exercise the affected boundary.",
       "Do not implement live trading types, buttons, or tools as hidden placeholders",
       "State explicitly in the final report whether real data and cloud models are configured; do not exaggerate the completed scope"
     ]
