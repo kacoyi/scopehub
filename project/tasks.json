@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-163",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -26389,7 +26389,7 @@
       "id": "M0-163",
       "milestone": "M0",
       "title": "Make first-test and shared-capability guidance unambiguous from the checkout",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-158"
       ],
@@ -26421,11 +26421,19 @@
         {
           "path": "project/evidence/M0-163-0a1e626f3ffd9652.json",
           "sha256": "ecf36e323719f520a4ae28899c42be5d48b035e4bcb7887834b9043832eb90f1"
+        },
+        {
+          "path": "project/evidence/M0-163-52d1e40230840602.json",
+          "sha256": "03fa066cd62638d4a301db76e84234a91e6c86cc5b0604e13e6f62dd2e80be79"
+        },
+        {
+          "path": "project/evidence/M0-163-c215d7446e0780b8.json",
+          "sha256": "4435168349b9381d274152c000a52501385732331e554d8c24b53deccaccd8ad"
         }
       ],
-      "next_action": "Obtain independent review on the exact clean implementation candidate and coordinate protected verification before closure.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The task checks and independent clean-checkout navigation verified the first-test and dependency rules, with separate chart and protocol examples and an accessible provider-authorization rule.",
       "plan": {
         "outcome": "The agent can select the first decisive test and recover the applicable dependency rules on a standard checkout.",
         "change_types": [
