@@ -8196,6 +8196,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-indicator-deadline-observes-process-exit-after-terminal-boundary",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent Astra Standard review of 2727e7b359dc1b6ef9e26dcb9467063417458075, recorded at 7d6c99be4549a99969e462a38f069518aab553c5. Exact original at archives/observations/repo-hygiene-20261125/independent-final-m0-169-2727e7b3/original-assistant-response.jsonl (SHA-256 8f73eb1b2826147431e73e62fcecf59176565816091629730f711bc339ccc316).",
+      "observation": "The Windows deadline fixture checked scratch at the terminal result, then read the witness files and started a separate serial tasklist.exe subprocess for each witnessed PID. In the running-child case that means three queries, each allowed up to two seconds. A witnessed process still alive at the terminal result could exit before its later query and pass the assertion. This is a confirmed limitation of the fixture observation. The review observed no candidate process leak and established no new cleanup facts about the original protected Windows failure.",
+      "task_ids": [
+        "M0-169"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
