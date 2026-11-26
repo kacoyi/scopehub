@@ -41,6 +41,7 @@ MANAGED_TIERS = {'implement': 'priority', 'review': 'default'}
 WATCH_SECONDS = 24 * 60 * 60
 LAUNCH_SETTLE_SECONDS = 90
 ONE_SHOT_BIND_SECONDS = 3
+ONE_SHOT_RETRY_SECONDS = 0.2
 WATCH_FINAL_HOLDS = {'unregistered_assignment', 'foreign_terminal', 'terminal_finished_without_archive',
                      'terminal_turn_changed', 'turn_changed', 'turn_interrupted', 'wrong_core'}
 
@@ -402,7 +403,10 @@ def run_owned_main():
             while raw := codex.stdout.readline(ORIGINAL_LIMIT + 1):
                 if not raw.endswith(b'\n') or len(raw) > ORIGINAL_LIMIT:
                     raise LifecycleHold('invalid_one_shot_output')
-                event = json.loads(raw)
+                try:
+                    event = json.loads(raw)
+                except (ValueError, RecursionError):
+                    raise LifecycleHold('invalid_one_shot_output') from None
                 if not isinstance(event, dict):
                     raise LifecycleHold('invalid_one_shot_output')
                 if event.get('type') == 'thread.started':
@@ -414,10 +418,16 @@ def run_owned_main():
                 sys.stdout.buffer.flush()
             if codex.wait() != 0 or execution is None:
                 raise LifecycleHold('one_shot_execution_failed')
-        result = lifecycle.collect(args.assignment_id)['assignments'][0]
-        if result['status'] != 'archived':
-            raise LifecycleHold(result.get('reason', 'assignment_unavailable'))
-        print(f"Verified assignment return archived ({result['original_sha256']}).", flush=True)
+        while True:
+            try:
+                digest = lifecycle.complete_owned(binding, execution)
+            except LifecycleHold as error:
+                if str(error) != 'assignment_busy':
+                    raise
+                time.sleep(ONE_SHOT_RETRY_SECONDS)
+            else:
+                break
+        print(f'Verified assignment return archived ({digest}).', flush=True)
         return 0
     except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
         reason = str(error) if isinstance(error, LifecycleHold) else 'one_shot_execution_unavailable'

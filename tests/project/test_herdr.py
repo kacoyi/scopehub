@@ -1,7 +1,8 @@
 """Exercise the Herdr launch boundary without a running core or model."""
 
-from contextlib import redirect_stderr, redirect_stdout
-from io import StringIO
+from contextlib import ExitStack, nullcontext, redirect_stderr, redirect_stdout
+from hashlib import sha256
+from io import BytesIO, StringIO, TextIOWrapper
 import json
 import os
 from pathlib import Path
@@ -13,7 +14,9 @@ import tempfile
 import unittest
 from unittest.mock import Mock, call, patch
 
-from scripts import herdr
+from scripts import herdr, herdr_lifecycle
+from scripts.herdr_returns import Proof
+from scripts.worktree import exclusive_git_lock
 
 
 SCRIPT = Path(__file__).resolve().parents[2] / 'scripts/herdr.py'
@@ -40,6 +43,173 @@ FUTURE_CATALOG = {'models': [
     catalog_model('gpt-95-sol\n', *EFFORTS),
     catalog_model('gpt-30.1-astra', *EFFORTS),
 ]}
+
+
+class RunnerHeld(Exception):
+    """Stop at the public owned runner's inspection wait."""
+
+
+@unittest.skipUnless(sys.platform == 'linux', 'Local Herdr lifecycle requires Linux.')
+class HerdrOwnedEntryTests(unittest.TestCase):
+    def setUp(self):
+        directory = self.enterContext(tempfile.TemporaryDirectory())
+        self.root = Path(directory).resolve()
+        self.state = self.root / 'state'
+        self.parent, self.assignment, self.prompt = 't42', 'one-shot', 'Synthetic assignment.'
+        self.args = ['--state-dir', str(self.state), '--parent', self.parent, '--assignment-id', self.assignment]
+        self.binding = {'id': self.assignment, 'parent': self.parent, 'mode': 'one-shot',
+                        'task': 'M0-162', 'role': 'implement', 'checkout': str(self.root),
+                        'source': '1' * 40, 'prompt_sha256': sha256(self.prompt.encode()).hexdigest(),
+                        'model': 'gpt-fixture-sol', 'effort': 'medium', 'sessions': str(self.root / 'sessions'),
+                        'codex_home': str(self.root), 'codex_argv': ['codex', 'exec', '--json']}
+        self.terminal = {'address': 't43', 'created_ms': 345, 'pid': os.getpid(),
+                         'tab': {'id': 'tab-43', 'pane': 'pane-43'}}
+        self.session = '01a21690-93a0-79f3-b020-ab4c007f0531'
+        self.rollout = str(self.root / 'sessions' / f'rollout-fixture-{self.session}.jsonl')
+        self.execution = dict(self.terminal, session_id=self.session, rollout_path=self.rollout)
+        self.native = Mock()
+        self.native.own_process.return_value = self.terminal
+        self.native.observe.side_effect = self.observe
+        self.original = b'{"text":"The synthetic return is complete."}\n'
+        self.completion = b'{"turn_id":"bound","type":"task_complete"}\n'
+        self.probe = Mock(return_value=Proof(self.original, {
+            'session_id': self.session, 'rollout_path': self.rollout,
+            'completion_sha256': sha256(self.completion).hexdigest(),
+        }, self.completion))
+        self.lifecycle = self.new_lifecycle()
+        self.lifecycle.register(self.binding)
+        self.pending = self.lifecycle.pending / self.assignment
+        self.archived = self.lifecycle.archived / self.assignment
+        self.child = Mock(pid=123)
+        self.child.wait.return_value = 0
+        self.thread_started = (json.dumps({'type': 'thread.started', 'thread_id': self.session}) + '\n').encode()
+        self.stderr = StringIO()
+        self.stdout = BytesIO()
+        self.enterContext(patch.object(herdr, 'collector', side_effect=lambda *_: (self.new_lifecycle(), self.native)))
+        self.enterContext(patch.object(herdr, 'find_worktree', return_value=self.root))
+        self.enterContext(patch.object(herdr, 'inherited_parent', return_value=self.terminal['address']))
+        self.enterContext(patch.object(herdr, 'check_review_source'))
+        self.enterContext(patch.object(herdr, 'exec_rollout', return_value=self.rollout))
+        self.enterContext(patch.object(herdr.signal, 'pause', side_effect=RunnerHeld))
+
+    def new_lifecycle(self):
+        return herdr_lifecycle.Lifecycle(self.state, self.parent, observe=self.native.observe, probe=self.probe)
+
+    def observe(self, binding, *, retiring):
+        self.assertEqual(binding, self.binding)
+        execution = self.lifecycle.execution(self.assignment)
+        if retiring is not None:
+            self.assertEqual(retiring, execution)
+            raise herdr_lifecycle.LifecycleHold('one_shot_awaiting_exit')
+        return execution
+
+    def run_owned(self, output=None):
+        self.child.stdout = BytesIO(self.thread_started if output is None else output)
+        argv = ['herdr.py', 'run-owned', *self.args, '--', self.prompt]
+        with (patch.object(sys, 'argv', argv), patch.object(herdr.subprocess, 'Popen', return_value=nullcontext(self.child)),
+              redirect_stdout(TextIOWrapper(self.stdout, write_through=True)) as out, redirect_stderr(self.stderr)):
+            try:
+                return herdr.main()
+            finally:
+                out.detach()
+
+    def collect(self):
+        with (patch.object(sys, 'argv', ['herdr.py', 'collect', *self.args]), redirect_stdout(StringIO()) as out):
+            self.assertEqual(herdr.main(), 0)
+        return json.loads(out.getvalue())['assignments'][0]
+
+    def assert_saved_pair(self):
+        receipt = self.collect()
+        self.assertEqual(receipt['reason'], 'one_shot_awaiting_exit')
+        self.assertEqual(Path(receipt['original']).read_bytes(), self.original)
+        self.assertEqual(Path(receipt['completion']).read_bytes(), self.completion)
+
+    def compete(self, *, after_lock=None, interrupt=None):
+        lock = self.enterContext(ExitStack())
+
+        def finished_child():
+            lock.enter_context(exclusive_git_lock(self.pending / 'operation.lock'))
+            return 0
+
+        self.child.wait.side_effect = finished_child
+
+        def publish(_):
+            self.assertEqual(self.collect()['reason'], 'assignment_busy')
+            lock.close()
+            if interrupt is not None:
+                with patch.object(herdr_lifecycle, '_write_record', side_effect=interrupt):
+                    with self.assertRaises(KeyboardInterrupt):
+                        self.collect()
+            else:
+                self.assertEqual(self.collect()['status'], 'archived')
+            if after_lock:
+                after_lock()
+
+        return patch.object(herdr.time, 'sleep', side_effect=publish)
+
+    def test_run_owned_without_competition_recovers_its_exact_pair(self):
+        self.assertEqual(self.run_owned(), 0)
+        self.assert_saved_pair()
+        self.assertIn(b'Verified assignment return archived', self.stdout.getvalue())
+
+    def test_run_owned_waits_for_competing_public_collector_then_exits(self):
+        with self.compete() as retry:
+            self.assertEqual(self.run_owned(), 0)
+        retry.assert_called_once()
+        self.child.wait.assert_called_once()
+        self.probe.assert_called_once_with(self.binding, self.execution)
+        self.assert_saved_pair()
+
+    def test_run_owned_recovers_pair_after_competing_collector_interrupts(self):
+        with self.compete(interrupt=KeyboardInterrupt) as retry:
+            self.assertEqual(self.run_owned(), 0)
+        retry.assert_called_once()
+        self.probe.assert_called_once_with(self.binding, self.execution)
+        self.assert_saved_pair()
+
+    def test_run_owned_recovers_when_competitor_moves_the_lane_before_lock_acquisition(self):
+        # Run a separate public collect between finding the pending lane and opening its lock.
+        def acquire(path):
+            if self.pending.exists() and (self.pending / 'execution.json').exists():
+                with patch.object(herdr_lifecycle, 'exclusive_git_lock', exclusive_git_lock):
+                    self.assertEqual(self.collect()['status'], 'archived')
+            return exclusive_git_lock(path)
+
+        with (patch.object(herdr_lifecycle, 'exclusive_git_lock', side_effect=acquire),
+              patch.object(herdr.time, 'sleep') as retry):
+            self.assertEqual(self.run_owned(), 0)
+        retry.assert_called_once()
+        self.probe.assert_called_once_with(self.binding, self.execution)
+        self.assert_saved_pair()
+
+    def test_run_owned_preserves_corrupt_competing_completion(self):
+        completion = self.archived / 'return/completion.jsonl'
+        with self.compete(after_lock=lambda: completion.write_bytes(b'changed')), self.assertRaises(RunnerHeld):
+            self.run_owned()
+        self.assertIn('archive_changed', self.stderr.getvalue())
+        self.assertEqual(completion.read_bytes(), b'changed')
+        self.assertEqual((self.archived / 'return/original.jsonl').read_bytes(), self.original)
+        self.assertNotIn(b'Verified assignment return archived', self.stdout.getvalue())
+
+    def test_run_owned_rejects_competing_archive_for_a_different_execution(self):
+        def change_execution():
+            (self.archived / 'execution.json').write_text(json.dumps(dict(self.execution, pid=1)), encoding='utf-8')
+
+        with self.compete(after_lock=change_execution), self.assertRaises(RunnerHeld):
+            self.run_owned()
+        self.assertIn('assignment_execution_changed', self.stderr.getvalue())
+        self.assertEqual((self.archived / 'return/completion.jsonl').read_bytes(), self.completion)
+        self.assertNotIn(b'Verified assignment return archived', self.stdout.getvalue())
+
+    def test_run_owned_corrupt_output_never_unwinds_the_inspection_hold(self):
+        for output in (b'{}', b'{\n', b'[]\n', b'\xff\n', b'{"deep":' + b'[' * 10000 + b']' * 10000 + b'}\n'):
+            with self.subTest(length=len(output)), self.assertRaises(RunnerHeld):
+                self.run_owned(output)
+        self.assertNotIn(b'Verified assignment return archived', self.stdout.getvalue())
+        self.assertEqual(self.stderr.getvalue().count('invalid_one_shot_output'), 5)
+        self.assertFalse((self.pending / 'return').exists())
+        self.assertFalse(self.archived.exists())
+        self.probe.assert_not_called()
 
 MOCK_PROGRAM = """\
 import json

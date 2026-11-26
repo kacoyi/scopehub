@@ -177,31 +177,59 @@ def _check_registration(binding, row):
     return argv
 
 
-def _desktop_tabs(binding):
+def _desktop_spaces(binding):
     try:
         result = subprocess.run(['herdr-app', 'ls'], cwd=binding['checkout'], capture_output=True,
                                 timeout=RPC_TIMEOUT, check=True)
         layout = json.loads(result.stdout)
-        entries = [(space, tab) for space in layout['spaces'] for tab in space['tabs']]
-        if any(not isinstance(tab['terminals'], list) or
-               any(not isinstance(terminal, dict) for terminal in tab['terminals']) for _, tab in entries):
-            raise TypeError
-        return entries
-    except (OSError, subprocess.SubprocessError, ValueError, KeyError, TypeError):
+    except (OSError, subprocess.SubprocessError, ValueError, RecursionError):
         raise LifecycleHold('desktop_unavailable') from None
+    try:
+        spaces = layout['spaces']
+        if not isinstance(spaces, list) or any(not isinstance(space['tabs'], list) for space in spaces):
+            raise TypeError
+        if any(not isinstance(tab['terminals'], list) or any(
+                not isinstance(terminal, dict) for terminal in tab['terminals'])
+                for space in spaces for tab in space['tabs']):
+            raise TypeError
+    except (KeyError, TypeError):
+        raise LifecycleHold('desktop_snapshot_incomplete') from None
+    return spaces
+
+
+def _desktop_id(value):
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _desktop_tab_closed(binding, tab, address):
+    spaces = _desktop_spaces(binding)
+    # A tab or pane can move to another space, so absence requires complete identities throughout.
+    if any(not _desktop_id(space.get('id')) or 'machine' not in space for space in spaces):
+        raise LifecycleHold('desktop_snapshot_incomplete')
+    tabs = [current for space in spaces for current in space['tabs']]
+    if any(not _desktop_id(current.get('id')) or any(
+            not _desktop_id(entry.get('pane')) or not _desktop_id(entry.get('terminal'))
+            for entry in current['terminals']) for current in tabs):
+        raise LifecycleHold('desktop_snapshot_incomplete')
+    original_space = any(space['id'] == binding['space'] and space['machine'] is None for space in spaces)
+    still_present = any(current['id'] == tab['id'] or any(
+        entry['terminal'] == address or entry['pane'] == tab['pane'] for entry in current['terminals'])
+        for current in tabs)
+    return original_space and not still_present
 
 
 def _visible_tab(binding, address):
     if binding.get('space') is None:
         return None
-    matches = [(space, tab, terminal) for space, tab in _desktop_tabs(binding) for terminal in tab['terminals']
+    matches = [(space, tab, terminal) for space in _desktop_spaces(binding) for tab in space['tabs']
+               for terminal in tab['terminals']
                if terminal.get('terminal') == address and terminal.get('name') == binding['name']]
     if len(matches) != 1:
         raise LifecycleHold('terminal_tab_unavailable')
     space, tab, terminal = matches[0]
     if (space.get('id') != binding['space'] or space.get('machine') is not None
-            or len(tab['terminals']) != 1 or not isinstance(tab.get('id'), str)
-            or not isinstance(terminal.get('pane'), str)):
+            or len(tab['terminals']) != 1 or not _desktop_id(tab.get('id'))
+            or not _desktop_id(terminal.get('pane'))):
         raise LifecycleHold('terminal_tab_changed')
     return {'id': tab['id'], 'pane': terminal['pane']}
 
@@ -246,14 +274,10 @@ class NativeLifecycle:
         if row.get('reason') != 'exited' or type(exit_code) is not int or exit_code != 0:
             raise LifecycleHold('one_shot_exit_unverified')
         tab = execution['tab']
-        if tab:
-            entries = _desktop_tabs(binding)
-            original_space = any(space.get('id') == binding['space'] and space.get('machine') is None
-                                 for space, _ in entries)
-            still_present = any(current.get('id') == tab['id'] or any(
-                entry.get('terminal') == row['address'] or entry.get('pane') == tab['pane']
-                for entry in current['terminals']) for _, current in entries)
-            if original_space and not still_present:
+        if tab is not None:
+            if not isinstance(tab, dict) or not _desktop_id(tab.get('id')) or not _desktop_id(tab.get('pane')):
+                raise LifecycleHold('terminal_tab_changed')
+            if _desktop_tab_closed(binding, tab, row['address']):
                 raise LifecycleHold('one_shot_tab_closed')
         raise LifecycleHold('one_shot_exited')
 

@@ -273,6 +273,25 @@ class HerdrCollectEntryTests(unittest.TestCase):
         self.assertEqual(set(self.fake.terminals), {PARENT, ADDRESS, 't13', 't14', 't19'})
         self.assert_archive(self.collect('z-eligible'), evidence)
 
+    def test_corrupt_execution_does_not_stop_independent_collection(self):
+        self.register('a-corrupt-execution', address='t16', one_shot=True)
+        evidence = self.register('z-eligible', session=OTHER_SESSION)
+        sidecar = self.lane('a-corrupt-execution') / 'execution.json'
+        corrupt = b'{"nested":' + b'[' * 10000 + b'0' + b']' * 10000 + b'}\n'
+        sidecar.write_bytes(corrupt)
+
+        results = self.collect()
+
+        held = {'assignment': 'a-corrupt-execution', 'status': 'held', 'reason': 'assignment_execution_changed'}
+        self.assertEqual(results['a-corrupt-execution'], held)
+        self.assertEqual(self.collect('a-corrupt-execution'), held)
+        self.assertEqual(sidecar.read_bytes(), corrupt)
+        self.assertFalse((sidecar.parent / 'return').exists())
+        self.assertEqual(results['z-eligible']['status'], 'archived')
+        self.assert_archive(self.collect('z-eligible'), evidence)
+        self.assertEqual(set(self.fake.terminals), {PARENT, ADDRESS, 't16', 't19'})
+        self.assertEqual(self.fake.mutations, [])
+
     def test_one_shot_closure_requires_its_own_successful_exit_and_exact_tab_absence(self):
         evidence = self.register('one-shot', one_shot=True)
         terminal = self.fake.terminals[ADDRESS]
@@ -280,7 +299,12 @@ class HerdrCollectEntryTests(unittest.TestCase):
         own_pane = {'terminal': ADDRESS, 'name': terminal['name'], 'pane': 'pane-a'}
         owned = {'id': 'tab-a', 'terminals': [own_pane]}
         sibling = {'id': 'tab-b', 'terminals': [{'terminal': 't19', 'name': 'unrelated', 'pane': 'pane-b'}]}
-        desktop = self.enterContext(patch.object(herdr_native, '_desktop_tabs', return_value=[(space, sibling)]))
+        desktop = self.enterContext(patch.object(herdr_native.subprocess, 'run'))
+
+        def snapshot(*spaces):
+            desktop.return_value = SimpleNamespace(stdout=json.dumps({'spaces': spaces}).encode())
+
+        snapshot({**space, 'tabs': [sibling]})
 
         result = self.collect('one-shot')
         self.assertEqual((result['status'], result['reason']), ('archived', 'one_shot_awaiting_exit'))
@@ -303,20 +327,89 @@ class HerdrCollectEntryTests(unittest.TestCase):
         desktop.assert_not_called()
 
         terminal['created_ms'] -= 1
-        desktop.return_value = [(space, owned), (space, sibling)]
+        snapshot({**space, 'tabs': [owned, sibling]})
         self.assertEqual(self.collect('one-shot')['reason'], 'one_shot_exited')
 
-        desktop.return_value = [(space, {'id': 'tab-new', 'terminals': [own_pane]}), (space, sibling)]
+        snapshot({**space, 'tabs': [{'id': 'tab-new', 'terminals': [own_pane]}, sibling]})
         self.assertEqual(self.collect('one-shot')['reason'], 'one_shot_exited')
 
-        desktop.return_value = [({'id': 'another-space', 'machine': None}, sibling)]
+        snapshot({**space, 'id': 'another-space', 'tabs': [sibling]})
         self.assertEqual(self.collect('one-shot')['reason'], 'one_shot_exited')
 
-        desktop.return_value = [(space, sibling)]
+        snapshot({**space, 'tabs': [sibling]})
         closed = self.collect('one-shot')
         self.assertEqual((closed['status'], closed['reason']), ('archived', 'one_shot_tab_closed'))
         self.assert_archive(closed, evidence)
+        self.assertEqual(desktop.call_args_list, [
+            call(['herdr-app', 'ls'], cwd=str(self.root), capture_output=True, timeout=5, check=True)
+        ] * 4)
         self.assertEqual(set(self.fake.terminals), {PARENT, ADDRESS, 't19'})
+        self.assertEqual(self.fake.mutations, [])
+
+    def test_one_shot_closure_requires_a_complete_desktop_snapshot(self):
+        evidence = self.register('one-shot', one_shot=True)
+        terminal = self.fake.terminals[ADDRESS]
+        terminal.update(state='finished', reason='exited', exit_code=0)
+        space = {'id': 'space-a', 'machine': None, 'tabs': []}
+        other_terminal = {'terminal': 't19', 'pane': 'pane-b'}
+        sibling = {'id': 'tab-b', 'terminals': [other_terminal]}
+        other_space = {**space, 'id': 'space-b', 'tabs': [sibling]}
+        desktop = self.enterContext(patch.object(herdr_native.subprocess, 'run'))
+
+        cases = (
+            ('complete empty space', [space, other_space], 'one_shot_tab_closed'),
+            ('complete sibling tab', [{**space, 'tabs': [sibling]}], 'one_shot_tab_closed'),
+            ('space absent', [other_space], 'one_shot_exited'),
+            ('pane moved', [space, {**other_space, 'tabs': [
+                {**sibling, 'terminals': [{**other_terminal, 'pane': 'pane-a'}]}
+            ]}], 'one_shot_exited'),
+            ('terminal moved', [space, {**other_space, 'tabs': [
+                {**sibling, 'terminals': [{**other_terminal, 'terminal': ADDRESS}]}
+            ]}], 'one_shot_exited'),
+            ('tab moved', [space, {**other_space, 'tabs': [{**sibling, 'id': 'tab-a'}]}], 'one_shot_exited'),
+            ('tab and pane identities missing', [{**space, 'tabs': [sibling, {'terminals': [{}]}]}],
+             'desktop_snapshot_incomplete'),
+            ('tab identity missing', [{**space, 'tabs': [sibling, {'terminals': [other_terminal]}]}],
+             'desktop_snapshot_incomplete'),
+            ('pane identity missing in another space', [space, {**other_space, 'tabs': [
+                {**sibling, 'terminals': [{'terminal': 't19'}]}
+            ]}], 'desktop_snapshot_incomplete'),
+            ('terminal identity missing', [{**space, 'tabs': [{**sibling, 'terminals': [{'pane': 'pane-b'}]}]}],
+             'desktop_snapshot_incomplete'),
+            ('blank terminal identity', [{**space, 'tabs': [
+                {**sibling, 'terminals': [{**other_terminal, 'terminal': ''}]}
+            ]}], 'desktop_snapshot_incomplete'),
+            ('tabs missing from space', [{'id': 'space-a', 'machine': None}], 'desktop_snapshot_incomplete'),
+            ('terminals missing from tab', [{**space, 'tabs': [{'id': 'tab-b'}]}], 'desktop_snapshot_incomplete'),
+        )
+        for case, spaces, reason in cases:
+            with self.subTest(case=case):
+                desktop.return_value = SimpleNamespace(stdout=json.dumps({'spaces': spaces}).encode())
+                result = self.collect('one-shot')
+                self.assertEqual((result['status'], result['reason']), ('archived', reason))
+                self.assert_archive(result, evidence)
+        self.assertEqual(set(self.fake.terminals), {PARENT, ADDRESS, 't19'})
+        self.assertEqual(self.fake.mutations, [])
+
+    def test_one_shot_closure_requires_valid_stored_tab_and_pane_identities(self):
+        evidence = self.register('one-shot', one_shot=True)
+        self.fake.terminals[ADDRESS].update(state='finished', reason='exited', exit_code=0)
+        execution = self.lane('one-shot') / 'execution.json'
+        saved = json.loads(execution.read_bytes())
+        saved['tab'] = {'id': '', 'pane': None}
+        execution.write_text(json.dumps(saved), encoding='utf-8')
+        desktop = self.enterContext(patch.object(herdr_native.subprocess, 'run'))
+        desktop.return_value = SimpleNamespace(stdout=json.dumps({'spaces': [{
+            'id': 'space-a', 'machine': None, 'tabs': [{
+                'id': 'tab-b', 'terminals': [{'terminal': 't19', 'pane': 'pane-b'}],
+            }],
+        }]}).encode())
+
+        result = self.collect('one-shot')
+
+        self.assertEqual((result['status'], result['reason']), ('archived', 'terminal_tab_changed'))
+        self.assert_archive(result, evidence)
+        desktop.assert_not_called()
         self.assertEqual(self.fake.mutations, [])
 
 

@@ -26923,7 +26923,7 @@
           "sha256": "9f336d77da284e317e923a7a727d9f3504bb2a5b247f11033e24f07afdb2b874"
         }
       ],
-      "next_action": "Reproduce and correct the competing one-shot collector and incomplete desktop observation findings, then retain public-entry controls and an exact-source native observation for coordinator review.",
+      "next_action": "Coordinator to review the exact clean source and retained observations in .reports/observations/M0-162-lifecycle-follow-through/handoff.json. Independently exercise competing collection, archive recovery, incomplete desktop observations and corruption holds before task closure or publication.",
       "blocker": null,
       "closure_reason": null,
       "plan": {

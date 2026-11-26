@@ -232,7 +232,7 @@ class Lifecycle:
             execution = json.loads(_private_read(lane / 'execution.json', RECORD_LIMIT))
         except FileNotFoundError:
             raise LifecycleHold('one_shot_start_unobserved') from None
-        except ValueError:
+        except (ValueError, RecursionError):
             raise LifecycleHold('assignment_execution_changed') from None
         if not isinstance(execution, dict):
             raise LifecycleHold('assignment_execution_changed')
@@ -253,16 +253,30 @@ class Lifecycle:
             'assignments': [self._collect_one(item, dry_run) for item in assignments],
         }
 
-    def _collect_one(self, assignment, dry_run):
+    def complete_owned(self, binding, execution):
+        """Commit or recover the return of the runner that observed this exact execution."""
+        self._directories()
+        result = self._collect_one(binding['id'], False, owned=(binding, execution))
+        if result['status'] != 'archived':
+            raise LifecycleHold(result['reason'])
+        return result['original_sha256']
+
+    def _collect_one(self, assignment, dry_run, *, owned=None):
         result = {'assignment': assignment}
         try:
             lane = self._find(assignment)
             if lane is None:
                 return dict(result, status='held', reason='unregistered_assignment')
-            if dry_run or lane.parent != self.pending:
+            if owned is None and (dry_run or lane.parent != self.pending):
                 return dict(result, **self._advance(lane, assignment, True))
-            with exclusive_git_lock(lane / 'operation.lock'):
-                return dict(result, **self._advance(lane, assignment, False))
+            try:
+                with exclusive_git_lock(lane / 'operation.lock'):
+                    return dict(result, **self._advance(lane, assignment, False, owned=owned))
+            except FileNotFoundError:
+                if owned is not None and lane.parent == self.pending and self._lane(self.archived, assignment):
+                    # A competing collector moved the lane while we opened its lock.
+                    raise LifecycleHold('assignment_busy') from None
+                raise
         except BlockingIOError:
             return dict(result, status='held', reason='assignment_busy')
         except (OSError, WorktreeError):
@@ -337,19 +351,26 @@ class Lifecycle:
                 _sync_dir(lane)
         return archive
 
-    def _advance(self, lane, assignment, dry_run):
+    def _advance(self, lane, assignment, dry_run, *, owned=None):
         record = self._read_record(lane, assignment)
+        binding = record['binding']
+        if owned is not None:
+            expected_binding, execution = owned
+            if (binding != expected_binding or binding.get('mode') != 'one-shot'
+                    or lane.parent == self.retired or self.execution(assignment) != execution):
+                raise LifecycleHold('assignment_execution_changed')
         if (record['version'] == 1 and record['phase'] != 'retired'
                 and not dry_run and lane.parent == self.pending):
             # Older detached collectors reject this version before considering any terminal operation.
             record = dict(record, version=REGISTRATION_VERSION)
             _write_record(lane, record)
-        binding = record['binding']
         archive, directory = self._archive(lane, record)
         if archive is None:
             terminal = self.observe(binding, retiring=None)
             if terminal is None:
                 raise LifecycleHold('terminal_missing')
+            if owned is not None and terminal != execution:
+                raise LifecycleHold('assignment_execution_changed')
             archive = self._retain(lane, binding, terminal, self.probe(binding, terminal), dry_run=dry_run)
             if dry_run:
                 expected = None if binding.get('mode') == 'one-shot' else terminal
@@ -358,17 +379,23 @@ class Lifecycle:
                 return {'status': 'eligible', 'original_sha256': archive['sha256']}
             archive, directory = self._archive(lane, record)
         has_completion = directory != lane
+        if owned is not None and (not has_completion or archive['terminal'] != execution or any(
+                archive['proof'].get(key) != execution[key] for key in ('session_id', 'rollout_path'))):
+            raise LifecycleHold('archive_execution_changed')
         if not dry_run and lane.parent == self.pending:
             if record['phase'] in ('registered', 'retiring'):
                 _write_record(lane, dict(record, phase='archived', archive=archive))
             _private_dir(self.archived, create=True)
             destination = self.archived / lane.name
             lane.rename(destination)
+        if not dry_run and (lane.parent == self.pending or owned is not None):
+            # The other collector may have stopped just after publishing the directory.
             _sync_dir(self.pending)
             _sync_dir(self.archived)
             _sync_dir(self.owner)
-        result = {'status': 'archived', 'original_sha256': archive['sha256'],
-                  'reason': self._archive_disposition(binding, record, archive)}
+        result = {'status': 'archived', 'original_sha256': archive['sha256']}
+        if owned is None:
+            result['reason'] = self._archive_disposition(binding, record, archive)
         if has_completion:
             result['completion_sha256'] = archive['proof']['completion_sha256']
         return result
