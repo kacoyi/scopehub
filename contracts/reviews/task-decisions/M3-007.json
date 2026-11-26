@@ -59,6 +59,15 @@
       },
       "supersedes": "c2b44f90f73746270af7a4700f6bbb701e3328abfe67af907cca4bd182620e3c",
       "evidence_sha256": "977749cb0d5093762b64c0bf5559d9e88c8df0020b79d77e5f1a6f83652edfee"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a2edf1f7b0ece2d67249e816a73b29587fee32e3",
+      "scope": "Use the compiled offline sample chart and the Rust writer to review one lost logical indicator status, both status/terminal event-name mismatches, and genuine ready, cancellation and unavailable results. Check the numerical result, UI state, request identity, existing deadline and cleanup after the previous independent rejection.",
+      "supersedes": "99e095b219762f567d6e0ec3ed3221cea5701c17745d6ebd4b1a538b7982d360",
+      "requested_at": "2026-11-26T12:46:53.706142+00:00",
+      "request_id": "8f7da71c0d2867db5804a7b25874450fc1835710c6023bb1335b59db76fe5828",
+      "evidence_sha256": "7c63b3da6950f40895e64356910d176e23d370c0f008c219087c5004649a21cc"
     }
   ]
 }
