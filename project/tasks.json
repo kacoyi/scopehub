@@ -26143,7 +26143,7 @@
         "For a real published CSV and a real published folder, hold a status lookup for the same ID in the other library across close, reopen and repeated refresh of the correct library. Complete the old lookup and observe the still-open page recover its entry after its own status read without another refresh or overlapping status dispatch. The obsolete lookup does not grant or withdraw access in the owning library.",
         "On explicit retry for a published folder and a published CSV without a workspace, show temporary unavailability when status is missing and withhold content until status confirms access. Show permission denial only for confirmed withdrawal and retain a generic failure for an unconfirmed read. Verify recovered bars and source rows, keep revoked data hidden on later retries, and preserve the changed-workspace guard.",
         "Require the compiled Windows fixture to confirm the endpoint and its owned WebView2 listener within one 60-second deadline from native spawn. Enter the public journey only after both checks pass on time.",
-        "Require the hosted staging entry to retain both the log-bound observation and matching executable for a passing native check. Preserve verified diagnostics from a failed check and remove incomplete files from the upload directory when a write fails."
+        "Require the hosted staging entry to accept a passing native revision check only on a host supported by its catalog entry and with both the log-bound observation and matching executable. Preserve genuine blocked and unselected results, retain verified diagnostics from a failed check, and remove incomplete files from the upload directory when a write fails."
       ],
       "checks": [
         "project-state",
@@ -26165,7 +26165,7 @@
           "sha256": "fb4345db27bf793accfd0d67401a044be089c0305a0dc51c347691e17756de4a"
         }
       ],
-      "next_action": "Give the coordinator the clean fixture and staging correction, red and green synthetic entrypoint observations, unchanged compiled-browser replays, and original guarded Windows failure. Obtain applicable independent decisions for M2-034, M2-035 and M2-039, then perform a guarded Windows x64 rerun on the reviewed source to observe the endpoint, owned WebView2 listener, native admission and both public provider journeys, retaining the bound observation and exact executable. Operator physical qualification remains separate.",
+      "next_action": "Verify the hosted staging correction with platform and status controls before handing the clean common source, prior launch and compiled-browser controls, and original guarded Windows failure to the coordinator. Keep the M2-034 and M2-035 requests pending until the common source qualifies. Obtain applicable independent decisions, then perform a guarded Windows x64 rerun to observe the endpoint, owned WebView2 listener, native admission and both public provider journeys with the bound observation and exact executable. Operator physical qualification remains separate.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26194,6 +26194,7 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m2-035-359e3323/final-response.txt",
           "archives/observations/repo-hygiene-20261125/independent-final-m2-039-359e3323/final-response.txt",
           "archives/observations/repo-hygiene-20261125/independent-final-m2-039-a1866052/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m2-039-09514768/original-assistant-response.jsonl",
           ".reports/runs/20261126T041510.475356Z-783b4a68/test-report.json",
           ".reports/m2-039-native-access-gap/coverage.json",
         ".reports/m2-039-withdrawal-status/red/local-folder-refresh-preview/browser-results.json",
@@ -26216,7 +26217,8 @@
           "The request map is keyed by unqualified revision ID, so a CSV caller can join a folder lookup and vice versa. Check whether an obsolete waiting page can occupy the serial reader after the real page is replaced, and ensure supersession is checked before admitting its deferred work.",
           "Explicit open chooses an error code from the workspace and library kind after discarding the verified status result. The native CSV status envelope already represents availability, temporary absence and withdrawal. The folder summary read already separates a matching result, SNAPSHOT_UNAVAILABLE and registry PERMISSION_DENIED. Transport failure and supersession must never be interpreted as confirmed withdrawal.",
           "Fresh polling timeouts for endpoint discovery and listener ownership permit a launch after the original deadline. Compare both observations against the same monotonic deadline and verify a response that completes after it.",
-          "The staging entry treats a passing check's files as optional and can leave a truncated observation after a write error. Use the check result and log to distinguish required evidence from available failure diagnostics, and test interrupted writes at the upload boundary."
+          "The staging entry treats a passing check's files as optional and can leave a truncated observation after a write error. Use the check result and log to distinguish required evidence from available failure diagnostics, and test interrupted writes at the upload boundary.",
+          "The staging entry uses the reported host to decide whether to look for native attachments. Check the catalog's host requirement for a passing result before staging and make both attachments mandatory for every eligible pass."
         ],
         "risks": [
           {
@@ -26370,6 +26372,12 @@
             "checks": [
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "The staging entry accepts a native revision pass from an unsupported host or rejects a genuine unsupported or unselected result. Compare Windows AMD64, Windows ARM64 and Linux x64 using ordinary passed and blocked rows, and preserve partial Windows failure diagnostics.",
+            "checks": [
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Revert the UI change while retaining the independent red and green observations. Existing stored revisions and schemas need no migration.",
@@ -26394,6 +26402,10 @@
             "scripts/ci_artifacts.py"
           ],
           "rules": [
+            {
+              "path": "project/checks.json",
+              "pointer": "/checks"
+            },
             {
               "path": "engineering-contract-v1.json",
               "pointer": "/persistence"
@@ -26430,7 +26442,7 @@
             "Directly refactor the profile access owner to track state and requests by publication kind and revision ID on a shared serial status lane. Check the current page lifetime before dispatching queued work and let an issued read settle against its own profile state. Return the observed access outcome to the dialog, preserving the changed-workspace guard. Extending the split paths would require parallel scheduling and failure classification in the dialog and watcher. A full replacement would discard unrelated focus, selection and chart guards while the existing native replies can express the observed outcomes.",
             "Qualify the Windows interaction through the compiled application with local synthetic publications. Capture native admission separately from controlled row interruption and late reply delivery.",
             "Configure the test binary's WebView2 debugging through the native environment options. Use a relative profile in a disposable executable directory, collect the allocated endpoint and owned process facts, and stage only bounded synthetic observations and the matching fixture executable.",
-            "Share the original native startup deadline between endpoint discovery and listener ownership. Require the digest-bound observation and matching executable for a passing check. Preserve verified artifacts available from an unsuccessful check and clean up incomplete staged files."
+            "Share the original native startup deadline between endpoint discovery and listener ownership. Bind a passing native check to the catalog host, digest-bound observation and matching executable. Preserve genuine omitted results and verified artifacts available from an unsuccessful check, and clean up incomplete staged files."
           ],
           "data_plan": "Only synthetic profiles, chart values and source rows in the local scoped checks.",
           "cleanup": "Release delayed test replies, close both owned windows and bridges, remove test profiles, and retain original red and green evidence."

@@ -8266,6 +8266,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "native-revision-pass-can-stage-on-unsupported-host",
+      "source": "Independent Astra Standard t15v requested changes on 09514768174b878432665898058eb9c4d7fca038. Decision: contracts/reviews/task-decisions/M2-039.json#/events/17. Original: archives/observations/repo-hygiene-20261125/independent-final-m2-039-09514768/original-assistant-response.jsonl (SHA-256 8714a35f154cd6bb75d3c0c56cf3a72acf9451c8e5f03d0e4eb096c6d5264ae0).",
+      "observation": "At stage_artifacts, a synthetic passing Windows AMD64 native revision report without its observation and executable was rejected. Changing only the architecture to ARM64 staged the same passing report without either attachment. A retained Linux report with an unsupported_platform block staged normally.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
