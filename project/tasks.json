@@ -26384,6 +26384,242 @@
           "cleanup": "Retire any temporary alternate route once the supported entry passes both recovery and unrelated-task controls."
         }
       }
+    },
+    {
+      "id": "M0-147",
+      "title": "Recover native Windows private handoff verification after a probe deadline",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-125"
+      ],
+      "scope": [
+        "tests/ubuntu-preview",
+        "crates",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0029"
+      ],
+      "acceptance": [
+        "Resolve the original Windows main-push report and its bound workspace-timeframe log. Preserve the classified deadline at the first handoff verification, including the limits of its attribution.",
+        "Exercise the real Windows verification entry on a valid private handoff and both established unsuitable synthetic fixtures. Preserve independent checks of inherited and effective rights and the fixed subprocess limit.",
+        "When a raw leaf DACL contains zero-mask or inherit-only allow entries, accept the otherwise private handoff as the legacy managed view would. Keep the distinct refusal for a nonzero effective allow to another trustee.",
+        "Validate each known raw ACE layout before applying the legacy leaf filter. Match the real regular-file matrix for allowed, denied, callback and object entries. Reject malformed entries and any surviving unsupported grant.",
+        "The selected ordinary Rust workspace check must execute the existing seven windows_handoff_probe parser tests, including malformed and oversized inert entry refusal. Retain those results separately from the 24 real Windows file comparisons selected by workspace-timeframe.",
+        "Retain the existing subprocess diagnostic controls, cleanup, launch rotation and platform semantics. Verify the exact repair with native Windows and Linux reports and inspect the next protected push.",
+        "A native failure preparing the 24 synthetic leaf fixtures names the fixture and the bounded write, raw readback, or managed comparison reason. Retain the exact on-disk comparison and the later native witness assertion for each fixture.",
+        "Fixture creation and cleanup report only a bounded stage and an isolated fixture name. The first readback error remains primary if cleanup also fails, removal is attempted for every owned file, and an existing file is left intact.",
+        "Independently check the exact ACE submitted by the test-only writer and the ACE stored by Windows. Require the stored row, the legacy managed stage and the real witness stage for each native comparison.",
+        "Use real subprocess controls for a complete stderr marker and a stdout-only lookalike. Require exact bounded diagnostics and fixture cleanup after a preparation failure."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "rust-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-147-9c3db7d433ef1c64.json",
+          "sha256": "713f6f5bc5e093370ee704061dd269ebca75b207ab74ec053f8b1a0ff2b8de99"
+        },
+        {
+          "path": "project/evidence/M0-147-9181c7bb0ba5eef5.json",
+          "sha256": "b57edb59629e558abe68621bb8447e16188726a2600707c693c8148bf9e36e18"
+        },
+        {
+          "path": "project/evidence/M0-147-725748c1387918ec.json",
+          "sha256": "25c591030f8e75545e31032e18c025fcf77e4b8868eb56fe5c4056f3c8148616"
+        },
+        {
+          "path": "project/evidence/M0-147-c9d65f9345dca357.json",
+          "sha256": "f29aad276e573ac57c479fafdf48096cfbdae618d2ca34f442a137cb2c804154"
+        },
+        {
+          "path": "project/evidence/M0-147-b6d3b3d85d9502e1.json",
+          "sha256": "b49c4c438fb6eea3b793a93407d7d329df8e2b1f2a979bf305627a922dfb208b"
+        },
+        {
+          "path": "project/evidence/M0-147-a40de3202f55b845.json",
+          "sha256": "2075b64f59236784a0155e4f13ada2d329588ba40da9ad93bb315b7ce3d07c39"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45668943982-1",
+          "source_commit": "ae0259db9ea0481aaf004b8682023ddfd8350328",
+          "report_sha256": "cbfdfe1b62f5353bee9a15cb588abd3745352ba0ce4e77120ae44dcb48ea6a30"
+        },
+        {
+          "run_id": "windows-change-45689952772-1",
+          "source_commit": "bcd21c0981401d61d9f0c3b087eb8b0f88690956",
+          "report_sha256": "650a1c591652e66e403cdd01400c8e05e32d38b96fd5edb29dc92ebcadb2353d"
+        },
+        {
+          "run_id": "20261125T195735.990394Z-0479c9ec",
+          "source_commit": "d0020d3a1ddc5075dbf10e78ed349212df910d92",
+          "report_sha256": "db6e172b6b87a2c49a82f769a793ff5bfb54cb6088b3ea5c14ed78743bbc9315"
+        },
+        {
+          "run_id": "windows-change-45710866374-1",
+          "source_commit": "97c7fb79b462d6ec438164180b1d21c734838452",
+          "report_sha256": "1c4c6cc8c2117e2aa7a014b50d2d157033bb0050dfa15442ea888fc5e8fb3cd7"
+        },
+        {
+          "run_id": "20261125T221246.075646Z-9b2ba873",
+          "source_commit": "3620427e1f9ca51cf1aaac8a629f067ca75659e6",
+          "report_sha256": "febcca8e29fa0d23ecc437b3f99486d62d13c538886a005fe4ecfb50256aa873"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Pre-merge repair verified. PR 127 run 45769667627 passed ordinary protected verification on merge preview 076662409902a7a72cf5c1e60e65967683c9ccb0 for submitted source 93ad31e8e0793c8a0f4b7c8b16e05025e5697925. The Linux aggregate recorded platform and scope omissions while its four task checks passed. Guarded run 45769688721 passed all selected Linux and Windows checks on the submitted commit. Both Windows originals passed the live handoff under the existing 10-second subprocess limit, the expected refusals, all 24 mandatory leaf comparisons, cleanup and capability rotation. Both guarded Rust logs record all seven parser tests. The independent approval of 5217c54ade6ba44b13c6becdec138d5cbd79aca3 applies across the protected-base reconciliation. The original timeout cause, last internal stage and descriptor verdict remain unknown. The first protected main-push inspection is pending. After merging, the development AI coordinator must record the actual main merge SHA, retain the first ordinary push workflow and its original Windows workspace report, log and browser result, and verify the same handoff assertions on that SHA. Preserve any missing, mismatched or failed outcome and follow the integration incident procedure. Confirm head cleanup after main verification.",
+      "plan": {
+        "outcome": "The protected Windows workspace journey verifies the real private handoff within its existing bound and still rejects both unsuitable synthetic descriptors for the expected reason.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "crates/platform/examples/windows_handoff_probe.rs",
+          "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+          "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "archives/runs/windows-change-45668943982-1/test-report.json",
+          "crates/platform/Cargo.toml",
+          "project/checks.json",
+          "scripts/rust_workspace.py",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-147-7f12b107/final-response.txt",
+          "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.ps1",
+          "crates/platform/src/workspace_acl/windows/tests.rs",
+          "archives/runs/windows-change-45689952772-1/test-report.json",
+          "archives/runs/20261125T195735.990394Z-0479c9ec/test-report.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-147-dc5be1ff/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-147-bc89c85d/final-response.txt",
+          "archives/runs/windows-change-45710866374-1/test-report.json",
+          "archives/runs/20261125T221246.075646Z-9b2ba873/test-report.json",
+          "archives/observations/repo-hygiene-20261125/m0-147-windows-first-row-45744210597/observation.json",
+          "archives/observations/repo-hygiene-20261125/m0-147-windows-reconciled-first-row-45748342112/observation.json"
+        ],
+        "hypotheses": [
+          "A test-owned interpreter startup shares the probe deadline with reading the descriptor. The original report identifies deadline expiry, and records no internal stage. Compare independently measured native paths before assigning the cause.",
+          "The previous managed file ACL projection removed ineffective leaf entries before evaluating trustees. Check the raw and managed views of the same synthetic descriptor.",
+          "Two native runs reached allow-zero-mask and reported no stored ACE for the fixture trustee through GetFileSecurityW. Neither observed the submitted bytes. The subsequent calibration found the inherited user grant through the named reader on the unchanged files, consistent with the Rust witness, while the GetFileSecurityW observation could not find it. Six controls stopped before their write. Qualify the protected writer with a handle reader independent of the named baseline and the witness.",
+          "On this Linux checkout, the portable child emitted no bytes through Node streams even with natural exit, while synchronous writes delivered both streams. This reproduces the independent marker observation and is separate from the native ACL result."
+        ],
+        "risks": [
+          {
+            "failure": "Changing the verification implementation silently drops owner, trustee, inherited rights or effective read/write checks.",
+            "checks": [
+              "workspace-timeframe",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A semantically empty raw allow entry can falsely fail CI, or equivalence filtering accidentally admits an effective broad grant.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "Dispatching a known callback or object type before validating applicability can reject a private handoff. Filtering before structural validation can hide malformed descriptors.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A deadline or rejected descriptor is counted as successful, the original outcome becomes unattributable or temporary fixtures persist.",
+            "checks": [
+              "workspace-timeframe",
+              "project-state"
+            ]
+          },
+          {
+            "failure": "A guarded task can pass after only building the witness example. Verify the actual task selection and task definition, reject the former four-check report as current evidence, and inspect the maintained Cargo test output for all seven cases, including malformed input rejection.",
+            "checks": [
+              "project-state",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An opaque raw readback failure blocks the live handoff journey before its file witness assertions. Keep exact ACE comparison, identify the first failing fixture and bounded property, and exercise valid and rejected public launcher controls without leaking synthetic paths, trustees or subprocess streams.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "rust-contracts-workers",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A raw fixture creation or cleanup error exposes an absolute profile path, or a cleanup rejection overwrites the first calibration diagnostic or abandons remaining owned fixtures. Exclusive creation must preserve a pre-existing file.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The fixture writer can succeed while the stored DACL omits an inert ACE or alters the inherited private grant. Require independently verified submission, stored ACE identity and inherited grant preservation before accepting any fixture verdict.",
+            "checks": [
+              "project-state",
+              "rust-contracts-workers",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A portable child loses the diagnostic marker or a stdout lookalike is accepted as stderr. Exercise real subprocess delivery, exact rejection and cleanup.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Keep the original probe and native reports recoverable, and revert a replacement that cannot demonstrate equivalent acceptance and rejection.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "crates/platform/examples/windows_handoff_probe.rs",
+            "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+            "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "scripts/rust_workspace.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Product permission changes, expanding timeouts, suppressing failures and changes to user files."
+          ],
+          "open_questions": [
+            "Do the handle and named readers agree on the starting fixture, and does the protected file writer preserve the exact zero-mask and effective ACEs alongside the original inherited grant?",
+            "Does the exact native Windows run confirm all 24 matrix rows and live handoff outcomes under the existing deadline?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The existing fixed deadline, Windows ACL expectations, positive and negative native controls, private launch rotation, diagnostic redaction and inherited-pipe outcomes."
+          ],
+          "change": [
+            "Repair the verification path identified by the protected Windows incident and retain its native evidence.",
+            "Require the existing Rust workspace check alongside the real Windows handoff comparison. Keep the existing example test target and native harness dispatch.",
+            "Report fixed fixture creation and cleanup stages while preserving the first independently checked result and attempting cleanup for every acquired synthetic file.",
+            "Use a protected descriptor for isolated regular-file fixtures with matching handle and named baselines. Verify the exact fixture ACE and original inherited grant bytes both before submission and through handle readback. Deliver portable child markers through synchronous writes."
+          ],
+          "data_plan": "Use isolated synthetic profiles and existing private diagnostic archives. Report fixed outcomes without retaining identities, file contents or process arguments.",
+          "cleanup": "Remove temporary observation code and obsolete verification duplication after equivalent native controls pass. Keep the original failed report and log."
+        }
+      }
     }
   ]
 }
