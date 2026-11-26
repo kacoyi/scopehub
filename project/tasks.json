@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-162",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -26879,7 +26879,7 @@
       "id": "M0-162",
       "milestone": "M0",
       "title": "Recover and retire completed owned Herdr assignments from a fresh checkout",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-158"
       ],
@@ -26931,9 +26931,9 @@
           "sha256": "653f15bb2579747c25301a8b823510b954a16101a3fbdbe44ea9bc4e521e9dd4"
         }
       ],
-      "next_action": "Coordinator to review a5b06f66b04ec51713186be2dcfed32c9e8f7b2d and the evidence in .reports/observations/M0-162-lifecycle-follow-through/bf2e2ef5-follow-through/handoff.json. Observe lock release after each ten-second budget on the local desktop with that clean source, then decide closure and publication.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Independent Astra approved 0c4a1a14b90c7427c62108f57d7170dcb7d0b5aa in events/9 of contracts/reviews/task-decisions/M0-162.json. Through project:herdr in an isolated Linux desktop space, the owned runner recovered after both assignment lock waits exceeded 10.65 seconds, retained the exact original and completion events, and exited successfully. Repeated collection observed the exact tab absent while the original space and its disposable parent were still present. No preexisting tab disappeared. The native Core, desktop and Codex used a synthetic loopback model response. Fresh-checkout, restart and rejected-path replays supplement the native run. The native index is retained at archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t17z/host-after-budget-native/observation-index.json (SHA-256 d53cf65557e9f15cfe1766eef2d7d555fafda9624a3bf1fa1b6d08a7cc6a0d3f).",
       "plan": {
         "outcome": "Owned work cleans up when its genuine result is recoverable and independent lanes continue across failures.",
         "change_types": [
