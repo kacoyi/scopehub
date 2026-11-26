@@ -271,6 +271,26 @@
       "requested_at": "2026-11-26T14:21:27.552746+00:00",
       "request_id": "1f8698026331035846c001702bd73f117e6e5174cac0a8ecf7aa4554e715f96a",
       "evidence_sha256": "064f8e4bb4ce8be94addbae6d5115fdf86fa9301bba378f0a5e9ead846c72108"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "da5d83da108ab15a6e10965452457457390899a0",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 da5d83da108ab15a6e10965452457457390899a0",
+      "scope": "CHANGES_REQUESTED M0-156 da5d83da108ab15a6e10965452457457390899a0",
+      "observation": "In a depth-18 replay of PR 84, the weekly reader issued a Windows receipt for a provable ancestor of the event head, both with and without the merge proof.",
+      "reviewer": "Independent Astra Standard (t18j)",
+      "original_sha256": "9c2228ff1b3b568240ac6c084781b08d0dd305f1533fec6f32f17eb3201c2463",
+      "response_id": "25517bc3a3195e8fdd80b295702c917ff00db428e215907fac3291c339d07634",
+      "response_sha256": "4ddedfb52475bcfeb20b05d4b88bd8377ae92553718e2ba8d8f58d773d3be04a",
+      "legacy_response_sha256": "546d4825263be000b039ddd05c24410d6158f1f5d0d1dde0bc81c4e06312ff53",
+      "observation_body_sha256": "c84165b8357e2ebbdf8b5c31d8faaad402e8f014362571bbdf4c1af33ee26d6c",
+      "event": {
+        "id": "msg_08c7850f7ce8ff6d016b084280f1e487d2a864cb7caded2d5a",
+        "timestamp": "2026-11-26T14:30:42.265Z"
+      },
+      "supersedes": "1f8698026331035846c001702bd73f117e6e5174cac0a8ecf7aa4554e715f96a",
+      "evidence_sha256": "c385b251a69ae204313eb08ebf6c4cda86c70237bc677a3ecf8d48c93e1d9f96"
     }
   ]
 }

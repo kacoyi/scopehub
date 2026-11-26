@@ -242,6 +242,26 @@
       "requested_at": "2026-11-26T14:21:25.646137+00:00",
       "request_id": "a3dcc61e3af197fc3d95ddf1a0f0ebc3cb2cbe9d1e4d094333a53cdd520e0e64",
       "evidence_sha256": "97aeed00efc099951bec1c115bd8fdb1ffc86cfcda57c763ff404e1957cb25f7"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "da5d83da108ab15a6e10965452457457390899a0",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 da5d83da108ab15a6e10965452457457390899a0",
+      "scope": "CHANGES_REQUESTED M0-155 da5d83da108ab15a6e10965452457457390899a0",
+      "observation": "For archived push 45765544396, moving Linux step 21’s completion time into a second row with the same job ID and step number but no repeated step name changed its 864-second execution and 9-second tail to unknown.",
+      "reviewer": "Independent Astra Standard (t18g)",
+      "original_sha256": "1479905e03923be0350e4ce6840056eb9ae3d9df17c385f6780749be9e4345a9",
+      "response_id": "401acb2b43a50a36f979d144fa7cc49eed7cb656a0aea1bcd1444f8e58abfb73",
+      "response_sha256": "a589d1f934797c54147b1834238a137b1cdc8f61eb17e1c1d1a1a8133824f241",
+      "legacy_response_sha256": "9bd3d7ef7d8bc39a75c5ff1a9dfebe06efbf047dc6872697657661b5d44b7daf",
+      "observation_body_sha256": "333a251089277cd0e3934e19329b0f514057ca6864b837758fbb4284570ae273",
+      "event": {
+        "id": "msg_0f124574b252be65016b0841de7f3c87d187b3b72e370af8fe",
+        "timestamp": "2026-11-26T14:27:56.451Z"
+      },
+      "supersedes": "a3dcc61e3af197fc3d95ddf1a0f0ebc3cb2cbe9d1e4d094333a53cdd520e0e64",
+      "evidence_sha256": "a898abc11e713d813497093be42dec549e087933f09edb1013f33214a7e44d52"
     }
   ]
 }

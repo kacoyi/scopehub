@@ -262,6 +262,26 @@
       "requested_at": "2026-11-26T14:21:26.588554+00:00",
       "request_id": "6ce73f59b004420c8c4780fd26ef73515f2431cc6ec8ca9b199b6107e4a3e5a8",
       "evidence_sha256": "138f1c04823c3b5fe2de121508869cd35c3c44633d321af46481fe099c6049c7"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "da5d83da108ab15a6e10965452457457390899a0",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 da5d83da108ab15a6e10965452457457390899a0",
+      "scope": "CHANGES_REQUESTED M0-150 da5d83da108ab15a6e10965452457457390899a0",
+      "observation": "For both PR 121 and PR 116, the offline weekly reader issued two Windows receipts when the genuine aggregate and a copy recorded one nanosecond later were supplied together.",
+      "reviewer": "Independent Astra Standard (t18h)",
+      "original_sha256": "a117013548ca78dba314f3e3acd24cac60db13c29dfd15af958539db0986fd7c",
+      "response_id": "14ec74c4acfc55ed5196efce531d719792d669e9ef5c624274e9feec706dae69",
+      "response_sha256": "e4cfe6bf7b5f04b9bfbeffcf8c80ac9527926c4a451251be65ab7f4a6960a29a",
+      "legacy_response_sha256": "5e8a808add072f14441fcae9726034ab9a2e02eb0a412291c0e2fedddc5e10e5",
+      "observation_body_sha256": "32141841a7fcfc13bc2b78d35499865126fdb440249387e9ed015646d77cd332",
+      "event": {
+        "id": "msg_06cf9c9499949397016b084256a76487d2ad98936114a1b4c2",
+        "timestamp": "2026-11-26T14:30:18.322Z"
+      },
+      "supersedes": "6ce73f59b004420c8c4780fd26ef73515f2431cc6ec8ca9b199b6107e4a3e5a8",
+      "evidence_sha256": "e3526a3a12e81547a5df119e895f0c1e247a2b189a298fb5808290a5f4e2e828"
     }
   ]
 }
