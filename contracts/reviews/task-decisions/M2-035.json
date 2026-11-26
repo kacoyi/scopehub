@@ -195,6 +195,15 @@
       },
       "supersedes": "b17f70c2a600483a285b05e03fbc3fa9b8fcf8497b93d61b086ee54370dc4d2e",
       "evidence_sha256": "ebfd64f582321b9a01d75ba2d887d88adbc92c77fa79f93168e7f0f096ac6473"
+    },
+    {
+      "kind": "request",
+      "source_commit": "f30e5235cf9270116b6f1e37e1425898f1822d7b",
+      "scope": "Verify temporary loss, denied status, recovery and late responses for CSV and folder revisions through their ordinary public paths. Check both simultaneous withdrawal notices, close/reopen, and a denial without a further chart read. Challenge the supplementary CSV cases on this source.",
+      "supersedes": "5c751e8cd6c8dc8a682270a54661dae7cc3a8b5393f079e73fc00e64cc3721ab",
+      "requested_at": "2026-11-26T06:06:32.765006+00:00",
+      "request_id": "76b90077c3e81f02a08e58c19533e1bfd76906026e19afde688ea1056971cc94",
+      "evidence_sha256": "c880b76bb4f6832a7e2738b2b77dac756ce5126c238521275b7fe3604723dacb"
     }
   ]
 }

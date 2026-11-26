@@ -175,6 +175,15 @@
       },
       "supersedes": "b62031e27615779e086aa6d4b09ba287f49fec96ac5b76d2df0fe239c8191167",
       "evidence_sha256": "e865eeff5bfd8e88e90a29afc0b4cadca4fd133db5fa66ab4b9a8a0e34072890"
+    },
+    {
+      "kind": "request",
+      "source_commit": "f30e5235cf9270116b6f1e37e1425898f1822d7b",
+      "scope": "Verify persisted frozen selection, its explicit clearing and reopened state after withdrawal. Challenge the shared public and native status assertions for both providers, including simultaneous removal and empty-library notices. Compare the conflicting local workspace outcomes with their originals.",
+      "supersedes": "9b254345ab52c4d05998ed5cdb73fb3765df06c595d7f414c53539465d6f90c0",
+      "requested_at": "2026-11-26T06:06:31.719912+00:00",
+      "request_id": "1b9970cd71ba3dd048952235c6a1ffd82d8a72fe69bbaca476ab47c805f5f1d9",
+      "evidence_sha256": "abf8a828ab53533743861a3d6a23a466be7f3e84d9c799b1026adf7c7a56a2e1"
     }
   ]
 }

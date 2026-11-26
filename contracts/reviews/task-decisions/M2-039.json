@@ -175,6 +175,15 @@
       },
       "supersedes": "04e7fe96d68c5db7fcbf8c751083ad95b40762fb0cb6a1f292e9e96a3662ccfd",
       "evidence_sha256": "dbadae25234c7e3ad729b621fd3851a9998417f26bfeb56a98e302f12c8eaabf"
+    },
+    {
+      "kind": "request",
+      "source_commit": "f30e5235cf9270116b6f1e37e1425898f1822d7b",
+      "scope": "Exercise complete CSV and folder discovery, withdrawal, close/reopen and explicit denial. Assess the parity control, compiled Windows probe and exact required diagnostics. Independently distinguish the evidence for corrected behavior from unqualified native or ordinary product scenarios.",
+      "supersedes": "b40fb0755d47c2871d52797c927dfdba289d9c180b7014a90d107aae1475d4b1",
+      "requested_at": "2026-11-26T06:06:33.823690+00:00",
+      "request_id": "14296f04a0f694d4b7e77f250b2c5bb8ef81c71a3dcbba11687fbfb9048808d6",
+      "evidence_sha256": "31f8bc15262f55666bbd05f64336061a105c55bc3f783411766bd5da6257d219"
     }
   ]
 }
