@@ -358,6 +358,26 @@
       "requested_at": "2026-11-26T13:58:52.812761+00:00",
       "request_id": "a05ba6b5aa05bc7789d397cf1ec46b4fbedf5b0014a9c49484942658187e5baa",
       "evidence_sha256": "051a63afa4d02e4845ce85de0ca57b8790358d6d1fb7ecc5847e188ac7d8d807"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "030661a9862276017321f94b621bd70e99561020",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-039 030661a9862276017321f94b621bd70e99561020",
+      "scope": "CHANGES_REQUESTED M2-039 030661a9862276017321f94b621bd70e99561020",
+      "observation": "In an isolated replay, the independent proof accepted an HTTP 200 snapshot carrying both the expected selection and a PERMISSION_DENIED error, while the desktop test bridge rejected the same reply.",
+      "reviewer": "Independent Astra Standard (t17v)",
+      "original_sha256": "c08cfde78cb61dbea56468b19390b17db7422e6995f4c99fcea0c773e8c48bfa",
+      "response_id": "8be15388c644291c23b6f57308d9eaf2d5f909168aebc8b53144816076a7ca06",
+      "response_sha256": "32d0061e33eb092ce461910a9104e7ac9c9961b77281a010f7c921b697b1106e",
+      "legacy_response_sha256": "4d5b15898daa2278ff2a913d4862de87cadd3bb128fd00c6e9fa5651e62df453",
+      "observation_body_sha256": "1d461409978b1b4fcfe01cd3129644ea9d71bd61c58cb39258c8722d6f104c18",
+      "event": {
+        "id": "msg_00a95b9aca79bb95016b083bead45487d1b0f289572789b1ca",
+        "timestamp": "2026-11-26T14:02:39.881Z"
+      },
+      "supersedes": "a05ba6b5aa05bc7789d397cf1ec46b4fbedf5b0014a9c49484942658187e5baa",
+      "evidence_sha256": "a218e60ee3c1711465a82d6717f29fe0c5f993f9ca1544ddbb906af0a8bb8049"
     }
   ]
 }
