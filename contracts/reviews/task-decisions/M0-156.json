@@ -300,6 +300,26 @@
       "requested_at": "2026-11-26T14:56:24.854749+00:00",
       "request_id": "3aa12f7bdfa6fd5e7348150b7221e770429e96b163f9fecb8de0f347ac3f9ab2",
       "evidence_sha256": "c9c43695584c5091f1aa8e9b09fcde3cfc44bdde322b4e6edbd1a2dbe2a56b49"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "318f54c82e50a38c4310724b55e3e9ee6539afb8",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 318f54c82e50a38c4310724b55e3e9ee6539afb8",
+      "scope": "CHANGES_REQUESTED M0-156 318f54c82e50a38c4310724b55e3e9ee6539afb8",
+      "observation": "For PR 133, the offline weekly reader issued a Linux receipt for a checkout that Git identifies as a direct parent of the event head, both with and without the retained merge proof.",
+      "reviewer": "Independent Astra Standard (t18y)",
+      "original_sha256": "49ba04783ba50c023d1d2139b08c64d4e11c135f8c7411dd692fbf1977821250",
+      "response_id": "dafb45deb351103ef9774be22f118f2b78af9c94bb508afd548879555ff8f671",
+      "response_sha256": "b6273b082f361f2cb0b85e848d44f767898aefb99278959aaec4a1461dfee4c3",
+      "legacy_response_sha256": "7783e374fff73c411c50d728bffd6eb63553dd38ef4a281394fb3b0c00766e4c",
+      "observation_body_sha256": "16fe523a78035d91bf73406d3affdb741c851510bd009db0c141363c005c9d25",
+      "event": {
+        "id": "msg_09abeeb7a709e600016b0849e3776487d18fa55668f8d92feb",
+        "timestamp": "2026-11-26T15:02:16.900Z"
+      },
+      "supersedes": "3aa12f7bdfa6fd5e7348150b7221e770429e96b163f9fecb8de0f347ac3f9ab2",
+      "evidence_sha256": "f7ca0de2c6033b3ccf40cd4dadf5fad35cbf289c34e79a53bbbf34faa3dcb4f5"
     }
   ]
 }

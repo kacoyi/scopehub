@@ -271,6 +271,26 @@
       "requested_at": "2026-11-26T14:56:24.152892+00:00",
       "request_id": "bbfce7a015d837509f885297d2bfcccbdaf122a6086a11b6d530c9b141b518ab",
       "evidence_sha256": "c97167fad5ba1e716414662064feaae5e526dd281652f9bc5afc4bf3fdec550a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "318f54c82e50a38c4310724b55e3e9ee6539afb8",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 318f54c82e50a38c4310724b55e3e9ee6539afb8",
+      "scope": "CHANGES_REQUESTED M0-155 318f54c82e50a38c4310724b55e3e9ee6539afb8",
+      "observation": "In an offline replay of PR 133, each browser-lane start time independently yielded 37 seconds of Windows setup and 1195 seconds of execution, but supplying both made both durations unknown.",
+      "reviewer": "Independent Astra Standard (t18w)",
+      "original_sha256": "bff913d2a944fa11f5f2cd15db02b151d99f3d33166bbc838e7c2480f46cfd44",
+      "response_id": "fc96cc6ce7ec192ebec923cf0308e4f0ef231102669eff68deb3307cf4d2126f",
+      "response_sha256": "d8519a760f296b8cb5d7561c156099e4ae0d0401a86f4dea44a220f581714a5c",
+      "legacy_response_sha256": "7114fc58f6b5bb9039f99a1fcaf7eb3b5702b7eae30c357b4dded5f51bf3b19b",
+      "observation_body_sha256": "e1fe693c89dbdf654cfffc3e1deeb9f8b9228f5ce5dc1d05907f8cd17fc62480",
+      "event": {
+        "id": "msg_07ade0c973b21ada016b084a0d117887d1a1fa6f0224ac1c3b",
+        "timestamp": "2026-11-26T15:02:58.235Z"
+      },
+      "supersedes": "bbfce7a015d837509f885297d2bfcccbdaf122a6086a11b6d530c9b141b518ab",
+      "evidence_sha256": "3aa07e95046582d2efd45b6f15e003a8987e634cb14045a0b226c71cdc1284b5"
     }
   ]
 }

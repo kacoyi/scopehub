@@ -291,6 +291,26 @@
       "requested_at": "2026-11-26T14:56:23.459103+00:00",
       "request_id": "6e201d5783fa8402ee4d72ff492691e5399d2f2beef4fcc5bed174cdaa4d61d4",
       "evidence_sha256": "8189823842df90367132cdc2f736c99fe8b22ec1a8cbbbbf313a92f0eb698a6a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "318f54c82e50a38c4310724b55e3e9ee6539afb8",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 318f54c82e50a38c4310724b55e3e9ee6539afb8",
+      "scope": "CHANGES_REQUESTED M0-150 318f54c82e50a38c4310724b55e3e9ee6539afb8",
+      "observation": "The cold reader dropped the genuine Windows receipt for PRs 121, 116, and 133 when a second compact report expressed the same recording instant with a `+0545` offset.",
+      "reviewer": "Independent Astra Standard (t18x)",
+      "original_sha256": "836b61a115dea14a9c951f0306cb6710416c22c114a52605aa82e54abd4db946",
+      "response_id": "6cffa9dff4cfdb81f5321d475484d787af72ef85740b41e41195ed5e68ab3a3b",
+      "response_sha256": "75ca329baecb913f86d2324345af5b46295429c8f845400a1a429ef3d8ae1f2f",
+      "legacy_response_sha256": "ab1290325012547b2117d6f7b8c42f4c82198b8726d33ce64c6dd89c900f2de9",
+      "observation_body_sha256": "2ece47b6e115c7bd15849886a27c41cd17894a9f6f88ebaf349b80aaa08bd4df",
+      "event": {
+        "id": "msg_0ad418713fc2f509016b0849cfe19c87d28893bfb3057cbd2c",
+        "timestamp": "2026-11-26T15:02:08.955Z"
+      },
+      "supersedes": "6e201d5783fa8402ee4d72ff492691e5399d2f2beef4fcc5bed174cdaa4d61d4",
+      "evidence_sha256": "aea8d3c23ac9c19f337ae9abddad9e3f4f3f14fdf97750a12dcbbc0b50c9cda1"
     }
   ]
 }
