@@ -26994,6 +26994,128 @@
           "report_sha256": "495063b876f34779ecd4e844bda70c09d97720bc3caf0f900a14d1af9b23dd8a"
         }
       ]
+    },
+    {
+      "id": "M0-166",
+      "title": "Recover or classify the interrupted frozen preview on a cropped window",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-149"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "apps/desktop/src-tauri",
+        "tests/ubuntu-preview",
+        "tests/ui"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Bind the failed browser case, its three bounded journals and the same-tree passing control to their actual OS, scenario, phase and source. Distinguish the failing observation from a wrong numeric result or another task’s calendar preview.",
+        "Reproduce or classify the interruption through the ordinary frozen preview entry with an independently observed valid and interrupted trial. Verify full and cropped equal closes, correct request and task correlation, the existing polling and admission policy, and cleanup. Keep unresolved attribution explicit.",
+        "Correct the confirmed cause or missing diagnostic and independently review it. Qualify the changed public boundary on ordinary Windows with current originals, preserve the first failure and recheck after protected integration."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe",
+        "desktop-workspace-transport",
+        "ui-build",
+        "market-workflow"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-166-0d9980eb56dc3963.json",
+          "sha256": "c19fd78b3720b956e25635413d42285e116cb4fd4302de674ce61207bfb6ae08"
+        },
+        {
+          "path": "project/evidence/M0-166-6e1ce9fbb282ac1a.json",
+          "sha256": "f57d888dda01be09bd8a9eff416c6ccda5b36856a72937f95866e4f3818e9caa"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45823962357-1",
+          "source_commit": "9f3a91950aee9e7c81819a0d27027fa2b9cc7514",
+          "report_sha256": "078717eb8956e711ef6b2262f43f70349a0d1d0901983b395af324135ec03f8c"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Scoped pre-integration delivery verified. Independent review approved the fixture diagnostics and recovery control on 057cc2c2f0638fdd3986e3817d7956868a788b05. The first ordinary PR 139 run 45830747074 passed all six task checks on Linux and Windows Server 2025 for submitted b71bf7dce6465d05f817219a63be8e433d240352 and tested merge preview df296d1a679f2d4c3b39e415986743e5ce5552fe. The Linux aggregate was blocked outside this task. Both browser runs showed three full-window rows and one cropped row with zero terminal volatility, identical same-task ready recovery after one reset and two genuine status refusals, and one same-task cancellation with the terminal alert after two resets and one genuine refusal. The controls covered both phases of the existing 15-second status deadline, complete-upload pre-admission BUSY, and a genuine tagged snapshot refusal with a separately witnessed recovery and cleanup. The original PR 137 abort is retained with its same-tree passing control. Its exact timeout call and internal cause remain unknown. The coordinator owns the recheck on the first protected main push after integration. Physical Windows and both maintenance workstreams retain their separate acceptance gates.",
+      "plan": {
+        "outcome": "Bind the failed browser case, its three bounded journals and the same-tree passing control to their actual OS, scenario, phase and source. Distinguish the failing observation from a wrong numeric result or another task’s calendar preview. Reproduce or classify the interruption through the ordinary frozen preview entry with an independently observed valid and interrupted trial. Verify full and cropped equal closes, correct request and task correlation, the existing polling and admission policy, and cleanup. Keep unresolved attribution explicit.",
+        "change_types": [
+          "tooling",
+          "ui"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "apps/desktop/ui/src/indicator-preview.tsx",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "project/checks.json",
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json"
+        ],
+        "hypotheses": [
+          "The ordinary Windows third journal stops after the fixture intercepted a real ready status. The same-tree guarded Windows journal next records the browser reset, a genuine gated 429, a second reset and cancellation for that task. The original duration is consistent with the fixture's tagged snapshot write wait; the original HTTP and writer events are unavailable."
+        ],
+        "risks": [
+          {
+            "failure": "A longer wait, a repeated preview or an unrelated green sample task could hide the original abort or change frozen results.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "workspace-timeframe",
+              "desktop-workspace-transport",
+              "ui-build",
+              "market-workflow"
+            ]
+          }
+        ],
+        "rollback": "Restore the preceding implementation and retain the diagnosed failures and controls if the ordinary contract changes.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "ui",
+            "desktop"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "apps/desktop/ui/src/indicator-preview.tsx",
+            "apps/desktop/ui/src/use-local-workspace.ts"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/0"
+            }
+          ],
+          "non_goals": [
+            "Preserve the 15-second polling deadline, frozen full and cropped values and ordinary permissions. Omit unrelated feature work and the separate ordinary Python process deadline."
+          ],
+          "open_questions": [
+            "The original timeout call and the cause of the missing writer observation remain unconfirmed. Qualify the updated fixture in the ordinary Windows browser workflow."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Preserve the 15-second polling deadline, frozen full and cropped values and ordinary permissions. Omit unrelated feature work and the separate ordinary Python process deadline."
+          ],
+          "change": [
+            "Journal the intercepted upstream status, tagged snapshot HTTP and writer observations, and browser delivery separately. Fail the fixture explicitly if its snapshot settles before the tagged write. Exercise a real refusal while a competing snapshot holds the writer."
+          ],
+          "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
+          "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
+        }
+      }
     }
   ]
 }
