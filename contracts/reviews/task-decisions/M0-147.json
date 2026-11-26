@@ -79,6 +79,15 @@
       },
       "supersedes": "fb08d2d8442fecde11ccf6fae317df377d39d549f6bdbb95aede1bd490bab6be",
       "evidence_sha256": "efabaafafe5222146667cab0359a96fa6f037805bba051c5964cbe7f8f8b84d1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "20f32713cd66e54ed66d977f2e76e768b01eb113",
+      "scope": "Independently test whether the ordinary fixture correctly reconciles baseline file and handle views, checks submitted and stored input and inherited access, preserves deadlines and cleanup, and admits the real supported outcomes. Include the native two-control original in run 45748342112 and distinguish it from the previous six inadmissible writes, the two older native failures, and the pending ordinary 24-row matrix.",
+      "supersedes": "c7750aa4ddee96e1537a5db812dc7728a0ca2db0a5a7a8db4c7549e67a41241a",
+      "requested_at": "2026-11-26T03:26:59.280637+00:00",
+      "request_id": "8801370eb78f4108e8eb178486c8a50824b729023f428ba7c9faafa0033b73c6",
+      "evidence_sha256": "583d0889e83fe415df6da147db129ecf8ea261e3d8f028ef375d8289e6ad8675"
     }
   ]
 }
