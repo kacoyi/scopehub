@@ -68,6 +68,26 @@
       "requested_at": "2026-11-26T05:53:07.431167+00:00",
       "request_id": "e5e59d4e136951c9008e8b6a802fb514e6dfa2dda8bc3668268c7d33cf0e8495",
       "evidence_sha256": "8035fdfa05352c9c65a9e743eeb8de5026a49d07ff05ce3405302466a59547eb"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "68847f66d160e50dc057b4a8916a126c7dd6a535",
+      "verdict": "approved",
+      "decision": "APPROVE M0-153 68847f66d160e50dc057b4a8916a126c7dd6a535",
+      "scope": "APPROVE M0-153 68847f66d160e50dc057b4a8916a126c7dd6a535",
+      "observation": "Both Windows runs preserved all 831 baseline outcomes and skip reasons in order, added seven expected skips, and ended with `OK (skipped=72)`.",
+      "reviewer": "Independent Astra Standard (t149)",
+      "original_sha256": "61dd24ead8bbe42bc039b5360d18220e916c19983caf299d8b5c635a4e57efec",
+      "response_id": "62ac3865142a48e38d678bde8fdb88e7a4382ac3f5532587a3ff96dee67256e4",
+      "response_sha256": "4405f7fa2e3f28dced6ded3747d98e383b243a1461c1bc120293dda3f8f487af",
+      "legacy_response_sha256": "855598ebb7a0067db3b7c7c106b3b6dc03405e36a41c23880c10e2b4161c5b53",
+      "observation_body_sha256": "e3667d9389448f5f4452741ee60d80f9164282adbe6df02ff353bc4daea2f95e",
+      "event": {
+        "id": "msg_07f8c0b1a6c1dfb7016b07d3084b9c87d1ba9a34d20d2fb8b8",
+        "timestamp": "2026-11-26T06:35:15.605Z"
+      },
+      "supersedes": "e5e59d4e136951c9008e8b6a802fb514e6dfa2dda8bc3668268c7d33cf0e8495",
+      "evidence_sha256": "13ffda217c449f7e13e17d7b22aa37fe058c2aee75c38ccbcda8276c20faedf7"
     }
   ]
 }
