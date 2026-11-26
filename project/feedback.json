@@ -7802,6 +7802,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "feedback-lookup-requires-policy-from-newer-history",
+      "status": "open",
+      "severity": "minor",
+      "source": "Compared 17a0365fbc1462e6154806c18020b654dbbc39ef and f438d57376cbf300f7ea511892da54f5f6544726 on the historical tree 47f0bd0fed34bc63d60bb4f8b3e311c677c41336. Originals in .reports/m0-161-public-navigation/pre-maintenance-source-baseline.json (SHA-256 84f59591c1c368cdf3f7f01497f964cffd4d36bd1603034a173be79bc1f1f5ab) and .reports/m0-161-public-navigation/pre-maintenance-source-rejected-f438d573.json (SHA-256 e2801655b2ac9cc0b2c589a0b705dfc0808d25ea20c99a9f3dab3236410814f2).",
+      "observation": "The temporary candidate failed to open the original protocol-variant-identity record through the exact-source CLI. The selected historical delivery record predates scaffold maintenance configuration. The same command on the earlier implementation returned the finding and historical commit.",
+      "task_ids": [
+        "M0-161"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

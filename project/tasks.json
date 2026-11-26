@@ -26397,6 +26397,7 @@
         "scripts/development.py",
         "scripts/project.py",
         "tests/project/test_development.py",
+        "tests/project/test_delivery.py",
         "project/evidence",
         "project/tasks.json",
         "project/feedback.json"
@@ -26409,7 +26410,7 @@
       "acceptance": [
         "On a clean checkout with the two currently open workstreams and an unrelated planned product focus, following the ordinary overview next action recovers their owners, acceptance and next actions without private evidence or conversation memory.",
         "Preserve higher-priority actionable failures and legitimate ongoing work. An ordinary product checkout without an engagement keeps its existing navigation. One accepted workstream leaves the other actionable, and the ended engagement communicates its stop and permits a later separately authorized product session.",
-        "Exercise default and read-only public CLI navigation, executed continuation commands, missing focus, and relevant routine or urgent controls. Keep the overview concise; preserve the product focus as context.",
+        "Exercise default and read-only public CLI navigation, executed continuation commands, missing focus, and relevant routine or urgent controls. Exact-source feedback lookup supports historical records predating scaffold maintenance. Keep the overview concise; preserve the product focus as context.",
         "With a valid startup ledger and no higher-priority action, the first overview action opens an unassigned major finding linked only to completed work with an open, ended or absent engagement. With no engagement, precedence over an unassigned minor finding is independent of ledger insertion order. The complete feedback destination and handoff preserve the owner stop after both workstreams are accepted while the finding remains inspectable. Later feature work still requires separate owner authorization."
       ],
       "checks": [
@@ -26432,7 +26433,8 @@
           "project/development.json",
           "scripts/development.py",
         "scripts/project.py",
-          "tests/project/test_development.py"
+        "tests/project/test_development.py",
+        "tests/project/test_delivery.py"
         ],
         "hypotheses": [
           "The overview computes its first action before considering the engagement. A detached summary presents the correct authority but leaves the fallback action on the unrelated product plan.",
@@ -26441,7 +26443,7 @@
         ],
         "risks": [
           {
-            "failure": "A global priority change could hide real critical failures, actual task work, or later authorized product work. A package-managed continuation could break read-only use.",
+          "failure": "A global priority change could hide real critical failures, actual task work, or later authorized product work. A package-managed continuation could break read-only use. Reading the engagement for a historical finding could incorrectly require a policy that did not exist at its source.",
             "checks": [
               "project-state",
               "python-contracts-workers"
@@ -26464,7 +26466,8 @@
           "entrypoints": [
             "scripts/development.py",
             "scripts/project.py",
-            "tests/project/test_development.py"
+            "tests/project/test_development.py",
+            "tests/project/test_delivery.py"
           ],
           "rules": [
             {
