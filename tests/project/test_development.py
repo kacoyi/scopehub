@@ -3,16 +3,52 @@
 import copy
 import json
 from pathlib import Path
+from tempfile import TemporaryDirectory
+import unittest
 from unittest.mock import patch
 
 from scripts.check_architecture import declared_source_boundaries
-from scripts.development import product_brief, resolve_source, status_view
+from scripts.development import product_brief, resolve_source, status_view, task_launch_excerpt
 from scripts.project import (
-    ProjectError, archive_evidence, json_bytes, load_project, product_progress,
+    ROOT, ProjectError, archive_evidence, json_bytes, load_project, product_progress,
     read_json, task_context, task_definition_hash, workfront,
 )
 from tests.project.fixtures import task_by_id
 from tests.project.test_continuity import ProjectFixture
+
+
+class MaintenanceHandoffTests(unittest.TestCase):
+    scope_path = 'contracts/reviews/2026-11-26-maintenance-workstreams.json'
+
+    def test_focused_handoff_recovers_engagement_with_no_private_archive(self):
+        with TemporaryDirectory() as directory:
+            unavailable = str(Path(directory) / 'unavailable')
+            with patch.dict('os.environ', {'SCOPEHUB_ARCHIVE_ROOT': unavailable}):
+                context = task_context(ROOT, 'M0-158', phase='handoff')
+                reference = next(reference for reference in context['task']['plan']['implementation']['rules']
+                                 if reference['path'] == self.scope_path)
+                scope = resolve_source(ROOT, reference)
+        workstreams = {record['id']: record for record in scope['outcomes']}
+        self.assertEqual(set(workstreams), {'repository-cleanup', 'ongoing-maintenance'})
+        for outcome in workstreams.values():
+            self.assertTrue(outcome['owner'])
+            self.assertTrue(outcome['next_action'])
+            self.assertTrue(outcome['acceptance'])
+        self.assertEqual(set(scope['engagement']['complete_when']), set(workstreams))
+        self.assertIn('stop assigning work', scope['engagement']['on_completion'])
+        self.assertIn('fresh owner instruction', scope['engagement']['later_implementation'])
+        self.assertIn('existing cadence', scope['engagement']['scheduled_checks'])
+        self.assertIn('next comparable change', scope['evolution']['verify'])
+        self.assertIn('remain open', scope['resume']['unavailable_private_archive'])
+        if context['task']['status'] == 'active':
+            launch = task_launch_excerpt(context['task'], [])
+            self.assertIn(f'pnpm project:source {self.scope_path}', launch['next_action'])
+
+    def test_product_context_does_not_take_ownership_of_the_handoff(self):
+        context = task_context(ROOT, 'M2-003', phase='handoff')
+        self.assertEqual(context['task']['id'], 'M2-003')
+        self.assertNotIn(self.scope_path, context['context_paths'])
+        self.assertNotIn(self.scope_path, json.dumps(task_launch_excerpt(context['task'], [])))
 
 
 class DevelopmentTests(ProjectFixture):

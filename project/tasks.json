@@ -26442,7 +26442,7 @@
         "0007"
       ],
       "evidence": [],
-      "next_action": "Exercise a clean normal entry and the interrupted handoff. Verify which information is recoverable, then make the smallest supported correction and collect an independently observed cold handoff.",
+      "next_action": "Read pnpm project:source contracts/reviews/2026-11-26-maintenance-workstreams.json for the maintenance handoff. Verify discovery on the clean source and retain the independently observed result.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26487,6 +26487,10 @@
           ],
           "rules": [
             {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": ""
+            },
+            {
               "path": "project/delivery.json",
               "pointer": "/scaffold_maintenance/workflow"
             },
@@ -26498,9 +26502,7 @@
           "non_goals": [
             "Product runtime operations, public publication of private transcripts, or a requirement to retain every development conversation."
           ],
-          "open_questions": [
-            "Can the existing focus, task context and handoff reference support first-time recovery without another global navigation surface?"
-          ]
+          "open_questions": []
         },
         "evolution": {
           "kind": "additive",

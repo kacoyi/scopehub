@@ -5,6 +5,9 @@
     {
       "id": "repository-cleanup",
       "intent": "Audit and clean the whole repository as implemented, repair its accumulated technical debt and known problems, and actively look for previously unreported defects.",
+      "status": "open",
+      "owner": "The development AI coordinator owns audit coverage and the integrated recheck. The assigned development AI owns each confirmed correction.",
+      "next_action": "Reconcile the implemented component, consumer, platform and repository hygiene inventory against the current integrated source. Record uncovered boundaries and assign verified in-scope findings to corrective tasks.",
       "acceptance": [
         "Account for implemented components, consumer paths, affected platforms, dependencies and repository hygiene. Use adversarial inputs, recovery and ordinary interactions where suitable. Retain the exact scope and observed limits.",
         "Register, diagnose, correct and verify confirmed in-scope problems. Retain the original failure, relevant independent review, current regression, protected integration and applicable native observations. Recheck the integrated revision."
@@ -13,6 +16,9 @@
     {
       "id": "ongoing-maintenance",
       "intent": "Enable AI agents to sustain high-quality implementation, diagnosis, maintenance and evolution without the owner having to notice or restate the problem.",
+      "status": "open",
+      "owner": "The development AI coordinator owns evidence and periodic review follow-through. The affected task owner investigates and verifies each correction.",
+      "next_action": "Reconcile the timing provenance corrections against their producer originals. Use project:status to identify the next due review and retain its actual observation. The baseline verification-timing review is due November 28.",
       "acceptance": [
         "Show a concise accurate whole-project view through the ordinary entry. Provide detailed authoritative records, accountable follow-through and original observations on demand. A fresh AI must recover the work across interruptions.",
         "For each consequential incident, compare implementation, contract, validation and operating causes on evidence. Reproduce the fault at the consumer boundary, retain positive and negative controls, and verify recovery after integration.",
@@ -21,6 +27,25 @@
       ]
     }
   ],
+  "resume": {
+    "command": "pnpm project:context M0-158 --phase handoff",
+    "follow_through": "Treat restored Herdr dispatches and individual pull requests as operational checkpoints. Check each workstream against its own acceptance and resume the outstanding actions.",
+    "unavailable_private_archive": "Use this tracked scope and the task ledger to recover ownership and next actions. Record any unavailable originals and let the evidence obligations that require them remain open."
+  },
+  "evolution": {
+    "trigger": "A recurring consequential fault, measured maintenance burden, blocked supported workflow or changed requirement warrants reassessing the design.",
+    "action": "Compare repair, replacement and retirement in the owning task. Account for callers and saved data, verify the transition and recovery, and remove obsolete paths.",
+    "verify": "Use the next comparable change to check whether the improvement persists."
+  },
+  "engagement": {
+    "complete_when": [
+      "repository-cleanup",
+      "ongoing-maintenance"
+    ],
+    "on_completion": "Once both workstreams meet their acceptance, deliver the evidence and its observed limits, end coordination and stop assigning work.",
+    "later_implementation": "Later feature or milestone implementation requires a fresh owner instruction.",
+    "scheduled_checks": "Previously configured scheduled checks continue at their existing cadence."
+  },
   "verified_baseline": {
     "source": "5aedc53645f217b18bdf996f987019d75bb098c2",
     "accepted_maintenance_tasks": [
