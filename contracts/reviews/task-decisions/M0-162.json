@@ -155,6 +155,26 @@
       "requested_at": "2026-11-26T14:36:19.090918+00:00",
       "request_id": "515b6ca8d7aee3341ec737494d93df8de13bbc3e87596ef938e07dbbce9d50f5",
       "evidence_sha256": "64f116acc514bc6cd77d9aa1a9b83c3347e51a049a00e58d411e5343c43b60c6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "01c20758e8f3871a66da0738db0eac811380e541",
+      "verdict": "approved",
+      "decision": "APPROVE M0-162 01c20758e8f3871a66da0738db0eac811380e541",
+      "scope": "APPROVE M0-162 01c20758e8f3871a66da0738db0eac811380e541",
+      "observation": "I replayed the retained Linux host evidence with the reviewed source and verified that the same runner exited successfully with its exact response and completion event after both lock waits exceeded 10.65 seconds.",
+      "reviewer": "Independent Astra Standard (t18s)",
+      "original_sha256": "06c95186579e116240394833171a462782005187735202ca0e5fc4615e6d7166",
+      "response_id": "e78a5d4688e77700ca09d85f9a3571d9ab78ba0af0a926dd90b324a1957c39ef",
+      "response_sha256": "33ba6897bd9f1651b0fda7a625416664bb05f3f6533268e7210ff54554dc5e5b",
+      "legacy_response_sha256": "88422a9db44410e3016293a3e8aa6be4fb3d3b28fc7cf7b01e5637309175e8d8",
+      "observation_body_sha256": "d4bb73845a39e8fa04a23549f718649a2c7b7419d66f86ad5f4b9ec683d23645",
+      "event": {
+        "id": "msg_0fe14aac6d6512da016b084517d28087d2ae47be4bcd98944b",
+        "timestamp": "2026-11-26T14:41:45.640Z"
+      },
+      "supersedes": "515b6ca8d7aee3341ec737494d93df8de13bbc3e87596ef938e07dbbce9d50f5",
+      "evidence_sha256": "6407decab0722ecc0bc6374d560706d207a1996f7fcffdf25948df97b8d941c2"
     }
   ]
 }
