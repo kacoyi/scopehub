@@ -26113,7 +26113,10 @@
         "tests/ui/ai-workflow-fixture.mjs",
         "tests/ui/workspace-writer-gate.mjs",
         "tests/ui/workspace-source.spec.mjs",
-        "project/checks.json"
+        "project/checks.json",
+        "tests/ui/published-revision-access-windows.config.mjs",
+        "tests/ui/published-revision-access-windows.fixture.mjs",
+        "tests/ui/published-revision-access-windows.spec.mjs"
       ],
       "decision_refs": [
         "0004",
@@ -26144,7 +26147,8 @@
         "local-folder-refresh-preview",
         "state-migrations",
         "workspace-timeframe",
-        "model-connection-workflow"
+        "model-connection-workflow",
+        "windows-published-revision-access"
       ],
       "evidence": [
         {
@@ -26152,7 +26156,7 @@
           "sha256": "fb4345db27bf793accfd0d67401a044be089c0305a0dc51c347691e17756de4a"
         }
       ],
-      "next_action": "Have the coordinator obtain fresh independent decisions on the clean revision-access candidate with its retained public-browser baseline and correction evidence. Qualify the same source separately in Windows WebView2, including native status admission and dialog close and reopen after a source-row interruption.",
+      "next_action": "Have the coordinator obtain renewed independent decisions for the clean protected-base composition. Run windows-published-revision-access on the same source in an interactive Windows x64 session and retain the executable identity and native status journal. Keep operator physical qualification separate.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26179,7 +26183,11 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m2-034-359e3323/final-response.txt",
           "archives/observations/repo-hygiene-20261125/independent-final-m2-035-359e3323/final-response.txt",
           "archives/observations/repo-hygiene-20261125/independent-final-m2-039-359e3323/final-response.txt",
-          ".reports/runs/20261126T041510.475356Z-783b4a68/test-report.json"
+          ".reports/runs/20261126T041510.475356Z-783b4a68/test-report.json",
+          ".reports/m2-039-native-access-gap/coverage.json",
+          "tests/ui/published-revision-access-windows.config.mjs",
+          "tests/ui/published-revision-access-windows.fixture.mjs",
+          "tests/ui/published-revision-access-windows.spec.mjs"
         ],
         "hypotheses": [
           "The focus observer starts only after the initial chart read settles. A first read must be fenced until a focus-initiated snapshot confirms the selected source.",
@@ -26311,6 +26319,12 @@
             "checks": [
               "local-folder-refresh-preview"
             ]
+          },
+          {
+            "failure": "A controlled delivery fault or a renderer-only check can obscure native admission and actual registry outcomes. Compare native request identities and replies for interrupted rows, withheld and restored access, and genuine withdrawal across dialog close and reopen.",
+            "checks": [
+              "windows-published-revision-access"
+            ]
           }
         ],
         "rollback": "Revert the UI change while retaining the independent red and green observations. Existing stored revisions and schemas need no migration.",
@@ -26328,7 +26342,8 @@
             "apps/desktop/ui/src/folder-refresh-review.tsx",
             "tests/ui/ai-workflow-fixture.mjs",
             "tests/ui/workspace-writer-gate.mjs",
-            "tests/ui/local-import.spec.mjs"
+            "tests/ui/local-import.spec.mjs",
+            "tests/ui/published-revision-access-windows.spec.mjs"
           ],
           "rules": [
             {
@@ -26345,7 +26360,8 @@
             }
           ],
           "non_goals": [
-            "Changes to the SQLite single-writer path, protocol, release or separate frozen shared-bar read timeout."
+            "Changes to the SQLite single-writer path, protocol, release or separate frozen shared-bar read timeout.",
+            "Runtime test switches, product permission changes and operator physical qualification."
           ],
           "open_questions": []
         },
@@ -26363,7 +26379,8 @@
             "Correlate the test-only status gate with the designated Rust request. Keep durable selection and readback semantics separate from proof admission and fixture diagnostics.",
             "Withhold a revision on an ambiguous source-row error and reopen its visibility only after confirmed access from its status operation. Preserve durable revocation, access decisions, the selection and its undo.",
             "A dialog-only branch could repair CSV refresh but would leave provider dispatch and temporary-only eligibility in individual callers. Route status verification and current-page rechecks through the existing profile access owner. The dialog supplies the page identity and stops scheduling obsolete page reads. An admitted status can settle with the profile subject to the owner's existing revocation and supersession fences.",
-            "Directly refactor the profile access owner to track state and requests by publication kind and revision ID on a shared serial status lane. Check the current page lifetime before dispatching queued work and let an issued read settle against its own profile state. Return the observed access outcome to the dialog, preserving the changed-workspace guard. Extending the split paths would require parallel scheduling and failure classification in the dialog and watcher. A full replacement would discard unrelated focus, selection and chart guards while the existing native replies can express the observed outcomes."
+            "Directly refactor the profile access owner to track state and requests by publication kind and revision ID on a shared serial status lane. Check the current page lifetime before dispatching queued work and let an issued read settle against its own profile state. Return the observed access outcome to the dialog, preserving the changed-workspace guard. Extending the split paths would require parallel scheduling and failure classification in the dialog and watcher. A full replacement would discard unrelated focus, selection and chart guards while the existing native replies can express the observed outcomes.",
+            "Qualify the Windows interaction through the compiled application with local synthetic publications. Capture native admission separately from controlled row interruption and late reply delivery."
           ],
           "data_plan": "Only synthetic profiles, chart values and source rows in the local scoped checks.",
           "cleanup": "Release delayed test replies, close both owned windows and bridges, remove test profiles, and retain original red and green evidence."

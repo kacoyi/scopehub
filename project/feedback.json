@@ -8088,6 +8088,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "published-revision-access-native-webview2-journey-unobserved",
+      "source": "Local coverage audit of clean composition 771700fab16f2e17006134f40d54c27ca12afcbf at .reports/m2-039-native-access-gap/coverage.json (SHA-256 88d48086f55ecc333d36325c092df267d8e52bc700e9ae8498c1139e0e0408f6).",
+      "observation": "The compiled WebView2 UI Automation check reaches the prototype editor and chart-free renderer but never opens a published revision, reads an original row or observes its native access status. The source-bound Chromium checks use a separate Rust bridge. Native admission, closing and reopening, restoration and withdrawal remain unobserved in the compiled application for this interaction.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "windows-published-revision-access"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
