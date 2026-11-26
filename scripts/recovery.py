@@ -219,7 +219,7 @@ def diagnose(root=ROOT, *, task_id=None, save=False, failure=None):
     return diagnostic
 
 
-def capture_failure(root, error, phase, *, argv=()):
+def capture_failure(root, error, phase, *, argv=(), emit=None):
     """Best-effort preservation must never turn the original exception into a pass."""
     record = {'status': 'failed', 'error': f'{type(error).__name__}: {error}',
               'recovery_command': RECOVERY_COMMAND, 'bootstrap_commands': BOOTSTRAP_COMMANDS}
@@ -238,7 +238,10 @@ def capture_failure(root, error, phase, *, argv=()):
         record['recovery_snapshot'] = diagnostic['snapshot']
     except Exception as snapshot_error:
         record['recovery_snapshot_error'] = f'{type(snapshot_error).__name__}: {snapshot_error}'
-    print(json.dumps(record), flush=True)
+    if emit is None:
+        print(json.dumps(record), flush=True)
+    else:
+        emit(record)
 
 
 def main():
