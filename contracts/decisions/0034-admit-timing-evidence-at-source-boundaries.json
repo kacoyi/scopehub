@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0",
+  "id": "0034",
+  "title": "Admit timing evidence at source boundaries",
+  "status": "accepted",
+  "recorded_at": "2026-11-26",
+  "context": "Independent decisions on 318f54c8 found six failures on real paired producer inputs after three previous normalization decisions. An Actions projection could collapse distinct instants or discard candidate endpoints before the aggregate metric used them. Compact normalization could disagree about equivalent offsets. Raw admission still differed from publication by platform, and a Linux checkout disproved by available Git ancestry could enter a cross-platform conflict and suppress a genuine Windows report. These failures repeated where representations changed before common eligibility rules ran.",
+  "decision": "Keep each exact, normalized UTC instant through reconciliation and compare elapsed values before converting them to the existing output number. Qualify each metric from the feasible endpoint assignments that determine it. Preserve a metric when all feasible assignments agree and withhold it when the evidence permits different values. Resolve minima, maxima and temporal ordering at their owning metric. At the original report boundary, share the portable observation ownership, status, and result-derived summary invariants with publication across Linux and Windows. Apply independently disproved pull-request ancestry before reports enter attempt-wide conflict detection. Keep report provenance and Actions clocks independently evaluated.",
+  "authority": "ADR 0007 assigns technical design and evidence verification to the development AI. Independent review and protected verification gates still determine completion.",
+  "alternatives": [
+    {
+      "option": "Repair each evidenced mismatch in its existing projection.",
+      "reason": "A compact-offset special case, a precision exception in an Actions adapter, and another platform branch would pass individual reproductions while retaining the same time conversions and divergent admission. The paired reviews show this cost recurring at adjacent boundaries. Repair the evidence entry and compare the resulting behavior on original producers."
+    },
+    {
+      "option": "Replace the persisted format and rebuild historical captures.",
+      "reason": "Replacement would require backfills, parallel readers, or republication from unavailable original environments. The retained versioned JSON can encode the known timestamps and observations. Existing original bytes and exact-source snapshots make the narrower transition reversible."
+    },
+    {
+      "option": "Retire timing attribution or retire the duplicated decisions.",
+      "reason": "Retiring attribution would remove observed weekly comparability, independently valid Actions clocks, and expired preview support. Retire the lossy timestamp comparisons and duplicate portable admission decisions while keeping the current public entries, bounded inputs, and historical publisher inventory."
+    }
+  ],
+  "consequences": [
+    "Canonical time preserves fractional digits and normalizes supported UTC offset spellings, including compact offsets. Current archive schema and ordinary JSON measurements remain readable. Captures that already lost original precision can recover it only by reprocessing retained Actions responses. Keep original inputs, source snapshots and paired controls for verification and recovery.",
+    "Compact artifacts lack the observations removed by their original publisher. Apply portable admission before compacting raw reports and keep the full publisher responsible for schema and artifact bytes. New publishing closure registration waits for genuine producer artifacts under ADR 0030. Preserve proven expired previews, separate Actions clocks and explicit unresolved ancestry within the existing bounded Git inspection.",
+    "Qualify real paired inputs in varied order, both positive and negative public and weekly entries, cold reopen, archive rotation and a separately reserved producer revision. Retain comparison of elapsed time, peak memory and archive size, including a separate comparable run. Future hosted execution and the actual November 28 observation remain separate."
+  ],
+  "supersedes": [],
+  "related_decisions": ["0007", "0030", "0031", "0032", "0033"],
+  "revisit_when": [
+    "A supported producer changes its admitted report claims, clock format or phase semantics.",
+    "A subsequent comparable weekly observation shows a sustained increase in cost or a supported attribution becomes unrecoverable."
+  ]
+}

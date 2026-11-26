@@ -9362,6 +9362,108 @@
       "diagnostic_reports": [],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "timing-non-extremal-step-conflict-hides-windows-aggregate",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-155 decision on 318f54c82e50a38c4310724b55e3e9ee6539afb8, recorded at d0a08f528a5b1bf11535ff8cc0e6c3a0f3204224. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-155-318f54c8/original-assistant-response.jsonl (SHA-256 bff913d2a944fa11f5f2cd15db02b151d99f3d33166bbc838e7c2480f46cfd44).",
+      "observation": "In PR 133 run 45762646887, adding a nameless start one second later for step 23 of browser job 139715990749 made Windows setup and execution unknown in both row orders. Both browser starts were later than the Python lane start and independently yielded the same 37-second setup and 1195-second execution. Ordinary, weekly and cold reads retained the 1245-second wall clock, 3245 runner-seconds and one Windows receipt.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-actions-step-instants-lose-submicrosecond-precision",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-155 decision on 318f54c82e50a38c4310724b55e3e9ee6539afb8, recorded at d0a08f528a5b1bf11535ff8cc0e6c3a0f3204224. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-155-318f54c8/original-assistant-response.jsonl (SHA-256 bff913d2a944fa11f5f2cd15db02b151d99f3d33166bbc838e7c2480f46cfd44).",
+      "observation": "In push 45765544396, adding a nameless step 21 completion one nanosecond later left Linux execution and tail at 864 and 9 seconds through ordinary, weekly and rotated cold reads. A difference of one microsecond withheld those phases, and the independent 66-second setup remained.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-equivalent-compact-offset-withdraws-receipt",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 decision on 318f54c82e50a38c4310724b55e3e9ee6539afb8, recorded at d0a08f528a5b1bf11535ff8cc0e6c3a0f3204224. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-150-318f54c8/original-assistant-response.jsonl (SHA-256 836b61a115dea14a9c951f0306cb6710416c22c114a52605aa82e54abd4db946).",
+      "observation": "PRs 121, 116 and 133 each lost the genuine Windows receipt when a second compact report expressed the same recording instant with an equivalent +0545 offset. Reopening either report alone or using the equivalent +05:45 form preserved the clock.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-windows-raw-admission-ignores-unexpected-observation",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 decision on 318f54c82e50a38c4310724b55e3e9ee6539afb8, recorded at d0a08f528a5b1bf11535ff8cc0e6c3a0f3204224. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-150-318f54c8/original-assistant-response.jsonl (SHA-256 836b61a115dea14a9c951f0306cb6710416c22c114a52605aa82e54abd4db946).",
+      "observation": "Adding a cloud deployment observation to a nonpassing configured-model-session result still admitted genuine Windows raw reports with altered observations for PRs 121, 116 and 133, attributing 702, 421 and 1245 seconds. Both historical publishing paths reject this observation.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-linux-raw-admission-ignores-integration-summary",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 decision on 318f54c82e50a38c4310724b55e3e9ee6539afb8, recorded at d0a08f528a5b1bf11535ff8cc0e6c3a0f3204224. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-150-318f54c8/original-assistant-response.jsonl (SHA-256 836b61a115dea14a9c951f0306cb6710416c22c114a52605aa82e54abd4db946).",
+      "observation": "Changing only the raw Linux mock AI summary to evaluated for PRs 121, 116 and 133 attributed 788, 859 and 932 seconds without a diagnostic. The historical Linux publishers derive a false value from those same result rows and reject the mismatch.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-disproved-linux-checkout-evicts-genuine-windows",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-156 decision on 318f54c82e50a38c4310724b55e3e9ee6539afb8, recorded at d0a08f528a5b1bf11535ff8cc0e6c3a0f3204224. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-156-318f54c8/original-assistant-response.jsonl (SHA-256 49ba04783ba50c023d1d2139b08c64d4e11c135f8c7411dd692fbf1977821250).",
+      "observation": "In PR 133 run 45762646887, substituting the direct event-head parent 34d52cf0 for the Linux checkout admitted one Linux receipt for 932 wall seconds and 930 runner-seconds with or without merge proof. Pairing it with the genuine Windows input withdrew both receipts. Git proves the replacement is an ancestor, and the same change to the Windows input was already rejected.",
+      "task_ids": [
+        "M0-156"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
