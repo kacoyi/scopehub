@@ -932,7 +932,8 @@ def has_job_claim(job):
     # Older compact captures used duplicate_job_id for the entire row.
     issues = job['identity_issues']
     return (positive_id(job['job_id']) and not issues['missing']
-            and set(issues['conflicts']) <= {'duplicate_job_id', 'job_role', 'runner_label', 'checkout_sha'})
+            and all(issue in ('duplicate_job_id', 'job_role', 'runner_label', 'checkout_sha')
+                    for issue in issues['conflicts']))
 
 
 def known_value(values, unknown=None):
@@ -1108,14 +1109,13 @@ def membership_candidates(observations):
     for row in observations:
         for job in chain(row['jobs'], row.get('sibling_jobs', ())):
             if has_job_identity(job):
-                claims[row.get('head_branch'), job_slot_identity(job)].append(job)
+                claims[job_slot_identity(job)].append((row.get('head_branch'), job))
 
     def fill(job, branch):
         if not has_job_identity(job) or (job['status'] is not None and job['conclusion'] is not None):
             return job
-        evidence = [claim for (observed_branch, slot), rows in claims.items()
-                    if slot == job_slot_identity(job) and (not branch or not observed_branch or branch == observed_branch)
-                    for claim in rows]
+        evidence = [claim for observed_branch, claim in claims[job_slot_identity(job)]
+                    if not branch or not observed_branch or branch == observed_branch]
         return {**job, **{field: job[field] or known_value(claim[field] for claim in evidence)[0]
                           for field in ('status', 'conclusion')}}
 

@@ -977,6 +977,13 @@ class HostedTimingTests(unittest.TestCase):
                 self.assertEqual((765, 1687), (platform['seconds']['total'], platform['seconds']['runner']))
                 self.assertEqual(1, len(list(timing.platform_report_receipts(view['samples']))))
 
+        existing = timing.hosted_timing(run, jobs)
+        diagnostic = timing.hosted_timing(run, [browser])
+        diagnostic['sibling_jobs'][0]['identity_issues']['conflicts'].append({'unknown': 'legacy field'})
+        view = timing.timing_view(samples, hosted=[diagnostic, existing])
+        platform = next(row for row in view['samples'] if row['profile'] == 'full')
+        self.assertEqual((765, 1687), (platform['seconds']['total'], platform['seconds']['runner']))
+
     def test_shared_capture_preserves_job_and_checkout_evidence_in_both_orders(self):
         jobs = self.split_windows_jobs()
         run = hosted_run()
