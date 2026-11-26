@@ -14,7 +14,10 @@ import unittest
 
 CHECK = 'python-contracts-workers'
 LANES = ('python', 'recovery')
-CUTOFF = 'tests.project.test_verification_scope'
+LEGACY_CUTOFF = 'tests.project.test_verification_scope'
+CUTOFF = 'tests.project.test_review_acceptance'
+# Historical split sources without this declaration kept market-workflow on browser.
+RECOVERY_OWNS_MARKET_WORKFLOW = True
 COMMAND = ['{python}', '-m', 'unittest', 'discover', '-s', 'tests', '-t', '.',
            '-p', 'test_*.py', '-v', '--durations', '0']
 REPORT_VERSION = '2.1'
@@ -59,7 +62,7 @@ def command(python, lane):
     return [python, 'scripts/windows_python.py', lane]
 
 
-def partition(inventory):
+def partition(inventory, *, cutoff=None):
     if (not isinstance(inventory, list) or not inventory or not all(isinstance(case, str) and len(case) > 2 for case in inventory)
             or len(inventory) != len(set(inventory))):
         raise ValueError('Python discovery has invalid or duplicate test IDs.')
@@ -73,8 +76,10 @@ def partition(inventory):
                 break
         else:
             modules.append(case.rsplit('.', 2)[0])
-    boundary = next((i for i, module in enumerate(modules) if module >= CUTOFF), len(modules))
-    if any(module < CUTOFF for module in modules[boundary:]):
+    if cutoff is None:
+        cutoff = CUTOFF
+    boundary = next((i for i, module in enumerate(modules) if module >= cutoff), len(modules))
+    if any(module < cutoff for module in modules[boundary:]):
         raise ValueError('Windows Python discovery is not ordered by module at the partition boundary.')
     return dict(zip(LANES, (inventory[:boundary], inventory[boundary:]), strict=True))
 
@@ -235,12 +240,12 @@ def run(lane):
     return 0 if result.wasSuccessful() else 1
 
 
-def verify_manifest(manifest, lane):
+def verify_manifest(manifest, lane, *, cutoff=None):
     required = {*CALLBACK_FIELDS, 'log_size', 'log_sha256'}
     if (not isinstance(manifest, dict) or required - manifest.keys()
             or manifest.keys() - required - {'owners', 'final_log_sha256', 'callback_record_version'}):
         raise ValueError('Incomplete Windows Python case manifest.')
-    expected = partition(manifest['inventory'])[lane]
+    expected = partition(manifest['inventory'], cutoff=cutoff)[lane]
     if 'owners' in manifest:
         owners = manifest['owners']
         if (not isinstance(owners, dict) or owners.keys() != set(manifest['inventory'])
@@ -508,8 +513,8 @@ def verify_callback_record(raw, manifest):
         raise ValueError('Original unittest callback record differs from the case manifest or transcript.')
 
 
-def verify_original(record, raw, manifest, lane, *, callback_records=None):
-    expected = verify_manifest(manifest, lane)
+def verify_original(record, raw, manifest, lane, *, callback_records=None, cutoff=None):
+    expected = verify_manifest(manifest, lane, cutoff=cutoff)
     version = manifest.get('callback_record_version')
     if ('callback_record_version' in manifest and (type(version) is not int or version != CALLBACK_RECORD_VERSION)
             or callback_records is not None and callback_records != (version is not None)):
@@ -553,7 +558,7 @@ def elapsed_seconds(parts):
     return round((max(end for _, end in times) - min(start for start, _ in times)).total_seconds(), 3) if times else 0
 
 
-def combine(parts):
+def combine(parts, *, cutoff=None):
     """Build the canonical check log and verdict. Original producer logs stay separate."""
     completed, outputs = [], []
     result = 'passed'
@@ -562,7 +567,7 @@ def combine(parts):
         if not passed:
             result = 'failed'
         if manifest is not None:
-            outputs.append(verify_original(record, raw, manifest, lane))
+            outputs.append(verify_original(record, raw, manifest, lane, cutoff=cutoff))
             completed.append(manifest)
         elif passed:
             raise ValueError('Successful Windows Python part has no case manifest.')

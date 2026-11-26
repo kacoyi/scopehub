@@ -265,12 +265,18 @@ def check_timeout(check, system):
     return check.get('windows_timeout_seconds', default) if system == 'Windows' else default
 
 
-def windows_lane_checks(selected, lane, *, python_split=False):
+def windows_lane_checks(selected, lane, *, python_split=False, recovery_owns_market_workflow=False):
     if python_split and lane == 'python':
         return set()
     if lane == 'core':
         return selected.difference(*WINDOWS_LANE_CHECKS.values())
-    return selected & WINDOWS_LANE_CHECKS[lane]
+    owned = WINDOWS_LANE_CHECKS[lane]
+    if python_split and recovery_owns_market_workflow:
+        if lane == 'browser':
+            owned = owned - {'market-workflow'}
+        elif lane == 'recovery':
+            owned = owned | {'market-workflow'}
+    return selected & owned
 
 
 def windows_lanes_run_id(ci):
@@ -290,7 +296,7 @@ def build_window(catalog, selected, environment, index):
     return window
 
 
-def run_overlapped(checks, env, run_dir, *, system):
+def run_overlapped(checks, env, run_dir, *, system, timed_first=False):
     cancel = Event()
     console = CHECK_CONSOLE.get() or CheckConsole()
     interrupted = False
@@ -316,13 +322,20 @@ def run_overlapped(checks, env, run_dir, *, system):
             cancel.set()
         return result
 
+    def run_first():
+        started_at = datetime.now(timezone.utc).isoformat() if timed_first else None
+        result = run(checks[0])
+        if started_at is not None and 'duration_seconds' in result:
+            result['started_at'] = started_at
+        return result
+
     results = {}
     handlers = {signum: signal.signal(signum, request_stop) for signum in (signal.SIGINT, signal.SIGTERM)}
     token = CHECK_CONSOLE.set(console)
     console.cooperative = True
     try:
         with ThreadPoolExecutor(max_workers=1) as executor:
-            python = executor.submit(copy_context().run, run, checks[0])
+            python = executor.submit(copy_context().run, run_first)
 
             def wait_for_python():
                 # Service the main-thread signal handler even after the other check has returned.
@@ -447,7 +460,10 @@ def main():
             import windows_python
         python_split = windows_python.enabled(project, ci, selected)
     if args.ci_windows_lane:
-        selected = windows_lane_checks(selected, args.ci_windows_lane, python_split=python_split)
+        selected = windows_lane_checks(
+            selected, args.ci_windows_lane, python_split=python_split,
+            recovery_owns_market_workflow=python_split and windows_python.RECOVERY_OWNS_MARKET_WORKFLOW,
+        )
     maintain_automatically(ROOT)
     project_hash = project_definition_hash(project)
     run_id = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ') + '-' + uuid4().hex[:8]
@@ -472,6 +488,17 @@ def main():
     concurrent_results = {}
     python_parts = {}
     part_failed = False
+    lane = args.ci_windows_lane
+    recovery_window = []
+    part_check = None
+    if python_split and lane in windows_python.LANES:
+        part_check = {**project['checks'][windows_python.CHECK], 'id': windows_python.part_id(lane),
+                      'command': windows_python.command(sys.executable, lane)}
+        if lane == 'recovery' and windows_python.RECOVERY_OWNS_MARKET_WORKFLOW:
+            # Python uses self-contained test checkouts and ephemeral listeners.
+            # Keep the three browser and Cargo checks serial on the other worker.
+            recovery_window = [check for check in catalog if check['id'] in selected
+                               and check['status'] == 'implemented' and check['platforms'] == 'all']
     if args.ci_windows_aggregate:
         if __package__:
             from .ci_artifacts import collect_windows_lanes
@@ -496,6 +523,10 @@ def main():
         }
     for index, check in enumerate(catalog):
         command = check_command(check)
+        if not stopped and recovery_window and check['id'] == recovery_window[0]['id']:
+            concurrent_results = run_overlapped([part_check, *recovery_window], env, run_dir,
+                                                system=environment['system'], timed_first=True)
+            stopped = concurrent_results[part_check['id']].get('reason_code') in STOP_REASONS
         if check['id'] not in concurrent_results and (check['id'] not in selected or stopped):
             results.append({'id': check['id'], 'status': 'blocked', 'command': command,
                             'reason_code': 'earlier_failure' if stopped and check['id'] in selected else 'not_selected',
@@ -535,18 +566,18 @@ def main():
             if result.get('reason_code') in STOP_REASONS or (
                     result['status'] != 'passed' and (args.fail_fast or args.profile == 'fast' or check['id'] == 'environment')):
                 stopped = True
-    if python_split and args.ci_windows_lane in windows_python.LANES:
-        lane = args.ci_windows_lane
-        label = windows_python.part_id(lane)
-        part_command = windows_python.command(sys.executable, lane)
-        if stopped:
+    if part_check is not None:
+        label, part_command = part_check['id'], part_check['command']
+        record = concurrent_results.pop(label, None)
+        if record is None and stopped:
             record = {'id': label, 'status': 'failed', 'command': part_command, 'reason_code': 'earlier_failure'}
         else:
-            timeout = check_timeout(project['checks'][windows_python.CHECK], environment['system'])
-            part_start = datetime.now(timezone.utc).isoformat()
-            record = execute(label, part_command, env, run_dir, timeout)
-            if 'duration_seconds' in record:
-                record['started_at'] = part_start
+            if record is None:
+                timeout = check_timeout(part_check, environment['system'])
+                part_start = datetime.now(timezone.utc).isoformat()
+                record = execute(label, part_command, env, run_dir, timeout)
+                if 'duration_seconds' in record:
+                    record['started_at'] = part_start
             manifest = run_dir / f'{label}.json'
             with defer_finalization_sigint() as interrupted_manifest:
                 if manifest.is_file() and 'log_sha256' in record:

@@ -261,7 +261,8 @@ def python_producer_report_path(run, lane):
     return f'{run}/{windows_python.part_id(lane)}.producer.json'
 
 
-def validate_python_producer(root, project, reports, report, run, lane, record, destination):
+def validate_python_producer(root, project, reports, report, run, lane, record, destination, *,
+                             recovery_owns_market_workflow):
     relative = python_producer_report_path(run, lane)
     contents = bound_bytes(checked_path(reports, relative), record[PRODUCER_REPORT_DIGEST])
     producer = evidence_json(contents)
@@ -271,7 +272,8 @@ def validate_python_producer(root, project, reports, report, run, lane, record, 
             or producer['environment']['python_executable'] != report['environment']['python_executable']
             or producer.get('windows_python') != {lane: expected_part}):
         raise PublicationError('Windows Python producer report differs from the run, attempt, role or part evidence.')
-    selected = windows_lane_checks(select_checks(project), lane, python_split=True)
+    selected = windows_lane_checks(select_checks(project), lane, python_split=True,
+                                   recovery_owns_market_workflow=recovery_owns_market_workflow)
     try:
         validate_windows_lane(project, producer, report['source'], report['ci'], selected, lane, f'ci-windows-{lane}')
     except (KeyError, PublicationError) as error:
@@ -297,7 +299,7 @@ def validate_python_process_clock(record, report):
         raise PublicationError(str(error)) from error
 
 
-def python_parts(reports, report, lanes, destination=None, *, callback_records=None):
+def python_parts(reports, report, lanes, destination=None, *, callback_records=None, cutoff=None):
     """Validate and optionally retain native part evidence from one authenticated report."""
     records = report.get('windows_python', {})
     if set(records) != set(lanes):
@@ -342,7 +344,8 @@ def python_parts(reports, report, lanes, destination=None, *, callback_records=N
             contents = bound_bytes(checked_path(reports, manifest), record['manifest_sha256'])
             try:
                 manifest_value = evidence_json(contents)
-                windows_python.verify_original(record, raw, manifest_value, lane, callback_records=callback_records)
+                windows_python.verify_original(record, raw, manifest_value, lane, callback_records=callback_records,
+                                               cutoff=cutoff)
             except (TypeError, ValueError, KeyError) as error:
                 raise PublicationError(str(error)) from error
         if report['status'] == 'passed' and not passed:
@@ -356,9 +359,9 @@ def python_parts(reports, report, lanes, destination=None, *, callback_records=N
     return parts
 
 
-def combined_python(project, report, parts):
+def combined_python(project, report, parts, *, cutoff=None):
     try:
-        status, raw = windows_python.combine(parts)
+        status, raw = windows_python.combine(parts, cutoff=cutoff)
         elapsed = windows_python.elapsed_seconds(parts)
     except (ValueError, KeyError, TypeError) as error:
         raise PublicationError(str(error)) from error
@@ -385,15 +388,19 @@ def combined_python(project, report, parts):
 
 def validate_combined_python(root, project, reports, report, source_commit, destination=None):
     producer_reports = source_uses_python_producer_reports(root, source_commit)
+    runner = committed_windows_python(root, source_commit)
+    cutoff = runner_partition_cutoff(runner)
     parts = python_parts(reports, report, windows_python.LANES, destination,
-                         callback_records=source_uses_python_callback_records(root, source_commit))
+                         callback_records=runner_uses_callback_records(runner), cutoff=cutoff)
     run = f"runs/{report['run_id']}"
+    recovery_owns_market_workflow = runner_assigns_market_workflow_to_recovery(runner)
     for lane, (record, _, _) in zip(windows_python.LANES, parts, strict=True):
         if (PRODUCER_REPORT_DIGEST in record) != producer_reports:
             raise PublicationError('Missing or unexpected original Windows Python producer report.')
         if producer_reports:
-            validate_python_producer(root, project, reports, report, run, lane, record, destination)
-    check, _ = combined_python(project, report, parts)
+            validate_python_producer(root, project, reports, report, run, lane, record, destination,
+                                     recovery_owns_market_workflow=recovery_owns_market_workflow)
+    check, _ = combined_python(project, report, parts, cutoff=cutoff)
     if [row for row in report['checks'] if row['id'] == windows_python.CHECK] != [check]:
         raise PublicationError('The Windows Python check differs from its original part results.')
 
@@ -436,11 +443,27 @@ def source_uses_python_producer_reports(root, commit):
     return PRODUCER_REPORT_DIGEST in parts.get('additionalProperties', {}).get('properties', {})
 
 
-def source_uses_python_callback_records(root, commit):
+def committed_windows_python(root, commit):
+    return git(root, 'cat-file', 'blob', f'{commit}:scripts/windows_python.py')
+
+
+def runner_uses_callback_records(runner):
     # The committed runner selects the manifest format, even if an edited
     # manifest removes the version and still matches its mutable report digest.
-    runner = git(root, 'cat-file', 'blob', f'{commit}:scripts/windows_python.py')
     return re.search(rb'^CALLBACK_RECORD_VERSION[ \t]*=', runner, re.MULTILINE) is not None
+
+
+def runner_partition_cutoff(runner):
+    cutoffs = re.findall(rb"^CUTOFF[ \t]*=[ \t]*'([^'\r\n]+)'[ \t]*\r?$", runner, re.MULTILINE)
+    if len(cutoffs) != 1 or cutoffs[0] not in {
+            value.encode('ascii') for value in (windows_python.CUTOFF, windows_python.LEGACY_CUTOFF)}:
+        raise PublicationError('Unrecognized Windows Python partition in the recorded source.')
+    return cutoffs[0].decode('ascii')
+
+
+def runner_assigns_market_workflow_to_recovery(runner):
+    return re.search(rb'^RECOVERY_OWNS_MARKET_WORKFLOW[ \t]*=[ \t]*True[ \t]*\r?$',
+                     runner, re.MULTILINE) is not None
 
 
 def validate_recorded_windows_evidence(root, project, reports, report, *, requires_python):
@@ -523,6 +546,7 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False, collect
     windows_job = (lane or lane_namespace or hosted_aggregate or env.get('RUNNER_OS') == 'Windows'
                    or windows_x64(report['environment']))
     partitioned = windows_job and windows_python.enabled(project, expected, selected)
+    runner = committed_windows_python(root, expected['checkout_sha']) if partitioned and lane else None
     full_scope = scope is None or scope['profile'] == 'full'
     if (lane or lane_namespace or not collection_profile and full_scope
             and (partitioned or profile == 'full' and hosted_aggregate)):
@@ -534,7 +558,10 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False, collect
         if profile not in lanes:
             raise PublicationError('Unrecognized full Windows producer selection.')
         name = lanes[profile]
-        lane_selection = windows_lane_checks(selected, name, python_split=partitioned)
+        lane_selection = windows_lane_checks(
+            selected, name, python_split=partitioned,
+            recovery_owns_market_workflow=runner is not None and runner_assigns_market_workflow_to_recovery(runner),
+        )
         if report.get('selection', {}).get('checks') != sorted(lane_selection):
             raise PublicationError(f'Windows {name} lane has a different selection.')
         if partitioned and name in windows_python.LANES:
@@ -545,8 +572,9 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False, collect
     if required_parts == windows_python.LANES:
         validate_combined_python(root, project, reports, report, expected['checkout_sha'], destination)
     else:
-        callbacks = source_uses_python_callback_records(root, expected['checkout_sha']) if required_parts else None
-        parts = python_parts(reports, report, required_parts, destination, callback_records=callbacks)
+        parts = python_parts(reports, report, required_parts, destination,
+                             callback_records=runner_uses_callback_records(runner) if required_parts else None,
+                             cutoff=runner_partition_cutoff(runner) if required_parts else None)
         if any(PRODUCER_REPORT_DIGEST in record for record, _, _ in parts):
             raise PublicationError('A Windows Python lane cannot declare its own aggregate binding.')
     if lane:
@@ -702,6 +730,9 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
     rows = {}
     partitioned = not profile and windows_python.enabled(project, ci, selected)
     retain_producers = partitioned and source_uses_python_producer_reports(root, checkout)
+    runner = committed_windows_python(root, checkout) if partitioned else None
+    cutoff = runner_partition_cutoff(runner) if partitioned else None
+    recovery_owns_market_workflow = partitioned and runner_assigns_market_workflow_to_recovery(runner)
     started = []
     caches = {}
     producer_parts = {}
@@ -713,7 +744,10 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
                 raise PublicationError(f'Windows {lane} lane has no finalized report.')
             contents = (staged / 'test-report.json').read_bytes()
             report = evidence_json(contents)
-            lane_selection = selected if profile else windows_lane_checks(selected, lane, python_split=partitioned)
+            lane_selection = selected if profile else windows_lane_checks(
+                selected, lane, python_split=partitioned,
+                recovery_owns_market_workflow=recovery_owns_market_workflow,
+            )
             validate_windows_lane(project, report, source, ci, lane_selection, lane, profile or f'ci-windows-{lane}')
             if profile and report['status'] == 'passed' and env.get('SCOPEHUB_WINDOWS_LANE_RESULT') != 'success':
                 raise PublicationError('The scoped Windows lane job did not succeed.')
@@ -726,7 +760,7 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
                 started.append(datetime.fromisoformat(report['generated_at']).timestamp() - report['timing']['elapsed_seconds'])
                 rows.update((row['id'], row) for row in report['checks'] if lane == 'core' or row['id'] in lane_selection)
                 if partitioned and lane in windows_python.LANES:
-                    (record, raw, manifest), = python_parts(staged, report, (lane,))
+                    (record, raw, manifest), = python_parts(staged, report, (lane,), cutoff=cutoff)
                     if retain_producers:
                         write_artifact(reports / python_producer_report_path(f'runs/{run_id}', lane), contents)
                         record = {**record, PRODUCER_REPORT_DIGEST: digest(contents)}
@@ -752,7 +786,7 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
     if partitioned:
         parts = [producer_parts[lane] for lane in windows_python.LANES]
         core['windows_python'] = {lane: part[0] for lane, part in zip(windows_python.LANES, parts, strict=True)}
-        python_result, raw = combined_python(project, core, parts)
+        python_result, raw = combined_python(project, core, parts, cutoff=cutoff)
         write_artifact(root / python_result['log'], raw)
         rows[windows_python.CHECK] = python_result
     core['checks'] = [rows[check['id']] for check in project['catalog']['checks']]
