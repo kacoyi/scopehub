@@ -2806,12 +2806,19 @@ test('decision-note backup restore previews known deletions and independent copi
 });
 
 function observeDecisionNoteWindow(page, window, events, baseline) {
+  const snapshots = new WeakMap();
+  let nextSnapshot = 0;
+  const snapshotId = request => {
+    if (!snapshots.has(request)) snapshots.set(request, ++nextSnapshot);
+    return snapshots.get(request);
+  };
   const identify = request => {
     if (new URL(request.url()).pathname !== endpoint) return;
     const message = request.postDataJSON();
     const operation = message?.intent?.operation ?? message?.type;
     if (operation !== 'snapshot' && operation !== 'chart.setTimeframe' && !operation?.startsWith('decisionNote.')) return;
-    return { window, operation, requestId: message.request_id, target: message.scope?.target?.object_id,
+    return { window, operation, snapshotId: operation === 'snapshot' ? snapshotId(request) : undefined,
+      requestId: message.request_id, target: message.scope?.target?.object_id,
       noteId: message.intent?.arguments?.note_id, expectedRevision: message.scope?.expected_workspace_revision,
       confirmation: message.confirmation?.decision };
   };
@@ -2839,6 +2846,7 @@ function observeDecisionNoteWindow(page, window, events, baseline) {
         selectedNote: outcome?.result?.note?.note_id, list: outcome?.result?.notes?.map(note => note.note_id) });
     }, error => { row.readError = error.message.split('\n')[0]; });
   });
+  return snapshotId;
 }
 
 async function decisionNoteMode(page) {
@@ -3050,7 +3058,7 @@ for (const scenario of ['recovers', 'nonretryable', 'denied', 'exhausts', 'abort
           const notes = observer.getByRole('dialog', { name: 'Decision notes' });
           await control(observer, 'Decision notes').click();
           for (const fixture of [...retained, removed]) await saveBackupTestNote(notes, fixture);
-          observeDecisionNoteWindow(observer, 'observer', observation.events, baseline);
+          const snapshotId = observeDecisionNoteWindow(observer, 'observer', observation.events, baseline);
           await assertBackupTestNote(notes, removed);
           const detail = observation.events.find(row => row.operation === 'decisionNote.read' && row.noteId);
           const removedId = detail.noteId;
@@ -3073,14 +3081,20 @@ for (const scenario of ['recovers', 'nonretryable', 'denied', 'exhausts', 'abort
               const snapshotDenied = scenario === 'snapshot denied';
               const snapshotDeliveryFails = scenario === 'snapshot delivery fails';
               const snapshotFails = snapshotDenied || snapshotDeliveryFails;
+              const interleaveSnapshots = holdsSnapshot || snapshotContention || snapshotFails;
               const denied = scenario === 'denied';
               const refusalHttp = denied ? 403 : 429;
               const refusalError = denied ? { code: 'PERMISSION_DENIED', retryable: false }
                 : { ...busy.error, retryable: scenario !== 'nonretryable' };
               let missingDetail = false;
+              const releaseFocus = Promise.withResolvers();
+              const focus = { first: [], trailing: [] };
+              const fallbackSnapshots = [];
+              if (interleaveSnapshots) Object.assign(observation, { focus, fallbackSnapshots });
+              let focusPhase;
+              let deliverMissingDetail = false;
               let snapshotFinished = false;
               let recovering = false;
-              let snapshotAttempts = 0;
               let firstRefusal;
               let attempts = 0;
               const fallbackReplies = () => observation.events.filter(row => row.stage === 'response'
@@ -3091,6 +3105,7 @@ for (const scenario of ['recovers', 'nonretryable', 'denied', 'exhausts', 'abort
                   const { result } = await response.json();
                   observation.heldReply = {
                     kind, http: response.status(), workspaceRevision: result?.workspace?.revision,
+                    snapshotId: kind === 'snapshot' ? snapshotId(route.request()) : undefined,
                     readyMs: performance.now() - baseline,
                     list: result?.outcome?.result?.notes?.map(note => note.note_id),
                   };
@@ -3103,7 +3118,7 @@ for (const scenario of ['recovers', 'nonretryable', 'denied', 'exhausts', 'abort
                   }
                 } finally { await response.dispose(); }
               };
-              const refuseSnapshotWhileWriterHeld = async route => {
+              const refuseSnapshotWhileWriterHeld = async (route, attempt) => {
                 const holder = server.tagSnapshot();
                 const held = post(server, snapshot, holder.headers, AbortSignal.timeout(5_000));
                 void held.catch(() => {});
@@ -3114,9 +3129,13 @@ for (const scenario of ['recovers', 'nonretryable', 'denied', 'exhausts', 'abort
                   const refused = await route.fetch();
                   try {
                     observation.snapshotRefusal = { http: refused.status(), body: await refused.json() };
+                    attempt.http = refused.status();
                     expect(observation.snapshotRefusal).toEqual({ http: 429, body: busy });
                     holder.release();
-                    await holder.wait('drained');
+                    observation.writerDrainedSnapshot = await holder.wait('drained');
+                    expect(observation.writerDrainedSnapshot).toMatchObject({
+                      id: holder.id, request_id: observation.writerHoldingSnapshot.request_id, ok: true, revision: 5,
+                    });
                     await route.fulfill({ response: refused });
                   } finally { await refused.dispose(); }
                 } finally {
@@ -3124,24 +3143,72 @@ for (const scenario of ['recovers', 'nonretryable', 'denied', 'exhausts', 'abort
                   await Promise.allSettled([held.then(responseStatus)]);
                 }
               };
+              const readFocusSnapshot = async (route, stage) => {
+                const entry = { id: snapshotId(route.request()), startedMs: performance.now() - baseline };
+                focus[stage].push(entry);
+                const reply = await route.fetch();
+                try {
+                  Object.assign(entry, {
+                    http: reply.status(), revision: (await reply.json()).result?.workspace.revision,
+                    readyMs: performance.now() - baseline,
+                  });
+                  if (stage === 'first') await releaseFocus.promise;
+                  await route.fulfill({ response: reply });
+                } finally { await reply.dispose(); }
+              };
+              const focusPending = observer.getByText('Loading local workspace…');
+              async function holdWorkspaceFocus() {
+                // The drawer owns the in-flight detail. Its fallback cannot start
+                // until we deliver that detail, so focus owns this next snapshot.
+                await expect(focusPending).toHaveCount(0);
+                focusPhase = 'starting';
+                await observer.evaluate(() => window.dispatchEvent(new Event('focus')));
+                await expect.poll(() => focus.first).toMatchObject([{ http: 200, revision: 5 }]);
+                await expect(focusPending).toBeVisible();
+                await observer.evaluate(() => {
+                  for (let attempt = 0; attempt < 3; attempt++) window.dispatchEvent(new Event('focus'));
+                });
+              }
+              async function finishWorkspaceFocus() {
+                if (!interleaveSnapshots) return;
+                // The first focus read is still awaiting delivery. The drawer has
+                // already settled, so the queued focus now owns the trailing read.
+                await expect(focusPending).toBeVisible();
+                focusPhase = 'trailing';
+                releaseFocus.resolve();
+                await expect.poll(() => focus.trailing).toMatchObject([{ http: 200, revision: 5 }]);
+                await expect(focusPending).toHaveCount(0);
+                expect(focus.first).toHaveLength(1);
+                expect(focus.trailing).toHaveLength(1);
+                focusPhase = 'settled';
+              }
               const injectAdmission = async route => {
                 const request = route.request().postDataJSON();
-                if (missingDetail && !recovering && !snapshotFinished && request?.type === 'snapshot'
-                    && (holdsSnapshot || snapshotContention || snapshotFails)) {
-                  snapshotAttempts += 1;
-                  if (holdsSnapshot && snapshotAttempts === 1) return holdReply(route, 'snapshot');
-                  if (snapshotDenied) {
-                    return route.fulfill({ status: 403, json: { ok: false, error: { code: 'PERMISSION_DENIED', retryable: false } } });
-                  }
-                  if (snapshotContention && snapshotAttempts === 1) return refuseSnapshotWhileWriterHeld(route);
-                  const reply = await route.fetch();
+                if (request?.type === 'snapshot' && focusPhase === 'starting') {
+                  focusPhase = 'holding';
+                  return readFocusSnapshot(route, 'first');
+                }
+                if (request?.type === 'snapshot' && focusPhase === 'trailing') return readFocusSnapshot(route, 'trailing');
+                if (request?.type === 'snapshot' && focusPhase === 'holding' && !deliverMissingDetail) {
+                  return readFocusSnapshot(route, 'first'); // Extra focus reads fail the ownership count.
+                }
+                if (request?.type === 'snapshot' && focusPhase === 'holding' && !snapshotFinished) {
+                  const attempt = { id: snapshotId(route.request()), startedMs: performance.now() - baseline };
+                  fallbackSnapshots.push(attempt);
+                  if (holdsSnapshot && fallbackSnapshots.length === 1) return holdReply(route, 'snapshot');
+                  if (snapshotContention && fallbackSnapshots.length === 1) return refuseSnapshotWhileWriterHeld(route, attempt);
+                  const headers = snapshotDenied ? { ...await route.request().allHeaders(), authorization: '' } : undefined;
+                  const reply = await route.fetch(headers ? { headers } : undefined);
                   try {
+                    const frame = await reply.json();
+                    Object.assign(attempt, { http: reply.status(), revision: frame.result?.workspace.revision, error: frame.error });
                     if (snapshotDeliveryFails) {
-                      observation.lostSnapshot = { http: reply.status(), revision: (await reply.json()).result?.workspace.revision };
+                      observation.lostSnapshot = { http: attempt.http, revision: attempt.revision };
                       return await route.abort('failed');
                     }
-                    snapshotFinished = true;
+                    if (!snapshotDenied) snapshotFinished = true;
                     if (reopens) await delay(2_000);
+                    attempt.deliveredMs = performance.now() - baseline;
                     return await route.fulfill({ response: reply });
                   } finally { await reply.dispose(); }
                 }
@@ -3151,6 +3218,10 @@ for (const scenario of ['recovers', 'nonretryable', 'denied', 'exhausts', 'abort
                   const response = await route.fetch();
                   try {
                     missingDetail = (await response.json()).result?.outcome?.error?.code === 'DATA_UNAVAILABLE';
+                    if (missingDetail && interleaveSnapshots) {
+                      await holdWorkspaceFocus();
+                      deliverMissingDetail = true;
+                    }
                     return await route.fulfill({ response });
                   } finally { await response.dispose(); }
                 }
@@ -3231,18 +3302,23 @@ for (const scenario of ['recovers', 'nonretryable', 'denied', 'exhausts', 'abort
                 }
                 if (timesOut) {
                   await expect.poll(() => observation.heldReply).toMatchObject(holdsSnapshot
-                    ? { kind: 'snapshot', http: 200, workspaceRevision: 5 }
+                    ? { kind: 'snapshot', http: 200, workspaceRevision: 5, snapshotId: fallbackSnapshots[0]?.id }
                     : { kind: 'list', http: 200, list: expect.arrayContaining(remainingIds) });
+                  if (reopens) {
+                    expect(fallbackSnapshots[1]).toMatchObject({ http: 200, revision: 5 });
+                    expect(observation.heldReply.readyMs - fallbackSnapshots[0].startedMs).toBeGreaterThanOrEqual(2_000);
+                  }
                   const reload = notes.getByRole('button', { name: 'Reload decision notes' });
                   const close = notes.getByRole('button', { name: 'Close decision notes' });
                   await expect(close).toBeDisabled();
                   observation.beforeDeadline = await decisionNoteMode(observer);
-                  // The mixed run spent two seconds delivering its admitted snapshot before the list wait.
+                  // Only the designated fallback spent two seconds of the shared deadline.
                   await expect(reload).toBeVisible({ timeout: reopens ? 4_000 : 8_000 });
                   await expect(close).toBeEnabled();
                   await expect(notes.getByRole('alert')).toHaveText('The decision-note request timed out.');
                   observation.afterDeadline = await decisionNoteMode(observer);
                   observation.heldUntilRecoveryMs = performance.now() - baseline - observation.heldReply.readyMs;
+                  await finishWorkspaceFocus();
                   recovering = true;
                   if (reopens) {
                     await close.click();
@@ -3269,19 +3345,26 @@ for (const scenario of ['recovers', 'nonretryable', 'denied', 'exhausts', 'abort
                     expect(fallbackReplies().map(row => row.http)).toEqual([429]);
                   }
                   expect(attempts).toBe(holdsSnapshot ? 0 : 2);
-                  if (holdsSnapshot) expect(snapshotAttempts).toBe(1);
+                  if (holdsSnapshot) expect(fallbackSnapshots).toHaveLength(1);
                 } else if (recovers) {
                   await assertCurrentList();
                   expect(fallbackReplies()).toMatchObject([{ http: 429 }, { http: 200 }]);
                   await expect.poll(() => fallbackReplies()[1]?.list?.toSorted()).toEqual(remainingIds);
+                  await finishWorkspaceFocus();
                 } else if (snapshotFails) {
                   const reload = notes.getByRole('button', { name: 'Reload decision notes' });
                   await expect(reload).toBeVisible();
                   await expect(notes.getByRole('alert')).toHaveText(snapshotDenied
                     ? 'This decision note action is no longer authorized.' : 'The local workspace could not verify the result.');
+                  if (snapshotDenied) {
+                    expect(fallbackSnapshots).toMatchObject([{ http: 403, error: { code: 'PERMISSION_DENIED', retryable: false } }]);
+                  }
                   if (snapshotDeliveryFails) expect(observation.lostSnapshot).toEqual({ http: 200, revision: 5 });
-                  expect(snapshotAttempts).toBe(1);
+                  expect(fallbackSnapshots).toHaveLength(1);
                   expect(attempts).toBe(0);
+                  const failure = await decisionNoteMode(observer);
+                  await finishWorkspaceFocus();
+                  expect(await decisionNoteMode(observer)).toEqual(failure);
                   recovering = true;
                   await reload.click();
                   await assertCurrentList();
@@ -3316,7 +3399,16 @@ for (const scenario of ['recovers', 'nonretryable', 'denied', 'exhausts', 'abort
                   await assertBackupTestNote(notes, retained[1]);
                   expect(attempts).toBe(terminalAttempts);
                 }
-                if (snapshotContention) expect(snapshotAttempts).toBe(2);
+                if (snapshotContention) expect(fallbackSnapshots).toMatchObject([{ http: 429 }, { http: 200, revision: 5 }]);
+                if (interleaveSnapshots) {
+                  const deletedDetail = events.find(row => row.window === 'observer' && row.stage === 'response'
+                    && row.noteId === removedId && row.code === 'DATA_UNAVAILABLE');
+                  const snapshotRequest = id => events.find(row => row.window === 'observer'
+                    && row.stage === 'request' && row.snapshotId === id);
+                  expect(snapshotRequest(focus.first[0].id).elapsedMs).toBeLessThan(deletedDetail.elapsedMs);
+                  expect(snapshotRequest(fallbackSnapshots[0].id).elapsedMs).toBeGreaterThan(deletedDetail.elapsedMs);
+                  expect(snapshotRequest(focus.trailing[0].id).elapsedMs).toBeGreaterThan(fallbackSnapshots.at(-1).startedMs);
+                }
                 if (!recovers) {
                   await expect(notes.getByRole('region', { name: 'Original decision' }).getByText(retained[1].thesis)).toBeVisible();
                   await expect(notes.getByText(removed.thesis)).toHaveCount(0);
@@ -3330,9 +3422,10 @@ for (const scenario of ['recovers', 'nonretryable', 'denied', 'exhausts', 'abort
                 });
               } finally {
                 observation.attempts = attempts;
-                observation.snapshotAttempts = snapshotAttempts;
+                observation.snapshotAttempts = fallbackSnapshots.length;
                 observation.after = { mode: await decisionNoteMode(observer), stored: decisionNoteStoredState(profile) };
                 release.resolve();
+                releaseFocus.resolve();
                 await observer.unroute(url, injectAdmission);
               }
             });

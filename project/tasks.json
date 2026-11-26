@@ -26143,7 +26143,7 @@
           "sha256": "fb4345db27bf793accfd0d67401a044be089c0305a0dc51c347691e17756de4a"
         }
       ],
-      "next_action": "Repair and verify the test-owned status gate, report exact local and original guarded evidence, then hand off for independent review and fresh native qualification.",
+      "next_action": "Correlate the independent workspace and decision-note fallback snapshots in the real browser, retain the forced overlap and guarded originals, and hand the verified candidate to the coordinator for fresh native qualification.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26161,13 +26161,16 @@
           "archives/runs/20261125T180605.452785Z-ff5c1439/test-report.json",
           "archives/observations/repo-hygiene-20261125/pr97-native-original-45671281695/manifest.json",
           "tests/ubuntu-preview/workspace.spec.mjs",
-          "archives/observations/repo-hygiene-20261125/m2-039-native-read-holder-45692413910/observations.json"
+          "archives/observations/repo-hygiene-20261125/m2-039-native-read-holder-45692413910/observations.json",
+          "archives/observations/repo-hygiene-20261125/m2-039-dispatch-45710583418-linux",
+          "archives/observations/repo-hygiene-20261125/m2-039-ordinary-45710479288-linux"
         ],
         "hypotheses": [
           "The focus observer starts only after the initial chart read settles. A first read must be fenced until a focus-initiated snapshot confirms the selected source.",
           "Source-save and recovery guards can discard focus events even though the normal snapshot lane already has a single trailing slot.",
           "The folder list filters globally withheld revisions without rechecking them after a successful refresh.",
-          "An overlapping focus snapshot can cause an unrelated private detail read to be refused, and the native test may count a refused snapshot as an admitted state observation. Examine these entrypoints independently."
+          "An overlapping focus snapshot can cause an unrelated private detail read to be refused, and the native test may count a refused snapshot as an admitted state observation. Examine these entrypoints independently.",
+          "The observer fault route can claim a focus snapshot before the missing detail reaches the browser. Prove which request owns the shared fallback deadline and which requests belong to the independent workspace lane."
         ],
         "risks": [
           {
@@ -26254,6 +26257,13 @@
               "desktop-workspace-transport",
               "model-connection-workflow"
             ]
+          },
+          {
+            "failure": "The browser fixture holds or denies a workspace focus confirmation under the note fallback label, or depends on elapsed time spent by an unrelated request. Force both owners to overlap, prove a separately admitted fallback and one trailing workspace confirmation, and preserve terminal denial, bounded recovery, late delivery and exactly one deletion.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
           }
         ],
         "rollback": "Revert the UI change while retaining the independent red and green observations. Existing stored revisions and schemas need no migration.",
@@ -26328,6 +26338,16 @@
           "run_id": "windows-change-45692309700-1",
           "source_commit": "6a097e2e65900cc1d8e7afb5340189d4a09ea221",
           "report_sha256": "5bcff0e3f345072560b5a0c3e3bd9a71536fd73c078763545f12e7768010f7ac"
+        },
+        {
+          "run_id": "20261125T221034.872882Z-387c0f0c",
+          "source_commit": "eae2188a610bfb81fdeaf856fbd6e87ca692c6e2",
+          "report_sha256": "638d18e1a7bc190e5707d16db44a6449f9ba00d4fe28c2d06e5db3263a63c795"
+        },
+        {
+          "run_id": "20261125T220930.388882Z-6cb98800",
+          "source_commit": "e3023767eed6ddce2b75a6deb5b93bf02e8361ac",
+          "report_sha256": "af1545cce345c6977bce81aa808e99db601ca1ae934c0f6fea498943bb65f44c"
         }
       ]
     }

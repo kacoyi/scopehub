@@ -7684,6 +7684,34 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "observer-fallback-fixture-intercepts-independent-workspace-snapshot",
+      "source": "Guarded PR 97 task run 45710583418 and ordinary PR run 45710479288. The complete local-retained artifacts and reporter bytes are under archives/observations/repo-hygiene-20261125/m2-039-dispatch-45710583418-linux and archives/observations/repo-hygiene-20261125/m2-039-ordinary-45710479288-linux. The three raw attachments have SHA-256 150f7aa52a29876c29d93b14b25873a9185bac32ccd289ad64951733c25c2b61, ed94c0c359966217bb52160c418c01b9f55b1bc96901b1a362b3686147aaeb1b and a23747a8ce618e9d8fa86d9ff12352884fe6d1f0fb0ab1e0a81b628c5f0f4697. The controlled Chromium reproduction on eae2188a forced focus while the genuine missing-detail reply was still withheld and reproduced all three boundaries. Retained files: .reports/m2-039-observer-repro/repro.patch (SHA-256 e80702fb963dfa5b73215f37a983bfe6de826220042453db477f3b44072426a9) and .reports/m2-039-observer-repro/workspace-timeframe/results.json (SHA-256 4c25e476e495020082df0a7c1290f3aa407d2259af1320cfb7215993949e32b5).",
+      "observation": "The scoped reporter marks two snapshot attempts. The held HTTP 200 revision 5 request started before the deleted detail was delivered. A later revision 5 snapshot completed and the drawer listed the two surviving notes while Close was enabled. In the ordinary reopen case a separate revision 5 snapshot reached the browser immediately before the held list request. The list wait began within 71 ms of the deleted detail and the fixture stopped waiting for Reload after four seconds, before the shared five-second product deadline. In the denial case the fixture sent two HTTP 403 responses and the note drawer stayed on the honest authorization error with zero fallback lists. All three attachments record one committed revision-5 deletion and removal of its outcome. The M2-039 implementer owns correlating the independent focus and note recovery reads at browser delivery and writer admission. The original failure boundaries do not establish a product timeout or a retried terminal denial.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T221034.872882Z-387c0f0c",
+          "source_commit": "eae2188a610bfb81fdeaf856fbd6e87ca692c6e2",
+          "report_sha256": "638d18e1a7bc190e5707d16db44a6449f9ba00d4fe28c2d06e5db3263a63c795"
+        },
+        {
+          "run_id": "20261125T220930.388882Z-6cb98800",
+          "source_commit": "e3023767eed6ddce2b75a6deb5b93bf02e8361ac",
+          "report_sha256": "af1545cce345c6977bce81aa808e99db601ca1ae934c0f6fea498943bb65f44c"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
