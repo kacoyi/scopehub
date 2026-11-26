@@ -7936,6 +7936,27 @@
       "deferral_reason": null
     },
     {
+      "id": "engineering-guidance-assumes-test-order-and-an-unlocated-parent-rule",
+      "status": "addressed",
+      "severity": "minor",
+      "source": "Observed on ff6c880b289b18e3e58d667dcb5b76c7f12fe053. archives/observations/repo-hygiene-20261125/coordinator-checkpoints/resume-t113-20261126T0228Z/rule-effects-main-ff6c880b.json (SHA-256 10c6688525ca8763b09a223b721970b87a0ff84e914100475a684b1826a7a764).",
+      "observation": "The fixed UI-last instruction in repository_layout.implementation_instructions coexists with a policy to test the highest uncertainty first. The root guide also directs future shared-capability work to a parent ai-cap rule without a source in the protected checkout or its applicable instruction ancestors. The chart false-positive is independent evidence for the importance of testing the user-visible boundary. Its cause has not been attributed to the wording.",
+      "task_ids": [
+        "M0-163"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture"
+      ],
+      "resolution": {
+        "cause": "The repository layout directed contributors to leave UI until last while delivery prescribed the first observable high-risk boundary. The parent-rule reference had no usable source in a clean checkout.",
+        "correction": "Root and layout guidance now resolve to the versioned first-test and dependency rules, including a chart distinction, a protocol boundary and the appropriate local or provider requirements.",
+        "prevention": "Focused checks resolve the portable references and their source rules. Independent review exercised normal navigation, a rejected pointer, and valid and oversized frames."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "frozen-indicator-cropped-window-aborted-before-status-delivery",
       "status": "open",
       "severity": "major",
