@@ -26261,7 +26261,12 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-159-a77770791906a3a2.json",
+          "sha256": "e3be3642364f4e1b764232feed9a6cd1c436efd74e94139f662d7b0360684276"
+        }
+      ],
       "next_action": "Independently review the clean M0-159 policy candidate and the retained public decision and native evidence controls. The coordinator owns publishing, hosted checks and separate protected adoption. After adoption, the M0-153 repair owner registers planned task M0-160 and obtains current independent review and ordinary and guarded native evidence on the reconciled repair. The integration coordinator then owns M0-160 and the first actual protected main push. Keep the original deadline finding open until that event is verified.",
       "blocker": null,
       "closure_reason": null,
