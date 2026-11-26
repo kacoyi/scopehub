@@ -10,6 +10,26 @@
       "requested_at": "2026-11-25T22:54:00.492634+00:00",
       "request_id": "3ad4bfce72435d6675cdc16ba6744f79a70696011146c4430e03c217f69beba7",
       "evidence_sha256": "e54c1dd466302db96b8cf918c4858a76fd1f9ecc952239a012df23eb5c59f036"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "232d0902bd5013392c5edd9ccacd7a875d655d12",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-154 232d0902bd5013392c5edd9ccacd7a875d655d12",
+      "scope": "CHANGES_REQUESTED M0-154 232d0902bd5013392c5edd9ccacd7a875d655d12",
+      "observation": "In my replay, shifting the history request’s start time by one minute caused the request assertion to fail, but the startup attachment still reported `history-verified`.",
+      "reviewer": "Independent Astra Standard (t10n)",
+      "original_sha256": "b486ffd652a8e2c0763ed7922f23c3a43822335bdd187e107c034bd1f60ff54a",
+      "response_id": "b7dd6105ed2b5e1869e1dadf751d710a65296dd6d00acef5424de4c569282a0e",
+      "response_sha256": "be4b869fb9a53e09f3fdae160435c3643eb11edc1d339f6c3cd836afe876aa2f",
+      "legacy_response_sha256": "d69662b745ce266fbe56a659361ef1b625ef885af93f7b676b3139b4ae1212ff",
+      "observation_body_sha256": "6a019a0e7e965e9f019360f11a59b0ab9582f1094b1790c81da1f54fed060bfc",
+      "event": {
+        "id": "msg_09b99aeccf5a93e8016b076a69f32887d0a887dce4af8c3e2a",
+        "timestamp": "2026-11-25T23:08:43.889Z"
+      },
+      "supersedes": "3ad4bfce72435d6675cdc16ba6744f79a70696011146c4430e03c217f69beba7",
+      "evidence_sha256": "38ebca96eda445829c7e5561d50f771ef1a17288bef927a30e92b224d415e162"
     }
   ]
 }
