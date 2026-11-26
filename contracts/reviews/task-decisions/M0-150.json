@@ -1,0 +1,55 @@
+{
+  "version": 3,
+  "task_id": "M0-150",
+  "events": [
+    {
+      "kind": "decision",
+      "source_commit": "460248f97fdc6d7bf647ac6207eec38b5eb3ee22",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 460248f97fdc6d7bf647ac6207eec38b5eb3ee22",
+      "scope": "CHANGES_REQUESTED M0-150 460248f97fdc6d7bf647ac6207eec38b5eb3ee22",
+      "observation": "For both historical runs, the timing CLI rejected the authentic browser report when given its matching browser job, then restored the browser time when I added the recovery job.",
+      "reviewer": "Independent Astra Standard (t10z)",
+      "original_sha256": "6acc7b9f80348f9e624289e8004a065e2748c5aebf20676ad24d36bd03db2f8b",
+      "response_id": "b71d8c10195bf4f9d605bc57c5e57419a4affee280d0d8c33834dfebd7c3ab37",
+      "response_sha256": "bb973bcfbb2a3bab123ead7de7afe0d9c78db8cb0aeb3f5e14d842ce9a526bda",
+      "legacy_response_sha256": "ae8502da6afd190e6eb96f23d6ea28ab5c02be487551179e3486b595d3be120f",
+      "observation_body_sha256": "854c4bad8248df6052458315a9a37871992d61c821a928d736123af74b2db060",
+      "event": {
+        "id": "msg_0dc31d302fb4c8f6016b07486c5e0887d080e4fb641827efcd",
+        "timestamp": "2026-11-25T20:43:42.415Z"
+      },
+      "supersedes": null,
+      "evidence_sha256": "0b5d3a5063edeb06e23bf7e3735ca5809dcd5c6dd0e406f7b160380c1be01c3d"
+    },
+    {
+      "kind": "request",
+      "source_commit": "73fd47738b1dfb2c3e2497565a5eb0a43e2d2456",
+      "scope": "Review the exact publisher-source merge and the historical Windows single-job and full-platform distinctions. Recheck both earlier independent findings against authentic report/job permutations and unsupported static lane mutations; distinguish parent timing reviews from this task.",
+      "supersedes": "b71d8c10195bf4f9d605bc57c5e57419a4affee280d0d8c33834dfebd7c3ab37",
+      "requested_at": "2026-11-25T22:14:45.961218+00:00",
+      "request_id": "146865d5117e855c05346abd84b47a155e91f72b1556969797dac1dc73646ca0",
+      "evidence_sha256": "005852f7cd4797c19460718d5faae9f7e004497886825eb1cb41e29b21d8fbce"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "73fd47738b1dfb2c3e2497565a5eb0a43e2d2456",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 73fd47738b1dfb2c3e2497565a5eb0a43e2d2456",
+      "scope": "CHANGES_REQUESTED M0-150 73fd47738b1dfb2c3e2497565a5eb0a43e2d2456",
+      "observation": "For both historical runs, adding only the authentic browser job hid a controlled recovery cache conflict and changed the aggregate from unknown to warm.",
+      "reviewer": "Independent Astra Standard (t119)",
+      "original_sha256": "3c3d46e8428156b44070dd13ed5d8a79a58569679c69da5105356e3387aaebca",
+      "response_id": "aed6db8c3f2b43789abeaa5e38bca98d84325e574f245a7832f8b74db9a3d037",
+      "response_sha256": "d444c0bf6839f5f7ef274860fed2cf2fea2bddf2540c2d32b0a42924a1209144",
+      "legacy_response_sha256": "3f72ae78d3da18035dee7f8b8ae40b6a8532824ce21b98a1479e7c8ef5526fbf",
+      "observation_body_sha256": "66520da5b0bb6e73e100f495ea3ba3591812ad4427c323aa77c6f90e5db4fb4a",
+      "event": {
+        "id": "msg_08907633116e182f016b079d97d75887d2bd778031f2a5c5e1",
+        "timestamp": "2026-11-26T02:47:03.395Z"
+      },
+      "supersedes": "146865d5117e855c05346abd84b47a155e91f72b1556969797dac1dc73646ca0",
+      "evidence_sha256": "4ff82317263b6ca2ee4521c24c89873ddad1e400703c7927bd858f34217655f4"
+    }
+  ]
+}
