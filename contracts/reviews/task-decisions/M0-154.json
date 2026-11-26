@@ -184,6 +184,26 @@
       "requested_at": "2026-11-26T12:46:02.652286+00:00",
       "request_id": "0ac3985deba78705bb6ac7b08f5bb51480810125d2b6a25a061dc155528b65b2",
       "evidence_sha256": "628ce4a1c1d067cb7b1d646d0243ce035e6727607850c006c708883a2ff6b30b"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "83022759f4092699c08c0199cd8545c0b348a144",
+      "verdict": "approved",
+      "decision": "APPROVE M0-154 83022759f4092699c08c0199cd8545c0b348a144",
+      "scope": "APPROVE M0-154 83022759f4092699c08c0199cd8545c0b348a144",
+      "observation": "The candidate accepted the genuine candle image and rejected both the previously accepted left-side block and a copy of the genuine image with one upper wick removed.",
+      "reviewer": "Independent Astra Standard (t15y)",
+      "original_sha256": "f410cc4ab5fec0a797fbb31e25e606dab1adbb1e2b8e35d908d758bef01daa4a",
+      "response_id": "11f3186b325a933c472e1608e0f31733ba989cad41ee454e462cc0797910eec5",
+      "response_sha256": "f9e1db69df4c8155f12ee8e31690a64972588f907f4cd46d86c6c03e341bf29a",
+      "legacy_response_sha256": "061459ced26279f2d8809fd0da2bd750fc94d3207e5c7fe5c9f1f131e9875268",
+      "observation_body_sha256": "6abecf6b52a82ccd9e6cc309b9980bfe9a97c11130fbdf01777a3f27f9a38bb4",
+      "event": {
+        "id": "msg_00e429b476016608016b082ad305a087d1b1f577367c91ff3d",
+        "timestamp": "2026-11-26T12:49:37.187Z"
+      },
+      "supersedes": "0ac3985deba78705bb6ac7b08f5bb51480810125d2b6a25a061dc155528b65b2",
+      "evidence_sha256": "e8781637c659eaabc337f68acad649077644de8fc546b1010449cd6f488527bd"
     }
   ]
 }
