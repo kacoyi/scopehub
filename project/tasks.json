@@ -26905,7 +26905,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Reconcile the engineering record with the implemented public consumer and accepted indicator-workflow evidence, verify the changed and unaffected cases, and return the candidate for review.",
+      "next_action": "Independently review the clean candidate, the retained original observation and the static Python import controls before recording acceptance and handing off for protected verification.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
