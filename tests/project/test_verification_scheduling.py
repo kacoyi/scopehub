@@ -707,18 +707,21 @@ class WindowsLaneTests(ProjectFixture):
                 '        if not opposite: emit("cleanup ok")\n', encoding='utf-8')
         elif discovery == 'nested_unittest_suite':
             (self.root / 'tests/project/test_first.py').write_text(
-                'import os, unittest\n'
+                'import os, sys, unittest\n'
                 'class Outer(unittest.TestCase):\n'
-                '    def run_inner(self, skip=False):\n'
-                '        def inner():\n'
-                '            if skip: raise unittest.SkipTest("inner fixture skip")\n'
+                '    def run_inner(self, inner):\n'
                 '        result = unittest.TextTestRunner(verbosity=2).run(unittest.FunctionTestCase(inner))\n'
                 '        self.assertTrue(result.wasSuccessful())\n'
                 '    def test_first_skip(self):\n'
-                '        self.run_inner()\n'
+                '        def described_inner():\n'
+                '            """A nested case description."""\n'
+                '        self.run_inner(described_inner)\n'
                 '        self.skipTest("outer fixture skip")\n'
                 '    def test_last_pass(self):\n'
-                '        self.run_inner("SCOPEHUB_NESTED_SKIP" in os.environ)\n', encoding='utf-8')
+                '        def inline_inner():\n'
+                '            print("nested progress ", file=sys.stderr, end="", flush=True)\n'
+                '            if "SCOPEHUB_NESTED_SKIP" in os.environ: raise unittest.SkipTest("inner fixture skip")\n'
+                '        self.run_inner(inline_inner)\n', encoding='utf-8')
         elif discovery == 'legacy_atexit_suite':
             (self.root / 'tests/project/test_first.py').write_text(
                 'import atexit, unittest\n'
@@ -1276,6 +1279,8 @@ class WindowsLaneTests(ProjectFixture):
         self.assertEqual(raw, (published / source_log).read_bytes())
         self.assertEqual(2, raw.count(b'Ran 1 test in '))
         self.assertIn(b'Ran 2 tests in ', raw)
+        self.assertIn(b'A nested case description. ... ok', raw.splitlines())
+        self.assertIn(b'FunctionTestCase (inline_inner) ... nested progress ', raw)
         self.checkout_report_head(report)
         report_path = published / 'test-report.json'
         receipt = self.record_report(report_path, artifact=published)

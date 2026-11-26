@@ -26430,7 +26430,7 @@
             ]
           },
           {
-            "failure": "A nested unittest run can print a complete progress section and footer before the outer callback. Treating the first footer or earlier nested status as the outer result rejects genuine legacy paths. Regress the nested pass before the outer skip, misleading footer and shutdown runner controls, and the modern producer witness.",
+            "failure": "A nested unittest run can print a complete progress section and footer before the outer callback. Treating the first footer or earlier nested status as the outer result rejects genuine legacy paths. Regress the nested pass before the outer skip, including an inner description and inline progress, misleading footer and shutdown runner controls, and the modern producer witness.",
             "checks": [
               "project-state",
               "python-contracts-workers"

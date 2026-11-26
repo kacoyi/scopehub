@@ -42,7 +42,7 @@ RUNNER_DURATIONS = re.compile(
     re.MULTILINE,
 )
 RUNNER_ERRORS = re.compile(rb'^={70}\n(?:FAIL|ERROR|UNEXPECTED SUCCESS): ', re.MULTILINE)
-NESTED_TEST_LINE = re.compile(rb'[^\s()]+ \([^\n()]+\) \.\.\. ')
+NESTED_TEST_LABEL = re.compile(rb'[^\s()]+ \([^\n()]+\)')
 # Redirected legacy Windows stderr used the host ANSI code page unless Python
 # was configured for UTF-8. Verify a consistent encoding across the whole run.
 RUNNER_ENCODINGS = ('utf-8', 'cp874', 'cp932', 'cp936', 'cp949', 'cp950',
@@ -436,6 +436,9 @@ def runner_section(segment, *, empty_run=False):
     offset = 0
     for footer in RUNNER_SUMMARY.finditer(segment):
         prefix = segment[offset:footer.start()]
+        # Keep competing suffixes even if the bytes resemble nested runner
+        # details. Test output can imitate the detail headings too.
+        alternatives.update(runner_outcomes(prefix))
         durations = RUNNER_DURATIONS.search(prefix)
         if durations is not None:
             prefix = prefix[:durations.start()]
@@ -443,7 +446,6 @@ def runner_section(segment, *, empty_run=False):
             prefix = prefix[:errors.start()]
         nested = nested_run_start(prefix, footer)
         outcomes.update(runner_outcomes(prefix[:nested]))
-        alternatives.update(runner_outcomes(prefix))
         if nested is None and (outcomes or empty_run):
             return footer, outcomes, alternatives
         offset = footer.end()
@@ -463,10 +465,17 @@ def nested_run_start(prefix, footer):
         if end <= 0:
             return None
         start = prefix.rfind(b'\n', 0, end) + 1
-        line = prefix[start:end]
-        label = NESTED_TEST_LINE.match(line)
-        if label is None or (status := RUNNER_OUTCOME.fullmatch(line[label.end():])) is None:
+        description, delimiter, tail = prefix[start:end].partition(b' ... ')
+        if not delimiter or (status := RUNNER_OUTCOME.search(tail)) is None:
             return None
+        if not NESTED_TEST_LABEL.fullmatch(description):
+            # unittest puts the optional short description on its own line.
+            if not start or not description:
+                return None
+            name = prefix.rfind(b'\n', 0, start - 1) + 1
+            if not NESTED_TEST_LABEL.fullmatch(prefix[name:start - 1]):
+                return None
+            start = name
         outcome = 'skipped' if status[1].startswith(b'skipped ') else status[1].decode('ascii')
         if key := OUTCOMES[outcome]:
             counts[key] += 1
