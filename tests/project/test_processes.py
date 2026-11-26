@@ -956,7 +956,33 @@ class LogFinalizationTests(ProjectFixture):
         self.assertEqual(resolved['source_commit'], verified_retry['source_commit'])
 
 
+def start_terminal_lock_peer(root):
+    # The test owns the stdin writer. EOF releases the witness on cleanup or parent exit.
+    return subprocess.Popen([sys.executable, '-c', '''
+import fcntl, sys
+from pathlib import Path
+
+with open('.reports/unrelated.lock', 'w') as handle:
+    fcntl.flock(handle, fcntl.LOCK_EX)
+    Path('.reports/unrelated-ready').touch()
+    sys.stdin.buffer.read()
+'''], cwd=root, stdin=subprocess.PIPE)
+
+
 class TerminalPublicationTests(ProjectFixture):
+    def release_lock_peer(self, peer, lock):
+        import fcntl
+
+        try:
+            peer.stdin.close()
+            self.assertEqual(0, peer.wait(timeout=5), 'the independent lock witness did not exit cleanly')
+        finally:
+            if peer.poll() is None:
+                peer.kill()
+                peer.wait(timeout=5)
+        with lock.open('rb') as handle:
+            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
     @unittest.skipUnless(sys.platform == 'linux', 'requires an owned Linux stdout pipe and POSIX SIGINT')
     def test_single_sigint_releases_blocked_terminal_and_preserves_report(self):
         import fcntl
@@ -1042,19 +1068,8 @@ check.main()
             return reports / 'runs' / report['run_id'] / 'test-report.json'
 
         lock = reports / 'unrelated.lock'
-        stopped = reports / 'unrelated-stop'
-        unrelated = subprocess.Popen([sys.executable, '-c', '''
-import fcntl, time
-from pathlib import Path
-with open('.reports/unrelated.lock', 'w') as handle:
-    fcntl.flock(handle, fcntl.LOCK_EX)
-    Path('.reports/unrelated-ready').touch()
-    deadline = time.monotonic() + 30
-    while not Path('.reports/unrelated-stop').exists() and time.monotonic() < deadline:
-        time.sleep(.02)
-'''], cwd=self.root)
-        self.addCleanup(unrelated.wait, timeout=5)
-        self.addCleanup(stopped.touch)
+        unrelated = start_terminal_lock_peer(self.root)
+        self.addCleanup(self.release_lock_peer, unrelated, lock)
         wait_until((reports / 'unrelated-ready').exists, 'the independent fixture did not acquire its lock')
 
         cases = [

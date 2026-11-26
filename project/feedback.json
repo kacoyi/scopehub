@@ -7518,6 +7518,37 @@
         "prevention": "Run the assigned-process test on Windows alongside its redirector control, the timeout cleanup and the external reader. The Linux contrast independently checks a distinct redirector PID and process group."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "interrupt-regression-peer-lock-unheld-at-last-running-stage",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Protected Linux run 45712964544 and identical-tree PR 124 run 45709305124. Original report archives/runs/20261125T222514.810400Z-4ec1e5c9/test-report.json. The retained comparison is archives/observations/repo-hygiene-20261125/m0-157-terminal-lock-45712964544/observation.json (SHA-256 b3cecaac05b7015850f94c1fd80de73cacbc09b2b066d49572024e8eaff45d23). Linux PR 128 run 45716055348 attempt 1 repeated the failure. Original report archives/runs/20261125T224715.532164Z-bac3bdc0/test-report.json. The retained source comparison is archives/observations/repo-hygiene-20261125/m0-157-pull-request-recurrence-45716055348/observation.json (SHA-256 08b406ade058259e18b01270e84943b3cfae607b7ae16277e92f352fb8b15187).",
+      "observation": "The final running-stage subtest acquired the peer lock after one SIGINT. Its seven-scenario test took 30.242 seconds and the helper uses a 30-second lifetime starting before the scenarios. The same-tree PR completed the test in 16.462 seconds. The failing run did not report the helper exit reason or lock-release time. PR 128 hit the identical final running-stage assertion in 30.851 seconds, the sole failure among 838 tests. The protected, submitted and preview sources match on the five involved code paths. The second hosted report also lacks peer exit and lock-release telemetry.",
+      "task_ids": [
+        "M0-157"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T222514.810400Z-4ec1e5c9",
+          "source_commit": "5aedc53645f217b18bdf996f987019d75bb098c2",
+          "report_sha256": "14548f0393830e4c498471ba573ce76a12743c68cc4ca96aaec233123dfa6fe9"
+        },
+        {
+          "run_id": "20261125T224715.532164Z-bac3bdc0",
+          "source_commit": "0d44ea5f13cc4f50e1bbfb7a3f2ff2ce9ae3395e",
+          "report_sha256": "67fce911b24ee381336706ccddc7190909437d577c2dceaa9ce7ef400873ad6c"
+        }
+      ],
+      "resolution": {
+        "cause": "The test peer had a 30-second independent lifetime. A controlled slow run observed it exiting normally and releasing the lock before the final stage. The original hosted runs did not record the exit reason.",
+        "correction": "The test controller owns the stdin writer and the independent peer holds the lock until EOF. Cleanup reaps the peer and verifies release.",
+        "prevention": "The seven-stage public SIGINT test checks that the unrelated peer keeps its lock and that reports, cleanup and retries remain intact. Retained controls verify the old deadline, deliberate early release and controller exit."
+      },
+      "deferral_reason": null
     }
   ]
 }
