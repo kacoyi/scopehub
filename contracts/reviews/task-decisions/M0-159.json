@@ -77,6 +77,26 @@
       "requested_at": "2026-11-26T13:00:34.937647+00:00",
       "request_id": "e899c83275dd1f36594dbcb69e8f83506122df0730d2b8898d04ddcc074a73a3",
       "evidence_sha256": "70992823be58f3e7dbfe06645eef56e96b52a4cf08079f2053318e93acc42220"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "1010403186cc9004da907cbdf90774b4ad271a20",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-159 1010403186cc9004da907cbdf90774b4ad271a20",
+      "scope": "CHANGES_REQUESTED M0-159 1010403186cc9004da907cbdf90774b4ad271a20",
+      "observation": "In the offline replay, making one conflicting Windows report unreadable changed the first-push observation from missing to passed with both diagnostic references unchanged.",
+      "reviewer": "Independent Astra Standard (t16g)",
+      "original_sha256": "256f6c5fb291e33055614d0bb9cfc6542fb6a031909451ad4faade688a18c071",
+      "response_id": "2c25946094e05b12b97d75802953cf7bf56438bafcf4346b5d5f0cf3b635bde3",
+      "response_sha256": "7a08b25c90e5d6d09339918b3add9de80ab6f91769d888d5791e2d2ac666c4a0",
+      "legacy_response_sha256": "ffec9d22e22e19a6b151648c51641416d09d15dc2324c9f4078423c78f456245",
+      "observation_body_sha256": "3d7a74493e345dfe0b859ee9114229e176ed66c06137b16fa409b2da2adcc14b",
+      "event": {
+        "id": "msg_0a1f88153a24af98016b082fc9cbdc87d2b16ee40d999dc79d",
+        "timestamp": "2026-11-26T13:10:51.823Z"
+      },
+      "supersedes": "e899c83275dd1f36594dbcb69e8f83506122df0730d2b8898d04ddcc074a73a3",
+      "evidence_sha256": "643588382550bf5c93d2b11447f22b14ebd65800063a3d2be5ff0c1befe7e109"
     }
   ]
 }
