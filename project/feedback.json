@@ -8138,6 +8138,37 @@
       "deferral_reason": null
     },
     {
+      "id": "frozen-indicator-cropped-window-aborted-before-status-delivery",
+      "status": "addressed",
+      "severity": "major",
+      "source": "First native observation archives/observations/repo-hygiene-20261125/pr137-native-original-45823962357/manifest.json (SHA-256 c6dd51e2ca444c08639241eb14492ea9d1b47d2f4ec3ae0853d80a96bcff96fe).",
+      "observation": "Ordinary PR 137 Windows run 45823962357 failed at the cropped-window frozen indicator after a full-window ready result and a recovered status delivery. The third journal retained a committed draft and preview and one ready reply recorded before simulated loss. It ended after 3325 ms with four attempts, without a recorded next status delivery. Playwright reported AbortError with TimeoutError. The same candidate passed the scoped Linux and Windows task. The failed report does not establish which call timed out.",
+      "task_ids": [
+        "M0-166"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe",
+        "desktop-workspace-transport",
+        "ui-build",
+        "market-workflow"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45823962357-1",
+          "source_commit": "9f3a91950aee9e7c81819a0d27027fa2b9cc7514",
+          "report_sha256": "078717eb8956e711ef6b2262f43f70349a0d1d0901983b395af324135ec03f8c"
+        }
+      ],
+      "resolution": {
+        "cause": "The original PR 137 Windows journal recorded the upstream ready result on a request started at 211 ms in the second cropped trial. The fixture marked the response as lost before waiting for its tagged snapshot write and attempting the browser reset. The trial ended at 3325 ms with AbortError caused by TimeoutError and four recorded attempts. These are trial-relative timings. The journal records no browser delivery on the final attempt, later status request, or cancellation of that trial's task. The timing and source order are compatible with the fixture's three-second writer-observation wait. The exact timed-out call and internal reason for the abort remain unassigned because the original lacks snapshot HTTP, writer-stage and route-phase observations. The same-tree guarded Windows run 45824846885 recorded both resets, a genuine status refusal and cancellation in the corresponding trial.",
+        "correction": "Journal intercepted ready, tagged snapshot HTTP and writer stages, route failure, and browser delivery separately. Classify an HTTP response that settles before a writer event and preserve the first route failure through disposal. The competing-snapshot control confirms a real HTTP 429 BUSY with no intended write and a browser route failure in write-snapshot before any simulated ready reset. After draining the competing write, a fresh status request recovers the identical ready result for the admitted task. Closing the chart cancels that task, and the fixture verifies profile removal and port release.",
+        "prevention": "First ordinary PR 139 run 45830747074 verified both hosted platforms. The full window and one-reset cropped recovery rendered zero terminal volatility, and the cropped run retained warm-up provenance. The two-reset cropped trial recorded one genuine gated status refusal, one cancellation of the current task and the expected terminal alert. Separate synthetic refusal controls exercised termination between requests and expiry with an unforwarded final status request held in flight. The latter recorded the browser abort and no HTTP response before cancellation. Both use the existing 15-second polling deadline. The split-upload draft control delivered retryable HTTP 429 after complete upload, including after the writer became free, and checked committed receipt identity on an identical retry and rejection of altered same-key bytes. The coordinator owns the protected main recheck."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "windows-cancelled-indicator-scratch-survives-completion",
       "status": "addressed",
       "severity": "major",
