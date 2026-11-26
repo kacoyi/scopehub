@@ -628,6 +628,40 @@ class DevelopmentTests(ProjectFixture):
         for field in ('roles', 'language', 'validation', 'packaging'):
             self.assertTrue(resolve_source(root, {'path': path, 'pointer': f'/stack/workers/{field}'}))
 
+    def test_first_test_guidance_reaches_delivery_authority_and_boundary_examples(self):
+        root = Path(__file__).resolve().parents[2]
+        path = 'engineering-contract-v1.json'
+        pointer = '/implementation_policy/first_test'
+        guidance = resolve_source(root, {'path': path, 'pointer': pointer})
+        self.assertEqual(resolve_source(root, {'path': 'project/delivery.json', 'pointer': '/iteration_policy/during/0'}),
+                         guidance['principle'])
+        self.assertEqual({'chart_rendering', 'protocol_or_permission'}, guidance['examples'].keys())
+        for example in guidance['examples'].values():
+            self.assertTrue(example['observe'])
+            self.assertTrue(example['reject'])
+        reference = f'{path}#{pointer}'
+        self.assertIn(reference, (root / 'AGENTS.md').read_text(encoding='utf-8'))
+        instructions = resolve_source(root, {'path': path, 'pointer': '/implementation_instructions'})
+        self.assertTrue(any(reference in instruction for instruction in instructions))
+
+    def test_dependency_guidance_reaches_local_pins_and_external_authorization(self):
+        root = Path(__file__).resolve().parents[2]
+        path = 'engineering-contract-v1.json'
+        pointer = '/implementation_policy/build_or_reuse'
+        guidance = resolve_source(root, {'path': path, 'pointer': pointer})
+        self.assertEqual(resolve_source(root, {'path': 'project/dependencies.json', 'pointer': '/maintenance/procedure/2'}),
+                         guidance['local_dependencies']['review'])
+        external = guidance['shared_capabilities_and_providers']
+        for reference, target in (
+            (guidance['local_dependencies']['versioning'], '/implementation_policy/dependencies'),
+            (external['authorization'], '/implementation_policy/changes'),
+        ):
+            self.assertEqual({'path': path, 'pointer': target}, reference)
+            self.assertTrue(resolve_source(root, reference))
+        self.assertTrue(external['requirements'])
+        self.assertTrue(external['unavailable'])
+        self.assertIn(f'{path}#{pointer}', (root / 'AGENTS.md').read_text(encoding='utf-8'))
+
     def test_linked_workflow_and_nested_fixture_reach_navigation_and_project_checks(self):
         path = 'engineering-contract-v1.json'
         spec = read_json(self.root / path)

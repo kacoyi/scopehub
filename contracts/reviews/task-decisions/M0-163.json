@@ -1,0 +1,35 @@
+{
+  "version": 3,
+  "task_id": "M0-163",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "821a1eaaf5f1ea238472e9d111da87a0c7c30104",
+      "scope": "Trace the first actionable test and shared-capability decision from a clean checkout without host-specific guidance. Compare distinct product and protocol risks, optional external dependencies and genuinely restricted provider use. Check the durable source, existing authorization and any removed wording.",
+      "supersedes": null,
+      "requested_at": "2026-11-26T07:31:38.719414+00:00",
+      "request_id": "86ba1e252b7fcd7652e3363561574f9e219d158cd34caad3b397136c19101de7",
+      "evidence_sha256": "ffaf406f87c4b69e605afcb6d482c601a78889469b0fd8ce212dcda1e4cc2032"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "821a1eaaf5f1ea238472e9d111da87a0c7c30104",
+      "verdict": "approved",
+      "decision": "APPROVE M0-163 821a1eaaf5f1ea238472e9d111da87a0c7c30104",
+      "scope": "APPROVE M0-163 821a1eaaf5f1ea238472e9d111da87a0c7c30104",
+      "observation": "From the clean candidate, the public source command resolved both guidance paths to their committed rules and rejected a missing authorization pointer.",
+      "reviewer": "Independent Astra Standard (t15j)",
+      "original_sha256": "1e312692bea8189b9c0322669c033c6dd9639f1162db56945315d097dd12141e",
+      "response_id": "63f4c6ff5661c60f9352e289d4a80a2cb6288decedee4fae3f7b2b00bac19e07",
+      "response_sha256": "ddc78e09b7dbc07bd73afee21b4bfe82fbe50d6febeabe6b61d50adeebd12bf1",
+      "legacy_response_sha256": "b480bf53e5b2927591a7f8c7cab4680fb4de5cc42bf60b1410cda6be7b6f1b7b",
+      "observation_body_sha256": "57c4e1a60a3409a273e936e706b6bcb33ec7ed0957bc45722b77c6a9d2fcbc2a",
+      "event": {
+        "id": "msg_0bb7be20442bd868016b0827e58da887d28f60b50f83351be4",
+        "timestamp": "2026-11-26T12:37:11.709Z"
+      },
+      "supersedes": "86ba1e252b7fcd7652e3363561574f9e219d158cd34caad3b397136c19101de7",
+      "evidence_sha256": "d37a1eb6993c26b8ad24b88a3b85306ea4eab98bafc9996d8197bc922355b666"
+    }
+  ]
+}
