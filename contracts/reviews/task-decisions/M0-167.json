@@ -68,6 +68,26 @@
       "requested_at": "2026-11-26T14:10:22.355796+00:00",
       "request_id": "092c4509fa63f2d19e00b9089f2c0a219ea8708a87d3454314d19c233d233582",
       "evidence_sha256": "ec6b14166e3c94b52a9575b81ca48887a66ab909fae6833a92afe50a84c6fd25"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "cf1eb9da0acb97e1dc74c59377280f1a4bcf3274",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-167 cf1eb9da0acb97e1dc74c59377280f1a4bcf3274",
+      "scope": "CHANGES_REQUESTED M0-167 cf1eb9da0acb97e1dc74c59377280f1a4bcf3274",
+      "observation": "The candidate preview transport returned the same success artifact after a controlled carrier exited with code 0, exited with code 1, or was terminated by SIGTERM.",
+      "reviewer": "Independent Astra Standard (t187)",
+      "original_sha256": "105cc38ebe5ba8119ec8dc3400a1f6ea0406a4dbe7bbf92188aff519e13b6c82",
+      "response_id": "1337872b929c55728ed40127b62a97e1fe5a4a15bb8c9fa4b00376169cf9e7f6",
+      "response_sha256": "66f62cff34c09f8bafa628a3107284f42206e236cfea2f60062798d7f76b7174",
+      "legacy_response_sha256": "83970cd81144e3e50ee5ee0b41f7e7b781c40d876abb4b12f41db9b4ed855539",
+      "observation_body_sha256": "62056b82497847359413bdbc3ef2e5f70b260a1d52434ce6e9be40aa9d3440db",
+      "event": {
+        "id": "msg_07384f2bfe74f15c016b083f21414487d296e2d43c2642a532",
+        "timestamp": "2026-11-26T14:16:21.542Z"
+      },
+      "supersedes": "092c4509fa63f2d19e00b9089f2c0a219ea8708a87d3454314d19c233d233582",
+      "evidence_sha256": "2c756214b87954ac3d87ee36d3fe967504b408f9c83c4969aa4b9078da086d7d"
     }
   ]
 }
