@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { painted } from '../ui/chart-pixels.mjs';
 import { replayStage, waitForReplayRequest } from '../ui/replay-stages.mjs';
-import { openDefaultSample } from '../ui/sample-startup.mjs';
+import { openDefaultSample, sampleCatalogCall, sampleHistoryCall } from '../ui/sample-startup.mjs';
 import { control, openPanel } from '../ui/workspace-controls.mjs';
 
 const stream = '/__scopehub/market-stream';
@@ -179,6 +179,18 @@ test('sample startup reports a terminal document before any committed sample', a
   }
 });
 
+const navigationDeadlineMs = 10_000;
+const timerRoundingMs = 5;
+
+function verifyHeldModuleElapsed({ elapsed_ms }, independentElapsedMs) {
+  // Timer delivery can run late. Compare the two readings around the same cutoff.
+  const samplingToleranceMs = 250;
+  const earliestMs = Math.max(navigationDeadlineMs - timerRoundingMs, independentElapsedMs - samplingToleranceMs);
+  if (!Number.isInteger(elapsed_ms) || elapsed_ms < earliestMs || elapsed_ms > independentElapsedMs + samplingToleranceMs) {
+    throw new Error(`Sample startup attachment elapsed ${elapsed_ms} ms disagrees with the independent ${independentElapsedMs} ms reading`);
+  }
+}
+
 test('sample startup identifies a committed document with a held required module at the original deadline', async ({ page }) => {
   const release = Promise.withResolvers();
   const reload = page.getByRole('button', { name: 'Reload window' });
@@ -188,18 +200,30 @@ test('sample startup identifies a committed document with a held required module
   });
   try {
     let observation;
+    let independentElapsedMs;
+    const started = process.hrtime.bigint();
     const stopped = expect(openDefaultSample(page, { reportStartup: report => {
+      independentElapsedMs = Math.round(Number(process.hrtime.bigint() - started) / 1_000_000);
       observation = report;
       return attachSampleStartup(report);
-    } })).rejects.toThrow('Timeout 10000ms exceeded');
+    } })).rejects.toThrow(`Timeout ${navigationDeadlineMs}ms exceeded`);
     await expect(reload).toBeEnabled();
     await stopped;
+    await test.info().attach('sample-startup-clock', {
+      contentType: 'application/json', body: JSON.stringify({ elapsed_ms: independentElapsedMs }),
+    });
     expect(observation).toMatchObject({ stage: 'document-committed',
       document: { http: 200, committed_ms: expect.any(Number) },
       pending: expect.arrayContaining([expect.objectContaining({ type: 'script', asset: '/src/workspace-start.ts' })]),
     });
     expect(observation.document.dom_content_loaded_ms).toBeUndefined();
     expect(observation.catalog_verified_ms).toBeUndefined();
+    expect(independentElapsedMs).toBeGreaterThanOrEqual(navigationDeadlineMs - timerRoundingMs);
+    verifyHeldModuleElapsed(observation, independentElapsedMs);
+    for (const elapsed_ms of [0, 60_000]) {
+      expect(() => verifyHeldModuleElapsed({ ...observation, elapsed_ms }, independentElapsedMs))
+        .toThrow(`Sample startup attachment elapsed ${elapsed_ms} ms disagrees`);
+    }
     await expect(chart(page)).toHaveCount(0);
   } finally {
     release.resolve();
@@ -241,6 +265,69 @@ test('DOMContentLoaded with a held dynamic entry still waits for the verified sa
     await page.unrouteAll({ behavior: 'wait' });
   }
 });
+
+for (const [change, stage, rejectedOperation] of [
+  ['history start', 'catalog-verified', 'market.readHistoryPage'],
+  ['catalog limit', 'dom-content-loaded', 'instrument.search'],
+  ['request order', 'dom-content-loaded', 'market.readHistoryPage'],
+]) {
+  test(`sample startup reports its last verified stage with a changed ${change}`, async ({ page }) => {
+    const catalog = structuredClone(sampleCatalogCall);
+    const history = sampleHistoryCall();
+    if (change === 'history start') history.payload.from_ms += 60_000;
+    if (change === 'catalog limit') catalog.payload.limit = 49;
+    const reversed = change === 'request order';
+    await page.addInitScript(({ change, earlyHistoryCall }) => {
+      const fetch = window.fetch;
+      let earlyHistory;
+      window.fetch = async (url, options) => {
+        if (url !== '/__scopehub/operation') return fetch(url, options);
+        const call = JSON.parse(options.body);
+        const send = body => fetch(url, { ...options, body: JSON.stringify(body) });
+        if (call.operation === 'instrument.search' && change === 'request order') {
+          earlyHistory = await send(earlyHistoryCall);
+          await earlyHistory.clone().arrayBuffer();
+        }
+        if (call.operation === 'instrument.search' && change === 'catalog limit') call.payload.limit = 49;
+        if (call.operation === 'market.readHistoryPage') {
+          if (earlyHistory) return earlyHistory;
+          if (change === 'history start') call.payload.from_ms += 60_000;
+        }
+        return send(call);
+      };
+    }, { change, earlyHistoryCall: history });
+
+    const navigations = [];
+    const calls = [];
+    const replies = [];
+    page.on('request', request => {
+      if (request.isNavigationRequest()) navigations.push(request.method());
+      if (request.method() === 'POST') calls.push(request.postDataJSON());
+    });
+    page.on('response', response => {
+      if (response.request().method() === 'POST') replies.push(response);
+    });
+    let observation;
+    const rejected = await openDefaultSample(page, { reportStartup: report => {
+      observation = report;
+      return attachSampleStartup(report);
+    } }).catch(error => error);
+    await expect.poll(() => replies.length).toBe(2);
+    expect(navigations).toEqual(['GET']);
+    expect(calls).toEqual(reversed ? [history, catalog] : [catalog, history]);
+    for (const reply of replies) {
+      expect(reply.status()).toBe(200);
+      expect(await reply.json()).toMatchObject({ ok: true });
+    }
+    expect(observation.stage).toBe(stage);
+    expect(rejected).toBeInstanceOf(Error);
+    expect(rejected.message).toContain(`POST parameters for ${rejectedOperation}`);
+    if (stage === 'catalog-verified') expect(observation.catalog_verified_ms).toEqual(expect.any(Number));
+    else expect(observation.catalog_verified_ms).toBeUndefined();
+    expect(observation.history_verified_ms).toBeUndefined();
+    expect(observation.sample_verified_ms).toBeUndefined();
+  });
+}
 
 async function routeCompletedRepair(page, rewrite, headers) {
   const observed = Promise.withResolvers();

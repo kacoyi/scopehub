@@ -188,6 +188,28 @@ export async function openDefaultSample(page, { trigger, verifyChart, reportStar
   const historyCall = sampleHistoryCall();
   const observer = observeSampleRequests(page);
   const startup = reportStartup && !trigger ? observeSampleDocument(page) : undefined;
+  const attempts = observer.attempts.values();
+  let previousFinish = 0;
+  const verifyRequest = async expected => {
+    for (let next = attempts.next(); !next.done; next = attempts.next()) {
+      const attempt = next.value;
+      const label = attempt.call?.operation ?? attempt.path;
+      expect(attempt.path, `POST endpoint for ${label}`).toBe(operation);
+      expect(attempt.failure, `Transport failure for ${label}`).toBeUndefined();
+      expect(attempt.response, `Response received for ${label}`).toBeDefined();
+      expect(attempt.finished, `Response finished for ${label}`).toBeDefined();
+      expect(attempt.call, `POST parameters for ${label}`).toEqual(expected);
+      expect(attempt.issued, `Previous response finished before ${label} was sent`).toBeGreaterThan(previousFinish);
+      previousFinish = attempt.finished;
+      if (attempt.response.status() === 429) {
+        expect(await attempt.response.json(), `Pre-admission BUSY for ${label}`).toEqual(busy);
+      } else {
+        expect(attempt.response.status(), label).toBe(200);
+        return;
+      }
+    }
+    throw new Error(`Missing completed POST for ${expected.operation}`);
+  };
   try {
     const navigation = await (trigger ? trigger() : page.goto('/#demo', {
       waitUntil: 'domcontentloaded', timeout: 10_000,
@@ -197,9 +219,11 @@ export async function openDefaultSample(page, { trigger, verifyChart, reportStar
     });
     if (navigation?.status() >= 400) throw new Error(`Sample document GET returned HTTP ${navigation.status()}`);
     const catalog = await observer.read(sampleCatalogCall.operation);
+    await verifyRequest(sampleCatalogCall);
     expect(catalog.instruments.map(item => item.id)).toContain(future);
     startup?.mark('catalog_verified_ms');
     const history = await observer.read(historyCall.operation);
+    await verifyRequest(historyCall);
     expect(history.snapshot.series).toEqual(historyCall.payload.series);
     expect(history.snapshot.dataset_revision).toBe(normalRevision);
     expect(history.total_bars).toBe(40);
@@ -212,26 +236,7 @@ export async function openDefaultSample(page, { trigger, verifyChart, reportStar
     await expect(chart(page)).toHaveAttribute('data-bars', '40');
     if (verifyChart) await verifyChart(history.snapshot);
 
-    const expected = [sampleCatalogCall, historyCall];
-    let phase = 0;
-    let previousFinish = 0;
-    for (const attempt of observer.attempts.values()) {
-      const label = attempt.call?.operation ?? attempt.path;
-      expect(attempt.path, `POST endpoint for ${label}`).toBe(operation);
-      expect(attempt.failure, `Transport failure for ${label}`).toBeUndefined();
-      expect(attempt.response, `Response received for ${label}`).toBeDefined();
-      expect(attempt.finished, `Response finished for ${label}`).toBeDefined();
-      expect(attempt.call, `POST parameters for ${label}`).toEqual(expected[phase]);
-      expect(attempt.issued, `Previous response finished before ${label} was sent`).toBeGreaterThan(previousFinish);
-      previousFinish = attempt.finished;
-      if (attempt.response.status() === 429) {
-        expect(await attempt.response.json(), `Pre-admission BUSY for ${label}`).toEqual(busy);
-      } else {
-        expect(attempt.response.status(), label).toBe(200);
-        phase++;
-      }
-    }
-    expect(phase, 'catalog and history each completed once').toBe(expected.length);
+    expect(attempts.next().done, 'catalog and history each completed once').toBe(true);
     startup?.mark('sample_verified_ms');
     return history.snapshot;
   } finally {
