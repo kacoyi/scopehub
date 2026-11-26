@@ -45,6 +45,7 @@ SCOPE_FILE = 'verification-scope.json'
 WINDOWS_GENERATOR_SAMPLE = 'windows-generator-sample.json'
 SCOPE_FIELDS = {'profile', 'reason_code', 'base', 'checkout', 'change_count'}
 COMMIT_SHA = re.compile(r'(?!0{40})[0-9a-f]{40}')
+RUN_ID = re.compile(r'[a-zA-Z0-9_-][a-zA-Z0-9._-]*')
 BROWSER_OUTPUTS = {
     'market-live-stream': ('results.json', 'market-stream-', ('synthetic-replay-final.png',)),
     'market-quality-states': ('results.json', 'market-quality-', ('synthetic-market-quality.png',)),
@@ -260,6 +261,8 @@ def python_parts(reports, report, lanes, destination=None):
         raise PublicationError('Missing or unexpected Windows Python parts.')
     if report['report_version'] != (windows_python.REPORT_VERSION if lanes else '2.0'):
         raise PublicationError('The harness report version differs from its Windows Python evidence.')
+    if not RUN_ID.fullmatch(report['run_id']):
+        raise PublicationError('Invalid verification run identifier.')
     parts = []
     run = f"runs/{report['run_id']}"
     for lane in lanes:
@@ -272,8 +275,10 @@ def python_parts(reports, report, lanes, destination=None):
         manifest = f'{run}/{label}.json'
         has_log = 'log' in record
         passed = record['status'] == 'passed'
-        if has_log and (record['log'] != '.reports/' + log or 'log_sha256' not in record
-                        or 'started_at' not in record or duration(record.get('duration_seconds')) is None
+        if has_log and record['log'] != '.reports/' + log:
+            raise PublicationError('The Windows Python part log is misplaced.')
+        if has_log and ('log_sha256' not in record or 'started_at' not in record
+                        or duration(record.get('duration_seconds')) is None
                         or 'exit_code' not in record):
             raise PublicationError('Incomplete Windows Python process evidence.')
         if not has_log and (record.get('reason_code') not in {'earlier_failure', 'executable_unavailable'}
@@ -346,6 +351,13 @@ def combined_python(project, report, parts):
     return record, raw
 
 
+def validate_combined_python(project, reports, report, destination=None):
+    parts = python_parts(reports, report, windows_python.LANES, destination)
+    check, _ = combined_python(project, report, parts)
+    if [row for row in report['checks'] if row['id'] == windows_python.CHECK] != [check]:
+        raise PublicationError('The Windows Python check differs from its original part results.')
+
+
 def validate_partitioned_publication(root, project, report, env, selected):
     source = source_identity(root)
     ci = report['ci']
@@ -381,7 +393,7 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False, collect
     if not expected or report.get('ci') != expected or expected['checkout_sha'] != env['GITHUB_SHA']:
         raise PublicationError('Report provenance does not match the current hosted job.')
     run_id = report['run_id']
-    if not re.fullmatch(r'[a-zA-Z0-9_-][a-zA-Z0-9._-]*', run_id):
+    if not RUN_ID.fullmatch(run_id):
         raise PublicationError('Invalid verification run identifier.')
     run = f'runs/{run_id}'
     named_report = checked_path(reports, run + '/test-report.json')
@@ -412,13 +424,12 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False, collect
     elif partitioned and not collection_profile and (scope is None or scope['profile'] == 'full'):
         validate_partitioned_publication(root, project, report, env, selected)
         required_parts = windows_python.LANES
-    parts = python_parts(reports, report, required_parts, destination)
+    if required_parts == windows_python.LANES:
+        validate_combined_python(project, reports, report, destination)
+    else:
+        python_parts(reports, report, required_parts, destination)
     if lane:
         validate_lane_verdict(project, report, lane_selection, name, profile)
-    if required_parts == windows_python.LANES:
-        check, _ = combined_python(project, report, parts)
-        if [row for row in report['checks'] if row['id'] == windows_python.CHECK] != [check]:
-            raise PublicationError('The Windows Python check differs from its original part results.')
     executed = {}
     # The hosted producer logs synthetic inputs and redacted outcomes. The catalog owns check identities.
     for result in report['checks']:

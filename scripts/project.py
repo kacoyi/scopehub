@@ -20,9 +20,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 if __package__:
     from . import maintenance, review_acceptance
     from .development import expand_engineering_sources, read_only_project_command, resolve_source
-    from .diagnostic_archive import (
-        DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator, verify_completed_windows_python,
-    )
+    from .diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
     from .retained_failures import retained_failure_view
     from .operational_paths import OPERATIONAL_PATHS, is_operational_path
     from .review_tree import CommittedPath
@@ -32,9 +30,7 @@ else:
     import maintenance
     import review_acceptance
     from development import expand_engineering_sources, read_only_project_command, resolve_source
-    from diagnostic_archive import (
-        DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator, verify_completed_windows_python,
-    )
+    from diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
     from retained_failures import retained_failure_view
     from operational_paths import OPERATIONAL_PATHS, is_operational_path
     from review_tree import CommittedPath
@@ -2538,9 +2534,13 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
         if (not ci or ci['event'] != 'pull_request' or report['selection']['profile'] != 'full'
                 or not windows_x64(report['environment'])):
             raise ProjectError('Split Python completion evidence requires a full native Windows pull request.')
+        if __package__:
+            from .ci_artifacts import PublicationError, validate_combined_python
+        else:
+            from ci_artifacts import PublicationError, validate_combined_python
         try:
-            verify_completed_windows_python(artifact_root if artifact_root is not None else reports_root, report)
-        except DiagnosticArchiveError as error:
+            validate_combined_python(project, artifact_root if artifact_root is not None else reports_root, report)
+        except (PublicationError, OSError) as error:
             raise ProjectError(str(error)) from error
     selected = []
     field_records = {}

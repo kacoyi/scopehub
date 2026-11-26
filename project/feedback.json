@@ -7817,6 +7817,70 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-python-receipt-producer-mismatch",
+      "source": "Independent Astra Standard t10d decision on 3f74a1e9b149464a35c4b31657bc624ae1f47b47, retained at archives/observations/repo-hygiene-20261125/independent-final-m0-146-3f74a1e9/final-response.txt (SHA-256 9e5b8211beaf26178292b5daf872ba7c4d2c609b477b3570eafee27e5168b4e9; original response SHA-256 ca1b96c7da455f7d5c8d5dfc2ba4e5d491fc8fdc66889b2f53b40ac72a886c16; decision 7e30766ba9be6d8a58073e8b630257072852cf631362da2aafd7e071244e7633).",
+      "observation": "The public 2.1 task record accepted a recovery manifest taken from the Python producer after its attachment digest was updated. It also accepted a recovery command ending in python with all four original attachments intact. The normal publication entry rejected the substituted manifest. Exercise the same producer identity and recomputed Python check at both entries, with authentic 2.0 receipt import as a compatibility control.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-unstable-runner-log-prefix",
+      "source": "Independent Astra Standard t10d decision on 3f74a1e9b149464a35c4b31657bc624ae1f47b47, retained at archives/observations/repo-hygiene-20261125/independent-final-m0-146-3f74a1e9/final-response.txt (SHA-256 9e5b8211beaf26178292b5daf872ba7c4d2c609b477b3570eafee27e5168b4e9; original response SHA-256 ca1b96c7da455f7d5c8d5dfc2ba4e5d491fc8fdc66889b2f53b40ac72a886c16; decision 7e30766ba9be6d8a58073e8b630257072852cf631362da2aafd7e071244e7633).",
+      "observation": "A real background stderr write landed after the worker read the log to compute its digest and before it separately measured the file size. Both successful workers then recorded a length and digest for different prefixes, and publication rejected their originals. Measure the length of the same bytes fed to the digest and verify publication with bytes appended during worker finalization.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-interrupted-manifest-finalization",
+      "source": "Independent Astra Standard t10d decision on 3f74a1e9b149464a35c4b31657bc624ae1f47b47, retained at archives/observations/repo-hygiene-20261125/independent-final-m0-146-3f74a1e9/final-response.txt (SHA-256 9e5b8211beaf26178292b5daf872ba7c4d2c609b477b3570eafee27e5168b4e9; original response SHA-256 ca1b96c7da455f7d5c8d5dfc2ba4e5d491fc8fdc66889b2f53b40ac72a886c16; decision 7e30766ba9be6d8a58073e8b630257072852cf631362da2aafd7e071244e7633).",
+      "observation": "A real SIGINT during the Python producer manifest finalization escaped the process and left both retained and latest reports absent. A signal during final report writing retained both diagnostics. Exercise interruption during final log data and manifest sealing and preserve the interrupted producer result, raw originals and report.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-legacy-nested-fixture-ownership",
+      "source": "Independent Astra Standard t10d decision on 3f74a1e9b149464a35c4b31657bc624ae1f47b47, retained at archives/observations/repo-hygiene-20261125/independent-final-m0-146-3f74a1e9/final-response.txt (SHA-256 9e5b8211beaf26178292b5daf872ba7c4d2c609b477b3570eafee27e5168b4e9; original response SHA-256 ca1b96c7da455f7d5c8d5dfc2ba4e5d491fc8fdc66889b2f53b40ac72a886c16; decision 7e30766ba9be6d8a58073e8b630257072852cf631362da2aafd7e071244e7633).",
+      "observation": "An original no-owners 2.1 manifest from the a3d20309 runner recorded a legitimate module setup skip for a nested TestCase. Serial unittest and the old publisher accepted it, while current publication rejected it after inferring the wrong module from the ID. Accept the legacy nested-module skip and prove continued execution after a package fixture skips.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

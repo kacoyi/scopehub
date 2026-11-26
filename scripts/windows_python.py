@@ -2,7 +2,7 @@
 
 import atexit
 from datetime import datetime, timedelta
-from hashlib import file_digest, sha256
+from hashlib import sha256
 import json
 import math
 import os
@@ -147,9 +147,12 @@ def write_manifest(label, result, owners):
     sys.stdout.flush()
     sys.stderr.flush()
     destination = Path(os.environ['SCOPEHUB_RUN_DIR']) / (label + '.json')
+    log_digest = sha256()
+    log_size = 0
     with destination.with_suffix('.log').open('rb') as raw:
-        log_digest = file_digest(raw, 'sha256').hexdigest()
-        log_size = os.fstat(raw.fileno()).st_size
+        while chunk := raw.read(256 * 1024):
+            log_digest.update(chunk)
+            log_size += len(chunk)
     manifest = {
         'inventory': list(owners),
         'owners': owners,
@@ -158,7 +161,7 @@ def write_manifest(label, result, owners):
         'events': result.events,
         'runner_seconds': result.elapsed,
         'log_size': log_size,
-        'log_sha256': log_digest,
+        'log_sha256': log_digest.hexdigest(),
     }
     write_manifest_file(destination, manifest)
 
@@ -276,11 +279,17 @@ def verify_events(manifest, expected):
                 raise ValueError('Unittest callback has an unknown case or fixture owner.')
             name = fixture[:-1]
             class_fixture = hook.endswith('Class')
-            if owners is None:
-                components = 1 if class_fixture else 2
-                members = {case for case in expected if case.rsplit('.', components)[0] == name}
-            else:
+            if owners is not None:
                 members = {case for case in expected if owners[case][int(class_fixture)] == name}
+            elif class_fixture:
+                members = {case for case in expected if case.rsplit('.', 1)[0] == name}
+            else:
+                # Legacy IDs share a dotted spelling for nested classes and submodules.
+                # Keep conventional module matches and account for omitted nested cases
+                # while preserving execution in continuing submodules.
+                members = {case for case in expected if case.rsplit('.', 2)[0] == name
+                           or (hook not in SETUP or case not in cases)
+                           and case.rsplit('.', 1)[0].startswith(name + '.')}
             if not members:
                 raise ValueError('Unittest callback has an unknown case or fixture owner.')
             if hook in SETUP:

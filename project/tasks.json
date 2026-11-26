@@ -26175,7 +26175,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Independently review exact structured receipt, fixture ownership, failed producer, and closed-log repairs. The coordinator owns the first ordinary full warm Windows PR retaining 35 selected outcomes within 900 seconds.",
+      "next_action": "Review the four locally reproduced and corrected publication, receipt and compatibility findings on the clean candidate. The coordinator owns fresh exact-source review including the M0-139 acceptance on the combined source and the first ordinary full warm Windows PR retaining 35 selected outcomes within 900 seconds.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -26222,7 +26222,13 @@
           "archives/observations/repo-hygiene-20261125/m0-146-structured-part-evidence-e2558a19/scoped-native-replay/results.json (SHA-256 6e3173f86cdc2aaa20e5b5c4427f2f1ee98aa85f1c107fdf8ff6c1245403b164).",
           "archives/observations/repo-hygiene-20261125/m0-146-structured-part-evidence-e2558a19/unittest-originals/results.json (SHA-256 98d3e0e1c0567084e6699898aaac27ce2e11e117adaad807468f0c1e08d5e9da).",
           "Integration references: M0-150 remains active at 460248f97fdc6d7bf647ac6207eec38b5eb3ee22 on codex/historical-windows-lane-scope. M0-136 is protected at a796cf4b43a73a16f0968b11eb0c7727a9562019 with reviewed parent 70a6ad63b941a662d7b623bbbc5e87734b76ac53.",
-          "Independent Astra t10d decision on a3d2030997def2937ac28e961a243809fe0b40fb, retained at archives/observations/repo-hygiene-20261125/independent-final-m0-146-a3d20309/final-response.txt (SHA-256 fd4168da699c62b7d2071b5e24800e7d54ad826285d1e86e6faab9ead539596f, raw response SHA-256 3ec33e1112bc02ad035fcc3f792765388804f90b29824e928cb7abb723eae6a2, decision 0862c3663aa0d3f768de24b91f334f895c7e9a140f55c5fae89396bcb651f0c4)."
+          "Independent Astra t10d decision on a3d2030997def2937ac28e961a243809fe0b40fb, retained at archives/observations/repo-hygiene-20261125/independent-final-m0-146-a3d20309/final-response.txt (SHA-256 fd4168da699c62b7d2071b5e24800e7d54ad826285d1e86e6faab9ead539596f, raw response SHA-256 3ec33e1112bc02ad035fcc3f792765388804f90b29824e928cb7abb723eae6a2, decision 0862c3663aa0d3f768de24b91f334f895c7e9a140f55c5fae89396bcb651f0c4).",
+          "Independent Astra Standard t10d decision on 3f74a1e9b149464a35c4b31657bc624ae1f47b47, retained at archives/observations/repo-hygiene-20261125/independent-final-m0-146-3f74a1e9/final-response.txt (SHA-256 9e5b8211beaf26178292b5daf872ba7c4d2c609b477b3570eafee27e5168b4e9; original response SHA-256 ca1b96c7da455f7d5c8d5dfc2ba4e5d491fc8fdc66889b2f53b40ac72a886c16; decision 7e30766ba9be6d8a58073e8b630257072852cf631362da2aafd7e071244e7633).",
+          "Local public receipt and publication controls: .reports/audit-20261125/m0-146-final-review-receipt/before-exact/observations.json (SHA-256 e790d0055c4336513839ac6b7476a5b134056e9eeedb2f71becc074187ceb8c5) and after/observations.json (SHA-256 e5e6aa06fe2357a2b79f01cded1ccf9d84c0bc34efb2a765b08f62f11b484d88). The authentic version 2.0 PR123 original also imported through the current public record entry using the original execution inputs: authentic-pr123-public-record.json (SHA-256 91fd4af475fc86b7350b29e2dd658ecf4db3031233a46cb3fa91bd7d4371bbe8).",
+          "Local producer and publication controls for concurrent stderr finalization: .reports/audit-20261125/m0-146-3f74a1e9-stderr-prefix/SHA256SUMS (SHA-256 33ae106026c6a170068e07fa2360ce0078d016b6e6fe0a912c3ea8302ab1cd60). Both workers exited successfully before and after. After the fix, both preserved the same 43-byte stderr trailer and published valid runner prefixes and complete closed originals.",
+          "Local real SIGINT producer controls: .reports/audit-20261125/m0-146-3f74a1e9-finalization/before/results.json (SHA-256 2386607de71dc78bfc3768f2ae16c36e8549ae7e7c9872910142fb78d8e92397) and after/results.json (SHA-256 b9e8a05265a868ad8727a48c7246bd6ac8d9a8606e9ed47287f467d2c5b13fb2). Retain the corresponding raw logs and manifests.",
+          "Local public publication controls using the actual a3d2030997def2937ac28e961a243809fe0b40fb runner: .reports/audit-20261125/m0-146-legacy-fixture-owner/reviewed-repro/results.json (SHA-256 cadfe78f8acfd65eed95cd6fc812f3541e4de1f7e6ecf9fc4f054b19f1948a5f) and corrected-replay/results.json (SHA-256 1003b8c012bd0588e5d4bc83fa89ffdbffe1ebd443f59f8daa07e3c44e63e01f). Keep the serial output, original no-owners manifests and publication verdicts.",
+          "M0-153 carries the previously measured M0-146 verifier read reuse into its serial Windows main-push investigation. M0-146 correctness repairs and qualification are independent of that measurement. The separate M0-153 focused native policy-read crossover is retained at archives/observations/repo-hygiene-20261125/m0-153-windows-policy-45743693200/observation.json (SHA-256 6414388a6abe9a4eeb307732c737888622f3301392a8cf091172acbdbd15bd61)."
         ],
         "hypotheses": [
           "The Python producer finished last before aggregation on all three ordinary warm PRs. Individual test durations and process traces can separate repeated fixture or immutable repository reads from native runtime variation.",
@@ -26330,6 +26336,34 @@
           },
           {
             "failure": "A genuine module destructor wrote final stderr bytes after atexit, leaving both successful native-shaped parts unpublished. Verify the independently captured runner output and bind the closed original log after interpreter cleanup without discarding valid output.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The public 2.1 task record accepted a recovery manifest taken from the Python producer after its attachment digest was updated. It also accepted a recovery command ending in python with all four original attachments intact. The normal publication entry rejected the substituted manifest. Exercise the same producer identity and recomputed Python check at both entries, with authentic 2.0 receipt import as a compatibility control.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A real background stderr write landed after the worker read the log to compute its digest and before it separately measured the file size. Both successful workers then recorded a length and digest for different prefixes, and publication rejected their originals. Measure the length of the same bytes fed to the digest and verify publication with bytes appended during worker finalization.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A real SIGINT during the Python producer manifest finalization escaped the process and left both retained and latest reports absent. A signal during final report writing retained both diagnostics. Exercise interruption during final log data and manifest sealing and preserve the interrupted producer result, raw originals and report.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An original no-owners 2.1 manifest from the a3d20309 runner recorded a legitimate module setup skip for a nested TestCase. Serial unittest and the old publisher accepted it, while current publication rejected it after inferring the wrong module from the ID. Accept the legacy nested-module skip and prove continued execution after a package fixture skips.",
             "checks": [
               "project-state",
               "python-contracts-workers"
