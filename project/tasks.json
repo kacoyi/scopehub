@@ -26927,7 +26927,7 @@
           "sha256": "3d45973b40b738e4254a13577a79436bf2ce4df0a9de9356dde2e93991038f1e"
         }
       ],
-      "next_action": "Coordinator to review 25b642ec1ddb0474ece1fd2332083036ab6f2c72 and the retained observations in .reports/observations/M0-162-lifecycle-follow-through/ff769c5a-follow-through/handoff.json. Rerun the task harness and exercise both contention windows through the native coordinator environment before deciding task closure.",
+      "next_action": "Retain both public lock-budget failures and their regressions on the exact rejected implementation. Verify resumption after start-save and completion contention, including archive and identity holds, and return the clean source and local observation index for coordinator review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26945,7 +26945,7 @@
         "hypotheses": [
           "The initial launcher had no versioned return-to-retirement path. The external collector treated human-facing wording as an identity test and serialized unrelated collections.",
           "An exact snapshot cannot bind a subsequent address-only kill to its completed turn. Restart must independently observe the finished turn or hold its terminal intact. A dedicated noninteractive one-shot can archive its original and completion event before exiting, allowing the desktop to remove its tab naturally.",
-          "Start persistence and completion each contend for the same assignment lock. Reuse the genuine observed execution when retrying a busy transition, recognize an identical committed execution, and require the exact archive pair before exiting.",
+          "Start persistence and completion each contend for the same assignment lock. The owner can keep the captured execution and retry only temporary contention past its initial budget without treating it as an operator hold. Recognize an identical committed execution and require the exact archive pair before exiting.",
           "Flattening desktop rows drops explicit empty spaces and treats missing identities like absence. Preserve the original local space and require complete tab, pane and terminal identities before claiming disappearance."
         ],
         "risks": [
@@ -26963,7 +26963,7 @@
             ]
           },
           {
-            "failure": "A competing collector could strand the one-shot before its first execution save or after completion, or a stale or damaged receipt could permit premature exit. Exercise public run-owned under both lock timings, with identical or conflicting execution, interrupted collection and mismatched or damaged evidence. Require that only the same owned process exits with its exact recoverable pair.",
+            "failure": "A competing collector can strand the one-shot before its first execution save or after completion when the initial lock budget expires. Exercise public run-owned and collect with lock release after both budgets, bounded paced waits, missing or conflicting execution, explicit inspection holds, interrupted collection and mismatched or damaged evidence. Require that only the same owned process exits after recovering its captured identity and exact return pair.",
             "checks": [
               "python-contracts-workers"
             ]

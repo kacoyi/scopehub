@@ -7955,6 +7955,36 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "herdr-one-shot-loses-captured-start-after-lock-budget",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent public-entry replay on d777f43b81fb116ceccad05a6836eee63259902d recorded at contracts/reviews/task-decisions/M0-162.json#/events/7. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-162-d777f43b/original-assistant-response.jsonl, SHA-256 83f407765fbebe12665a77bc99ac9028007cf9c364866b80653f8f208bd1a015.",
+      "observation": "With a real Linux assignment lock held beyond the ten-second start-save budget, the owned runner had already captured its start identity but remained in its inspection wait after release. Public collect returned one_shot_start_unobserved. The synthetic replay used simulated Core, child and task state.",
+      "task_ids": [
+        "M0-162"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "herdr-one-shot-cannot-verify-competing-archive-after-lock-budget",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent public-entry replay on d777f43b81fb116ceccad05a6836eee63259902d recorded at contracts/reviews/task-decisions/M0-162.json#/events/7. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-162-d777f43b/original-assistant-response.jsonl, SHA-256 83f407765fbebe12665a77bc99ac9028007cf9c364866b80653f8f208bd1a015.",
+      "observation": "With a real Linux assignment lock held beyond the ten-second completion budget, public collect verified the original response and completion event after release and reported archived / one_shot_awaiting_exit. The already finished runner remained in its inspection wait. A separate earlier native positive control completed and exited with shorter contention.",
+      "task_ids": [
+        "M0-162"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
