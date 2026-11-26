@@ -30,6 +30,15 @@
       },
       "supersedes": "8736c746405e929cc31724c252fbad21c09fc37039a6ecf2249dd8e19eed81ea",
       "evidence_sha256": "71982cbbab8a378013134185969d643bc8f5b336e68967162d799f8daf6ef9d7"
+    },
+    {
+      "kind": "request",
+      "source_commit": "7883801fbf5cfd0faa0c6fba91e236219c0df402",
+      "scope": "Independently compare the bounded Windows crossover, the task decision and the original serial discovery/order, rejection, cleanup, local and hosted limits. Verify the separated M0-146 overlap and that the two-case timing cannot close the full ordinary protected 1200-second observation.",
+      "supersedes": "83dd2a6f894268894178c129ece5e9ad2ee1d9eef98ac2ec359d6b8e1f73ec25",
+      "requested_at": "2026-11-26T03:19:42.310290+00:00",
+      "request_id": "90f3dfdd0158de0e40cb962556d82e9d8f74066de05df90e5d04c63b292eff2f",
+      "evidence_sha256": "997efaa2ffa7f41495ea9225a5bcdf732c770bb9ff8e15da70c0bbdbea35a507"
     }
   ]
 }
