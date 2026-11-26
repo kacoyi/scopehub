@@ -25713,6 +25713,213 @@
       ]
     },
     {
+      "id": "M0-138",
+      "title": "Reap browser verification servers when their check ends",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-010"
+      ],
+      "scope": [
+        "scripts/check.py",
+        "scripts/processes.py",
+        "scripts/process_tree.py",
+        "tests/project/test_processes.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence",
+        "scripts/recovery.py"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Exercise the ordinary check execution entry with a detached listener and a distinct unowned listener. After normal exit, failure, cancellation and timeout, the owned listener can be rebound, the unrelated listener still replies and the original outcome is retained.",
+        "Run the ordinary desktop localization check with the repository deadlines and a fresh port. Retain the original failed Linux report and the ownership and port observations.",
+        "Verify the task checks and preserve the existing Linux market supervisor and Windows job behavior through the same public execution entry.",
+        "Require explicit supervisor confirmation of finished cleanup across parent SIGCHLD dispositions, and record a late interruption after bounded cleanup.",
+        "Publish a bounded stable snapshot before digesting the ordinary log when Linux cleanup is unconfirmed. Keep the failed diagnosis and a verified retry independently resolvable.",
+        "Record an interrupt arriving during serial log finalization and preserve any existing cleanup failure. Retain the terminal row, durable run report and ordinary stop behavior.",
+        "A real SIGINT at a blocked console result write promptly stops output without losing its terminal row, log digest, original and latest reports or independent retry.",
+        "On the actual parallel entry, one SIGINT releases a full shared Linux pipe whether a second writer fills it before or after readiness. Preserve caller descriptor flags, terminal outcomes, original and latest reports, and a separate retry.",
+        "Reach the real Windows gate identity and Job Object membership assertions with a fixture that preserves the runtime platform and both interpreter choices."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "desktop-localization"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T144154.618344Z-990d4693",
+          "source_commit": "87dd07963b5dfbc648473e8a4f021ff5b8384203",
+          "report_sha256": "555ee0b8ec281ecde392cbd5db6d656a8b673862b23e3d5d688444731eb0d1d9"
+        }
+      ],
+      "plan": {
+        "outcome": "An ordinary Linux browser check releases every process in its own server tree and its port when verification finishes, including when the check times out.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/check.py",
+          "scripts/processes.py",
+          "scripts/process_tree.py",
+          "tests/project/test_processes.py",
+          "tests/localization/desktop.config.mjs"
+        ],
+        "hypotheses": [
+          "Only the market recovery check requests the Linux subreaper. The ordinary localization launcher starts descendants in separate sessions, which survive process-group cleanup.",
+          "The early command result currently substitutes for cleanup evidence when the parent automatically reaps the supervisor. A late SIGINT can escape the final wait.",
+          "A residual inherited writer can still mutate the original log inode after unconfirmed cleanup.",
+          "The serial digest and terminal result phase currently has no interrupt handling after the check runner returns.",
+          "Console emission currently precedes admission of terminal rows and is not part of durable report publication.",
+          "Pipe readiness does not reserve capacity for a later write. A cooperative flag cannot interrupt an already blocking write.",
+          "The Windows gate fixture dropped the runtime platform when substituting the interpreter paths. The runner branches on platform before it invokes either gate."
+        ],
+        "risks": [
+          {
+            "failure": "A browser command or indirect browser launcher can again outlive its check or occupy a later check port.",
+            "checks": [
+              "python-contracts-workers",
+              "desktop-localization"
+            ]
+          },
+          {
+            "failure": "A cleanup operation reaches an unrelated process or masks a real timeout, command failure or cleanup failure.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The parent accepts an early, missing or incomplete cleanup result as a pass after supervisor failure.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A first interruption during teardown drops the check row or leaves owned descendants without confirming cleanup.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A live writer mutates published evidence, or continuous output, partial reads or interruption make the snapshot unbounded or misleading.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An interrupt during log finalization loses the terminal result, overwrites a cleanup failure, or allows a later selected check to start.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A blocked console write drops a finished row, continues to later checks, or blocks again during tail, report summary or recovery output.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A competing writer invalidates readiness, nonblocking flags leak to the caller, or partial output loses or duplicates bytes.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A stale Windows fixture prevents the redirector and normal gate controls from exercising process identity or containment.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the failed original and port observation. If the shared supervisor changes existing exit semantics, restore the previous path and retain the active finding until a bounded repair passes.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/check.py",
+            "scripts/processes.py",
+            "scripts/process_tree.py",
+            "tests/project/test_processes.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Product data and market worker behavior, individual test deadlines, user-managed servers and release qualification."
+          ],
+          "open_questions": [
+            "Which registered check commands own detachable process trees, and can one shared execution rule cover future additions?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Original per-check output, exit codes, genuine timeouts, independent verification processes and Windows job ownership."
+          ],
+          "change": [
+            "Apply process-tree lifetime ownership at the Linux verification boundary that runs the affected commands.",
+            "Separate command readiness from final cleanup confirmation, and complete bounded teardown after a late interruption.",
+            "Detach the published diagnostic inode from unconfirmed Linux output writers while retaining the existing archive bindings.",
+            "Carry a serial finalization interrupt into the ordinary check result and run report.",
+            "Handle blocked console interruption independently of row admission and persist the original and latest reports without relying on stdout.",
+            "Use owned nonblocking pipe output for the Linux cooperative console and retry only unwritten bytes.",
+            "Preserve the native runtime attributes when overriding only the test gate interpreter paths."
+          ],
+          "data_plan": "No persisted product data changes. Exercise synthetic local listeners and retain the original check diagnostics.",
+          "cleanup": "Release test-owned processes and compare port ownership against an independent live listener. Retain raw diagnostic and regression logs."
+        }
+      },
+      "closure_reason": "Linux and Windows passed the four scoped checks and their ordinary PR jobs. Independent review exercised the process identity contrast and the blocked-pipe interruption controls. Windows ran the assigned-process, timeout and external-reader tests. Linux ran the descendant cleanup and competing-writer checks and retained terminal results and their original logs. The earlier failed Windows runs and prior receipts remain available.",
+      "next_action": null,
+      "blocker": null,
+      "evidence": [
+        {
+          "path": "project/evidence/M0-138-07913ffe8377351d.json",
+          "sha256": "d06ec15f976cac19f387ba3a4ef52050a11f7e9f64769add916f8934169eeff2"
+        },
+        {
+          "path": "project/evidence/M0-138-55559d3c46bcf6ff.json",
+          "sha256": "779ec90099ac111c762e2ec859a0e07589d20be8fde659e2c7238d4716c9c246"
+        },
+        {
+          "path": "project/evidence/M0-138-d9e3d2813250112e.json",
+          "sha256": "09cbe08832b7665dc9924f8169af5b1a84c7b72946019e048b06dd7f941a561b"
+        },
+        {
+          "path": "project/evidence/M0-138-a346aa3e0b83920d.json",
+          "sha256": "cca1a1a7b31b975d41968fa60384d4312f2cfe95b3d04a98a07bce90c7315197"
+        },
+        {
+          "path": "project/evidence/M0-138-79bf4c14fb6811e8.json",
+          "sha256": "0082bc9b2ac1648006d6bd70dda129dbffa9ede503100f7df34619a222815830"
+        },
+        {
+          "path": "project/evidence/M0-138-842e3a6bd98db430.json",
+          "sha256": "0e26121fe7bede99a794fa55b1079492eb69ed4ed1a0c9f622869d56dc4173bc"
+        },
+        {
+          "path": "project/evidence/M0-138-92aef6968276723b.json",
+          "sha256": "b3d55554eaae7c5bfd42f202c309b5fa54b77f7ded6bf02a2fc4392057731b0a"
+        },
+        {
+          "path": "project/evidence/M0-138-1e0aefd5ec4e47d9.json",
+          "sha256": "8b9ba8cb3a857e038189b2fc7a7610aa5800f144baa32c6920e4618b2933042b"
+        }
+      ]
+    },
+    {
       "id": "M0-147",
       "title": "Recover native Windows private handoff verification after a probe deadline",
       "milestone": "M0",

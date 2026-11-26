@@ -1,0 +1,26 @@
+{
+  "version": 3,
+  "task_id": "M0-138",
+  "events": [
+    {
+      "kind": "decision",
+      "source_commit": "9674461e2c4e0e5e0aea77fc56be47b18a5397e0",
+      "verdict": "approved",
+      "decision": "APPROVE M0-138 9674461e2c4e0e5e0aea77fc56be47b18a5397e0",
+      "scope": "APPROVE M0-138 9674461e2c4e0e5e0aea77fc56be47b18a5397e0",
+      "observation": "I reproduced both pre-launch errors and observed the corrected fixture distinguish the redirector from the normal gate using real Linux PIDs and process groups.",
+      "reviewer": "Independent Astra Standard (t10k)",
+      "original_sha256": "65cd02e0952f76433970e6863582792c7e806687bfe676e0ff1755f07afb71b9",
+      "response_id": "57c9808eb6581661d2d691296e3899d1f87c039f37472dbb382a7ece0a6201b9",
+      "response_sha256": "3d7a2f68a2eddb0b2f8d5f295b77263ceba9adc2fc67ba26662fe3d9670fed54",
+      "legacy_response_sha256": "c5f13c7b99855d2f10012668474d642c33bfd75abdac2bb060f5935fa757f31b",
+      "observation_body_sha256": "adbd345f5daa093855337cd65e3119d16fe20bcda218d36104b385afcca912e3",
+      "event": {
+        "id": "msg_0726944a1ab7b47d016b073c4c443c87d0935903f2f7204ae4",
+        "timestamp": "2026-11-25T19:51:51.813Z"
+      },
+      "supersedes": null,
+      "evidence_sha256": "3000552ad07dab2c1e5608c23fda221aba856e857690dd030a6649b1ad0662c3"
+    }
+  ]
+}
