@@ -68,6 +68,15 @@
       },
       "supersedes": "eb97fb1bd3a4aca1bcc8f811ba0738f16b6a771b3420b4acb87cb557eb9cb347",
       "evidence_sha256": "154bbf7eb76864eed1a793d5d30edb6ecc505aab56b21a8e5cfc45a10f27b6f7"
+    },
+    {
+      "kind": "request",
+      "source_commit": "1010403186cc9004da907cbdf90774b4ad271a20",
+      "scope": "Recheck M0-159 first protected-push observation and closure against the actual pre-merge selected receipt. Exercise mixed Linux/Windows evidence from the same run, coherent Windows aggregate/job observations, known timeout and conflicting records. Keep M0-153, M0-147 and the separate 900-second timing obligation distinct.",
+      "supersedes": "5252d6ab940a43a5941492ba3ef62620ff44e215640453ad489b4aeb3c43dcea",
+      "requested_at": "2026-11-26T13:00:34.937647+00:00",
+      "request_id": "e899c83275dd1f36594dbcb69e8f83506122df0730d2b8898d04ddcc074a73a3",
+      "evidence_sha256": "70992823be58f3e7dbfe06645eef56e96b52a4cf08079f2053318e93acc42220"
     }
   ]
 }
