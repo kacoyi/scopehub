@@ -329,6 +329,26 @@
       "requested_at": "2026-11-26T13:15:49.372199+00:00",
       "request_id": "23ebd4f2066a06991f6911496a33f500fd4d54c0aa78312a16a549db87ef205e",
       "evidence_sha256": "90f5909fc8384f13e60154debc00e9fdc137501406accfbd7fd4fe30a1cd322d"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "07424b3955546ae6ff1c8302caca024a235d1bba",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 07424b3955546ae6ff1c8302caca024a235d1bba",
+      "scope": "APPROVE M2-039 07424b3955546ae6ff1c8302caca024a235d1bba",
+      "observation": "Project validation passed on the candidate, and all three appended decisions matched their archived reviewer responses by SHA-256, event ID, and observation text.",
+      "reviewer": "Independent Astra Standard (t16z)",
+      "original_sha256": "13b6c91d11dde243cd8deef6598fe9286e5940c26cb567f36e26727cc1e490f7",
+      "response_id": "e5f7ab8e8dbdcafa558a112601a846bff69af4095e94be770cc16b66a3e65ba2",
+      "response_sha256": "c0d2892d7e6b04f41846afef6401bf322e8f4b31f7aad0d795953fc997a16acb",
+      "legacy_response_sha256": "63c452bf05ebc8d0620747eb8ac3af37b5be961a08cba4326d0a8d9bc365e0a7",
+      "observation_body_sha256": "d54ca9c9d506c243b9cc15a6d096dd43daf2ed3f8d66c73baf273232a0e84b3d",
+      "event": {
+        "id": "msg_038c609f9eea9880016b08318935d487d298bebeafde32576a",
+        "timestamp": "2026-11-26T13:18:17.642Z"
+      },
+      "supersedes": "23ebd4f2066a06991f6911496a33f500fd4d54c0aa78312a16a549db87ef205e",
+      "evidence_sha256": "39bf245219e8296ba539a1942de488265d605d9ac83c4c0d7385bb7c58fe8a9f"
     }
   ]
 }
