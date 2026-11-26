@@ -51,6 +51,7 @@ export async function paintedFittedCandles(priceCanvas, bars) {
     const onPriceLine = y => y >= strokeTop && y < strokeTop + priceLineRows;
     const tolerance = Math.ceil(scaleY);
     const wing = Math.floor(scaleX / 2) + 1;
+    const wingLimit = Math.max(wing, Math.floor(spacing / 4));
 
     function matchesSpan(x, top, bottom, color) {
       if (x < 0 || x >= width) return false;
@@ -83,9 +84,14 @@ export async function paintedFittedCandles(priceCanvas, bars) {
       const top = yFor(Math.max(bar.open, bar.close));
       const bottom = yFor(Math.min(bar.open, bar.close));
       // Allow one backing pixel of horizontal rounding. A wick spans H/L at the
-      // center, and the body spans O/C on an exposed side of the same wick.
+      // center. Search nearby for an exposed side of its O/C body because the
+      // last-price dashes may cover the pixels immediately beside the wick.
       const spine = [center, center - 1, center + 1].find(x => matchesSpan(x, high, low, color));
-      return spine !== undefined && (matchesSpan(spine - wing, top, bottom, color) || matchesSpan(spine + wing, top, bottom, color));
+      if (spine === undefined) return false;
+      for (let offset = wing; offset <= wingLimit; offset++) {
+        if (matchesSpan(spine - offset, top, bottom, color) || matchesSpan(spine + offset, top, bottom, color)) return true;
+      }
+      return false;
     });
   }, { bars, colors: candleColors });
 }
