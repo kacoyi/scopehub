@@ -39,6 +39,26 @@
       "requested_at": "2026-11-26T13:04:16.339527+00:00",
       "request_id": "fc44f15140087edb868292c96e3039edf9791e31e60541b93c2e53c53972ed0c",
       "evidence_sha256": "ffa7d552ca73bc8437d1fe62d8b0d4a19da91b49fbcc65641c64ddfbe2110f1d"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "cf7e0805ee0430e6aa7bfcc06b6120b10aa09172",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-162 cf7e0805ee0430e6aa7bfcc06b6120b10aa09172",
+      "scope": "CHANGES_REQUESTED M0-162 cf7e0805ee0430e6aa7bfcc06b6120b10aa09172",
+      "observation": "In my synthetic replay, the one-shot runner stayed paused after a competing collector made the verified archive available.",
+      "reviewer": "Independent Astra Standard (t16n)",
+      "original_sha256": "8338db299cc24a687c2d5fb9831ecee59f56e404b8ee22d5a82a4fb234972f15",
+      "response_id": "1d37b9a431ee097ccc697b11c63559ed00283570da481a5807537ead3d9351d0",
+      "response_sha256": "7c67492252485f561efb11ec240a5da81b37b00312b3f97e95df5149845444e9",
+      "legacy_response_sha256": "4c93cc5931205db7b0ee92f75ced270e0f5610f09ac9d4fce0d59d8e065efeac",
+      "observation_body_sha256": "beca94309385358556cbab8584889618271434fd36cd719914f167ceec97980f",
+      "event": {
+        "id": "msg_020a4762b87d4706016b082f375af487d1a7e8bafe9d68be83",
+        "timestamp": "2026-11-26T13:08:30.415Z"
+      },
+      "supersedes": "fc44f15140087edb868292c96e3039edf9791e31e60541b93c2e53c53972ed0c",
+      "evidence_sha256": "a2046b7087afba4cb76163cf9d4926e938e38312c5a633f97514164985e11899"
     }
   ]
 }
