@@ -7659,6 +7659,22 @@
         "prevention": "Exercise the held browser route and check two delivered refusals, a single terminal abort, no new status or preview after the deadline and one cancellation of the original task. Reject incomplete or contradictory journals."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "protected-handoff-for-python-process-deadline",
+      "status": "open",
+      "severity": "major",
+      "source": "archives/observations/repo-hygiene-20261125/m0-159-protected-handoff-intake/observations.json (SHA-256 650f6772d64fce5c463905a28279ffdae103e0334b2930d098ae5d04213c0735).",
+      "observation": "The protected integration assessment for PR 131 reported the unfinished M0-153 repair and the unresolved Windows Python process deadline. Its first actual protected push cannot run until integration. The existing protected handoffs name other findings, even after ordinary and guarded Windows runs produced terminal serial inventories.",
+      "task_ids": [
+        "M0-159"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
