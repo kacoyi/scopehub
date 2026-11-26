@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-168",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "a216dd82fa7065cd7761d8a0f05e3343a3d90cb8",
+      "scope": "Independently review Windows portability of the normal Herdr return collector and transport capability check on this clean source. Use the actual first Windows failure and retained controls from .reports/observations/M0-168/handoff.json, inspect LF and CRLF original bytes through the consumer, a changed original and a different valid review subject. Verify bounded supported/unsupported host behavior and the observed limits of local Linux versus native Windows.",
+      "supersedes": null,
+      "requested_at": "2026-11-26T15:16:44.219707+00:00",
+      "request_id": "e9d7af7703a2d0d65690c4dfadd7068b074d8840153647795454cd1e632051ad",
+      "evidence_sha256": "242df1121e4c1461c83615fe3e48a725fcb5c7e65ee29bac4e79deac090d3830"
+    }
+  ]
+}

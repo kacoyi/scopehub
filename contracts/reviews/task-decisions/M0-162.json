@@ -175,6 +175,15 @@
       },
       "supersedes": "515b6ca8d7aee3341ec737494d93df8de13bbc3e87596ef938e07dbbce9d50f5",
       "evidence_sha256": "6407decab0722ecc0bc6374d560706d207a1996f7fcffdf25948df97b8d941c2"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a216dd82fa7065cd7761d8a0f05e3343a3d90cb8",
+      "scope": "Review the preservation of the accepted M0-162 lifecycle after the M0-168 changes at their common source. Reuse the two real Linux desktop interruption observations and provenance, verify genuine and held return collection, exact original identity, supported transport capability detection and preserving neighboring tabs. Use the actual native and portable handoff originals and clean independent controls within the read-only review role.",
+      "supersedes": "e78a5d4688e77700ca09d85f9a3571d9ab78ba0af0a926dd90b324a1957c39ef",
+      "requested_at": "2026-11-26T15:16:44.905506+00:00",
+      "request_id": "cd584624ae073514e8b5a351b7168ca16a0db7a3324dcd664e7e24328c122029",
+      "evidence_sha256": "229137fcb017c1c8e0a23695030fb900447d4eeb02284bdaf4c82d0e38891035"
     }
   ]
 }
