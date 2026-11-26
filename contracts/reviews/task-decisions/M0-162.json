@@ -68,6 +68,26 @@
       "requested_at": "2026-11-26T13:20:30.212198+00:00",
       "request_id": "d5e3d5125eec5b8df0327fe05b8444260c46a97e33881e8a7a183fce7953130c",
       "evidence_sha256": "25052bbca27c0198a773ee9bf83bb3847112dc0b372ce9b99ff36048d97bce23"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ff769c5a608bad0669d3931bda88b6cd53f2e49a",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-162 ff769c5a608bad0669d3931bda88b6cd53f2e49a",
+      "scope": "CHANGES_REQUESTED M0-162 ff769c5a608bad0669d3931bda88b6cd53f2e49a",
+      "observation": "In my public-entry replay, the one-shot runner paused when a collector held the assignment lock during the first execution save, and collection still returned one_shot_start_unobserved after the lock was released.",
+      "reviewer": "Independent Astra Standard (t177)",
+      "original_sha256": "243ccd5d1e4c5d33d5213a831a3dd50a309c372787814aa4231ddbbbbea1dac5",
+      "response_id": "7376e8cbd2a3710aee1fbfe9898800913066c05abd3294fcc13b6f1fbec679f0",
+      "response_sha256": "1a4575972a70f990b601a1f39cd122efeacd4945af07ca5301c0c93518a1e0b6",
+      "legacy_response_sha256": "9a907bca19aca04695e8ec551ba7335f6522d0e1e2135b3078876197b0f4200d",
+      "observation_body_sha256": "66c2730e98566f00ec30e2860886b5e73b06c92714f50c465457c99872327c10",
+      "event": {
+        "id": "msg_0983420412351503016b08330a4ce487d28a6094fcd51db2d2",
+        "timestamp": "2026-11-26T13:24:46.348Z"
+      },
+      "supersedes": "d5e3d5125eec5b8df0327fe05b8444260c46a97e33881e8a7a183fce7953130c",
+      "evidence_sha256": "160d58d345c754ab87f74d259a2fd6a95408929e5959c67c31711327773fe49a"
     }
   ]
 }
