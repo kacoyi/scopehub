@@ -233,6 +233,15 @@
       },
       "supersedes": "8464cea93f476911741e79d729dac2c5019f4ed9e188203dfb7f3d58a1f74548",
       "evidence_sha256": "5bde7abcc72be115c56515f26d1cc46cc69a4cf38d6d6fc03ec0b3a62b4175be"
+    },
+    {
+      "kind": "request",
+      "source_commit": "482fc9e542308392095cae7e87d7820d50391435",
+      "scope": "Recheck the accepted warm Windows schedule and public import. Compare genuine matching parts with both required logs from the wrong run attempt. Exercise role, attempt identity and retained compatibility through the ordinary importer, and keep the separate native 900-second observation pending until measured. Recheck the original decision on a47fe65a.",
+      "supersedes": "8e91c08ffd324bc50b5c09f2d67556bf8282ef03acedacdd45ea498755ae4c21",
+      "requested_at": "2026-11-26T13:19:59.666692+00:00",
+      "request_id": "5911cbdb53e225a8997f54e22c1fa0d1c79c9f1e9a30ed7c2b3d50636f0593bd",
+      "evidence_sha256": "ba3323cba93a394f131d2d0f10d594b00f0a634cbea3dfa663c98ad4a8b16dfe"
     }
   ]
 }
