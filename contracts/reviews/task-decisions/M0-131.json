@@ -39,6 +39,26 @@
       "requested_at": "2026-11-25T22:52:59.031953+00:00",
       "request_id": "603a7530918e2c61b66727685b67098462f442f520b6a916298895a6c7d98a7d",
       "evidence_sha256": "d4df0bcce7061df6d39c70f4b7caa61e96a43fc7b64a1d4257157418816ff8f3"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-131 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "CHANGES_REQUESTED M0-131 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "observation": "After twelve newer captures rotated PR 84 attempt 1 out of the recent window, I observed the default timing reader restore the disputed 645-second browser clock and 2467 runner-seconds when the same two conflicting role claims were supplied in one job list.",
+      "reviewer": "Independent Astra Standard (t11c)",
+      "original_sha256": "1d88ac66c5e07a010d0a143d42334c7749db4eed334ff6a15bd9ceb335d72f9e",
+      "response_id": "2a381a779efddf4dee774be4e3e7e4ea3ffec93a442f5140a243a640078c4e1b",
+      "response_sha256": "40158a45aa81ef5a0cb64d03c15e48ec2b4c93f6f217b9b1c336a3feefaee64f",
+      "legacy_response_sha256": "27d0859a35b231acd551d2a36468a26c500f1b528c060b6613a66c8c3f645332",
+      "observation_body_sha256": "ef02b782db3cc88ec130001c78790a68c3bb7e3215c9c21ec29f44d3e2df0694",
+      "event": {
+        "id": "msg_0ce6ee094b6d0cd0016b079def6fb087d1acaa1b1fa9cf1c20",
+        "timestamp": "2026-11-26T02:48:30.216Z"
+      },
+      "supersedes": "603a7530918e2c61b66727685b67098462f442f520b6a916298895a6c7d98a7d",
+      "evidence_sha256": "f1676683d3dc57d57e8bf38e7b2c42ec3163702efd0635e8c6c06700116197f5"
     }
   ]
 }

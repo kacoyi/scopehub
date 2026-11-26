@@ -39,6 +39,26 @@
       "requested_at": "2026-11-25T22:53:01.049769+00:00",
       "request_id": "44018da24cb9db1aeda5f8875aeefda824af09c533bef179a6fe87e01d2864f1",
       "evidence_sha256": "ba34464e0f6e26e7bfb5772a025ffe230fcc9623d1a75cea720a9291323d5e0f"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "verdict": "approved",
+      "decision": "APPROVE M0-145 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "APPROVE M0-145 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "observation": "In my system Python replay of run 45546767887, the full Windows report earned one current receipt, the browser-only download earned none, and a retained checkout conflict kept Windows pull-request maintenance pending even when the full report was downloaded again.",
+      "reviewer": "Independent Astra Standard (t11d)",
+      "original_sha256": "a0b32c8b43934ff8d002b1ea4548234db09d311bc00830e4ded42e64c9fc6b1f",
+      "response_id": "01fbe2857260dbf3f9759e502dacdb7a4e84529c85f5caac655020483a01cdd0",
+      "response_sha256": "4f59b1cb997e54e2540c9f23502ecdb4e839ac37952280bae39f5fcc984b3b4b",
+      "legacy_response_sha256": "8c264625e1ed432526beba79ce96d7d47eefae5070f0833a3111e3b5da2e3379",
+      "observation_body_sha256": "c2318c3ec634616ebca52ed765078e9a28113f798e2b01f4b03f0e6a028e56fb",
+      "event": {
+        "id": "msg_07e307d61a9e325b016b079f084af487d288bf6a435e83678f",
+        "timestamp": "2026-11-26T02:53:10.193Z"
+      },
+      "supersedes": "44018da24cb9db1aeda5f8875aeefda824af09c533bef179a6fe87e01d2864f1",
+      "evidence_sha256": "17dfa555391829061fe5926e7961dd9d4fc9ba4dea57301ead1994a8f400f272"
     }
   ]
 }

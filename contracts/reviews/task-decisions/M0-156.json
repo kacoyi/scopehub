@@ -10,6 +10,26 @@
       "requested_at": "2026-11-25T22:53:03.981103+00:00",
       "request_id": "87179cfc72716efb031cf89dbd8d3226c65943e108a40b3ac6792047a97f932d",
       "evidence_sha256": "cceecefd294ef603cec0cdb7b5364223facfff2c72f4081dd2cf1cb4e8a9c3b4"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "CHANGES_REQUESTED M0-156 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "observation": "I replayed Windows run 45546767887 through the weekly reader and obtained a fresh full-platform receipt for a checkout SHA that Git identified as a tree.",
+      "reviewer": "Independent Astra Standard (t11b)",
+      "original_sha256": "392c90947fd098e42766b35363feec3793b22a8b7ddf1054b2e40dbea11a61db",
+      "response_id": "c697a4fdebf92de38fb692379ce8522844760dd62c686ac204820625c3039cf3",
+      "response_sha256": "ffd569a6145eaf10b9b441dc6a72ae1d2edbadbb2a7d3b5b94ccd617aaadc58b",
+      "legacy_response_sha256": "3c9241e969fe6dc81bf87a8565ad5fd4841646c2d07199068d93b57992e8a4f2",
+      "observation_body_sha256": "0569f88881179b0718ef8b5ef6744bfab0370683967fe0847bac61e2afe6e0f8",
+      "event": {
+        "id": "msg_0f284b4c7d245612016b079e56960887d2901ebdf10f895533",
+        "timestamp": "2026-11-26T02:50:17.947Z"
+      },
+      "supersedes": "87179cfc72716efb031cf89dbd8d3226c65943e108a40b3ac6792047a97f932d",
+      "evidence_sha256": "0750bf01a875be83578058ebf3d70ce6f0251f87f0588991274a815311860b60"
     }
   ]
 }
