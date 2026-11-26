@@ -97,6 +97,26 @@
       "requested_at": "2026-11-26T12:54:29.360806+00:00",
       "request_id": "08cf621368656ac993e62122bc39105c42b7a983d1ef3e15bfe4ee7e99ebfd88",
       "evidence_sha256": "7c44d2ad16c57c119c12fac4a254e5df71ffee0ab2deb9d370d10a40bd034b54"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "3b506adedc41a015abf490f91d3714c7e1516ac2",
+      "verdict": "approved",
+      "decision": "APPROVE M3-007 3b506adedc41a015abf490f91d3714c7e1516ac2",
+      "scope": "APPROVE M3-007 3b506adedc41a015abf490f91d3714c7e1516ac2",
+      "observation": "After one lost status delivery, my replay of the merged preview component displayed 3500.5 for the recorded ready reply and rejected both event-name mismatches with one cleanup request each.",
+      "reviewer": "Independent Astra Standard (t166)",
+      "original_sha256": "933ef8d6a3c91aba5c937cb7066ddf274ed1286fcf30426443ac42c332ee79d5",
+      "response_id": "2f8cb76e55b8e5f8d71cef4834deb9bc3f2e40f773110b264032c03706b43a7e",
+      "response_sha256": "e0bcf5e2e5db9832f617b37a6a91abe265097ebca3ef667ec325f2f317d6e4ab",
+      "legacy_response_sha256": "287adfb53def55a254d976b11e9afa148dc06444a7b45614ba34eaec4b15fc4b",
+      "observation_body_sha256": "82f9cf54f517b754dca0d7706444e84aea0ec0e316592cfecb64714f265387c9",
+      "event": {
+        "id": "msg_09ea2d4141869106016b082cfd283887d28a7a7a3fd18b8e78",
+        "timestamp": "2026-11-26T12:58:50.849Z"
+      },
+      "supersedes": "08cf621368656ac993e62122bc39105c42b7a983d1ef3e15bfe4ee7e99ebfd88",
+      "evidence_sha256": "9fb45ffd26ad18c7e8cecfeda5373d2dbda05ed7ec075dba8534f36e87ba9878"
     }
   ]
 }
