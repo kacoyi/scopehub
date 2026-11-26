@@ -399,17 +399,18 @@ def runner_execution(raw, progress):
     offset = 0
     previous = None
     observed = []
+    headers = {}
+    starts = set()
     for label, status in progress:
+        pattern = rb'\n' + re.escape(label)
         if status is None:
-            header = re.compile(rb'\n' + re.escape(label) + rb'(?:\n[^\n]*)? \.\.\. ')
-            if (match := header.search(raw, offset)) is None:
-                return None
-            start, end = match.span()
-        else:
-            start = raw.find(b'\n' + label, offset)
-            if start == -1:
-                return None
-            end = start + 1 + len(label)
+            pattern += rb'(?:\n[^\n]*)? \.\.\. '
+        if pattern not in headers:
+            headers[pattern] = re.compile(pattern)
+        if (match := headers[pattern].search(raw, offset)) is None:
+            return None
+        start, end = match.span()
+        starts.add(start)
         if previous is not None:
             footer, outcomes, alternatives = runner_section(raw[offset:start + 1])
             # A completed outer run cannot obtain more cases from shutdown.
@@ -419,8 +420,12 @@ def runner_execution(raw, progress):
         offset = end
         previous = status
 
-    footer, outcomes, alternatives = runner_section(raw[offset:], empty_run=not progress)
+    footer, outcomes, alternatives = runner_section(raw[offset:], empty_run=not progress, final=True)
     if footer is None:
+        return None
+    # A printed lookalike cannot silently move the boundary of the next case.
+    if any(match.start() not in starts for header in headers.values()
+           for match in header.finditer(raw, 0, offset + footer.start())):
         return None
     if not progress:
         return footer[1], footer[3]
@@ -429,11 +434,12 @@ def runner_execution(raw, progress):
     return None
 
 
-def runner_section(segment, *, empty_run=False):
+def runner_section(segment, *, empty_run=False, final=False):
     """Read one outer progress segment, distinguishing complete nested runners."""
     outcomes = set()
     alternatives = set()
     offset = 0
+    terminal = None
     for footer in RUNNER_SUMMARY.finditer(segment):
         prefix = segment[offset:footer.start()]
         # Keep competing suffixes even if the bytes resemble nested runner
@@ -447,8 +453,17 @@ def runner_section(segment, *, empty_run=False):
         nested = nested_run_start(prefix, footer)
         outcomes.update(runner_outcomes(prefix[:nested]))
         if nested is None and (outcomes or empty_run):
-            return footer, outcomes, alternatives
+            if not final:
+                return footer, outcomes, alternatives
+            if terminal is None:
+                terminal = footer, outcomes.copy(), alternatives.copy()
+            elif footer[2] == terminal[0][2]:
+                # An equally plausible outer footer can leave real callbacks
+                # after the first apparent end. Neither cutoff is independent.
+                return None, set(), set()
         offset = footer.end()
+    if terminal is not None:
+        return terminal
     remaining = runner_outcomes(segment[offset:])
     return None, outcomes | remaining, alternatives | remaining
 

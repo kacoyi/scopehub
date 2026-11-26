@@ -430,6 +430,40 @@ class HostedSchedulingTests(ProjectFixture):
             self.assertEqual([check['id'] for check in catalog['checks']], [result['id'] for result in report['checks']])
 
 
+class LegacyWindowsPythonTranscriptTests(unittest.TestCase):
+    def assert_ambiguous_outcomes(self, raw):
+        skipped = "skipped 'fixture'"
+        labels = ('test_first (sample.First.test_first) ... ', 'test_second (sample.Second.test_second) ... ')
+        for outcomes in (('ok', skipped), (skipped, 'ok')):
+            with self.subTest(outcomes=outcomes), self.assertRaisesRegex(ValueError, 'Original unittest'):
+                windows_python.verify_execution(raw, list(zip(labels, outcomes, strict=True)), 2, b'OK (skipped=1)')
+
+    def test_nested_failure_detail_can_contain_a_competing_outer_skip(self):
+        separator = b'-' * 70 + b'\n'
+        diagnostic_boundary = b'=' * 70 + b'\n'
+        raw = (
+            b'test_first (sample.First.test_first) ... ok\n'
+            b'unittest.case.FunctionTestCase (inner) ... FAIL\n\n'
+            + diagnostic_boundary + b'FAIL: unittest.case.FunctionTestCase (inner)\n'
+            + separator + b"AssertionError: optional cleanup skipped 'fixture'\n\n"
+            + separator + b'Ran 1 test in 0.000s\n\nFAILED (failures=1)\n'
+            b"test_second (sample.Second.test_second) ... skipped 'fixture'\n"
+            b'cleanup ok\n\n'
+            + separator + b'Ran 2 tests in 0.010s\n\nOK (skipped=1)\n'
+        )
+        self.assert_ambiguous_outcomes(raw)
+
+    def test_competing_outcome_with_a_second_plausible_outer_footer_is_ambiguous(self):
+        footer = b'\n' + b'-' * 70 + b'\nRan 2 tests in 0.010s\n\nOK (skipped=1)\n'
+        raw = (
+            b'test_first (sample.First.test_first) ... ok\n'
+            b"optional cleanup skipped 'fixture'\n"
+            b"test_second (sample.Second.test_second) ... skipped 'fixture'\n"
+            + footer + b'cleanup ok\n' + footer
+        )
+        self.assert_ambiguous_outcomes(raw)
+
+
 class WindowsLaneTests(ProjectFixture):
     recovery_screenshot = 'market-recovery/browser/market-closed-bar-repair-fixture/verified-closed-bar-repair.png'
     recovery_ui_report = 'market-recovery-ui/results.json'
