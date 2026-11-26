@@ -7990,6 +7990,38 @@
       "regression_checks": ["project-state", "python-contracts-workers"],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-python-legacy-identical-logs-opposite-callbacks",
+      "source": "Independent M0-146 decision 66752e14e7428cdc46abdb25705832c86ac1bf9b695b70bb899eca68b3d1fa2e on 2ba0355110d2610107199475c719eb2874cb6088, recorded at contracts/reviews/task-decisions/M0-146.json#/events/15 by c2dfcae5067fc5012fdc8ed81cc263d1d7983209. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-146-2ba03551/original-assistant-response.jsonl (SHA-256 ec46ecd8fc6cf480b36bc64eaccbe974642874e69cb08bde1643f90cc22e2fd1) and .reports/audit-20261126/m0-146-legacy-qualification/originals/indistinguishable-legacy/observations.json.",
+      "observation": "Two actual executions with the a3d20309 runner emitted byte-identical merged logs while exchanging the pass and skip of two named tests. Under 2ba03551, a same-order, same-duration change to those outcomes and skip flags passed producer publication, aggregation, aggregate publication, receipt import and reopen, while the genuine manifest was rejected. A candidate outcome directly after the named header may itself be test output; a later outcome suffix in the same segment may be the callback. Regress both readings from the same bytes and retain the original outcomes as a diagnostic observation.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-legacy-nested-runner-summary",
+      "source": "Independent M0-146 decision 66752e14e7428cdc46abdb25705832c86ac1bf9b695b70bb899eca68b3d1fa2e on 2ba0355110d2610107199475c719eb2874cb6088, recorded at contracts/reviews/task-decisions/M0-146.json#/events/15. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-146-2ba03551/original-assistant-response.jsonl (SHA-256 ec46ecd8fc6cf480b36bc64eaccbe974642874e69cb08bde1643f90cc22e2fd1).",
+      "observation": "A passing inner unittest run printed its progress and Ran 1 test footer before the outer case's skip callback. Both actual legacy producers exited zero, but the candidate rejected the genuine outer case result during aggregation, publication, import and reopen. The same case passed with the current callback witness. Regress the genuine nested result and an exchanged outcome through both producer formats, preserving the prior cleanup and interpreter-exit controls.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

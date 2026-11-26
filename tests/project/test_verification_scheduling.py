@@ -653,8 +653,8 @@ class WindowsLaneTests(ProjectFixture):
                 '    print("last progress ", file=sys.stderr, end="", flush=True)\n'
             ) if multiline else ''
             emit_progress = '        progress()\n' if multiline else ''
-            skip_output = "skipped 'intentional fixture skip'" if multiline else "optional cleanup skipped 'fixture'"
-            pass_output = 'ok' if multiline else 'cleanup ok'
+            skip_output = "skipped 'intentional fixture skip'" if multiline else "optional cleanup skipped 'fixture'."
+            pass_output = 'ok' if multiline else 'cleanup ok.'
             (self.root / 'tests/project/test_first.py').write_text(
                 'import os, sys, unittest\n'
                 f'{progress}'
@@ -677,6 +677,48 @@ class WindowsLaneTests(ProjectFixture):
             suffix = self.root / 'tests/project/test_verification_scope.py'
             suffix.write_text(suffix.read_text(encoding='utf-8').replace('test_suffix', 'test_手順'), encoding='utf-8')
             self.enterContext(patch.dict(os.environ, {'PYTHONIOENCODING': 'utf-8'}))
+        elif discovery == 'same_byte_legacy_callbacks':
+            (self.root / 'tests/project/test_first.py').write_text(
+                'from itertools import count\n'
+                'import os, sys, unittest\n'
+                'from types import SimpleNamespace\n'
+                '# Keep unittest display times stable across two real executions.\n'
+                'clock = SimpleNamespace(perf_counter=count(step=0.0001).__next__)\n'
+                'unittest.case.time = unittest.runner.time = clock\n'
+                'opposite = "SCOPEHUB_REVERSE_FIXTURE_SKIP" in os.environ\n'
+                'def emit(value, end="\\n"):\n'
+                '    print(value, end=end, file=sys.stderr, flush=True)\n'
+                'class First(unittest.TestCase):\n'
+                '    def test_prefix(self):\n'
+                '        if opposite:\n'
+                '            emit("ok")\n'
+                '            emit("optional cleanup ", end="")\n'
+                '            self.skipTest("fixture")\n'
+                '    @classmethod\n'
+                '    def tearDownClass(cls):\n'
+                '        if not opposite: emit("optional cleanup skipped \'fixture\'")\n'
+                'class Second(unittest.TestCase):\n'
+                '    def test_skipped(self):\n'
+                '        if not opposite: self.skipTest("fixture")\n'
+                '        emit("skipped \'fixture\'")\n'
+                '        emit("cleanup ", end="")\n'
+                '    @classmethod\n'
+                '    def tearDownClass(cls):\n'
+                '        if not opposite: emit("cleanup ok")\n', encoding='utf-8')
+        elif discovery == 'nested_unittest_suite':
+            (self.root / 'tests/project/test_first.py').write_text(
+                'import os, unittest\n'
+                'class Outer(unittest.TestCase):\n'
+                '    def run_inner(self, skip=False):\n'
+                '        def inner():\n'
+                '            if skip: raise unittest.SkipTest("inner fixture skip")\n'
+                '        result = unittest.TextTestRunner(verbosity=2).run(unittest.FunctionTestCase(inner))\n'
+                '        self.assertTrue(result.wasSuccessful())\n'
+                '    def test_first_skip(self):\n'
+                '        self.run_inner()\n'
+                '        self.skipTest("outer fixture skip")\n'
+                '    def test_last_pass(self):\n'
+                '        self.run_inner("SCOPEHUB_NESTED_SKIP" in os.environ)\n', encoding='utf-8')
         elif discovery == 'legacy_atexit_suite':
             (self.root / 'tests/project/test_first.py').write_text(
                 'import atexit, unittest\n'
@@ -927,7 +969,13 @@ class WindowsLaneTests(ProjectFixture):
         self.assert_case_outcomes_stay_bound(legacy=True)
 
     def test_ambiguous_legacy_multiline_cleanup_cannot_issue_or_reopen_a_receipt(self):
-        self.partition_fixture('multiline_case_exchange', receipt_scope=True, legacy_runner=True)
+        self.assert_ambiguous_legacy_cannot_issue_or_reopen_a_receipt('multiline_case_exchange')
+
+    def test_same_byte_legacy_callbacks_cannot_issue_or_reopen_a_receipt(self):
+        self.assert_ambiguous_legacy_cannot_issue_or_reopen_a_receipt('same_byte_legacy_callbacks')
+
+    def assert_ambiguous_legacy_cannot_issue_or_reopen_a_receipt(self, fixture):
+        self.partition_fixture(fixture, receipt_scope=True, legacy_runner=True)
         self.enterContext(patch.object(windows_python, 'seal_manifest', side_effect=self.seal_legacy_manifest))
 
         def declared_events(_record, _raw, manifest, lane, **_format):
@@ -948,9 +996,10 @@ class WindowsLaneTests(ProjectFixture):
             lane: (self.downloads / f'verification-windows-2-{lane}' / run / f'windows-python-{lane}.log').read_bytes()
             for lane in windows_python.LANES
         }
-        for line in (b'last progress ok', b"last progress skipped 'intentional fixture skip'",
-                     b"skipped 'intentional fixture skip'", b'ok'):
-            self.assertIn(line, logs['python'].splitlines())
+        if fixture == 'multiline_case_exchange':
+            for line in (b'last progress ok', b"last progress skipped 'intentional fixture skip'",
+                         b"skipped 'intentional fixture skip'", b'ok'):
+                self.assertIn(line, logs['python'].splitlines())
         self.assertEqual(['ok', 'skipped'], [event[2] for event in manifest['events']])
         self.assertEqual([False, True], [case[3] for case in manifest['cases']])
 
@@ -961,6 +1010,17 @@ class WindowsLaneTests(ProjectFixture):
             case[3] = opposite[3]
         self.assertEqual([case[2] for case in manifest['cases']], [case[2] for case in reversed_outcomes['cases']])
         self.assertEqual(['skipped', 'ok'], [event[2] for event in reversed_outcomes['events']])
+
+        if fixture == 'same_byte_legacy_callbacks':
+            with patch.dict(os.environ, {'SCOPEHUB_REVERSE_FIXTURE_SKIP': '1'}):
+                code, opposite = self.run_harness('--ci-windows-lane', 'python')
+            self.assertEqual((0, 'passed'), (code, opposite['status']))
+            opposite_log = self.reports / run / 'windows-python-python.log'
+            self.assertEqual(logs['python'], opposite_log.read_bytes())
+            opposite_manifest = read_json(opposite_log.with_suffix('.json'))
+            for key in ('cases', 'counts', 'events', 'inventory'):
+                self.assertEqual(reversed_outcomes[key], opposite_manifest[key])
+            shutil.rmtree(self.reports)
 
         destination = Path(self.enterContext(tempfile.TemporaryDirectory()))
         candidates = {}
@@ -985,6 +1045,11 @@ class WindowsLaneTests(ProjectFixture):
                 lane: (candidates[label] / run / f'windows-python-{lane}.log').read_bytes()
                 for lane in windows_python.LANES
             })
+            locator = diagnostic_locator(candidates[label] / 'test-report.json')
+            diagnostic = resolve_diagnostic(locator, candidates[label])
+            self.assertEqual('passed', diagnostic['selected_check_statuses'][windows_python.CHECK])
+            self.assertIn('windows-python-python.log', diagnostic['verified_observations'])
+            self.assertIn('windows-python-python.json', diagnostic['verified_observations'])
 
             with self.subTest(candidate=label, entry='aggregate publication'):
                 published = destination / f'{label}-published'
@@ -999,22 +1064,26 @@ class WindowsLaneTests(ProjectFixture):
             shutil.rmtree(self.reports, ignore_errors=True)
 
         self.checkout_report_head(report)
+        receipts = self.root / 'project/evidence'
         for label, candidate in candidates.items():
             with self.subTest(candidate=label, entry='receipt import'):
                 downloaded = self.reports / 'ci' / label
                 shutil.copytree(candidate, downloaded)
+                existing = list(receipts.rglob('*.json'))
                 self.record_report(downloaded / 'test-report.json', artifact=downloaded, error=error)
-                self.assertFalse((self.root / 'project/evidence').exists())
+                self.assertEqual(existing, list(receipts.rglob('*.json')))
 
-        reversed_download = self.reports / 'ci' / 'reversed'
-        reversed_report = reversed_download / 'test-report.json'
-        # Model a receipt already issued by the affected verifier.
-        with patch.object(windows_python, 'verify_original', side_effect=declared_events):
-            prior = self.record_report(reversed_report, artifact=reversed_download)
-        receipt = self.root / prior['path']
-        saved_receipt = receipt.read_bytes()
-        self.record_report(reversed_report, artifact=reversed_download, error=error)
-        self.assertEqual(saved_receipt, receipt.read_bytes())
+        for label in candidates:
+            with self.subTest(candidate=label, entry='receipt reopen'):
+                downloaded = self.reports / 'ci' / label
+                report_path = downloaded / 'test-report.json'
+                # Model a receipt already issued by an affected verifier.
+                with patch.object(windows_python, 'verify_original', side_effect=declared_events):
+                    prior = self.record_report(report_path, artifact=downloaded)
+                receipt = self.root / prior['path']
+                saved_receipt = receipt.read_bytes()
+                self.record_report(report_path, artifact=downloaded, error=error)
+                self.assertEqual(saved_receipt, receipt.read_bytes())
 
     def test_current_cleanup_cannot_exchange_case_outcomes_or_drop_callback_evidence(self):
         self.assert_case_outcomes_stay_bound(legacy=False, multiline=True)
@@ -1033,8 +1102,8 @@ class WindowsLaneTests(ProjectFixture):
             self.assertIn(b'ok', serial.splitlines())
             serial = serial.replace(b'first progress\nlast progress ', b'')
         else:
-            self.assertIn(b"optional cleanup skipped 'fixture'", serial.splitlines())
-            self.assertIn(b'cleanup ok', serial.splitlines())
+            self.assertIn(b"optional cleanup skipped 'fixture'.", serial.splitlines())
+            self.assertIn(b'cleanup ok.', serial.splitlines())
         self.produce()
         code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
         original_row = next(row for row in report['checks'] if row['id'] == windows_python.CHECK)
@@ -1165,6 +1234,52 @@ class WindowsLaneTests(ProjectFixture):
         combined = (published / merged['log'].removeprefix('.reports/')).read_bytes()
         self.assertIn(b'Ran 3 tests', combined)
         self.assertNotIn(b'FunctionTestCase', combined)
+
+    def test_identifiable_legacy_callbacks_after_nested_unittest_summaries(self):
+        self.assert_nested_unittest_summaries_preserve_outer_callbacks(legacy=True)
+
+    def test_legacy_nested_summaries_cannot_qualify_two_plausible_outcome_assignments(self):
+        self.partition_fixture('nested_unittest_suite', legacy_runner=True)
+        with (patch.dict(os.environ, {'SCOPEHUB_NESTED_SKIP': '1'}),
+              patch.object(windows_python, 'seal_manifest', side_effect=self.seal_legacy_manifest)):
+            code, report = self.run_harness('--ci-windows-lane', 'python')
+        self.assertEqual((0, 'passed'), (code, report['status']))
+        source_log = self.root / report['windows_python']['python']['log']
+        self.assertIn(b"skipped 'inner fixture skip'", source_log.read_bytes())
+        self.assertEqual(['skipped', 'ok'], [event[2] for event in read_json(source_log.with_suffix('.json'))['events']])
+        with self.assertRaisesRegex(ci_artifacts.PublicationError, 'Original unittest'):
+            ci_artifacts.stage_artifacts(self.root, self.downloads / 'unqualified', os.environ, lane=True)
+
+    def test_current_callback_witness_after_nested_unittest_summaries(self):
+        with patch.dict(os.environ, {'SCOPEHUB_NESTED_SKIP': '1'}):
+            self.assert_nested_unittest_summaries_preserve_outer_callbacks(legacy=False)
+
+    def assert_nested_unittest_summaries_preserve_outer_callbacks(self, *, legacy):
+        self.partition_fixture('nested_unittest_suite', receipt_scope=True, legacy_runner=legacy)
+        if legacy:
+            self.enterContext(patch.object(windows_python, 'seal_manifest', side_effect=self.seal_legacy_manifest))
+        self.produce()
+        code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+        self.assertEqual((0, 'passed'), (code, report['status']))
+        published = self.reports / 'ci' / 'published'
+        published.parent.mkdir()
+        self.assertTrue(ci_artifacts.stage_artifacts(self.root, published, os.environ))
+        row = next(check for check in report['checks'] if check['id'] == windows_python.CHECK)
+        combined = (published / row['log'].removeprefix('.reports/')).read_bytes()
+        self.assertIn(b'test_first_skip (tests.project.test_first.Outer.test_first_skip)'
+                      b" ... skipped 'outer fixture skip'", combined)
+        self.assertIn(b'test_last_pass (tests.project.test_first.Outer.test_last_pass) ... ok', combined)
+        self.assertNotIn(b'FunctionTestCase', combined)
+        source_log = report['windows_python']['python']['log'].removeprefix('.reports/')
+        original = self.downloads / 'verification-windows-2-python' / source_log
+        raw = original.read_bytes()
+        self.assertEqual(raw, (published / source_log).read_bytes())
+        self.assertEqual(2, raw.count(b'Ran 1 test in '))
+        self.assertIn(b'Ran 2 tests in ', raw)
+        self.checkout_report_head(report)
+        report_path = published / 'test-report.json'
+        receipt = self.record_report(report_path, artifact=published)
+        self.assertEqual(receipt, self.record_report(report_path, artifact=published))
 
     def test_partitioned_python_keeps_catalog_and_publishes_ordered_raw_evidence(self):
         self.partition_fixture()

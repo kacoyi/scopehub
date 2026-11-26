@@ -30,14 +30,19 @@ FAILURES = ('failures', 'errors', 'unexpectedSuccesses')
 CLOCK_ROUNDING = .002
 SEPARATOR = b'-' * 70
 RUNNER_SUMMARY = re.compile(
-    rb'^' + SEPARATOR + rb'\n(Ran [0-9]+ tests?) in [0-9]+\.[0-9]{3}s\n\n'
+    rb'^' + SEPARATOR + rb'\n(Ran ([0-9]+) tests?) in [0-9]+\.[0-9]{3}s\n\n'
     rb'((?:OK|FAILED|NO TESTS RAN)(?: \([^\n]*\))?)$',
     re.MULTILINE,
 )
 RUNNER_OUTCOME = re.compile(
     rb'''(ok|FAIL|ERROR|expected failure|unexpected success|skipped (?:'[^\n]*'|"[^\n]*"))\Z''',
 )
-RUNNER_DETAILS = re.compile(rb'^(?:={70}|Slowest test durations)\n', re.MULTILINE)
+RUNNER_DURATIONS = re.compile(
+    rb'^Slowest test durations\n' + SEPARATOR + rb'\n(?:[0-9]+\.[0-9]{3}s +[^\n]+\n)+\n\Z',
+    re.MULTILINE,
+)
+RUNNER_ERRORS = re.compile(rb'^={70}\n(?:FAIL|ERROR|UNEXPECTED SUCCESS): ', re.MULTILINE)
+NESTED_TEST_LINE = re.compile(rb'[^\s()]+ \([^\n()]+\) \.\.\. ')
 # Redirected legacy Windows stderr used the host ANSI code page unless Python
 # was configured for UTF-8. Verify a consistent encoding across the whole run.
 RUNNER_ENCODINGS = ('utf-8', 'cp874', 'cp932', 'cp936', 'cp949', 'cp950',
@@ -393,6 +398,7 @@ def runner_execution(raw, progress):
     """Find the footer belonging to the observed verbose progress, in order."""
     offset = 0
     previous = None
+    observed = []
     for label, status in progress:
         if status is None:
             header = re.compile(rb'\n' + re.escape(label) + rb'(?:\n[^\n]*)? \.\.\. ')
@@ -405,42 +411,96 @@ def runner_execution(raw, progress):
                 return None
             end = start + 1 + len(label)
         if previous is not None:
-            # A footer after a completed callback closes this run. Later
-            # shutdown runners cannot supply missing primary callbacks.
-            footer = RUNNER_SUMMARY.search(raw, offset, start)
-            if footer is not None and runner_outcomes(raw[offset:footer.start()]):
+            footer, outcomes, alternatives = runner_section(raw[offset:start + 1])
+            # A completed outer run cannot obtain more cases from shutdown.
+            if footer is not None or previous not in outcomes:
                 return None
-        if previous is not None and runner_outcomes(raw[offset:start + 1]) != {previous}:
-            return None
+            observed.append((previous, alternatives))
         offset = end
         previous = status
 
-    for footer in RUNNER_SUMMARY.finditer(raw, offset):
-        if not progress:
-            return footer.groups()
-        # Tracebacks and duration displays are separate from progress. Ignore
-        # nested footers before the final primary callback completed.
-        details = RUNNER_DETAILS.search(raw, offset, footer.start())
-        stop = details.start() if details else footer.start()
-        outcomes = runner_outcomes(raw[offset:stop])
-        if outcomes:
-            return footer.groups() if outcomes == {previous} else None
+    footer, outcomes, alternatives = runner_section(raw[offset:], empty_run=not progress)
+    if footer is None:
+        return None
+    if not progress:
+        return footer[1], footer[3]
+    if previous in outcomes and identifiable_outcomes([*observed, (previous, alternatives)]):
+        return footer[1], footer[3]
+    return None
+
+
+def runner_section(segment, *, empty_run=False):
+    """Read one outer progress segment, distinguishing complete nested runners."""
+    outcomes = set()
+    alternatives = set()
+    offset = 0
+    for footer in RUNNER_SUMMARY.finditer(segment):
+        prefix = segment[offset:footer.start()]
+        durations = RUNNER_DURATIONS.search(prefix)
+        if durations is not None:
+            prefix = prefix[:durations.start()]
+        if footer[3].startswith(b'FAILED') and (errors := RUNNER_ERRORS.search(prefix)):
+            prefix = prefix[:errors.start()]
+        nested = nested_run_start(prefix, footer)
+        outcomes.update(runner_outcomes(prefix[:nested]))
+        alternatives.update(runner_outcomes(prefix))
+        if nested is None and (outcomes or empty_run):
+            return footer, outcomes, alternatives
         offset = footer.end()
+    remaining = runner_outcomes(segment[offset:])
+    return None, outcomes | remaining, alternatives | remaining
+
+
+def nested_run_start(prefix, footer):
+    # Only exclude a nested run with its own named result lines and a matching
+    # complete footer. A stray status or footer alone does not hide a contender.
+    counts = dict.fromkeys(COUNTS, 0)
+    count = int(footer[2])
+    if not count:
+        return None
+    end = len(prefix.rstrip(b'\n'))
+    for _ in range(count):
+        if end <= 0:
+            return None
+        start = prefix.rfind(b'\n', 0, end) + 1
+        line = prefix[start:end]
+        label = NESTED_TEST_LINE.match(line)
+        if label is None or (status := RUNNER_OUTCOME.fullmatch(line[label.end():])) is None:
+            return None
+        outcome = 'skipped' if status[1].startswith(b'skipped ') else status[1].decode('ascii')
+        if key := OUTCOMES[outcome]:
+            counts[key] += 1
+        end = start - 1
+    if unittest_verdict(counts, count) == footer[3]:
+        return start
     return None
 
 
 def runner_outcomes(segment):
-    # A status directly after the named header is the canonical legacy form.
-    # In that form later prose is opaque, but standalone statuses can conflict.
-    # With an open header, a callback can end any line, including unterminated
-    # progress. Later cleanup can render exactly the same suffix.
-    # Keep all plausible outcomes so a standalone lookalike cannot win and
-    # ambiguity cannot make a later shutdown footer stand in for this one.
-    lines = segment.split(b'\n')[:-1]
-    if not lines:
-        return set()
-    find_outcome = RUNNER_OUTCOME.fullmatch if RUNNER_OUTCOME.fullmatch(lines[0]) else RUNNER_OUTCOME.search
-    return {match[1] for line in lines if (match := find_outcome(line))}
+    # Output in the case or its cleanup can end in the same bytes as a callback.
+    # The named header does not give the first line priority over a later one.
+    return {match[1] for line in segment.split(b'\n')[:-1] if (match := RUNNER_OUTCOME.search(line))}
+
+
+def outcome_kind(status):
+    return b'skipped' if status.startswith(b'skipped ') else status
+
+
+def identifiable_outcomes(observed):
+    # The primary footer fixes the count of each outcome kind. Another
+    # assignment with those counts exists exactly when possible changes form
+    # a cycle. A different reason for the same skip is a one-edge cycle.
+    changes = {}
+    for outcome, alternatives in observed:
+        if other := alternatives - {outcome}:
+            changes.setdefault(outcome_kind(outcome), set()).update(map(outcome_kind, other))
+    while changes:
+        sinks = {kind for kind, targets in changes.items() if not targets.intersection(changes)}
+        if not sinks:
+            return False
+        for kind in sinks:
+            del changes[kind]
+    return True
 
 
 def verify_execution(raw, progress, count, verdict):
