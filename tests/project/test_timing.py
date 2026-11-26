@@ -1076,6 +1076,46 @@ class HostedTimingTests(unittest.TestCase):
                 self.assertEqual('full', view['objective_reviews'][0]['profile'])
                 self.assertEqual([] if conflict else [cache], [row['cache'] for row in view['reviews']])
 
+    def test_partial_job_listing_preserves_a_qualified_recovery_cache_conflict(self):
+        use_catalog(self, SPLIT_CATALOG)
+        run = hosted_run()
+        linux, core, browser_job, python, aggregate = self.split_windows_jobs()
+        recovery_job = hosted_job(36, 'windows', '00:35', '05:05',
+                                  'Verify the Windows recovery lane', '02:00', '05:00')
+        recovery_job['name'] = timing.WINDOWS_PRODUCERS['recovery']
+        aggregate['steps'] = [aggregate['steps'][0],
+                              {'name': timing.WINDOWS_RECOVERY_MARKER, 'conclusion': 'success'}]
+        all_jobs = [linux, core, browser_job, python, recovery_job, aggregate]
+        complete = timing.hosted_timing(run, all_jobs)
+        report = split_harness_report(675)
+        report['source']['sha256'] = 'c' * 64
+        report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(complete))), 'checkout_sha': 'a' * 40}
+        original = timing.report_sample(report, cache='warm')
+        caches = dict(core='warm', browser='warm', python='not_requested', recovery='warm')
+        full = dict(original, windows_caches=caches)
+        browser = lane_sample(original, 'browser')
+        for jobs, totals in (([], (None, None, None)), ([browser_job], (None, 720, None)),
+                             ([recovery_job], (None, None, 305)), ([browser_job, recovery_job], (None, 720, 305)),
+                             (all_jobs, (765, 720, 305))):
+            hosted = [timing.hosted_timing(run, jobs)] if jobs else []
+            for recovery_cache in ('warm', 'cold'):
+                recovery = dict(lane_sample(original, 'recovery'), cache=recovery_cache)
+                for samples in ([full, browser, recovery], [recovery, browser, full]):
+                    with self.subTest(totals=totals, cache=recovery_cache, first=samples[0]['profile']):
+                        view = timing.timing_view(samples, hosted=hosted)
+                        rows = {row['profile']: row for row in view['samples']}
+                        self.assertEqual(totals, tuple(rows[key]['seconds']['total'] for key in (
+                            'full', 'ci-windows-browser', 'ci-windows-recovery',
+                        )))
+                        disputed = recovery_cache == 'cold'
+                        self.assertEqual('unknown' if disputed else 'warm', rows['full']['cache'])
+                        self.assertEqual(disputed, rows['full'].get('cache_conflict', False))
+                        self.assertEqual(recovery_cache, rows['ci-windows-recovery']['cache'])
+                        self.assertEqual([timing.WINDOWS_PRODUCERS['recovery']] if disputed else [],
+                                         [issue.get('producer') for issue in view['input_issues']])
+                        self.assertEqual(totals[0] is not None and not disputed, bool(view['reviews']),
+                                         rows['full']['review_exclusion'])
+
     def test_untrusted_split_reports_keep_harness_data_without_hosted_attribution(self):
         clock = timing.hosted_timing(hosted_run(), self.split_windows_jobs())
         report = split_harness_report(675)
@@ -1375,14 +1415,17 @@ class PRMainComparisonTests(unittest.TestCase):
         (project / 'checks.json').write_bytes(timing.json_bytes(fixture_catalog(full)))
         (scripts / 'project.py').write_bytes(b'INPUT_EXCLUSIONS = []\n')
         launch = """
-def main(args, selected):
+def main(args, project):
+    selected = select_checks(project, profile=args.profile, task_id=args.task)
     if args.ci_windows_lane:
         selected = windows_lane_checks(selected, args.ci_windows_lane)
-    return selected
+{amendment}    report = {{'selection': {{'checks': sorted(selected)}}}}
+{report_amendment}    return json.dumps(report, indent=2)
 """
 
-        def publish(label, definition, *, shared=None):
-            (scripts / 'check.py').write_bytes((definition + '\n' + launch).encode())
+        def publish(label, definition, *, shared=None, amendment='', report_amendment=''):
+            launcher = launch.format(amendment=amendment, report_amendment=report_amendment)
+            (scripts / 'check.py').write_bytes((definition + '\n' + launcher).encode())
             scope_file = scripts / 'verification_scope.py'
             if shared is None:
                 scope_file.unlink(missing_ok=True)
@@ -1420,6 +1463,20 @@ def windows_lane_checks(selected, lane):
         )
         mutated = [publish('Unsupported lane amendment ' + str(index), earlier + mutation)
                    for index, mutation in enumerate(mutations)]
+        amendments = (
+            "        if args.ci_windows_lane == 'browser':\n"
+            "            selected.remove('market-recovery-ui')\n"
+            "        elif args.ci_windows_lane == 'recovery':\n"
+            "            selected.add('market-recovery-ui')\n",
+            "    selected -= {'market-recovery-ui'}\n",
+            "    selected = selected - {'market-recovery-ui'}\n",
+            "    output = selected\n    output.discard('market-recovery-ui')\n",
+        )
+        mutated.extend(publish('Unsupported selection result amendment ' + str(index), earlier, amendment=amendment)
+                       for index, amendment in enumerate(amendments))
+        mutated.append(publish('Unsupported published selection amendment', earlier, report_amendment=(
+            "    report['selection']['checks'].remove('market-recovery-ui')\n"
+        )))
         three = publish('Original three producers', """WINDOWS_BROWSER_CHECKS = {'market-recovery-ui', 'workspace-timeframe'}
 WINDOWS_PYTHON_CHECKS = {'market-recovery', 'python-contracts-workers'}
 WINDOWS_LANES = ('core', 'browser', 'python')

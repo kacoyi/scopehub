@@ -26388,7 +26388,7 @@
         "The verifier binds a producer to its publishing job, platform, source or verified execution-equivalent catalog and exact ordered scope. Incorrectly swapped, missing, extra and unverifiable assignments cannot establish a warm comparable observation.",
         "Previously supported publishing layouts, incomplete sources and historical evidence retain their respective outcomes. Verify the shared current selection together with its integration consumer."
       ],
-      "next_action": "Independently review the exact correction against the original browser-only clocks, full historical captures and the unsupported ownership controls, then obtain matching hosted verification on the reviewed candidate.",
+      "next_action": "Give the coordinator the clean correction and retained PR 121 and PR 116 job-list and checkout-marker matrices. Obtain renewed independent review and matching hosted verification on the exact combined candidate with M0-155, and keep the inherited PR 122 review gates explicit.",
       "blocker": null,
       "evidence": [],
       "closure_reason": null,
@@ -26408,7 +26408,9 @@
         ],
         "hypotheses": [
           "The earlier and later sources had the same four Windows producer jobs and aggregate catalog. The browser and recovery assignments changed while the reader used one current mapping for both.",
-          "A known authenticated source or demonstrably equivalent publishing inputs can distinguish layouts. Inferring a layout solely from the submitted selection would allow an incorrect producer to qualify."
+          "A known authenticated source or demonstrably equivalent publishing inputs can distinguish layouts. Inferring a layout solely from the submitted selection would allow an incorrect producer to qualify.",
+          "A cache vector supplies the named fields for qualified report reconciliation. Actions job listings supply clock and topology evidence independently.",
+          "The recognized launcher must preserve the lane selector result through its ordered report projection. An unsupported consumer or write invalidates the static proof."
         ],
         "risks": [
           {
@@ -26435,6 +26437,18 @@
             "checks": [
               "python-contracts-workers"
             ]
+        },
+        {
+          "failure": "A partial job list suppresses an already qualified recovery report and hides a producer cache conflict. Exercise both original runs with no job list, browser only, recovery only, both producer jobs and the full capture, in both report orders. Verify each independent producer clock, the aggregate cache conflict and the complete platform capture independently.",
+          "checks": [
+            "python-contracts-workers"
+          ]
+        },
+        {
+          "failure": "The publisher modifies the selected checks after a recognized lane selector returns. Exercise stale and final role selections against an isolated matching checkout marker with caller-side writes, reject a change to the serialized selection field before publication, and preserve rejection of unsupported lane declarations and their aliases.",
+          "checks": [
+            "python-contracts-workers"
+          ]
           }
         ],
         "rollback": "Keep the original artifacts and the explicit unknown result for a source whose publishing selection cannot be established; restore the prior reader if historical coverage cannot be preserved.",
@@ -26474,7 +26488,7 @@
             "Verify historical producer assignments using the applicable publishing inputs at the normal timing boundary.",
             "Keep independent producer qualification separate from incomplete aggregate topology and reject source assignments whose final ownership cannot be established."
           ],
-          "data_plan": "Use the four authenticated producer artifacts and original compact measurements. Keep their raw source, artifact IDs, checksums and publishing check selections. Preserve the original independent review and the bounded job-list and synthetic publisher replays in archives/observations/repo-hygiene-20261125/m0-150-review-followup-460248f9/.",
+        "data_plan": "Use the four authenticated producer artifacts and original compact measurements. Keep their raw source, artifact IDs, checksums and publishing check selections. Preserve the original reviews and replays in archives/observations/repo-hygiene-20261125/m0-150-review-followup-460248f9/, archives/observations/repo-hygiene-20261125/independent-final-m0-150-73fd4773/ and archives/observations/repo-hygiene-20261125/m0-150-combined-replay-73fd4773/. Retain the resumed contradictory-cache and checkout-marker inputs and raw outputs with their source identities for coordinator handoff.",
           "cleanup": "Keep synthetic inconsistent controls isolated from the genuine artifacts and preserve any indeterminate original as a diagnostic."
         }
       }

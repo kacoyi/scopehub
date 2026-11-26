@@ -7990,6 +7990,36 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "weekly-windows-partial-jobs-hide-producer-cache-conflict",
+      "source": "Independent Astra Standard review of 73fd47738b1dfb2c3e2497565a5eb0a43e2d2456: archives/observations/repo-hygiene-20261125/independent-final-m0-150-73fd4773/final-response.txt (SHA-256 e4462da368e007673be178239fb7a3d3a04036c1e52f58f8a88f4b14d7d8bc72; original response line SHA-256 3c3d46e8428156b44070dd13ed5d8a79a58569679c69da5105356e3387aaebca).",
+      "observation": "Using the original PR 121 and PR 116 reports and measurements, the reviewer changed only the recovery producer cache class to cold in an isolated control. Both aggregate caches were unknown with a reported conflict when jobs were absent. Adding just the authentic browser job erased the conflict and reported warm. Adding the recovery job restored the conflict. Reversing report order produced the same outcomes.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "weekly-windows-timing-misses-publisher-result-mutation",
+      "source": "Independent Astra Standard review of 73fd47738b1dfb2c3e2497565a5eb0a43e2d2456: archives/observations/repo-hygiene-20261125/independent-final-m0-150-73fd4773/final-response.txt (SHA-256 e4462da368e007673be178239fb7a3d3a04036c1e52f58f8a88f4b14d7d8bc72; original response line SHA-256 3c3d46e8428156b44070dd13ed5d8a79a58569679c69da5105356e3387aaebca).",
+      "observation": "In a checkout-marker control with a matching execution-input digest, the harness retained the recognized selector and moved market-recovery-ui from browser to recovery after the selector returned. The reader credited the stale 11-check browser selection and filled the aggregate cache as warm, while it rejected the actual 10-check final selection. The earlier augmented assignment, set method and alias controls remained rejected.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

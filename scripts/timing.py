@@ -1390,7 +1390,9 @@ def matched_producer_caches(sample, producers, run):
     digest = sample.get('inputs_sha256')
     if sample['ci'] is None or not isinstance(digest, str) or not re.fullmatch(r'[0-9a-f]{64}', digest):
         return {}
-    lanes = windows_clock_lanes(run) or (WINDOWS_LANES if 'windows_caches' in sample else ())
+    # A component vector names its cache fields independently of job clocks.
+    # A partial listing can lack the recovery job without disproving its report.
+    lanes = WINDOWS_LANES if 'windows_caches' in sample else windows_clock_lanes(run)
     if not lanes:
         return {}
     rows = {row['id']: row for row in sample['checks'] if row['id'] in sample['selected']}

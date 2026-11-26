@@ -310,6 +310,89 @@ def _publishing_ids(node):
     return frozenset(ids)
 
 
+def _named_references(node, name):
+    return {item for item in ast.walk(node) if isinstance(item, ast.Name) and item.id == name}
+
+
+def _selection_membership(parent, reference):
+    return (isinstance(parent, ast.Compare) and parent.comparators == [reference]
+            and isinstance(parent.ops[0], (ast.In, ast.NotIn)))
+
+
+def _publishing_field(node, key):
+    if not isinstance(node, ast.Dict) or not all(isinstance(name, ast.Constant) for name in node.keys):
+        raise ValueError('Expected a literal publishing report field')
+    field, = (value for name, value in zip(node.keys, node.values, strict=True) if name.value == key)
+    return field
+
+
+def _require_publishing_report_uses(main, report, parents):
+    # The sorted selection becomes a mutable list in the report dictionary.
+    serialized = []
+    for node in _named_references(main, 'report') - set(report.targets):
+        parent = parents[node]
+        if isinstance(parent, ast.Subscript) and isinstance(parent.slice, ast.Constant) and parent.slice.value in {
+            'ci', 'limitations', 'observed_feedback', 'status', 'worktree_changes',
+        }:
+            continue
+        use = ast.unparse(parent)
+        if use == 'json.dumps(report, indent=2)':
+            serialized.append(parent)
+        elif use != "validate_model(ROOT, 'HarnessReport', report)":
+            raise ValueError('Unsupported use of the Windows publishing report')
+    serialization, = serialized
+    if serialization.lineno <= report.end_lineno:
+        raise ValueError('Windows report serialized before the selection projection')
+
+
+def _publishing_lane_call(harness):
+    main, = (node for node in harness.body if isinstance(node, ast.FunctionDef) and node.name == 'main')
+    initial = _publishing_assignment_node(main, 'selected')
+    if ast.unparse(initial) != 'selected = select_checks(project, profile=args.profile, task_id=args.task)':
+        raise ValueError('Unknown initial Windows check selection')
+    partition, = (stmt for stmt in main.body if isinstance(stmt, ast.If) and ast.unparse(stmt) == (
+        'if args.ci_windows_lane:\n    selected = windows_lane_checks(selected, args.ci_windows_lane)'
+    ))
+    report = _publishing_assignment_node(main, 'report')
+    published = _publishing_field(_publishing_field(report.value, 'selection'), 'checks')
+    partition_index = main.body.index(partition)
+    if (not main.body.index(initial) < partition_index < main.body.index(report)
+            or ast.unparse(published) != 'sorted(selected)'):
+        raise ValueError('Unknown Windows publishing selection projection')
+
+    # Check the caller as well as the selector. A mutable result can change
+    # ownership through reassignment, a method, or an alias before publication.
+    known = set().union(*(_named_references(part, 'selected') for part in (initial, partition, published)))
+    parents = {child: node for node in ast.walk(main) for child in ast.iter_child_nodes(node)}
+    for node in _named_references(main, 'selected') - known:
+        parent = parents[node]
+        if _selection_membership(parent, node):
+            continue
+        if (isinstance(parent, ast.Attribute) and parent.attr == 'intersection'
+                and ast.unparse(parents[parent]) == "selected.intersection(item['regression_checks'])"):
+            continue
+        if isinstance(parent, ast.Call) and ast.unparse(parent) == 'build_window(catalog, selected, environment, index)':
+            build, = (stmt for stmt in harness.body if isinstance(stmt, ast.FunctionDef) and stmt.name == 'build_window')
+            if all(_selection_membership(use, child)
+                   for use in ast.walk(build) for child in ast.iter_child_nodes(use)
+                   if isinstance(child, ast.Name) and child.id == 'selected'):
+                continue
+        if isinstance(parent, ast.Call) and ast.unparse(parent) == (
+            'collect_windows_lanes(ROOT, args.ci_windows_aggregate, project, source, ci, '
+            'selected, os.environ, profile=args.profile)'
+        ):
+            branch = parents[parents[parent]]
+            if (isinstance(branch, ast.If) and ast.unparse(branch.test) == 'args.ci_windows_aggregate'
+                    and any(isinstance(stmt, ast.If) and ast.unparse(stmt) == (
+                        'if args.ci_windows_lane and (args.profile or args.ci_windows_aggregate or args.require_windows):\n'
+                        "    parser.error('A Windows lane uses its fixed selection')"
+                    ) for stmt in main.body[:partition_index])):
+                continue
+        raise ValueError('Unsupported use of the Windows publishing selection')
+    _require_publishing_report_uses(main, report, parents)
+    return partition.body[0].value
+
+
 @lru_cache(maxsize=128)
 def committed_windows_assignment(root, revision):
     """Read a known publisher's assignment as bounded Git data, without importing it."""
@@ -317,14 +400,7 @@ def committed_windows_assignment(root, revision):
         if not isinstance(revision, str) or not OBJECT_ID.fullmatch(revision):
             return None
         harness = _publishing_module(root, revision, 'check.py')
-        main, = (node for node in harness.body if isinstance(node, ast.FunctionDef) and node.name == 'main')
-        calls = [node for node in ast.walk(main) if isinstance(node, ast.Call)
-                 and isinstance(node.func, ast.Name) and node.func.id == 'windows_lane_checks']
-        call, = calls
-        if not any(isinstance(node, ast.Assign) and node.value is call
-                   and ast.unparse(node) == 'selected = windows_lane_checks(selected, args.ci_windows_lane)'
-                   for node in ast.walk(main)):
-            return None
+        call = _publishing_lane_call(harness)
         module = harness
         selector = _publishing_selector(harness)
         imports = {(node.module, name.name) for node in ast.walk(harness) if isinstance(node, ast.ImportFrom)
