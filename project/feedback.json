@@ -8266,6 +8266,23 @@
       "diagnostic_reports": [],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "weekly-timing-accepts-null-checkout-oid",
+      "status": "open",
+      "severity": "major",
+      "source": "M0-156 at e6e5a46d9296e087b2b1c037eb6ba6c16dbe5330: archives/observations/repo-hygiene-20261125/independent-final-m0-156-e6e5a46d/final-response.txt (SHA-256 dd2c3acc5c27be384dabaa473d7f10604126fd06041c2e74c211922467c3f2cd).",
+      "task_ids": [
+        "M0-156"
+      ],
+      "observation": "On Windows run 45546767887, the weekly reader issued a full platform receipt with 804 wall seconds and 2467 runner-seconds for an all-zero checkout SHA, with and without checkout proof. Git reports the null sentinel as missing, allowing fallback to the matching historical input digest. A genuinely unavailable PR preview remained eligible, and known trees and blobs remained ineligible in full and shallow Git.",
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
