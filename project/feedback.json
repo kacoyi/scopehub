@@ -7686,6 +7686,51 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "sample-indicator-recovery-user-cancel-duplicates-request",
+      "source": "Independent Astra Standard (t14g) component and transport replay at c1cefee5537c5ef4b80dd1ce7a6f28eaaaa69540. Original final response: archives/observations/repo-hygiene-20261125/independent-final-m3-007-c1cefee5/final-response.txt (SHA-256 7b307eb7f16d24e9066a8383ae8bf15516bc82cba4ef351b6718e40d5cd5cc6a). Review decision: contracts/reviews/task-decisions/M3-007.json#/events/1.",
+      "observation": "After one lost status delivery, the reviewer cancelled through the preview UI while the second read was pending. The cancelled message appeared and the chart preview layer cleared, but two different cancellation request IDs targeted the same admitted task. The invalidation path cancelled the task before the aborted polling catch cancelled it again. The correction must also cancel once when the preview admission reply supplies the task ID after invalidation.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M3-007"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "sample-indicator-recovery-unknown-status-displays-artifact",
+      "source": "Independent Astra Standard (t14g) component and transport replay at c1cefee5537c5ef4b80dd1ce7a6f28eaaaa69540. Original final response: archives/observations/repo-hygiene-20261125/independent-final-m3-007-c1cefee5/final-response.txt (SHA-256 7b307eb7f16d24e9066a8383ae8bf15516bc82cba4ef351b6718e40d5cd5cc6a).",
+      "observation": "After one lost status delivery, changing the recovery response status from ready to the undefined value unavailable left the valid Rust artifact payload in place. The component displayed the preview layer and 3500.5. An unknown status must show failure, hide the preview and clean up the admitted task once.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M3-007"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "sample-indicator-recovery-terminal-event-task-mismatch",
+      "source": "Independent Astra Standard (t14g) component and transport replay at c1cefee5537c5ef4b80dd1ce7a6f28eaaaa69540. Original final response: archives/observations/repo-hygiene-20261125/independent-final-m3-007-c1cefee5/final-response.txt (SHA-256 7b307eb7f16d24e9066a8383ae8bf15516bc82cba4ef351b6718e40d5cd5cc6a).",
+      "observation": "After one lost status delivery, the reviewer retained the correct outer task ID and substituted another task's ID in the nested cancellation event. The component displayed cancellation for the current preview. The mismatched event must show failure, hide the preview and clean up the original admitted task once.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M3-007"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

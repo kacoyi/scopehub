@@ -56,8 +56,12 @@ export function installIndicatorProbe(endpoint, writerPath, { journal, mode, ref
   const mark = (stage, fields) => appendFileSync(journal, JSON.stringify({ at_ms: Date.now(), stage, ...fields }) + '\n');
   const spawn = childProcess.spawn;
   const heldResponses = new Map();
+  let heldAdmission;
   const lostRequests = new Set();
-  const lossLimit = mode === 'lose-twice' ? 2 : Number(['lose-once', 'cancelled', 'deadline'].includes(mode));
+  const substitutions = ['cancelled', 'wrong-terminal-task', 'unknown-status', 'wrong-ready-task', 'unknown-terminal-outcome'];
+  const lossLimit = mode === 'lose-twice' ? 2 : Number([
+    'lose-once', 'deadline', 'user-cancel', ...substitutions,
+  ].includes(mode));
   const holdMs = mode === 'deadline' || refuse ? 800 : statusHoldMs;
   let heldReady = false;
 
@@ -119,12 +123,15 @@ export function installIndicatorProbe(endpoint, writerPath, { journal, mode, ref
           response.once('close', () => {
             clearTimeout(heldResponses.get(response));
             heldResponses.delete(response);
+            if (heldAdmission?.response === response) heldAdmission = undefined;
             if (!response.writableFinished) finish('http-closed');
           });
           const { writeHead, end } = response;
           let head;
           response.writeHead = function (...args) {
-            if (mode === 'observe' || fields?.operation !== statusOperation) return writeHead.apply(this, args);
+            const intercept = mode !== 'observe' && fields?.operation === statusOperation
+              || mode === 'late-admission' && fields?.operation === 'indicator.runPreview';
+            if (!intercept) return writeHead.apply(this, args);
             head = args;
             return this;
           };
@@ -139,23 +146,26 @@ export function installIndicatorProbe(endpoint, writerPath, { journal, mode, ref
               if (head) writeHead.apply(this, head);
               return end.apply(this, args);
             };
+            if (head && mode === 'late-admission' && fields.operation === 'indicator.runPreview'
+              && body?.result?.outcome?.state === 'committed') {
+              heldAdmission = { response, release, fields };
+              heldResponses.set(response, undefined);
+              mark('admission-held', { ...fields, task_id: body.result.outcome.result.task_id });
+              return this;
+            }
             if (!head || body?.result?.status !== 'ready') return release();
 
             const id = fields.request_id;
             const lose = lostRequests.has(id) || lostRequests.size < lossLimit;
-            if (!lose && mode === 'cancelled') {
-              const { protocol_version, stream_id, sequence, task_id } = body.result.event;
-              const event = { protocol_version, stream_id, sequence: sequence + 1, task_id,
-                message_id: randomUUID(), timestamp_ms: Date.now(), type: 'event', event: 'task.terminal',
-                outcome: { status: 'cancelled' }, committed_effects: [] };
-              const replacement = { ok: true, result: { status: 'terminal', task_id: fields.task_id, event } };
+            if (!lose && substitutions.includes(mode)) {
+              const replacement = substituteStatus(body, mode);
               mark('status-substituted', { ...fields, body: replacement });
               args[0] = JSON.stringify(replacement);
               return release();
             }
-            if (!lose && mode === 'deadline') {
+            if (!lose && (mode === 'deadline' || mode === 'user-cancel')) {
               heldResponses.set(response, undefined);
-              mark('status-held', { ...fields, until: 'browser-deadline' });
+              mark('status-held', { ...fields, until: mode === 'deadline' ? 'browser-deadline' : 'user-cancel' });
               return this;
             }
             if (!lose && (mode !== 'hold-ready' || heldReady)) return release();
@@ -176,6 +186,13 @@ export function installIndicatorProbe(endpoint, writerPath, { journal, mode, ref
         });
       },
     },
+    releaseAdmission() {
+      if (!heldAdmission) throw new Error('No indicator admission is held.');
+      const { fields, release } = heldAdmission;
+      heldAdmission = undefined;
+      mark('admission-released', fields);
+      release();
+    },
     close() {
       childProcess.spawn = spawn;
       syncBuiltinESMExports();
@@ -185,4 +202,18 @@ export function installIndicatorProbe(endpoint, writerPath, { journal, mode, ref
       }
     },
   };
+}
+
+function substituteStatus(body, mode) {
+  const { result } = body;
+  if (mode === 'unknown-status') return { ...body, result: { ...result, status: 'unavailable' } };
+  if (mode === 'wrong-ready-task') {
+    return { ...body, result: { ...result, event: { ...result.event, task_id: randomUUID() } } };
+  }
+  const { protocol_version, stream_id, sequence, task_id } = result.event;
+  const event = { protocol_version, stream_id, sequence: sequence + 1,
+    task_id: mode === 'wrong-terminal-task' ? randomUUID() : task_id,
+    message_id: randomUUID(), timestamp_ms: Date.now(), type: 'event', event: 'task.terminal',
+    outcome: { status: mode === 'unknown-terminal-outcome' ? 'unavailable' : 'cancelled' }, committed_effects: [] };
+  return { ok: true, result: { status: 'terminal', task_id: result.task_id, event } };
 }

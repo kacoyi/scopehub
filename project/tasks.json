@@ -26252,7 +26252,8 @@
       "acceptance": [
         "Through the normal offline sample chart, reconcile a single browser-observable status delivery loss by rereading the existing admitted task within the existing deadline. Verify one draft and one preview dispatch, one logical recovery, and the expected period-two value 3500.5 across the scheduled closure.",
         "Verify a delivered ready response, genuine pre-admission refusal, a second lost logical delivery, and a definitive invalid or terminal response. Keep the chart and frozen source identity intact. Preserve the visible terminal failure and one correlated cancellation when recovery is exhausted or unavailable.",
-        "The ordinary calendar check records request, admission, dispatch, ready or failure, chart state and cleanup. It reports an observed preview failure without waiting exclusively for ready, retains the original diagnostic, and still verifies the gapped sample, forged snapshot and obsolete-task controls."
+        "The ordinary calendar check records request, admission, dispatch, ready or failure, chart state and cleanup. It reports an observed preview failure without waiting exclusively for ready, retains the original diagnostic, and still verifies the gapped sample, forged snapshot and obsolete-task controls.",
+        "Through the compiled chart and Rust writer, cancel once while recovery is in flight or while admission is still returning the task ID. Reject an unknown result status and a terminal event whose nested task ID disagrees with the admitted task. Verify the visible outcome, original task cleanup and the existing 15-second polling deadline."
       ],
       "checks": [
         "ui-build",
@@ -26272,7 +26273,7 @@
           "report_sha256": "b72407d17d36029e7872dd0c251bae6bad76afb7c94e9bcd02eca3a5561b8858"
         }
       ],
-      "next_action": "The standalone correction passed all six local task checks on clean source 26091617644021f5fb10d1881650bb09bdc4382e. The coordinator should renew independent review and external verification using the local receipt and matching workspace-timeframe browser and writer observations in .reports/runs/20261126T061035.222344Z-b049690c. Keep M2-039 composition, its unrelated admissions and native qualification separately assigned.",
+      "next_action": "Reproduce the three independently reported counterexamples through the compiled sample chart and Rust writer, retain the failing report, then verify the correction and hand the clean candidate to the coordinator for independent and native review.",
       "blocker": null,
       "closure_reason": null,
       "evidence": [
@@ -26296,6 +26297,8 @@
           ".reports/M3-007/protected-baseline-host/index.json",
           ".reports/M3-007/red-workspace-timeframe-repro/workspace-timeframe/index.json",
           ".reports/m3-007-calendar-failure-witness/fault/results.json",
+        "archives/observations/repo-hygiene-20261125/independent-final-m3-007-c1cefee5/final-response.txt",
+        "contracts/reviews/task-decisions/M3-007.json",
           "apps/desktop/ui/src/indicator-preview.tsx",
           "apps/desktop/ui/src/use-local-workspace.ts",
           "tests/ubuntu-preview/workspace.spec.mjs",
@@ -26304,7 +26307,9 @@
         "hypotheses": [
           "The sample excludes bounded status-delivery recovery even when the existing transport classifies a missing response before headers and the same Rust task already holds a verified ready artifact.",
           "A logical browser status request can generate multiple native reads with the same request ID when Chromium retries its connection. The test should distinguish browser transport replay from an application-issued recovery ID.",
-          "The first historical calendar run showed an alert during the first preview. The second reached the gapped chart after passing the first preview and forged snapshot checks. The original indicator transaction is unavailable for each failure."
+          "The first historical calendar run showed an alert during the first preview. The second reached the gapped chart after passing the first preview and forged snapshot checks. The original indicator transaction is unavailable for each failure.",
+          "The invalidation path and the polling catch can both cancel one admitted attempt. Recording the cancellation on that attempt can preserve cleanup when its ID arrives late.",
+          "The status discriminant and nested terminal task identity require runtime validation before the UI adopts a recovered result."
         ],
         "risks": [
           {
@@ -26320,6 +26325,12 @@
               "workspace-timeframe",
               "market-workflow",
               "ui-build"
+            ]
+          },
+          {
+            "failure": "User cancellation during recovery dispatches two cancellations, a late admission leaks its task, or malformed recovery replies display a preview or adopt another task's terminal event.",
+            "checks": [
+              "workspace-timeframe"
             ]
           }
         ],
@@ -26358,7 +26369,8 @@
             "Bounded frozen-source recovery, explicit pre-admission BUSY semantics, validated artifact identity and the original draft and run receipts."
           ],
           "change": [
-            "Use the existing diagnostic delivery classification for one same-task sample status read and make the calendar harness observe all terminal outcomes."
+            "Use the existing diagnostic delivery classification for one same-task sample status read and make the calendar harness observe all terminal outcomes.",
+            "Share cancellation ownership between invalidation and polling cleanup. Validate ready status and terminal task identity before showing the recovered result."
           ],
           "data_plan": "Use an isolated synthetic SQLite profile and the pinned normal and gapped calendar fixtures. Keep retained records limited to synthetic inputs and responses.",
           "cleanup": "Release controlled replies, cancel an obsolete admitted task, close owned browser contexts and services, and verify port release and profile removal."

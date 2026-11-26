@@ -110,6 +110,9 @@ const service = `
   const indicatorProbe = indicatorProbeOptions
     ? (await import('${indicatorProbeModule}')).installIndicatorProbe('${endpoint}', writerPath, JSON.parse(indicatorProbeOptions))
     : undefined;
+  if (indicatorProbe) process.on('message', message => {
+    if (message === 'release-indicator-admission') indicatorProbe.releaseAdmission();
+  });
   const snapshotGate = gateEnabled
     ? (await import('${snapshotGateModule}')).installSnapshotGate('${endpoint}', writerPath)
     : undefined;
@@ -927,6 +930,12 @@ for (const [label, mode, losses, terminal, refuse] of [
   ['stops after a second lost logical delivery', 'lose-twice', 2, 'failed'],
   ['stops on a definitive cancelled status', 'cancelled', 1, 'cancelled'],
   ['stops at the original polling deadline', 'deadline', 1, 'failed'],
+  ['cancels once while a recovery read is in flight', 'user-cancel', 1, 'cancelled'],
+  ['rejects an unknown recovery status despite a ready artifact', 'unknown-status', 1, 'failed'],
+  ['rejects a recovery terminal event for another task', 'wrong-terminal-task', 1, 'failed'],
+  ['rejects a recovery ready event for another task', 'wrong-ready-task', 1, 'failed'],
+  ['rejects an unknown outcome for the recovered task', 'unknown-terminal-outcome', 1, 'failed'],
+  ['cancels once when an admission reply arrives after user cancel', 'late-admission', 0, 'cancelled'],
 ]) {
   test(`offline sample indicator ${label}`, async ({ browser }, testInfo) => {
     const journal = testInfo.outputPath('sample-indicator-native.jsonl');
@@ -953,12 +962,17 @@ for (const [label, mode, losses, terminal, refuse] of [
           await expect(preview.getByLabel('Rolling period')).toHaveValue('2');
           observer = observeIndicatorRequests(page, endpoint);
           const run = preview.getByRole('button', { name: 'Run preview' });
-          if (refuse) await runWithSampleStatusRefusal(server, run, observer, journal);
-          else await run.click();
-
           const layers = preview.getByText(/Preview layers/);
           const alert = preview.getByRole('alert');
           const cancelled = preview.getByText('Indicator preview cancelled.', { exact: true });
+          if (refuse) await runWithSampleStatusRefusal(server, run, observer, journal);
+          else await run.click();
+
+          if (mode === 'user-cancel' || mode === 'late-admission') {
+            evidence.user_cancel = await cancelHeldSamplePreview({
+              mode, server, journal, observer, preview, cancelled, run,
+            });
+          }
           await expect(layers.or(alert).or(cancelled)).toBeVisible({ timeout: 17_000 });
           await observer.settle();
           const observed = await layers.isVisible() ? 'ready' : await cancelled.isVisible() ? 'cancelled' : 'failed';
@@ -985,11 +999,18 @@ for (const [label, mode, losses, terminal, refuse] of [
           const ready = native.filter(row => row.stage === 'pipe-reply'
             && row.operation === 'indicator_preview_status' && row.output.result?.status === 'ready');
           const witness = ready[0]?.output.result;
-          expect(witness).toMatchObject({ task_id: taskId, source_snapshot: selected.snapshot, warmup_from_ms: previous,
-            event: { task_id: taskId, snapshot: { warmup_bars: 1 } } });
-          expect(witness.event.artifact.result.series.find(series => series.id === 'mean')?.points)
-            .toEqual([{ time_ms: time, value: 3500.5 }]);
-          for (const row of ready) expect(row.output.result).toEqual(witness);
+          if (mode === 'late-admission') {
+            expect(statuses).toHaveLength(0);
+            expect(dispatched('indicator_preview_status')).toHaveLength(0);
+            expect(evidence.user_cancel.held.task_id).toBe(taskId);
+            expect(native.find(row => row.stage === 'admission-released')?.request_id).toBe(runs[0].request_id);
+          } else {
+            expect(witness).toMatchObject({ task_id: taskId, source_snapshot: selected.snapshot, warmup_from_ms: previous,
+              event: { task_id: taskId, snapshot: { warmup_bars: 1 } } });
+            expect(witness.event.artifact.result.series.find(series => series.id === 'mean')?.points)
+              .toEqual([{ time_ms: time, value: 3500.5 }]);
+            for (const row of ready) expect(row.output.result).toEqual(witness);
+          }
 
           const refused = statuses.filter(row => row.http === 429);
           if (refuse) expect(refused.length).toBeGreaterThan(0);
@@ -1034,44 +1055,60 @@ for (const [label, mode, losses, terminal, refuse] of [
           } else {
             await expect(layers).toHaveCount(0);
           }
-          await expect.poll(() => cancels().then(rows => rows.length)).toBe(1);
-          const [cleanup] = await cancels();
-          expect(cleanup).toMatchObject({ task_id: taskId, output: { result: { task_id: taskId,
-            outcome: { status: 'completed' } } } });
-          expect(observer.attempts.filter(row => row.operation === 'task.cancel')).toHaveLength(1);
+          await expect.poll(() => cancels().then(rows => rows.length)).toBeGreaterThan(0);
           evidence.cleanup = await readIndicatorAfterAdmission(server, {
             type: 'indicator_preview_status', request_id: randomUUID(), task_id: taskId,
           });
-          expect(evidence.cleanup).toMatchObject({ http: 200, body: { ok: false, error: { code: 'STALE_CONTEXT' } } });
+          const cleanupStatus = mode === 'late-admission' ? 'cancelled' : 'completed';
+          if (mode === 'late-admission') {
+            expect(evidence.cleanup).toMatchObject({ http: 200, body: { ok: true, result: { status: 'terminal', task_id: taskId,
+              event: { task_id: taskId, outcome: { status: 'cancelled' } } } } });
+          } else {
+            expect(evidence.cleanup).toMatchObject({ http: 200, body: { ok: false, error: { code: 'STALE_CONTEXT' } } });
+          }
+          const cleanup = await cancels();
+          evidence.cancel_request_ids = observer.attempts.filter(row => row.operation === 'task.cancel').map(row => row.request_id);
+          expect.soft(evidence.cancel_request_ids, 'Browser cleanup request IDs').toEqual(cleanup.map(row => row.request_id));
+          expect.soft(evidence.cancel_request_ids, 'Exactly one cleanup of the admitted task').toHaveLength(1);
+          expect(cleanup[0]).toMatchObject({ task_id: taskId, output: { result: { task_id: taskId,
+            outcome: { status: cleanupStatus } } } });
+          expect(cleanup.every(row => row.task_id === taskId)).toBe(true);
           expect(observer.attempts.filter(row => row.operation === 'indicator_preview_status').map(row => row.request_id))
             .toEqual(statuses.map(row => row.request_id));
-          expect(await cancels()).toHaveLength(1);
+          expect.soft(cleanup, 'Native cleanup dispatch count').toHaveLength(1);
 
-          expect(observed, 'Terminal UI after the admitted status transaction').toBe(terminal);
+          expect.soft(observed, 'Terminal UI after the admitted status transaction').toBe(terminal);
           expect(lostIds).toHaveLength(losses);
           const meaningful = statuses.filter(row => row.reply?.result?.status !== 'running' && row.http !== 429);
-          expect(meaningful.map(row => row.request_id)).toEqual([
-            ...lostIds, ...(mode === 'lose-twice' ? [] : [statuses.at(-1).request_id]),
-          ]);
           const last = statuses.at(-1);
+          const delivered = ['lose-twice', 'late-admission'].includes(mode) ? [] : [last.request_id];
+          expect(meaningful.map(row => row.request_id)).toEqual([
+            ...lostIds, ...delivered,
+          ]);
           expect(ready.filter(row => !lostIds.includes(row.request_id)).map(row => row.request_id))
-            .toEqual(mode === 'lose-twice' ? [] : [last.request_id]);
+            .toEqual(delivered);
           if (terminal === 'ready') expect(last.reply).toEqual({ ok: true, result: witness });
-          if (mode === 'cancelled') {
-            expect(last.reply).toEqual(native.find(row => row.stage === 'status-substituted').body);
-            expect(last.reply.result.event.outcome).toEqual({ status: 'cancelled' });
+          if (['cancelled', 'wrong-terminal-task', 'unknown-status', 'wrong-ready-task', 'unknown-terminal-outcome'].includes(mode)) {
+            const substitutions = native.filter(row => row.stage === 'status-substituted');
+            expect(substitutions).toHaveLength(1);
+            verifySampleStatusSubstitution({ mode, last, taskId, witness, substitution: substitutions[0] });
           }
           if (terminal === 'failed') {
-            expect(evidence.observed.message).toEqual(['The indicator preview could not be completed.']);
+            expect.soft(evidence.observed.message).toEqual(['The indicator preview could not be completed.']);
           }
-          if (mode === 'deadline') {
-            const runFinished = native.find(row => row.stage === 'http-finished' && row.request_id === runs[0].request_id);
-            const closed = native.find(row => row.stage === 'http-closed' && row.request_id === last.request_id);
+          const runFinished = native.find(row => row.stage === 'http-finished' && row.request_id === runs[0].request_id);
+          evidence.terminal_elapsed_ms = evidence.observed.at_ms - runFinished.at_ms;
+          if (mode === 'deadline' || mode === 'user-cancel') {
+            const closed = await readIndicatorJournal(journal).then(rows => rows
+              .find(row => row.stage === 'http-closed' && row.request_id === last.request_id));
             expect(last.failure).toBe('net::ERR_ABORTED');
             expect(closed).toMatchObject({ headers_sent: false });
-            evidence.terminal_elapsed_ms = closed.at_ms - runFinished.at_ms;
-            expect(evidence.terminal_elapsed_ms).toBeGreaterThanOrEqual(14_900);
-            expect(evidence.terminal_elapsed_ms).toBeLessThan(16_000);
+            evidence.read_closed_elapsed_ms = closed.at_ms - runFinished.at_ms;
+          }
+          if (mode === 'user-cancel') expect(last.request_id).toBe(evidence.user_cancel.held.request_id);
+          if (mode === 'deadline') {
+            expect(evidence.read_closed_elapsed_ms).toBeGreaterThanOrEqual(14_900);
+            expect(evidence.read_closed_elapsed_ms).toBeLessThan(16_000);
           }
         }, [endpoint, operationPath], { traceSample: true });
       }, { historyTrace: true, snapshotGate: refuse, indicatorProbe: { journal, mode, refuse } });
@@ -1095,6 +1132,49 @@ for (const [label, mode, losses, terminal, refuse] of [
       service_exited: true, port_released: true, profile_removed: true });
     expect(alive(evidence.cleanup_processes.writer.pid)).toBe(false);
   });
+}
+
+async function cancelHeldSamplePreview({ mode, server, journal, observer, preview, cancelled, run }) {
+  const lateAdmission = mode === 'late-admission';
+  const findHeld = async () => (await readIndicatorJournal(journal)).find(row => lateAdmission
+    ? row.stage === 'admission-held' : row.stage === 'status-held' && row.until === 'user-cancel');
+  await expect.poll(findHeld, { message: 'Rust replied while the browser request remains in flight' }).toMatchObject({
+    request_id: expect.any(String), task_id: expect.any(String),
+  });
+  const held = await findHeld();
+  const browserRequest = observer.attempts.find(row => row.request_id === held.request_id);
+  expect(browserRequest).toBeDefined();
+  expect(browserRequest.http).toBeUndefined();
+  expect(browserRequest.failure).toBeUndefined();
+  const clicked_at_ms = Date.now();
+  await preview.getByRole('button', { name: 'Cancel preview' }).click();
+  await expect(cancelled).toBeVisible();
+  if (lateAdmission) {
+    expect(browserRequest.http).toBeUndefined();
+    expect(browserRequest.failure).toBeUndefined();
+    expect(observer.attempts.filter(row => row.operation === 'task.cancel')).toHaveLength(0);
+    await server.releaseIndicatorAdmission();
+  }
+  await expect(run).toBeEnabled();
+  return { held, clicked_at_ms };
+}
+
+function verifySampleStatusSubstitution({ mode, last, taskId, witness, substitution }) {
+  expect(last.request_id).toBe(substitution.request_id);
+  expect(last.reply).toEqual(substitution.body);
+  const result = last.reply.result;
+  expect(result.task_id).toBe(taskId);
+  if (mode === 'unknown-status') expect(result).toEqual({ ...witness, status: 'unavailable' });
+  else if (mode === 'wrong-ready-task') {
+    expect(result.event.task_id).not.toBe(taskId);
+    expect(result).toEqual({ ...witness, event: { ...witness.event, task_id: result.event.task_id } });
+  } else {
+    expect(result.status).toBe('terminal');
+    expect(result.event.event).toBe('task.terminal');
+    if (mode === 'wrong-terminal-task') expect(result.event.task_id).not.toBe(taskId);
+    else expect(result.event.task_id).toBe(taskId);
+    expect(result.event.outcome).toEqual({ status: mode === 'unknown-terminal-outcome' ? 'unavailable' : 'cancelled' });
+  }
 }
 
 async function runWithSampleStatusRefusal(server, run, observer, journal) {
@@ -5581,6 +5661,7 @@ async function inService(port, profile, mode, use, {
       ]);
     },
     ...(snapshotGate && { tagSnapshot: observeSnapshotGate(child) }),
+    ...(indicatorProbe && { releaseIndicatorAdmission: () => send('release-indicator-admission') }),
     cutHistoryResponse: () => send('cut-history'),
     disconnectOwner: writer => {
       expect(child.connected).toBe(true);
