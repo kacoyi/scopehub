@@ -26272,10 +26272,15 @@
           "report_sha256": "b72407d17d36029e7872dd0c251bae6bad76afb7c94e9bcd02eca3a5561b8858"
         }
       ],
-      "next_action": "Verify the committed standalone correction with the M3-007 task checks. Hand the matching browser and writer observations to the coordinator for renewed independent review and external verification. Keep M2-039 composition, its unrelated admissions and native qualification separately assigned.",
+      "next_action": "The standalone correction passed all six local task checks on clean source 26091617644021f5fb10d1881650bb09bdc4382e. The coordinator should renew independent review and external verification using the local receipt and matching workspace-timeframe browser and writer observations in .reports/runs/20261126T061035.222344Z-b049690c. Keep M2-039 composition, its unrelated admissions and native qualification separately assigned.",
       "blocker": null,
       "closure_reason": null,
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M3-007-88e2331c7d8c9804.json",
+          "sha256": "8f724e7bb6c03fbf6142ff23b584304f2d16ad59cba57a9062e3f79201caca29"
+        }
+      ],
       "plan": {
         "outcome": "The offline sample chart renders an already-computed preview after a single browser-observable status delivery loss, and the calendar check exposes the actual outcome.",
         "change_types": [

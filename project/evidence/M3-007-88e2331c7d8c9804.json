@@ -1,0 +1,98 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M3-007",
+  "task_definition_sha256": "9c969f436ba75a8b1b147331e3238fba2e9f9352fc02fabc4c0afc01aa904b7a",
+  "run_id": "20261126T061035.222344Z-b049690c",
+  "recorded_at": "2026-11-26T06:13:26.747929+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "3690281c33233660adc03f2746791a634e397acb26a3a23183c19ef4231d10cf",
+    "file_count": 612,
+    "git_head": "26091617644021f5fb10d1881650bb09bdc4382e",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "88e2331c7d8c980456a7b82bcb7294df38592b596f58a7d7ee7741483ef6bc3b",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-44-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/offline-sample-preview-recovery/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "aa7590d13bf7519459ecaa7da449b8299e3bb36d03c47a8f001319a40d3fffb4"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2342c68439ff46a7290644413cb60cf2f2e3d15c7ec4ebd37efd89ecae94f106"
+    },
+    {
+      "id": "indicator-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs",
+        "--grep",
+        "indicator-preview runs trusted Python once"
+      ],
+      "exit_code": 0,
+      "log_sha256": "7f73226c97a5068ce0395d6beb9102c5f142d15546e17b60984af530c2aa1893"
+    },
+    {
+      "id": "workspace-timeframe",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "286d76a4eb32529a53dcaaf4d601f3db6082891eee5f7d63c5dd6674720fd751"
+    }
+  ],
+  "project_definition_sha256": "6f944fc06c38a8c675951de4ca08e7cbd068b15c54e2841a9251c1847a3344fc",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "8a4eebd82a4c69d3c87a474ab4e6481e5bd6bc80e213be2c6a227d8470466ebc"
+  ]
+}
