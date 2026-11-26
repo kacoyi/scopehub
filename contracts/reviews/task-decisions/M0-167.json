@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-167",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "5623272d990220dab2bffd3e11556d3cb8d134cb",
+      "scope": "Review ordinary indicator cancellation when cleanup is briefly interrupted. Verify the exact bounded cleanup and terminal outcomes, evidence of child exit versus scratch absence, preservation of other owned data and normal completion.",
+      "supersedes": null,
+      "requested_at": "2026-11-26T13:27:16.262206+00:00",
+      "request_id": "54a83b888c8a8062fdacfc0fd3de286c6ebcf576ace6921eeee7a6d69c96c437",
+      "evidence_sha256": "4224b2113f398b60f4baf19ad2ae38f232ea570b3154c9a62eb0084873a8f6b7"
+    }
+  ]
+}
