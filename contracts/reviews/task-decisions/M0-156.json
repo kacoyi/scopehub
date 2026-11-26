@@ -39,6 +39,26 @@
       "requested_at": "2026-11-26T03:19:41.350544+00:00",
       "request_id": "54df914876e02a08872c55ac56fd6ff7211a1ab8a17b039ecf811faad51123ab",
       "evidence_sha256": "6f153f25c2d194ae63f7222391db6695f5e6e043b83b543361b288d632b2d2af"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e6e5a46d9296e087b2b1c037eb6ba6c16dbe5330",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 e6e5a46d9296e087b2b1c037eb6ba6c16dbe5330",
+      "scope": "CHANGES_REQUESTED M0-156 e6e5a46d9296e087b2b1c037eb6ba6c16dbe5330",
+      "observation": "The weekly reader issued a full Windows receipt for an all-zero checkout SHA on run 45546767887, recording 804 wall seconds and 2467 runner-seconds.",
+      "reviewer": "Independent Astra Standard (t120)",
+      "original_sha256": "cb2ccafc53afc41eb62b02a923863d596a202b1e82513b7a9ccca41620531eca",
+      "response_id": "a893a1ed47805042455d88f0ed113441620eb5f0f8dacdfee314cd14208238ee",
+      "response_sha256": "4437f0b170dddfcfc9874a5ab7944e24841fa39c163a0d4b74da447e97136e57",
+      "legacy_response_sha256": "048dcbd761f0baf052a2c475ae955c6b78dec6711af3cf7c02dc465a9790e185",
+      "observation_body_sha256": "93e31db36edc9c5a992c4b2b8a17551ca12c5ba387ff66b025a6ac5fd9c85bf7",
+      "event": {
+        "id": "msg_0d089bebcf3ab205016b07a8d8844087d2af49fecbd2366665",
+        "timestamp": "2026-11-26T03:35:00.433Z"
+      },
+      "supersedes": "54df914876e02a08872c55ac56fd6ff7211a1ab8a17b039ecf811faad51123ab",
+      "evidence_sha256": "cbf4588b32d0148e3d73091e3d3a96142938e8d9a233ae76b54d7a6e1624fdbc"
     }
   ]
 }
