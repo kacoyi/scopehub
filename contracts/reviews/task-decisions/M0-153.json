@@ -39,6 +39,26 @@
       "requested_at": "2026-11-26T03:19:42.310290+00:00",
       "request_id": "90f3dfdd0158de0e40cb962556d82e9d8f74066de05df90e5d04c63b292eff2f",
       "evidence_sha256": "997efaa2ffa7f41495ea9225a5bcdf732c770bb9ff8e15da70c0bbdbea35a507"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "7883801fbf5cfd0faa0c6fba91e236219c0df402",
+      "verdict": "approved",
+      "decision": "APPROVE M0-153 7883801fbf5cfd0faa0c6fba91e236219c0df402",
+      "scope": "APPROVE M0-153 7883801fbf5cfd0faa0c6fba91e236219c0df402",
+      "observation": "Across eight Windows processes running the same two tests, all 42 ordered command transcripts matched and median process time fell from 34.8634 to 32.2871 seconds.",
+      "reviewer": "Independent Astra Standard (t123)",
+      "original_sha256": "2474636a674084e4d3387d5660dd232d9d38174b821bac2200b6a24a43406851",
+      "response_id": "b2b3033bfe2e5b333ce8dc4c8dc9e6da144fc10a6cc8d8615cdf45aeb4dabfc0",
+      "response_sha256": "5b5080b412b51ad57ad1878fb48a43b5d8becd52212eca20bd2ad15d6ad31007",
+      "legacy_response_sha256": "ca4816e4ce9a276b2f6a7ef8d16b30d72b2583a5c6d27defd2dc898ea46e6765",
+      "observation_body_sha256": "4178e34ae4bc3bb8d499eff7b432171ca3120fa669ec66a32a11d3f9342efeec",
+      "event": {
+        "id": "msg_0343d2a7bbbbf8ad016b07a9fd6fd087d1aa1483f06aa8cf87",
+        "timestamp": "2026-11-26T03:40:07.788Z"
+      },
+      "supersedes": "90f3dfdd0158de0e40cb962556d82e9d8f74066de05df90e5d04c63b292eff2f",
+      "evidence_sha256": "8bf3a3a9ea4b8d4e2df308e07ee112fd6b81fa2b7b7e160e083eb2b11036287d"
     }
   ]
 }
