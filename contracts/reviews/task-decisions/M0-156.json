@@ -155,6 +155,26 @@
       "requested_at": "2026-11-26T12:29:23.501457+00:00",
       "request_id": "1040e7a9020db67b20cd864adeab1a61d38482c06b8f9e726787bd1b0db59c77",
       "evidence_sha256": "4abd6099868b933dcaa4ef869f3ffaf74109f3853220554d2d1e90128c88970c"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "39413fd304e8575605dc5b70a352d2e394ae1e35",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 39413fd304e8575605dc5b70a352d2e394ae1e35",
+      "scope": "CHANGES_REQUESTED M0-156 39413fd304e8575605dc5b70a352d2e394ae1e35",
+      "observation": "On full and shallow history, the weekly reader issued a Windows receipt for run 45546767887 even though the claimed merge tree contained a different verification workflow from both the event head and its direct parent.",
+      "reviewer": "Independent Astra Standard (t15q)",
+      "original_sha256": "817fde758fb208ad0900652c3738b911717b9f5abc7d577d464078e3276998e1",
+      "response_id": "5579f009e4395cc7d7f9d5e1578beddbc8016a6335f69b582200cf9d33530888",
+      "response_sha256": "5acfdd204bec82e89e8fbeba5a2d743314a62b464139fde567484cd689dd8426",
+      "legacy_response_sha256": "aae2a873fc5a7fe3bf5ff4452499e70c467c9ae3edfcb0dd71117613c79110f7",
+      "observation_body_sha256": "9393031a1fb58d817a920088b05ea829330a6df9aa85bdb51d0e0b23c2b952f0",
+      "event": {
+        "id": "msg_0bb5f1b36e973a55016b0829ac4dd887d19f09896244dc6b59",
+        "timestamp": "2026-11-26T12:44:40.794Z"
+      },
+      "supersedes": "1040e7a9020db67b20cd864adeab1a61d38482c06b8f9e726787bd1b0db59c77",
+      "evidence_sha256": "6a28104b7fcd0a119a6cb359a70968b410a86ef6d76d1ad0f3953a93e3d30830"
     }
   ]
 }

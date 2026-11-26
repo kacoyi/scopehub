@@ -146,6 +146,26 @@
       "requested_at": "2026-11-26T12:29:21.623645+00:00",
       "request_id": "e24f0f416a1f099fea888b41978bfec5a3f67e193cb2106dc60745a93cdc719f",
       "evidence_sha256": "ded8f6293408bad7a6ea456a7edd68eb67a2976259a7ff5556bdc2a7ba602f4b"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "39413fd304e8575605dc5b70a352d2e394ae1e35",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 39413fd304e8575605dc5b70a352d2e394ae1e35",
+      "scope": "CHANGES_REQUESTED M0-150 39413fd304e8575605dc5b70a352d2e394ae1e35",
+      "observation": "The weekly reader issued one Windows receipt each for the 34-check PR 121 and PR 116 controls even though both historical publishers rejected the corresponding catalog before selecting any checks.",
+      "reviewer": "Independent Astra Standard (t15p)",
+      "original_sha256": "b99179f1912f5d97394c0ff7074fa92aca6e838f546cbfc3c47bd48e1ae7cf4d",
+      "response_id": "24dca44d2fb8f5c76d1f0f0e838099005e9efa9535bc1bca9743276d9efa44c6",
+      "response_sha256": "91e08c9c8ebb81e3a4c214f26366cd6a620c3585a6f6394a94ec39f4162b196b",
+      "legacy_response_sha256": "6911a81b7137bade7f6d657cb2c986ae3c10ea07322648b0698d1c4f55a00cd1",
+      "observation_body_sha256": "2795928df92a460bf52df51a96c004a5c6a320a12fc16c6540d1bd61978f3d23",
+      "event": {
+        "id": "msg_0ec8bbb85bdde017016b082976fa7c87d2839424f954f73310",
+        "timestamp": "2026-11-26T12:43:55.745Z"
+      },
+      "supersedes": "e24f0f416a1f099fea888b41978bfec5a3f67e193cb2106dc60745a93cdc719f",
+      "evidence_sha256": "7d1d53942e1d2add61e822974d9264c3f0dcc535d7d3e938451f107bd34de76a"
     }
   ]
 }

@@ -126,6 +126,26 @@
       "requested_at": "2026-11-26T12:29:22.551486+00:00",
       "request_id": "5226aa8773615f911b71785e389245e5ca566694e7c7e1cd2ec92be524e38f9f",
       "evidence_sha256": "172d55b6de8c8a7dec7d4108b8a3db215afbc681d3b6f8007739f1d5897c33a1"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "39413fd304e8575605dc5b70a352d2e394ae1e35",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 39413fd304e8575605dc5b70a352d2e394ae1e35",
+      "scope": "CHANGES_REQUESTED M0-155 39413fd304e8575605dc5b70a352d2e394ae1e35",
+      "observation": "For run 45546767887, the weekly reader issued one Windows receipt when the conflicting tooling profile came from an archive saved by e00b088b and zero when it read the same job observations directly.",
+      "reviewer": "Independent Astra Standard (t15d)",
+      "original_sha256": "ea22127bb95eccdfb5fbb322af3a37275e83d618d2df2b0da60c81468d625e02",
+      "response_id": "822f777e44f5cdc328d5aea12c851a7ae08bb86c3b54c1e8cd87bd149a4ede49",
+      "response_sha256": "a54e04e575c8186c215de2d2d77b3415ac33be35fe3295383a9a6df788933b2c",
+      "legacy_response_sha256": "9f91f48c74f74265fe71a9a4785a352ee91109f0be3874d551cc76bd6e54b929",
+      "observation_body_sha256": "fb709238a9f9133d2c92efd51fae7515d4478c74c60f9e207f070afd225be338",
+      "event": {
+        "id": "msg_0343c5f573a1f986016b082815881487d299a30116d83f5ad6",
+        "timestamp": "2026-11-26T12:38:01.950Z"
+      },
+      "supersedes": "5226aa8773615f911b71785e389245e5ca566694e7c7e1cd2ec92be524e38f9f",
+      "evidence_sha256": "5bef397c4175a351a7db763c7da4469644d0f96945d1e153afdf7004568a0e5f"
     }
   ]
 }
