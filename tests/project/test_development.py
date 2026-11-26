@@ -81,6 +81,113 @@ class MaintenanceHandoffTests(ProjectFixture):
         self.engagement['workstreams'][identity] = {'next_action': None, 'closure': closure}
         return closure, observation
 
+    def focus_ready_feature(self):
+        ledger = self.ledger()
+        feature = task_by_id(ledger, 'M1-002')
+        feature.update(title='Implement an unrelated product feature', plan=copy.deepcopy(
+            task_by_id(ledger, 'M0-001')['plan']))
+        feature['checks'].append('project-state')
+        ledger['focus_task_id'] = feature['id']
+        self.save_ledger(ledger)
+        return feature['id']
+
+    def retire_fixture_review(self):
+        review, = self.delivery['scaffold_maintenance']['periodic_reviews']
+        review.update(id='verification-timing', retired_reason='The fixture has no periodic obligation.')
+        self.delivery_path.write_bytes(json_bytes(self.delivery))
+
+    def test_overview_distinguishes_engagement_from_ordinary_and_active_focus(self):
+        self.retire_fixture_review()
+        feature = self.focus_ready_feature()
+        state = workfront(self.root)
+        self.assertIn(feature, state['ready_task_ids'])
+        ordinary = status_view(state, overview=True)
+        feature_command = f'pnpm project:context {feature}'
+        self.assertEqual(feature_command, ordinary['next']['command'])
+
+        self.save_engagement()
+        overview = status_view(workfront(self.root), overview=True)
+        handoff_command = 'pnpm project:context --phase handoff'
+        self.assertEqual(handoff_command, overview['next']['command'])
+        self.assertEqual(ordinary['focus'], overview['focus'])
+        self.assertEqual(feature_command, overview['details']['focused_work'])
+
+        ledger = self.ledger()
+        audit = task_by_id(ledger, 'M0-001')
+        audit.update(title='Recheck the maintenance inventory', status='active')
+        ledger['focus_task_id'] = audit['id']
+        self.save_ledger(ledger)
+        overview = status_view(workfront(self.root), overview=True)
+        self.assertEqual(f"pnpm project:context {audit['id']}", overview['next']['command'])
+        self.assertEqual(audit['id'], task_context(self.root)['task']['id'])
+        self.assertEqual(handoff_command, overview['maintenance']['engagement']['handoff_command'])
+
+        audit['status'] = 'planned'
+        ledger['focus_task_id'] = feature
+        self.save_ledger(ledger)
+        self.accept_workstream('repository-cleanup')
+        self.accept_workstream('ongoing-maintenance')
+        self.save_engagement()
+        overview = status_view(workfront(self.root), overview=True)
+        self.assertEqual(handoff_command, overview['next']['command'])
+        self.assertEqual('ended', overview['next']['state'])
+        self.assertEqual(self.authority['engagement']['on_completion'], overview['next']['trigger'])
+        self.assertEqual(feature, task_context(self.root, feature)['task']['id'])
+
+        task_by_id(ledger, feature)['status'] = 'active'
+        self.save_ledger(ledger)
+        overview = status_view(workfront(self.root), overview=True)
+        self.assertEqual(feature_command, overview['next']['command'])
+        self.assertEqual('ended', overview['maintenance']['engagement']['status'])
+
+    def test_overview_keeps_urgent_feedback_and_surfaces_routine_review(self):
+        feature = self.focus_ready_feature()
+        self.save_engagement()
+        overview = status_view(workfront(self.root), overview=True)
+        self.assertEqual('pnpm project:context --phase handoff', overview['next']['command'])
+        self.assertEqual('branch-review', overview['maintenance']['follow_through']['id'])
+
+        finding = {'id': 'synthetic-urgent-failure', 'status': 'open', 'severity': 'critical',
+                   'source': 'Fixture fatal check output.', 'observation': 'The fixture check failed.',
+                   'task_ids': ['M0-001'], 'regression_checks': ['project-state'],
+                   'resolution': None, 'deferral_reason': None}
+        feedback = self.root / 'project/feedback.json'
+        feedback.write_bytes(json_bytes({'schema_version': '1.0', 'items': [finding]}))
+        overview = status_view(workfront(self.root), overview=True)
+        self.assertEqual(finding['id'], overview['next']['id'])
+        self.assertEqual('pnpm project:context M0-001 --phase verify', overview['next']['command'])
+        self.assertEqual(feature, overview['focus']['id'])
+        self.assertEqual('branch-review', overview['maintenance']['follow_through']['id'])
+        self.assertEqual('pnpm project:context --phase handoff',
+                         overview['maintenance']['engagement']['handoff_command'])
+
+    def test_overview_without_focus_recovers_current_engagement_and_owner_terms(self):
+        scenario, = self.delivery['scenarios']
+        scenario.update(task_ids=['M0-001'], checks=['project-state'])
+        self.retire_fixture_review()
+        evidence = archive_evidence(self.root, 'M0-001', self.report())
+        ledger = self.ledger()
+        ledger['focus_task_id'] = None
+        for task in ledger['tasks']:
+            task.update(status='cancelled', next_action=None, closure_reason='End the fixture task.')
+        task_by_id(ledger, 'M0-001').update(status='done', evidence=[evidence])
+        self.save_ledger(ledger)
+        self.save_engagement()
+        overview = status_view(workfront(self.root), overview=True, read_only=True)
+        self.assertIsNone(overview['focus'])
+        summary = overview['maintenance']['engagement']
+        self.assertEqual(summary['handoff_command'], overview['next']['command'])
+        self.assertEqual(self.engagement, self.follow_source(overview['next']['command']))
+        self.assertEqual(self.authority, self.follow_source(summary['owner_source_command']))
+
+        self.accept_workstream('repository-cleanup')
+        self.accept_workstream('ongoing-maintenance')
+        self.save_engagement()
+        overview = status_view(workfront(self.root), overview=True, read_only=True)
+        self.assertEqual('ended', overview['next']['state'])
+        self.assertEqual(self.authority['engagement']['on_completion'], overview['next']['trigger'])
+        self.assertEqual(self.engagement, self.follow_source(overview['next']['command']))
+
     def test_public_handoff_recovers_commitments_after_a_closed_repair_transfers_focus(self):
         ledger = self.ledger()
         repair = task_by_id(ledger, 'M0-001')
@@ -127,6 +234,7 @@ class MaintenanceHandoffTests(ProjectFixture):
             self.assertNotIn('closure', row)
 
     def test_individual_closures_end_coordination_without_changing_the_feature_task(self):
+        self.retire_fixture_review()
         ledger = self.ledger()
         feature = task_by_id(ledger, 'M1-002')
         feature.update(title='Implement an unrelated product feature', next_action='Exercise the product interaction.')
@@ -236,18 +344,23 @@ class MaintenanceHandoffTests(ProjectFixture):
 
         self.engagement['authority'] = self.retain('fixture owner scope', '', self.authority)
         _, observation = self.accept_workstream('repository-cleanup')
+        self.focus_ready_feature()
         self.save_engagement()
         ordinary = task_context(self.root, phase='handoff')['maintenance_engagement']
         self.assertTrue(ordinary['owner_source_command'].startswith('pnpm project:source '))
         executable = './.venv/Scripts/python.exe' if os.name == 'nt' else './.venv/bin/python'
         overview = cli(f'{executable} -B scripts/project.py status --overview --read-only')
         summary = overview['maintenance']['engagement']
-        handoff = cli(summary['handoff_command'])
+        self.assertEqual(summary['handoff_command'], overview['next']['command'])
+        handoff = cli(overview['next']['command'])
         self.assertEqual(overview['focus']['id'], handoff['task']['id'])
         engagement = handoff['maintenance_engagement']
         self.assertEqual(self.authority, cli(engagement['owner_source_command'])['value'])
         accepted, = (row for row in engagement['workstreams'] if row['status'] == 'accepted')
         self.assertEqual(observation, cli(accepted['closure_command'])['value'])
+        active, = (row for row in engagement['workstreams'] if row['status'] == 'open')
+        self.assertEqual(self.authority['outcomes'][1]['acceptance'], active['acceptance'])
+        self.assertEqual(self.engagement['workstreams'][active['id']]['next_action'], active['next_action'])
 
 
 class DevelopmentTests(ProjectFixture):

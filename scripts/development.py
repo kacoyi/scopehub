@@ -159,7 +159,7 @@ def load_maintenance_engagement(root, engagement):
 
     rows = []
     for key, outcome in outcomes.items():
-        row = {'id': key, 'owner': outcome['owner']}
+        row = {'id': key, 'owner': outcome['owner'], 'acceptance': outcome['acceptance']}
         record = workstreams[key]
         closure = record.get('closure')
         if closure is None:
@@ -650,7 +650,27 @@ def project_overview(state, *, read_only=False):
             failure.update(id=original['check_id'], command=navigation('diagnostic', 'identify', report))
     missing = action(first) if first and first['state'] in {'evidence_missing', 'evidence_invalid', 'intake_needed'} else None
     needs_assignment = next((finding_action(finding) for finding in opened if finding['id'] in unassigned), None)
-    next_action = (critical or failure or missing or owned or (action(first) if first else None)
+    engagement = state.get('maintenance_engagement')
+    engagement_summary = {}
+    engagement_action = None
+    if engagement:
+        handoff = (navigation('context', '--phase', 'handoff') if focus else
+                   navigation('source', 'project/delivery.json', '/scaffold_maintenance/engagement'))
+        engagement_summary = {'engagement': {
+            'status': engagement['status'],
+            'open_count': engagement['open_count'],
+            'workstreams': [{key: row[key] for key in ('id', 'status')} for row in engagement['workstreams']],
+            'handoff_command': handoff,
+        }}
+        if not focus:
+            ref = engagement['authority']
+            engagement_summary['engagement']['owner_source_command'] = navigation('source', ref['path'], ref['pointer'])
+        if not active:
+            engagement_action = {'id': 'maintenance-engagement', 'state': engagement['status'],
+                                 'owner': 'development AI', 'command': handoff,
+                                 'trigger': (engagement['stop_when']['on_completion'] if engagement['status'] == 'ended'
+                                             else 'Open maintenance engagement')}
+    next_action = (critical or failure or missing or owned or engagement_action or (action(first) if first else None)
                    or needs_assignment or {'owner': 'development AI', 'command': context})
     other_urgent = next((candidate for candidate in (critical, failure, missing, owned)
                          if candidate and candidate != next_action), None)
@@ -659,19 +679,6 @@ def project_overview(state, *, read_only=False):
     maintenance_action = first if first and first['id'] != next_action.get('id') else calendar
     additional = (action(maintenance_action) if maintenance_action
                   and maintenance_action['id'] != next_action.get('id') else None)
-    engagement = state.get('maintenance_engagement')
-    engagement_summary = {}
-    if engagement:
-        engagement_summary = {'engagement': {
-            'status': engagement['status'],
-            'open_count': engagement['open_count'],
-            'workstreams': [{key: row[key] for key in ('id', 'status')} for row in engagement['workstreams']],
-            'handoff_command': navigation('context', '--phase', 'handoff') if focus else
-                navigation('source', 'project/delivery.json', '/scaffold_maintenance/engagement'),
-        }}
-        if not focus:
-            ref = engagement['authority']
-            engagement_summary['engagement']['owner_source_command'] = navigation('source', ref['path'], ref['pointer'])
     return {
         'purpose': state.get('purpose'),
         'focus': {key: focus[key] for key in ('id', 'title', 'status')} if focus else None,
