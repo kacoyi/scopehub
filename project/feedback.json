@@ -8489,6 +8489,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "first-reopen-proof-accepts-result-with-error",
+      "source": "Independent Astra Standard t17v requested changes on 030661a9862276017321f94b621bd70e99561020. Decision: contracts/reviews/task-decisions/M2-039.json#/events/25. Original: archives/observations/repo-hygiene-20261125/independent-final-m2-039-030661a9/original-assistant-response.jsonl (SHA-256 c08cfde78cb61dbea56468b19390b17db7422e6995f4c99fcea0c773e8c48bfa).",
+      "observation": "In an isolated replay, the ordinary bridge and independent proof both accepted the expected B selection at version 2. Adding a nonretryable PERMISSION_DENIED error to that same HTTP 200 result made the ordinary bridge reject the reply, but the independent proof and caller assertions still passed. The earlier Ubuntu reply was unrecorded and its attribution remains unknown.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "desktop-workspace-transport"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

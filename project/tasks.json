@@ -26165,7 +26165,7 @@
           "sha256": "fb4345db27bf793accfd0d67401a044be089c0305a0dc51c347691e17756de4a"
         }
       ],
-      "next_action": "Compare native and seed profile setup using the actual first guarded Windows refusal. Qualify normal local profile preparation and retained typed failure before requesting the next exact-source Windows journey. Preserve the independent Ubuntu proof correction, existing task checks and physical qualification gate.",
+      "next_action": "Correct the independently reproduced contradictory snapshot and qualify supported private profile preparation at the first guarded Windows refusal. Retain typed responses and original evidence, then identify a common clean candidate for independent review and exact-source Windows verification.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26195,6 +26195,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m2-039-359e3323/final-response.txt",
           "archives/observations/repo-hygiene-20261125/independent-final-m2-039-a1866052/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m2-039-09514768/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m2-039-030661a9/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/task-dispatch-m2-039-45828181845/manifest.json",
           ".reports/runs/20261126T041510.475356Z-783b4a68/test-report.json",
           ".reports/m2-039-native-access-gap/coverage.json",
         ".reports/m2-039-withdrawal-status/red/local-folder-refresh-preview/browser-results.json",
@@ -26218,7 +26220,9 @@
           "Explicit open chooses an error code from the workspace and library kind after discarding the verified status result. The native CSV status envelope already represents availability, temporary absence and withdrawal. The folder summary read already separates a matching result, SNAPSHOT_UNAVAILABLE and registry PERMISSION_DENIED. Transport failure and supersession must never be interpreted as confirmed withdrawal.",
           "Fresh polling timeouts for endpoint discovery and listener ownership permit a launch after the original deadline. Compare both observations against the same monotonic deadline and verify a response that completes after it.",
           "The staging entry treats a passing check's files as optional and can leave a truncated observation after a write error. Use the check result and log to distinguish required evidence from available failure diagnostics, and test interrupted writes at the upload boundary.",
-          "The staging entry uses the reported host to decide whether to look for native attachments. Check the catalog's host requirement for a passing result before staging and make both attachments mandatory for every eligible pass."
+          "The staging entry uses the reported host to decide whether to look for native attachments. Check the catalog's host requirement for a passing result before staging and make both attachments mandatory for every eligible pass.",
+          "The independent first-reopen proof can accept an expected selection carried alongside a terminal error. Compare bridge and proof against valid, ordinarily rejected and contradictory envelopes at the direct read boundary.",
+          "The first guarded Windows run reached the webview and refused a native status read despite a successful seed. Compare the exact seeding and runtime preparation entrypoints and qualify use of the existing isolated profile contract before the public journey."
         ],
         "risks": [
           {
@@ -26381,6 +26385,12 @@
           },
           {
             "failure": "A proof snapshot can omit its result before the first focus comparison even when the peer showed close 106. Preserve the original response status, code, identity and already-observed peer state, and independently verify legitimate completion and a rejected or missing envelope.",
+            "checks": [
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "A successful proof envelope carries both a verified selection and an error, or an ordinary rejected read is retried outside the legitimate pre-admission case. Replay valid, rejected and contradictory envelopes through the first-reopen proof and verify call counts.",
             "checks": [
               "desktop-workspace-transport"
             ]
