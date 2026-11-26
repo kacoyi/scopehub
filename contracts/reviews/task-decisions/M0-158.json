@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-158",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "8bbf6e109fa13f235cdb29bb644af465643cc3e0",
+      "scope": "Independently verify the engineering handoff through ordinary startup and focused context. Check the two registered commitments, actionable ownership, acceptance, finite engagement boundary, separate later product work, normal scheduled cadence, and evolution follow-through. Inspect a comparable unrelated checkout and a missing private archive. Compare the neutral fresh-session observation with the source and retained before controls. Keep this narrow task and portfolio completion distinct.",
+      "supersedes": null,
+      "requested_at": "2026-11-26T03:38:02.814202+00:00",
+      "request_id": "42a5bece770e23427d57aa9cadd7f010a23f59914e2e293701dd8fcf8acbb4e9",
+      "evidence_sha256": "5ffea8d1bcda1641ccb0836abca385bb59f23eaf812ce98ee7d9cf680ade6322"
+    }
+  ]
+}
