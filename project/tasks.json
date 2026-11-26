@@ -27155,9 +27155,14 @@
           "run_id": "windows-change-45848342284-1",
           "source_commit": "10024108d06f2d6adaf095b1ccb1a9d1bd531b82",
           "report_sha256": "23dbf3f6ac858b6cd0c8becceed7cc2812b3cf5f5b1a7221b7d0404ff523426e"
+        },
+        {
+          "run_id": "windows-change-45848342284-1",
+          "source_commit": "10024108d06f2d6adaf095b1ccb1a9d1bd531b82",
+          "report_sha256": "d2522517d478284ed0ff105716383b337d40b8b114f84db18b0ce319b999b281"
         }
       ],
-      "next_action": "Inspect the original core log, exact source and comparable passing native runs. Drive the ordinary import preview with a synthetic CSV, distinguish completed and interrupted preview from save admission, and retain stage-specific evidence useful on Windows. Change the owning fixture or implementation only where evidence warrants it.",
+      "next_action": "Independently review the fixture and retained evidence, run the focused stage cases and required task checks on the exact candidate on native Windows, then recheck the integrated source.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -27174,7 +27179,7 @@
           "contracts/reviews/2026-11-26-maintenance-workstreams.json"
         ],
         "hypotheses": [
-          "The failed Windows run returned during the initial preview. A worker reply, setup contention or fixture scheduling may affect this boundary; no individual cause is established."
+          "The first worker exchange expired after the source read. The original fixture restricted Windows worker pipe I/O to one blocking thread, although the save blocker had yet to start. The log does not establish the cause."
         ],
         "risks": [
           {
@@ -27214,7 +27219,7 @@
             "Preserve production deadlines, import authorization, private profile ownership, cancellation and saved data. Use owned synthetic fixtures. Keep the Herdr portability task and indicator cleanup cases with their existing owners."
           ],
           "open_questions": [
-            "The failed Windows run returned during the initial preview. A worker reply, setup contention or fixture scheduling may affect this boundary; no individual cause is established."
+            "Which worker exchange stage expired and why was no replacement attempted? The original log did not observe worker stages, cleanup or interpreter ownership."
           ]
         },
         "evolution": {
@@ -27223,7 +27228,7 @@
             "Preserve production deadlines, import authorization, private profile ownership, cancellation and saved data. Use owned synthetic fixtures. Keep the Herdr portability task and indicator cleanup cases with their existing owners."
           ],
           "change": [
-            "Inspect the original core log, exact source and comparable passing native runs. Drive the ordinary import preview with a synthetic CSV, distinguish completed and interrupted preview from save admission, and retain stage-specific evidence useful on Windows. Change the owning fixture or implementation only where evidence warrants it."
+            "Use an ordinary blocking pool for the real preview and keep the one-thread pool for the deterministic save reread. Record the completed preview, admitted save and unwritten profile separately. Use the same synthetic CSV in the controlled preview interruption and check that it cannot authorize a save."
           ],
           "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
           "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
