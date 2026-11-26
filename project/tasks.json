@@ -26927,7 +26927,7 @@
           "sha256": "3d45973b40b738e4254a13577a79436bf2ce4df0a9de9356dde2e93991038f1e"
         }
       ],
-      "next_action": "Retain the public pre-save contention failure, then verify start persistence and completion across competing collection, interruption and replacement through run-owned and collect. Return the exact clean source and local observation index for coordinator review.",
+      "next_action": "Coordinator to review 25b642ec1ddb0474ece1fd2332083036ab6f2c72 and the retained observations in .reports/observations/M0-162-lifecycle-follow-through/ff769c5a-follow-through/handoff.json. Rerun the task harness and exercise both contention windows through the native coordinator environment before deciding task closure.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
