@@ -2,13 +2,21 @@ use std::{
     collections::BTreeSet,
     fs, future, io,
     path::{Path, PathBuf},
+    process::Stdio,
     time::Duration,
 };
 
 use scopehub_domain::protocol::ErrorCode;
-use tokio::time::{self, Instant};
+use tokio::{
+    io::{AsyncBufReadExt, BufReader},
+    process::{Child, Command},
+    time::{self, Instant},
+};
 
 use super::{Fixture, compute, request};
+use process_observer::{ProcessObserver, SETUP_LIMIT};
+
+mod process_observer;
 
 // Allow for cold interpreter and multiprocessing startup on native runners.
 // This is a fixture budget. Production still counts startup against its deadline.
@@ -87,31 +95,6 @@ impl Witnesses {
     }
 }
 
-async fn check_pids(pids: impl Iterator<Item = u32>) -> Vec<(u32, bool)> {
-    let mut states = Vec::new();
-    for pid in pids.collect::<BTreeSet<_>>() {
-        #[cfg(target_os = "linux")]
-        let alive = super::process_exists(pid);
-        #[cfg(windows)]
-        let alive = {
-            let output = time::timeout(
-                Duration::from_secs(2),
-                tokio::process::Command::new("tasklist.exe")
-                    .args(["/NH", "/FO", "CSV", "/FI", &format!("PID eq {pid}")])
-                    .kill_on_drop(true)
-                    .output(),
-            )
-            .await
-            .expect("tasklist must return within the process observation budget")
-            .unwrap();
-            assert!(output.status.success());
-            String::from_utf8_lossy(&output.stdout).contains(&format!(",\"{pid}\","))
-        };
-        states.push((pid, alive));
-    }
-    states
-}
-
 async fn observe_deadline(phase: Phase) {
     let mut fixture = Fixture::observe_real_worker();
     fixture.config.deadline = TEST_DEADLINE;
@@ -129,6 +112,7 @@ async fn observe_deadline(phase: Phase) {
     )
     .unwrap();
 
+    let mut observer = ProcessObserver::start(&fixture.config.python).await;
     let request = request(SOURCE);
     let operation = compute(&fixture.config, &request, future::pending());
     tokio::pin!(operation);
@@ -147,44 +131,61 @@ async fn observe_deadline(phase: Phase) {
                 }
             };
             if ready {
-                return check_pids(before.pids()).await;
+                let pids = before
+                    .pids()
+                    .collect::<BTreeSet<_>>()
+                    .into_iter()
+                    .collect::<Vec<_>>();
+                let all_live = observer.arm(&pids).await;
+                return (pids, all_live);
             }
             time::sleep(Duration::from_millis(10)).await;
         }
     };
-    let (before_pids, early_result) = tokio::select! {
+    let (live_processes, early_result) = tokio::select! {
         biased;
-        result = time::timeout_at(watchdog, &mut operation) => (None, Some(result)),
-        pids = observe => (Some(pids), None),
+        result = time::timeout_at(watchdog, &mut operation) => (None, Some((Instant::now(), result))),
+        processes = observe => (Some(processes), None),
     };
+    let observation_elapsed = started.elapsed();
     let boot_dir = before.booted.first().map(|(_, _, path)| path);
-    let live_boot_scratch = boot_dir.map(|path| {
+    let live_boot_scratch = live_processes.as_ref().and_then(|_| boot_dir).map(|path| {
         fs::symlink_metadata(path.join("deadline-boot")).map(|metadata| metadata.is_file())
     });
-    let live_child_scratch = before.sleeping.first().map(|(_, _, path)| {
-        fs::symlink_metadata(path.join("deadline-child")).map(|metadata| metadata.is_file())
-    });
-    let observation_elapsed = started.elapsed();
-    eprintln!(
-        "{phase:?}: observed={before:?}, observation_elapsed={observation_elapsed:?}, live_pids={before_pids:?}, boot_scratch={live_boot_scratch:?}, child_scratch={live_child_scratch:?}"
-    );
+    let live_child_scratch = live_processes
+        .as_ref()
+        .and_then(|_| before.sleeping.first())
+        .map(|(_, _, path)| {
+            fs::symlink_metadata(path.join("deadline-child")).map(|metadata| metadata.is_file())
+        });
 
-    let terminal = match early_result {
+    let (returned_at, terminal) = match early_result {
         Some(result) => result,
-        None => time::timeout_at(watchdog, operation).await,
+        None => {
+            let result = time::timeout_at(watchdog, operation).await;
+            (Instant::now(), result)
+        }
     };
-    let deadline_elapsed = started.elapsed();
-    let scratch = boot_dir.map(fs::symlink_metadata);
+    // Issue the process probe first and inspect scratch without waiting for
+    // the reply. Both observations precede any witness reread.
+    let (exit_sample, scratch) = tokio::join!(
+        biased;
+        async {
+            if terminal.is_ok() && matches!(&live_processes, Some((_, Ok(true)))) {
+                Some(observer.sample(returned_at).await)
+            } else {
+                None
+            }
+        },
+        async { boot_dir.map(fs::symlink_metadata) },
+    );
     let after = Witnesses::read(&fixture.directory, false).unwrap();
-    let scratch = scratch.or_else(|| {
-        after
-            .booted
-            .first()
-            .map(|(_, _, path)| fs::symlink_metadata(path))
-    });
-    let final_pids = check_pids(after.pids().chain(before.pids())).await;
+    let deadline_elapsed = returned_at - started;
     eprintln!(
-        "{phase:?}: terminal={terminal:?}, deadline_elapsed={deadline_elapsed:?}, witnesses_at_return={after:?}, scratch_at_return={scratch:?}, remaining_pids={final_pids:?}"
+        "{phase:?}: observed={before:?}, observation_elapsed={observation_elapsed:?}, live_processes={live_processes:?}, boot_scratch={live_boot_scratch:?}, child_scratch={live_child_scratch:?}"
+    );
+    eprintln!(
+        "{phase:?}: terminal={terminal:?}, deadline_elapsed={deadline_elapsed:?}, exit_sample={exit_sample:?}, scratch_at_return={scratch:?}, witnesses_after_terminal={after:?}"
     );
 
     let failure = terminal
@@ -193,7 +194,8 @@ async fn observe_deadline(phase: Phase) {
     assert_eq!(failure.code, ErrorCode::TIMEOUT);
     assert!(!failure.retryable && failure.details.is_empty());
     assert!(deadline_elapsed >= TEST_DEADLINE);
-    let before_pids = before_pids.expect("operation ended during phase observation");
+    let (pids, all_live) = live_processes.expect("operation ended during phase observation");
+    assert!(all_live.expect("open the witnessed process references"));
     assert!(
         observation_elapsed < TEST_DEADLINE,
         "phase observation was late"
@@ -208,7 +210,7 @@ async fn observe_deadline(phase: Phase) {
     match phase {
         Phase::BeforeHello => {
             assert!(after.entered.is_empty() && after.sleeping.is_empty());
-            assert_eq!(before_pids.len(), 2);
+            assert_eq!(pids.len(), 2);
         }
         Phase::RunningChild => {
             assert_eq!(before.entered, before.booted);
@@ -219,15 +221,24 @@ async fn observe_deadline(phase: Phase) {
             assert_ne!(child, pid);
             assert_eq!(child_dir, working_dir);
             assert!(live_child_scratch.unwrap().unwrap());
-            assert_eq!(before_pids.len(), 3);
+            assert_eq!(pids.len(), 3);
         }
     }
-    assert!(before_pids.iter().all(|(_, exists)| *exists));
     assert_eq!(
         scratch.unwrap().unwrap_err().kind(),
         io::ErrorKind::NotFound
     );
-    assert!(final_pids.iter().all(|(_, exists)| !exists));
+    assert!(
+        exit_sample
+            .unwrap()
+            .all_exited
+            .expect("sample armed process references within the evidence window"),
+        "a witnessed process was still alive at the first terminal sample"
+    );
+    // Linux pidfds signal on exit even before the process has been reaped.
+    #[cfg(target_os = "linux")]
+    assert!(pids.iter().all(|&pid| !super::process_exists(pid)));
+    observer.finish().await;
 }
 
 #[tokio::test]
@@ -238,4 +249,79 @@ async fn a_deadline_reaps_running_code_without_retry_or_artifact() {
 #[tokio::test]
 async fn a_deadline_before_hello_reaps_the_started_worker_without_running_code() {
     observe_deadline(Phase::BeforeHello).await;
+}
+
+async fn gated_child(python: &Path) -> (u32, Child) {
+    let mut child = Command::new(python)
+        .args([
+            "-I",
+            "-u",
+            "-c",
+            "import os, sys; print(os.getpid()); sys.stdin.buffer.read(1)",
+        ])
+        .kill_on_drop(true)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut output = BufReader::new(child.stdout.take().unwrap());
+    let mut pid = String::new();
+    time::timeout(SETUP_LIMIT, output.read_line(&mut pid))
+        .await
+        .unwrap()
+        .unwrap();
+    (
+        pid.trim()
+            .parse()
+            .expect("gated child must report its own PID"),
+        child,
+    )
+}
+
+async fn release(child: &mut Child) {
+    drop(child.stdin.take());
+    assert!(
+        time::timeout(SETUP_LIMIT, child.wait())
+            .await
+            .unwrap()
+            .unwrap()
+            .success()
+    );
+}
+
+#[tokio::test]
+async fn the_terminal_observer_rejects_a_live_child_and_accepts_the_exited_set() {
+    let config = super::config();
+    let (exited_pid, mut exited) = gated_child(&config.python).await;
+    let (gated_pid, mut gated) = gated_child(&config.python).await;
+    let pids = [exited_pid, gated_pid];
+    let mut observer = ProcessObserver::start(&config.python).await;
+    assert!(
+        time::timeout(SETUP_LIMIT, observer.arm(&pids))
+            .await
+            .unwrap()
+            .unwrap()
+    );
+    release(&mut exited).await;
+
+    let request = request(super::SOURCE);
+    let result = compute(&config, &request, future::pending()).await;
+    let living = observer.sample(Instant::now()).await;
+    eprintln!(
+        "Terminal observer control: pids={pids:?}, held_live={gated_pid}, return_to_reply={:?}, all_exited={:?}",
+        living.return_to_reply, living.all_exited
+    );
+    assert!(result.is_ok(), "control compute must complete normally");
+    assert!(!living.all_exited.unwrap());
+
+    release(&mut gated).await;
+    let result = compute(&config, &request, future::pending()).await;
+    let exited = observer.sample(Instant::now()).await;
+    eprintln!(
+        "Terminal observer control: pids={pids:?}, both_exited, return_to_reply={:?}, all_exited={:?}",
+        exited.return_to_reply, exited.all_exited
+    );
+    assert!(result.is_ok(), "control compute must complete normally");
+    assert!(exited.all_exited.unwrap());
+    observer.finish().await;
 }
