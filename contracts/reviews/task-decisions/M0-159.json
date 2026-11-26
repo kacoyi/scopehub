@@ -106,6 +106,26 @@
       "requested_at": "2026-11-26T13:23:48.576096+00:00",
       "request_id": "9712969eb971c6a00ae508b4f172df8a63bab3996430f94e8a2b8ec2da311b6a",
       "evidence_sha256": "e76970e05a0b4cdc786e68e99f44c2729022efa22c76ced2cb612b333da470da"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "94609e1ecaafdc0c77ad4bd3a3db4bf1abf407ef",
+      "verdict": "approved",
+      "decision": "APPROVE M0-159 94609e1ecaafdc0c77ad4bd3a3db4bf1abf407ef",
+      "scope": "APPROVE M0-159 94609e1ecaafdc0c77ad4bd3a3db4bf1abf407ef",
+      "observation": "With the selected receipt and all three diagnostic references unchanged, the integration decision blocked closure while the conflicting Windows report was readable, unavailable, and restored in either nomination order.",
+      "reviewer": "Independent Astra Standard (t178)",
+      "original_sha256": "e54173c1c5ad07d50500132df7cb57ade989ca1909b471bb29de16d96708dea1",
+      "response_id": "de38ba2913ed2db2c5af298dcd87dc41ca6291aeafc00fdd792a5331ba0d128b",
+      "response_sha256": "cd3bdeeaf69fa2cbf3152c40fd59519752c613ca97b742c8fc0419f84ef54cb6",
+      "legacy_response_sha256": "76795bec526ff589a5b92d104a94b92a404eacda290e6377c44e453e488a11fc",
+      "observation_body_sha256": "55807fd6df0f1e5f2aa45d3391e6824716b4ce1f9be2876185158bce7de4de6b",
+      "event": {
+        "id": "msg_0c128c1f683c7ce7016b083433b7e087d2be7ad4495fd742bd",
+        "timestamp": "2026-11-26T13:29:43.471Z"
+      },
+      "supersedes": "9712969eb971c6a00ae508b4f172df8a63bab3996430f94e8a2b8ec2da311b6a",
+      "evidence_sha256": "90bd6e1934a739ba9fcaa8f5faca15daa1c59673476441a1ded6f5c607b51a0a"
     }
   ]
 }
