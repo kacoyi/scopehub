@@ -289,6 +289,35 @@ class TimingJobRoleTests(unittest.TestCase):
                     record = next(row for row in view['samples'] if row['profile'] == 'ci-windows-browser')
                     self.assertEqual(210, record['seconds']['harness_step'])
 
+    def test_skipped_job_role_membership_and_checkout_use_joined_outcome(self):
+        browser = self.jobs[3]
+        skipped = dict(browser, id=53, name=None, conclusion='skipped')
+        cases = {
+            'unidentified-producer': skipped,
+            'extra-sibling': dict(skipped, name='Check reviewed task dispatch', steps=[]),
+            'unidentified-checkout': dict(skipped, steps=[], checkout_sha='b' * 40),
+        }
+        for label, claim in cases.items():
+            outcome = dict(skipped, steps=[])
+            facts = dict(claim, conclusion=None)
+            for index, rows in enumerate(([claim], [outcome, facts], [facts, outcome])):
+                with self.subTest(claim=label, grouping=index):
+                    self.assert_public_clocks(self.read_modes([*self.jobs, *rows], f'{label}-{index}'),
+                                              wall=765, runner=1957, receipts=1)
+
+        # A protected slot's explicit checkout is still relevant when a
+        # separate same-ID row carries the identity and the known skip.
+        protected = dict(self.jobs[0], id=54, conclusion='skipped', steps=[])
+        checkout = dict(protected, name=None, conclusion=None, checkout_sha='b' * 40)
+        same_id_conflict = dict(skipped, id=browser['id'], checkout_sha='b' * 40)
+        for index, rows in enumerate(([dict(protected, checkout_sha='b' * 40)],
+                                      [protected, checkout], [checkout, protected], [same_id_conflict])):
+            with self.subTest(adverse=index):
+                for view in self.read_modes([*self.jobs, *rows], f'checkout-conflict-{index}'):
+                    self.assertTrue(any('Conflicting timing checkouts' in issue['error']
+                                        for issue in view['input_issues']))
+                    self.assertEqual([], list(timing.platform_report_receipts(view['samples'])))
+
     def test_partial_role_steps_prevent_clock_swaps(self):
         jobs = deepcopy(self.jobs)
         aggregate, browser = jobs[1], jobs[3]

@@ -1039,19 +1039,19 @@ def timing_checkout_conflicts(samples, hosted, issues):
         if sample['ci'] and sample_identity_complete(sample) and (
                 platform_timing_identity(sample) or windows_producer_job_name(sample)):
             observed[ci_key(sample['ci'])].add(sample['source_commit'])
-    jobs_by_attempt = defaultdict(list)
+    runs_by_attempt = defaultdict(list)
     for run in hosted:
         attempt = ci_key(run)
         if commit_id(run.get('checkout_sha')):
             observed[attempt].add(run['checkout_sha'])
-        jobs_by_attempt[attempt].extend(job for job in (*run['jobs'], *run.get('sibling_jobs', ()))
-                                        if can_join_job_claim(job))
-    for attempt, jobs in jobs_by_attempt.items():
-        bound_ids = {job['job_id'] for job in jobs if has_job_claim(job)}
-        active_ids = {job['job_id'] for job in jobs if job['conclusion'] != 'skipped'} & bound_ids
-        observed[attempt].update(job['checkout_sha'] for job in jobs if commit_id(job.get('checkout_sha'))
-                                 and job['job_id'] in bound_ids
-                                 and (job['job_id'] in active_ids or job['platform'] is not None))
+        runs_by_attempt[attempt].append(run)
+    for attempt, runs in runs_by_attempt.items():
+        for claims in bound_job_observations(runs).values():
+            outcome, _ = job_claim_outcome(claims)
+            protected = any(job['platform'] is not None for _, _, job in claims)
+            if outcome != 'skipped' or protected:
+                observed[attempt].update(job['checkout_sha'] for _, _, job in claims
+                                         if commit_id(job.get('checkout_sha')))
     disputes = {attempt for attempt, claims in observed.items() if known_value(claims)[1]}
     for attempt in sorted(disputes, key=repr):
         timing_issue(issues, {'run_id': attempt[1], 'checkouts': sorted(observed[attempt]),
@@ -1167,9 +1167,10 @@ class JobClaims(NamedTuple):
     steps: set
     role_disputed: bool
     blocked_steps: set
+    outcome: tuple[str | None, bool]
 
 
-def attempt_job_claims(runs, event, issues):
+def bound_job_observations(runs):
     by_id = defaultdict(list)
     for run in runs:
         for protected, rows in ((True, run['jobs']), (False, run.get('sibling_jobs', ()))):
@@ -1179,17 +1180,23 @@ def attempt_job_claims(runs, event, issues):
                     by_id[job['job_id']].append((role, run, job))
     # A sparse row can complete an established job, but cannot establish its
     # own membership without a row bound to this run, attempt and head.
-    return {job_id: job_role_claims(claims, event, issues) for job_id, claims in by_id.items()
+    return {job_id: claims for job_id, claims in by_id.items()
             if any(has_job_claim(job) for _, _, job in claims)}
 
 
+def job_claim_outcome(claims):
+    return known_value(job['conclusion'] for _, _, job in claims)
+
+
 def job_role_claims(claims, event, issues):
+    outcome = job_claim_outcome(claims)
+    skipped = outcome[0] == 'skipped'
     conclusions = defaultdict(set)
     steps, executed_layout, legacy_timed = set(), set(), set()
     for _, _, job in claims:
         for step, values in job.get('step_conclusions', {}).items():
             conclusions[step].update(values)
-        if job['conclusion'] == 'skipped':
+        if skipped:
             continue
         recorded = set(job.get('publishing_steps', ()))
         executed = set(job.get('executed_layout_steps', ()))
@@ -1210,8 +1217,8 @@ def job_role_claims(claims, event, issues):
                               'error': 'Conflicting conclusions for job steps.'})
     blocked_steps = {step for step, values in conclusions.items() if step in disputes or 'skipped' in values}
     roles = {role for role, _, _ in claims if role}
-    if event not in NORMAL_EVENTS:
-        return JobClaims(claims, roles, False, set(), False, blocked_steps)
+    if event not in NORMAL_EVENTS or skipped:
+        return JobClaims(claims, roles, False, set(), False, blocked_steps, outcome)
     # Only older captures without an explicit conclusion for this step can
     # infer a role from a retained timed identity.
     steps.update(legacy_timed - conclusions.keys())
@@ -1233,7 +1240,7 @@ def job_role_claims(claims, event, issues):
         steps.difference_update(WINDOWS_LAYOUT_STEPS)
     producer_family = WINDOWS_LANE_SELECTOR in steps or any(job.get('producer_family') for _, _, job in claims)
     disputed = bool(roles and step_roles - roles)
-    return JobClaims(claims, roles or step_roles, producer_family, steps, disputed, blocked_steps)
+    return JobClaims(claims, roles or step_roles, producer_family, steps, disputed, blocked_steps, outcome)
 
 
 def disputed_runner_labels(role, claims):
@@ -1248,13 +1255,13 @@ def disputed_runner_labels(role, claims):
 
 def joined_job_claims(by_id, attempt, layout):
     by_role = defaultdict(list)
-    for job_id, (claims, roles, producer_family, _, step_conflict, blocked_steps) in by_id.items():
+    for job_id, (claims, roles, producer_family, _, step_conflict, blocked_steps, outcome) in by_id.items():
         if not roles:
             if not producer_family:
                 continue
             roles = {('sibling', job_id)}
-        if all(role[0] == 'sibling' for role in roles) and (
-                not split_windows_clock(layout) or all(job['conclusion'] == 'skipped' for _, _, job in claims)):
+        conclusion, outcome_conflict = outcome
+        if all(role[0] == 'sibling' for role in roles) and (not split_windows_clock(layout) or conclusion == 'skipped'):
             continue
         conflicts = {field for _, _, job in claims for field in job['identity_issues']['conflicts']}
         role_conflict = (len(roles) > 1 or step_conflict
@@ -1262,7 +1269,6 @@ def joined_job_claims(by_id, attempt, layout):
         role_conflict |= len({job['name'] for role, _, job in claims if role and role[0] == 'sibling'}) > 1
         role_conflict |= producer_family and not any(role[0] == 'producer' for role in roles)
         status, status_conflict = known_value(job['status'] for _, _, job in claims)
-        conclusion, outcome_conflict = known_value(job['conclusion'] for _, _, job in claims)
         for role in roles:
             facts = [protected_job_facts(run, layout, job) if role[0] == 'platform' and claim is not None
                      else inherit_job_checkout(run, job) for claim, run, job in claims]
@@ -1330,12 +1336,12 @@ def attempt_layout(runs, by_id, attempt, issues):
     older = [row for row in runs if not row.get('job_facts') and split_windows_clock(row)]
     roles, widths, scopes = set(), set(), set()
     split = bool(older)
-    for _, job_roles, producer_family, steps, _, _ in by_id.values():
-        roles.update(job_roles)
-        split |= producer_family
-        widths.update(WINDOWS_LAYOUT_STEPS[step] for step in steps & WINDOWS_LAYOUT_STEPS.keys())
-        if ('platform', 'Windows') in job_roles:
-            scopes.update(WINDOWS_PROFILE_STEPS[step] for step in steps & WINDOWS_PROFILE_STEPS.keys())
+    for claims in by_id.values():
+        roles.update(claims.roles)
+        split |= claims.producer_family
+        widths.update(WINDOWS_LAYOUT_STEPS[step] for step in claims.steps & WINDOWS_LAYOUT_STEPS.keys())
+        if ('platform', 'Windows') in claims.roles:
+            scopes.update(WINDOWS_PROFILE_STEPS[step] for step in claims.steps & WINDOWS_PROFILE_STEPS.keys())
     has_recovery = ('producer', WINDOWS_PRODUCERS['recovery']) in roles
     split |= bool(widths or any(scope == 'producer' for scope, _ in roles))
     if attempt[3] not in NORMAL_EVENTS:
@@ -1374,7 +1380,8 @@ def resolve_attempt(runs, attempt, issues):
     status = 'completed' if any(row['status'] == 'completed' for row in runs) else known_value(
         row['status'] for row in runs)[0]
     checkout, _ = known_value(row.get('checkout_sha') for row in runs)
-    by_id = attempt_job_claims(runs, attempt[3], issues)
+    by_id = {job_id: job_role_claims(claims, attempt[3], issues)
+             for job_id, claims in bound_job_observations(runs).items()}
     workflow = attempt_layout(runs, by_id, attempt, issues)
     result = {**dict(zip(ATTEMPT_IDENTITY, attempt, strict=True)), 'head_branch': branch,
               'status': status, 'conclusion': conclusion, 'workflow': workflow}

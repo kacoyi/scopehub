@@ -9141,6 +9141,23 @@
       "diagnostic_reports": [],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "timing-skipped-job-outcome-is-gated-per-row",
+      "status": "open",
+      "severity": "major",
+      "source": "Exact clean candidate 6cbfcf53e46e473ca02252e8274586412844481b paired public-entry replay .reports/m0-155-shared-contract/skipped-job-partition-observation-6cbfcf53.json (SHA-256 743981c9310c7e5f372caf9dff3c46da3e8ade9a0dedbc7292b4ded16467e8e4).",
+      "observation": "A skipped same-attempt job without a display name could not compete with the proven browser job when its outcome and successful step occupied one row. Separating the same outcome and step into two same-ID rows withdrew the genuine browser wall and 1957 runner seconds in both orders through ordinary, weekly and archive reads.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

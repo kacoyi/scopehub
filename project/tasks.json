@@ -26809,6 +26809,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "Resolve job conclusion before using role, membership or checkout assertions from a skipped job whose outcome and step facts arrive separately. Check both row orders and a genuinely contradictory known outcome.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain all source captures, saved reviews and original classifications if a change loses a valid clock or expands the ordinary read without a bound.",
