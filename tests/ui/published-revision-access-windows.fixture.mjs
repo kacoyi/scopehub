@@ -2,11 +2,10 @@ import { spawn, execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import { createReadStream } from 'node:fs';
-import { access, mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
+import { access, copyFile, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { chromium, expect } from '@playwright/test';
@@ -17,6 +16,12 @@ const require = createRequire(import.meta.url);
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const targetTriple = 'x86_64-pc-windows-msvc';
 const tauriOrigin = /^(https?:\/\/tauri\.localhost|tauri:\/\/localhost)\//u;
+const exeName = 'scopehub-desktop.exe';
+const endpointTimeout = 60_000;
+const profileDirectory = 'profile';
+// Supplying arguments replaces Wry's defaults, including its autoplay policy.
+const browserArguments = '--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection '
+  + '--autoplay-policy=no-user-gesture-required --remote-debugging-port=0 --lang=en-US';
 const fixture = [
   'Ticker,TradingDate,First,Top,Bottom,Native close,Shares',
   '000731,2026-04-14,36,39,34,38,120',
@@ -30,12 +35,22 @@ async function build(file, args, options) {
   if (code !== 0) throw new Error(`Native build failed (${code ?? signal}): ${file} ${args.join(' ')}`);
 }
 
-async function buildProbe(temp, identifier, profile) {
+async function buildProbe(temp) {
   const { stdout } = await runFile('cargo', ['metadata', '--locked', '--no-deps', '--format-version', '1'], { cwd: root });
   // Preserve the normal debug and release executables. Keep this build cache reusable.
   const buildEnv = { ...process.env, CARGO_TARGET_DIR: join(JSON.parse(stdout).target_directory, 'published-revision-access') };
   const configuration = join(temp, 'tauri.revision-access.json');
-  await writeFile(configuration, JSON.stringify({ identifier, app: { appDirectoriesOverride: profile } }));
+  const base = JSON.parse(await readFile(join(root, 'apps', 'desktop', 'src-tauri', 'tauri.conf.json'), 'utf8'));
+  // WebView2 ignores user-scoped environment overrides for elevated hosts.
+  // The test-only overlay passes these options directly to the native builder.
+  await writeFile(configuration, JSON.stringify({
+    identifier: 'com.scopehub.revisionaccess',
+    app: {
+      appDirectoriesOverride: `./${profileDirectory}`,
+      windows: base.app.windows.map(window => window.label === 'main'
+        ? { ...window, additionalBrowserArgs: browserArguments } : window),
+    },
+  }));
   const tauriCli = require.resolve('@tauri-apps/cli/package.json').replace(/package\.json$/u, 'tauri.js');
   await build(process.execPath, [tauriCli, 'build', '--debug', '--ci', '--no-bundle',
     '--target', targetTriple, '--config', configuration, '--', '--locked'], {
@@ -44,7 +59,7 @@ async function buildProbe(temp, identifier, profile) {
   await build('cargo', ['build', '--locked', '-p', 'scopehub-desktop', '--example', 'local_import_bridge',
     '--features', 'portable-test-bridge', '--target', targetTriple], { cwd: root, env: buildEnv });
   const debug = join(buildEnv.CARGO_TARGET_DIR, targetTriple, 'debug');
-  return { exe: join(debug, 'scopehub-desktop.exe'), seedExe: join(debug, 'examples', 'local_import_bridge.exe') };
+  return { exe: join(debug, exeName), seedExe: join(debug, 'examples', 'local_import_bridge.exe') };
 }
 
 export async function publishFixture(seedExe, profile, folder) {
@@ -91,31 +106,61 @@ export async function publishFixture(seedExe, profile, folder) {
   }
 }
 
-async function availablePort() {
-  const server = createServer().listen(0, '127.0.0.1');
-  await once(server, 'listening');
-  const { port } = server.address();
-  await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
-  return port;
+async function readEndpoint(portFile, observation) {
+  try {
+    const [portText, websocketPath] = (await readFile(portFile, 'utf8')).trim().split(/\r?\n/u);
+    const port = Number(portText);
+    if (!/^\d{1,5}$/u.test(portText) || port < 1 || port > 65535
+      || !/^\/devtools\/browser\/[0-9a-f-]+$/u.test(websocketPath ?? '')) {
+      observation.endpoint_state = 'invalid_port_file';
+      return;
+    }
+    observation.port = port;
+    const address = `127.0.0.1:${port}`;
+    const response = await fetch(`http://${address}/json/version`, {
+      redirect: 'error', signal: AbortSignal.timeout(1000),
+    });
+    observation.http_status = response.status;
+    if (!response.ok) {
+      observation.endpoint_state = 'http_error';
+      await response.body?.cancel();
+      return;
+    }
+    const { webSocketDebuggerUrl } = await response.json();
+    const websocket = `ws://${address}${websocketPath}`;
+    observation.endpoint_state = webSocketDebuggerUrl === websocket ? 'ready' : 'endpoint_mismatch';
+    if (observation.endpoint_state === 'ready') return websocket;
+  } catch (error) {
+    observation.endpoint_state = error.code === 'ENOENT' ? 'port_file_missing' : 'endpoint_read_failed';
+    observation.endpoint_error = error.cause?.code ?? error.code ?? error.name;
+  }
 }
 
 function powershell(command) {
   return runFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { timeout: 15_000 });
 }
 
-async function runtimeIdentity(pid) {
-  // The loopback listener alone cannot identify WebView2. Confirm the native
-  // window and the versioned WebView2 child owned by the launched executable.
+async function processSnapshot(pid, port) {
+  // Record only facts about the owned app, its WebView2 children and the expected port.
   const { stdout } = await powershell(
-    `$ErrorActionPreference = 'Stop'
-     $desktop = Get-Process -Id ${pid}
-     if ($desktop.MainWindowHandle -eq 0) { throw 'No native window for the owned process.' }
-     $runtime = Get-CimInstance Win32_Process -Filter "ParentProcessId = ${pid} AND Name = 'msedgewebview2.exe'" |
-       Select-Object -First 1
-     if (!$runtime.ExecutablePath) { throw 'No native WebView2 child for the owned process.' }
+    String.raw`$ErrorActionPreference = 'Stop'
+     $desktop = Get-Process -Id ${pid} -ErrorAction SilentlyContinue
+     $token = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
+     $runtimes = @(Get-CimInstance Win32_Process -Filter "ParentProcessId = ${pid} AND Name = 'msedgewebview2.exe'" |
+       Select-Object -First 8 | ForEach-Object {
+         $version = if ($_.ExecutablePath) { (Get-Item -LiteralPath $_.ExecutablePath).VersionInfo.ProductVersion }
+         @{ pid = $_.ProcessId; version = $version;
+            allocated_debug_port = $_.CommandLine -match '(?:^|\s)--remote-debugging-port=0(?:\s|$)' }
+       })
+     $listeners = @(if (${port ?? 0}) {
+       Get-NetTCPConnection -State Listen -LocalPort ${port ?? 0} -ErrorAction SilentlyContinue |
+         Select-Object -First 8 | ForEach-Object { @{ address = $_.LocalAddress; pid = $_.OwningProcess } }
+     })
      $hostOS = Get-CimInstance Win32_OperatingSystem
-     @{ window = $desktop.MainWindowHandle.ToInt64(); webview_pid = $runtime.ProcessId;
-        webview_version = (Get-Item -LiteralPath $runtime.ExecutablePath).VersionInfo.ProductVersion;
+     @{ desktop_pid = ${pid}; process_alive = [bool]$desktop;
+        window = $(if ($desktop) { $desktop.MainWindowHandle.ToInt64() }); session_id = $desktop.SessionId;
+        launcher_administrator = $token.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator);
+        user_interactive = [Environment]::UserInteractive; webview_children = $runtimes; listeners = $listeners;
         windows_build = $hostOS.BuildNumber; windows_product_type = $hostOS.ProductType;
         windows_edition = $hostOS.Caption } | ConvertTo-Json -Compress`,
   );
@@ -142,11 +187,21 @@ export async function withNativePublishedProfile(testInfo, observation, run) {
   const { stdout: commit } = await runFile('git', ['rev-parse', 'HEAD'], { cwd: root });
   const { stdout: gitStatus } = await runFile('git', ['status', '--porcelain=v1'], { cwd: root });
   const temp = await mkdtemp(join(await realpath(tmpdir()), 'scopehub-revision-access-'));
-  const identifier = 'com.scopehub.revisionaccess.' + randomUUID().replaceAll('-', '');
-  const profile = join(temp, 'profile');
+  const profile = join(temp, profileDirectory);
+  const webviewDirectory = join(profile, 'EBWebView');
+  const launch = {
+    stage: 'build', endpoint_timeout_ms: endpointTimeout, endpoint_attempts: 0,
+    browser_arguments_source: 'Tauri window configuration', browser_arguments: browserArguments,
+  };
+  observation.launch = launch;
   let desktop;
   let exited;
   let browser;
+  let page;
+  let started;
+  let stdout = '';
+  let stderr = '';
+  let failure;
   try {
     await mkdir(profile, { mode: 0o700 });
     Object.assign(observation, {
@@ -156,69 +211,115 @@ export async function withNativePublishedProfile(testInfo, observation, run) {
       setup: 'Existing test bridge seeds a disposable profile via the Rust registry. The observed journey uses the compiled app.',
       observed_at: new Date().toISOString(),
     });
-    const { exe, seedExe } = await buildProbe(temp, identifier, profile);
-    const ids = await publishFixture(seedExe, profile, join(temp, 'source'));
+    const { exe, seedExe } = await buildProbe(temp);
+    const artifact = join(dirname(testInfo.project.outputDir), exeName);
+    const launchExe = join(temp, exeName);
+    await mkdir(dirname(artifact), { recursive: true });
+    await copyFile(exe, artifact);
+    await copyFile(artifact, launchExe);
     const hash = createHash('sha256');
-    for await (const chunk of createReadStream(exe)) hash.update(chunk);
+    for await (const chunk of createReadStream(launchExe)) hash.update(chunk);
     observation.binary_sha256 = hash.digest('hex');
+    launch.stage = 'seed_profile';
+    const ids = await publishFixture(seedExe, profile, join(temp, 'source'));
     observation.publications = ids;
-    const port = await availablePort();
-    const env = {
-      ...process.env,
-      WEBVIEW2_USER_DATA_FOLDER: join(temp, 'webview'),
-      WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS:
-        `--remote-debugging-address=127.0.0.1 --remote-debugging-port=${port} --lang=en-US`,
-    };
-    delete env.SCOPEHUB_DESKTOP_WORKSPACE_DEV;
-    desktop = spawn(exe, [], { cwd: root, env, stdio: 'inherit' });
+    const env = Object.fromEntries(Object.entries(process.env)
+      .filter(([name]) => !/^(WEBVIEW2_.*|SCOPEHUB_DESKTOP_WORKSPACE_DEV)$/iu.test(name)));
+    launch.stage = 'spawn';
+    started = performance.now();
+    desktop = spawn(launchExe, [], { cwd: temp, env, stdio: ['ignore', 'pipe', 'pipe'] });
     exited = once(desktop, 'exit');
     void exited.catch(() => undefined);
-    // Establish the process or propagate a spawn error before starting UI polling.
+    desktop.stdout.setEncoding('utf8').on('data', chunk => { stdout = (stdout + chunk).slice(-4096); });
+    desktop.stderr.setEncoding('utf8').on('data', chunk => { stderr = (stderr + chunk).slice(-4096); });
     await once(desktop, 'spawn');
-    const endpoint = `http://127.0.0.1:${port}`;
+    launch.desktop_pid = desktop.pid;
+    launch.stage = 'cdp_endpoint';
+    let websocket;
     await expect.poll(async () => {
-      if (desktop.exitCode !== null) throw new Error(`Native desktop exited early: ${desktop.exitCode}`);
-      try {
-        const response = await fetch(endpoint + '/json/version', { signal: AbortSignal.timeout(1000) });
-        return response.ok;
-      } catch {
-        return false;
+      if (desktop.exitCode !== null || desktop.signalCode !== null) {
+        launch.stage = 'early_process_exit';
+        throw new Error(`Native desktop exited before CDP (${desktop.exitCode ?? desktop.signalCode}).`);
       }
-    }, { timeout: 60_000 }).toBe(true);
-    browser = await chromium.connectOverCDP(endpoint, { timeout: 20_000 });
-    const productPages = () => browser.contexts().flatMap(context => context.pages()).filter(page => tauriOrigin.test(page.url()));
-    await expect.poll(() => productPages().length, { timeout: 30_000 }).toBe(1);
-    const [page] = productPages();
+      launch.endpoint_attempts++;
+      websocket = await readEndpoint(join(webviewDirectory, 'DevToolsActivePort'), launch);
+      return Boolean(websocket);
+    }, { timeout: endpointTimeout }).toBe(true);
+    launch.endpoint_ready_ms = Math.round(performance.now() - started);
+    launch.stage = 'native_identity';
+    let runtime;
     await expect.poll(async () => {
       try {
-        observation.runtime = { desktop_pid: desktop.pid, ...await runtimeIdentity(desktop.pid), origin: page.url() };
-        return Boolean(observation.runtime.window && observation.runtime.webview_version);
-      } catch {
+        const snapshot = await processSnapshot(desktop.pid, launch.port);
+        launch.process = snapshot;
+        runtime = snapshot.webview_children.find(child => child.version && snapshot.listeners.some(listener =>
+          listener.address === '127.0.0.1' && listener.pid === child.pid));
+        return Boolean(snapshot.window && runtime);
+      } catch (error) {
+        launch.process_error = error.code ?? error.name;
         return false;
       }
     }, { timeout: 30_000 }).toBe(true);
+    launch.stage = 'cdp_attach';
+    browser = await chromium.connectOverCDP(websocket, { timeout: 20_000 });
+    launch.stage = 'product_page';
+    const productPages = () => browser.contexts().flatMap(context => context.pages()).filter(page => tauriOrigin.test(page.url()));
+    await expect.poll(() => productPages().length, { timeout: 30_000 }).toBe(1);
+    [page] = productPages();
+    observation.runtime = {
+      desktop_pid: desktop.pid, window: launch.process.window, webview_pid: runtime.pid, webview_version: runtime.version,
+      windows_build: launch.process.windows_build, windows_product_type: launch.process.windows_product_type,
+      windows_edition: launch.process.windows_edition, origin: new URL(page.url()).origin,
+    };
+    launch.stage = 'product_ipc';
     await page.bringToFront();
     await page.waitForFunction(() => typeof window.__TAURI_INTERNALS__?.invoke === 'function', undefined, { timeout: 20_000 });
     const database = join(profile, 'workspace-dev', 'workspace.sqlite3');
     await access(database);
-    try {
-      await run({ page, ids, database });
-    } catch (error) {
+    launch.stage = 'public_journey';
+    await run({ page, ids, database });
+    launch.stage = 'completed';
+  } catch (error) {
+    failure = error;
+    if (started !== undefined) launch.failure_at_ms = Math.round(performance.now() - started);
+    if (desktop?.pid) {
+      launch.exit_before_cleanup = desktop.exitCode;
+      launch.signal_before_cleanup = desktop.signalCode;
+      launch.webview_directory_created = await access(webviewDirectory).then(() => true, () => false);
+      try {
+        launch.process = await processSnapshot(desktop.pid, launch.port);
+      } catch (snapshotError) {
+        launch.process_error = snapshotError.code ?? snapshotError.name;
+      }
+    }
+    if (page) {
       try {
         await testInfo.attach('native-failure', { body: await page.screenshot({ timeout: 4000 }), contentType: 'image/png' });
       } catch {}
-      throw error;
     }
+    throw error;
   } finally {
     try {
-      if (desktop?.pid) await closeDesktop(desktop, exited);
-    } finally {
       try {
-        if (browser?.isConnected()) await browser.close();
+        if (desktop?.pid) await closeDesktop(desktop, exited);
       } finally {
-        // WebView2 may hold profile files briefly after its native parent exits.
-        await rm(temp, { recursive: true, force: true, maxRetries: 20, retryDelay: 300 });
+        try {
+          if (browser?.isConnected()) await browser.close();
+        } finally {
+          // WebView2 may hold profile files briefly after its native parent exits.
+          await rm(temp, { recursive: true, force: true, maxRetries: 20, retryDelay: 300 });
+        }
       }
+    } catch (error) {
+      launch.cleanup_error = error.code ?? error.name;
+      if (!failure) {
+        launch.stage = 'cleanup';
+        throw error;
+      }
+    } finally {
+      if (desktop?.pid) launch.exit_after_cleanup = desktop.exitCode;
+      launch.stdout_tail = stdout.replaceAll(temp, '<fixture>').replaceAll(root, '<checkout>');
+      launch.stderr_tail = stderr.replaceAll(temp, '<fixture>').replaceAll(root, '<checkout>');
     }
   }
 }

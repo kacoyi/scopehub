@@ -8198,6 +8198,28 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "published-revision-probe-env-only-webview2-endpoint",
+      "source": "Authenticated guarded Windows run 45769045630, artifact 15094916522, indexed by archives/observations/repo-hygiene-20261125/task-dispatch-m2-039-45769045630/manifest.json. Windows check log SHA-256 f8546f0dbadefd2f87d8f0ee6847c0c68f2c79a938923f7ec986ee647992819f. Microsoft documents the elevated-host override behavior at https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/security#for-an-elevated-host-app-use-the-appropriate-type-of-override-flags.",
+      "observation": "At c20a81c462de641e82dd6358dbfea2a0c99f2a4b the compiled Windows executable and seed bridge built, the fixture published both synthetic revisions, and the launched process reached the 60-second loopback poll without an accepted CDP response or a native admission observation. The fixture supplies CDP only via WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS. GitHub Windows hosts run as administrators and WebView2 Runtime 150 and later ignore that override for elevated hosts. Tauri's pinned Wry already passes browser arguments through WebView2 environment options. The original fixture captured process and runtime identity only after CDP, so the original token, WebView2 version and listener state remain unobserved. The neighboring renderer probe reaches a native window via UI Automation without a CDP endpoint. The check's hosted artifact excludes its launch sidecar and executable.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "windows-published-revision-access"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261126T063522.897871Z-dc6a197c",
+          "source_commit": "c20a81c462de641e82dd6358dbfea2a0c99f2a4b",
+          "report_sha256": "0910e9959c98c0c40bef3493373b6d6d92ca5b49378e2db5e3a5565448fe3db5"
+        }
+      ]
     }
   ]
 }

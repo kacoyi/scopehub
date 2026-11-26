@@ -1,4 +1,6 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { expect, test } from '@playwright/test';
 import { withNativePublishedProfile } from './published-revision-access-windows.fixture.mjs';
@@ -365,9 +367,12 @@ test('observe native admission and public CSV and folder access across dialog re
       public_drawer: observation.public_drawer.map(entry =>
         ({ ...entry, calls: entry.calls?.slice(0, 60), calls_total: entry.calls?.length })),
     };
-    // The verification log carries the synthetic evidence even where the
-    // hosted lane does not collect the Playwright attachments directory.
-    console.log(JSON.stringify(bounded));
+    const output = dirname(testInfo.project.outputDir);
+    const retained = JSON.stringify(bounded, null, 2) + '\n';
+    await mkdir(output, { recursive: true });
+    await writeFile(join(output, 'observation.json'), retained);
+    // Bind the bounded sidecar to the check log, including failed launches.
+    console.log('native_observation_sha256=' + createHash('sha256').update(retained).digest('hex'));
     await testInfo.attach('windows-published-revision-access', {
       body: JSON.stringify(observation, null, 2), contentType: 'application/json',
     });

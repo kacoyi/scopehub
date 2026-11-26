@@ -26117,7 +26117,9 @@
         "tests/ui/published-revision-controls.mjs",
         "tests/ui/published-revision-access-windows.config.mjs",
         "tests/ui/published-revision-access-windows.fixture.mjs",
-        "tests/ui/published-revision-access-windows.spec.mjs"
+        "tests/ui/published-revision-access-windows.spec.mjs",
+        "scripts/ci_artifacts.py",
+        "tests/project/test_ci_artifacts.py"
       ],
       "decision_refs": [
         "0004",
@@ -26149,6 +26151,7 @@
         "state-migrations",
         "workspace-timeframe",
         "model-connection-workflow",
+        "python-contracts-workers",
         "windows-published-revision-access"
       ],
       "evidence": [
@@ -26157,7 +26160,7 @@
           "sha256": "fb4345db27bf793accfd0d67401a044be089c0305a0dc51c347691e17756de4a"
         }
       ],
-      "next_action": "Give the coordinator the compiled-browser withdrawal regression and original rejection evidence for renewed independent decisions. Run windows-published-revision-access on that same clean source in an interactive Windows x64 session and retain executable and WebView2 identities, the native status journal, and both completed provider journeys. Keep operator physical qualification separate.",
+      "next_action": "Give the coordinator the clean launch correction, compiled-browser withdrawal regression and original guarded failure for independent M2-034, M2-035 and M2-039 decisions and a guarded Windows rerun. Observe the endpoint and owned WebView2 process, native admission, and both public provider journeys. Retain the exact compiled executable and bounded launch and status observations. Keep operator physical qualification separate.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26335,6 +26338,13 @@
               "local-folder-refresh-preview",
               "windows-published-revision-access"
             ]
+          },
+          {
+            "failure": "An elevated hosted process loses environment-only WebView2 overrides and never exposes the debugging endpoint. Feed browser arguments through the isolated native build configuration, check the owned process and ephemeral loopback endpoint within the original deadline, and retain its launch observation and replayable executable even when the public journey cannot start.",
+            "checks": [
+              "windows-published-revision-access",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Revert the UI change while retaining the independent red and green observations. Existing stored revisions and schemas need no migration.",
@@ -26391,7 +26401,8 @@
             "Withhold a revision on an ambiguous source-row error and reopen its visibility only after confirmed access from its status operation. Preserve durable revocation, access decisions, the selection and its undo.",
             "A dialog-only branch could repair CSV refresh but would leave provider dispatch and temporary-only eligibility in individual callers. Route status verification and current-page rechecks through the existing profile access owner. The dialog supplies the page identity and stops scheduling obsolete page reads. An admitted status can settle with the profile subject to the owner's existing revocation and supersession fences.",
             "Directly refactor the profile access owner to track state and requests by publication kind and revision ID on a shared serial status lane. Check the current page lifetime before dispatching queued work and let an issued read settle against its own profile state. Return the observed access outcome to the dialog, preserving the changed-workspace guard. Extending the split paths would require parallel scheduling and failure classification in the dialog and watcher. A full replacement would discard unrelated focus, selection and chart guards while the existing native replies can express the observed outcomes.",
-            "Qualify the Windows interaction through the compiled application with local synthetic publications. Capture native admission separately from controlled row interruption and late reply delivery."
+            "Qualify the Windows interaction through the compiled application with local synthetic publications. Capture native admission separately from controlled row interruption and late reply delivery.",
+            "Configure the test binary's WebView2 debugging through the native environment options. Use a relative profile in a disposable executable directory, collect the allocated endpoint and owned process facts, and stage only bounded synthetic observations and the matching fixture executable."
           ],
           "data_plan": "Only synthetic profiles, chart values and source rows in the local scoped checks.",
           "cleanup": "Release delayed test replies, close both owned windows and bridges, remove test profiles, and retain original red and green evidence."
@@ -26442,6 +26453,11 @@
           "run_id": "20261126T041510.475356Z-783b4a68",
           "source_commit": "359e33231892432813493958b580ee25aaf94a5f",
           "report_sha256": "50a6f67204b2254c992af9266ee45b3966d11148932d457233bc442bfb95f808"
+        },
+        {
+          "run_id": "20261126T063522.897871Z-dc6a197c",
+          "source_commit": "c20a81c462de641e82dd6358dbfea2a0c99f2a4b",
+          "report_sha256": "0910e9959c98c0c40bef3493373b6d6d92ca5b49378e2db5e3a5565448fe3db5"
         }
       ]
     },

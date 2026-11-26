@@ -453,6 +453,79 @@ class PublicationTests(ProjectFixture):
         self.assertTrue((self.destination / 'runs/fixture/ubuntu-preview.log').is_file())
         self.assertEqual('failed', read_json(self.destination / 'test-report.json')['status'])
 
+    def native_revision_report(self):
+        check = 'windows-published-revision-access'
+        self.add_catalog_checks(check)
+        report = self.hosted_report(system='Windows', event='workflow_dispatch')
+        report['status'] = 'failed'
+        self.add_result(report, check, status='failed')
+        return report, f'runs/fixture/{check}'
+
+    def save_native_revision_observation(self, report, directory, observation, *, marker=None):
+        contents = json_bytes(observation)
+        self.write(f'{directory}/observation.json', contents)
+        log = f'Synthetic failure\r\nnative_observation_sha256={marker or digest(contents)}\r\n'.encode('ascii')
+        self.write(directory + '.log', log)
+        report['checks'][-1]['log_sha256'] = digest(log)
+        self.save_report(report)
+        return contents
+
+    def test_failed_native_revision_access_retains_only_bound_synthetic_evidence(self):
+        report, directory = self.native_revision_report()
+        binary = b'MZ synthetic compiled bytes'
+        observation = {'source_commit': report['source']['git_head'], 'source_working_tree_dirty': False,
+                       'binary_sha256': digest(binary), 'launch': {'failure': 'cdp_endpoint_timeout'}}
+        contents = self.save_native_revision_observation(report, directory, observation)
+        self.write(f'{directory}/scopehub-desktop.exe', binary)
+        for name in ('other.exe', 'results.json', 'profile/workspace.sqlite3', 'webview2/test/trace.zip'):
+            self.write(f'{directory}/{name}', self.sentinel)
+
+        self.assertTrue(stage_artifacts(self.root, self.destination, self.env))
+        evidence = self.destination / directory
+        self.assertEqual({'observation.json', 'scopehub-desktop.exe'}, {path.name for path in evidence.iterdir()})
+        self.assertEqual(contents, (evidence / 'observation.json').read_bytes())
+        self.assertEqual(binary, (evidence / 'scopehub-desktop.exe').read_bytes())
+        self.assertEqual('failed', read_json(self.destination / 'test-report.json')['status'])
+
+    def test_native_revision_access_omits_unbound_or_oversized_evidence_and_keeps_the_report(self):
+        report, directory = self.native_revision_report()
+        binary = b'MZ synthetic compiled bytes'
+        observation = {'source_commit': report['source']['git_head'], 'source_working_tree_dirty': False,
+                       'binary_sha256': digest(binary)}
+        manifest = f'{directory}/observation.json'
+        executable = f'{directory}/scopehub-desktop.exe'
+        for name, changes, marker, limit in (
+            ('foreign', {'source_commit': 'a' * 40}, None, ci_artifacts.NATIVE_REVISION_OBSERVATION_LIMIT),
+            ('dirty', {'source_working_tree_dirty': True}, None, ci_artifacts.NATIVE_REVISION_OBSERVATION_LIMIT),
+            ('unbound', {}, 'b' * 64, ci_artifacts.NATIVE_REVISION_OBSERVATION_LIMIT),
+            ('oversized', {}, None, 1),
+        ):
+            with self.subTest(name=name), patch.object(ci_artifacts, 'NATIVE_REVISION_OBSERVATION_LIMIT', limit):
+                self.save_native_revision_observation(report, directory, {**observation, **changes}, marker=marker)
+                self.write(executable, binary)
+                destination = self.destination.with_name(name)
+                self.assertTrue(stage_artifacts(self.root, destination, self.env))
+                self.assertTrue((destination / (directory + '.log')).is_file())
+                self.assertFalse((destination / directory).exists())
+
+        contents = self.save_native_revision_observation(report, directory, observation)
+        for name, binary_limit in (('altered', ci_artifacts.NATIVE_REVISION_BINARY_LIMIT), ('oversized-exe', 1)):
+            with self.subTest(name=name), patch.object(ci_artifacts, 'NATIVE_REVISION_BINARY_LIMIT', binary_limit):
+                self.write(executable, b'altered' if name == 'altered' else binary)
+                destination = self.destination.with_name(name)
+                self.assertTrue(stage_artifacts(self.root, destination, self.env))
+                self.assertEqual(contents, (destination / manifest).read_bytes())
+                self.assertFalse((destination / executable).exists())
+
+        (self.reports / executable).unlink()
+        self.assertTrue(stage_artifacts(self.root, self.destination, self.env))
+        self.assertEqual(contents, (self.destination / manifest).read_bytes())
+        (self.reports / manifest).unlink()
+        self.write(executable, binary)
+        destination = self.destination.with_name('missing-observation')
+        self.assertTrue(stage_artifacts(self.root, destination, self.env))
+        self.assertFalse((destination / directory).exists())
+
     def test_rejects_another_attempt_and_mismatched_named_report(self):
         report = self.hosted_report()
         self.save_report(report)
