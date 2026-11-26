@@ -8667,6 +8667,23 @@
       "deferral_reason": null
     },
     {
+      "id": "timing-report-conflict-skips-independent-clock-intake",
+      "status": "open",
+      "severity": "major",
+      "source": "Local bounded capture regression on interim correction e0307be50370cf43bc33f4b153a5e5daf0ff7b08. Retained observation .reports/m0-155-structural-evidence/red-capture-retry-e0307be5.log (SHA-256 c92d34b5411261b76bb6914815c2b60310221730e1202ea736c4139aa68f879f).",
+      "observation": "A first capture with two conflicting Windows reports and a valid Linux report stopped before requesting the attempt job listing. The attempt was ambiguous and the independently eligible Linux clock remained unavailable.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
       "id": "timing-merge-proof-accepts-known-noncommit-parent",
       "status": "open",
       "severity": "major",

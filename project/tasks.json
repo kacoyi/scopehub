@@ -26725,7 +26725,7 @@
             ]
           },
           {
-            "failure": "Disputed membership can erase proven independent clocks. Exercise split and joined listings, both orders, rotation, ordinary display, weekly reindexing, linked budgets and cold reopen.",
+            "failure": "Disputed membership can erase proven independent clocks. Exercise split and joined listings, both orders, rotation, ordinary display, weekly reindexing, linked budgets and cold reopen. Verify that a report-only dispute still allows first intake to retrieve an independent platform clock.",
             "checks": [
               "project-state",
               "python-contracts-workers"

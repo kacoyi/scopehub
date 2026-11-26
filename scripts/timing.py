@@ -2624,6 +2624,7 @@ class CaptureEvidence(NamedTuple):
     complete_clock: bool
     ambiguous: bool
     checkout_disputed: bool
+    producer_disputed: bool
 
 
 def capture_observations(identity, samples, hosted, issues, *, conclusion=None):
@@ -2636,7 +2637,8 @@ def capture_observations(identity, samples, hosted, issues, *, conclusion=None):
                  and not native_report_issue(group[0], clock, issues)]
     disputed_platforms = {group[0]['platform'] for group in platforms if len(group) > 1}
     checkout_disputed = identity in clock_evidence.checkout_disputes
-    ambiguous = checkout_disputed or bool(disputed_platforms) or identity in clock_evidence.producer_disputes
+    producer_disputed = identity in clock_evidence.producer_disputes
+    ambiguous = checkout_disputed or bool(disputed_platforms) or producer_disputed
     outcome = conclusion or (clock['conclusion'] if clock else None)
     diagnostic = outcome not in {None, 'success'}
     # A failed artifact can still establish its exact diagnostic identity.
@@ -2650,7 +2652,8 @@ def capture_observations(identity, samples, hosted, issues, *, conclusion=None):
     # are recomputed on read, so archive order cannot suppress a known fact.
     retained = [row for row in samples if sample_identity_complete(row)]
     retained.extend(group[0] for group in groups if not sample_identity_complete(group[0]))
-    return CaptureEvidence(distinct_observations(retained), clocks, missing, complete_clock, ambiguous, checkout_disputed)
+    return CaptureEvidence(distinct_observations(retained), clocks, missing, complete_clock, ambiguous,
+                           checkout_disputed, producer_disputed)
 
 
 def capture_is_complete(identity, samples, hosted):
@@ -2779,7 +2782,7 @@ def update_timing_capture(path, repository, run, identity, samples, hosted):
     evidence = capture_observations(
         identity, [*prior_samples, *samples], known_clocks, notes, conclusion=run['conclusion'],
     )
-    if evidence.checkout_disputed or (not evidence.missing and (evidence.complete_clock or evidence.ambiguous)):
+    if evidence.checkout_disputed or (not evidence.missing and (evidence.complete_clock or evidence.producer_disputed)):
         persisted = distinct_observations(notes)
         if (prior_samples, prior_clocks, prior_issues) != (evidence.samples, evidence.clocks, persisted):
             save_timing_capture(path, attempts, evidence.samples, evidence.clocks, persisted)
@@ -2805,7 +2808,7 @@ def update_timing_capture(path, repository, run, identity, samples, hosted):
     missing_failure_clock = run['conclusion'] != 'success' and not any(
         row['conclusion'] == run['conclusion'] and not row.get('authenticated_failure') for row in evidence.clocks
     )
-    if (not evidence.ambiguous and not evidence.complete_clock
+    if (not evidence.producer_disputed and not evidence.complete_clock
             and (set(PLATFORMS.values()) - evidence.missing or new_samples or issues or missing_failure_clock)):
         try:
             row = inspect_jobs(run, repository)
@@ -2816,7 +2819,7 @@ def update_timing_capture(path, repository, run, identity, samples, hosted):
     captured = capture_observations(
         identity, [*evidence.samples, *new_samples], [*evidence.clocks, *new_clocks], issues, conclusion=run['conclusion'],
     )
-    if captured.checkout_disputed or (captured.ambiguous and not captured.missing):
+    if captured.checkout_disputed or (captured.producer_disputed and not captured.missing):
         status = 'ambiguous'
     elif captured.missing or not captured.complete_clock:
         status = 'partial'

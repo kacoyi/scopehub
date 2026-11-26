@@ -3679,6 +3679,24 @@ class RecentTimingTests(unittest.TestCase):
                 linux_review, = (row for row in view['elapsed_observations'] if row['platform'] == 'Linux')
                 self.assertEqual(3, linux_review['sample_count'])
 
+    def test_conflicting_platform_reports_do_not_prevent_retrieving_independent_clocks(self):
+        run, samples, clock = self.budget_run(14, '17:00')
+        linux, windows = samples
+        altered = dict(windows, seconds={**windows['seconds'], 'harness': windows['seconds']['harness'] + 1})
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with (patch.object(timing, 'download_timing', side_effect=AssertionError('Unexpected artifact request')),
+                  patch.object(timing, 'inspect_jobs', return_value=clock) as inspect):
+                status, retained, clocks, issues = timing.collect_new_ci_timing(
+                    root, 'fixture/scopehub', run, [linux, windows, altered], [],
+                )
+            self.assertEqual('ambiguous', status)
+            inspect.assert_called_once()
+            independent, = timing.timing_view(retained, hosted=clocks, issues=issues)['samples']
+            self.assertEqual('Linux', independent['platform'])
+            self.assertIsNotNone(independent['seconds']['total'])
+            self.assertIsNone(independent['review_exclusion'])
+
     def test_recent_cold_successes_do_not_hide_warm_recurrence(self):
         observations = [self.budget_run(day, '17:00', cache='warm') for day in (14, 15)]
         observations.extend(self.budget_run(day, '12:00', cache='cold') for day in (16, 17, 18))
