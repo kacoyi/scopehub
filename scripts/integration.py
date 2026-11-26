@@ -766,9 +766,108 @@ def python_hosted_report(report, repository, event, head, checkout, *, profile='
             and report['selection']['profile'] == profile and report['selection']['task_id'] is None)
 
 
+def python_push_original(archive, locator):
+    try:
+        return read_native(archive, locator)
+    except (OSError, ValueError):
+        # The aggregate and its producer can have the same internal run ID.
+        alternative = hosted_artifact_path(Path(archive).resolve(strict=True),
+                                           f"observations/{locator['report_sha256']}", directory=True)
+        return read_native(alternative, locator)
+
+
+def python_push_producer_conclusion(root, first, ci):
+    jobs = python_attempt_jobs(root, ci, branch='main')
+    producers = [job for job in jobs if job['name'] == timing.WINDOWS_PRODUCERS['python']]
+    if len(producers) == 1 and producers[0]['head_sha'] == first and producers[0]['status'] == 'completed':
+        return producers[0]['conclusion']
+    return None
+
+
+def python_push_evidence(root, project, first, follow_up, policy):
+    """Select the aggregate or a verified failure from the first protected push."""
+    if not policy or policy['branch'] != 'main':
+        return None
+    locators = [locator for locator in follow_up.get('diagnostic_reports', []) if locator['source_commit'] == first]
+    if not locators:
+        return None
+    check = project['checks'][PYTHON_CHECK]
+    if (check['status'] != 'implemented' or check['command'] != SERIAL_COMMAND
+            or check['windows_timeout_seconds'] != WINDOWS_DEADLINE_SECONDS):
+        return None
+    repository = policy['repository']
+    source = committed_source_identity(root, first)
+    archive = diagnostic_archive_root(root)
+    attempts = {}
+    evidence = []
+    for locator in locators:
+        try:
+            report, log = python_push_original(archive, locator)
+            profile = report['selection']['profile']
+            selected = report['selection']['checks']
+            if (profile not in {'full', 'ci-windows-python'}
+                    or not python_hosted_report(report, repository, 'push', first, first, profile=profile)
+                    or not isinstance(selected, list) or selected.count(PYTHON_CHECK) != 1
+                    or (profile == 'ci-windows-python' and selected != [PYTHON_CHECK])
+                    or report['source'] != source):
+                continue
+            row = python_row(report)
+            python = report['environment']['python_executable']
+            if not isinstance(python, str) or not python or row['command'] != [python, *SERIAL_COMMAND[1:]]:
+                continue
+            ci = report['ci']
+            project_hash = report['project_definition_sha256']
+            if not re.fullmatch(r'[0-9a-f]{64}', project_hash):
+                continue
+            identity = (ci, project_hash, row)
+            run = ci['run_id']
+            if not re.fullmatch(r'[1-9][0-9]*', run):
+                continue
+            if run not in attempts:
+                attempts[run] = python_push_producer_conclusion(root, first, ci)
+            conclusion = attempts[run]
+            if conclusion in {'success', 'failure', 'timed_out'}:
+                evidence.append((locator, report, log, conclusion, identity))
+        except (OSError, ValueError, ScopeError, TypeError, KeyError, RuntimeError, subprocess.SubprocessError):
+            continue
+    if not evidence:
+        return None
+
+    # The aggregate imports the producer's Python row and exact Python log. Its
+    # overall outcome can differ when a separate check fails.
+    locator, report, log, conclusion, identity = min(evidence, key=lambda entry: (
+        entry[1]['selection']['profile'] != 'full', entry[0]['report_sha256']))
+    if any(candidate_identity != identity for *_, candidate_identity in evidence):
+        return None
+    _, _, row = identity
+    if conclusion in {'failure', 'timed_out'} and report['status'] == row['status'] == 'failed':
+        return {'diagnostic': locator, 'reason_code': row.get('reason_code') or 'python_check_failed'}
+    if report['selection']['profile'] == 'full' and conclusion == 'success':
+        try:
+            return {'diagnostic': locator, 'report': report, 'inventory': serial_result(report, log, check)}
+        except ValueError:
+            pass
+    return None
+
+
+def python_committed_handoff(root, first, binding):
+    ledger = json.loads(git(root, 'show', f'{first}:project/tasks.json'))
+    tasks = {row['id']: row for row in ledger['tasks']}
+    repair, follow_up = (tasks[binding[key]] for key in ('repair_task_id', 'follow_up_task_id'))
+    handoff = follow_up['protected_python_handoff']
+    reference = handoff['regression_receipt']
+    if (repair['status'] != 'done' or follow_up['status'] != 'planned'
+            or reference not in repair['evidence']):
+        raise ValueError('The first protected commit does not contain the reviewed Windows Python handoff.')
+    receipt = git(root, 'show', f"{first}:{reference['path']}")
+    if digest(receipt) != reference['sha256']:
+        raise ValueError('The protected Windows Python receipt differs from the reviewed reference.')
+    return handoff, json.loads(receipt)
+
+
 def python_push_observation(root, project, base, binding, follow_up, policy):
     missing = {'status': 'missing', 'first_push_commit': None,
-               'next_action': 'Verify the first protected main push, its Windows Python producer and the guarded original.'}
+               'next_action': 'Verify the first protected main push, its Windows Python producer and the recorded handoff.'}
     try:
         repair = binding['repair_commit']
         require_complete_history(root)
@@ -779,64 +878,25 @@ def python_push_observation(root, project, base, binding, follow_up, policy):
         first_parent = git(root, 'rev-list', '--first-parent', '--reverse', base).decode('ascii').splitlines()
         first = next(revision for revision in first_parent if revision in descendants)
         missing['first_push_commit'] = first
-        locators = [row for row in follow_up.get('diagnostic_reports', []) if row['source_commit'] == first]
-        if len(locators) != 1 or not policy or policy['branch'] != 'main':
+        handoff, receipt = python_committed_handoff(root, first, binding)
+        missing['protected_python_handoff'] = handoff
+        evidence = python_push_evidence(root, project, first, follow_up, policy)
+        if evidence is None:
             return missing
-        locator, = locators
-        report, log = read_native(diagnostic_archive_root(root), locator)
-        repository = policy['repository']
-        profile = report['selection']['profile']
-        selected = report['selection']['checks']
-        if (profile not in {'full', 'ci-windows-python'}
-                or not python_hosted_report(report, repository, 'push', first, first, profile=profile)
-                or not isinstance(selected, list) or selected.count(PYTHON_CHECK) != 1
-                or (profile == 'ci-windows-python' and selected != [PYTHON_CHECK])
-                or report['source'] != committed_source_identity(root, first)):
-            return missing
-        jobs = python_attempt_jobs(root, report['ci'], branch='main')
-        producers = [job for job in jobs if job['name'] == timing.WINDOWS_PRODUCERS['python']]
-        if len(producers) != 1 or producers[0]['head_sha'] != first or producers[0]['status'] != 'completed':
-            return missing
-        conclusion = producers[0]['conclusion']
-        ledger = json.loads(git(root, 'show', f'{first}:project/tasks.json'))
-        task = next(row for row in ledger['tasks'] if row['id'] == binding['repair_task_id'])
-        finding = next(row for row in project['feedback']['items'] if row['id'] == binding['feedback_id'])
-        if task['status'] != 'done':
-            return missing
-        observed = {**missing, 'diagnostic': locator}
+        observed = {**missing, 'diagnostic': evidence['diagnostic']}
         failed = {**observed, 'status': 'failed',
                   'next_action': 'Keep the finding open, retain the first push, and assign a corrective task.'}
-        check = project['checks'][PYTHON_CHECK]
-        row = python_row(report)
-        python = report['environment']['python_executable']
-        if (conclusion in {'failure', 'timed_out'} and report['status'] == row['status'] == 'failed'
-                and check['status'] == 'implemented' and check['command'] == SERIAL_COMMAND
-                and check['windows_timeout_seconds'] == WINDOWS_DEADLINE_SECONDS
-                and isinstance(python, str) and python and row['command'] == [python, *SERIAL_COMMAND[1:]]):
-            return {**failed, 'reason_code': row.get('reason_code', 'python_check_failed')}
-        if profile != 'full' or conclusion != 'success':
+        if 'reason_code' in evidence:
+            return {**failed, 'reason_code': evidence['reason_code']}
+        report = evidence['report']
+        if (receipt['source']['sha256'] != report['source']['sha256']
+                or receipt['project_definition_sha256'] != report['project_definition_sha256']):
             return missing
-        inventory = serial_result(report, log, check)
-        compared = False
-        for _, receipt in budget_regression_receipts(root, task, finding):
-            if (not python_dispatch_receipt(receipt, repository)
-                    or receipt['source']['sha256'] != report['source']['sha256']):
-                continue
-            try:
-                guard, guard_log = python_receipt_original(root, receipt)
-                if guard['project_definition_sha256'] != report['project_definition_sha256']:
-                    continue
-                comparison = serial_result(guard, guard_log, check)
-            except (OSError, ValueError, KeyError, TypeError):
-                continue
-            compared = True
-            if inventory == comparison:
-                return {**observed, 'status': 'passed',
-                        'next_action': 'Complete the observation task and record closure of the Python deadline finding. '
-                                       'Evaluate the separate 900-second whole-workflow objective.'}
-        if compared:
+        if digest(json_bytes(evidence['inventory'])) != handoff['inventory_sha256']:
             return {**failed, 'reason_code': 'inventory_mismatch'}
-        return missing
+        return {**observed, 'status': 'passed',
+                'next_action': 'Complete the observation task and record closure of the Python deadline finding. '
+                               'Evaluate the separate 900-second whole-workflow objective.'}
     except (OSError, ValueError, ScopeError, TypeError, KeyError, RuntimeError, StopIteration, subprocess.SubprocessError):
         return missing
 
@@ -868,6 +928,10 @@ def python_observation_scope(root, project, base, completed, previous_tasks, ite
         observation = python_push_observation(root, project, base, binding, task, policy)
         prior_locators = prior_task.get('diagnostic_reports', [])
         retained = all(locator in task.get('diagnostic_reports', []) for locator in prior_locators)
+        protected_handoff = prior_task.get('protected_python_handoff')
+        if (task.get('protected_python_handoff') != protected_handoff
+                or observation.get('protected_python_handoff', protected_handoff) != protected_handoff):
+            return {**details, **observation}, 'The protected Windows Python handoff changed or disappeared.'
         if (not retained or finding['status'] not in {'open', 'addressed'}
                 or (finding['status'] == 'addressed') != (task['status'] == 'done')
                 or (finding['status'] == 'addressed' and observation['status'] != 'passed')):
@@ -893,13 +957,24 @@ def python_observation_scope(root, project, base, completed, previous_tasks, ite
             return None, failure
     except ScopeError:
         return None, failure
-    receipt = budget_regression_receipt(root, project, project['tasks'][repair], finding, binding['repair_commit'],
+    repair_task = project['tasks'][repair]
+    receipt = budget_regression_receipt(root, project, repair_task, finding, binding['repair_commit'],
                                         source, complete=True, dispatch_repository=policy['repository'])
     inventory = python_pr_inventory(root, project, policy, source, workflow, receipt) if receipt else None
     if inventory is None:
         return None, failure
-    return {**details, **inventory, 'status': 'pending', 'regression_receipt': receipt,
-            'next_action': task['next_action']}, None
+    reference = next(ref for ref in repair_task['evidence'] if ref['path'] == receipt)
+    handoff = {**inventory, 'regression_receipt': reference}
+    try:
+        committed_handoff, _ = python_committed_handoff(root, head, binding)
+    except (ValueError, ScopeError, TypeError, KeyError):
+        committed_handoff = None
+    details.update(inventory, regression_receipt=receipt, protected_python_handoff=handoff)
+    if handoff != task.get('protected_python_handoff') or handoff != committed_handoff:
+        return ({**details, 'status': 'record_required',
+                 'next_action': 'Record the verified handoff on the planned observation task and inspect the exact head.'},
+                'Windows Python delivery requires the verified handoff in the committed observation task.')
+    return {**details, 'status': 'pending', 'next_action': task['next_action']}, None
 
 
 def delivery_scope(root, project, base, *, source=None, policy=None, workflow=None, jobs=()):

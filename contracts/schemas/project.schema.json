@@ -178,6 +178,15 @@
             "$ref": "#/$defs/EvidenceRef"
           }
         },
+        "protected_python_handoff": {
+          "type": "object",
+          "required": ["regression_receipt", "inventory_sha256"],
+          "additionalProperties": false,
+          "properties": {
+            "regression_receipt": {"$ref": "#/$defs/EvidenceRef"},
+            "inventory_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+          }
+        },
         "diagnostic_reports": {
           "$ref": "#/$defs/DiagnosticReports"
         },

@@ -1256,6 +1256,8 @@ class ProtectedPythonObservationTests(IntegrationFixture):
     policy_key = 'protected_python_observation'
     finding_id = 'windows-main-python-discovery-process-deadline'
     python_check = 'python-contracts-workers'
+    reviewed_inventory = (('test_a (fixture.Serial)', 'ok'), ('test_b (fixture.Serial)', 'ok'))
+    inventory_sha256 = digest(json_bytes(reviewed_inventory))
     resolution = {'cause': 'Observed fixture timeout.', 'correction': 'Fixture repair.',
                   'prevention': 'Verify the protected observation.'}
 
@@ -1263,12 +1265,12 @@ class ProtectedPythonObservationTests(IntegrationFixture):
         (self.root / 'project/feedback.json').write_bytes(
             json_bytes({'schema_version': '1.0', 'items': list(findings)}))
 
-    def finish(self, task_id, *, finding=None, event=None):
+    def finish(self, task_id, *, finding=None, event=None, run_id=None):
         report = self.report(task_id, system='Windows' if event else 'Linux')
         data = read_json(report)
         if event:
             revision = data['source']['git_head']
-            run_id = '101' if event == 'workflow_dispatch' else '102'
+            run_id = run_id or ('101' if event == 'workflow_dispatch' else '102')
             data['ci'] = {'provider': 'github-actions', 'repository': 'fixture/project',
                           'run_id': run_id, 'run_attempt': '1', 'event': event,
                           'head_sha': revision, 'checkout_sha': revision,
@@ -1278,10 +1280,12 @@ class ProtectedPythonObservationTests(IntegrationFixture):
         report.write_bytes(json_bytes(data))
         receipt = archive_evidence(self.root, task_id, report)
         ledger = self.ledger()
-        task_by_id(ledger, task_id).update(status='done', evidence=[receipt], next_action=None)
+        task = task_by_id(ledger, task_id)
+        task.update(status='done', evidence=[*task['evidence'], receipt], next_action=None)
         if ledger['focus_task_id'] == task_id:
             ledger['focus_task_id'] = self.follow_up_task if task_id == self.repair_task else 'M0-003'
         self.save_ledger(ledger)
+        return receipt
 
     def qualification_fixture(self, *, protected=True, finish_repair=True, extra_finding=False, timing_rules=False):
         self.git('remote', 'add', 'origin', 'https://github.com/fixture/project')
@@ -1363,7 +1367,12 @@ class ProtectedPythonObservationTests(IntegrationFixture):
             self.finish(self.policy_task)
             self.commit()
         if finish_repair:
-            self.finish(self.repair_task, finding=finding, event='workflow_dispatch')
+            receipt = self.finish(self.repair_task, finding=finding, event='workflow_dispatch')
+            ledger = self.ledger()
+            task_by_id(ledger, self.follow_up_task)['protected_python_handoff'] = {
+                'regression_receipt': receipt, 'inventory_sha256': self.inventory_sha256,
+            }
+            self.save_ledger(ledger)
             self.commit()
         return base, rule, finding
 
@@ -1386,9 +1395,11 @@ class ProtectedPythonObservationTests(IntegrationFixture):
         project = load_project(self.root)
         if modify:
             modify(project)
-        qualified_inventory = {'inventory_sha256': '2' * 64} if inventory else None
+        qualified_inventory = {'inventory_sha256': self.inventory_sha256} if inventory else None
+        push_result = (patch.object(integration, 'python_push_observation', return_value=push)
+                       if push is not None else nullcontext())
         with (patch.object(integration, 'python_pr_inventory', return_value=qualified_inventory),
-              patch.object(integration, 'python_push_observation', return_value=push)):
+              push_result):
             return integration.delivery_scope(self.root, project, base, source=source,
                                               policy=observed['policy'], workflow=workflow, jobs=jobs)
 
@@ -1441,6 +1452,58 @@ class ProtectedPythonObservationTests(IntegrationFixture):
         result = self.scope(base)
         self.assertTrue(any('open protected handoff' in blocker for blocker in result['blockers']), result)
         self.assertNotIn(self.policy_key, result)
+
+    def test_protected_python_handoff_requires_the_committed_selected_receipt_and_inventory(self):
+        base, _, finding = self.qualification_fixture()
+        accepted = self.scope(base)[self.policy_key]
+        alternate = self.finish(self.repair_task, finding=finding, event='workflow_dispatch', run_id='103')
+        ledger = self.ledger()
+        follow_up = task_by_id(ledger, self.follow_up_task)
+        for replacement in ({'inventory_sha256': '4' * 64}, {'regression_receipt': alternate}):
+            with self.subTest(replacement=replacement):
+                follow_up['protected_python_handoff'] = {**accepted['protected_python_handoff'], **replacement}
+                self.save_ledger(ledger)
+                self.commit()
+                rejected = self.scope(base)
+                self.assertEqual('record_required', rejected[self.policy_key]['status'])
+                self.assertEqual(accepted['protected_python_handoff'],
+                                 rejected[self.policy_key]['protected_python_handoff'])
+                self.assertIn(f'Unresolved major feedback: {self.finding_id}', rejected['blockers'])
+
+    def test_ordinary_closure_uses_only_the_inventory_selected_before_merge(self):
+        base, _, finding = self.qualification_fixture()
+        self.finish(self.repair_task, finding=finding, event='workflow_dispatch', run_id='103')
+        head = self.commit()
+        pending = self.scope(base)[self.policy_key]
+        handoff = pending['protected_python_handoff']
+        self.assertEqual('pending', pending['status'])
+        main = self.merge_observation(base, head)['sha']
+        self.git('checkout', '--quiet', '--detach', main)
+        self.git('update-ref', 'refs/remotes/origin/main', main)
+        self.finish(self.follow_up_task, finding=finding, event='push')
+        self.save_feedback(dict(finding, status='addressed', resolution=self.resolution))
+        self.commit()
+        receipt = read_json(self.root / handoff['regression_receipt']['path'])
+        observation = {
+            'diagnostic': {'run_id': 'windows-change-102-1', 'source_commit': main, 'report_sha256': '4' * 64},
+            'report': {'source': receipt['source'], 'project_definition_sha256': receipt['project_definition_sha256']},
+        }
+        for inventory, status in ((self.reviewed_inventory[::-1], 'failed'), (self.reviewed_inventory, 'passed')):
+            with self.subTest(status=status), patch.object(integration, 'python_push_evidence',
+                                                           return_value={**observation, 'inventory': inventory}):
+                result = self.scope(main)
+                post_merge = result[self.policy_key]
+                self.assertEqual(status, post_merge['status'])
+                self.assertEqual(handoff, post_merge['protected_python_handoff'])
+                if status == 'failed':
+                    self.assertEqual('inventory_mismatch', post_merge['reason_code'])
+                    self.assertIn('Windows Python deadline closure requires the verified first protected push.',
+                                  result['blockers'])
+                else:
+                    self.assertEqual([], result['blockers'])
+                    changed = self.scope(main, modify=lambda project: project['tasks'][self.follow_up_task].pop(
+                        'protected_python_handoff'))
+                    self.assertIn('The protected Windows Python handoff changed or disappeared.', changed['blockers'])
 
     def test_python_observation_retains_failures_and_only_closes_after_first_main_success(self):
         base, binding, finding = self.qualification_fixture(timing_rules=True)

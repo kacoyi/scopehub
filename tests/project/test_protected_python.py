@@ -151,89 +151,99 @@ class NativeSerialResultTests(unittest.TestCase):
         source = {**self.report['source'], 'sha256': '3' * 64}
         original = {**self.report, 'ci': ci, 'source': source, 'source_end': source,
                     'project_definition_sha256': '4' * 64}
-        receipt = {'ci': {**ci, 'event': 'workflow_dispatch'}, 'source': source,
-                   'environment': original['environment']}
-        binding = {'repair_commit': COMMIT, 'repair_task_id': 'M0-153', 'feedback_id': 'deadline'}
-        project = {'checks': {CHECK: self.check}, 'feedback': {'items': [{'id': 'deadline'}]}}
+        project = {'checks': {CHECK: self.check}}
         policy = {'repository': repository, 'branch': 'main'}
         job = {'name': 'Windows change checks (python)', 'head_sha': COMMIT,
                'status': 'completed', 'conclusion': 'success'}
         attempt = {'path': integration.WORKFLOW, 'id': 100, 'run_attempt': 1, 'head_sha': COMMIT,
                    'event': 'push', 'status': 'completed', 'head_branch': 'main'}
-        ledger = {'tasks': [{'id': 'M0-153', 'status': 'done'}]}
 
-        def git(_root, operation, *args):
-            if operation == 'show':
-                self.assertEqual((f'{COMMIT}:project/tasks.json',), args)
-                return json.dumps(ledger).encode()
-            self.assertEqual('rev-list', operation)
-            return COMMIT.encode()
-
-        with TemporaryDirectory() as directory:
-            archive = Path(directory)
-            run = archive / 'runs' / RUN
+        def stage(archive, *, profile='full', system='Windows', report_event='push', report_log=LOG,
+                  run_id=RUN, github_run='100', failure=None, other_check_failure=False):
+            report = deepcopy(original)
+            report['run_id'] = run_id
+            report['selection'] = {'profile': profile, 'task_id': None, 'checks': [CHECK]}
+            report['environment']['system'] = system
+            report['native_requirement']['requested'] = profile == 'full' and system == 'Windows'
+            report['ci'].update(event=report_event, run_id=github_run)
+            row, = report['checks']
+            row.update(log=f'.reports/runs/{run_id}/{CHECK}.log', log_sha256=sha256(report_log).hexdigest())
+            logs = {CHECK: report_log}
+            if failure:
+                report['status'] = 'failed'
+                row.update(status='failed', **failure)
+            if other_check_failure:
+                report['status'] = 'failed'
+                report['selection']['checks'].append('workspace-timeframe')
+                logs['workspace-timeframe'] = b'Browser failure'
+                report['checks'].append({'id': 'workspace-timeframe', 'status': 'failed', 'exit_code': 1,
+                                         'log': f'.reports/runs/{run_id}/workspace-timeframe.log',
+                                         'log_sha256': sha256(logs['workspace-timeframe']).hexdigest()})
+            raw = json.dumps(report).encode()
+            report_sha256 = sha256(raw).hexdigest()
+            run = archive / 'runs' / run_id
+            if run.exists():
+                run = archive / 'observations' / report_sha256 / 'runs' / run_id
             run.mkdir(parents=True)
-            with (patch.object(integration, 'require_complete_history'),
-                  patch.object(integration, 'exact_commit'),
-                  patch.object(integration, 'require_ancestor'),
-                  patch.object(integration, 'git', side_effect=git),
-                  patch.object(integration, 'committed_source_identity', return_value=source),
-                  patch.object(integration, 'diagnostic_archive_root', return_value=archive),
-                  patch.object(integration, 'budget_regression_receipts', return_value=[('', receipt)]),
-                  patch.object(integration, 'command') as command,
-                  patch.object(integration, 'python_receipt_original') as guard):
-                def observe(*, profile='full', failed=False, report_event='push', branch='main',
-                            jobs=(job,), guard_log=LOG, report_log=LOG, other_check_failure=False):
-                    report = deepcopy(original)
-                    report['selection'] = {'profile': profile, 'task_id': None, 'checks': [CHECK]}
-                    report['native_requirement']['requested'] = profile == 'full'
-                    report['ci']['event'] = report_event
-                    row, = report['checks']
-                    row['log_sha256'] = sha256(report_log).hexdigest()
-                    if failed:
-                        report['status'] = 'failed'
-                        row.update(status='failed', exit_code=None, duration_seconds=1200.047, reason_code='timeout')
-                    if other_check_failure:
-                        report['status'] = 'failed'
-                        report['selection']['checks'].append('workspace-timeframe')
-                        report['checks'].append({'id': 'workspace-timeframe', 'status': 'failed', 'exit_code': 1,
-                                                 'log': f'.reports/runs/{RUN}/workspace-timeframe.log',
-                                                 'log_sha256': sha256(b'Browser failure').hexdigest()})
-                        (run / 'workspace-timeframe.log').write_bytes(b'Browser failure')
-                    raw = json.dumps(report).encode()
-                    (run / 'test-report.json').write_bytes(raw)
-                    (run / f'{CHECK}.log').write_bytes(report_log)
-                    locator = {'run_id': RUN, 'source_commit': COMMIT, 'report_sha256': sha256(raw).hexdigest()}
-                    endpoint = f'repos/{repository}/actions/runs/100/attempts/1'
-                    responses = {endpoint: {**attempt, 'head_branch': branch},
-                                 endpoint + '/jobs?per_page=100': {'jobs': jobs}}
-                    command.side_effect = lambda args, _: json.dumps(responses[args[2]])
-                    guard.side_effect = FileNotFoundError() if guard_log is None else None
-                    guard_report = deepcopy(original)
-                    if guard_log is not None:
-                        guard_report['checks'][0]['log_sha256'] = sha256(guard_log).hexdigest()
-                    guard.return_value = (guard_report, guard_log)
-                    return integration.python_push_observation(
-                        archive, project, COMMIT, binding, {'diagnostic_reports': [locator]}, policy)
+            (run / 'test-report.json').write_bytes(raw)
+            for name, log in logs.items():
+                (run / f'{name}.log').write_bytes(log)
+            return {'run_id': run_id, 'source_commit': COMMIT, 'report_sha256': report_sha256}
 
-                timeout_log = LOG.split(b'continuation')[0]
-                failed_job = {**job, 'conclusion': 'failure'}
-                for profile in ('full', 'ci-windows-python'):
-                    with self.subTest(profile=profile):
-                        failed = observe(profile=profile, failed=True, report_log=timeout_log, jobs=(failed_job,))
-                        self.assertEqual(('failed', 'timeout'), (failed['status'], failed['reason_code']))
-                        self.assertEqual(COMMIT, failed['diagnostic']['source_commit'])
-                self.assertEqual('passed', observe()['status'])
-                self.assertEqual('passed', observe(other_check_failure=True)['status'])
-                mismatch = observe(guard_log=LOG.replace(b'test_posix', b'test_other'))
-                self.assertEqual(('failed', 'inventory_mismatch'), (mismatch['status'], mismatch['reason_code']))
-                for case in ({'profile': 'ci-windows-python'}, {'guard_log': None}, {'branch': 'other'},
-                             {'report_event': 'pull_request'}, {'jobs': (job, job)},
-                             {'jobs': ({**job, 'status': 'in_progress'},)},
-                             {'jobs': ({**job, 'conclusion': 'cancelled'},), 'failed': True},
-                             {'jobs': ({**job, 'head_sha': 'a2' * 20},)}, {'report_log': timeout_log},
-                             {'jobs': (failed_job,)}):
-                    with self.subTest(case=case):
-                        missing = observe(**case)
-                        self.assertEqual(('missing', COMMIT), (missing['status'], missing['first_push_commit']))
-                        self.assertNotIn('diagnostic', missing)
+        def observe(*reports, branch='main', jobs=(job,), include_missing=False):
+            def command(args, _):
+                endpoint = args[2]
+                self.assertTrue(endpoint.startswith(f'repos/{repository}/actions/runs/'))
+                if endpoint.endswith('/jobs?per_page=100'):
+                    return json.dumps({'jobs': jobs})
+                run_id = int(endpoint.split('/')[-3])
+                return json.dumps({**attempt, 'id': run_id, 'head_branch': branch})
+
+            with TemporaryDirectory() as directory:
+                archive = Path(directory)
+                locators = [stage(archive, **report) for report in reports]
+                diagnostics = list(locators)
+                if include_missing:
+                    diagnostics.append({'run_id': RUN, 'source_commit': COMMIT, 'report_sha256': '0' * 64})
+                with (patch.object(integration, 'committed_source_identity', return_value=source),
+                      patch.object(integration, 'diagnostic_archive_root', return_value=archive),
+                      patch.object(integration, 'command', side_effect=command)):
+                    observation = integration.python_push_evidence(
+                        archive, project, COMMIT, {'diagnostic_reports': diagnostics}, policy)
+            return observation, locators
+
+        producer = {'profile': 'ci-windows-python'}
+        linux = {'system': 'Linux', 'run_id': 'linux-100-1'}
+        unrelated = {'profile': 'ci-windows-browser', 'run_id': 'browser-100-1'}
+        for reports, full_index in ((({},), 0), ((linux, producer, {}, unrelated), 2),
+                                    (({}, producer, linux), 0), (({'other_check_failure': True}, producer), 0)):
+            with self.subTest(reports=reports):
+                passing, locators = observe(*reports, include_missing=True)
+                self.assertEqual(OUTCOMES, passing['inventory'])
+                self.assertEqual(locators[full_index], passing['diagnostic'])
+
+        timeout_log = LOG.split(b'continuation')[0]
+        timeout = {'report_log': timeout_log,
+                   'failure': {'exit_code': None, 'duration_seconds': 1200.047, 'reason_code': 'timeout'}}
+        failed_producer = {**producer, **timeout}
+        failed_job = {**job, 'conclusion': 'failure'}
+        for reports in ((timeout,), (failed_producer,), (timeout, failed_producer), (failed_producer, timeout)):
+            with self.subTest(failures=reports):
+                failure, locators = observe(*reports, jobs=(failed_job,))
+                self.assertEqual('timeout', failure['reason_code'])
+                self.assertEqual(locators[reports.index(timeout) if timeout in reports else 0], failure['diagnostic'])
+        other_failure, _ = observe({**producer, 'failure': {'exit_code': 1}}, jobs=(failed_job,))
+        self.assertEqual('python_check_failed', other_failure['reason_code'])
+
+        conflict = {**producer, 'report_log': LOG.replace(b'test_posix', b'test_other')}
+        second_run = {'run_id': 'windows-change-101-1', 'github_run': '101'}
+        for reports, job_options in (((producer,), {}), ((linux, unrelated), {}),
+                                     (({}, conflict), {}), ((conflict, {}), {}), (({}, second_run), {}),
+                                     (({},), {'branch': 'other'}), (({'report_event': 'pull_request'},), {}),
+                                     (({},), {'jobs': (job, job)}), (({},), {'jobs': ()}),
+                                     (({},), {'jobs': ({**job, 'status': 'in_progress'},)}),
+                                     ((timeout,), {'jobs': ({**job, 'conclusion': 'cancelled'},)}),
+                                     (({},), {'jobs': ({**job, 'head_sha': 'a2' * 20},)}),
+                                     (({'report_log': timeout_log},), {}), (({},), {'jobs': (failed_job,)})):
+            with self.subTest(reports=reports, job_options=job_options):
+                self.assertIsNone(observe(*reports, **job_options)[0])
