@@ -7741,7 +7741,7 @@
     },
     {
       "id": "ordinary-next-action-selects-unrelated-feature-during-maintenance",
-      "status": "open",
+      "status": "addressed",
       "severity": "major",
       "source": "Observed on ff6c880b289b18e3e58d667dcb5b76c7f12fe053. archives/observations/repo-hygiene-20261125/coordinator-checkpoints/resume-t113-20261126T0228Z/rule-effects-main-ff6c880b.json (SHA-256 10c6688525ca8763b09a223b721970b87a0ff84e914100475a684b1826a7a764).",
       "observation": "On ff6c880b the ordinary public overview reported two open maintenance workstreams but selected the planned M2-003 renderer as its next command. Following the separate handoff command recovered both accepted mandates and their stop terms.",
@@ -7752,12 +7752,16 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The overview selected its fallback before considering the engagement and exposed the maintenance handoff only in a separate summary.",
+        "correction": "When there is no active task or higher-priority action, route the first command to the verified maintenance handoff ahead of the planned product fallback. Keep the product focus visible and show each open workstream's owner, acceptance and next action in the handoff.",
+        "prevention": "Follow the emitted commands in ordinary and read-only startup with the protected planned focus. Check open, partial, ended and absent engagements, missing focus, active work and higher-priority findings or matching failures."
+      },
       "deferral_reason": null
     },
     {
       "id": "maintenance-next-action-hides-unassigned-major-feedback",
-      "status": "open",
+      "status": "addressed",
       "severity": "major",
       "source": "contracts/reviews/task-decisions/M0-161.json#/events/1 retained on a5111629c6a2a1be69ff063b00d873e637696d01 for 727b4fb34ba87a731a159123e39f9531ba9ffb7c. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-161-727b4fb3/original-assistant-response.jsonl, SHA-256 e49daf361b45b1117381d732477d3b7b6252ca9a99924932f2daf601ef00cbf5.",
       "observation": "With the protected task ledger focused on planned M2-003 and an open major finding linked only to completed M0-158, ordinary and read-only startup showed the unassigned finding in the backlog but routed the first action to engagement handoff. This occurred with both workstreams open and with both accepted. The ended handoff instructed the coordinator to stop assigning work and the finding was absent from also_urgent. The same candidate routed to the finding when the engagement was absent or the finding was critical.",
@@ -7768,12 +7772,16 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The major finding route required an unfinished owner while the engagement handoff preceded the assignment queue, hiding an unassigned major finding linked only to completed work.",
+        "correction": "Offer the canonical record for the highest-priority unassigned major finding ahead of the engagement handoff and keep the finding visible when an existing urgent route takes precedence.",
+        "prevention": "Start both CLI modes with a validated ledger and a major finding linked only to completed work. Follow the first action in open, partially accepted, ended and absent engagement states and check owned and unassigned critical precedence."
+      },
       "deferral_reason": null
     },
     {
       "id": "feedback-lookup-directs-assignment-after-maintenance-ends",
-      "status": "open",
+      "status": "addressed",
       "severity": "major",
       "source": "contracts/reviews/task-decisions/M0-161.json#/events/3 retained on ca19ce1489ce807106120651b5c85a4a2ad0c221 for 17a0365fbc1462e6154806c18020b654dbbc39ef. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-161-17a0365f/original-assistant-response.jsonl, SHA-256 fc5918f012832f1c3aca7a1e03c86f6c2360320aa7aa289acce87ef20035c538.",
       "observation": "With both workstreams accepted and an unassigned major finding, the first overview command opened the canonical record. Its follow-through instructed the coordinator to link the finding to an unfinished corrective task and verify its checks, while the separate handoff instructed the coordinator to stop assigning work. Both ordinary and read-only navigation showed the conflict.",
@@ -7784,12 +7792,16 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The canonical feedback destination emitted assignment instructions for every open finding independently of the verified engagement state in the selected source.",
+        "correction": "Keep the feedback record inspectable. When the selected source has an ended engagement, show its stop instruction and requirement for fresh owner authorization for later feature work. Retain assignment guidance for open or absent engagements.",
+        "prevention": "Execute the complete feedback destination and maintenance handoff in ordinary and read-only modes. Compare their stop and authorization terms under synthetic full acceptance, and exercise partial acceptance, absent policy and source-bound lookup against a different live engagement state."
+      },
       "deferral_reason": null
     },
     {
       "id": "unassigned-feedback-priority-depends-on-ledger-order",
-      "status": "open",
+      "status": "addressed",
       "severity": "major",
       "source": "contracts/reviews/task-decisions/M0-161.json#/events/3 retained on ca19ce1489ce807106120651b5c85a4a2ad0c221 for 17a0365fbc1462e6154806c18020b654dbbc39ef. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-161-17a0365f/original-assistant-response.jsonl, SHA-256 fc5918f012832f1c3aca7a1e03c86f6c2360320aa7aa289acce87ef20035c538.",
       "observation": "With the protected ledger focused on planned M2-003, no engagement and open minor then major findings linked only to completed M0-158, record validation passed and both overview modes put the minor finding first, leaving the major in also_urgent. Restoring the open engagement made the major finding first in both modes.",
@@ -7800,12 +7812,16 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The overview used the assignment queue as a membership set, then scanned open findings in ledger order for the ordinary fallback.",
+        "correction": "Use the existing severity-ordered assignment queue for pending feedback and keep critical findings on the existing urgent route.",
+        "prevention": "Exercise minor-first and major-first insertion order with no engagement in both CLI modes. Follow the selected command to the major finding and retain open engagement and critical precedence controls."
+      },
       "deferral_reason": null
     },
     {
       "id": "feedback-lookup-requires-policy-from-newer-history",
-      "status": "open",
+      "status": "addressed",
       "severity": "minor",
       "source": "Compared 17a0365fbc1462e6154806c18020b654dbbc39ef and f438d57376cbf300f7ea511892da54f5f6544726 on the historical tree 47f0bd0fed34bc63d60bb4f8b3e311c677c41336. Originals in .reports/m0-161-public-navigation/pre-maintenance-source-baseline.json (SHA-256 84f59591c1c368cdf3f7f01497f964cffd4d36bd1603034a173be79bc1f1f5ab) and .reports/m0-161-public-navigation/pre-maintenance-source-rejected-f438d573.json (SHA-256 e2801655b2ac9cc0b2c589a0b705dfc0808d25ea20c99a9f3dab3236410814f2).",
       "observation": "The temporary candidate failed to open the original protocol-variant-identity record through the exact-source CLI. The selected historical delivery record predates scaffold maintenance configuration. The same command on the earlier implementation returned the finding and historical commit.",
@@ -7815,7 +7831,11 @@
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The intermediate feedback lookup required a scaffold maintenance policy in the selected historical tree even though the policy did not yet exist there.",
+        "correction": "Treat an absent maintenance policy or engagement as absent for exact-source feedback lookup. Continue validating engagement evidence when present in the selected tree.",
+        "prevention": "Read the original protocol-variant-identity finding at 47f0bd0fed34bc63d60bb4f8b3e311c677c41336 in ordinary and read-only modes and verify the full returned record and exact source commit. Keep the old success, intermediate error and corrected success as controls."
+      },
       "deferral_reason": null
     }
   ]

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-161",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -26389,7 +26389,7 @@
       "id": "M0-161",
       "milestone": "M0",
       "title": "Route the coordinator to the accepted maintenance engagement from ordinary startup",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-158"
       ],
@@ -26417,10 +26417,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Review the corrected clean candidate independently against both retained rejections, the protected ledgers, complete public command destinations and matching local task checks.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-161-6be0d4e058e4d35a.json",
+          "sha256": "79409043d1f6f8d5c5b4b1573b340a2aa36e48c23400e0cf9881e7fbb0a30ca7"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The independent review approved e69bd4ca85a59130afe6e276391275ec9d9efbc1 after both earlier rejections. The matching Linux task report passed and the retained ordinary and read-only CLI controls followed the first action to its destination, exercised urgent precedence and the owner stop, and recovered historical feedback. Synthetic full acceptance exercised the stop behavior. The repository-cleanup and ongoing-maintenance workstreams remain open. Protected integration remains with the coordinator.",
       "plan": {
         "outcome": "A fresh coordinator taking the first displayed action follows the present mandate.",
         "change_types": [
