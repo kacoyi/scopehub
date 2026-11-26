@@ -26632,7 +26632,9 @@
       "scope": [
         "crates/worker-host",
         "python/worker_runtime",
-        "python/indicators"
+        "python/indicators",
+        "apps/desktop/ui/ubuntu-workspace.mjs",
+        "tests/ubuntu-preview"
       ],
       "decision_refs": [
         "0004",
@@ -26641,6 +26643,7 @@
       "acceptance": [
         "Retain the first protected Windows failure, its named assertion and neighboring results. Determine what the application guarantees when returning a cancelled task and distinguish a remaining child, handle or scratch path using observations.",
         "Exercise the ordinary trusted worker cancellation entry with an approved benign fixture. Verify one terminal cancellation, absence of a persistable result and cleanup of only its owned scratch files. Preserve normal completion, deadlines, task isolation and interruption. Retain a controlled failure that distinguishes the chosen correction.",
+        "Through the preview transport and its ordinary registry, observe a complete worker failure before the carrier exits, no artifact, and an independently approved run during the first run's cleanup. Preserve the success and cancellation lifecycles, and observe bounded carrier ownership and shutdown.",
         "Obtain independent review and qualifying Windows and Linux observations for the corrected responsibility, including an integrated Windows recheck. Record remaining limits and account for cleanup failures without loosening the terminal contract."
       ],
       "checks": [
@@ -26661,7 +26664,7 @@
           "report_sha256": "224cf1a54de8ed450870007188fd2b81ec999eaad48374cda7e40081e5b1f9b9"
         }
       ],
-      "next_action": "Use the worker handoff and exact-source controls for independent review, then obtain the Windows native and integrated rechecks. Compare process state, scratch metadata and cleanup diagnostics against the retained protected failure without assuming its cause.",
+      "next_action": "Retain the exact-source preview failure and replay the public registry path with controlled worker cleanup, competing work, cancellation and exit. Hand the clean candidate and native observations to the coordinator for independent review and Windows native and integrated rechecks.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26673,6 +26676,8 @@
           "crates/worker-host/tests/trusted_indicator.rs",
           "crates/worker-host/src/indicator.rs",
           "crates/worker-host/src/indicator/carrier.rs",
+          "apps/desktop/ui/ubuntu-workspace.mjs",
+          "tests/ubuntu-preview/workspace.spec.mjs",
           "project/checks.json",
           "contracts/reviews/2026-11-26-maintenance-workstreams.json"
         ],
@@ -26680,7 +26685,8 @@
           "The first Windows failure did not distinguish a reaper wait that exceeded the caller grace from a filesystem removal error. The test previously checked the path before checking the processes.",
           "An injected Linux interruption of the first scratch removal reproduced the surviving directory after cancellation with both processes gone. An ordinary success and an uninjected cancellation removed their scratch directories. This establishes a silent removal failure mechanism, while attribution of the original Windows failure remains open.",
           "The first protected producer and the linked Windows aggregate both recorded the same failed scratch assertion before the process assertions. Both PR 135 Windows reports passed the same test with identical worker and test source blobs. These observations provide no process, handle or filesystem error evidence for the original failure.",
-          "The independent review of 5623272d found that partial backoff can initiate a retry at the deadline and that synchronous scratch removal can block the current-thread caller's timer. The deadline test and the controlled slow filesystem test distinguish these from the historical Windows assertion."
+          "The independent review of 5623272d found that partial backoff can initiate a retry at the deadline and that synchronous scratch removal can block the current-thread caller's timer. The deadline test and the controlled slow filesystem test distinguish these from the historical Windows assertion.",
+          "The independent review of 5585d26a observed the preview transport waiting for child close before relaying a complete WORKER_EXITED frame. The carrier already owns the reaper beyond terminal publication. Exercise the public writer path with separate frame delivery, child close and scratch removal observations."
         ],
         "risks": [
           {
@@ -26703,6 +26709,13 @@
               "rust-contracts-workers",
               "indicator-workflow"
             ]
+          },
+          {
+            "failure": "An indicator failure that waits for close can keep the registry busy or expire as TIMEOUT. An early response can leave an untracked carrier or release success early. Exercise an owned delayed close, competing admission, cancellation, invalid or partial output, and service shutdown.",
+            "checks": [
+              "rust-contracts-workers",
+              "indicator-workflow"
+            ]
           }
         ],
         "rollback": "Restore the preceding implementation and retain the diagnosed failures and controls if the ordinary contract changes.",
@@ -26710,12 +26723,15 @@
         "implementation": {
           "modules": [
             "worker-host",
-            "worker-runtime"
+            "worker-runtime",
+            "desktop"
           ],
           "entrypoints": [
             "crates/worker-host/tests/trusted_indicator.rs",
             "crates/worker-host/src/indicator.rs",
-            "crates/worker-host/src/indicator/carrier.rs"
+            "crates/worker-host/src/indicator/carrier.rs",
+            "apps/desktop/ui/ubuntu-workspace.mjs",
+            "tests/ubuntu-preview/workspace.spec.mjs"
           ],
           "rules": [
             {
@@ -26740,7 +26756,8 @@
             "Preserve task boundaries, approved interpreter authority, resource limits and user data. Only inspect the owned synthetic workspace; avoid changes to product permissions."
           ],
           "change": [
-            "Observe scratch removal after supervisor exit. Allow one initial removal and only retry transient interruptions or Windows sharing and lock failures before the same deadline used for the caller wait. Offload blocking removal with the task-owned scratch and permit, and make the terminal response observable while cleanup continues. Require confirmed cleanup before returning a successful result."
+            "Observe scratch removal after supervisor exit. Allow one initial removal and only retry transient interruptions or Windows sharing and lock failures before the same deadline used for the caller wait. Offload blocking removal with the task-owned scratch and permit, and make the terminal response observable while cleanup continues. Require confirmed cleanup before returning a successful result.",
+            "Deliver a validated indicator failure through the preview registry while the carrier continues to own cleanup. Track carrier close independently through shutdown and bound concurrently retained carrier resources."
           ],
           "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
           "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
