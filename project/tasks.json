@@ -25978,9 +25978,13 @@
         {
           "path": "project/evidence/M0-154-8bf9a6ef0193add5.json",
           "sha256": "15a80ca98b3eb1e32d257a20dca060bc21d765582e525255ab9b482abbb2c51b"
+        },
+        {
+          "path": "project/evidence/M0-154-bfb6958fa70338b3.json",
+          "sha256": "7fafedaf54305dfe2e50eddbdcc6d54ddd3f6666d83f7b40d7c33477029e5509"
         }
       ],
-      "next_action": "Correct the cold sample presentation witness on the retained candle-suppression reproduction, then run the market-recovery regression and the task profile before fresh independent review. Obtain the ordinary first-attempt Windows market-recovery result for the reviewed candidate and the separate packaged physical Windows observation. The historical Windows asset attribution remains unknown.",
+      "next_action": "Obtain fresh independent Astra review of the clean candidate carrying implementation 24686a3c065e2e47c27ad0c8327f33967bed30b4. Its Linux task profile passed all 11 selected checks, including all 39 market-recovery cases on the first attempt. The browser attachments are retained in .reports/m0-154-candle-paint/candidate/observations.json (SHA-256 2502f3b70d7595da9dd66c658f1f349a8975641a0884476264e3760f29334d48). Obtain ordinary first-attempt Windows market-recovery for the reviewed candidate and retain the separate packaged physical Windows observation. The historical Windows asset attribution remains unknown.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
