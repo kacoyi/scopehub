@@ -155,6 +155,26 @@
       "requested_at": "2026-11-26T06:49:10.528295+00:00",
       "request_id": "7fb718ad867f4a72e839645efebfa8f73c3a151b5eaea42de7025eceff8f002e",
       "evidence_sha256": "8a6e9b6805e56216bd45fd5324c492818deb981daecf64186b5622d0617fb404"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "6cc6a82f9703bc732c733f5e0d172a9473ca907b",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-154 6cc6a82f9703bc732c733f5e0d172a9473ca907b",
+      "scope": "CHANGES_REQUESTED M0-154 6cc6a82f9703bc732c733f5e0d172a9473ca907b",
+      "observation": "At `/#demo`, the startup observer reported `sample-verified` after I replaced all 40 candles with three-pixel-high marks confined to the left half of the price pane.",
+      "reviewer": "Independent Astra Standard (t14z)",
+      "original_sha256": "f799265ce5a61c29d40cc8e8c95a194c5a8cf94c652351bb3cfd04f07dea1d3a",
+      "response_id": "0526cedf93d2538cd86ea558680dd0e8a7424cc0d82862c59d9994546232ad60",
+      "response_sha256": "313cd17572d98bbb78d11eaf564408236091d9000cd9743d400e37a90c222bc3",
+      "legacy_response_sha256": "cc883f5bab5391767ad229cb23511bce2f19fef22ce072405f84fe6fde7ed1c2",
+      "observation_body_sha256": "d8b8cc5f934e63a3c9f036a3bc4013f6bf2772bfcd87fd6321e3d6d6d6ae48a7",
+      "event": {
+        "id": "msg_0a51077b38cea76a016b07e2c1a06c87d29382b8e760b74a6c",
+        "timestamp": "2026-11-26T07:42:20.000Z"
+      },
+      "supersedes": "7fb718ad867f4a72e839645efebfa8f73c3a151b5eaea42de7025eceff8f002e",
+      "evidence_sha256": "5aa6456f23b9b97e5f205ca37ba3d63fe59a6e28a6c2194eadb8d5494298cd8a"
     }
   ]
 }
