@@ -26927,7 +26927,7 @@
           "sha256": "3d45973b40b738e4254a13577a79436bf2ce4df0a9de9356dde2e93991038f1e"
         }
       ],
-      "next_action": "Coordinator to review the exact clean source and retained observations in .reports/observations/M0-162-lifecycle-follow-through/handoff.json. Independently exercise competing collection, archive recovery, incomplete desktop observations and corruption holds before task closure or publication.",
+      "next_action": "Retain the public pre-save contention failure, then verify start persistence and completion across competing collection, interruption and replacement through run-owned and collect. Return the exact clean source and local observation index for coordinator review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26945,7 +26945,7 @@
         "hypotheses": [
           "The initial launcher had no versioned return-to-retirement path. The external collector treated human-facing wording as an identity test and serialized unrelated collections.",
           "An exact snapshot cannot bind a subsequent address-only kill to its completed turn. Restart must independently observe the finished turn or hold its terminal intact. A dedicated noninteractive one-shot can archive its original and completion event before exiting, allowing the desktop to remove its tab naturally.",
-          "The owned runner mistakes a transient assignment lock for an unrecoverable return. Recheck the same assignment after lock release and verify the stored original and completion against the completed execution before exiting.",
+          "Start persistence and completion each contend for the same assignment lock. Reuse the genuine observed execution when retrying a busy transition, recognize an identical committed execution, and require the exact archive pair before exiting.",
           "Flattening desktop rows drops explicit empty spaces and treats missing identities like absence. Preserve the original local space and require complete tab, pane and terminal identities before claiming disappearance."
         ],
         "risks": [
@@ -26963,7 +26963,7 @@
             ]
           },
           {
-            "failure": "A competing collector could strand the completed one-shot, or a stale or damaged receipt could permit premature exit. Exercise public run-owned with a valid competing archive, interrupted collection and mismatched or damaged evidence, and verify the same owned process exits only with its exact recoverable pair.",
+            "failure": "A competing collector could strand the one-shot before its first execution save or after completion, or a stale or damaged receipt could permit premature exit. Exercise public run-owned under both lock timings, with identical or conflicting execution, interrupted collection and mismatched or damaged evidence. Require that only the same owned process exits with its exact recoverable pair.",
             "checks": [
               "python-contracts-workers"
             ]

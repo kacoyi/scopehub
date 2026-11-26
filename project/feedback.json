@@ -7940,6 +7940,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "herdr-one-shot-loses-observed-start-under-assignment-contention",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent public-entry replay on ff769c5a608bad0669d3931bda88b6cd53f2e49a recorded at contracts/reviews/task-decisions/M0-162.json#/events/5. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-162-ff769c5a/original-assistant-response.jsonl, SHA-256 243ccd5d1e4c5d33d5213a831a3dd50a309c372787814aa4231ddbbbbea1dac5.",
+      "observation": "The independent public run-owned replay held the assignment lock when the runner received its genuine thread.started event. The first execution save failed, the runner entered its inspection hold, and public collect after lock release still reported one_shot_start_unobserved. The already registered runner never retried the captured identity.",
+      "task_ids": [
+        "M0-162"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
