@@ -233,6 +233,15 @@
       },
       "supersedes": "1d7f31b7f7c8bf63b1203aef093c3e3b8ebf6cced7a8f3b32da30863d5d9b07f",
       "evidence_sha256": "07597432d84b02b63b71a466d362ece4d23547281dabc8f8b8e4aced668e7582"
+    },
+    {
+      "kind": "request",
+      "source_commit": "09514768174b878432665898058eb9c4d7fca038",
+      "scope": "Review the changed Windows fixture and hosted artifact staging together. Exercise observation and executable binding, complete and failed observations, size bounds and cleanup through existing public entries. Check test-only configuration and the original fixed deadline. A native rerun and packaged physical acceptance have separate requirements.",
+      "supersedes": "ea91747016ff3898ea1ff05b9c70c1aae8a6b1a9b479536b39154747fa34ebf5",
+      "requested_at": "2026-11-26T12:44:44.346263+00:00",
+      "request_id": "0f479fc770b795a60072386e424eeb91abba2e5eb7b67b181b01ff307157f321",
+      "evidence_sha256": "70eb01a505cffa70c6162175e4dbf75b3debbcfb641ef4d1698615093e12e842"
     }
   ]
 }
