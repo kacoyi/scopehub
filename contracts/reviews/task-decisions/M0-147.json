@@ -108,6 +108,15 @@
       },
       "supersedes": "8801370eb78f4108e8eb178486c8a50824b729023f428ba7c9faafa0033b73c6",
       "evidence_sha256": "a0647689db2bbd214da8581f57b05d3cc7812f8337693e37ab44af573f33da2c"
+    },
+    {
+      "kind": "request",
+      "source_commit": "5217c54ade6ba44b13c6becdec138d5cbd79aca3",
+      "scope": "Check the reconciled workspace test against both parents and the ordinary and guarded Windows artifacts. Independently derive submitted and read-back fixture behavior, cleanup, the valid and rejected handoff, seven parser tests and capability rotation. Recheck one neighboring actual input. State what was observed directly and what the original protected timeout can establish.",
+      "supersedes": "f37bb0c2b46e3cd1c69ca8a62fe3e6cc765158c36672e623f284587679af4868",
+      "requested_at": "2026-11-26T05:53:06.122196+00:00",
+      "request_id": "2253eb8d36846ce49f4604641b17d117c3b019396b43ebb023712602dde1c442",
+      "evidence_sha256": "c4e694482bc187b0f943503b38b863cf9a93795ee8100393e36a46ae23d489d8"
     }
   ]
 }
