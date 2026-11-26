@@ -238,6 +238,10 @@ def _checked_windows_python(directory, report):
         if 'manifest_sha256' in part:
             _verify_file(directory, manifest, part['manifest_sha256'])
             verified.append(manifest)
+        if 'producer_report_sha256' in part:
+            producer = name + '.producer.json'
+            _verify_file(directory, producer, part['producer_report_sha256'])
+            verified.append(producer)
     return verified
 
 

@@ -7914,6 +7914,39 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-python-original-log-attempt-and-check",
+      "source": "Independent Astra Standard t12f decision cff237850ce522ab9c76951c6328786509f4df88db93738665d78e5563582b97 on 6c4effe33210598993fcd8bf7bca26d40d8569ba, recorded in contracts/reviews/task-decisions/M0-139.json#/events/8. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-139-6c4effe3/final-response.txt (SHA-256 f7325652659a16d692f950615aa7192d1cfda52cedfaad1a51c025d34f5904c6) and original-assistant-response.jsonl (SHA-256 066e5ba2a2ebfcc70e04607bda287ac2dd411b3b5a3c404d121f82e032729b24).",
+      "observation": "The ordinary M0-139 importer issued an attempt-two receipt for genuine 2.0 run 45680128413 after the report run ID and CI attempt changed together, with both required logs still named for attempt one. Separately it accepted the unchanged environment log under project-state. Windows push staging also accepted the genuine 45603929191 attempt-one report namespace after both the report and the simulated hosted environment claimed attempt two. The preceding regression changed only the attempt field and checked generic path containment and digests, allowing the mutually consistent report claims and misattributed original bytes to escape. Regress ordinary import, reopened evidence and protected publication with the original and same-shape rejected cases.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-139",
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-legacy-original-case-outcomes",
+      "source": "Independent Astra Standard t12g decision 56fc37cf49f8aaec6cd0e8b37fe09d354f70f30cf2aff0b5221e1d08d4ce7500 on 6c4effe33210598993fcd8bf7bca26d40d8569ba, recorded in contracts/reviews/task-decisions/M0-146.json#/events/8. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-146-6c4effe3/final-response.txt (SHA-256 c6f469d1fb70150523c6c037187089759729509c67dbe25b3f83144fcb93e5ae) and original-assistant-response.jsonl (SHA-256 8ddb16dc5ac9f8ec3890a12dedccc3351dbd502b19dc6e94327359540620c4e4).",
+      "observation": "The legacy structured 2.1 producer and aggregate publisher accepted a passing manifest after a passing test and a skipped test exchanged outcomes, with names, order, totals and both original logs unchanged. It also accepted an equal-count substitution of the unexecuted non-ASCII name test_未执行. A genuine interpreter-exit unittest footer after the primary footer made a valid legacy part fail. The preceding completeness regression removed an execution and changed the totals. Its validation compared names without their verdicts, waived display checks for non-ASCII names, and used the final footer, leaving these differences undetected. Regress the owning publisher, ordinary receipt import and reopened evidence against genuine samples with the same names and counts.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

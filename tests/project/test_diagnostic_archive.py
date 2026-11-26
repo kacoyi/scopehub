@@ -147,6 +147,29 @@ class DiagnosticArchiveTests(unittest.TestCase):
         with self.assertRaisesRegex(DiagnosticArchiveError, 'outside its diagnostic run'):
             resolve_diagnostic(locator, self.archive)
 
+    def test_resolving_split_python_verifies_the_bound_producer_report(self):
+        report = self.harness_report()
+        report['report_version'] = '2.1'
+        producer = b'{"run_attempt":"2"}\n'
+        report['windows_python'] = {'python': {
+            'id': 'windows-python-python', 'status': 'passed',
+            'log': f'.reports/runs/{RUN}/windows-python-python.log',
+            'log_sha256': sha256(HARNESS_LOG), 'manifest_sha256': sha256(b'{}'),
+            'producer_report_sha256': sha256(producer),
+        }}
+        path, locator = self.harness(report)
+        directory = path.parent
+        self.write(directory / 'windows-python-python.log', HARNESS_LOG)
+        self.write(directory / 'windows-python-python.json', b'{}')
+        original = self.write(directory / 'windows-python-python.producer.json', producer)
+        self.assertIn(original.name, resolve_diagnostic(locator, self.archive)['verified_observations'])
+        original.write_bytes(b'{"run_attempt":"1"}\n')
+        with self.assertRaisesRegex(DiagnosticArchiveError, 'windows-python-python.producer.json'):
+            resolve_diagnostic(locator, self.archive)
+        original.unlink()
+        with self.assertRaisesRegex(DiagnosticArchiveError, 'windows-python-python.producer.json'):
+            resolve_diagnostic(locator, self.archive)
+
     def test_checksum_manifest_covers_retained_files(self):
         path, locator = self.harness()
         directory = path.parent

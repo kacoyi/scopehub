@@ -2523,13 +2523,13 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
         from .ci_artifacts import PublicationError, validate_recorded_windows_evidence
         from .verification_evidence import (
             EXTERNAL_CLIENT_CHECK, FIELD_ACTIONS, RUN_OBSERVATION_CHECKS,
-            collect_run_observation, field_observation, redacted_check_log,
+            collect_run_observation, field_observation, hosted_artifact_path, redacted_check_log,
         )
     else:
         from ci_artifacts import PublicationError, validate_recorded_windows_evidence
         from verification_evidence import (
             EXTERNAL_CLIENT_CHECK, FIELD_ACTIONS, RUN_OBSERVATION_CHECKS,
-            collect_run_observation, field_observation, redacted_check_log,
+            collect_run_observation, field_observation, hosted_artifact_path, redacted_check_log,
         )
     try:
         validate_recorded_windows_evidence(
@@ -2551,15 +2551,17 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
             raise ProjectError(f'Executed command differs from the check catalog: {key}')
         if project['checks'][key]['platforms'] == 'windows-x64' and not windows_x64(report['environment']):
             raise ProjectError(f'Native Windows proof requires Windows x64: {key}')
-        if not result.get('log', '').startswith('.reports/runs/'):
-            raise ProjectError(f'Expected an isolated verification log: {key}')
-        log = (local_path(artifact_root, result['log'].removeprefix('.reports/'))
-               if artifact_root is not None else local_path(root, result['log']))
+        relative = f"runs/{report['run_id']}/{key}.log"
+        if result.get('log') != '.reports/' + relative:
+            raise ProjectError(f'Expected a repository-relative path to the current run and check log: {key}')
+        try:
+            log = (hosted_artifact_path(artifact_root, relative)
+                   if artifact_root is not None else local_path(root, '.reports/' + relative))
+        except FileNotFoundError as error:
+            raise ProjectError(f'Missing verification log: {key}') from error
         if not log.is_file():
             raise ProjectError(f'Missing verification log: {key}')
         if key in RUN_OBSERVATION_CHECKS:
-            if result['log'] != f".reports/runs/{report['run_id']}/{key}.log":
-                raise ProjectError(f'External-session log belongs to another run: {key}')
             observation = collect_run_observation(root, log.parent, key, report['source'])
             if result.get('observation') != observation:
                 raise ProjectError(f'Changed external-session evidence: {key}')

@@ -24,10 +24,19 @@ FAILURES = ('failures', 'errors', 'unexpectedSuccesses')
 CLOCK_ROUNDING = .002
 SEPARATOR = b'-' * 70
 RUNNER_SUMMARY = re.compile(
-    rb'^' + SEPARATOR + rb'\r?\n(Ran [0-9]+ tests?) in [0-9]+\.[0-9]{3}s\r?\n\r?\n'
-    rb'((?:OK|FAILED|NO TESTS RAN)(?: \([^\r\n]*\))?)\r?$',
+    rb'^' + SEPARATOR + rb'\n(Ran [0-9]+ tests?) in [0-9]+\.[0-9]{3}s\n\n'
+    rb'((?:OK|FAILED|NO TESTS RAN)(?: \([^\n]*\))?)$',
     re.MULTILINE,
 )
+RUNNER_OUTCOME = re.compile(
+    rb'''^(ok|FAIL|ERROR|expected failure|unexpected success|skipped (?:'[^\n]*'|"[^\n]*"))\n''',
+    re.MULTILINE,
+)
+RUNNER_DETAILS = re.compile(rb'^(?:={70}|Slowest test durations)\n', re.MULTILINE)
+# Redirected legacy Windows stderr used the host ANSI code page unless Python
+# was configured for UTF-8. Verify a consistent encoding across the whole run.
+RUNNER_ENCODINGS = ('utf-8', 'cp874', 'cp932', 'cp936', 'cp949', 'cp950',
+                    *(f'cp{code}' for code in range(1250, 1259)))
 COUNT_NAMES = {'expectedFailures': 'expected failures', 'unexpectedSuccesses': 'unexpected successes'}
 OUTCOMES = {'ok': None, 'FAIL': 'failures', 'ERROR': 'errors', 'skipped': 'skipped',
             'expected failure': 'expectedFailures', 'unexpected success': 'unexpectedSuccesses'}
@@ -259,7 +268,7 @@ def verify_events(manifest, expected):
     by_case = {}
     positions = {case: index for index, case in enumerate(cases)}
     previous = -1
-    progress, diagnostics = [], []
+    progress, diagnostics, runner_progress = [], [], []
     for event in events:
         if (not isinstance(event, list) or len(event) != 5
                 or not all(isinstance(value, str) for value in event[:3]) or type(event[4]) is not bool):
@@ -277,6 +286,9 @@ def verify_events(manifest, expected):
             if positions[owner] < previous:
                 raise ValueError('Unittest callback outcomes are out of case order.')
             previous = positions[owner]
+            if subtest and owner not in by_case:
+                # A first subtest callback closes the unfinished parent header.
+                runner_progress.append((display, None))
             by_case.setdefault(owner, []).append((outcome, subtest))
         else:
             hook, _, fixture = owner.partition(' (')
@@ -304,6 +316,7 @@ def verify_events(manifest, expected):
             counts[count] += 1
         status = f'skipped {detail!r}' if outcome == 'skipped' else outcome
         indent = '  ' if subtest else ''
+        runner_progress.append((f'{indent}{description} ... ', status))
         progress.append(f'{indent}{description} ... {status}\n')
         if outcome in {'FAIL', 'ERROR'}:
             diagnostics.append('=' * 70 + f'\n{outcome}: {description}\n' + '-' * 70 + f'\n{detail}\n')
@@ -318,7 +331,8 @@ def verify_events(manifest, expected):
                 or ('ok', False) in outcomes and outcomes != [('ok', False)]):
             raise ValueError('Unittest callback outcomes contradict the case record.')
     return (''.join(progress).encode('utf-8', errors='backslashreplace'),
-            ''.join(diagnostics).encode('utf-8', errors='backslashreplace'))
+            ''.join(diagnostics).encode('utf-8', errors='backslashreplace'),
+            runner_progress)
 
 
 def case_times(manifests):
@@ -347,31 +361,62 @@ def process_interval(record):
         raise ValueError('Invalid Windows Python process clock interval.') from error
 
 
-def verify_legacy_execution(raw, cases, verdict):
-    # Without explicit fixture owners, dotted IDs cannot distinguish nested classes
-    # from submodules. The original runner's footer and progress attest which cases ran.
-    summaries = list(RUNNER_SUMMARY.finditer(raw))
-    count = len(cases)
-    expected = f'Ran {count} test{"s" if count != 1 else ""}'.encode('ascii')
-    # Test stdout can contain the same shape before unittest writes its footer.
-    if not summaries or summaries[-1].groups() != (expected, verdict):
-        raise ValueError('Original unittest run count or verdict differs from the legacy case manifest.')
-
-    summary = summaries[-1]
+def runner_execution(raw, progress):
+    """Find the footer belonging to the observed verbose progress, in order."""
     offset = 0
-    for _, display, *_ in cases:
-        # Legacy Windows stderr did not record its encoding. The ASCII footer
-        # still checks completeness if the case display uses a regional code page.
-        if not display.isascii():
-            continue
-        # Verbose unittest prints the display and an optional docstring line before
-        # the case runs, even when its output later interrupts the status line.
-        label = re.escape(display.encode('ascii'))
-        progress = re.compile(label + rb'(?:\r?\n[^\r\n]*)? \.\.\. ')
-        match = progress.search(raw, offset, summary.start())
-        if match is None:
-            raise ValueError('Original unittest executed cases differ from the legacy case manifest.')
-        offset = match.end()
+    previous = None
+    for label, status in progress:
+        if status is None:
+            header = re.compile(rb'\n' + re.escape(label) + rb'(?:\n[^\n]*)? \.\.\. ')
+            if (match := header.search(raw, offset)) is None:
+                return None
+            start, end = match.span()
+        else:
+            start = raw.find(b'\n' + label, offset)
+            if start == -1:
+                return None
+            end = start + 1 + len(label)
+        if previous is not None:
+            # A footer after a completed callback closes this run. Later
+            # shutdown runners cannot supply missing primary callbacks.
+            footer = RUNNER_SUMMARY.search(raw, offset, start)
+            if footer is not None and RUNNER_OUTCOME.search(raw[offset:footer.start()]):
+                return None
+        if offset and set(RUNNER_OUTCOME.findall(raw[offset:start + 1])) != outcome_set(previous):
+            return None
+        offset = end
+        previous = status
+
+    for footer in RUNNER_SUMMARY.finditer(raw, offset):
+        if not progress:
+            return footer.groups()
+        # Tracebacks and duration displays are separate from progress. Ignore
+        # nested footers before the final primary callback completed.
+        details = RUNNER_DETAILS.search(raw, offset, footer.start())
+        stop = details.start() if details else footer.start()
+        outcomes = set(RUNNER_OUTCOME.findall(raw[offset:stop]))
+        if outcomes:
+            return footer.groups() if outcomes == outcome_set(previous) else None
+        offset = footer.end()
+    return None
+
+
+def outcome_set(status):
+    return {status} if status is not None else set()
+
+
+def verify_execution(raw, progress, count, verdict):
+    raw = b'\n' + raw.replace(b'\r\n', b'\n')
+    expected = f'Ran {count} test{"s" if count != 1 else ""}'.encode('ascii'), verdict
+    encodings = (RUNNER_ENCODINGS[:1] if all(label.isascii() and (status is None or status.isascii())
+                                          for label, status in progress) else RUNNER_ENCODINGS)
+    for encoding in encodings:
+        encoded = [(label.encode(encoding, errors='backslashreplace'),
+                    status.encode(encoding, errors='backslashreplace') if status is not None else None)
+                   for label, status in progress]
+        if runner_execution(raw, encoded) == expected:
+            return
+    raise ValueError('Original unittest progress, run count or verdict differs from the case manifest.')
 
 
 def verify_original(record, raw, manifest, lane):
@@ -388,8 +433,6 @@ def verify_original(record, raw, manifest, lane):
     elif trailer and not reason:
         raise ValueError('Unexpected output after the original unittest run.')
     verdict = unittest_verdict(manifest['counts'], len(manifest['cases']))
-    if 'owners' not in manifest:
-        verify_legacy_execution(raw, manifest['cases'], verdict)
     exit_code = int(verdict.startswith(b'FAILED'))
     if not reason and (record.get('exit_code') != exit_code or (record['status'] == 'passed') != (exit_code == 0)):
         raise ValueError('Original unittest verdict does not match the process result.')
@@ -399,7 +442,8 @@ def verify_original(record, raw, manifest, lane):
             or not 0 <= runner_seconds <= (end - start).total_seconds() + CLOCK_ROUNDING
             or sum(elapsed for _, elapsed in case_times([manifest])) > runner_seconds + CLOCK_ROUNDING):
         raise ValueError('Original unittest runner duration exceeds its process duration or understates case time.')
-    progress, diagnostics = verify_events(manifest, expected)
+    progress, diagnostics, runner_progress = verify_events(manifest, expected)
+    verify_execution(raw[:size], runner_progress, len(manifest['cases']), verdict)
     return progress, diagnostics + (trailer if reason else b'')
 
 

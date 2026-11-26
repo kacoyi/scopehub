@@ -14,7 +14,7 @@ import tempfile
 from unittest.mock import patch
 
 from scripts import check_chart_history, ci_artifacts, timing, verification_evidence
-from scripts.check import PRIVATE_CHECK_LOGS, ci_provenance, redacted_check_log
+from scripts.check import PRIVATE_CHECK_LOGS, ci_provenance, redacted_check_log, windows_lanes_run_id
 from scripts.ci_artifacts import SCOPE_FILE, PublicationError, prepare_reports, stage_artifacts
 from scripts.diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic
 from scripts.project import ProjectError, archive_evidence, digest, json_bytes, load_project, product_progress, read_json, source_identity, validate_model, verified_candidate_files
@@ -45,7 +45,7 @@ class PublicationTests(ProjectFixture):
         return subprocess.run(['git', *args], cwd=self.root, capture_output=True, text=True, check=True).stdout.strip()
 
     def save_report(self, report):
-        for relative in ['test-report.json', 'runs/fixture/test-report.json']:
+        for relative in ['test-report.json', f"runs/{report['run_id']}/test-report.json"]:
             self.write(relative, json_bytes(report))
 
     def add_catalog_checks(self, *checks, command=None):
@@ -92,7 +92,7 @@ class PublicationTests(ProjectFixture):
     def add_result(self, report, check, *, status='passed'):
         exit_code = {'passed': 0, 'failed': 1, 'blocked': 77}[status]
         log = redacted_check_log(exit_code) if check in PRIVATE_CHECK_LOGS else b'Synthetic check output.\n'
-        relative = f'runs/fixture/{check}.log'
+        relative = f"runs/{report['run_id']}/{check}.log"
         self.write(relative, log)
         report['checks'].append({
             'id': check, 'status': status, 'command': ['synthetic-check'],
@@ -246,6 +246,7 @@ class PublicationTests(ProjectFixture):
         scope = read_json(Path(outputs['path']) / SCOPE_FILE)
         self.assertEqual(('records', self.env['GITHUB_SHA']), (scope['profile'], scope['checkout']))
 
+        report['run_id'] = windows_lanes_run_id(report['ci'])
         report['checks'] = []
         self.add_result(report, 'python-contracts-workers', status='failed')
         report['status'] = 'failed'
@@ -329,7 +330,7 @@ class PublicationTests(ProjectFixture):
 
     def assert_core_artifacts_retained(self, outputs, report):
         staged = Path(outputs['path'])
-        for relative in ('test-report.json', 'runs/fixture/test-report.json'):
+        for relative in ('test-report.json', f"runs/{report['run_id']}/test-report.json"):
             self.assertEqual(json_bytes(report), (staged / relative).read_bytes())
         for check in report['checks']:
             relative = check['log'].removeprefix('.reports/')

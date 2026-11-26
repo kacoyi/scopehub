@@ -1654,6 +1654,7 @@
               "log": {"type": "string"},
               "log_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
               "manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+              "producer_report_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
               "reason": {"type": "string"},
               "reason_code": {"type": "string"}
             },
