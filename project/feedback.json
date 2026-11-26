@@ -7690,7 +7690,7 @@
     {
       "id": "sample-indicator-recovery-user-cancel-duplicates-request",
       "source": "Independent Astra Standard (t14g) component and transport replay at c1cefee5537c5ef4b80dd1ce7a6f28eaaaa69540. Original final response: archives/observations/repo-hygiene-20261125/independent-final-m3-007-c1cefee5/final-response.txt (SHA-256 7b307eb7f16d24e9066a8383ae8bf15516bc82cba4ef351b6718e40d5cd5cc6a). Review decision: contracts/reviews/task-decisions/M3-007.json#/events/1.",
-      "observation": "After one lost status delivery, the reviewer cancelled through the preview UI while the second read was pending. The cancelled message appeared and the chart preview layer cleared, but two different cancellation request IDs targeted the same admitted task. The invalidation path cancelled the task before the aborted polling catch cancelled it again. The correction must also cancel once when the preview admission reply supplies the task ID after invalidation.",
+      "observation": "After one lost status delivery, the reviewer cancelled through the preview UI while the second read was pending. The cancelled message appeared and the chart preview layer cleared, but two different cancellation request IDs targeted the same admitted task. The invalidation path cancelled the task before the aborted polling catch cancelled it again. The compiled Chromium and Rust replay confirmed two browser cancellation IDs for task f616de1a-f39e-47dc-879d-4c470b7c0d36. The writer admitted one and refused the other before admission. The late admission control passed with one cancellation after the delayed reply supplied the task ID.",
       "severity": "major",
       "status": "open",
       "task_ids": [
@@ -7698,6 +7698,13 @@
       ],
       "regression_checks": [
         "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261126T073858.234369Z-31cf891c",
+          "source_commit": "6a266c97fd52cd0d0a588ff3054973d7bfa5167a",
+          "report_sha256": "c0ec1dc7ccf4eda159ccb2edd29f0ae73e09e3fc44e48d46acb3331de5abe7f3"
+        }
       ],
       "resolution": null,
       "deferral_reason": null
@@ -7705,7 +7712,7 @@
     {
       "id": "sample-indicator-recovery-unknown-status-displays-artifact",
       "source": "Independent Astra Standard (t14g) component and transport replay at c1cefee5537c5ef4b80dd1ce7a6f28eaaaa69540. Original final response: archives/observations/repo-hygiene-20261125/independent-final-m3-007-c1cefee5/final-response.txt (SHA-256 7b307eb7f16d24e9066a8383ae8bf15516bc82cba4ef351b6718e40d5cd5cc6a).",
-      "observation": "After one lost status delivery, changing the recovery response status from ready to the undefined value unavailable left the valid Rust artifact payload in place. The component displayed the preview layer and 3500.5. An unknown status must show failure, hide the preview and clean up the admitted task once.",
+      "observation": "After one lost status delivery, changing the recovery response status from ready to the undefined value unavailable left the valid Rust artifact payload in place. The independent replay and the compiled Chromium and Rust replay both displayed the preview layer and 3500.5. An unknown status must show failure, hide the preview and clean up the admitted task once.",
       "severity": "major",
       "status": "open",
       "task_ids": [
@@ -7713,6 +7720,13 @@
       ],
       "regression_checks": [
         "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261126T073858.234369Z-31cf891c",
+          "source_commit": "6a266c97fd52cd0d0a588ff3054973d7bfa5167a",
+          "report_sha256": "c0ec1dc7ccf4eda159ccb2edd29f0ae73e09e3fc44e48d46acb3331de5abe7f3"
+        }
       ],
       "resolution": null,
       "deferral_reason": null
@@ -7720,7 +7734,7 @@
     {
       "id": "sample-indicator-recovery-terminal-event-task-mismatch",
       "source": "Independent Astra Standard (t14g) component and transport replay at c1cefee5537c5ef4b80dd1ce7a6f28eaaaa69540. Original final response: archives/observations/repo-hygiene-20261125/independent-final-m3-007-c1cefee5/final-response.txt (SHA-256 7b307eb7f16d24e9066a8383ae8bf15516bc82cba4ef351b6718e40d5cd5cc6a).",
-      "observation": "After one lost status delivery, the reviewer retained the correct outer task ID and substituted another task's ID in the nested cancellation event. The component displayed cancellation for the current preview. The mismatched event must show failure, hide the preview and clean up the original admitted task once.",
+      "observation": "After one lost status delivery, the reviewer retained the correct outer task ID and substituted another task's ID in the nested cancellation event. The independent replay and the compiled Chromium and Rust replay both displayed cancellation for the current preview. The mismatched event must show failure, hide the preview and clean up the original admitted task once.",
       "severity": "major",
       "status": "open",
       "task_ids": [
@@ -7728,6 +7742,35 @@
       ],
       "regression_checks": [
         "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261126T073858.234369Z-31cf891c",
+          "source_commit": "6a266c97fd52cd0d0a588ff3054973d7bfa5167a",
+          "report_sha256": "c0ec1dc7ccf4eda159ccb2edd29f0ae73e09e3fc44e48d46acb3331de5abe7f3"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "sample-indicator-recovery-unknown-terminal-outcome",
+      "source": "Compiled Chromium and Rust replay in .reports/runs/20261126T073858.234369Z-31cf891c/workspace-timeframe/results.json at 6a266c97fd52cd0d0a588ff3054973d7bfa5167a (SHA-256 c1329d939885136cded7eb7e1ca6fa235529abde539775cf673d04c07d137561).",
+      "observation": "After one lost status delivery, an otherwise correlated terminal event used the undefined outcome unavailable. The UI displayed cancellation for that task although the result provided no cancellation outcome. The preview must fail and clean up the admitted task once. The adjacent ready event with another task ID was already rejected.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M3-007"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261126T073858.234369Z-31cf891c",
+          "source_commit": "6a266c97fd52cd0d0a588ff3054973d7bfa5167a",
+          "report_sha256": "c0ec1dc7ccf4eda159ccb2edd29f0ae73e09e3fc44e48d46acb3331de5abe7f3"
+        }
       ],
       "resolution": null,
       "deferral_reason": null

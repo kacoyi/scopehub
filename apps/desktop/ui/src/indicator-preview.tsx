@@ -87,6 +87,14 @@ async function cancelTask(taskId: string) {
   if (reply.task_id !== taskId) throw new Error();
 }
 
+function cancelAttempt(attempt: PreviewAttempt | undefined) {
+  if (!attempt?.taskId) return;
+  // Invalidation and polling cleanup share ownership of the admitted task.
+  const taskId = attempt.taskId;
+  delete attempt.taskId;
+  void cancelTask(taskId).catch(() => {});
+}
+
 function describeError(error: unknown, mode: 'declarative' | 'python') {
   switch (code(error)) {
     case 'CANCELLED': return uiMessage('Indicator preview cancelled.');
@@ -123,7 +131,7 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
   const [result, setResult] = useState<Ready>();
   const [message, setMessage] = useState<{ text: Message; error?: boolean }>();
   const active = useRef<PreviewAttempt | undefined>(undefined);
-  const displayed = useRef<string | undefined>(undefined);
+  const displayed = useRef<PreviewAttempt | undefined>(undefined);
   const workspaceRevision = workspace.snapshot?.workspace.revision;
   const selectionRevision = workspace.snapshot?.selection_revision;
   const revoked = access?.revoked.has(snapshot.dataset_id);
@@ -131,9 +139,9 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
   const invalidateJobs = useCallback(() => {
     const attempt = active.current;
     attempt?.poll.abort();
-    const obsolete = new Set([attempt?.taskId, displayed.current]);
+    cancelAttempt(attempt);
+    cancelAttempt(displayed.current);
     displayed.current = undefined;
-    for (const id of obsolete) if (id) void cancelTask(id).catch(() => {});
   }, []);
 
   const clearPreview = useCallback(() => {
@@ -263,10 +271,13 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
         if (status.task_id !== id) throw new Error();
         if (status.status === 'running') continue;
         if (status.status === 'terminal') {
+          if (status.event.task_id !== id) throw new Error();
           const outcome = status.event.outcome;
           if (outcome.status === 'failed') throw outcome.error;
-          throw { code: 'CANCELLED' };
+          if (outcome.status === 'cancelled') throw { code: 'CANCELLED' };
+          throw new Error();
         }
+        if (status.status !== 'ready') throw new Error();
         const event = status.event;
         if (event.task_id !== id || event.draft_id !== draft_id || event.code_hash !== code_hash
           || !validHash(event.params_hash) || !validHash(event.snapshot.content_hash)
@@ -281,14 +292,14 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
             || event.engine_version !== 'scopehub-trusted-python-1' || event.snapshot.warmup_bars !== 0
             : status.resolved_parameters.period !== requestedPeriod)) throw new Error();
         if (access && !access.canDisplay(snapshot.dataset_id)) return;
-        displayed.current = id;
+        displayed.current = attempt;
         showResult({ range: event.snapshot, result: event.artifact.result });
         setResult(status);
         return;
       }
       signal.throwIfAborted();
     } catch (error) {
-      if (attempt.taskId) void cancelTask(attempt.taskId).catch(() => {});
+      cancelAttempt(attempt);
       if (attempt.poll.signal.aborted) return;
       if (displayAccessDenied(error)) void access?.verify(snapshot.dataset_id);
       setMessage({ text: describeError(error, mode), error: code(error) !== 'CANCELLED' });

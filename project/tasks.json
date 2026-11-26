@@ -26271,9 +26271,14 @@
           "run_id": "20261126T055216.550792Z-283fe3a7",
           "source_commit": "f30e5235cf9270116b6f1e37e1425898f1822d7b",
           "report_sha256": "b72407d17d36029e7872dd0c251bae6bad76afb7c94e9bcd02eca3a5561b8858"
+        },
+        {
+          "run_id": "20261126T073858.234369Z-31cf891c",
+          "source_commit": "6a266c97fd52cd0d0a588ff3054973d7bfa5167a",
+          "report_sha256": "c0ec1dc7ccf4eda159ccb2edd29f0ae73e09e3fc44e48d46acb3331de5abe7f3"
         }
       ],
-      "next_action": "Reproduce the three independently reported counterexamples through the compiled sample chart and Rust writer, retain the failing report, then verify the correction and hand the clean candidate to the coordinator for independent and native review.",
+      "next_action": "Verify the correction through the compiled sample chart and Rust writer and hand the clean candidate and paired reports to the coordinator for independent and native review.",
       "blocker": null,
       "closure_reason": null,
       "evidence": [
@@ -26299,6 +26304,7 @@
           ".reports/m3-007-calendar-failure-witness/fault/results.json",
         "archives/observations/repo-hygiene-20261125/independent-final-m3-007-c1cefee5/final-response.txt",
         "contracts/reviews/task-decisions/M3-007.json",
+        ".reports/runs/20261126T073858.234369Z-31cf891c/workspace-timeframe/results.json",
           "apps/desktop/ui/src/indicator-preview.tsx",
           "apps/desktop/ui/src/use-local-workspace.ts",
           "tests/ubuntu-preview/workspace.spec.mjs",
@@ -26309,7 +26315,7 @@
           "A logical browser status request can generate multiple native reads with the same request ID when Chromium retries its connection. The test should distinguish browser transport replay from an application-issued recovery ID.",
           "The first historical calendar run showed an alert during the first preview. The second reached the gapped chart after passing the first preview and forged snapshot checks. The original indicator transaction is unavailable for each failure.",
           "The invalidation path and the polling catch can both cancel one admitted attempt. Recording the cancellation on that attempt can preserve cleanup when its ID arrives late.",
-          "The status discriminant and nested terminal task identity require runtime validation before the UI adopts a recovered result."
+          "The status discriminant, nested terminal task identity and terminal outcome require runtime validation before the UI adopts a recovered result."
         ],
         "risks": [
           {
@@ -26370,7 +26376,7 @@
           ],
           "change": [
             "Use the existing diagnostic delivery classification for one same-task sample status read and make the calendar harness observe all terminal outcomes.",
-            "Share cancellation ownership between invalidation and polling cleanup. Validate ready status and terminal task identity before showing the recovered result."
+            "Share cancellation ownership between invalidation and polling cleanup. Validate ready status, terminal task identity and supported terminal outcomes before presenting the recovered result."
           ],
           "data_plan": "Use an isolated synthetic SQLite profile and the pinned normal and gapped calendar fixtures. Keep retained records limited to synthetic inputs and responses.",
           "cleanup": "Release controlled replies, cancel an obsolete admitted task, close owned browser contexts and services, and verify port release and profile removal."

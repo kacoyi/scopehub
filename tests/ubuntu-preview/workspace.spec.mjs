@@ -1067,7 +1067,8 @@ for (const [label, mode, losses, terminal, refuse] of [
             expect(evidence.cleanup).toMatchObject({ http: 200, body: { ok: false, error: { code: 'STALE_CONTEXT' } } });
           }
           const cleanup = await cancels();
-          evidence.cancel_request_ids = observer.attempts.filter(row => row.operation === 'task.cancel').map(row => row.request_id);
+          const cancelAttempts = observer.attempts.filter(row => row.operation === 'task.cancel');
+          evidence.cancel_request_ids = [...new Set(cancelAttempts.map(row => row.request_id))];
           expect.soft(evidence.cancel_request_ids, 'Browser cleanup request IDs').toEqual(cleanup.map(row => row.request_id));
           expect.soft(evidence.cancel_request_ids, 'Exactly one cleanup of the admitted task').toHaveLength(1);
           expect(cleanup[0]).toMatchObject({ task_id: taskId, output: { result: { task_id: taskId,
@@ -1097,7 +1098,7 @@ for (const [label, mode, losses, terminal, refuse] of [
             expect.soft(evidence.observed.message).toEqual(['The indicator preview could not be completed.']);
           }
           const runFinished = native.find(row => row.stage === 'http-finished' && row.request_id === runs[0].request_id);
-          evidence.terminal_elapsed_ms = evidence.observed.at_ms - runFinished.at_ms;
+          if (mode !== 'late-admission') evidence.terminal_elapsed_ms = evidence.observed.at_ms - runFinished.at_ms;
           if (mode === 'deadline' || mode === 'user-cancel') {
             const closed = await readIndicatorJournal(journal).then(rows => rows
               .find(row => row.stage === 'http-closed' && row.request_id === last.request_id));
@@ -1149,6 +1150,7 @@ async function cancelHeldSamplePreview({ mode, server, journal, observer, previe
   const clicked_at_ms = Date.now();
   await preview.getByRole('button', { name: 'Cancel preview' }).click();
   await expect(cancelled).toBeVisible();
+  const click_to_cancelled_ms = Date.now() - clicked_at_ms;
   if (lateAdmission) {
     expect(browserRequest.http).toBeUndefined();
     expect(browserRequest.failure).toBeUndefined();
@@ -1156,7 +1158,7 @@ async function cancelHeldSamplePreview({ mode, server, journal, observer, previe
     await server.releaseIndicatorAdmission();
   }
   await expect(run).toBeEnabled();
-  return { held, clicked_at_ms };
+  return { held, clicked_at_ms, click_to_cancelled_ms };
 }
 
 function verifySampleStatusSubstitution({ mode, last, taskId, witness, substitution }) {
