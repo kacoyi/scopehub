@@ -25948,7 +25948,7 @@
         "Retain the failed protected producer, same-tree native passing control and aggregate diagnostic when available. Identify the last observed startup stage before the chart repair assertion.",
         "Use the public sample entry to distinguish an absent or failed document, a delivered document with pending required code, and a mounted sample with verified catalog and history. Preserve the original deadline, rejection of a genuine stall and chart expectations.",
         "Demonstrate the correction or diagnostic on real controlled navigation and in the ordinary native Windows check, with original unsuccessful and successful controls retained. Keep historical cause and Windows acceptance explicit until observed.",
-        "Reject request-bound history contradictions before displaying the sample. A valid history with a failed chart mount stays history-verified. A successful cold sample includes actual candlesticks at the fitted price pane positions for the verified history. Suppressed candles with the original last-price line and axis label, including a control with unrelated price-colored ink, stay history-verified."
+        "Reject request-bound history contradictions before displaying the sample. A valid history with a failed chart mount stays history-verified. A successful cold sample includes actual candlesticks at the fitted time positions and OHLC price landmarks of the verified history. Missing, unrelated or misplaced price marks with the original last-price line and axis label stay history-verified."
       ],
       "checks": [
         "project-state",
@@ -25984,7 +25984,7 @@
           "sha256": "7fafedaf54305dfe2e50eddbdcc6d54ddd3f6666d83f7b40d7c33477029e5509"
         }
       ],
-      "next_action": "Obtain fresh independent Astra review of the clean candidate carrying implementation 24686a3c065e2e47c27ad0c8327f33967bed30b4. Its Linux task profile passed all 11 selected checks, including all 39 market-recovery cases on the first attempt. The browser attachments are retained in .reports/m0-154-candle-paint/candidate/observations.json (SHA-256 2502f3b70d7595da9dd66c658f1f349a8975641a0884476264e3760f29334d48). Obtain ordinary first-attempt Windows market-recovery for the reviewed candidate and retain the separate packaged physical Windows observation. The historical Windows asset attribution remains unknown.",
+      "next_action": "Use .reports/m0-154-candle-geometry/handoff.json for the reproduced failure, candidate measurements and exact source. Obtain fresh independent review on the clean candidate. The coordinator owns publication and one ordinary first-attempt Windows qualification. Packaged physical Windows acceptance is separate and historical Windows asset attribution remains unknown.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26008,7 +26008,9 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-154-222ba13c/final-response.txt",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-154-e11e24fc/final-response.txt",
           ".reports/m0-154-candle-paint/baseline/observations.json",
-          ".reports/m0-154-candle-paint/regression-before/market-recovery/results.json"
+          ".reports/m0-154-candle-paint/regression-before/market-recovery/results.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-6cc6a82f/original-assistant-response.jsonl",
+          ".reports/m0-154-candle-geometry/baseline/market-recovery/results.json"
         ],
         "hypotheses": [
           "The screenshot confirms that the startup panel rendered. A missing or slow deferred module, an unobserved document transition and host delay remain distinguishable hypotheses until there is request and lifecycle evidence.",
@@ -26017,7 +26019,8 @@
           "Both consumers trust the structural output type after transport decoding. A frozen snapshot can pass their shared first-page comparison even if a required field absent from comparisons is missing. Compare the same archived 40-bar success with a one-field deletion at both public consumers.",
           "The wrapper carries accepted history metadata before the renderer mounts. A valid equivalent decimal with excessive trailing zeros reaches Intl formatting and distinguishes history admission from successful chart presentation.",
           "The Rust operation already binds worker output to the request. A loopback response altered after the bridge can pass generated shape checks while contradicting a dataset, snapshot, stream or page relationship at the UI admission boundary.",
-          "On e4cd88ec73e13c9064d53252dc031b83db4ddcd2, suppressing candle bodies and wicks left one price-colored row of 464 pixels in the main pane and 730 pixels in the price axis. The genuine and suppressed renders received byte-identical 40-bar history and both were credited with presentation success. The genuine render had price-colored pixels across 438 rows of the main pane. The original observer also accepted a neighboring case with two same-color rectangles in place of the candles."
+          "On e4cd88ec73e13c9064d53252dc031b83db4ddcd2, suppressing candle bodies and wicks left one price-colored row of 464 pixels in the main pane and 730 pixels in the price axis. The genuine and suppressed renders received byte-identical 40-bar history and both were credited with presentation success. The genuine render had price-colored pixels across 438 rows of the main pane. The original observer also accepted a neighboring case with two same-color rectangles in place of the candles.",
+          "On cfc783280bc1d63cae4a1cdf6c74a25699af4d68 the color-order classifier retained neither the fitted time coordinates nor the OHLC price geometry. The real startup accepted a compressed series of three-pixel marks with all 40 original directions."
         ],
         "risks": [
           {
@@ -26073,6 +26076,12 @@
           },
           {
             "failure": "The startup observer credits a last-price line, axis label or unrelated same-color marks as visible history. Compare genuine candles, missing candles and unrelated ink through the public entry with the same authoritative bridge responses and verify that a paint timeout stays history-verified without a mount failure flag.",
+            "checks": [
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "Correct color order can mask misplaced bodies and wicks, or pixel quantization can reject a legitimate render. Verify fitted time and OHLC geometry through the public entry with genuine paint, missing and relocated paint, and the genuine sample at fractional device scale and a narrower viewport. Compare ordinary startup and held-document timing.",
             "checks": [
               "market-recovery"
             ]
@@ -26139,7 +26148,7 @@
             "Generate shared market response validators from the operation output types registered in the canonical JSON Schema. Standalone generation reuses the locked validator without compiling a schema in Chromium or WebView. Keep semantic checks for the application's paginated reads and the startup witness's single-page expectation.",
             "Replace the two partial UI history comparisons with one request-bound validator at the existing public client entry. Per-field patches to the old first-page check would leave replay preparation and pinned continuations on separate identity rules. Rust retains digest verification.",
             "Retain the chart renderer and normalize the instrument's decimal tick once for price formatting. The format helper has no renderer dependency. PriceChart owns the mount and its error, while the startup check witnesses visible price marks before recording a successful cold sample.",
-            "Replace the startup use of the whole-chart color count with separated candle positions and directions in the fitted price pane. Cropping to the pane alone retained enough line pixels to satisfy the old threshold. Removing the paint check or using the renderer's mounted state would still accept the reproduced candle loss. Read actual pixels in the browser, keep the color count for existing generic style checks and leave chart runtime and stored state untouched."
+            "Preserve the earlier rejection of missing candles and unrelated price ink. Verify actual painted marks against fitted time coordinates and OHLC landmarks from the admitted history. Keep the generic style color count and chart rendering, viewport, scale and stored-state behavior."
           ],
           "data_plan": "Use synthetic sample traffic on a loopback development server and retain bounded stage observations.",
           "cleanup": "Release owned browser listeners and servers and preserve the native failure and same-tree passing artifacts."

@@ -7648,6 +7648,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "sample-startup-verified-with-misplaced-candles",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent changes-requested decision 0526cedf93d2538cd86ea558680dd0e8a7424cc0d82862c59d9994546232ad60 for 6cc6a82f9703bc732c733f5e0d172a9473ca907b. The original-assistant-response.jsonl under archives/observations/repo-hygiene-20261125/independent-final-m0-154-6cc6a82f has SHA-256 f799265ce5a61c29d40cc8e8c95a194c5a8cf94c652351bb3cfd04f07dea1d3a. The Linux Chromium reproduction on cfc783280bc1d63cae4a1cdf6c74a25699af4d68 retains the test-only input diff, raw startup attachments, browser traces and failure screenshot under .reports/m0-154-candle-geometry/baseline. Its market-recovery/results.json has SHA-256 784e3e9ca1417c0a75b8d251e56b0fc4e6c13dacfdf6642ce4238459fe6f1fd5.",
+      "observation": "At /#demo with the same verified 40-bar snapshot as the genuine control, the observer reported sample-verified when every candle was replaced by a three-pixel-high mark of the corresponding direction. The marks occupied x=1 to 460 and y=22 to 24 on a 928-pixel-wide main price pane. The last-price line remained at y=390, and the axis label and chart mount were intact. The genuine control covered 438 price-colored rows. The missing-candle and unrelated-ink controls stayed history-verified.",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

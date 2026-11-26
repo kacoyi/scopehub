@@ -2,7 +2,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { expect } from '@playwright/test';
 import { isMarketOutput } from '../../apps/desktop/ui/src/market-output.ts';
 import { sampleHistoryPageMatchesRequest } from '../../apps/desktop/ui/src/sample-history-validation.ts';
-import { paintedCandleDirections } from './chart-pixels.mjs';
+import { paintedFittedCandles } from './chart-pixels.mjs';
 import { replayStage } from './replay-stages.mjs';
 
 const operation = '/__scopehub/operation';
@@ -244,12 +244,10 @@ export async function openDefaultSample(page, { trigger, verifyChart, reportStar
     if (startup) {
       // The first backing canvas holds the main price pane, before overlays and axes.
       const priceCanvas = chart(page).locator('.chart canvas').first();
-      const directions = history.bars.map(bar => bar.close >= bar.open ? 'up' : 'down');
       let presentation;
       await expect.poll(async () => {
         if (await chart(page).getByRole('alert').count()) presentation = 'failed';
-        else if (await priceCanvas.isVisible()
-          && isDeepStrictEqual(await paintedCandleDirections(priceCanvas), directions)) presentation = 'painted';
+        else if (await priceCanvas.isVisible() && await paintedFittedCandles(priceCanvas, history.bars)) presentation = 'painted';
         return presentation;
       }, { message: 'Wait for initial sample chart presentation' }).toBeDefined();
       if (presentation === 'failed') startup.mark('chart_failed_ms');

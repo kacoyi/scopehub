@@ -271,83 +271,113 @@ test('DOMContentLoaded with a held dynamic entry still waits for the verified sa
 
 test.describe('initial sample candle presentation', () => {
   const candleColors = ['#43d4ac', '#f17d85'];
-  for (const variant of ['rendered history', 'missing candles', 'unrelated price-colored ink']) {
-    test(`reports startup with ${variant}`, async ({ page }, testInfo) => {
-      const draws = variant === 'rendered history';
-      const unrelated = variant === 'unrelated price-colored ink';
-      if (!draws) await page.addInitScript(({ candleColors, unrelated }) => {
-        const fillRect = CanvasRenderingContext2D.prototype.fillRect;
-        CanvasRenderingContext2D.prototype.fillRect = function(...rect) {
-          const color = candleColors.indexOf(this.fillStyle);
-          if (color < 0 || this.canvas !== document.querySelector('.history .chart canvas')) {
-            return fillRect.apply(this, rect);
-          }
-          // Skip bodies and wicks. The renderer still strokes the last-price line and draws its axis label.
-          if (unrelated) fillRect.call(this, 24 + color * 48, 24, 20, 30);
-        };
-      }, { candleColors, unrelated });
-
-      const pageErrors = [];
-      page.on('pageerror', error => pageErrors.push(error.message));
-      const calls = [sampleCatalogCall, sampleHistoryCall()];
-      const replies = calls.map(call => page.waitForResponse(response =>
-        new URL(response.url()).pathname === '/__scopehub/operation' && response.status() === 200
-        && response.request().method() === 'POST' && response.request().postDataJSON()?.operation === call.operation));
-      let observation;
-      const startup = openDefaultSample(page, { reportStartup: report => {
-        observation = report;
-        return attachSampleStartup(report);
-      } }).catch(error => error);
-      const responses = await Promise.all(replies);
-      expect(responses.map(response => response.request().postDataJSON())).toEqual(calls);
-      const [catalog, history] = await Promise.all(responses.map(response => response.json()));
-      expect(catalog.result.instruments).toEqual(expect.arrayContaining([
-        expect.objectContaining({ id: calls[1].payload.series.instrument_id }),
-      ]));
-      expect(history.result.bars).toHaveLength(40);
-      const { snapshot } = history.result;
-      expect(snapshot.content_hash).toBe('8c5cccacb89d3cfa0a2f06418caa75cd5be6436e3cdd3ed4fadddd766cdff900');
-      const result = await startup;
-      const plot = page.getByRole('region', { name: 'Price chart' });
-      await expect(chart(page)).toHaveAttribute('data-bars', '40');
-      await expect(plot.getByRole('alert')).toHaveCount(0);
-      expect(pageErrors).toEqual([]);
-
-      // Independently retain ink counts by row for the price pane and its axis.
-      const ink = await chart(page).locator('.chart canvas').evaluateAll(canvases => [0, 2].map(index => {
-        const canvas = canvases[index];
-        const { width, height } = canvas;
-        const pixels = canvas.getContext('2d').getImageData(0, 0, width, height).data;
-        const rows = new Array(height).fill(0);
-        for (let i = 0; i < pixels.length; i += 4) {
-          const color = pixels[i] * 65536 + pixels[i + 1] * 256 + pixels[i + 2];
-          if (color === 0x43d4ac || color === 0xf17d85) rows[Math.floor(i / (4 * width))]++;
+  async function verifyPresentation(page, testInfo, variant) {
+    const draws = variant === 'rendered history';
+    const unrelated = variant === 'unrelated price-colored ink';
+    if (!draws) await page.addInitScript(({ candleColors, variant }) => {
+      const fillRect = CanvasRenderingContext2D.prototype.fillRect;
+      CanvasRenderingContext2D.prototype.fillRect = function(...rect) {
+        const color = candleColors.indexOf(this.fillStyle);
+        if (color < 0 || this.canvas !== document.querySelector('.history .chart canvas')) {
+          return fillRect.apply(this, rect);
         }
-        return { pixels: rows.reduce((sum, count) => sum + count, 0), rows: rows.filter(Boolean).length,
-          widestRow: Math.max(...rows) };
-      }));
-      await testInfo.attach('sample-startup-candle-ink', {
-        contentType: 'application/json', body: JSON.stringify({ variant, snapshot, ink,
-          error: result instanceof Error ? result.message : null }),
-      });
-      const [pane, axis] = ink;
-      expect(pane.widestRow, 'The last-price line remains visible').toBeGreaterThan(20);
-      expect(axis.pixels, 'The price-axis label remains visible').toBeGreaterThan(20);
-      if (draws || unrelated) expect(pane.rows).toBeGreaterThan(20);
-      else expect(pane.rows).toBe(1);
-      expect(observation.history_verified_ms).toBeGreaterThanOrEqual(observation.catalog_verified_ms);
-      expect(observation.chart_failed_ms).toBeUndefined();
-      expect(observation.stage).toBe(draws ? 'sample-verified' : 'history-verified');
-      if (draws) {
-        expect(result).toEqual(snapshot);
-        expect(observation.sample_verified_ms).toBeGreaterThanOrEqual(observation.history_verified_ms);
-      } else {
-        expect(result).toBeInstanceOf(Error);
-        expect(result.message).toContain('Wait for initial sample chart presentation');
-        expect(observation.sample_verified_ms).toBeUndefined();
+        // Skip bodies and wicks. The renderer still strokes the last-price line and draws its axis label.
+        if (variant === 'unrelated price-colored ink') fillRect.call(this, 24 + color * 48, 24, 20, 30);
+        if (variant === 'misplaced candles') {
+          const [x, , width] = rect;
+          fillRect.call(this, Math.floor(x / 2), 22, Math.max(1, Math.floor(width / 2)), 3);
+        }
+      };
+    }, { candleColors, variant });
+
+    const pageErrors = [];
+    page.on('pageerror', error => pageErrors.push(error.message));
+    const calls = [sampleCatalogCall, sampleHistoryCall()];
+    const replies = calls.map(call => page.waitForResponse(response =>
+      new URL(response.url()).pathname === '/__scopehub/operation' && response.status() === 200
+      && response.request().method() === 'POST' && response.request().postDataJSON()?.operation === call.operation));
+    let observation;
+    const startup = openDefaultSample(page, { reportStartup: report => {
+      observation = report;
+      return attachSampleStartup(report);
+    } }).catch(error => error);
+    const responses = await Promise.all(replies);
+    expect(responses.map(response => response.request().postDataJSON())).toEqual(calls);
+    const [catalog, history] = await Promise.all(responses.map(response => response.json()));
+    expect(catalog.result.instruments).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: calls[1].payload.series.instrument_id }),
+    ]));
+    expect(history.result.bars).toHaveLength(40);
+    const { snapshot } = history.result;
+    expect(snapshot.content_hash).toBe('8c5cccacb89d3cfa0a2f06418caa75cd5be6436e3cdd3ed4fadddd766cdff900');
+    const result = await startup;
+    const plot = page.getByRole('region', { name: 'Price chart' });
+    await expect(chart(page)).toHaveAttribute('data-bars', '40');
+    await expect(plot.getByRole('alert')).toHaveCount(0);
+    expect(pageErrors).toEqual([]);
+
+    // Independently retain ink counts by row for the price pane and its axis.
+    const ink = await chart(page).locator('.chart canvas').evaluateAll(canvases => [0, 2].map(index => {
+      const canvas = canvases[index];
+      const { width, height } = canvas;
+      const pixels = canvas.getContext('2d').getImageData(0, 0, width, height).data;
+      const rows = Array.from({ length: height }, () => ({ count: 0, left: width, right: -1 }));
+      for (let i = 0; i < pixels.length; i += 4) {
+        const color = pixels[i] * 65536 + pixels[i + 1] * 256 + pixels[i + 2];
+        if (color === 0x43d4ac || color === 0xf17d85) {
+          const row = rows[Math.floor(i / (4 * width))];
+          const x = (i / 4) % width;
+          row.count++;
+          row.left = Math.min(row.left, x);
+          row.right = Math.max(row.right, x);
+        }
       }
+      const occupied = rows.flatMap((row, y) => row.count ? [{ y, ...row }] : []);
+      const bounds = canvas.getBoundingClientRect();
+      return { width, height, pixels: occupied.reduce((sum, row) => sum + row.count, 0), rows: occupied.length,
+        cssWidth: bounds.width, cssHeight: bounds.height, deviceScale: devicePixelRatio,
+        widestRow: Math.max(...occupied.map(row => row.count)), sparseRows: occupied.length <= 4 ? occupied : undefined };
+    }));
+    await testInfo.attach('sample-startup-candle-ink', {
+      contentType: 'application/json', body: JSON.stringify({ variant, snapshot, ink,
+        error: result instanceof Error ? result.message : null }),
     });
+    const [pane, axis] = ink;
+    expect(pane.widestRow, 'The last-price line remains visible').toBeGreaterThan(20);
+    expect(axis.pixels, 'The price-axis label remains visible').toBeGreaterThan(20);
+    if (draws || unrelated) expect(pane.rows).toBeGreaterThan(20);
+    else if (variant === 'misplaced candles') {
+      expect(pane.rows).toBe(4);
+      const replacementRows = pane.sparseRows.filter(row => row.count !== pane.widestRow);
+      expect(replacementRows.map(row => row.y)).toEqual([22, 23, 24]);
+      expect(Math.max(...replacementRows.map(row => row.right))).toBeLessThan(pane.width / 2);
+    } else expect(pane.rows).toBe(1);
+    expect(observation.history_verified_ms).toBeGreaterThanOrEqual(observation.catalog_verified_ms);
+    expect(observation.chart_failed_ms).toBeUndefined();
+    expect(observation.stage).toBe(draws ? 'sample-verified' : 'history-verified');
+    if (draws) {
+      expect(result).toEqual(snapshot);
+      expect(observation.sample_verified_ms).toBeGreaterThanOrEqual(observation.history_verified_ms);
+    } else {
+      expect(result).toBeInstanceOf(Error);
+      expect(result.message).toContain('Wait for initial sample chart presentation');
+      expect(observation.sample_verified_ms).toBeUndefined();
+    }
+    return pane;
   }
+
+  for (const variant of ['rendered history', 'missing candles', 'unrelated price-colored ink', 'misplaced candles']) {
+    test(`reports startup with ${variant}`, ({ page }, testInfo) => verifyPresentation(page, testInfo, variant));
+  }
+
+  test.describe('narrow viewport at fractional device scale', () => {
+    test.use({ viewport: { width: 720, height: 820 }, deviceScaleFactor: 1.25 });
+    test('reports startup with rendered history', async ({ page }, testInfo) => {
+      const pane = await verifyPresentation(page, testInfo, 'rendered history');
+      expect(pane.cssWidth).toBeLessThan(720);
+      expect(pane.deviceScale).toBe(1.25);
+    });
+  });
 });
 
 for (const [change, stage, rejectedOperation] of [
