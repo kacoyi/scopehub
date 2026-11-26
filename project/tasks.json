@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-167",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -26999,7 +26999,7 @@
       "id": "M0-167",
       "title": "Verify scratch cleanup when an admitted indicator is cancelled before child exit",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M3-005"
       ],
@@ -27027,7 +27027,16 @@
         "rust-contracts-workers",
         "indicator-workflow"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-167-e7e23925f74c9c25.json",
+          "sha256": "fbe9b1dd8c863a2178cf04d938e61be9764831f5c03385c394aa309ac2f5a928"
+        },
+        {
+          "path": "project/evidence/M0-167-8075a8551f55d506.json",
+          "sha256": "e74516b8e68feb9268d3e4a317b5de1bbdcf941b436100d001e3934680726bca"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "windows-change-45825584085-1",
@@ -27040,9 +27049,9 @@
           "report_sha256": "224cf1a54de8ed450870007188fd2b81ec999eaad48374cda7e40081e5b1f9b9"
         }
       ],
-      "next_action": "Use the implementation handoff and retained public registry controls to review the clean candidate independently. The coordinator owns native and integrated Windows rechecks, including the sharing-denied handle case. Keep the original Windows cause unknown unless new evidence identifies it.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Independent approval of 0ca842a35ca077d433c5b2d7930d29a7d8b1f23f applies to guarded source 3ef15d9e96e8f71c4da3f2af4b24e8c6c091fa25. Run 45840015267 passed every selected M0-167 check on Ubuntu and Windows. Its integrated preview check covered approval, restoration and controlled carrier lifecycles, including exit 0 with a held close, exit 1 and Node-observed SIGTERM. Ordinary PR 141 run 45839529927 independently passed the earlier Rust scratch failure on both platforms and the Windows sharing-denied case on the merge preview f025c01a8a868702632a2f4069bf153ac599b673. The ordinary selection omitted the task-cadence indicator-workflow. Prior local public-registry controls retain the exit comparison and the separate real delayed cleanup observation, including adjacent admission and success before release. Protected run 45825584085 returned CANCELLED before failing scratch absence at trusted_indicator.rs:340:9. Thirteen neighboring cases passed and the process assertions were unreached. The original internal cause remains unknown. The coordinator must recheck the composed protected candidate, retaining the first protected Windows result and any task-cadence results.",
       "plan": {
         "outcome": "Retain the first protected Windows failure, its named assertion and neighboring results. Determine what the application guarantees when returning a cancelled task and distinguish a remaining child, handle or scratch path using observations. Exercise the ordinary trusted worker cancellation entry with an approved benign fixture. Verify one terminal cancellation, absence of a persistable result and cleanup of only its owned scratch files. Preserve normal completion, deadlines, task isolation and interruption. Retain a controlled failure that distinguishes the chosen correction. Require the public preview registry to reject the same valid success frame after abnormal carrier close and preserve it after exit status 0.",
         "change_types": [
