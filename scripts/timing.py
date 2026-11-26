@@ -22,7 +22,8 @@ if __package__:
     from .execution_inputs import committed_source_identity, is_source_input
     from .verification_scope import (
         LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit,
-        git, json_object, oid, publishing_check_catalog, read_windows_assignment, require_complete_history,
+        git, invalid_number, oid, publishing_check_catalog, require_complete_history,
+        unique_object,
         windows_lane_report_matches, windows_published_scope, windows_result_issue, windows_x64,
     )
     from .worktree import WorktreeError, entry_info, exclusive_git_lock, git_path, reparse_point
@@ -31,7 +32,8 @@ else:
     from execution_inputs import committed_source_identity, is_source_input
     from verification_scope import (
         LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit,
-        git, json_object, oid, publishing_check_catalog, read_windows_assignment, require_complete_history,
+        git, invalid_number, oid, publishing_check_catalog, require_complete_history,
+        unique_object,
         windows_lane_report_matches, windows_published_scope, windows_result_issue, windows_x64,
     )
     from worktree import WorktreeError, entry_info, exclusive_git_lock, git_path, reparse_point
@@ -106,6 +108,7 @@ BROWSER_STEPS = {
     'Install and start the pinned chart-test browser',
 }
 TIMED_STEPS = HARNESS_STEPS | BROWSER_STEPS | {f'Verify the Windows {lane} lane' for lane in WINDOWS_LANES}
+OBSERVED_STEPS = TIMED_STEPS | WINDOWS_ROLE_STEPS | WINDOWS_PROFILE_STEPS.keys()
 EXPECTED_FULL_OMISSIONS = {'not_implemented', 'unsupported_platform'}
 WINDOW = 3
 MIN_GROWTH_SECONDS = 60
@@ -356,6 +359,32 @@ def report_sample(report, *, cache=None):
     }
 
 
+def input_report_sample(report):
+    """Check native raw fields before the compact projection can erase them."""
+    selection = report.get('selection') or {}
+    profile = selection.get('profile')
+    native = (report.get('environment', {}).get('system') == 'Windows'
+              and (report.get('ci') or {}).get('event') in NORMAL_EVENTS
+              and (profile in AUTOMATIC_PROFILES or profile in WINDOWS_PRODUCER_PROFILES))
+    if native:
+        if ('task_id' not in selection or selection['task_id'] is not None
+                or not isinstance(selection.get('checks'), list)
+                or not all(short_label(key) for key in selection['checks'])):
+            raise TimingError('Invalid native harness report selection.')
+        for row in report['checks']:
+            reason = row.get('reason_code')
+            if reason is not None and not short_label(reason):
+                raise TimingError('Invalid native harness result reason code.')
+            if ('exit_code' in row and row['exit_code'] is not None and type(row['exit_code']) is not int
+                    or 'duration_seconds' in row and duration(row['duration_seconds']) is None):
+                raise TimingError('Invalid native harness result measurement.')
+            if row['status'] == 'blocked' and reason in {
+                'not_selected', 'not_implemented', 'retired', 'earlier_failure', 'executable_unavailable',
+            } and {'exit_code', 'log', 'log_sha256'} & row.keys():
+                raise TimingError('Unexpected execution fields in a blocked native harness result.')
+    return report_sample(report)
+
+
 def slowest_checks(sample):
     return sorted(
         (row for row in sample['checks'] if row['duration_seconds'] is not None),
@@ -397,6 +426,15 @@ def job_summary(sample):
 def eligible_step(step):
     return (step.get('conclusion') != 'skipped'
             and step.get('status') not in {'queued', 'pending', 'waiting'})
+
+
+def explicit_step_conclusions(steps):
+    conclusions = defaultdict(set)
+    for step in steps:
+        name, conclusion = step.get('name'), short_label(step.get('conclusion'))
+        if isinstance(name, str) and name in OBSERVED_STEPS and conclusion is not None:
+            conclusions[name].add(conclusion)
+    return {name: sorted(values) for name, values in sorted(conclusions.items())}
 
 
 def step_identity(identities):
@@ -546,6 +584,8 @@ def observe_job(job, *, identity, requested, label=None, harness_steps=HARNESS_S
     }
     if job.get('labels'):
         row['runner_labels'] = sorted(set(job['labels']))
+    if conclusions := explicit_step_conclusions(job.get('steps', ())):
+        row['step_conclusions'] = conclusions
     executed_layout_steps = {step['name'] for step in job.get('steps', ())
                              if step.get('name') in WINDOWS_LAYOUT_STEPS
                              and step.get('conclusion') == 'success' and eligible_step(step)}
@@ -780,6 +820,7 @@ def valid_step_facts(job):
     identities = job.get('step_identities', {})
     disputes = job.get('endpoint_disputes', [])
     choices = job.get('endpoint_choices', {})
+    conclusions = job.get('step_conclusions', {})
     return (isinstance(identities, dict) and identities.keys() <= set(STEP_KINDS)
             and all(isinstance(key, list) and len(key) == 2
                     and (key[0] is None or type(key[0]) is int and key[0] > 0)
@@ -790,6 +831,9 @@ def valid_step_facts(job):
             and isinstance(choices, dict) and choices.keys() <= set(disputes)
             and all(valid_timestamp_choices(values) and job['endpoints'][field] is None
                     for field, values in choices.items())
+            and isinstance(conclusions, dict) and conclusions.keys() <= OBSERVED_STEPS
+            and all(isinstance(values, list) and values and all(short_label(value) is not None for value in values)
+                    and len(set(values)) == len(values) for values in conclusions.values())
             and (not (identities or disputes) or 'endpoints' in job))
 
 
@@ -991,7 +1035,7 @@ def merge_clock_fields(rows, fields):
     return values, disputes
 
 
-def merge_job_clock(jobs, *, projected=False):
+def merge_job_clock(jobs, *, projected=False, blocked_steps=()):
     primary = [job_endpoint_choices(job) for job in jobs if 'endpoints' in job]
     legacy = [job['seconds'] for job in jobs if 'endpoints' not in job]
     choices = {field: join_timestamp_choices(row.get(field, ()) for row in primary)
@@ -1000,7 +1044,7 @@ def merge_job_clock(jobs, *, projected=False):
     for kind in STEP_KINDS:
         identity, disputed = step_identity([job['step_identities'][kind] for job in jobs
                                             if kind in job.get('step_identities', {})])
-        if disputed:
+        if disputed or (identity and identity[1] in blocked_steps):
             choices[f'{kind}_start'] = choices[f'{kind}_end'] = None
         elif identity is not None:
             step_identities[kind] = identity
@@ -1045,9 +1089,10 @@ class JobClaims(NamedTuple):
     producer_family: bool
     steps: set
     role_disputed: bool
+    blocked_steps: set
 
 
-def attempt_job_claims(runs, event):
+def attempt_job_claims(runs, event, issues):
     by_id = defaultdict(list)
     for run in runs:
         for protected, rows in ((True, run['jobs']), (False, run.get('sibling_jobs', ()))):
@@ -1057,17 +1102,37 @@ def attempt_job_claims(runs, event):
                     by_id[job['job_id']].append((role, run, job))
     # A sparse row can complete an established job, but cannot establish its
     # own membership without a row bound to this run, attempt and head.
-    return {job_id: job_role_claims(claims, event) for job_id, claims in by_id.items()
+    return {job_id: job_role_claims(claims, event, issues) for job_id, claims in by_id.items()
             if any(has_job_claim(job) for _, _, job in claims)}
 
 
-def job_role_claims(claims, event):
+def job_role_claims(claims, event, issues):
+    conclusions = defaultdict(set)
+    for _, _, job in claims:
+        for step, values in job.get('step_conclusions', {}).items():
+            conclusions[step].update(values)
+        # Earlier captures kept successful role steps without their conclusions.
+        # Layout names alone never implied success, even on a named aggregate.
+        for step in job.get('executed_layout_steps', ()):
+            conclusions[step].add('success')
+        for step in set(job.get('publishing_steps', ())) & (WINDOWS_LANE_STEPS.keys() | {WINDOWS_LANE_SELECTOR}):
+            conclusions[step].add('success')
+    disputes = {step: sorted(values) for step, values in sorted(conclusions.items()) if len(values) > 1}
+    if disputes:
+        _, run, job = claims[0]
+        timing_issue(issues, {'run_id': run['run_id'], 'job_id': job['job_id'], 'step_conclusions': disputes,
+                              'error': 'Conflicting conclusions for job steps.'})
+    blocked_steps = {step for step, values in conclusions.items() if step in disputes or 'skipped' in values}
     roles = {role for role, _, _ in claims if role}
     if event not in NORMAL_EVENTS:
-        return JobClaims(claims, roles, False, set(), False)
+        return JobClaims(claims, roles, False, set(), False, blocked_steps)
     steps = {step for _, _, job in claims if job['conclusion'] != 'skipped' for step in job_publication_steps(job)}
     executed_layout = {step for _, _, job in claims if job['conclusion'] != 'skipped'
                        for step in job.get('executed_layout_steps', ())}
+    # A skipped layout marker can describe the workflow shape after a name or
+    # another step identifies its job. Its conclusion cannot establish a role.
+    steps.difference_update(disputes.keys() | (blocked_steps - WINDOWS_LAYOUT_STEPS.keys()))
+    executed_layout.difference_update(blocked_steps)
     labels = {label for _, _, job in claims for label in job.get('runner_labels', ())}
     aggregate_role = ('platform', 'Windows')
     windows = 'windows-latest' in labels or any(role == aggregate_role or role[0] == 'producer'
@@ -1081,7 +1146,7 @@ def job_role_claims(claims, event):
         steps.difference_update(WINDOWS_LAYOUT_STEPS)
     producer_family = WINDOWS_LANE_SELECTOR in steps or any(job.get('producer_family') for _, _, job in claims)
     disputed = bool(roles and step_roles - roles)
-    return JobClaims(claims, roles or step_roles, producer_family, steps, disputed)
+    return JobClaims(claims, roles or step_roles, producer_family, steps, disputed, blocked_steps)
 
 
 def disputed_runner_labels(role, claims):
@@ -1096,7 +1161,7 @@ def disputed_runner_labels(role, claims):
 
 def joined_job_claims(by_id, attempt, layout):
     by_role = defaultdict(list)
-    for job_id, (claims, roles, producer_family, _, step_conflict) in by_id.items():
+    for job_id, (claims, roles, producer_family, _, step_conflict, blocked_steps) in by_id.items():
         if not roles:
             if not producer_family:
                 continue
@@ -1115,7 +1180,7 @@ def joined_job_claims(by_id, attempt, layout):
             facts = [protected_job_facts(run, layout, job) if role[0] == 'platform' and claim is not None
                      else inherit_job_checkout(run, job) for claim, run, job in claims]
             by_role[attempt, role].append((facts, status, conclusion, role_conflict or status_conflict
-                                          or outcome_conflict or disputed_runner_labels(role, claims)))
+                                          or outcome_conflict or disputed_runner_labels(role, claims), blocked_steps))
     return by_role
 
 
@@ -1132,11 +1197,12 @@ def reconcile_job_clocks(by_id, attempt, layout, issues):
             timing_issue(issues, {**issue, 'error': error})
             observed[key] = JobClockEvidence(None, ())
             continue
-        ((jobs, status, conclusion, _),) = participants
+        ((jobs, status, conclusion, _, blocked_steps),) = participants
         projected = role == ('platform', 'Windows') and split_windows_clock(layout)
-        job, disputed, endpoint_disputes, unplaced = merge_job_clock(jobs, projected=projected)
+        job, disputed, endpoint_disputes, unplaced = merge_job_clock(jobs, projected=projected, blocked_steps=blocked_steps)
         job.pop('publishing_steps', None)
         job.pop('executed_layout_steps', None)
+        job.pop('step_conclusions', None)
         job.pop('runner_labels', None)
         job.pop('producer_family', None)
         platform = name if scope == 'platform' else 'Windows' if producer else None
@@ -1175,7 +1241,7 @@ def attempt_layout(runs, by_id, attempt, issues):
     older = [row for row in runs if not row.get('job_facts') and split_windows_clock(row)]
     roles, widths, scopes = set(), set(), set()
     split = bool(older)
-    for _, job_roles, producer_family, steps, _ in by_id.values():
+    for _, job_roles, producer_family, steps, _, _ in by_id.values():
         roles.update(job_roles)
         split |= producer_family
         widths.update(WINDOWS_LAYOUT_STEPS[step] for step in steps & WINDOWS_LAYOUT_STEPS.keys())
@@ -1219,7 +1285,7 @@ def resolve_attempt(runs, attempt, issues):
     status = 'completed' if any(row['status'] == 'completed' for row in runs) else known_value(
         row['status'] for row in runs)[0]
     checkout, _ = known_value(row.get('checkout_sha') for row in runs)
-    by_id = attempt_job_claims(runs, attempt[3])
+    by_id = attempt_job_claims(runs, attempt[3], issues)
     workflow = attempt_layout(runs, by_id, attempt, issues)
     result = {**dict(zip(ATTEMPT_IDENTITY, attempt, strict=True)), 'head_branch': branch,
               'status': status, 'conclusion': conclusion, 'workflow': workflow}
@@ -1648,204 +1714,100 @@ def native_publishing_catalog(revision, *, root=ROOT, object_type=b'commit'):
         path = f'{revision}:project/checks.json'
         if int(git(root, 'cat-file', '-s', path)) > COMPACT_LIMIT:
             return True, None
-        catalog = json_object(git(root, 'cat-file', 'blob', path))
+        catalog = json.loads(git(root, 'cat-file', 'blob', path), object_pairs_hook=unique_object,
+                             parse_constant=invalid_number)
         publishing_check_catalog(catalog)
         return True, catalog
     except (ScopeError, OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS):
         return True, None
 
 
-# The catalog and lane literals are meaningful only with the publisher that
-# consumed them. Whole observed Git blobs bind the loader, its development
-# validator, the launcher and the scope module, including aliases and imports.
-# The aggregate also consumes the collector. Keep unsupported publisher forms
-# unavailable until their source behavior has been verified.
-WINDOWS_PUBLISHING_PATHS = ('scripts/project.py', 'scripts/development.py', 'scripts/check.py',
-                            'scripts/verification_scope.py', 'scripts/ci_artifacts.py')
-_WINDOWS_PUBLISHING_FORMS = {
-    (  # d9102de9
-        'e3af35e0ede7d13aa35bb9a1216d4651688a59be',
-        'e60d1a6c1a56008b8e12b0ec818b38596df82895',
-        '06aeb9ae8526505e5a645e73797262d8d1ac2e3f',
-        '270d1c1381af27d6aaf16fc84eb8b2e6190eff89',
-        '88b64a344a3a61ec306e7170c47d3ceac4837b85',
-    ),
-    (  # c4f07b38
-        'e3af35e0ede7d13aa35bb9a1216d4651688a59be',
-        'e60d1a6c1a56008b8e12b0ec818b38596df82895',
-        'dcf272ce03612c4e44042a1062053e5d1951e497',
-        '270d1c1381af27d6aaf16fc84eb8b2e6190eff89',
-        '231f64091a056eacfd1cdd331d76dd6ce70ab17b',
-    ),
-    (  # df7587ee
-        '7cfe2d5dcb642bc6bed87c08ca85209e23e999ce',
-        'e60d1a6c1a56008b8e12b0ec818b38596df82895',
-        '06aeb9ae8526505e5a645e73797262d8d1ac2e3f',
-        '06abe939b246a686949a28376e93655bc2cbc747',
-        '88b64a344a3a61ec306e7170c47d3ceac4837b85',
-    ),
-    (  # 6d159be4
-        '72e70586f07bab5e79ae952aa931835e75f932ed',
-        'e60d1a6c1a56008b8e12b0ec818b38596df82895',
-        'c6f53477ffe085b019411f779aa67a9ea305625f',
-        '06abe939b246a686949a28376e93655bc2cbc747',
-        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
-    ),
-    (  # e341d1ee
-        '335774be01ab80db11a811205986c4af74608955',
-        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
-        'c6f53477ffe085b019411f779aa67a9ea305625f',
-        '50ff7471278f18f3fb7339c9e960142a38166d58',
-        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
-    ),
-    (  # 64eccbf6
-        '96d828d551e37d287b4335bdcbd57bb370857b9d',
-        'ede860086d6c3236d6404b402ca8c86b73083a4c',
-        'c6f53477ffe085b019411f779aa67a9ea305625f',
-        '06abe939b246a686949a28376e93655bc2cbc747',
-        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
-    ),
-    (  # e6f2c917
-        '0ea916ea1a737f0780d6327c660288fe51ae0636',
-        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
-        'c6f53477ffe085b019411f779aa67a9ea305625f',
-        '06abe939b246a686949a28376e93655bc2cbc747',
-        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
-    ),
-    (  # cb81c752
-        '96d828d551e37d287b4335bdcbd57bb370857b9d',
-        'ede860086d6c3236d6404b402ca8c86b73083a4c',
-        '7211b26f4d0675d786f0bd01977f6f9d7b924712',
-        '06abe939b246a686949a28376e93655bc2cbc747',
-        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
-    ),
-    (  # e342a17d
-        '0ea916ea1a737f0780d6327c660288fe51ae0636',
-        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
-        '7211b26f4d0675d786f0bd01977f6f9d7b924712',
-        '06abe939b246a686949a28376e93655bc2cbc747',
-        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
-    ),
-    (  # 3491ace8
-        '3ce47e17c9199c41a2059d721ceb91197f1bdb89',
-        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
-        '7211b26f4d0675d786f0bd01977f6f9d7b924712',
-        '06abe939b246a686949a28376e93655bc2cbc747',
-        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
-    ),
-    (  # 7b684c17
-        '3ce47e17c9199c41a2059d721ceb91197f1bdb89',
-        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
-        'c6f53477ffe085b019411f779aa67a9ea305625f',
-        '06abe939b246a686949a28376e93655bc2cbc747',
-        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
-    ),
-    (  # 1b99c03d
-        'f758e3833df4aeb38c115b603ae63b2d278a3cbe',
-        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
-        '010aa1c0fd7c9acea2faf6ef08ce3fe97e244fa7',
-        '2141f2e4d0934ce2908fc3652af6b9cdfc7cfda4',
-        '5a254b90db6d8c0fba41ac3ca6a3ce7c5f3e5ef7',
-    ),
-    (  # 794485aa
-        '3f9d5367b9069af3c7a1341f003bda101413c32c',
-        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
-        '010aa1c0fd7c9acea2faf6ef08ce3fe97e244fa7',
-        '2141f2e4d0934ce2908fc3652af6b9cdfc7cfda4',
-        '5a254b90db6d8c0fba41ac3ca6a3ce7c5f3e5ef7',
-    ),
-    (  # 178c7d26
-        '03ef853dfe0e856cf303b61f7e0cf351e756d9aa',
-        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
-        'c6f53477ffe085b019411f779aa67a9ea305625f',
-        '06abe939b246a686949a28376e93655bc2cbc747',
-        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
-    ),
-    (  # 2c212a68
-        '3ce47e17c9199c41a2059d721ceb91197f1bdb89',
-        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
-        'f8689e474d5e07faa0cbbb8ffb19bd7c8b0e5465',
-        '06abe939b246a686949a28376e93655bc2cbc747',
-        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
-    ),
-    (  # 44d95310
-        '1e7587ee9ee1e4ed82deaf5f6c16044dee833edb',
-        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
-        'f8689e474d5e07faa0cbbb8ffb19bd7c8b0e5465',
-        '50ff7471278f18f3fb7339c9e960142a38166d58',
-        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
-    ),
-    (  # a3a76f27
-        '1e7587ee9ee1e4ed82deaf5f6c16044dee833edb',
-        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
-        'c6f53477ffe085b019411f779aa67a9ea305625f',
-        '50ff7471278f18f3fb7339c9e960142a38166d58',
-        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
-    ),
-    (  # 93ad31e8
-        '3829af24a472718b0d4b650ce10e1372345dc64b',
-        '25b88bb5afb8df0a1fe3b26a0f1c69ddfb26311a',
-        'f8689e474d5e07faa0cbbb8ffb19bd7c8b0e5465',
-        '50ff7471278f18f3fb7339c9e960142a38166d58',
-        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
-    ),
-    (  # 727b4fb3
-        '3829af24a472718b0d4b650ce10e1372345dc64b',
-        '2a5444072b9c9821b2d21f4887f77bd7b007e59a',
-        'f8689e474d5e07faa0cbbb8ffb19bd7c8b0e5465',
-        '50ff7471278f18f3fb7339c9e960142a38166d58',
-        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
-    ),
-    (  # 44f51ec6
-        '0ad12ea4e57ecde9777dc600324d8aca946d5da9',
-        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
-        '7a52882adfdc438a536af081051da65f572cbfa5',
-        'f01d181ecc43e260ba7c06d8fd4baeb20172293d',
-        '5167fc0195605f9c123bb097b05e8de2f1f443a2',
-    ),
-    (  # Reader-only refactor of the 44f51ec6 scope module
-        '0ad12ea4e57ecde9777dc600324d8aca946d5da9',
-        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
-        '7a52882adfdc438a536af081051da65f572cbfa5',
-        '66eac43da97d82c4f37f288bdc2ffd8c1ed64819',
-        '5167fc0195605f9c123bb097b05e8de2f1f443a2',
-    ),
-    (  # Publisher and reader share the check inventory validator
-        '061adf2d3c3eed33adacb6cc7808f038e291c128',
-        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
-        '7a52882adfdc438a536af081051da65f572cbfa5',
-        '5f3238fd04c84364cda2f01eda08c3c6a323e510',
-        '5167fc0195605f9c123bb097b05e8de2f1f443a2',
-    ),
-}
+# These paths cover the workflow, report launcher, local publishing imports
+# and the schema used to read publisher data. The registry itself is reader
+# input. Its content is never consulted by the job projecting a compact report.
+WINDOWS_PUBLISHING_PATHS = (
+    '.github/workflows/verify.yml',
+    'contracts/schemas/project.schema.json',
+    'contracts/schemas/protocol.schema.json',
+    'pyproject.toml',
+    'uv.lock',
+    'scripts/check.py',
+    'scripts/ci_artifacts.py',
+    'scripts/development.py',
+    'scripts/diagnostic_archive.py',
+    'scripts/doctor.py',
+    'scripts/execution_inputs.py',
+    'scripts/maintenance.py',
+    'scripts/operational_paths.py',
+    'scripts/process_tree.py',
+    'scripts/processes.py',
+    'scripts/project.py',
+    'scripts/recovery.py',
+    'scripts/retained_failures.py',
+    'scripts/review_acceptance.py',
+    'scripts/review_observation.py',
+    'scripts/review_tree.py',
+    'scripts/storage.py',
+    'scripts/timing.py',
+    'scripts/verification_evidence.py',
+    'scripts/verification_scope.py',
+    'scripts/worktree.py',
+)
+PUBLISHING_REGISTRY = ROOT / 'project/timing-publishers.json'
 
 
-def windows_publishing_objects(root, revision):
-    requests = ''.join(f'{revision}:{path}\n' for path in WINDOWS_PUBLISHING_PATHS).encode('ascii')
-    records = git(root, 'cat-file', '--batch-check=%(objectname) %(objecttype)', input=requests).splitlines()
-    if len(records) != len(WINDOWS_PUBLISHING_PATHS) or any(not row.endswith(b' blob') for row in records):
-        return None
-    return tuple(row.split()[0].decode('ascii') for row in records)
+@lru_cache(maxsize=1)
+def windows_publishing_registry():
+    registry = read_json(PUBLISHING_REGISTRY)
+    if registry['version'] != 1:
+        raise ValueError('Unknown native timing publisher registry version.')
+    assignments = registry['assignments']
+    return {
+        digest: {'catalogs': program['catalogs'], 'assignment': assignments[program['assignment']]}
+        for digest, program in registry['programs'].items()
+    }
+
+
+def windows_publishing_closure(root, revision):
+    # The canonical tree rows include path, object ID and file mode. The listed
+    # paths also bind files that are absent in older publisher layouts.
+    rows = git(root, 'ls-tree', '-z', revision, '--', *WINDOWS_PUBLISHING_PATHS)
+    return sha256(rows).hexdigest()
+
+
+def publishing_catalog_digest(catalog):
+    # The agreed selection rule permits cadence changes with a matching
+    # required-change list. Bind all other catalog fields to observed data.
+    invariant = {key: value for key, value in catalog.items() if key != 'required_change_checks'}
+    invariant['checks'] = [{key: value for key, value in row.items() if key != 'cadence'}
+                           for row in catalog['checks']]
+    canonical = json.dumps(invariant, sort_keys=True, separators=(',', ':'), allow_nan=False)
+    return sha256(canonical.encode('ascii')).hexdigest()
 
 
 @lru_cache(maxsize=128)
 def committed_windows_publisher(root, revision):
     if not commit_id(revision):
-        return None, False
+        return None
     try:
-        objects = windows_publishing_objects(root, revision)
-        if objects is None or not any(
-            objects[:-1] == known[:-1] for known in _WINDOWS_PUBLISHING_FORMS
-        ):
-            return None, False
-        return read_windows_assignment(root, revision), objects in _WINDOWS_PUBLISHING_FORMS
+        program = windows_publishing_closure(root, revision)
+        return windows_publishing_registry().get(program)
     except (ScopeError, OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS):
-        return None, False
+        return None
 
 
-def committed_windows_assignment(root, revision, *, aggregate=False):
-    assignment, known_aggregate = committed_windows_publisher(root, revision)
-    return assignment if not aggregate or known_aggregate else None
+def committed_windows_assignment(root, revision):
+    # Both publication paths call the same compact projection.
+    program = committed_windows_publisher(root, revision)
+    if program is None:
+        return None
+    assignment = program['assignment']
+    return {lane: set(checks) for lane, checks in assignment.items()} if assignment is not None else None
+
+
+def publishing_catalog_supported(root, revision, catalog):
+    publisher = committed_windows_publisher(root, revision)
+    return publisher is None or publishing_catalog_digest(catalog) in publisher['catalogs']
 
 
 @lru_cache(maxsize=128)
@@ -1912,7 +1874,9 @@ def native_report_issue(sample, run, issues):
     )
     selected = set(sample['selected'])
     publishing = publishing_catalog_source(sample) if identity and sample['task_id'] is None else None
-    assignment = committed_windows_assignment(ROOT, publishing[0], aggregate=not producer) if publishing else None
+    if publishing and not publishing_catalog_supported(ROOT, *publishing):
+        publishing = None
+    assignment = committed_windows_assignment(ROOT, publishing[0]) if publishing else None
     result_issue = None
     if assignment is not None:
         _, catalog = publishing
@@ -2034,6 +1998,30 @@ def possible_commit_types(types):
     return types is not None and all(kind in {b'commit', b'missing'} for kind in types)
 
 
+def expired_pr_merge_tree_matches(root, parents, parent_types, tree):
+    facts = tuple(commit_facts(root, parent) if kind == b'commit' else None
+                  for parent, kind in zip(parents, parent_types))
+    if any(kind == b'commit' and fact is None for kind, fact in zip(parent_types, facts)):
+        return False
+    # A shallow boundary can hide a direct parent even when its identifier
+    # remains available in the descendant's commit header.
+    for fact, other in zip(facts, reversed(parents)):
+        if fact and other in fact.parents:
+            return tree == fact.tree
+    if None in facts:
+        return True
+    try:
+        merge_bases = git(root, 'merge-base', '--all', *parents).split()
+    except (ScopeError, OSError, subprocess.SubprocessError):
+        return False
+    for fact, other in zip(facts, reversed(parents)):
+        if merge_bases == [other.encode('ascii')]:
+            return tree == fact.tree
+    # Equal parent trees with a common base give a determinate result. Expired
+    # previews with other divergent trees need independent checkout evidence.
+    return len(merge_bases) == 1 and facts[0].tree == facts[1].tree == tree
+
+
 def generated_contracts_proof(sample, *, eligible_only=True):
     ci = sample['ci']
     proof = sample.get('generated_contracts')
@@ -2057,15 +2045,10 @@ def generated_contracts_proof(sample, *, eligible_only=True):
     if (types is None or types[0] not in {b'commit', b'missing'} or types[1] not in {b'tree', b'missing'}
             or not possible_commit_types(types[2:])):
         return None
-    checkout_type, _, _, topic_type = types
-    if checkout_type == b'commit':
+    if types[0] == b'commit':
         return proof if commit_facts(ROOT, proof['checkout']) == GitCommitFacts(proof['tree'], tuple(parents)) else None
-    if ci['event'] == 'pull_request' and topic_type == b'commit':
-        # The merge of a direct ancestor and its topic has the topic tree.
-        # Read the object header so a shallow traversal cannot hide the parent.
-        head = commit_facts(ROOT, ci['head_sha'])
-        if head is None or (parents[0] in head.parents and proof['tree'] != head.tree):
-            return None
+    if ci['event'] == 'pull_request' and not expired_pr_merge_tree_matches(ROOT, parents, types[2:], proof['tree']):
+        return None
     return proof
 
 
@@ -2588,7 +2571,7 @@ def read_bounded_timing(path, *, manual_archive=False, budget=None):
         budget.remaining = max(0, budget.remaining - len(raw))
     if len(raw) > limit:
         raise TimingError(limit_error)
-    data = json.loads(raw)
+    data = json.loads(raw, object_pairs_hook=unique_object, parse_constant=invalid_number)
     if len(raw) > TIMING_READ_LIMIT and (not isinstance(data, dict) or data.get('kind') != ARCHIVE_KIND):
         raise TimingError('Report exceeds the compact timing read limit.')
     return data
@@ -3587,7 +3570,7 @@ def main():
                             or not all(isinstance(check, dict) and short_label(check.get('id'))
                                        and short_label(check.get('status')) for check in checks)):
                         raise TimingError('Expected a harness report with run identity and checks.')
-                    sample = report_sample(data)
+                    sample = input_report_sample(data)
                     if not valid_sample(sample):
                         raise TimingError('Invalid timing sample derived from harness report.')
                     samples.append(sample)

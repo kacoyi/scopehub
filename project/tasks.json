@@ -26596,7 +26596,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Verify the five independent findings against the shared corrected reader and replay the original PRs, failed push and later native control. Hand the clean commit and retained local observations to the coordinator. Keep the five dependent reviews and November 28 due cycle pending.",
+      "next_action": "The coordinator reviews the clean candidate and retained public-entry replays under .reports/m0-155-bounded-reconciliation. Obtain the three owning independent decisions before resuming the five dependent reviews. Matching hosted checks and the November 28 scheduled observation remain pending.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26862,7 +26862,7 @@
       ],
       "diagnostic_reports": [],
       "evidence": [],
-      "next_action": "Compare the available direct event ancestor and genuinely unavailable first parent on full and shallow history. Hand the clean source and evidence to the coordinator for the checkout-proof decision. Keep the downstream reviews and November 28 due cycle pending.",
+      "next_action": "Review exact parent and tree proof against the full, shallow, missing-parent and equivalent-source replays under .reports/m0-155-bounded-reconciliation. The coordinator owns the independent checkout decision and matching hosted verification.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -27014,6 +27014,8 @@
       ],
       "scope": [
         "scripts/timing.py",
+        "project/timing-publishers.json",
+        "contracts/decisions/0030-bounded-timing-publisher-evidence.json",
         "scripts/verification_scope.py",
         "scripts/ci_artifacts.py",
         "scripts/check.py",
@@ -27025,7 +27027,8 @@
       ],
       "decision_refs": [
         "0004",
-        "0007"
+        "0007",
+        "0030"
       ],
       "checks": [
         "project-state",
@@ -27036,7 +27039,7 @@
         "The verifier binds a producer to its publishing job, platform, source or verified execution-equivalent catalog and exact ordered scope. Incorrectly swapped, missing, extra and unverifiable assignments cannot establish a warm comparable observation.",
         "Previously supported publishing layouts, incomplete sources and historical evidence retain their respective outcomes. Verify the shared current selection together with its integration consumer."
       ],
-      "next_action": "Compare required-change catalog validation and ordered aggregate selection across both genuine historical publishers. Hand the clean source to the coordinator for the publisher decision, then matching hosted and native verification. Keep the downstream reviews and November 28 due cycle pending.",
+      "next_action": "Review the bounded publisher inventory and the genuine and rejected archive cases under .reports/m0-155-bounded-reconciliation. Obtain the independent publisher decision before matching hosted verification and downstream reviews.",
       "blocker": null,
       "evidence": [],
       "closure_reason": null,

@@ -71,7 +71,7 @@ class TimingJobRoleTests(unittest.TestCase):
                                '--summary', summary])
         return ordinary, weekly, self.cli(['--report', archive])
 
-    def assert_public_clocks(self, views, *, wall, runner, receipts):
+    def assert_public_clocks(self, views, *, wall, runner, receipts, collected=None):
         ordinary, weekly, reopened = views
         for view in (ordinary, weekly, reopened):
             rows = {row['profile']: row for row in view['samples']}
@@ -81,7 +81,8 @@ class TimingJobRoleTests(unittest.TestCase):
             self.assertEqual(720, rows['ci-windows-browser']['seconds']['total'])
             self.assertEqual(300, rows['ci-windows-recovery']['seconds']['total'])
             self.assertEqual(receipts, len(list(timing.platform_report_receipts(view['samples']))))
-        self.assertEqual(receipts, len(weekly['recent_collection']['collected_samples']))
+        self.assertEqual(receipts if collected is None else collected,
+                         len(weekly['recent_collection']['collected_samples']))
 
     def test_explicit_legacy_scope_joins_current_publisher_claims(self):
         aggregate = dict(self.jobs[1], steps=[{'name': 'Verify tooling changes', 'conclusion': 'success'}])
@@ -163,6 +164,62 @@ class TimingJobRoleTests(unittest.TestCase):
             rows = {row['profile']: row['seconds'] for row in view['samples']}
             self.assertEqual(expected, (rows['full']['total'], rows['ci-windows-browser']['total'],
                                         rows['ci-windows-recovery']['total'], rows['full']['runner']))
+
+    def test_competing_step_conclusions_cannot_establish_a_job_role(self):
+        marker = {'name': timing.WINDOWS_RECOVERY_MARKER, 'number': 14, 'conclusion': 'success'}
+        aggregate = dict(self.jobs[1], name=None, labels=['windows-latest'], steps=[marker])
+        skipped = dict(marker, conclusion='skipped')
+        failed = dict(marker, conclusion='failure')
+        for label, steps, other_rows, expected in (
+                ('executed', [marker], (), (765, 1957, 1)),
+                ('duplicate', [marker, marker], (), (765, 1957, 1)),
+                ('skipped', [skipped], (), (None, None, 0)),
+                ('mixed-skipped', [marker, skipped], (), (None, None, 0)),
+                ('mixed-failed', [failed, marker], (), (None, None, 0)),
+                ('partitioned', [marker], ([dict(aggregate, steps=[skipped])],), (None, None, 0)),
+                ('reversed', [skipped], ([aggregate],), (None, None, 0))):
+            with self.subTest(case=label):
+                jobs = [self.jobs[0], dict(aggregate, steps=steps), *self.jobs[2:]]
+                wall, runner, receipts = expected
+                modes = self.read_modes(jobs, label, additional=other_rows)
+                self.assert_public_clocks(modes, wall=wall, runner=runner, receipts=receipts)
+                if label in {'mixed-skipped', 'mixed-failed', 'partitioned', 'reversed'}:
+                    for view in modes:
+                        self.assertTrue(any(issue.get('job_id') == str(aggregate['id']) and
+                                            marker['name'] in issue.get('step_conclusions', {})
+                                            for issue in view['input_issues']))
+
+        legacy = timing.hosted_timing(self.run, [self.jobs[0], aggregate, *self.jobs[2:]])
+        for row in (*legacy['jobs'], *legacy['sibling_jobs']):
+            row.pop('step_conclusions', None)
+        archive = self.write('legacy-executed-marker.json', {
+            'kind': timing.ARCHIVE_KIND, 'samples': [], 'hosted': [legacy],
+        })
+        for label, steps, expected in (('missing', [], (765, 1957, 1)), ('failure', [failed], (None, None, 0))):
+            with self.subTest(legacy_marker=label):
+                jobs = [self.jobs[0], dict(aggregate, steps=steps), *self.jobs[2:]]
+                wall, runner, receipts = expected
+                self.assert_public_clocks(self.read_modes(jobs, f'legacy-executed-{label}', retained=(archive,)),
+                                          wall=wall, runner=runner, receipts=receipts, collected=0)
+
+        identified = dict(aggregate, name=self.jobs[1]['name'], steps=[marker, skipped])
+        jobs = [self.jobs[0], identified, *self.jobs[2:]]
+        self.assert_public_clocks(self.read_modes(jobs, 'independent-aggregate-role'),
+                                  wall=765, runner=1957, receipts=1)
+
+    def test_independently_identified_job_keeps_wall_clock_with_disputed_timed_step(self):
+        jobs = deepcopy(self.jobs)
+        browser = jobs[3]
+        setup = dict(browser['steps'][0], name='Install and start the pinned chart-test browser', number=8)
+        browser['steps'].append(setup)
+        for conflict in (False, True):
+            if conflict:
+                browser['steps'].append(dict(setup, conclusion='skipped'))
+            modes = self.read_modes(jobs, f'browser-step-{conflict}')
+            self.assert_public_clocks(modes, wall=765, runner=1957, receipts=1)
+            for view in modes:
+                rows = {row['profile']: row['seconds'] for row in view['samples']}
+                self.assertEqual(None if conflict else 210, rows['ci-windows-browser']['browser_step'])
 
     def test_partial_role_steps_prevent_clock_swaps(self):
         jobs = deepcopy(self.jobs)

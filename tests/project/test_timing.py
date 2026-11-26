@@ -1615,8 +1615,8 @@ class HostedTimingTests(unittest.TestCase):
 
 class PRMainComparisonTests(unittest.TestCase):
     def setUp(self):
-        self.publisher_forms = set()
-        self.enterContext(patch.object(timing, '_WINDOWS_PUBLISHING_FORMS', self.publisher_forms))
+        self.publisher_forms = {}
+        self.enterContext(patch.object(timing, 'windows_publishing_registry', return_value=self.publisher_forms))
         self.enterContext(isolated_git_environment())
         temp = self.enterContext(tempfile.TemporaryDirectory())
         self.root = Path(temp)
@@ -1639,7 +1639,13 @@ class PRMainComparisonTests(unittest.TestCase):
         return self.git('commit-tree', tree or self.tree,
                         *(arg for parent in parents for arg in ('-p', parent)), '-m', message)
 
-    def publishing_tree(self, catalog):
+    def register_publisher(self, revision, catalog):
+        closure = timing.windows_publishing_closure(self.root, revision)
+        assignment = verification_scope.read_windows_assignment(self.root, revision)
+        observed = self.publisher_forms.setdefault(closure, {'catalogs': set(), 'assignment': assignment})
+        observed['catalogs'].add(timing.publishing_catalog_digest(catalog))
+
+    def publishing_tree(self, catalog, *, observed=True):
         blob = self.git('hash-object', '-w', '--stdin', contents=json.dumps(catalog))
         project = self.git('mktree', contents=f'100644 blob {blob}\tchecks.json\n')
         policy = self.git('hash-object', '-w', '--stdin', contents=PUBLISHER_LOADER)
@@ -1661,7 +1667,8 @@ def main():
             f'100644 blob {scope}\tverification_scope.py\n'
         ))
         tree = self.git('mktree', contents=f'040000 tree {project}\tproject\n040000 tree {scripts}\tscripts\n')
-        self.publisher_forms.add((policy, development, harness, scope, collector))
+        if observed:
+            self.register_publisher(tree, catalog)
         return tree
 
     def test_selection_comes_from_committed_publishing_catalog(self):
@@ -1721,7 +1728,7 @@ def main():
 
         def changed_catalog_sample(changed):
             checkout = self.commit('Changed publishing catalog', self.base, newer_head,
-                                   tree=self.publishing_tree(changed))
+                                   tree=self.publishing_tree(changed, observed=False))
             sample = deepcopy(original)
             sample.update(source_commit=checkout, inputs_sha256=snapshot(checkout, root=self.root))
             sample['ci']['checkout_sha'] = checkout
@@ -1781,11 +1788,12 @@ def main():
             (project / name).write_bytes((timing.ROOT / 'project' / name).read_bytes())
         tree = self.publishing_tree(fixture_catalog((*BASIC_CHECKS, 'generated-contracts')))
         blob = self.git('rev-parse', f'{tree}:project/checks.json')
-        direct_base = self.commit('Direct topic parent', self.base, tree=tree)
+        other_tree = self.git('mktree', contents=f'{self.git("ls-tree", tree)}\n100644 blob {blob}\texecution-control.txt\n')
+        ancestor_base = self.commit('Older topic ancestor', self.base, tree=other_tree)
+        direct_base = self.commit('Direct topic parent', ancestor_base, tree=tree)
         head = self.commit('Topic', direct_base, tree=tree)
-        workflows = self.git('mktree', contents=f'100644 blob {blob}\tverify.yml\n')
-        github = self.git('mktree', contents=f'040000 tree {workflows}\tworkflows\n')
-        other_tree = self.git('mktree', contents=f'{self.git("ls-tree", tree)}\n040000 tree {github}\t.github\n')
+        descendant_base = self.commit('Base containing the topic', head, tree=other_tree)
+        equal_tree_base = self.commit('Divergent base with the topic tree', direct_base, tree=tree)
         other_inputs = timing.committed_publishing_inputs(other_tree, root=self.root)
         self.assertIsNotNone(other_inputs)
         preview = self.commit('Merge preview', self.base, head, tree=tree)
@@ -1822,7 +1830,13 @@ def main():
             ('missing-with-duplicate-parent', missing, missing_head, missing_head, None),
             ('missing-with-independent-head', missing, head, blob, 360),
             ('missing-with-matching-direct-parent', missing, head, direct_base, 360),
+            ('missing-with-matching-ancestor', missing, head, ancestor_base, 360),
+            ('missing-with-equal-parent-trees', missing, head, equal_tree_base, 360),
             ('other-tree-with-missing-parent', missing, head, 'd' * 40, 360),
+            ('other-tree-with-base-descendant', missing, head, descendant_base, 360),
+            ('other-tree-with-equal-parent-trees', missing, head, equal_tree_base, None),
+            ('other-tree-with-known-ancestor', missing, head, ancestor_base, None),
+            ('other-tree-with-known-ancestor-shallow', missing, head, ancestor_base, None),
             ('other-tree-with-direct-parent', missing, head, direct_base, None),
             ('other-tree-with-direct-parent-shallow', missing, head, direct_base, None),
             ('tree', tree, head, self.base, None),
@@ -1830,11 +1844,15 @@ def main():
             ('null-with-proof', null, missing_head, self.base, None),
         ):
             with self.subTest(kind=kind):
-                if kind.endswith('-shallow'):
+                shallow = self.root / '.git/shallow'
+                shallow.unlink(missing_ok=True)
+                if kind == 'other-tree-with-known-ancestor-shallow':
+                    shallow.write_bytes(f'{ancestor_base}\n'.encode('ascii'))
+                    self.assertEqual(ancestor_base, self.git('merge-base', ancestor_base, head))
+                if kind == 'other-tree-with-direct-parent-shallow':
                     # Traversal hides the parent, while the event head still carries its raw header.
-                    (self.root / '.git/shallow').write_bytes(f'{head}\n'.encode('ascii'))
+                    shallow.write_bytes(f'{head}\n'.encode('ascii'))
                     self.assertEqual(head, self.git('rev-list', '-2', head))
-                    timing.commit_facts.cache_clear()
                 run = dict(hosted_run(), head_sha=topic)
                 clock = timing.hosted_timing(run, [dict(job, head_sha=topic) for job in jobs])
                 report = fast_report(20, 190)
@@ -1900,7 +1918,8 @@ def main():
                       patch.object(timing, 'recent_runs', return_value=[run]),
                       patch.object(timing, 'command', side_effect=actions_command),
                       patch.object(timing, 'inspect_jobs', return_value=clock)):
-                    if kind == 'missing-with-matching-direct-parent':
+                    if kind in {'missing-with-matching-direct-parent', 'missing-with-matching-ancestor',
+                                'missing-with-equal-parent-trees', 'other-tree-with-base-descendant'}:
                         self.assertEqual(compact['generated_contracts'],
                                          timing.generated_contracts_proof(compact, eligible_only=False))
                     normal = ['timing.py', '--report', str(compact_path), '--actions', str(run_path), str(jobs_path)]
@@ -1944,7 +1963,8 @@ def main():
         scripts.mkdir()
         project = self.root / 'project'
         project.mkdir()
-        (project / 'checks.json').write_bytes(timing.json_bytes(fixture_catalog(full)))
+        catalog = fixture_catalog(full)
+        (project / 'checks.json').write_bytes(timing.json_bytes(catalog))
         (scripts / 'project.py').write_text(PUBLISHER_LOADER, encoding='utf-8')
         (scripts / 'development.py').write_text(PUBLISHER_DEVELOPMENT, encoding='utf-8')
         launch = """
@@ -1966,7 +1986,7 @@ def main():
         shared_selection = check_script.split('\ndef select_checks(', 1)[1].split('\n\ndef ', 1)[0]
 
         def publish(label, definition, *, shared=None, amendment='', report_amendment='', initial_selection=None,
-                    input_amendment='', collector=None, observed=False):
+                    input_amendment='', collector=None, reverse_projection=False, observed=False):
             collect = (
                 "    if args.ci_windows_aggregate:\n"
                 "        imported, elapsed = collect_windows_lanes(ROOT, args.ci_windows_aggregate, project, source, ci, "
@@ -1980,11 +2000,16 @@ def main():
             scope_file.write_text(shared or '# No shared selector in this launcher.\n', encoding='utf-8')
             collector_file = scripts / 'ci_artifacts.py'
             collector_file.write_text(collector or '# No aggregate collector in this launcher.\n', encoding='utf-8')
+            timing_file = scripts / 'timing.py'
+            order = ', reverse=True' if reverse_projection else ''
+            timing_file.write_text(
+                f"def report_sample(report):\n    return sorted(report['selection']['checks']{order})\n",
+                encoding='utf-8',
+            )
             self.git('add', '-A')
             revision = self.commit(label, self.head, tree=self.git('write-tree'))
             if observed:
-                self.publisher_forms.add(tuple(self.git('rev-parse', f'{revision}:{name}')
-                                               for name in timing.WINDOWS_PUBLISHING_PATHS))
+                self.register_publisher(revision, catalog)
             return revision
 
         def old_owner(browser, recovery):
@@ -2107,6 +2132,8 @@ def windows_lane_checks(selected, lane):
             collector.replace('    checkout = source[\'git_head\']\n    _, head',
                               "    selected.discard('market-recovery-ui')\n    checkout = source['git_head']\n    _, head")
         ))
+        projection_changed = publish('Changed compact selection projection', earlier,
+                                     collector=collector, reverse_projection=True)
         mutated.append(publish(
             'Unsupported shared initial selection amendment', 'from verification_scope import windows_lane_checks',
             shared=shared_source.replace("check['status'] != 'retired'}",
@@ -2148,7 +2175,12 @@ def windows_lane_checks(selected, lane):
                          timing.committed_windows_assignment(self.root, delegated))
         self.assertFalse(timing.native_report_issue(report(aggregate_valid, None, full), None, []))
         self.assertTrue(timing.native_report_issue(report(aggregate_changed, None, full), None, []))
-        self.assertFalse(timing.native_report_issue(report(aggregate_changed, 'browser', browser_old), None, []))
+        self.assertTrue(timing.native_report_issue(report(aggregate_changed, 'browser', browser_old), None, []))
+        projected_from_unknown = report(projection_changed, None, full)
+        self.assertTrue(timing.native_report_issue(projected_from_unknown, None, []))
+        self.assertTrue(timing.native_report_issue(
+            {**projected_from_unknown, 'selected': projected_from_unknown['selected'][::-1]}, None, [],
+        ))
         for sample in (
             report(previous, 'browser', browser_old),
             report(previous, 'recovery', ['market-recovery']),
@@ -2673,6 +2705,19 @@ class TimingRegressionTests(unittest.TestCase):
                                   [row['profile'] for row in mixed['samples']])
             self.assertEqual([], mixed['input_issues'])
             self.assertEqual(mixed['samples'], self.invoke_timing('--report', archive)['samples'])
+
+            for label, edit, message in (
+                ('absent-task', lambda row: row['selection'].pop('task_id'), 'selection'),
+                ('invalid-reason', lambda row: row['checks'][2].update(reason_code='invalid reason'), 'reason code'),
+            ):
+                for original_report in (raw, report):
+                    with self.subTest(label=label, profile=original_report['selection']['profile']):
+                        invalid_raw = deepcopy(original_report)
+                        edit(invalid_raw)
+                        malformed.write_bytes(timing.json_bytes(invalid_raw))
+                        observed = self.invoke_timing('--report', malformed, '--report', recovery)
+                        self.assertEqual(['ci-windows-recovery'], [row['profile'] for row in observed['samples']])
+                        self.assertIn(message, observed['input_issues'][0]['error'])
 
             disputed = self.invoke_timing('--report', aggregate, '--report', conflict, '--report', browser)
             remaining, = disputed['samples']
