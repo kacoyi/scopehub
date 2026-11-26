@@ -1477,6 +1477,14 @@ def windows_lane_checks(selected, lane):
         mutated.append(publish('Unsupported published selection amendment', earlier, report_amendment=(
             "    report['selection']['checks'].remove('market-recovery-ui')\n"
         )))
+        mutated.append(publish('Unsupported helper selection amendment', earlier + """
+def build_window(catalog, selection, environment, index):
+    selection.discard('market-recovery-ui')
+""", amendment=(
+            "    if args.ci_windows_lane == 'browser':\n"
+            "        catalog, environment, index = [], {}, 0\n"
+            "        build_window(catalog, selected, environment, index)\n"
+        )))
         three = publish('Original three producers', """WINDOWS_BROWSER_CHECKS = {'market-recovery-ui', 'workspace-timeframe'}
 WINDOWS_PYTHON_CHECKS = {'market-recovery', 'python-contracts-workers'}
 WINDOWS_LANES = ('core', 'browser', 'python')

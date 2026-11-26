@@ -26445,7 +26445,7 @@
           ]
         },
         {
-          "failure": "The publisher modifies the selected checks after a recognized lane selector returns. Exercise stale and final role selections against an isolated matching checkout marker with caller-side writes, reject a change to the serialized selection field before publication, and preserve rejection of unsupported lane declarations and their aliases.",
+          "failure": "The publisher modifies the selected checks after a recognized lane selector returns. Exercise stale and final role selections against isolated matching checkout markers with caller-side writes and a renamed helper parameter. Reject a report selection write before serialization and preserve rejection of unsupported lane declarations and their aliases.",
           "checks": [
             "python-contracts-workers"
           ]
@@ -26488,7 +26488,7 @@
             "Verify historical producer assignments using the applicable publishing inputs at the normal timing boundary.",
             "Keep independent producer qualification separate from incomplete aggregate topology and reject source assignments whose final ownership cannot be established."
           ],
-        "data_plan": "Use the four authenticated producer artifacts and original compact measurements. Keep their raw source, artifact IDs, checksums and publishing check selections. Preserve the original reviews and replays in archives/observations/repo-hygiene-20261125/m0-150-review-followup-460248f9/, archives/observations/repo-hygiene-20261125/independent-final-m0-150-73fd4773/ and archives/observations/repo-hygiene-20261125/m0-150-combined-replay-73fd4773/. Retain the resumed contradictory-cache and checkout-marker inputs and raw outputs with their source identities for coordinator handoff.",
+          "data_plan": "Use the four authenticated producer artifacts and original compact measurements. Keep their raw source, artifact IDs, checksums and publishing check selections. Preserve the original reviews and replays in archives/observations/repo-hygiene-20261125/m0-150-review-followup-460248f9/, archives/observations/repo-hygiene-20261125/independent-final-m0-150-73fd4773/ and archives/observations/repo-hygiene-20261125/m0-150-combined-replay-73fd4773/. Retain the resumed contradictory-cache and checkout-marker inputs and raw outputs with their source identities for coordinator handoff.",
           "cleanup": "Keep synthetic inconsistent controls isolated from the genuine artifacts and preserve any indeterminate original as a diagnostic."
         }
       }

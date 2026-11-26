@@ -326,6 +326,14 @@ def _publishing_field(node, key):
     return field
 
 
+def _read_only_build_window(harness, call):
+    build, = (node for node in harness.body if isinstance(node, ast.FunctionDef) and node.name == 'build_window')
+    return (not build.decorator_list and ast.unparse(build.args) == 'catalog, selected, environment, index'
+            and _named_references(harness, 'build_window') == {call.func}
+            and all(_selection_membership(parent, child) for parent in ast.walk(build)
+                    for child in ast.iter_child_nodes(parent) if isinstance(child, ast.Name) and child.id == 'selected'))
+
+
 def _require_publishing_report_uses(main, report, parents):
     # The sorted selection becomes a mutable list in the report dictionary.
     serialized = []
@@ -371,12 +379,9 @@ def _publishing_lane_call(harness):
         if (isinstance(parent, ast.Attribute) and parent.attr == 'intersection'
                 and ast.unparse(parents[parent]) == "selected.intersection(item['regression_checks'])"):
             continue
-        if isinstance(parent, ast.Call) and ast.unparse(parent) == 'build_window(catalog, selected, environment, index)':
-            build, = (stmt for stmt in harness.body if isinstance(stmt, ast.FunctionDef) and stmt.name == 'build_window')
-            if all(_selection_membership(use, child)
-                   for use in ast.walk(build) for child in ast.iter_child_nodes(use)
-                   if isinstance(child, ast.Name) and child.id == 'selected'):
-                continue
+        if (isinstance(parent, ast.Call) and ast.unparse(parent) == 'build_window(catalog, selected, environment, index)'
+                and _read_only_build_window(harness, parent)):
+            continue
         if isinstance(parent, ast.Call) and ast.unparse(parent) == (
             'collect_windows_lanes(ROOT, args.ci_windows_aggregate, project, source, ci, '
             'selected, os.environ, profile=args.profile)'
