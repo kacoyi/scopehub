@@ -59,6 +59,15 @@
       },
       "supersedes": "9c87f38f40134e5849283235e2407b56197b97fbaf6b3706d70fabef16f97eae",
       "evidence_sha256": "6cacffcb7c6b9dcf2e6f8ca0829636c26aaf32a8cb759456385c7a81cc6bd6d8"
+    },
+    {
+      "kind": "request",
+      "source_commit": "8e7af472becfc99a017c23e31355de413d9d4495",
+      "scope": "Review the indicator implementation inventory and its development tests after combining with the protected first-test rule. Check both shared paths, the Python trusted evaluator, Rust declarative owner, and the architecture check through existing public entries. Verify a used/absent, planned/unused, and valid implemented module.",
+      "supersedes": "2f43e1bcfd52d3213d13d3021dc953e2f106db016f91bc1814a534308e34de6c",
+      "requested_at": "2026-11-26T14:36:19.840966+00:00",
+      "request_id": "f0cb03a4f38310f3a12f2dfda81b7fb43810ff145d7eb2cab19dae002a4ebc3e",
+      "evidence_sha256": "6c22f416402550a4ecae49c5d1d9420dcac09878fac0da1a010353ff64c479ae"
     }
   ]
 }
