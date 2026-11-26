@@ -9277,6 +9277,91 @@
       "diagnostic_reports": [],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "timing-number-only-step-fragments-lost-before-join",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-155 decision on da5d83da108ab15a6e10965452457457390899a0, recorded at ceaeb16723699eb9ee31ea45ac9cc612abd0a948. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-155-da5d83da/original-assistant-response.jsonl (SHA-256 1479905e03923be0350e4ce6840056eb9ae3d9df17c385f6780749be9e4345a9).",
+      "observation": "In push 45765544396, moving the Linux step 21 completion into a nameless row with the same step number and job ID erased 864 seconds of execution and 9 seconds of tail. An appended nameless conflicting end left both durations intact. Both row orders reproduced the loss, including ordinary, offline weekly, cold and rotated reads. Push 45747974114 independently lost 721 seconds of execution and 21 seconds of tail.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-aggregate-submicrosecond-instants-join-as-identical",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 decision on da5d83da108ab15a6e10965452457457390899a0, recorded at ceaeb16723699eb9ee31ea45ac9cc612abd0a948. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-150-da5d83da/original-assistant-response.jsonl (SHA-256 a117013548ca78dba314f3e3acd24cac60db13c29dfd15af958539db0986fd7c).",
+      "observation": "The genuine Windows aggregate and an otherwise identical aggregate one nanosecond later qualified together in the offline weekly reader for PRs 121, 116 and 123. An equivalent timezone representation and a one-microsecond conflict served as adjacent controls. The datetime projection truncated the differing fraction before the archive decision.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-windows-complete-aggregate-omits-native-build",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 decision on da5d83da108ab15a6e10965452457457390899a0, recorded at ceaeb16723699eb9ee31ea45ac9cc612abd0a948. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-150-da5d83da/original-assistant-response.jsonl (SHA-256 a117013548ca78dba314f3e3acd24cac60db13c29dfd15af958539db0986fd7c).",
+      "observation": "A task-cadence catalog variant of push 45747974114 left Windows native build unselected but retained complete coverage on a 34-check report. Both passed and blocked aggregate variants obtained the 1293-second Windows attribution and a weekly receipt. A paired catalog variant excluding desktop localization left the native build passing and qualified.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-raw-producer-erases-mock-ai-result-contradiction",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 decision on da5d83da108ab15a6e10965452457457390899a0, recorded at ceaeb16723699eb9ee31ea45ac9cc612abd0a948. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-150-da5d83da/original-assistant-response.jsonl (SHA-256 a117013548ca78dba314f3e3acd24cac60db13c29dfd15af958539db0986fd7c).",
+      "observation": "Changing only integration_validation.mock_ai_evaluated to true without a passing AI check still attributed 702 seconds to the PR 121 browser producer and 421 seconds to the PR 116 recovery producer. The original publishers rederived this claim from the check results. The compact projection discarded the conflict.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-pr-checkout-ancestry-budget-exhaustion-grants-fallback",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-156 decision on da5d83da108ab15a6e10965452457457390899a0, recorded at ceaeb16723699eb9ee31ea45ac9cc612abd0a948. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-156-da5d83da/original-assistant-response.jsonl (SHA-256 9c2228ff1b3b568240ac6c084781b08d0dd305f1533fec6f32f17eb3201c2463).",
+      "observation": "A PR 84 replay using the Git objects from a depth-18 history exposed 139 reachable commits. A readable boundary header proved the claimed missing checkout d4cea0de was an event-head ancestor. Traversal stopped at 128 visits and allowed both fallback routes. Ordinary, weekly and cold reads attributed 804 wall seconds, 2467 runner-seconds and one weekly receipt. Full history rejected the attribution and the independent 804, 645 and 321-second Actions clocks remained.",
+      "task_ids": [
+        "M0-156"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

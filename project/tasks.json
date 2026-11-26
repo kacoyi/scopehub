@@ -26600,7 +26600,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Obtain new independent decisions for M0-155, M0-150 and M0-156 on the exact common source in .reports/m0-155-post-438302ef/handoff.json. Keep the five dependent reviews and November 28 actual observation separate. Hosted verification remains with the coordinator.",
+      "next_action": "Replay the retained independent findings on da5d83da and qualify the common correction with exact-source positive, negative and held-out controls. Keep hosted verification, the five dependent decisions and the November 28 actual observation with the coordinator.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26620,7 +26620,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-155-3eeb59bc/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-155-9ea5b514/original-assistant-response.jsonl",
           "contracts/decisions/0031-shared-timing-producer-contract.json",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-155-438302ef/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-155-438302ef/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-155-da5d83da/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "Recent preload and historical linked reads can see different retained evidence when a conflict removes the platform index entry or an attempt is older than the routine window.",
@@ -26834,6 +26835,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "Join numbered step fragments before name or endpoint selection. Replay both orders, record absence and cross-job non-joins, and check conflicting number-only endpoints, independent stages, cold reopen and rotation.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain all source captures, saved reviews and original classifications if a change loses a valid clock or expands the ordinary read without a bound.",
@@ -26917,7 +26925,7 @@
       ],
       "diagnostic_reports": [],
       "evidence": [],
-      "next_action": "Obtain a new independent checkout decision on the common source in .reports/m0-155-post-438302ef/handoff.json. Review genuine and impossible depth-two previews with and without a merge proof and the fresh base-only ancestry control.",
+      "next_action": "Replay the retained independent findings on da5d83da and qualify the common correction with exact-source positive, negative and held-out controls. Keep hosted verification, the five dependent decisions and the November 28 actual observation with the coordinator.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26939,7 +26947,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-3eeb59bc/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-9ea5b514/original-assistant-response.jsonl",
           "contracts/decisions/0031-shared-timing-producer-contract.json",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-438302ef/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-438302ef/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-da5d83da/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "The substitute Git fingerprint is computable with the standard library; importing the full project entry brings an unrelated parser into the weekly job.",
@@ -27024,6 +27033,13 @@
           },
           {
             "failure": "Reject a known event-head ancestor before either missing-checkout alternative. Compare genuine and impossible checkouts from a real depth-two repository, with and without the proof, through ordinary and weekly reads and archive reopen.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Check readable parent edges and distinguish bounded exhaustion from a completed ancestry observation. Replay genuine previews and proved ancestors with and without proof in full and shallow source views, retaining independent Actions clocks.",
             "checks": [
               "project-state",
               "python-contracts-workers"
@@ -27116,7 +27132,7 @@
         "The verifier binds a producer to its publishing job, platform, source or verified execution-equivalent catalog and exact ordered scope. Incorrectly swapped, missing, extra and unverifiable assignments cannot establish a warm comparable observation.",
         "Previously supported publishing layouts, incomplete sources and historical evidence retain their respective outcomes. Verify the shared current selection together with its integration consumer."
       ],
-      "next_action": "Obtain a new independent publisher decision on the common source in .reports/m0-155-post-438302ef/handoff.json. Review genuine and rejected archive controls, fresh holdout and retained publisher limits.",
+      "next_action": "Replay the retained independent findings on da5d83da and qualify the common correction with exact-source positive, negative and held-out controls. Keep hosted verification, the five dependent decisions and the November 28 actual observation with the coordinator.",
       "blocker": null,
       "evidence": [],
       "closure_reason": null,
@@ -27139,7 +27155,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-150-3eeb59bc/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-150-9ea5b514/original-assistant-response.jsonl",
           "contracts/decisions/0031-shared-timing-producer-contract.json",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-438302ef/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-438302ef/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-da5d83da/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "The earlier and later sources had the same four Windows producer jobs and aggregate catalog. The browser and recovery assignments changed while the reader used one current mapping for both.",
@@ -27342,6 +27359,27 @@
           },
           {
             "failure": "Share strict committed catalog decoding with the publisher or validate the same boundary. Compare equivalent plain UTF-8 with incompatible encodings and nonfinite numbers, and preserve the independent platform samples.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Compare recording instants without silent precision loss. Qualify equivalent offsets and exact fractions while withholding incompatible or unsupported fractions before receipt attribution.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Require the native Windows result independently of catalog scope for the historical full command. Replay the paired cadence variants and preserve Actions clocks when the aggregate is ineligible.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Verify result-derived raw integration claims before compact projection and retain the unchanged producer, unrelated platform clock and genuine weekly receipt.",
             "checks": [
               "project-state",
               "python-contracts-workers"
