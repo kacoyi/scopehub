@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-166",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "057cc2c2f0638fdd3986e3817d7956868a788b05",
+      "scope": "Review the ordinary frozen preview third-trial interruption and the fixture correction. Distinguish the verified native ready reply, browser delivery, snapshot admission, timeout, bounded recovery and same-task cancellation.",
+      "supersedes": null,
+      "requested_at": "2026-11-26T13:32:22.318255+00:00",
+      "request_id": "c46e6c803eb5216a52b54b28f2a359be06262e6890d7a423990e72e94cbf29e9",
+      "evidence_sha256": "49eeb9f03dfae1b25d42ab6b5861f57406e3907373bb62e9a91ef39dc676333c"
+    }
+  ]
+}
