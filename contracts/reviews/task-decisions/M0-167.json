@@ -59,6 +59,15 @@
       },
       "supersedes": "588c8f28a39c8dd9e8658187953b251be81ca8656e691d0bede75349adc13047",
       "evidence_sha256": "5411ccf4deae1d81c242ef7946b3f1ceabd1110e7c473fa8cc5418fb03cd867e"
+    },
+    {
+      "kind": "request",
+      "source_commit": "cf1eb9da0acb97e1dc74c59377280f1a4bcf3274",
+      "scope": "Review the actual preview registry and carrier lifetime when a completed WORKER_EXITED frame precedes slow cleanup. Check terminal failure delivery, subsequent result stability, successful close, cancellation, bounded carrier ownership and adjacent admissions.",
+      "supersedes": "79a4e2545b3c89e4c0fc339290a1a51dc927763c185ee8b1b094538ee3d654d4",
+      "requested_at": "2026-11-26T14:10:22.355796+00:00",
+      "request_id": "092c4509fa63f2d19e00b9089f2c0a219ea8708a87d3454314d19c233d233582",
+      "evidence_sha256": "ec6b14166e3c94b52a9575b81ca48887a66ab909fae6833a92afe50a84c6fd25"
     }
   ]
 }
