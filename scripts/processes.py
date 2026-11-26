@@ -1,15 +1,19 @@
 """Run repository checks with durable output and bounded process lifetimes."""
 
+from functools import partial
 import os
 from pathlib import Path
 import subprocess
 import sys
+from tempfile import NamedTemporaryFile
 import time
 
 if __package__:
-    from .process_tree import start_linux_market_check, stop_tree
+    from .process_tree import start_linux_check, stop_tree, wait_linux_check
 else:
-    from process_tree import start_linux_market_check, stop_tree
+    from process_tree import start_linux_check, stop_tree, wait_linux_check
+
+FAILED_LOG_LIMIT = 16 * 1024 * 1024
 
 WINDOWS_LAUNCHER = '''
 import subprocess, sys
@@ -19,19 +23,33 @@ raise SystemExit(subprocess.call(sys.argv[1:], stdin=subprocess.DEVNULL))
 '''
 
 
-def _wait_for_check(process, timeout, cancel):
+def _wait_for_check(process, timeout, cancel, *, result_pipe=None):
+    wait = process.wait if result_pipe is None else partial(wait_linux_check, process, result_pipe)
     if cancel is None:
-        return process.wait(timeout=timeout)
+        return wait(timeout=timeout)
     deadline = time.monotonic() + timeout
     while not cancel():
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             raise subprocess.TimeoutExpired(process.args, timeout)
         try:
-            return process.wait(timeout=min(remaining, .25))
+            return wait(timeout=min(remaining, .25))
         except subprocess.TimeoutExpired:
             continue
     raise KeyboardInterrupt
+
+
+def _terminate_failed_check(process):
+    deadline = time.monotonic() + 10
+    while True:
+        try:
+            if process.poll() is None:
+                process.kill()
+                process.wait(timeout=max(0, deadline - time.monotonic()))
+            return
+        except KeyboardInterrupt:
+            if time.monotonic() >= deadline:
+                raise subprocess.TimeoutExpired(process.args, 10) from None
 
 
 def run_logged(argv, *, cwd, env, log_path, timeout, cancel=None, contain_linux_tree=False):
@@ -57,7 +75,7 @@ def run_logged(argv, *, cwd, env, log_path, timeout, cancel=None, contain_linux_
             command = [sys._base_executable, '-I', '-S', '-c', WINDOWS_LAUNCHER, *argv] if job else argv
             options.update(cwd=cwd, env=env, stdout=output, stderr=subprocess.STDOUT)
             if contain_linux_tree and sys.platform == 'linux':
-                process, result_pipe = start_linux_market_check(command, **options)
+                process, result_pipe = start_linux_check(command, **options)
             else:
                 process = subprocess.Popen(command, stdin=subprocess.PIPE if job else subprocess.DEVNULL,
                                            **options)
@@ -65,9 +83,10 @@ def run_logged(argv, *, cwd, env, log_path, timeout, cancel=None, contain_linux_
                 job.assign(process.pid)
                 process.stdin.write(b'1')
                 process.stdin.close()
-            return_code = _wait_for_check(process, timeout, cancel)
             if result_pipe is None:
-                exit_code = return_code
+                exit_code = _wait_for_check(process, timeout, cancel)
+            else:
+                _wait_for_check(process, timeout, cancel, result_pipe=result_pipe)
         except (subprocess.TimeoutExpired, KeyboardInterrupt) as error:
             reason = 'timeout' if isinstance(error, subprocess.TimeoutExpired) else 'interrupted'
             output.write(f'\nCheck stopped: {reason}.\n'.encode('utf-8'))
@@ -77,24 +96,71 @@ def run_logged(argv, *, cwd, env, log_path, timeout, cancel=None, contain_linux_
         finally:
             try:
                 if process is not None:
-                    if process.stdin and not process.stdin.closed:
-                        process.stdin.close()
                     if result_pipe is None:
+                        if process.stdin and not process.stdin.closed:
+                            process.stdin.close()
                         stop_tree(process, job)
                     else:
-                        command_exit, command_reason = stop_tree(process, result_pipe=result_pipe)
+                        command_exit, command_reason = stop_tree(process, result_pipe=result_pipe, cancel=cancel)
                         if reason is None:
                             exit_code, reason = command_exit, command_reason
+                            if reason == 'interrupted':
+                                output.write(b'\nCheck stopped: interrupted.\n')
             except (OSError, subprocess.SubprocessError) as cleanup_error:
                 output.write(f'Process cleanup failed: {cleanup_error}\n'.encode('utf-8'))
                 reason = 'cleanup_failed'
-                if process.poll() is None:
-                    process.kill()
-                    process.wait(timeout=10)
+                try:
+                    _terminate_failed_check(process)
+                except (OSError, subprocess.SubprocessError) as termination_error:
+                    output.write(f'Could not confirm failed check termination: {termination_error}\n'.encode('utf-8'))
             finally:
+                if result_pipe is not None:
+                    result_pipe.close()
                 if job:
                     job.close()
     return exit_code, reason
+
+
+def _publish_log_snapshot(path, write):
+    staged = None
+    try:
+        with NamedTemporaryFile(dir=path.parent, delete=False) as snapshot:
+            staged = Path(snapshot.name)
+            write(snapshot)
+        # Closing the staged file first confirms all bytes were written.
+        # A surviving descriptor still refers to the old, unlinked file.
+        staged.replace(path)
+        staged = None
+    finally:
+        if staged is not None:
+            staged.unlink(missing_ok=True)
+
+
+def seal_unconfirmed_log(path: Path) -> None:
+    """Publish a bounded snapshot on an inode unavailable to surviving writers."""
+    def copy_extent(snapshot):
+        with path.open('rb') as capture:
+            size = os.fstat(capture.fileno()).st_size
+            remaining = min(size, FAILED_LOG_LIMIT)
+            omitted = size - remaining
+            if omitted:
+                capture.seek(omitted)
+                snapshot.write(f'[Log snapshot omitted {omitted} earlier bytes.]\n'.encode('ascii'))
+            while remaining:
+                chunk = capture.read(min(remaining, 256 * 1024))
+                if not chunk:
+                    snapshot.write(b'\n[Log snapshot ended before the captured extent.]\n')
+                    break
+                snapshot.write(chunk)
+                remaining -= len(chunk)
+
+    try:
+        _publish_log_snapshot(path, copy_extent)
+    except OSError:
+        # Discard a partial copy. If a small replacement still fits, retain
+        # the failure without certifying the output of an unconfirmed writer.
+        _publish_log_snapshot(path, lambda snapshot: snapshot.write(
+            b'Process cleanup failed. Original log snapshot unavailable after an I/O error.\n'))
 
 
 def log_tail(path, limit=6000):
