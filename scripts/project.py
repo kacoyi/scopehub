@@ -18,7 +18,10 @@ from jsonschema import Draft202012Validator, FormatChecker
 
 if __package__:
     from . import maintenance, review_acceptance
-    from .development import expand_engineering_sources, read_only_project_command, resolve_source
+    from .development import (
+        engagement_handoff, expand_engineering_sources, load_maintenance_engagement, read_only_project_command,
+        resolve_source,
+    )
     from .diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
     from .retained_failures import retained_failure_view
     from .operational_paths import OPERATIONAL_PATHS, is_operational_path
@@ -28,7 +31,10 @@ if __package__:
 else:
     import maintenance
     import review_acceptance
-    from development import expand_engineering_sources, read_only_project_command, resolve_source
+    from development import (
+        engagement_handoff, expand_engineering_sources, load_maintenance_engagement, read_only_project_command,
+        resolve_source,
+    )
     from diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
     from retained_failures import retained_failure_view
     from operational_paths import OPERATIONAL_PATHS, is_operational_path
@@ -611,7 +617,13 @@ def validate_delivery(root, project):
     feedback = read_json(root / 'project/feedback.json')
     validate_model(root, 'Delivery', delivery)
     validate_model(root, 'Feedback', feedback)
-    indexed(delivery['scaffold_maintenance']['periodic_reviews'], 'periodic review')
+    maintenance_policy = delivery['scaffold_maintenance']
+    indexed(maintenance_policy['periodic_reviews'], 'periodic review')
+    if 'engagement' in maintenance_policy:
+        try:
+            project['maintenance_engagement'] = load_maintenance_engagement(root, maintenance_policy['engagement'])
+        except (OSError, ValueError) as error:
+            raise ProjectError(f'Invalid maintenance engagement: {error}') from error
     tasks, checks = project['tasks'], project['checks']
     types = indexed(delivery['change_types'], 'change type')
     scenarios = indexed(delivery['scenarios'], 'scenario')
@@ -1589,6 +1601,8 @@ def workfront(root=ROOT, *, report_path=None, retained_detail=None):
         ],
         'source': source,
     }
+    if 'maintenance_engagement' in project:
+        state['maintenance_engagement'] = project['maintenance_engagement']
     if retained_detail is not None:
         state['retained_failures'] = retained_failure_view(
             root, (source['sha256'], project_hash), basis='current_checkout', detail=retained_detail,
@@ -1645,7 +1659,7 @@ def attach_review_context(result, project, task, review, source_commit):
     }
     if source_commit:
         reply['current_checkout_review_command'] = read_only_project_command(
-            'context', task['id'], '--phase', 'handoff')
+            'context', task['id'], '--phase', 'handoff', '--read-only')
         if policy:
             reply['policy_command'] = read_only_project_command(
                 'source', 'project/development.json', '/quality/review', source_commit=source_commit)
@@ -1653,7 +1667,7 @@ def attach_review_context(result, project, task, review, source_commit):
     return result
 
 
-def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
+def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement', read_only=False):
     if __package__:
         from .development import (
             bound_review_navigation, causal_context, effective_decisions, feedback_for_task, focused_context,
@@ -1675,8 +1689,14 @@ def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
     # Bound navigation reads only the reviewed tree. Coordination and its
     # request/decision history are an explicitly current-checkout view.
     review = None if source_commit else task_review_status(root, project, local=True).get(key)
+    engagement = {}
+    if phase == 'handoff' and 'maintenance_engagement' in project:
+        engagement['maintenance_engagement'] = engagement_handoff(
+            project['maintenance_engagement'], read_only=read_only, source_commit=source_commit,
+        )
     if not detail:
         context = focused_context(project, key, phase, source_commit=source_commit)
+        context.update(engagement)
         reviews = project['delivery']['scaffold_maintenance']['periodic_reviews']
         transfers = [(index, row) for index, row in enumerate(reviews) if row.get('follow_through_task') == key]
         if transfers and source_commit is not None:
@@ -1705,6 +1725,7 @@ def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
         'feedback': [item for item in project['feedback']['items'] if key in item['task_ids']],
         'iteration_policy': project['delivery']['iteration_policy'],
         'scaffold_maintenance': project['delivery']['scaffold_maintenance'],
+        **engagement,
         'dependency_maintenance': maintenance_status(root),
         'delivery_decisions': {'integration': project['delivery']['source_control']['integration'],
                                'authorization': project['delivery']['source_control']['authorization'],
@@ -2652,6 +2673,7 @@ def main():
     context.add_argument('task_id', nargs='?')
     context.add_argument('--detail', action='store_true', help='Expand full policies, decisions and historical dependencies')
     context.add_argument('--phase', choices=['implement', 'verify', 'handoff'], default='implement')
+    context.add_argument('--read-only', action='store_true', help='Render maintenance handoff links using pinned Python')
     context.add_argument('--source', metavar='COMMIT', help='Require this clean commit in verification context')
     sub.add_parser('brief')
     source = sub.add_parser('source', help='Read one authoritative JSON section without expanding unrelated records')
@@ -2733,7 +2755,7 @@ def main():
             if args.source is not None:
                 require_review_source(ROOT, args.source)
                 records = CommittedPath.at(ROOT, args.source)
-            result = task_context(records, args.task_id, detail=args.detail, phase=args.phase)
+            result = task_context(records, args.task_id, detail=args.detail, phase=args.phase, read_only=args.read_only)
             if args.source is not None:
                 require_review_source(ROOT, args.source)
                 result['review_source'] = records.commit
