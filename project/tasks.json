@@ -25755,7 +25755,7 @@
           "report_sha256": "402b254a10b4c31621490f12658803f9f42553e7d1023dfdcaac41cbbd2bb557"
         }
       ],
-      "next_action": "Qualify the isolated fixture with native Windows observations and compare the complete serial check against both retained first-attempt timeouts and their ordinary PR controls. Measure setup and total work separately. Keep the finding open pending a complete protected main-push result within the existing deadline.",
+      "next_action": "Hand the focused policy-read crossover to the coordinator for one native Windows runner and compare the complete process, public commands and fixture setup separately. Carry M0-146's independently measured verifier reads as an external dependency. Keep the finding open until an actual protected main push containing the correction records a complete Python result within 1200 seconds.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -25768,12 +25768,24 @@
           "project/delivery.json",
           "scripts/check.py",
           "tests/project",
-          "archives/observations/repo-hygiene-20261125/main-python-and-indicator-45702463807/observations.json"
+          "archives/observations/repo-hygiene-20261125/main-python-and-indicator-45702463807/observations.json",
+          "archives/observations/repo-hygiene-20261125/m0-151-python-timeout-45704298377/observation.json (SHA-256 69a659d220229267f9d93c56cb3e8289895325b1e7707653876e82ff6f86564c)",
+          "archives/observations/repo-hygiene-20261125/m0-153-serial-native-9877c170/observation.json (SHA-256 d3ccfd87f2255acc8851191b7810acdd61c02b7b4f37efa071848cf1cad1e8d8)",
+          "archives/observations/repo-hygiene-20261125/m0-153-windows-paired-45712707766/observation.json (SHA-256 db18bea5467be5ed1c5dd37c27e0a04f52556d50510cca428a3f0dde5b3e4864)",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-146-178c7d26/final-response.txt (SHA-256 3c5068fe6bb9a818c722b7ea43c414a33eec1c57e14eabcc648ec514aab15ee4)",
+          "archives/observations/repo-hygiene-20261125/pr123-native-original-45674883737/manifest.json (SHA-256 2d61cba578959515d680012721a6b64a1d785d7d05f741ecdc4dce53e96789de)",
+          ".reports/audit-20261125/m0-153-periodic-policy-baseline/SHA256SUMS (SHA-256 f5dd2ac4ead1abd9a85f6be063f3bc33a97ace6422e9f2bcef085688a79319a9)",
+          ".reports/audit-20261125/m0-153-periodic-policy-pair/SHA256SUMS (SHA-256 1751fffca5048290a0d3302fc4e3e740062f3d21fa199e4859cd36b8840d1483)"
         ],
         "hypotheses": [
           "The same-tree 1171.172-second success leaves little headroom. Repeated setup or verification work across cases may be measurable before the last recorded test.",
           "The failed original supplies no individual-case time. Compare representative complete native timings and short controlled runs before attributing the failure to one test.",
-          "The successful Windows control reported 47 worktree retirement cases totaling 161.612 seconds at the named-case boundary. The Linux same-entry focused control directly counted six identical standalone Git bootstraps in six separate fixtures, requiring 36 local Git launches. One completed case-independent seed may eliminate those repeated launches while keeping real linked worktrees."
+          "The successful Windows control reported 47 worktree retirement cases totaling 161.612 seconds at the named-case boundary. The Linux same-entry focused control directly counted six identical standalone Git bootstraps in six separate fixtures, requiring 36 local Git launches. The one-runner Windows crossover measured six-case median setup of 2.509 seconds before and 1.187 after. Median complete suite time was 37.496 and 37.519 seconds respectively. This establishes a setup saving; the observed total does not support a serial deadline recovery claim.",
+          "The ordinary PR 45712098970 at 9551549215aaca303e918ed5626cdf36d5b1db52 and guarded dispatch 45712188510 at 9877c170643b673c58a7d167fe38c2e7978ed83c both delivered the same ordered 831 cases and 65 skips, with terminal check times of 926.265 and 918.438 seconds respectively. The 103 delivery cases accounted for 237.058 and 228.830 seconds. Those completed routes precede an actual protected main push containing the correction.",
+          "The protected and guarded first attempts stopped at 1200.047 and 1200.000 seconds with 826 and 836 started cases and no terminal summary. Their ordinary same-tree controls 45698603142 and 45704203169 completed in 1171.172 seconds for 831 cases and 945.688 seconds for 838 cases. The first control has the same case order as the two new 831-case runs. The second has seven additional M0-151 cases. The failed logs identify different last-started cases and give no individual-case timing.",
+          "Two feedback-history cases consumed 28.050 and 27.571 seconds in the two complete serial inventories. M0-146 owns reuse of proven predecessor reads and project schema parsing at 528ca59f5655f554396a4cbc0ff460cff0384ddd. Its independent public comparison preserved exit codes and output for all 33 pairs. Native PR123 at 89668fa44ffb56cf848518c5959329ef89992ba9 included that read change and recorded 889.719 seconds for serial Python and 975 seconds for the full workflow. This is a different source and route. M0-146's later split applies to ordinary full Windows pull requests, so the protected push continues to require serial observation.",
+          "Four periodic maintenance cases consumed 51.491 and 49.258 seconds in those native inventories. On exact 9877c170643b673c58a7d167fe38c2e7978ed83c the Linux trace observed 268 reads of committed branch-protection policy through real commands. Of those, 186 repeated the same policy commit within one command. Other direct children accounted for 1794 starts. The total time of the traced policy reads was about 0.443 seconds on Linux. The measured native case totals leave the native contribution of these reads unresolved.",
+          "The isolated Linux crossover ran the existing same-day branch ancestry and retirement-transfer cases in eight alternating processes at the same source. Each process captured 36 public interactions and six isolation controls, with 32 accepted and 10 rejected exits in the same order and identical transcripts after normalizing temporary paths. The controls changed the policy between commits, removed and restored it, resolved source-less timing through the current HEAD and removed every fixture. Reusing only successful exact-commit reads reduced observed policy launches from 129 to 46 and all traced Git launches from 923 to 840. Median complete process time was 5.313 and 5.038 seconds. Native effect and protected deadline recovery remain unverified."
         ],
         "risks": [
           {
@@ -25791,6 +25803,12 @@
           },
           {
             "failure": "Copying a seeded repository shares mutable objects, imports another test's path or makes a standalone initialization failure suppress later test outcomes.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Reusing a protection policy accepts an incorrect source, confuses distinct committed policies, or hides an unavailable policy after HEAD or working files change.",
             "checks": [
               "python-contracts-workers"
             ]
@@ -25821,7 +25839,7 @@
             "Changing product behavior, check deadlines, the coverage catalog, paid runner capacity or the independently owned indicator recovery."
           ],
           "open_questions": [
-            "Can a fully constructed standalone test seed remove repeated setup while every case still owns its Git object files, index, config and linked registrations? Can the next case recover after a rejected seed initialization?"
+            "Does reusing successful exact-commit policy reads inside one public command measurably shorten complete native Windows interactions, preserving accepted and rejected transcripts, live HEAD resolution and isolated cleanup?"
           ]
         },
         "evolution": {
@@ -25832,7 +25850,7 @@
           "change": [
             "Remove a verified cost on the ordinary Windows push route after observing it in an affected public check."
           ],
-          "data_plan": "Use test-owned synthetic repositories and the retained native reports and logs. Production data is outside this change. The unmodified focused Git trace and native custody are in archives/observations/repo-hygiene-20261125/m0-153-fixture-baseline-60d80696/SHA256SUMS (SHA-256 31c54d95a8181caef2c1ffd905baa6e27898893278464ded3ebecf78aa94132a).",
+          "data_plan": "Use test-owned synthetic repositories and the retained native reports and logs. The original retirement Git trace remains in archives/observations/repo-hygiene-20261125/m0-153-fixture-baseline-60d80696/SHA256SUMS (SHA-256 31c54d95a8181caef2c1ffd905baa6e27898893278464ded3ebecf78aa94132a). Keep the periodic policy experiment in checkout-local reports with its untreated trace, complete public transcripts and each arm's original timing. Use only successful reads keyed by checkout and exact commit within each experimental invocation. Resolve HEAD afresh when the observation has no capture source. Keep actual protected and guarded timeout reports linked to the open finding.",
           "cleanup": "Leave each fixture independent and remove its owned processes and files. Retain the original failed report and the new native evidence."
         }
       }
