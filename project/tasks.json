@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-170",
   "tasks": [
     {
       "id": "M0-001",
@@ -27111,6 +27111,115 @@
           ],
           "change": [
             "Journal the intercepted upstream status, tagged snapshot HTTP and writer observations, and browser delivery separately. Fail the fixture explicitly if its snapshot settles before the tagged write. Exercise a real refusal while a competing snapshot holds the writer."
+          ],
+          "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
+          "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
+        }
+      }
+    },
+    {
+      "id": "M0-170",
+      "title": "Qualify the public CSV preview preceding a cancelled reviewed save",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M1-008"
+      ],
+      "scope": [
+        "apps/desktop/src-tauri",
+        "crates/worker-host",
+        "crates/application",
+        "python/worker_runtime"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Bind the failing public preview, same-case passing controls and the separate reviewed save to their exact native source and original logs. Identify the stage that was actually reached and preserve missing observations.",
+        "Classify or correct the CSV preview timeout at the ordinary desktop entry using an isolated synthetic source, a genuinely completed preview and a bounded early stall or failed preview. Verify cancellation after admission on a successful preview preserves the unwritten profile and an ordinary subsequent operation.",
+        "Retain original and corrective evidence, qualify the changed source on native Windows, obtain independent review and recheck the integrated source."
+      ],
+      "checks": [
+        "project-state",
+        "rust-contracts-workers",
+        "local-folder-import"
+      ],
+      "evidence": [],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45848342284-1",
+          "source_commit": "10024108d06f2d6adaf095b1ccb1a9d1bd531b82",
+          "report_sha256": "23dbf3f6ac858b6cd0c8becceed7cc2812b3cf5f5b1a7221b7d0404ff523426e"
+        }
+      ],
+      "next_action": "Inspect the original core log, exact source and comparable passing native runs. Drive the ordinary import preview with a synthetic CSV, distinguish completed and interrupted preview from save admission, and retain stage-specific evidence useful on Windows. Change the owning fixture or implementation only where evidence warrants it.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Bind the failing public preview, same-case passing controls and the separate reviewed save to their exact native source and original logs. Identify the stage that was actually reached and preserve missing observations. Classify or correct the CSV preview timeout at the ordinary desktop entry using an isolated synthetic source, a genuinely completed preview and a bounded early stall or failed preview. Verify cancellation after admission on a successful preview preserves the unwritten profile and an ordinary subsequent operation.",
+        "change_types": [
+          "tooling",
+          "market-fixtures"
+        ],
+        "context": [
+          "apps/desktop/src-tauri/src/bridge_tests.rs",
+          "apps/desktop/src-tauri/src/local_import.rs",
+          "crates/worker-host/src/local_import.rs",
+          "project/checks.json",
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json"
+        ],
+        "hypotheses": [
+          "The failed Windows run returned during the initial preview. A worker reply, setup contention or fixture scheduling may affect this boundary; no individual cause is established."
+        ],
+        "risks": [
+          {
+            "failure": "A longer timeout or a retry before the save could hide a stuck preview or allow the cancellation assertion to pass without exercising the intended save phase.",
+            "checks": [
+              "project-state",
+              "rust-contracts-workers",
+              "local-folder-import"
+            ]
+          }
+        ],
+        "rollback": "Restore the preceding implementation and retain the diagnosed failures and controls if the ordinary contract changes.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "desktop",
+            "worker-host",
+            "application",
+            "worker-runtime"
+          ],
+          "entrypoints": [
+            "apps/desktop/src-tauri/src/bridge_tests.rs",
+            "apps/desktop/src-tauri/src/local_import.rs",
+            "crates/worker-host/src/local_import.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/0"
+            }
+          ],
+          "non_goals": [
+            "Preserve production deadlines, import authorization, private profile ownership, cancellation and saved data. Use owned synthetic fixtures. Keep the Herdr portability task and indicator cleanup cases with their existing owners."
+          ],
+          "open_questions": [
+            "The failed Windows run returned during the initial preview. A worker reply, setup contention or fixture scheduling may affect this boundary; no individual cause is established."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Preserve production deadlines, import authorization, private profile ownership, cancellation and saved data. Use owned synthetic fixtures. Keep the Herdr portability task and indicator cleanup cases with their existing owners."
+          ],
+          "change": [
+            "Inspect the original core log, exact source and comparable passing native runs. Drive the ordinary import preview with a synthetic CSV, distinguish completed and interrupted preview from save admission, and retain stage-specific evidence useful on Windows. Change the owning fixture or implementation only where evidence warrants it."
           ],
           "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
           "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."

@@ -8167,6 +8167,30 @@
         "prevention": "First ordinary PR 139 run 45830747074 verified both hosted platforms. The full window and one-reset cropped recovery rendered zero terminal volatility, and the cropped run retained warm-up provenance. The two-reset cropped trial recorded one genuine gated status refusal, one cancellation of the current task and the expected terminal alert. Separate synthetic refusal controls exercised termination between requests and expiry with an unforwarded final status request held in flight. The latter recorded the browser abort and no HTTP response before cancellation. Both use the existing 15-second polling deadline. The split-upload draft control delivered retryable HTTP 429 after complete upload, including after the writer became free, and checked committed receipt identity on an identical retry and rejection of altered same-key bytes. The coordinator owns the protected main recheck."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-reviewed-save-preview-expired-before-save-admission",
+      "status": "open",
+      "severity": "major",
+      "source": "First native observation archives/observations/repo-hygiene-20261125/pr142-producer-45848342284-core/observation.json (SHA-256 c5da835cbfa551fb0824261aaf0e945aeaf45bd3c623406c32643ca75467ac84).",
+      "observation": "Windows PR 142 core job 140007775200 (first attempt 45848342284) ran 31 desktop bridge tests. The reviewed-save cancellation fixture obtained the CSV selection; its initial public PREVIEW_LOCAL_IMPORT returned retryable TIMEOUT at bridge_tests.rs:2418, before any save admission or cancellation. The remaining 30 tests passed, including the reviewed-save recovery case. Startup stage, cause of the delay and the downstream save outcome were not observed.",
+      "task_ids": [
+        "M0-170"
+      ],
+      "regression_checks": [
+        "project-state",
+        "rust-contracts-workers",
+        "local-folder-import"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45848342284-1",
+          "source_commit": "10024108d06f2d6adaf095b1ccb1a9d1bd531b82",
+          "report_sha256": "23dbf3f6ac858b6cd0c8becceed7cc2812b3cf5f5b1a7221b7d0404ff523426e"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
