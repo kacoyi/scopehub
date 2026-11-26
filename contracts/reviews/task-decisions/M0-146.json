@@ -117,6 +117,26 @@
       "requested_at": "2026-11-26T03:52:31.359471+00:00",
       "request_id": "b5fe41be658cf661f864c09fce25f290876076cc8598ac3c0055f83a4c13ce9e",
       "evidence_sha256": "d0580fa20c62ceabde58c3aefb802d8b243cb97a591cac197adbd3fae1e355b6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "6c4effe33210598993fcd8bf7bca26d40d8569ba",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 6c4effe33210598993fcd8bf7bca26d40d8569ba",
+      "scope": "CHANGES_REQUESTED M0-146 6c4effe33210598993fcd8bf7bca26d40d8569ba",
+      "observation": "The candidate published a passing aggregate that marked a skipped test as passed and a passed test as skipped while both original producer logs remained unchanged.",
+      "reviewer": "Independent Astra Standard (t12g)",
+      "original_sha256": "8ddb16dc5ac9f8ec3890a12dedccc3351dbd502b19dc6e94327359540620c4e4",
+      "response_id": "56fc37cf49f8aaec6cd0e8b37fe09d354f70f30cf2aff0b5221e1d08d4ce7500",
+      "response_sha256": "8ed16e4b4dc170dd29e8ca4db75433624e4596f5d7ad787f14f18a189c71bd31",
+      "legacy_response_sha256": "e60c8052641c5efae559a529711aa0c9c8d14233a43525b6faf85a20ffa684dc",
+      "observation_body_sha256": "128205cad5d048e4b49cb5363a6d9a6543fd6fb5e068b4325b60eb2d62a0fa17",
+      "event": {
+        "id": "msg_04d9ffc176f599b4016b07b177fe9487d1bdbbe9b489ec6b6b",
+        "timestamp": "2026-11-26T04:12:04.090Z"
+      },
+      "supersedes": "b5fe41be658cf661f864c09fce25f290876076cc8598ac3c0055f83a4c13ce9e",
+      "evidence_sha256": "cca2cbabe1f0b50720de797ed9fb03bbcf2f0d505fe8552a855fc55793b84944"
     }
   ]
 }

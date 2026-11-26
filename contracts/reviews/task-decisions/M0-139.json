@@ -117,6 +117,26 @@
       "requested_at": "2026-11-26T03:52:30.420250+00:00",
       "request_id": "bc08f13cb000351dece7856ee9c43ede17274f4b8932b26dd26641965bb02afc",
       "evidence_sha256": "5a24928d31f26b800a1ea4d9e2d1b94daeb2ff4360677a33e99fd19ab7591f0f"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "6c4effe33210598993fcd8bf7bca26d40d8569ba",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-139 6c4effe33210598993fcd8bf7bca26d40d8569ba",
+      "scope": "CHANGES_REQUESTED M0-139 6c4effe33210598993fcd8bf7bca26d40d8569ba",
+      "observation": "The reviewed importer issued an M0-139 receipt for attempt 2 using both required logs from attempt 1.",
+      "reviewer": "Independent Astra Standard (t12f)",
+      "original_sha256": "066e5ba2a2ebfcc70e04607bda287ac2dd411b3b5a3c404d121f82e032729b24",
+      "response_id": "cff237850ce522ab9c76951c6328786509f4df88db93738665d78e5563582b97",
+      "response_sha256": "c271b0b56b51c3321c766a64007ead5fae078337fe3427744e8417324dd3c28f",
+      "legacy_response_sha256": "0f182fa39fb0dfcc30ad6077fcf211214ea2b2bccee3f6ae19dc5ef3542e8068",
+      "observation_body_sha256": "112957520ddcb4b3689e6a370c738f61af1c3100dedb6794fe0a57ddad72f3d5",
+      "event": {
+        "id": "msg_01fb3c56507c8a10016b07b0f6595887d188a6cb4016960e19",
+        "timestamp": "2026-11-26T04:09:46.089Z"
+      },
+      "supersedes": "bc08f13cb000351dece7856ee9c43ede17274f4b8932b26dd26641965bb02afc",
+      "evidence_sha256": "8fe5de7008ac8f57b762dcdb9eea02a8a70e72cd3ee206ed710be86354f66100"
     }
   ]
 }
