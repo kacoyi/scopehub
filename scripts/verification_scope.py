@@ -227,6 +227,33 @@ _CURRENT_WINDOWS_SELECTOR = _SHARED_WINDOWS_SELECTOR.replace(
     'lanes=WINDOWS_LANES', 'lanes=WINDOWS_LANES, *, assignment=WINDOWS_LANE_CHECKS',
 ).replace('WINDOWS_LANE_CHECKS[name]', 'assignment[name]').replace('WINDOWS_LANE_CHECKS[lane]', 'assignment[lane]')
 
+_WINDOWS_CHECK_SELECTION_PREFIX = """def select_checks(project, *, profile=None, task_id=None):
+    if task_id:
+        if task_id not in project['tasks']:
+            raise ProjectError(f'Unknown task: {task_id}')
+        return set(project['tasks'][task_id]['checks']) | {'environment', 'project-state'}
+"""
+_LEGACY_WINDOWS_CHECK_SELECTION = _WINDOWS_CHECK_SELECTION_PREFIX + """    if profile:
+        if profile == 'release':
+            return release_checks(project)
+        if profile not in project['catalog'].get('profiles', {}):
+            raise ProjectError(f'Unknown check profile: {profile}')
+        return set(project['catalog']['profiles'][profile])
+    return {key for key, check in project['checks'].items() if check.get('cadence', 'change') == 'change' and check['status'] != 'retired'}"""
+_SHARED_WINDOWS_CHECK_SELECTION = _WINDOWS_CHECK_SELECTION_PREFIX + """    if profile == 'release':
+        return release_checks(project)
+    if profile and profile not in project['catalog'].get('profiles', {}):
+        raise ProjectError(f'Unknown check profile: {profile}')
+    if __package__:
+        from .verification_scope import hosted_check_selection
+    else:
+        from verification_scope import hosted_check_selection
+    return hosted_check_selection(project['catalog'], profile)"""
+_HOSTED_CHECK_SELECTION = """def hosted_check_selection(catalog, profile):
+    if profile:
+        return set(catalog.get('profiles', {}).get(profile, ()))
+    return {check['id'] for check in catalog['checks'] if check.get('cadence', 'change') == 'change' and check['status'] != 'retired'}"""
+
 
 def _publishing_module(root, revision, file):
     path = f'{revision}:scripts/{file}'
@@ -235,12 +262,39 @@ def _publishing_module(root, revision, file):
     return ast.parse(git(root, 'cat-file', 'blob', path))
 
 
-def _publishing_selector(module):
+def _publishing_selector(module, name):
     functions = [node for node in module.body
-                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == 'windows_lane_checks']
+                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name]
     if len(functions) > 1:
         raise ValueError('Ambiguous Windows publishing selector')
     return functions[0] if functions else None
+
+
+def _check_selection_shape(module, name):
+    selector = _publishing_selector(module, name)
+    for parent in ast.walk(module):
+        for node in ast.iter_child_nodes(parent):
+            if isinstance(node, ast.Name) and node.id == name:
+                if not isinstance(parent, ast.Call) or parent.func is not node:
+                    return None
+            if isinstance(node, ast.alias) and (node.asname or node.name) in {name, '*'}:
+                return None
+            if (isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.ExceptHandler))
+                    and node.name == name and node is not selector):
+                return None
+            if isinstance(node, ast.arg) and node.arg == name:
+                return None
+    return ast.unparse(selector) if selector else None
+
+
+def _require_initial_windows_selection(harness, shared):
+    shape = _check_selection_shape(harness, 'select_checks')
+    if shape == _LEGACY_WINDOWS_CHECK_SELECTION:
+        return
+    if shape == _SHARED_WINDOWS_CHECK_SELECTION and shared is not None:
+        if _check_selection_shape(shared, 'hosted_check_selection') == _HOSTED_CHECK_SELECTION:
+            return
+    raise ValueError('Unsupported initial Windows publishing selection')
 
 
 def _publishing_assignment_node(module, name):
@@ -407,16 +461,17 @@ def committed_windows_assignment(root, revision):
         harness = _publishing_module(root, revision, 'check.py')
         call = _publishing_lane_call(harness)
         module = harness
-        selector = _publishing_selector(harness)
+        selector = _publishing_selector(harness, 'windows_lane_checks')
         imports = {(node.module, name.name) for node in ast.walk(harness) if isinstance(node, ast.ImportFrom)
                    for name in node.names if (name.asname or name.name) == 'windows_lane_checks'}
         if selector is None and imports == {('verification_scope', 'windows_lane_checks')}:
             module = _publishing_module(root, revision, 'verification_scope.py')
-            selector = _publishing_selector(module)
+            selector = _publishing_selector(module, 'windows_lane_checks')
         elif imports:
             return None
         if selector is None:
             return None
+        _require_initial_windows_selection(harness, module if module is not harness else None)
         declarations = [selector, call] if module is harness else [selector]
 
         def literal(name):

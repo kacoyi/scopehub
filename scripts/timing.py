@@ -480,10 +480,29 @@ def job_identity(run_id, attempt, head_sha, repository, job):
     return missing, conflicts
 
 
+def windows_aggregate_markers(job):
+    return {step['name'] for step in job.get('steps', ())
+            if step.get('name') in {WINDOWS_AGGREGATE_MARKER, WINDOWS_RECOVERY_MARKER}
+            and (job.get('name') == 'verify (windows-latest)' or step.get('conclusion') == 'success')}
+
+
+def windows_step_roles(job):
+    # A scoped verification step can run in both the core lane and its
+    # aggregate. Match only steps with a single publishing role.
+    executed = {step.get('name') for step in job.get('steps', ()) if step.get('conclusion') == 'success'}
+    roles = {name for lane, name in WINDOWS_PRODUCERS.items() if f'Verify the Windows {lane} lane' in executed}
+    if executed & {WINDOWS_AGGREGATE_MARKER, WINDOWS_RECOVERY_MARKER}:
+        roles.add('verify (windows-latest)')
+    return roles
+
+
 def observe_job(job, *, identity, requested, label=None, harness_steps=HARNESS_STEPS):
     missing, conflicts = job_identity(*identity, job)
     if label and job.get('labels') and label not in job['labels']:
         conflicts.append('runner_label')
+    roles = windows_step_roles(job)
+    if roles and roles != {job.get('name')}:
+        conflicts.append('job_role')
     start, end = timestamp(job.get('started_at')), timestamp(job.get('completed_at'))
     choices = {field: {point} if point is not None else set()
                for field, point in (('requested', requested), ('start', start), ('end', end))}
@@ -567,7 +586,7 @@ def windows_parent_profile(job):
 
 
 def windows_clock_lanes(run, *, identified=False):
-    if not run or not (run['workflow'].get('windows_split') or 'sibling_jobs' in run):
+    if not run or not run['workflow'].get('windows_split', 'sibling_jobs' in run):
         return ()
     workflow = run['workflow']
     # Older compact captures had no explicit layout flag. Their complete
@@ -606,8 +625,7 @@ def hosted_timing(run, jobs):
     requested = timestamp(run.get('created_at')) if attempt == '1' else None
     identity = (run_id, attempt, run.get('head_sha'), repository)
     grounded = [job for job in jobs if not any(job_identity(*identity, job))]
-    aggregate_markers = {step.get('name') for job in grounded if job.get('name') == 'verify (windows-latest)'
-                         for step in job.get('steps', [])}
+    aggregate_markers = {marker for job in grounded for marker in windows_aggregate_markers(job)}
     recovery_layout = (WINDOWS_RECOVERY_MARKER in aggregate_markers
                        or any(job.get('name') == WINDOWS_PRODUCERS['recovery'] for job in grounded))
     legacy_layout = WINDOWS_AGGREGATE_MARKER in aggregate_markers
@@ -626,12 +644,10 @@ def hosted_timing(run, jobs):
             row = observe_job(job, identity=identity, requested=requested, label=protected[1])
             rows.append(row)
             if split and protected[1] == 'windows-latest' and has_job_identity(row):
-                aggregate_scopes[job_clock_identity(row)].append(windows_parent_profile(job))
-            continue
-        if not split:
+                aggregate_scopes[job_slot_identity(row)].append(windows_parent_profile(job))
             continue
         lane = next((lane for lane, expected in WINDOWS_PRODUCERS.items() if name == expected), None)
-        if lane:
+        if lane and split:
             harness_steps = {f'Verify the Windows {lane} lane'}
             if lane == 'core':
                 harness_steps.update(SCOPED_HARNESS_STEPS)
@@ -641,42 +657,26 @@ def hosted_timing(run, jobs):
             continue
         else:
             row = observe_job(job, identity=identity, requested=requested, harness_steps=())
-        siblings.append({**row, 'name': name})
+        if split or has_job_claim(row):
+            siblings.append({**row, 'name': name})
 
-    rows, siblings = coalesce_job_observations(rows), coalesce_job_observations(siblings)
-    identified = [row for row in [*rows, *siblings] if has_job_identity(row)]
-    roles = defaultdict(set)
-    for row in identified:
-        roles[row['job_id']].add(job_clock_identity(row))
-    for row in identified:
-        if len(roles[row['job_id']]) > 1:
-            row['identity_issues']['conflicts'].append('duplicate_job_id')
-    protected, sibling_members = bound_jobs(rows), bound_jobs(siblings)
+    rows, siblings = distinct_rows(rows), distinct_rows(siblings)
+    protected, sibling_members = listed_membership(rows, siblings if split else (), run.get('conclusion'))
     members = [*protected, *sibling_members]
-    runners = [row['seconds']['runner'] for row in members]
     parents = [row for row in protected if row['platform'] == 'Windows']
     profile, scope_disputed = None, False
     if split and len(parents) == 1:
         parent, = parents
-        observations = aggregate_scopes[job_clock_identity(parent)]
+        observations = aggregate_scopes[job_slot_identity(parent)]
         profile, scope_disputed = known_value(scope for scope, _ in observations)
         scope_disputed = scope_disputed or any(disputed for _, disputed in observations)
         if scope_disputed:
             profile = None
-        producers = {lane: row for lane, name in WINDOWS_PRODUCERS.items() for row in sibling_members
-                     if row.get('name') == name} if (identified_layout
-                                                     and has_windows_producers(sibling_members, expected)) else {}
-        stages, _ = split_stage_seconds(parent, producers, profile in SCOPED_PROFILES)
-        parent['seconds'].update(stages)
     bound_matrix = (len(protected) == len(PLATFORMS) and
                     {row['platform'] for row in protected} == set(PLATFORMS.values())
                     and (not split or identified_layout and has_windows_producers(sibling_members, expected)))
-    complete = (bound_matrix and len(members) == len(identified) and run.get('status') == 'completed'
-                and all(row['status'] == 'completed' for row in members))
-    identity_complete = (bound_matrix and len(members) == len(identified) and positive_id(run_id)
-                         and positive_id(attempt) and commit_id(run.get('head_sha')))
-    totals = [row['seconds']['total'] for row in protected]
-    complete_clocks = complete and identity_complete
+    complete = bound_matrix and run.get('status') == 'completed' and all(row['status'] == 'completed' for row in members)
+    identity_complete = bound_matrix and positive_id(run_id) and positive_id(attempt) and commit_id(run.get('head_sha'))
     result = {
         'repository': repository, 'run_id': run_id, 'run_attempt': attempt,
         'head_sha': run.get('head_sha'), 'event': run.get('event'),
@@ -685,15 +685,15 @@ def hosted_timing(run, jobs):
         'workflow': {
             'matrix_complete': complete,
             'identity_complete': identity_complete,
-            'total_elapsed_seconds': max(totals) if complete_clocks and all(value is not None for value in totals) else None,
-            'runner_work_seconds': sum(runners) if complete_clocks and all(value is not None for value in runners) else None,
+            'total_elapsed_seconds': None, 'runner_work_seconds': None,
         },
     }
     if run.get('checkout_sha') is not None:
         result['checkout_sha'] = run['checkout_sha']
-    if split:
+    if split or siblings:
         result['sibling_jobs'] = siblings
-        result['workflow']['windows_split'] = True
+        result['workflow']['windows_split'] = split
+    if split:
         result['workflow']['windows_layout_identified'] = identified_layout
         if scope_disputed:
             result['workflow']['windows_profile_disputed'] = True
@@ -701,6 +701,7 @@ def hosted_timing(run, jobs):
             result['workflow']['windows_profile'] = profile
         if recovery_layout:
             result['workflow']['windows_recovery_producer'] = True
+    project_listed_clocks(result, protected, sibling_members)
     return result
 
 
@@ -748,7 +749,7 @@ def labels(record, keys):
 
 
 def valid_sample(sample):
-    if not labels(sample, ('run_id', 'platform', 'profile', 'arch', 'source_commit', 'recorded_at', 'cache')):
+    if not labels(sample, ('run_id', 'platform', 'profile', 'arch', 'source_commit', 'recorded_at', 'cache', 'task_id')):
         return False
     checks, selected, ci = sample['checks'], sample['selected'], sample['ci']
     if (sample.get('kind') != SAMPLE_KIND or type(sample['coverage_complete']) is not bool
@@ -860,10 +861,14 @@ def bound_jobs(jobs):
     return [job for job in jobs if has_job_identity(job)]
 
 
+def attempt_membership(run):
+    return listed_membership(run['jobs'], run.get('sibling_jobs', ()) if split_windows_clock(run) else (),
+                             run['conclusion'])
+
+
 def clock_membership_complete(run):
     workflow = run['workflow']
-    protected = bound_jobs(run['jobs'])
-    siblings = bound_jobs(run.get('sibling_jobs', ()))
+    protected, siblings = attempt_membership(run)
     lanes = windows_clock_lanes(run)
     actual = [*protected, *siblings]
     ids = {job['job_id'] for job in actual}
@@ -882,7 +887,7 @@ def clock_capture_complete(run):
 
 def successful_clock_jobs(run):
     return run['conclusion'] == 'success' and all(
-        job['conclusion'] == 'success' for job in bound_jobs([*run['jobs'], *run.get('sibling_jobs', [])])
+        job['conclusion'] == 'success' for group in attempt_membership(run) for job in group
     )
 
 
@@ -922,12 +927,12 @@ def has_job_identity(job):
     return positive_id(job['job_id']) and not any(job['identity_issues'].values())
 
 
-def has_job_role_claim(job):
-    # A duplicate ID cannot supply a clock, but its grounded role claim
-    # can still conflict with the role observed in a separate listing.
+def has_job_claim(job):
+    # These issues concern a fact about an already identified Actions job.
+    # Older compact captures used duplicate_job_id for the entire row.
     issues = job['identity_issues']
     return (positive_id(job['job_id']) and not issues['missing']
-            and issues['conflicts'] in ([], ['duplicate_job_id']))
+            and set(issues['conflicts']) <= {'duplicate_job_id', 'job_role', 'runner_label', 'checkout_sha'})
 
 
 def known_value(values, unknown=None):
@@ -944,7 +949,7 @@ def timing_checkout_conflicts(samples, hosted, issues):
             observed[ci_key(sample['ci'])].add(sample['source_commit'])
     for run in hosted:
         checkouts = [run.get('checkout_sha'), *(job.get('checkout_sha')
-                    for job in [*run['jobs'], *run.get('sibling_jobs', [])] if has_job_identity(job))]
+                    for job in [*run['jobs'], *run.get('sibling_jobs', [])] if has_job_claim(job))]
         observed[ci_key(run)].update(sha for sha in checkouts if commit_id(sha))
     disputes = {attempt for attempt, claims in observed.items() if known_value(claims)[1]}
     for attempt in sorted(disputes, key=repr):
@@ -958,8 +963,17 @@ def clock_preference(run):
             json.dumps(run, sort_keys=True))
 
 
-def job_clock_identity(job):
-    return (job.get('name'), job['job_id'], job['platform'], job['runner_label'], job['status'], job['conclusion'])
+def job_slot_identity(job):
+    return (job.get('name'), job['job_id'], job['platform'], job['runner_label'])
+
+
+def listed_job_role(job, *, protected=False):
+    if protected:
+        return ('platform', job['platform'])
+    name = job.get('name')
+    if name in WINDOWS_PRODUCERS.values():
+        return ('producer', name)
+    return ('sibling', job['job_id'])
 
 
 def attempt_topology(run):
@@ -967,7 +981,7 @@ def attempt_topology(run):
     return (
         run['conclusion'], split_windows_clock(run),
         bool(workflow.get('windows_recovery_producer')),
-        *(frozenset(job_clock_identity(job) for job in bound_jobs(run.get(field, ()))) for field in ('jobs', 'sibling_jobs')),
+        *(frozenset(job_slot_identity(job) for job in group) for group in attempt_membership(run)),
     )
 
 
@@ -1022,22 +1036,42 @@ def merge_job_clock(jobs, *, projected=False):
     return resolved, tuple(disputes), endpoint_disputes, unplaced
 
 
-def coalesce_job_observations(rows):
-    # One identity can carry several partial or contradictory facts in one
-    # listing, just as it can across independently retained listings.
-    grouped = defaultdict(list)
-    diagnostic = []
-    for row in distinct_observations(rows):
-        if has_job_identity(row):
-            grouped[job_clock_identity(row)].append(row)
-        else:
-            diagnostic.append(row)
-    for group in grouped.values():
-        if len(group) == 1 or known_value(row.get('checkout_sha') for row in group)[1]:
-            diagnostic.extend(group)
-        else:
-            diagnostic.append(merge_job_clock(group)[0])
-    return sorted(diagnostic, key=lambda row: (row.get('name', ''), row['job_id'] or ''))
+def distinct_rows(rows):
+    return sorted(distinct_observations(rows), key=lambda row: (row.get('name', ''), row['job_id'] or ''))
+
+
+def listed_membership(protected_rows, sibling_rows, conclusion):
+    """Find the roles witnessed together, independently of disputes about their clocks."""
+    groups, roles = defaultdict(list), defaultdict(set)
+    observed = [(listed_job_role(row, protected=True), row) for row in protected_rows]
+    observed.extend((listed_job_role(row), row) for row in sibling_rows)
+    reserved = {row['job_id'] for (scope, _), row in observed if scope != 'sibling' and has_job_identity(row)}
+    for slot, row in observed:
+        if not has_job_identity(row):
+            continue
+        job_id = row['job_id']
+        if slot[0] == 'sibling' and job_id in reserved:
+            continue
+        roles[job_id].add(slot)
+        groups[slot].append(row)
+
+    protected, siblings = [], []
+    for (scope, _), rows in groups.items():
+        stable = [row for row in rows if len(roles[row['job_id']]) == 1]
+        by_id = defaultdict(list)
+        for row in stable or rows:
+            by_id[row['job_id']].append(row)
+        for claims in by_id.values():
+            status, status_conflict = known_value(row['status'] for row in claims)
+            outcome, outcome_conflict = known_value(row['conclusion'] for row in claims)
+            # A positive membership witness can coexist with an adverse
+            # claim. The latter still takes part in metric reconciliation.
+            row = max(claims, key=lambda item: (item['status'] == 'completed', item['conclusion'] == conclusion,
+                                               item['conclusion'] or '', json.dumps(item, sort_keys=True)))
+            member = {**row, 'status': row['status'] if status_conflict else status,
+                      'conclusion': row['conclusion'] if outcome_conflict else outcome}
+            (protected if scope == 'platform' else siblings).append(member)
+    return protected, siblings
 
 
 def complete_attempt_membership(observations, issues):
@@ -1064,6 +1098,41 @@ def complete_attempt_membership(observations, issues):
     return resolved
 
 
+def membership_candidates(observations):
+    # Keep the requirement for a single listing that witnesses the matrix.
+    # Independently observed fields can complete a job already in that listing.
+    candidates = [row for row in observations if row['workflow'].get('identity_complete') is True]
+    if not candidates:
+        return []
+    claims = defaultdict(list)
+    for row in observations:
+        for job in chain(row['jobs'], row.get('sibling_jobs', ())):
+            if has_job_identity(job):
+                claims[row.get('head_branch'), job_slot_identity(job)].append(job)
+
+    def fill(job, branch):
+        if not has_job_identity(job) or (job['status'] is not None and job['conclusion'] is not None):
+            return job
+        evidence = [claim for (observed_branch, slot), rows in claims.items()
+                    if slot == job_slot_identity(job) and (not branch or not observed_branch or branch == observed_branch)
+                    for claim in rows]
+        return {**job, **{field: job[field] or known_value(claim[field] for claim in evidence)[0]
+                          for field in ('status', 'conclusion')}}
+
+    complete = []
+    for row in candidates:
+        if clock_membership_complete(row):
+            complete.append(row)
+            continue
+        resolved = {**row, **{field: [fill(job, row.get('head_branch')) for job in row[field]]
+                              for field in ('jobs', 'sibling_jobs') if field in row}}
+        if resolved != row:
+            resolved['workflow'] = {**row['workflow'], 'matrix_complete': True}
+            if clock_membership_complete(resolved):
+                complete.append(resolved)
+    return complete
+
+
 def attempt_clocks(hosted, issues):
     failures, attempts = defaultdict(dict), defaultdict(list)
     for run in hosted:
@@ -1084,12 +1153,12 @@ def attempt_clocks(hosted, issues):
         # when a particular listing omits some of them.
         split = [row for row in matching if split_windows_clock(row)
                  and any(job['platform'] == 'Windows' and has_job_identity(job) for job in row['jobs'])]
-        candidates = [run for run in matching if clock_membership_complete(run)]
+        candidates = membership_candidates(matching)
         if split:
-            split_parents = {job_clock_identity(job) for row in split for job in row['jobs']
+            split_parents = {job_slot_identity(job) for row in split for job in row['jobs']
                              if job['platform'] == 'Windows' and has_job_identity(job)}
             candidates = [row for row in candidates if split_windows_clock(row)
-                          or not any(job_clock_identity(job) in split_parents for job in row['jobs'])]
+                          or not any(job_slot_identity(job) in split_parents for job in row['jobs'])]
         if candidates:
             if (clock := complete_attempt_membership(candidates, issues)) is not None:
                 clocks[key] = clock
@@ -1098,9 +1167,9 @@ def attempt_clocks(hosted, issues):
             clocks[key] = max(split or matching, key=clock_preference)
         if key in clocks and split_windows_clock(clocks[key]):
             chosen = clocks[key]
-            parents = {job_clock_identity(job) for job in chosen['jobs'] if job['platform'] == 'Windows'}
+            parents = {job_slot_identity(job) for job in chosen['jobs'] if job['platform'] == 'Windows'}
             scopes = [row['workflow'] for row in split
-                      if any(job_clock_identity(job) in parents and has_job_identity(job) for job in row['jobs'])]
+                      if any(job_slot_identity(job) in parents and has_job_identity(job) for job in row['jobs'])]
             profile, disputed = known_value(row.get('windows_profile') for row in scopes)
             disputed = disputed or any(row.get('windows_profile_disputed') for row in scopes)
             clocks[key] = {**chosen, 'workflow': {**chosen['workflow'], 'windows_profile': profile,
@@ -1122,9 +1191,10 @@ class JobClockEvidence(NamedTuple):
 
 
 def job_clock_observations(hosted, clocks, issues):
-    # Matrix authority determines which protected jobs exist. A grounded
-    # measurement for one of those jobs can come from any matching listing.
+    # A complete listing establishes membership. All grounded matching
+    # listings contribute facts about the attempt, including disputes.
     jobs, roles = defaultdict(list), defaultdict(set)
+    disputed_roles = set()
     for run in hosted:
         attempt = ci_key(run)
         authority = clocks.get(attempt)
@@ -1132,31 +1202,31 @@ def job_clock_observations(hosted, clocks, issues):
                 or run['conclusion'] != authority['conclusion']
                 or known_value(row.get('head_branch') for row in (authority, run))[1]):
             continue
-        protected = {job_clock_identity(job) for job in authority['jobs']}
-        for job in run['jobs']:
-            role = ('platform', job['platform'])
-            if has_job_role_claim(job):
-                roles[attempt, job['job_id']].add(role)
-            if has_job_identity(job) and job_clock_identity(job) in protected:
-                jobs[attempt, role].append(protected_job_facts(run, authority, job))
-        for job in run.get('sibling_jobs', []):
-            name = job.get('name')
-            role = ('producer', name) if name in WINDOWS_PRODUCERS.values() else ('sibling', job['job_id'])
-            if has_job_role_claim(job):
-                roles[attempt, job['job_id']].add(role)
-            if not has_job_identity(job):
+        siblings = {job_slot_identity(job) for job in attempt_membership(authority)[1]}
+        observations = chain(((listed_job_role(job, protected=True), job) for job in run['jobs']),
+                             ((listed_job_role(job), job) for job in run.get('sibling_jobs', ())))
+        for role, job in observations:
+            if not has_job_claim(job):
                 continue
-            if (role[0] == 'producer' and job['platform'] == 'Windows'
+            roles[attempt, job['job_id']].add(role)
+            if {'job_role', 'runner_label'}.intersection(job['identity_issues']['conflicts']):
+                disputed_roles.add((attempt, role))
+            if role[0] == 'platform':
+                jobs[attempt, role].append(protected_job_facts(run, authority, job))
+            elif (role[0] == 'producer' and job['platform'] == 'Windows'
                     and job['runner_label'] == 'windows-latest'):
                 jobs[attempt, role].append(inherit_job_checkout(run, job))
-            elif any(job_clock_identity(row) == job_clock_identity(job) for row in authority.get('sibling_jobs', ())):
-                jobs[attempt, ('sibling', job['job_id'])].append(inherit_job_checkout(run, job))
-    role_disputes = {(attempt, role) for (attempt, _), claims in roles.items() if len(claims) > 1 for role in claims}
+            elif job_slot_identity(job) in siblings:
+                jobs[attempt, role].append(inherit_job_checkout(run, job))
+    disputed_roles.update((attempt, role) for (attempt, _), claims in roles.items() if len(claims) > 1 for role in claims)
     observed, producer_disputes = {}, set()
     for (attempt, role), candidates in sorted(jobs.items(), key=lambda item: repr(item[0])):
         scope, name = role
         issue = {'run_id': attempt[1], scope: name}
-        if len({job_clock_identity(job) for job in candidates}) != 1 or (attempt, role) in role_disputes:
+        status, status_conflict = known_value(job['status'] for job in candidates)
+        conclusion, outcome_conflict = known_value(job['conclusion'] for job in candidates)
+        if (len({job_slot_identity(job) for job in candidates}) != 1 or (attempt, role) in disputed_roles
+                or status_conflict or outcome_conflict):
             error = 'Conflicting protected job observations.'
             if scope == 'producer':
                 producer_disputes.add(attempt)
@@ -1166,6 +1236,7 @@ def job_clock_observations(hosted, clocks, issues):
             continue
         projected = role == ('platform', 'Windows') and split_windows_clock(clocks[attempt])
         job, disputed, endpoint_disputes, unplaced = merge_job_clock(candidates, projected=projected)
+        job.update(status=status, conclusion=conclusion, identity_issues={'missing': [], 'conflicts': []})
         if unplaced:
             timing_issue(issues, {**issue, 'endpoints': sorted(unplaced),
                                   'error': 'Job phase endpoint ordering is unavailable or inconsistent.'})
@@ -1211,6 +1282,33 @@ class ClockEvidence(NamedTuple):
     jobs: dict
     checkout_disputes: set
     producer_disputes: set
+
+
+def project_listed_clocks(run, protected, siblings):
+    """Expose summary fields for a raw listing using the same clock facts as a reopened review."""
+    attempt = ci_key(run)
+    workflow = run['workflow']
+    attempts = {attempt: run}
+    issues = []
+    if timing_checkout_conflicts([], [run], issues):
+        return
+    jobs, producer_disputes = job_clock_observations([run], attempts, issues)
+    evidence = ClockEvidence(attempts, set(), jobs, set(), producer_disputes)
+    parents = [job for job in run['jobs'] if job['platform'] == 'Windows']
+    if split_windows_clock(run) and len(parents) == 1:
+        fact = protected_job(evidence, attempt, 'Windows', workflow.get('windows_profile'), issues)
+        if fact and fact.job:
+            parents[0]['seconds'].update(fact.job['seconds'])
+    if not (workflow['matrix_complete'] and workflow['identity_complete']):
+        return
+    totals = [jobs.get((attempt, listed_job_role(job, protected=True))) for job in protected]
+    if all(fact and fact.job and fact.job['seconds']['total'] is not None for fact in totals):
+        workflow['total_elapsed_seconds'] = max(fact.job['seconds']['total'] for fact in totals)
+    facts = [*totals, *(jobs.get((attempt, listed_job_role(job))) for job in siblings)]
+    runners = [elapsed(*(unique_endpoint(job_endpoint_choices(fact.job)[field]) for field in ('start', 'end')))
+               if fact and fact.job else None for fact in facts]
+    if all(value is not None for value in runners):
+        workflow['runner_work_seconds'] = sum(runners)
 
 
 def disputed_member_input(source, metric, endpoints):
@@ -1268,14 +1366,15 @@ def clock_ready_for_capture(evidence, attempt, profiles, issues):
     if attempt not in evidence.complete:
         return False
     run = evidence.attempts[attempt]
-    for row in bound_jobs(run['jobs']):
+    protected, siblings = attempt_membership(run)
+    for row in protected:
         platform = row['platform']
         fields = ('total', 'runner')
         if split_windows_clock(run) and row['conclusion'] == 'success':
             fields += ('harness_step',)
         if not observed_fields(protected_job(evidence, attempt, platform, profiles.get(platform), issues), fields):
             return False
-    for row in bound_jobs(run.get('sibling_jobs', ())):
+    for row in siblings:
         name = row.get('name')
         role = ('producer', name) if name in WINDOWS_PRODUCERS.values() else ('sibling', row['job_id'])
         if not observed_fields(evidence.jobs.get((attempt, role)), ('total', 'runner')):
@@ -1490,33 +1589,29 @@ def committed_publishing_inputs(revision, *, root=ROOT):
 
 
 def publishing_catalog_source(sample):
+    digest = sample.get('inputs_sha256')
+    if sample.get('working_tree_dirty') is not False or not digest:
+        return None
     ci = sample['ci']
     checkout = ci['checkout_sha']
     present, catalog = native_publishing_catalog(checkout)
     if present:
-        return (checkout, catalog) if catalog is not None else None
-    if ci['event'] != 'pull_request' or not sample.get('inputs_sha256'):
+        return (checkout, catalog) if catalog is not None and committed_publishing_inputs(checkout) == digest else None
+    if ci['event'] != 'pull_request':
         return None
     # An expired PR merge commit can have the same inputs as its exact head,
     # or a retained merge-tree proof. Bind the catalog to the reported digest.
     head = ci['head_sha']
     _, catalog = native_publishing_catalog(head)
-    if catalog is not None and committed_publishing_inputs(head) == sample['inputs_sha256']:
+    if catalog is not None and committed_publishing_inputs(head) == digest:
         return head, catalog
     proof = generated_contracts_proof(sample, eligible_only=False)
     if proof:
         tree = proof['tree']
         _, catalog = native_publishing_catalog(tree, object_type=b'tree')
-        if catalog is not None and committed_publishing_inputs(tree) == sample['inputs_sha256']:
+        if catalog is not None and committed_publishing_inputs(tree) == digest:
             return tree, catalog
     return None
-
-
-def publisher_lane_assignment(sample, revision):
-    if (sample.get('working_tree_dirty') is not False or not sample.get('inputs_sha256')
-            or committed_publishing_inputs(revision) != sample['inputs_sha256']):
-        return None
-    return committed_windows_assignment(ROOT, revision)
 
 
 def native_report_issue(sample, run, issues):
@@ -1550,7 +1645,7 @@ def native_report_issue(sample, run, issues):
     publishing = publishing_catalog_source(sample) if identity and sample['task_id'] is None else None
     assignment = None
     if publishing and producer:
-        assignment = publisher_lane_assignment(sample, publishing[0])
+        assignment = committed_windows_assignment(ROOT, publishing[0])
     if publishing and not extra_result and len(measured) == len(selected) and set(measured) == selected:
         _, catalog = publishing
         if not producer:
@@ -1570,7 +1665,8 @@ def native_report_issue(sample, run, issues):
     if producer:
         issue['producer'] = producer
     if identity and sample['task_id'] is None and not publishing:
-        error = 'Native timing check selection is unknown because the publishing catalog is unavailable.'
+        error = ('Native timing check selection is unknown because the publishing catalog is unavailable '
+                 'or its execution inputs are unverified.')
     elif publishing and producer and assignment is None:
         error = 'Native timing producer selection is unknown because its publishing assignment is unavailable.'
     else:
@@ -2466,14 +2562,17 @@ def linked_capture_inputs(directories, keys, reads, issues, *, attempts=None, bu
     return retained_capture_inputs(attempts or {}, claims, reads, issues, budget=budget)
 
 
-def add_retained_review_inputs(directories, samples, hosted, reads, issues, budget, *, keys=()):
-    attempts = retained_attempt_paths(directories, samples, hosted)
+def add_retained_review_inputs(directories, samples, hosted, reads, issues, budget, *, keys=(), current=()):
+    attempts = retained_attempt_paths(directories, samples, chain(hosted, current))
     rows, clocks = linked_capture_inputs(directories, keys, reads, issues, attempts=attempts, budget=budget)
     samples.extend(rows)
     hosted.extend(clocks)
-    # Linked captures can introduce a previously unknown attempt. Its
-    # independently retained conclusion must govern the same review.
-    attempts = retained_attempt_paths(directories, samples, hosted)
+    # An index identifies an attempt, including its originals in other
+    # stores and any independently retained workflow conclusion.
+    attempts = retained_attempt_paths(directories, samples, chain(hosted, current))
+    rows, clocks = retained_capture_inputs(attempts, {}, reads, issues, budget=budget)
+    samples.extend(rows)
+    hosted.extend(clocks)
     failures = retained_failure_paths(attempts)
     _, clocks = retained_capture_inputs(failures, {}, reads, issues, budget=budget)
     hosted.extend(clocks)
@@ -2490,7 +2589,7 @@ def timing_directories(root, issues):
     return (directory, shared) if shared else (directory,)
 
 
-def retained_budget_inputs(root, feedback=()):
+def retained_budget_inputs(root, feedback=(), *, current=()):
     # Read a bounded window of shared automatic observations and checkout-local reviews.
     archives, issues = [], []
     directories = timing_directories(root, issues)
@@ -2529,7 +2628,7 @@ def retained_budget_inputs(root, feedback=()):
         except (OSError, *TIMING_INPUT_ERRORS) as error:
             issues.append({'file': path.name, 'error': input_error(error)})
     add_retained_review_inputs(directories, samples, hosted, reads, issues, review_budget,
-                               keys=linked_timing_keys(feedback))
+                               keys=linked_timing_keys(feedback), current=current)
     return samples, hosted, issues
 
 
@@ -2746,14 +2845,14 @@ def update_timing_capture(path, repository, run, identity, samples, hosted):
     if evidence.missing:
         try:
             criteria = {'platforms': evidence.missing} if evidence.missing != set(PLATFORMS.values()) else {}
-            rows = download_timing(repository, run_id, '1', **criteria)
+            rows = download_timing(repository, run_id, '1', issues=issues, **criteria)
             new_samples = [
                 row for row in admitted_records(rows, valid_sample, 'downloaded timing sample', issues)
                 if ci_key(row['ci'] or {}) == identity and row['platform'] in evidence.missing
             ]
         except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
             issues.append({'run_id': run_id, 'error': f'Could not retrieve compact reports: {error}'})
-    if not evidence.complete_clock and (set(PLATFORMS.values()) - evidence.missing or new_samples
+    if not evidence.complete_clock and (set(PLATFORMS.values()) - evidence.missing or new_samples or issues
                                         or run['conclusion'] != 'success' and not any(
                                             row['conclusion'] == run['conclusion'] and not row.get('authenticated_failure')
                                             for row in evidence.clocks)):
@@ -2785,7 +2884,8 @@ def update_timing_capture(path, repository, run, identity, samples, hosted):
 
 def ci_budget_status(root, repository, run):
     feedback = read_json(root / 'project/feedback.json')['items']
-    samples, hosted, issues = retained_budget_inputs(root, feedback)
+    current = [dict(zip(ATTEMPT_IDENTITY, actions_attempt_identity(repository, run), strict=True))] if run else []
+    samples, hosted, issues = retained_budget_inputs(root, feedback, current=current)
     intake = None
     if run:
         if failure := authenticated_failure(run, actions_attempt_identity(repository, run)):
@@ -2815,27 +2915,38 @@ def ci_budget_status(root, repository, run):
     return {**budget_status(samples, hosted, issues, feedback, tasks, root=root), 'intake': intake}
 
 
-def download_timing(repository, run_id, attempt, *, platforms=None):
+def download_timing(repository, run_id, attempt, *, platforms=None, issues=None):
+    if issues is None:
+        issues = []
     endpoint = f'repos/{repository}/actions/runs/{run_id}/artifacts?per_page=100'
     artifacts = json.loads(command(['gh', 'api', endpoint]))['artifacts']
-    expected = {f'verification-timing-{label}' for label, platform in PLATFORMS.items()
+    expected = {f'verification-timing-{label}': platform for label, platform in PLATFORMS.items()
                 if platforms is None or platform in platforms}
     names = sorted({item['name'] for item in artifacts if item['name'] in expected and not item['expired']}
                    - {item['name'] for item in artifacts if item['size_in_bytes'] > COMPACT_LIMIT})
     samples = []
-    if names:
-        with TemporaryDirectory(prefix='scopehub-timing-') as temp:
-            args = [arg for name in names for arg in ('--name', name)]
-            command(['gh', 'run', 'download', run_id, '--repo', repository, '--dir', temp, *args])
-            for path in Path(temp).glob(f'**/{TIMING_FILE}'):
-                try:
-                    if path.stat().st_size > COMPACT_LIMIT:
-                        continue
-                    sample = read_json(path)
-                    if valid_sample(sample) and ci_key(sample['ci'] or {})[:3] == (repository, run_id, attempt):
-                        samples.append(sample)
-                except (OSError, *TIMING_INPUT_ERRORS):
-                    continue
+    for name in names:
+        try:
+            # gh extracts a single named artifact directly into its destination.
+            with TemporaryDirectory(prefix='scopehub-timing-') as temp:
+                command(['gh', 'run', 'download', run_id, '--repo', repository, '--dir', temp, '--name', name])
+                path = Path(temp) / TIMING_FILE
+                info = entry_info(path)
+                if info is None or not stat.S_ISREG(info.st_mode) or reparse_point(info):
+                    raise TimingError('Expected the published compact timing file.')
+                if info.st_size > COMPACT_LIMIT:
+                    raise TimingError('Compact timing artifact exceeds the read limit.')
+                sample = read_json(path)
+                if not valid_sample(sample):
+                    raise TimingError('Invalid compact timing sample.')
+                if ci_key(sample['ci'] or {})[:3] != (repository, run_id, attempt):
+                    raise TimingError('Compact timing report does not match the requested attempt.')
+                if sample['platform'] != expected[name]:
+                    raise TimingError(f"Timing report platform {sample['platform']} does not match "
+                                      f"artifact platform {expected[name]}.")
+                samples.append(sample)
+        except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
+            issues.append({'run_id': run_id, 'file': name, 'error': input_error(error)})
     return samples
 
 
@@ -2845,14 +2956,14 @@ def inspect_jobs(run, repository):
     return hosted_timing(run, jobs)
 
 
-def inspect_hosted(run_id, attempt, repository, samples):
+def inspect_hosted(run_id, attempt, repository, samples, issues):
     endpoint = f'repos/{repository}/actions/runs/{run_id}'
     if attempt:
         endpoint += f'/attempts/{attempt}'
     run = json.loads(command(['gh', 'api', endpoint]))
     if str(run['id']) != str(run_id) or run.get('path') != WORKFLOW:
         raise TimingError('Selected run is outside the repository verification workflow')
-    samples.extend(download_timing(repository, str(run_id), str(run['run_attempt'])))
+    samples.extend(download_timing(repository, str(run_id), str(run['run_attempt']), issues=issues))
     return inspect_jobs(run, repository)
 
 
@@ -2934,11 +3045,12 @@ def inspect_recent(repository, limit, samples, workflows, issues):
     for run in runs:
         run_id, attempt = str(run['id']), str(run['run_attempt'])
         try:
-            compact = download_timing(repository, run_id, attempt)
+            previous_issues = len(issues)
+            compact = download_timing(repository, run_id, attempt, issues=issues)
             (with_compact if compact else without_compact).append(run_id)
             has_report = any((sample.get('ci') or {}).get('run_id') == run_id for sample in samples)
             samples.extend(compact)
-            if compact or has_report:
+            if compact or has_report or len(issues) != previous_issues:
                 clock = inspect_jobs(run, repository)
                 workflows.append(clock)
                 identity = actions_attempt_identity(repository, run)
@@ -3194,7 +3306,7 @@ def main():
             repository = hosted_repository(args.github_actions)
         if args.run:
             for run in args.run:
-                workflows.append(inspect_hosted(run, args.attempt, repository, samples))
+                workflows.append(inspect_hosted(run, args.attempt, repository, samples, issues))
         if args.recent is not None:
             recent = inspect_recent(repository, args.recent, samples, workflows, issues)
         if args.report is None:
