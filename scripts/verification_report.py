@@ -7,9 +7,14 @@ SESSION_CHECKS = {
 }
 EXTERNAL_CLIENT_CHECK = 'configured-external-ai-clients'
 RUN_OBSERVATION_CHECKS = SESSION_CHECKS.keys() | {EXTERNAL_CLIENT_CHECK}
+RUN_OBSERVATION_POLICIES = {
+    'session': frozenset(SESSION_CHECKS),
+    'session-and-external-clients': frozenset(RUN_OBSERVATION_CHECKS),
+}
 PHYSICAL_WINDOWS_CHECK = 'physical-windows-workspace'
 UBUNTU_WORKSPACE_CHECK = 'ubuntu-workspace-observation'
 FIELD_OBSERVATION_CHECKS = {PHYSICAL_WINDOWS_CHECK, UBUNTU_WORKSPACE_CHECK}
+OBSERVATION_CHECKS = RUN_OBSERVATION_CHECKS | FIELD_OBSERVATION_CHECKS
 
 
 def integration_validation(results):
@@ -42,12 +47,21 @@ def integration_summary_matches(summary, checks):
             and summary == expected)
 
 
-def report_observation_issue(report):
+def passed_observation_checks(checks):
+    return {row['id'] for row in checks if row['status'] == 'passed' and row['id'] in OBSERVATION_CHECKS}
+
+
+def publishing_observation_checks(catalog, run_observations):
+    owners = run_observations | FIELD_OBSERVATION_CHECKS
+    return {row['id'] for row in catalog['checks'] if row['id'] in owners and row['status'] == 'implemented'}
+
+
+def report_observation_issue(report, *, run_observations=RUN_OBSERVATION_CHECKS):
     """Validate observation claims available in both raw publication and timing inputs."""
     checks = report['checks']
     for row in checks:
         check, passed = row['id'], row['status'] == 'passed'
-        for field, owners in (('observation', RUN_OBSERVATION_CHECKS),
+        for field, owners in (('observation', run_observations),
                               ('field_observation', FIELD_OBSERVATION_CHECKS)):
             expected = passed and check in owners
             if field in row and (not expected or not isinstance(row[field], dict)):

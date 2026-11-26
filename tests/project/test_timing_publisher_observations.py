@@ -198,6 +198,72 @@ class PublicPublisherObservationTests(unittest.TestCase):
                     job, = (job for job in actions['jobs'] if job['platform'] == platform)
                     self.assertEqual(total, job['seconds']['total'])
 
+    def test_raw_linux_report_uses_its_historical_publisher_observation_policy(self):
+        original = dict(fixtures.historical_report(), ci=self.linux['ci'])
+        original['timing'] = {'elapsed_seconds': 180}
+        catalog = deepcopy(fixtures.OLD_FULL_CATALOG)
+        external = 'configured-external-ai-clients'
+        catalog['checks'].append({'id': external, 'status': 'planned', 'cadence': 'task', 'command': None})
+        original['checks'].append({'id': external, 'status': 'blocked', 'reason_code': 'not_implemented'})
+        fixtures.native_raw_fixture(self, original, catalog)
+        original['native_requirement']['requested'] = False
+        revision = original['source']['git_head']
+        catalog_source = timing.PublishingSource((revision, catalog))
+        publisher = {'catalogs': [timing.publishing_catalog_digest(catalog)],
+                     'run_observations': timing.RUN_OBSERVATION_POLICIES['session']}
+        args = ('--actions', self.write_variant('run', self.run), self.write_variant('jobs', self.jobs))
+        with (patch.object(timing, 'publishing_catalog_source', return_value=catalog_source),
+              patch.object(timing, 'committed_windows_publisher', return_value=publisher)):
+            genuine = self.write_variant('genuine', original)
+            view = self.invoke('--report', genuine, *args)
+            self.assertEqual([240], [row['seconds']['total'] for row in view['samples']])
+            altered = deepcopy(original)
+            altered['selection']['checks'].append(external)
+            altered['checks'][-1] = {'id': external, 'status': 'passed', 'exit_code': 0, 'duration_seconds': 2}
+            for observation, error in (
+                (None, 'a passing observation check outside the implemented publishing catalog'),
+                ({}, 'an unexpected observation'),
+            ):
+                if observation is not None:
+                    altered['checks'][-1]['observation'] = observation
+                rejected = self.write_variant('altered', altered)
+                for first, second in ((genuine, rejected), (rejected, genuine)):
+                    view = self.invoke('--report', first, '--report', second, *args)
+                    self.assertEqual([240], [row['seconds']['total'] for row in view['samples']])
+                    self.assertEqual([f'Timing report has {error}.'], [row['error'] for row in view['input_issues']])
+            # Older readers could compact the altered raw report before
+            # checking the historical rules. Reopen that retained projection.
+            compact = timing.report_sample(altered)
+            for order in ([compact, timing.report_sample(original)], [timing.report_sample(original), compact]):
+                legacy = self.write_variant('legacy-archive', {
+                    'kind': timing.ARCHIVE_KIND, 'samples': order, 'hosted': [self.clock],
+                })
+                view = self.invoke('--report', legacy)
+                self.assertCountEqual([240, None], [row['seconds']['total'] for row in view['samples']])
+                self.assertEqual(1, len(list(timing.platform_report_receipts(view['samples']))))
+
+    def test_outside_publishing_job_report_cannot_withdraw_valid_receipts_or_actions_clocks(self):
+        expected = {'Linux': (240, 230), 'Windows': (360, 340)}
+        for platform, earliest_end in (('Linux', '04:00'), ('Windows', '06:00')):
+            actual = self.linux if platform == 'Linux' else self.windows
+            peer = self.windows if platform == 'Linux' else self.linux
+            good = dict(actual, recorded_at=f'2026-11-20T00:{earliest_end}.999999999Z', inputs_sha256='c' * 64)
+            bad = dict(good, recorded_at=f'2026-11-20T00:{earliest_end[:-2]}01.000000001Z')
+            for index, rows in enumerate(([good, bad, peer], [peer, bad, good])):
+                with self.subTest(platform=platform, index=index):
+                    archive = self.directory / f'{platform}-{index}.json'
+                    collected = self.collect(archive, rows)
+                    reopened = self.invoke('--report', archive)
+                    for view in (collected, reopened):
+                        receipts = {row['platform']: row['report_input_sha256']
+                                    for row in view['recent_collection']['collected_samples']}
+                        self.assertEqual({row['platform']: timing.report_input_sha256(row) for row in (good, peer)},
+                                         receipts)
+                        self.assertEqual(expected, {job['platform']: (job['seconds']['total'], job['seconds']['runner'])
+                                                    for job in view['hosted'][0]['jobs']})
+                        excluded = [row for row in view['samples'] if row['recorded_at'] == bad['recorded_at']]
+                        self.assertEqual([None], [row['seconds']['total'] for row in excluded])
+
     def test_disproved_linux_checkout_does_not_displace_windows_receipt(self):
         def git(*args):
             return subprocess.run(['git', '-c', 'user.name=Timing Fixture', '-c', 'user.email=timing@example.test',

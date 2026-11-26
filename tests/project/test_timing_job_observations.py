@@ -4,12 +4,14 @@ from contextlib import redirect_stdout
 from io import StringIO
 import json
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import unittest
 from unittest.mock import patch
 
 from scripts import timing
+from tests.project.fixtures import isolated_git_environment
 from tests.project.test_timing import (
     FIXTURE_PR_HEAD, SPLIT_CATALOG, fast_report, hosted_job, hosted_run, lane_sample, split_harness_report, use_catalog,
 )
@@ -17,7 +19,9 @@ from tests.project.test_timing import (
 
 class PublicJobObservationTests(unittest.TestCase):
     def timing_checkout(self):
+        self.enterContext(isolated_git_environment())
         root = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        subprocess.run(['git', '-C', str(root), 'init', '-q'], check=True, capture_output=True)
         project = root / 'project'
         project.mkdir()
         for filename, data in (('tasks.json', {'tasks': []}), ('feedback.json', {'items': []})):
@@ -131,8 +135,9 @@ class PublicJobObservationTests(unittest.TestCase):
         same_runner = {key: value for key, value in nameless.items() if key not in ('run_attempt', 'conclusion')}
         other_attempt = dict(opposite_runner, run_attempt=2)
         missing_end = [dict(job, completed_at=None) if job['id'] == browser['id'] else job for job in jobs]
-        with tempfile.TemporaryDirectory() as directory:
+        with isolated_git_environment(), tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            subprocess.run(['git', '-C', str(root), 'init', '-q'], check=True, capture_output=True)
             project = root / 'project'
             project.mkdir()
             for filename, data in (('tasks.json', {'tasks': []}), ('feedback.json', {'items': []})):

@@ -70,6 +70,7 @@
         "00f03018a461872ee99593a6d5a1b354d2899986"
       ],
       "assignment": "lanes-1",
+      "run_observations": "session",
       "catalogs": [
         "1487ba61423195cb93291269126ce1b15b9c29d49825201337eea7154d9effc3"
       ]
@@ -79,6 +80,7 @@
         "c4f07b38ad8040de9ffc950b8e98de315d956958"
       ],
       "assignment": "lanes-2",
+      "run_observations": "session",
       "catalogs": [
         "1487ba61423195cb93291269126ce1b15b9c29d49825201337eea7154d9effc3"
       ]
@@ -88,6 +90,7 @@
         "df7587eea5d60a10a2982bb441eb53053cc24592"
       ],
       "assignment": "lanes-1",
+      "run_observations": "session",
       "catalogs": [
         "1487ba61423195cb93291269126ce1b15b9c29d49825201337eea7154d9effc3"
       ]
@@ -97,6 +100,7 @@
         "6d159be4d4ae21f1a4dd199d0a5adca4b027392d"
       ],
       "assignment": "lanes-1",
+      "run_observations": "session-and-external-clients",
       "catalogs": [
         "f3e0e38578b071bf1be39e36db73de02373a7c7a1324b572bb9cc070fe74c404"
       ]
@@ -106,6 +110,7 @@
         "e341d1ee170d5f0e262f9bca6ceea1ab6d88e500"
       ],
       "assignment": "lanes-1",
+      "run_observations": "session-and-external-clients",
       "catalogs": [
         "f3e0e38578b071bf1be39e36db73de02373a7c7a1324b572bb9cc070fe74c404"
       ]
@@ -115,6 +120,7 @@
         "64eccbf665ba2f8f329e7755668773618125ec0e"
       ],
       "assignment": "lanes-1",
+      "run_observations": "session-and-external-clients",
       "catalogs": [
         "f3e0e38578b071bf1be39e36db73de02373a7c7a1324b572bb9cc070fe74c404"
       ]
@@ -124,6 +130,7 @@
         "e6f2c917bccd4506e0227bf1d966eabadc538154"
       ],
       "assignment": "lanes-1",
+      "run_observations": "session-and-external-clients",
       "catalogs": [
         "f3e0e38578b071bf1be39e36db73de02373a7c7a1324b572bb9cc070fe74c404"
       ]
@@ -133,6 +140,7 @@
         "cb81c752f91b5c611cb258879bcf83e658b7323a"
       ],
       "assignment": "lanes-3",
+      "run_observations": "session-and-external-clients",
       "catalogs": [
         "f3e0e38578b071bf1be39e36db73de02373a7c7a1324b572bb9cc070fe74c404"
       ]
@@ -143,6 +151,7 @@
         "f429a106b86f3f0c735a7ea7bd34f70c2dfc6d56"
       ],
       "assignment": "lanes-3",
+      "run_observations": "session-and-external-clients",
       "catalogs": [
         "f3e0e38578b071bf1be39e36db73de02373a7c7a1324b572bb9cc070fe74c404"
       ]
@@ -152,6 +161,7 @@
         "3491ace813f3a0b79dacd9e7454a8ff11b69757e"
       ],
       "assignment": "lanes-3",
+      "run_observations": "session-and-external-clients",
       "catalogs": [
         "f3e0e38578b071bf1be39e36db73de02373a7c7a1324b572bb9cc070fe74c404"
       ]
@@ -161,6 +171,7 @@
         "7b684c173d9b550c5a97bc3a587510a22d195e3a"
       ],
       "assignment": "lanes-1",
+      "run_observations": "session-and-external-clients",
       "catalogs": [
         "f3e0e38578b071bf1be39e36db73de02373a7c7a1324b572bb9cc070fe74c404"
       ]
@@ -170,6 +181,7 @@
         "1b99c03d8fd9fdc40714eb1b1a3b04d0f250f0fa"
       ],
       "assignment": "lanes-1",
+      "run_observations": "session-and-external-clients",
       "catalogs": [
         "f3e0e38578b071bf1be39e36db73de02373a7c7a1324b572bb9cc070fe74c404"
       ]
@@ -179,6 +191,7 @@
         "794485aa576eaf7fabea235965b0c1d4cb009bcd"
       ],
       "assignment": "lanes-1",
+      "run_observations": "session-and-external-clients",
       "catalogs": [
         "f3e0e38578b071bf1be39e36db73de02373a7c7a1324b572bb9cc070fe74c404"
       ]
@@ -188,6 +201,7 @@
         "178c7d26b97c9a37613d9ebbad302f43f882f8b2"
       ],
       "assignment": "lanes-1",
+      "run_observations": "session-and-external-clients",
       "catalogs": [
         "f3e0e38578b071bf1be39e36db73de02373a7c7a1324b572bb9cc070fe74c404"
       ]
@@ -197,6 +211,7 @@
         "2c212a68112df03b08978ccca40980c303815dfa"
       ],
       "assignment": "lanes-1",
+      "run_observations": "session-and-external-clients",
       "catalogs": [
         "f3e0e38578b071bf1be39e36db73de02373a7c7a1324b572bb9cc070fe74c404"
       ]
@@ -207,6 +222,7 @@
         "75097be72fd6eb4fbea1a9b6bd449942c39750be"
       ],
       "assignment": "lanes-1",
+      "run_observations": "session-and-external-clients",
       "catalogs": [
         "f3e0e38578b071bf1be39e36db73de02373a7c7a1324b572bb9cc070fe74c404"
       ]
@@ -216,6 +232,7 @@
         "a3a76f2729b888e5dade4a0e585307fe41134e86"
       ],
       "assignment": "lanes-1",
+      "run_observations": "session-and-external-clients",
       "catalogs": [
         "f3e0e38578b071bf1be39e36db73de02373a7c7a1324b572bb9cc070fe74c404"
       ]
@@ -226,6 +243,7 @@
         "21b7195fe3c2cf954a161e7c66c826e2f0cd329d"
       ],
       "assignment": "lanes-1",
+      "run_observations": "session-and-external-clients",
       "catalogs": [
         "f3e0e38578b071bf1be39e36db73de02373a7c7a1324b572bb9cc070fe74c404",
         "2e53c37d2f5abb897aadd2d4a323a79254a49f5d8f04fb546c0310f2f1a17972"
@@ -236,6 +254,7 @@
         "727b4fb34ba87a731a159123e39f9531ba9ffb7c"
       ],
       "assignment": "lanes-1",
+      "run_observations": "session-and-external-clients",
       "catalogs": [
         "f3e0e38578b071bf1be39e36db73de02373a7c7a1324b572bb9cc070fe74c404"
       ]
@@ -245,6 +264,7 @@
         "44f51ec60c3c174428742ae82dbd9857456f1ddf"
       ],
       "assignment": "lanes-1",
+      "run_observations": "session-and-external-clients",
       "catalogs": [
         "f3e0e38578b071bf1be39e36db73de02373a7c7a1324b572bb9cc070fe74c404"
       ]
@@ -254,6 +274,7 @@
         "6042cea4ac36759ead7a7a080903736f6c608dab"
       ],
       "assignment": "lanes-1",
+      "run_observations": "session-and-external-clients",
       "catalogs": [
         "f3e0e38578b071bf1be39e36db73de02373a7c7a1324b572bb9cc070fe74c404"
       ]
@@ -263,6 +284,7 @@
         "3eeb59bc39219905204e6aab95bd16af4d22a65e"
       ],
       "assignment": "lanes-1",
+      "run_observations": "session-and-external-clients",
       "catalogs": [
         "f3e0e38578b071bf1be39e36db73de02373a7c7a1324b572bb9cc070fe74c404"
       ]
@@ -272,6 +294,7 @@
         "e6a2ba41e7b1806b4c2d7c52bc23a0b7bd08c233"
       ],
       "assignment": "lanes-1",
+      "run_observations": "session-and-external-clients",
       "catalogs": [
         "f3e0e38578b071bf1be39e36db73de02373a7c7a1324b572bb9cc070fe74c404"
       ]
@@ -283,6 +306,7 @@
         "bfde195386aac2321d33402ac17f9e901e6c893b"
       ],
       "assignment": "lanes-1",
+      "run_observations": "session-and-external-clients",
       "catalogs": [
         "f3e0e38578b071bf1be39e36db73de02373a7c7a1324b572bb9cc070fe74c404"
       ]
@@ -292,6 +316,7 @@
         "fb8497ec64d276c4c14e36e518ef242125f0a984"
       ],
       "assignment": "lanes-1",
+      "run_observations": "session",
       "catalogs": [
         "1487ba61423195cb93291269126ce1b15b9c29d49825201337eea7154d9effc3"
       ]
@@ -301,6 +326,7 @@
         "252a1e5c8af25c2fe0349a34c555f3577fa506db"
       ],
       "assignment": "lanes-1",
+      "run_observations": "session",
       "catalogs": [
         "1487ba61423195cb93291269126ce1b15b9c29d49825201337eea7154d9effc3"
       ]
@@ -311,6 +337,7 @@
         "5d93d80a9393830cf9779bcb6495d1c2af4c9180"
       ],
       "assignment": "lanes-1",
+      "run_observations": "session",
       "catalogs": [
         "1487ba61423195cb93291269126ce1b15b9c29d49825201337eea7154d9effc3"
       ]
@@ -320,6 +347,7 @@
         "25b4ac92924e98c846834b9824e253dae4101bff"
       ],
       "assignment": "lanes-1",
+      "run_observations": "session-and-external-clients",
       "catalogs": [
         "f3e0e38578b071bf1be39e36db73de02373a7c7a1324b572bb9cc070fe74c404"
       ]
@@ -329,6 +357,7 @@
         "9ea5b5140042ac013e022c2edd7d0a79e93fee67"
       ],
       "assignment": "lanes-1",
+      "run_observations": "session-and-external-clients",
       "catalogs": [
         "f3e0e38578b071bf1be39e36db73de02373a7c7a1324b572bb9cc070fe74c404"
       ]

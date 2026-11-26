@@ -186,7 +186,7 @@ class PublicationTests(ProjectFixture):
         generator = report['checks'][-1]
         generator['command'] = [sys.executable, *command[1:]]
         report['environment']['python'] = '3.12.10'
-        report.update(generated_at='2026-11-20T00:06:00Z', timing={'elapsed_seconds': 6},
+        report.update(generated_at='2026-11-20T00:03:50Z', timing={'elapsed_seconds': 6},
                       selection={'profile': 'full', 'task_id': None, 'checks': [r['id'] for r in report['checks']]})
         samples, workflows = [], []
         for run_id, event, ref, seconds in ((11, 'pull_request', 'refs/pull/52/merge', 2),

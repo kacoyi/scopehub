@@ -733,9 +733,17 @@ class HostedTimingTests(unittest.TestCase):
 
         late_linux = timing.hosted_timing(run, [missing(linux), *jobs[1:]])
         late_windows = timing.hosted_timing(run, [*jobs[:-1], missing(aggregate)])
-        missing_core = timing.hosted_timing(run, [linux, dict(core, started_at=None), *jobs[2:]])
+        no_core_start = {key: value for key, value in core.items() if key != 'started_at'}
+        missing_core = timing.hosted_timing(run, [linux, no_core_start, *jobs[2:]])
+        no_core_step_start = dict(no_core_start, steps=[dict(step, started_at=None) for step in core['steps']])
+        missing_core_step = timing.hosted_timing(run, [linux, no_core_step_start, *jobs[2:]])
+        inverted_core = timing.hosted_timing(
+            run, [linux, dict(core, started_at='2026-11-20T00:01:15Z'), *jobs[2:]],
+        )
         for readings, runner, step, complete in (([short, full], 1687, 695, True),
-                                                  ([short, missing_core], None, None, False),
+                                                  ([short, missing_core], None, 695, False),
+                                                  ([short, missing_core_step], None, None, False),
+                                                  ([short, inverted_core], 1632, None, False),
                                                   ([late_linux, late_windows], 1687, 695, True)):
             for clocks in ([*readings, readings[0]], readings[::-1]):
                 view = timing.timing_view([linux_sample, windows_sample], hosted=clocks)
@@ -779,7 +787,7 @@ class HostedTimingTests(unittest.TestCase):
         co_listed = timing.hosted_timing(run, [*jobs, raw_foreign, jobs[0]])
         for pair, values, ready in (([official, foreign], (1687, 40, 695), True),
                                     ([co_listed, co_listed], (1687, 40, 695), True),
-                                    ([missing, foreign], (None, None, None), False),
+                                    ([missing, foreign], (None, None, 695), False),
                                     ([browser, python], (1687, 40, 695), True)):
             for clocks in ([*pair, pair[0]], [*reversed(pair), pair[1]]):
                 view = timing.timing_view(observations, hosted=clocks)
@@ -1188,6 +1196,7 @@ class HostedTimingTests(unittest.TestCase):
                               ('Windows', 'ci-windows-browser'): None}, times)
 
     def test_retained_attempt_disputes_survive_recent_rotation_and_archive_reopen(self):
+        self.enterContext(isolated_git_environment())
         clock = timing.hosted_timing(hosted_run(), self.split_windows_jobs())
         browser = next(job for job in clock['sibling_jobs'] if job['job_id'] == '33')
         partial = dict(clock, jobs=[], sibling_jobs=[dict(browser, job_id='39')],
@@ -1215,6 +1224,7 @@ class HostedTimingTests(unittest.TestCase):
             for reverse in ((False, True) if adverse else (False,)):
                 with self.subTest(case=case, reverse=reverse), tempfile.TemporaryDirectory() as directory:
                     root = Path(directory)
+                    subprocess.run(['git', '-C', str(root), 'init', '-q'], check=True, capture_output=True)
                     shared = root / 'shared'
                     shared.mkdir()
                     path = shared / 'ci-pull_request-11-1.json'
@@ -1909,6 +1919,9 @@ def main():
         self.assertIsNotNone(other_inputs)
         preview = self.commit('Merge preview', self.base, head, tree=tree)
         foreign = self.commit('Unrelated preview with the same inputs', self.base, self.head, tree=tree)
+        unrelated_parent = self.commit('Missing parent on an unrelated branch', self.base, tree=tree)
+        unrelated_boundary = self.commit('Unrelated shallow boundary', unrelated_parent, tree=tree)
+        (self.root / '.git/objects' / unrelated_parent[:2] / unrelated_parent[2:]).unlink()
         missing = 'f' * 40
         missing_head = 'e' * 40
         null = '0' * 40
@@ -1959,6 +1972,8 @@ def main():
             ('long-shallow-ancestor', long_ancestor, long_head, None, None),
             ('long-shallow-ancestor-with-proof', long_ancestor, long_head, self.base, None),
             ('long-shallow-unavailable-walk', missing, long_head, None, None),
+            ('long-shallow-unavailable-walk-ancestor', long_ancestor, long_head, None, None),
+            ('long-shallow-unavailable-walk-unrelated', unrelated_parent, long_head, None, None),
             ('other-tree-with-claimed-checkout-is-base-ancestor', absent_base, missing_head, shallow_parent, None),
             ('other-tree-with-unrelated-missing-checkout', missing, missing_head, shallow_parent, 360),
             ('tree', tree, head, self.base, None),
@@ -1980,7 +1995,7 @@ def main():
                 if topic == shallow_head:
                     self.assertEqual([shallow_head, shallow_parent], self.git('rev-list', topic).splitlines())
                 if topic == long_head:
-                    shallow.write_bytes(f'{long_boundary}\n'.encode('ascii'))
+                    shallow.write_bytes(f'{long_boundary}\n{unrelated_boundary}\n'.encode('ascii'))
                     self.assertGreater(len(self.git('rev-list', topic).splitlines()), timing.EXPIRED_ANCESTRY_LIMIT)
                 run = dict(hosted_run(), head_sha=topic)
                 clock = timing.hosted_timing(run, [dict(job, head_sha=topic) for job in jobs])
@@ -2022,7 +2037,7 @@ def main():
                 timing.missing_commit_parent_edges.cache_clear()
 
                 def repository_git(_, *args, **options):
-                    if kind == 'long-shallow-unavailable-walk' and '--shallow-file' in args:
+                    if kind.startswith('long-shallow-unavailable-walk') and '--shallow-file' in args:
                         raise timing.ScopeError('Native Git boundary enumeration is unavailable.')
                     return git(self.root, *args, **options)
 
@@ -2083,10 +2098,10 @@ def main():
                     self.assertEqual(340 if seconds is not None else None, decision['samples'][0]['seconds']['runner'])
                     linux, = (row for row in decision['hosted'][0]['jobs'] if row['platform'] == 'Linux')
                     self.assertEqual(240, linux['seconds']['total'])
-                    if kind.startswith('long-shallow-ancestor'):
+                    if kind.startswith('long-shallow-ancestor') or kind == 'long-shallow-unavailable-walk-ancestor':
                         self.assertTrue(any('a parent or ancestor of the proposed merge' in note['error']
                                             for note in decision['input_issues']))
-                    if kind == 'long-shallow-unavailable-walk':
+                    elif kind.startswith('long-shallow-unavailable-walk'):
                         self.assertTrue(any('could not be verified within the local Git traversal limits' in note['error']
                                             for note in decision['input_issues']))
                 self.assertEqual(1, len(view['hosted']))
@@ -2096,6 +2111,61 @@ def main():
                 else:
                     self.assertEqual([], view['input_issues'])
                     self.assertIn('recent median 360s', summary.read_text(encoding='utf-8'))
+
+    def test_unresolved_linux_checkout_leaves_genuine_windows_receipt(self):
+        tree = self.publishing_tree(fixture_catalog(NATIVE_FULL_CHECKS))
+        missing_parent = self.commit('Unavailable topic ancestor', self.base, tree=tree)
+        boundary = self.commit('Visible shallow boundary', missing_parent, tree=tree)
+        head = boundary
+        for number in range(4):
+            head = self.commit(f'Topic step {number}', head, tree=tree)
+        preview = self.commit('Genuine workflow merge', self.base, head, tree=tree)
+        (self.root / '.git/shallow').write_bytes(f'{boundary}\n'.encode('ascii'))
+        (self.root / '.git/objects' / missing_parent[:2] / missing_parent[2:]).unlink()
+        catalog = timing.native_publishing_catalog
+        fingerprint = timing.committed_publishing_inputs
+        git = timing.git
+
+        def without_enumeration(root, *args, **options):
+            if '--shallow-file' in args:
+                raise timing.ScopeError('Missing-object enumeration is unavailable.')
+            return git(root, *args, **options)
+
+        self.enterContext(patch.object(timing, 'ROOT', self.root))
+        self.enterContext(patch.object(timing, 'EXPIRED_ANCESTRY_LIMIT', 2))
+        self.enterContext(patch.object(timing, 'git', side_effect=without_enumeration))
+        self.enterContext(patch.object(timing, 'native_publishing_catalog', side_effect=lambda revision, **options:
+                                      catalog(revision, root=self.root, **options)))
+        self.enterContext(patch.object(timing, 'committed_publishing_inputs', side_effect=lambda revision:
+                                      fingerprint(revision, root=self.root)))
+        run = dict(hosted_run(), head_sha=head)
+        jobs = [dict(hosted_job(30 + number, platform, '00:10', end, 'Run pnpm check', '00:20', '03:00'), head_sha=head)
+                for number, (platform, end) in enumerate((('ubuntu', '04:00'), ('windows', '06:00')))]
+        clock = timing.hosted_timing(run, jobs)
+        report = fast_report(20, 190)
+        report['environment'].update(system='Windows', machine='AMD64')
+        report['selection'].update(profile='full', checks=sorted(NATIVE_FULL_CHECKS))
+        report['checks'].append(dict(report['checks'][0], id='windows-native-build'))
+        report['source'].update(git_head=preview, sha256=fingerprint(preview, root=self.root), working_tree_dirty=False)
+        report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
+                        'event': 'pull_request', 'head_sha': head, 'checkout_sha': preview}
+        windows = timing.report_sample(report)
+        for checkout, diagnostic in ((missing_parent, timing.PR_CHECKOUT_ANCESTOR),
+                                     ('f' * 40, timing.PR_CHECKOUT_ANCESTRY_UNVERIFIED)):
+            linux = {**windows, 'platform': 'Linux', 'arch': 'x86_64', 'source_commit': checkout,
+                     'ci': {**windows['ci'], 'checkout_sha': checkout}}
+            for samples in ([linux, windows], [windows, linux]):
+                with self.subTest(checkout=checkout, first=samples[0]['platform']):
+                    view = timing.timing_view(samples, hosted=[clock])
+                    receipt, = timing.platform_report_receipts(view['samples'])
+                    self.assertEqual(('Windows', preview), (receipt['platform'], receipt['checkout_sha']))
+                    self.assertEqual({'Linux': None, 'Windows': 360}, {
+                        row['platform']: row['seconds']['total'] for row in view['samples']
+                    })
+                    self.assertEqual({'Linux': 240, 'Windows': 360}, {
+                        row['platform']: row['seconds']['total'] for row in view['hosted'][0]['jobs']
+                    })
+                    self.assertIn(diagnostic, [note['error'] for note in view['input_issues']])
 
     def test_producer_scope_uses_the_bound_publisher_assignment(self):
         full = (*NATIVE_FULL_CHECKS, 'workspace-timeframe', 'market-recovery', 'market-recovery-ui', 'python-contracts-workers')
@@ -3313,7 +3383,9 @@ class RecentTimingTests(unittest.TestCase):
         path.write_bytes(timing.json_bytes({'kind': timing.ARCHIVE_KIND, 'samples': samples, 'hosted': clocks}))
 
     def retained_reader_fixture(self):
+        self.enterContext(isolated_git_environment())
         root = Path(self.enterContext(tempfile.TemporaryDirectory())).resolve()
+        self.fixture_git(root, 'init', '-q')
         shared = root / 'shared'
         self.enterContext(patch.object(timing, 'ROOT', root))
         self.enterContext(patch.object(timing, 'shared_timing_directory', return_value=shared))

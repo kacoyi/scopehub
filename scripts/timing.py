@@ -24,7 +24,10 @@ if __package__:
         can_order, encode_timestamp, extrema, interval_bounds, ordered_choices, paired_minima,
         seconds as interval_seconds, sum_intervals, timestamp,
     )
-    from .verification_report import report_observation_issue
+    from .verification_report import (
+        RUN_OBSERVATION_CHECKS, RUN_OBSERVATION_POLICIES, passed_observation_checks,
+        publishing_observation_checks, report_observation_issue,
+    )
     from .verification_scope import (
         LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit,
         decode_publishing_catalog, git, invalid_number, oid, publishing_check_catalog, require_complete_history,
@@ -40,7 +43,10 @@ else:
         can_order, encode_timestamp, extrema, interval_bounds, ordered_choices, paired_minima,
         seconds as interval_seconds, sum_intervals, timestamp,
     )
-    from verification_report import report_observation_issue
+    from verification_report import (
+        RUN_OBSERVATION_CHECKS, RUN_OBSERVATION_POLICIES, passed_observation_checks,
+        publishing_observation_checks, report_observation_issue,
+    )
     from verification_scope import (
         LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit,
         decode_publishing_catalog, git, invalid_number, oid, publishing_check_catalog, require_complete_history,
@@ -387,17 +393,31 @@ def input_report_sample(report):
     profile = selection.get('profile')
     platform = report.get('environment', {}).get('system')
     ci = report.get('ci')
-    if ci and platform in PLATFORMS.values() and (issue := report_observation_issue(report)):
-        raise TimingError(f'Timing report has {issue}.')
-    native = (platform == 'Windows' and ci and ci.get('event') in NORMAL_EVENTS
-              and (profile in AUTOMATIC_PROFILES or profile in WINDOWS_PRODUCER_PROFILES))
-    if native:
+    protected = platform in PLATFORMS.values() and ci and ci.get('event') in NORMAL_EVENTS
+    automatic = protected and profile in AUTOMATIC_PROFILES
+    native = platform == 'Windows' and (automatic or protected and profile in WINDOWS_PRODUCER_PROFILES)
+    passed = passed_observation_checks(report['checks']) if automatic or native else set()
+    observation_claims = (automatic or native) and (bool(passed) or any(
+        'observation' in row or 'field_observation' in row for row in report['checks']
+    ))
+    publishing, assignment = None, None
+    if native or observation_claims:
         source = report.get('source') or {}
         publishing, assignment, _ = native_publisher_contract({
             'ci': ci, 'source_commit': source.get('git_head'), 'inputs_sha256': source.get('sha256'),
             'working_tree_dirty': source.get('working_tree_dirty'),
         }) if commit_id(ci.get('checkout_sha')) and commit_id(ci.get('head_sha')) else (None, None, None)
-        revision, catalog = publishing or (None, None)
+    revision, catalog = publishing or (None, None)
+    if ci and platform in PLATFORMS.values():
+        publisher = committed_windows_publisher(ROOT, revision) if observation_claims and revision else None
+        policy = publisher['run_observations'] if publisher else RUN_OBSERVATION_CHECKS
+        if issue := report_observation_issue(report, run_observations=policy):
+            raise TimingError(f'Timing report has {issue}.')
+        if observation_claims and publisher is None:
+            raise TimingError('Timing report observations lack a verified publisher policy.')
+        if passed and not passed <= publishing_observation_checks(catalog, policy):
+            raise TimingError('Timing report has a passing observation check outside the implemented publishing catalog.')
+    if native:
         snapshot = committed_publishing_snapshot(revision, root=ROOT) if revision is not None else None
         expected_source = {**snapshot, 'git_head': ci['checkout_sha']} if snapshot is not None else None
         if issue := windows_raw_timing_issue(report, catalog=catalog, source=expected_source):
@@ -687,7 +707,9 @@ def split_stage_intervals(parent, members, scoped):
             ordered_choices(sources[lane], ('harness_start', 'end'), within=phase_order('harness'))
             for lane in active
         ]
-        if all(executing) and all(sources[lane].get('start') for lane in active):
+        # Observed job starts constrain the step order above. Missing starts
+        # leave runner work unknown without removing a measured execution span.
+        if all(executing):
             executions = []
             for start, end in ordered_choices(parent, ('start', 'harness_end'), within=phase_order('harness')):
                 if start not in viable:
@@ -1779,47 +1801,35 @@ def report_clock_role(sample):
     return None
 
 
-def report_job_disputes(samples, evidence, issues):
-    disputes = set()
-    for sample in samples:
-        attempt = ci_key(sample['ci'] or {})
-        if sample['platform'] != 'Windows' or not sample.get('inputs_sha256') or not sample_eligible(sample):
-            continue
-        role = report_clock_role(sample)
-        if role is None or (role[0] == 'platform'
-                            and not protected_profile_matches(evidence.attempts.get(attempt),
-                                                              'Windows', sample['profile'])):
-            continue
-        fact = evidence.jobs.get((attempt, role))
-        if not (fact and fact.job):
-            continue
-        recorded = timestamp(sample['recorded_at'])
-        if job_outside_report(fact.job, recorded):
-            timing_issue(issues, {'run_id': attempt[1], role[0]: role[1], 'job_id': fact.job['job_id'],
-                                  'error': 'The recorded report creation is outside the publishing job boundaries.'})
-            disputes.add((attempt, role))
-    return disputes
+def report_job_issue(sample, attempt, run, evidence):
+    if evidence is None or not sample.get('inputs_sha256') or not sample_eligible(sample):
+        return None
+    role = report_clock_role(sample)
+    if role is None or (role[0] == 'platform'
+                        and not protected_profile_matches(run, sample['platform'], sample['profile'])):
+        return None
+    fact = evidence.jobs.get((attempt, role))
+    if fact and fact.job and job_outside_report(fact.job, timestamp(sample['recorded_at'])):
+        return {'run_id': attempt[1], role[0]: role[1], 'job_id': fact.job['job_id'],
+                'error': 'The recorded report creation is outside the publishing job boundaries.'}
+    return None
 
 
 def reconcile_timing_clocks(samples, hosted, issues, *, report_issues=None):
     evidence = attempt_clocks(hosted, issues)
-    unqualified = unqualified_report_inputs(samples, evidence.attempts, issues if report_issues is None else report_issues)
+    unqualified = unqualified_report_inputs(samples, issues if report_issues is None else report_issues, evidence)
     claims = [row for row in samples if id(row) not in unqualified]
     disputes = timing_checkout_conflicts(claims, hosted, issues)
-    job_disputes = report_job_disputes(claims, evidence, issues)
     return ClockEvidence({key: run for key, run in evidence.attempts.items() if key not in disputes},
-                         evidence.complete - disputes - {attempt for attempt, _ in job_disputes},
-                         {key: JobClockEvidence(None, ()) if key in job_disputes else fact
-                          for key, fact in evidence.jobs.items() if key[0] not in disputes},
-                         disputes, (evidence.producer_disputes | {attempt for attempt, role in job_disputes
-                                                                   if role[0] == 'producer'}) - disputes,
+                         evidence.complete - disputes,
+                         {key: fact for key, fact in evidence.jobs.items() if key[0] not in disputes},
+                         disputes, evidence.producer_disputes - disputes,
                          unqualified)
 
 
-def unqualified_report_inputs(samples, clocks, issues):
+def unqualified_report_inputs(samples, issues, evidence=None):
     diagnostics = []
-    unqualified = frozenset(id(row) for row in samples
-                            if report_attribution_issue(row, clocks.get(ci_key(row['ci'] or {})), diagnostics))
+    unqualified = frozenset(id(row) for row in samples if report_attribution_issue(row, evidence, diagnostics))
     for issue in sorted(diagnostics, key=lambda note: json.dumps(note, sort_keys=True)):
         timing_issue(issues, issue)
     return unqualified
@@ -1829,7 +1839,7 @@ def coalesced_sample_groups(samples, issues, *, evidence=None):
     observations, producers = defaultdict(list), defaultdict(list)
     clock_by_attempt = evidence.attempts if evidence is not None else {}
     unqualified = (evidence.unqualified_reports if evidence is not None
-                   else unqualified_report_inputs(samples, clock_by_attempt, issues))
+                   else unqualified_report_inputs(samples, issues))
     diagnostics = []
     for sample in samples:
         ci = sample['ci']
@@ -2024,7 +2034,8 @@ def windows_publishing_registry():
         raise ValueError('Unknown native timing publisher registry version.')
     assignments = registry['assignments']
     return {
-        digest: {'catalogs': program['catalogs'], 'assignment': assignments[program['assignment']]}
+        digest: {'catalogs': program['catalogs'], 'assignment': assignments[program['assignment']],
+                 'run_observations': RUN_OBSERVATION_POLICIES[program['run_observations']]}
         for digest, program in registry['programs'].items()
     }
 
@@ -2165,11 +2176,11 @@ def windows_full_summary_issue(sample, selected, catalog, platform):
     return None
 
 
-def report_attribution_issue(sample, run, issues):
+def report_attribution_issue(sample, evidence, issues):
     ci = sample['ci']
     if (ci and ci['event'] == 'pull_request' and sample['platform'] in PLATFORMS.values()
             and report_clock_role(sample) and sample_identity_complete(sample)
-            and (issue := disproved_pr_checkout(ci))):
+            and (issue := pr_checkout_issue(ci))):
         if sample['platform'] == 'Windows':
             issue = ('Native timing check selection is unknown because the publishing catalog is unavailable. ' + issue)
         diagnostic = {'run_id': observation_id(sample), 'platform': sample['platform'], 'error': issue}
@@ -2177,7 +2188,23 @@ def report_attribution_issue(sample, run, issues):
             diagnostic['producer'] = producer
         timing_issue(issues, diagnostic)
         return True
-    return native_report_issue(sample, run, issues)
+    attempt = ci_key(ci or {})
+    run = evidence.attempts.get(attempt) if evidence is not None else None
+    if native_report_issue(sample, run, issues):
+        return True
+    if (ci and ci['event'] in NORMAL_EVENTS and sample['platform'] in PLATFORMS.values()
+            and report_clock_role(sample) and sample_identity_complete(sample)
+            and (passed := passed_observation_checks(sample['checks']))):
+        publishing, _, _ = native_publisher_contract(sample)
+        publisher = committed_windows_publisher(ROOT, publishing[0]) if publishing else None
+        if not publisher or not passed <= publishing_observation_checks(publishing[1], publisher['run_observations']):
+            timing_issue(issues, {'run_id': observation_id(sample), 'platform': sample['platform'],
+                                  'error': 'Timing report observation checks lack a matching implemented publisher policy.'})
+            return True
+    if issue := report_job_issue(sample, attempt, run, evidence):
+        timing_issue(issues, issue)
+        return True
+    return False
 
 
 def native_report_issue(sample, run, issues):
@@ -2352,7 +2379,7 @@ def readable_commit_ancestor(root, descendant, ancestor, *, ancestor_missing):
         if ancestor in pending:
             return True
         if len(pending) + len(searched) > EXPIRED_ANCESTRY_LIMIT:
-            return None
+            return True if shallow_boundary_names_parent(root, descendant, ancestor) else None
         revisions = tuple(sorted(pending))
         kinds = git_object_types(root, revisions)
         if not possible_commit_types(kinds):
@@ -2365,6 +2392,40 @@ def readable_commit_ancestor(root, descendant, ancestor, *, ancestor_missing):
             if (commit := commit_facts(root, revision)) is None:
                 return None
             pending.update(set(commit.parents) - searched)
+    return False
+
+
+def shallow_boundary_names_parent(root, descendant, ancestor):
+    """Prove a positive parent edge without walking all readable commit headers."""
+    limit = EXPIRED_ANCESTRY_LIMIT * 43
+    try:
+        location = git(root, 'rev-parse', '--path-format=absolute', '--git-path', 'shallow', output_limit=4096)
+        path = Path(os.fsdecode(location).removesuffix('\n').removesuffix('\r'))
+        if not path.is_absolute() or not stat.S_ISREG(path.stat().st_mode):
+            return False
+        flags = os.O_RDONLY | getattr(os, 'O_NONBLOCK', 0) | getattr(os, 'O_BINARY', 0)
+        with os.fdopen(os.open(path, flags), 'rb') as contents:
+            if not stat.S_ISREG(os.fstat(contents.fileno()).st_mode):
+                return False
+            raw = contents.read(limit + 1)
+        boundaries = raw.decode('ascii').splitlines()
+        if (len(raw) > limit or len(boundaries) > EXPIRED_ANCESTRY_LIMIT
+                or not all(map(commit_id, boundaries))):
+            return False
+    except (ScopeError, OSError, subprocess.SubprocessError, ValueError):
+        return False
+    for boundary in sorted(set(boundaries)):
+        facts = commit_facts(root, boundary)
+        if facts is None or ancestor not in facts.parents:
+            continue
+        try:
+            # Git can still prove reachability up to its shallow boundary.
+            # A raw edge from an unrelated shallow commit proves nothing here.
+            merge_base = git(root, 'merge-base', descendant, boundary, output_limit=43)
+        except (ScopeError, OSError, subprocess.SubprocessError):
+            continue
+        if merge_base.splitlines() == [boundary.encode('ascii')]:
+            return True
     return False
 
 
@@ -2391,25 +2452,26 @@ def missing_commit_parent_edges(root, parent):
 
 
 PR_CHECKOUT_ANCESTOR = 'The claimed PR checkout is a parent or ancestor of the proposed merge.'
+PR_CHECKOUT_ANCESTRY_UNVERIFIED = 'Available PR parent ancestry could not be verified within the local Git traversal limits.'
 
 
-def disproved_pr_checkout(ci):
-    """Check only contradictions established by Git independently of a report proof."""
+def pr_checkout_issue(ci):
+    """Require readable ancestry checks to finish before using a checkout claim."""
     checkout, head = ci['checkout_sha'], ci['head_sha']
     if checkout == head:
         return PR_CHECKOUT_ANCESTOR
     types = git_object_types(ROOT, (checkout, head))
     if types is None:
-        return None
+        return PR_CHECKOUT_ANCESTRY_UNVERIFIED
     checkout_type, head_type = types
     if not possible_commit_types(types):
         return 'The claimed PR checkout or event head identifies a noncommit Git object.'
     if checkout_type == b'missing':
-        if head_type == b'commit' and readable_commit_ancestor(ROOT, head, checkout, ancestor_missing=True) is True:
-            return PR_CHECKOUT_ANCESTOR
-        return None
+        return missing_pr_checkout_issue(ROOT, checkout, head) if head_type == b'commit' else None
     facts = commit_facts(ROOT, checkout)
-    if facts is None or event_merge_parents(ci, facts.parents):
+    if facts is None:
+        return PR_CHECKOUT_ANCESTRY_UNVERIFIED
+    if event_merge_parents(ci, facts.parents):
         return None
     head_facts = commit_facts(ROOT, head) if head_type == b'commit' else None
     if head_facts is not None and checkout in head_facts.parents:
@@ -2419,17 +2481,16 @@ def disproved_pr_checkout(ci):
 
 def missing_pr_checkout_issue(root, checkout, parent):
     """Contradiction or uncertainty in a claim that an absent object was a merge preview."""
-    uncertainty = 'Available PR parent ancestry could not be verified within the local Git traversal limits.'
     if checkout == parent:
         return PR_CHECKOUT_ANCESTOR
     parent_type = git_object_types(root, (parent,))
     if parent_type == (b'missing',):
         return None  # A retained proof can supply an independently absent parent.
     if parent_type != (b'commit',):
-        return uncertainty
+        return PR_CHECKOUT_ANCESTRY_UNVERIFIED
     ancestry = readable_commit_ancestor(root, parent, checkout, ancestor_missing=True)
     if ancestry is None:
-        return uncertainty
+        return PR_CHECKOUT_ANCESTRY_UNVERIFIED
     return PR_CHECKOUT_ANCESTOR if ancestry else None
 
 
