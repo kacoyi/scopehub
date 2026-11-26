@@ -96,6 +96,7 @@ def fast_report(day, elapsed):
 
 
 BASIC_CHECKS = ('environment', 'project-state')
+NATIVE_FULL_CHECKS = (*BASIC_CHECKS, 'windows-native-build')
 SPLIT_CHECKS = ('windows-native-build', 'workspace-timeframe', 'python-contracts-workers', 'market-recovery')
 RECORDS_CHECKS = ('generated-contracts', 'dependency-review')
 OLD_FULL_CHECKS = (*BASIC_CHECKS, 'future-check', 'windows-native-build')
@@ -137,7 +138,7 @@ OLD_FULL_CATALOG = fixture_catalog(OLD_FULL_CHECKS, non_change=('release-artifac
 
 def use_catalog(test, catalog, *, lanes=timing.WINDOWS_LANES):
     test.enterContext(patch.object(timing, 'publishing_catalog_source',
-                                 side_effect=lambda sample: (sample['source_commit'], catalog)))
+                                 side_effect=lambda sample: timing.PublishingSource((sample['source_commit'], catalog))))
     assignment = {lane: checks for lane, checks in verification_scope.WINDOWS_LANE_CHECKS.items() if lane in lanes}
     test.enterContext(patch.object(timing, 'committed_windows_assignment', return_value=assignment))
 
@@ -350,9 +351,10 @@ class HostedTimingTests(unittest.TestCase):
         for name, row in zip(('core', 'browser', 'python'), (core, browser, python), strict=True):
             row['name'] = f'Windows change checks ({name})'
         if not scoped:
-            browser['steps'].append(hosted_job(33, 'windows', '00:40', '12:00',
-                                               'Install and start the pinned chart-test browser',
-                                               '01:05', '01:35')['steps'][0])
+            browser_setup = hosted_job(33, 'windows', '00:40', '12:00',
+                                       'Install and start the pinned chart-test browser',
+                                       '01:05', '01:35')['steps'][0]
+            browser['steps'].append(dict(browser_setup, number=11))
         aggregate['steps'].append({'name': 'Require successful Windows lane jobs', 'conclusion': 'skipped'})
         linux = hosted_job(31, 'ubuntu', '00:10', '08:30', 'Run pnpm check', '00:50', '08:10')
         return linux, core, browser, python, aggregate
@@ -545,7 +547,8 @@ class HostedTimingTests(unittest.TestCase):
         legacy = timing.hosted_timing(run, [*lanes, legacy_job])
         previous = next(job for job in legacy['jobs'] if job['platform'] == 'Windows')
         previous.pop('endpoint_choices')
-        previous.pop('timed_steps')
+        previous.pop('step_observations')
+        previous['step_identities'] = {'harness': [12, timing.WINDOWS_FULL_STEP]}
         self.assertTrue(timing.valid_clock(legacy))
         check([legacy, official], (None, None, None), False)
 
@@ -653,7 +656,8 @@ class HostedTimingTests(unittest.TestCase):
                           patch.object(timing, 'recent_runs', return_value=[run]),
                           patch.object(timing, 'download_timing', return_value=[received]),
                           patch.object(timing, 'inspect_jobs', return_value=clock),
-                          patch.object(timing, 'publishing_catalog_source', side_effect=catalog),
+                          patch.object(timing, 'publishing_catalog_source',
+                                       side_effect=lambda sample: timing.PublishingSource(catalog(sample))),
                           patch.object(timing, 'committed_windows_assignment', return_value=verification_scope.WINDOWS_LANE_CHECKS)):
                         timing.main()
                     view = json.loads(out.getvalue())
@@ -1861,7 +1865,8 @@ def main():
         project.mkdir()
         for name in ('tasks.json', 'feedback.json', 'delivery.json'):
             (project / name).write_bytes((timing.ROOT / 'project' / name).read_bytes())
-        tree = self.publishing_tree(fixture_catalog((*BASIC_CHECKS, 'generated-contracts')))
+        extra_checks = ('generated-contracts', 'windows-native-build')
+        tree = self.publishing_tree(fixture_catalog((*BASIC_CHECKS, *extra_checks)))
         blob = self.git('rev-parse', f'{tree}:project/checks.json')
         other_tree = self.git('mktree', contents=f'{self.git("ls-tree", tree)}\n100644 blob {blob}\texecution-control.txt\n')
         ancestor_base = self.commit('Older topic ancestor', self.base, tree=other_tree)
@@ -1873,6 +1878,16 @@ def main():
         shallow_parent = self.commit('Visible intermediate parent', absent_base, tree=other_tree)
         shallow_head = self.commit('Shallow topic', shallow_parent, tree=tree)
         (self.root / '.git/objects' / absent_base[:2] / absent_base[2:]).unlink()
+        long_ancestor = self.commit('Ancestor beyond the original traversal limit', self.base, tree=tree)
+        long_boundary = self.commit('Long shallow boundary', long_ancestor, tree=tree)
+        long_head = long_boundary
+        for index in range(timing.EXPIRED_ANCESTRY_LIMIT + 2):
+            long_head = self.commit(f'Long topic step {index}', long_head, tree=tree)
+        endpoint = verification_scope.git(self.root, 'rev-list', '-1', long_head, output_limit=43)
+        self.assertEqual(long_head, endpoint.decode('ascii').strip())
+        with self.assertRaisesRegex(timing.ScopeError, 'exceeded the comparison limit'):
+            verification_scope.git(self.root, 'rev-list', long_head, output_limit=43)
+        (self.root / '.git/objects' / long_ancestor[:2] / long_ancestor[2:]).unlink()
         other_inputs = timing.committed_publishing_inputs(other_tree, root=self.root)
         self.assertIsNotNone(other_inputs)
         preview = self.commit('Merge preview', self.base, head, tree=tree)
@@ -1923,6 +1938,10 @@ def main():
             ('shallow-missing-ancestor-with-matching-head', missing, shallow_head, None, 360),
             ('shallow-claimed-checkout-is-head-ancestor', absent_base, shallow_head, None, None),
             ('shallow-claimed-checkout-is-head-ancestor-with-proof', absent_base, shallow_head, self.base, None),
+            ('long-shallow-missing-checkout', missing, long_head, None, 360),
+            ('long-shallow-ancestor', long_ancestor, long_head, None, None),
+            ('long-shallow-ancestor-with-proof', long_ancestor, long_head, self.base, None),
+            ('long-shallow-unavailable-walk', missing, long_head, None, None),
             ('other-tree-with-claimed-checkout-is-base-ancestor', absent_base, missing_head, shallow_parent, None),
             ('other-tree-with-unrelated-missing-checkout', missing, missing_head, shallow_parent, 360),
             ('tree', tree, head, self.base, None),
@@ -1943,15 +1962,17 @@ def main():
                     shallow.write_bytes(f'{shallow_parent}\n'.encode('ascii'))
                 if topic == shallow_head:
                     self.assertEqual([shallow_head, shallow_parent], self.git('rev-list', topic).splitlines())
+                if topic == long_head:
+                    shallow.write_bytes(f'{long_boundary}\n'.encode('ascii'))
+                    self.assertGreater(len(self.git('rev-list', topic).splitlines()), timing.EXPIRED_ANCESTRY_LIMIT)
                 run = dict(hosted_run(), head_sha=topic)
                 clock = timing.hosted_timing(run, [dict(job, head_sha=topic) for job in jobs])
                 report = fast_report(20, 190)
                 report['generated_at'] = '2026-11-20T00:05:45Z'
                 report['environment'].update(system='Windows', machine='AMD64')
                 report['selection']['profile'] = 'full'
-                report['selection']['checks'].append('generated-contracts')
-                report['selection']['checks'].sort()
-                report['checks'].append(dict(report['checks'][0], id='generated-contracts'))
+                report['selection']['checks'] = sorted((*report['selection']['checks'], *extra_checks))
+                report['checks'].extend(dict(report['checks'][0], id=check) for check in extra_checks)
                 report['source'].update(git_head=preview, sha256=inputs, working_tree_dirty=False)
                 report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
                                 'event': 'pull_request', 'head_sha': topic, 'checkout_sha': preview}
@@ -1981,6 +2002,12 @@ def main():
                 load = timing.native_publishing_catalog
                 fingerprint = timing.committed_publishing_inputs
                 git = timing.git
+                timing.missing_commit_parent_edges.cache_clear()
+
+                def repository_git(_, *args, **options):
+                    if kind == 'long-shallow-unavailable-walk' and '--shallow-file' in args:
+                        raise timing.ScopeError('Native Git boundary enumeration is unavailable.')
+                    return git(self.root, *args, **options)
 
                 def actions_command(args):
                     if args[:2] == ['gh', 'api']:
@@ -1997,7 +2024,7 @@ def main():
                 jobs_path.write_bytes(timing.json_bytes([dict(job, head_sha=topic) for job in jobs]))
                 with (patch.dict(os.environ, environment),
                       patch.object(timing, 'ROOT', self.root),
-                      patch.object(timing, 'git', side_effect=lambda _, *args, **options: git(self.root, *args, **options)),
+                      patch.object(timing, 'git', side_effect=repository_git),
                       patch.object(timing, 'native_publishing_catalog',
                                    side_effect=lambda rev, **options: load(rev, root=self.root, **options)),
                       patch.object(timing, 'committed_publishing_inputs',
@@ -2039,6 +2066,12 @@ def main():
                     self.assertEqual(340 if seconds is not None else None, decision['samples'][0]['seconds']['runner'])
                     linux, = (row for row in decision['hosted'][0]['jobs'] if row['platform'] == 'Linux')
                     self.assertEqual(240, linux['seconds']['total'])
+                    if kind.startswith('long-shallow-ancestor'):
+                        self.assertTrue(any('a parent or ancestor of the proposed merge' in note['error']
+                                            for note in decision['input_issues']))
+                    if kind == 'long-shallow-unavailable-walk':
+                        self.assertTrue(any('could not be verified within the local Git traversal limits' in note['error']
+                                            for note in decision['input_issues']))
                 self.assertEqual(1, len(view['hosted']))
                 if seconds is None:
                     self.assertIn('publishing catalog is unavailable', view['input_issues'][0]['error'])
@@ -2048,7 +2081,7 @@ def main():
                     self.assertIn('recent median 360s', summary.read_text(encoding='utf-8'))
 
     def test_producer_scope_uses_the_bound_publisher_assignment(self):
-        full = (*BASIC_CHECKS, 'workspace-timeframe', 'market-recovery', 'market-recovery-ui', 'python-contracts-workers')
+        full = (*NATIVE_FULL_CHECKS, 'workspace-timeframe', 'market-recovery', 'market-recovery-ui', 'python-contracts-workers')
         scripts = self.root / 'scripts'
         scripts.mkdir()
         project = self.root / 'project'
@@ -2532,7 +2565,7 @@ class TimingRegressionTests(unittest.TestCase):
                 self.assertEqual(breaches, metric['recent_objective_breaches'])
 
     def test_offline_status_routes_comparable_hosted_growth_below_budget(self):
-        use_catalog(self, fixture_catalog())
+        use_catalog(self, fixture_catalog(NATIVE_FULL_CHECKS))
         samples, workflows = [], []
         for day, finish in enumerate(('08:50', '09:00', '09:10', '11:00', '11:10', '11:20'), start=14):
             run = hosted_run(run_id=day, day=day)
@@ -2545,6 +2578,8 @@ class TimingRegressionTests(unittest.TestCase):
             report = fast_report(day, 460)
             report['selection']['profile'] = 'full'
             report['environment']['system'] = 'Windows'
+            report['selection']['checks'].append('windows-native-build')
+            report['checks'].append(dict(report['checks'][0], id='windows-native-build'))
             report['ci'] = {'repository': 'fixture/scopehub', 'run_id': str(day), 'run_attempt': '1',
                             'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'a' * 40}
             samples.append(timing.report_sample(report, cache='warm'))
@@ -2597,9 +2632,9 @@ class TimingRegressionTests(unittest.TestCase):
     def test_objective_breaches_remain_visible_across_hosted_coverage_change(self):
         changed_commit = 'b' * 40
         changed_catalog = fixture_catalog((*OLD_FULL_CHECKS, 'chart-history'), non_change=('release-artifacts',))
-        self.enterContext(patch.object(timing, 'publishing_catalog_source', side_effect=lambda sample: (
+        self.enterContext(patch.object(timing, 'publishing_catalog_source', side_effect=lambda sample: timing.PublishingSource((
             sample['source_commit'], changed_catalog if sample['source_commit'] == changed_commit else OLD_FULL_CATALOG,
-        )))
+        ))))
         self.enterContext(patch.object(timing, 'committed_windows_assignment', return_value={}))
         samples, workflows = [], []
         for day, finish in enumerate(('14:50', '15:01', '18:01'), start=14):
@@ -3207,7 +3242,7 @@ class TimingRegressionTests(unittest.TestCase):
 
 class RecentTimingTests(unittest.TestCase):
     def setUp(self):
-        default_catalog = fixture_catalog()
+        default_catalog = fixture_catalog(NATIVE_FULL_CHECKS)
         self.catalogs = {}
         self.missing_catalogs = set()
         self.enterContext(patch.object(timing, 'native_publishing_catalog', side_effect=lambda revision: (
@@ -3224,7 +3259,7 @@ class RecentTimingTests(unittest.TestCase):
         repository = 'fixture/scopehub'
         checkout = checkout or head
         if extra_check:
-            self.catalogs[checkout] = fixture_catalog((*BASIC_CHECKS, 'extra-check'))
+            self.catalogs[checkout] = fixture_catalog((*NATIVE_FULL_CHECKS, 'extra-check'))
         run = dict(hosted_run(run_id=day, day=day), head_sha=head, event=event, conclusion=outcome,
                    head_branch='main' if event == 'push' else 'repair')
         jobs = [
@@ -3243,8 +3278,12 @@ class RecentTimingTests(unittest.TestCase):
             report['source'].update(git_head=checkout, sha256='c' * 64, working_tree_dirty=False)
             report['ci'] = {'repository': repository, 'run_id': str(day), 'run_attempt': '1', 'event': event,
                             'head_sha': head, 'checkout_sha': checkout}
+            if platform == 'Windows':
+                report['selection']['checks'].append('windows-native-build')
+                report['checks'].append(dict(report['checks'][0], id='windows-native-build'))
             if extra_check:
                 report['selection']['checks'].append('extra-check')
+                report['selection']['checks'].sort()
                 report['checks'].append(dict(report['checks'][0], id='extra-check'))
             if outcome == 'failure' and platform == 'Windows':
                 report['status'] = 'failed'
@@ -3517,7 +3556,7 @@ class RecentTimingTests(unittest.TestCase):
         unavailable = 'f' * 40
         historical = self.budget_run(18, '14:40', head=topic, checkout=unavailable)
         self.missing_catalogs.add(unavailable)
-        self.catalogs.update(dict.fromkeys((before, topic), fixture_catalog((*BASIC_CHECKS, timing.GENERATED_CHECK))))
+        self.catalogs.update(dict.fromkeys((before, topic), fixture_catalog((*NATIVE_FULL_CHECKS, timing.GENERATED_CHECK))))
         self.enterContext(patch.object(timing, 'committed_publishing_inputs', return_value='c' * 64))
         for observation in (older, baseline, historical):
             for sample in observation[1]:
@@ -4384,6 +4423,9 @@ class RecentTimingTests(unittest.TestCase):
             report['environment']['system'] = platform
             report['ci'] = {'repository': repository, 'run_id': '11', 'run_attempt': '1', 'event': 'pull_request',
                             'head_sha': source['git_head'], 'checkout_sha': source['git_head']}
+            if platform == 'Windows':
+                report['selection']['checks'].append('windows-native-build')
+                report['checks'].append(dict(report['checks'][0], id='windows-native-build'))
             samples.append(timing.report_sample(report))
         for selection, expected in ((samples, 'captured'), (samples[1:], 'partial')):
             with self.subTest(expected=expected), tempfile.TemporaryDirectory() as directory:

@@ -13,12 +13,19 @@ import re
 import stat
 import subprocess
 import sys
+from threading import Timer
 
 
 def windows_x64(environment):
     machine = environment.get('machine')
     return (environment.get('system') == 'Windows' and isinstance(machine, str)
             and machine.lower() in {'amd64', 'x86_64'})
+
+
+def windows_native_satisfied(environment, results):
+    return windows_x64(environment) and any(
+        row['id'] == 'windows-native-build' and row['status'] == 'passed' for row in results
+    )
 
 
 def windows_lanes_run_id(ci):
@@ -199,6 +206,8 @@ def windows_raw_timing_issue(report, *, catalog=None, source=None):
             or ci.get('provider') != 'github-actions'
             or ci.get('run_url') != f"https://github.com/{ci.get('repository')}/actions/runs/{ci.get('run_id')}"):
         return 'invalid native harness metadata'
+    if requirement['requested'] and not windows_native_satisfied(report['environment'], report['checks']):
+        return 'a native requirement that contradicts its check results'
 
     commands = {row['id']: row['command'] for row in catalog['checks']} if catalog is not None else None
     for row in report['checks']:
@@ -329,15 +338,38 @@ def checkout_git_environment():
             if key not in local and not key.startswith(('GIT_CONFIG_KEY_', 'GIT_CONFIG_VALUE_'))}
 
 
-def git(root, *args, input=None):
+def bounded_git_output(command, root, environment, limit):
+    with subprocess.Popen(command, cwd=root, env=environment, stdin=subprocess.DEVNULL,
+                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL) as process:
+        timeout = Timer(30, process.kill)
+        timeout.start()
+        try:
+            output = process.stdout.read(limit + 1)
+            if len(output) > limit:
+                raise ScopeError('Git output exceeded the comparison limit.')
+            if process.wait():
+                raise ScopeError('Git could not verify the comparison.')
+            return output
+        finally:
+            if process.poll() is None:
+                process.kill()
+            timeout.cancel()
+
+
+def git(root, *args, input=None, output_limit=None):
     options = ['-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false']
     if os.name != 'nt':
         options.extend(('-c', 'core.fileMode=true'))
+    command = ['git', '--no-replace-objects', '--no-optional-locks', *options, *args]
+    environment = {**checkout_git_environment(), 'GIT_GRAFT_FILE': os.devnull, 'GIT_NO_LAZY_FETCH': '1',
+                   'GIT_ALLOW_PROTOCOL': ''}
+    if output_limit is not None:
+        if input is not None:
+            raise ValueError('Bounded Git output requires no standard input.')
+        return bounded_git_output(command, root, environment, output_limit)
     result = subprocess.run(
-        ['git', '--no-replace-objects', '--no-optional-locks', *options, *args],
-        cwd=root, input=input, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, timeout=30,
-        env={**checkout_git_environment(), 'GIT_GRAFT_FILE': os.devnull, 'GIT_NO_LAZY_FETCH': '1',
-             'GIT_ALLOW_PROTOCOL': ''},
+        command, cwd=root, input=input, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, timeout=30,
+        env=environment,
     )
     if result.returncode:
         raise ScopeError('Git could not verify the comparison.')

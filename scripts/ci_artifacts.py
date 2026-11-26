@@ -20,8 +20,9 @@ if __package__:
         EXTERNAL_CLIENT_CHECK, FIELD_ACTIONS, RUN_OBSERVATION_CHECKS, LocalFieldObservation,
         capture_run_observation, field_observation,
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
-        evidence_json, integration_validation, release_artifacts, validate_notice,
+        evidence_json, release_artifacts, validate_notice,
     )
+    from .verification_report import integration_summary_matches
     from .verification_scope import (
         SCOPED_PROFILES, WINDOWS_LANES, ci_base, ci_event_checkout, require_ancestor,
         windows_lane_checks, windows_lane_report_matches, windows_lanes_run_id, windows_published_scope,
@@ -38,8 +39,9 @@ else:
         EXTERNAL_CLIENT_CHECK, FIELD_ACTIONS, RUN_OBSERVATION_CHECKS, LocalFieldObservation,
         capture_run_observation, field_observation,
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
-        evidence_json, integration_validation, release_artifacts, validate_notice,
+        evidence_json, release_artifacts, validate_notice,
     )
+    from verification_report import integration_summary_matches
     from verification_scope import (
         SCOPED_PROFILES, WINDOWS_LANES, ci_base, ci_event_checkout, require_ancestor,
         windows_lane_checks, windows_lane_report_matches, windows_lanes_run_id, windows_published_scope,
@@ -313,7 +315,7 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False):
                     stage_field_observation(root, reports, destination, result)
                 except LocalFieldObservation:
                     print(f'Omitted local-only field observation: {check}.')
-    if 'integration_validation' in report and report['integration_validation'] != integration_validation(report['checks']):
+    if 'integration_validation' in report and not integration_summary_matches(report['integration_validation'], report['checks']):
         raise PublicationError('The integration summary differs from the checked observations.')
 
     browser_roots = {'chart-history': f'chart-history/{run}', 'ubuntu-preview': f'ubuntu-preview/{run_id}'}

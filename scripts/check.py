@@ -40,8 +40,10 @@ try:
         from .storage import maintain_automatically
         from .verification_evidence import (
             FIELD_ACTIONS, RUN_OBSERVATION_CHECKS, collect_run_observation, field_observation,
-            integration_validation, redacted_check_log, release_artifacts,
+            redacted_check_log, release_artifacts,
         )
+        from .verification_report import integration_validation
+        from .verification_scope import windows_native_satisfied
     else:
         from doctor import tool_version
         from processes import log_tail, run_logged, seal_unconfirmed_log
@@ -53,8 +55,10 @@ try:
         from storage import maintain_automatically
         from verification_evidence import (
             FIELD_ACTIONS, RUN_OBSERVATION_CHECKS, collect_run_observation, field_observation,
-            integration_validation, redacted_check_log, release_artifacts,
+            redacted_check_log, release_artifacts,
         )
+        from verification_report import integration_validation
+        from verification_scope import windows_native_satisfied
 except Exception as error:
     if __name__ != '__main__':
         raise
@@ -524,8 +528,7 @@ def main():
     passed = all(result['status'] == 'passed' for result in implemented)
     if args.task or args.profile:
         passed = passed and all(result['status'] == 'passed' for result in results if result['id'] in selected)
-    native_blocked = args.require_windows and (not windows_x64(environment) or
-                                               not any(r['id'] == 'windows-native-build' and r['status'] == 'passed' for r in results))
+    native_blocked = args.require_windows and not windows_native_satisfied(environment, results)
     if native_blocked:
         passed = False
     integration_requested = not args.ci_windows_lane and (

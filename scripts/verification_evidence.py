@@ -12,15 +12,12 @@ from statistics import median
 
 if __package__:
     from .project import ProjectError, digest, file_digest, json_bytes, load_project, local_path, read_json, source_identity, validate_model
+    from .verification_report import SESSION_CHECKS
 else:
     from project import ProjectError, digest, file_digest, json_bytes, load_project, local_path, read_json, source_identity, validate_model
+    from verification_report import SESSION_CHECKS
 
 ROOT = Path(__file__).resolve().parents[1]
-SESSION_CHECKS = {
-    'configured-model-session': ('configured_models', 'text'),
-    'configured-voice-session': ('configured_models', 'voice'),
-    'configured-market-source': ('real_market_data', 'market'),
-}
 EXTERNAL_CLIENT_CHECK = 'configured-external-ai-clients'
 RUN_OBSERVATION_CHECKS = SESSION_CHECKS.keys() | {EXTERNAL_CLIENT_CHECK}
 EXTERNAL_CLIENT_MAX_BYTES = 8192
@@ -431,27 +428,6 @@ def retain_external_client_record(root):
             retained.write(json_bytes(observation['observation']))
     except (OSError, ValueError, TypeError, KeyError, RecursionError):
         raise SystemExit('External-client observation failed validation.') from None
-
-
-def integration_validation(results):
-    summary = {
-        kind: {'status': 'not_evaluated', 'observations': []}
-        for kind in ['configured_models', 'cloud_models', 'real_market_data']
-    }
-    summary['mock_ai_evaluated'] = any(
-        r['id'] in {'ai-workflow', 'ai-replay-evaluations'} and r['status'] == 'passed' for r in results
-    )
-    for r in results:
-        if r['id'] in SESSION_CHECKS and r['status'] == 'passed' and 'observation' in r:
-            kind, _ = SESSION_CHECKS[r['id']]
-            observation = r['observation']
-            groups = [kind]
-            if kind == 'configured_models' and observation['deployment'] == 'cloud':
-                groups.append('cloud_models')
-            for key in groups:
-                summary[key]['status'] = 'observed'
-                summary[key]['observations'].append(observation)
-    return summary
 
 
 def performance_verdict(data, policy):

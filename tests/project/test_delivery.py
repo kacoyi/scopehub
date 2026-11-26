@@ -25,7 +25,8 @@ from scripts.project import (
 )
 from tests.project.test_continuity import ProjectFixture
 from tests.project.fixtures import owner_workbench_fixture, task_by_id, ubuntu_test_host
-from scripts.verification_evidence import integration_validation, release_artifacts, collect_session, performance_verdict, field_observation
+from scripts.verification_evidence import release_artifacts, collect_session, performance_verdict, field_observation
+from scripts.verification_report import integration_validation
 
 
 class DeliveryTests(ProjectFixture):

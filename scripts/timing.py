@@ -20,21 +20,25 @@ from typing import NamedTuple
 if __package__:
     from .doctor import tool_version
     from .execution_inputs import committed_project_definition_claims, committed_source_identity, is_source_input
+    from .verification_report import integration_summary_matches
     from .verification_scope import (
         LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit,
         decode_publishing_catalog, git, invalid_number, oid, publishing_check_catalog, require_complete_history,
         unique_object,
-        windows_lane_report_matches, windows_published_scope, windows_raw_timing_issue, windows_result_issue, windows_x64,
+        windows_lane_report_matches, windows_native_satisfied, windows_published_scope, windows_raw_timing_issue,
+        windows_result_issue, windows_x64,
     )
     from .worktree import WorktreeError, entry_info, exclusive_git_lock, git_path, reparse_point
 else:
     from doctor import tool_version
     from execution_inputs import committed_project_definition_claims, committed_source_identity, is_source_input
+    from verification_report import integration_summary_matches
     from verification_scope import (
         LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit,
         decode_publishing_catalog, git, invalid_number, oid, publishing_check_catalog, require_complete_history,
         unique_object,
-        windows_lane_report_matches, windows_published_scope, windows_raw_timing_issue, windows_result_issue, windows_x64,
+        windows_lane_report_matches, windows_native_satisfied, windows_published_scope, windows_raw_timing_issue,
+        windows_result_issue, windows_x64,
     )
     from worktree import WorktreeError, entry_info, exclusive_git_lock, git_path, reparse_point
 
@@ -63,6 +67,9 @@ JOB_INTERVALS = {
 JOB_ENDPOINTS = frozenset(endpoint for pair in JOB_INTERVALS.values() for endpoint in pair)
 STEP_KINDS = ('harness', 'browser')
 MAX_TIMESTAMP_CHOICES = 8
+REPORT_RECORDING_TIME = re.compile(
+    r'[0-9]{4}-[0-9]{2}-[0-9]{2}[Tt][0-9]{2}:[0-9]{2}:[0-9]{2}(?:[.,]([0-9]+))?(?:Z|[+-][0-9]{2}:[0-9]{2})'
+)
 SPLIT_SECONDS = ('initial_queue', 'aggregate_setup')
 WORKFLOW_SECONDS = ('total_elapsed_seconds', 'runner_work_seconds')
 CACHE_STATES = {'cold', 'partial', 'warm', 'not_requested', 'not_restored'}
@@ -186,6 +193,18 @@ def timestamp(value):
     except (TypeError, ValueError):
         return None
     return result if result.tzinfo is not None else None
+
+
+def report_recording_time(value):
+    point = timestamp(value)
+    if point is None:
+        return None
+    # datetime represents the first six fractional digits. Preserve the rest
+    # for exact comparison across equivalent minute-offset spellings. An older
+    # timestamp outside this shape retains its exact spelling as a distinct fact.
+    match = REPORT_RECORDING_TIME.fullmatch(value)
+    extra_precision = (match[1] or '')[6:].rstrip('0') if match else value
+    return point, extra_precision
 
 
 def elapsed(start, end):
@@ -339,7 +358,11 @@ def report_sample(report, *, cache=None):
         and report.get('native_requirement', {}).get('satisfied') is not False
     )
     check_work, check_work_complete = report_check_work(checks)
-    recorded_at = timestamp(report.get('generated_at'))
+    recorded = report_recording_time(report.get('generated_at'))
+    recorded_at = None
+    if recorded:
+        point, extra_precision = recorded
+        recorded_at = report['generated_at'] if extra_precision else point.isoformat()
     source = report.get('source', {})
     source_commit = source.get('git_head')
     inputs_digest = source.get('sha256')
@@ -352,7 +375,7 @@ def report_sample(report, *, cache=None):
     return {
         'kind': SAMPLE_KIND,
         'run_id': short_label(report.get('run_id')),
-        'recorded_at': recorded_at.isoformat() if recorded_at else None,
+        'recorded_at': recorded_at,
         'source_commit': source_commit if commit_id(source_commit) else None,
         'inputs_sha256': inputs_digest if isinstance(inputs_digest, str) and re.fullmatch(r'[0-9a-f]{64}', inputs_digest) else None,
         'working_tree_dirty': dirty if isinstance(dirty, bool) else None,
@@ -379,15 +402,18 @@ def input_report_sample(report):
     if native:
         ci = report['ci']
         source = report.get('source') or {}
-        publishing, assignment = native_publisher_contract({
+        publishing, assignment, _ = native_publisher_contract({
             'ci': ci, 'source_commit': source.get('git_head'), 'inputs_sha256': source.get('sha256'),
             'working_tree_dirty': source.get('working_tree_dirty'),
-        }) if commit_id(ci.get('checkout_sha')) and commit_id(ci.get('head_sha')) else (None, None)
+        }) if commit_id(ci.get('checkout_sha')) and commit_id(ci.get('head_sha')) else (None, None, None)
         revision, catalog = publishing or (None, None)
         snapshot = committed_publishing_snapshot(revision, root=ROOT) if revision is not None else None
         expected_source = {**snapshot, 'git_head': ci['checkout_sha']} if snapshot is not None else None
         if issue := windows_raw_timing_issue(report, catalog=catalog, source=expected_source):
             raise TimingError(f'Timing report has {issue}.')
+        if ('integration_validation' in report
+                and not integration_summary_matches(report['integration_validation'], report['checks'])):
+            raise TimingError('Timing report has an integration summary that contradicts its check results.')
         if (timestamp(report.get('generated_at')) is None
                 or duration(report.get('timing', {}).get('elapsed_seconds')) is None):
             raise TimingError('Invalid native harness report timing.')
@@ -450,26 +476,6 @@ def job_summary(sample):
     return '\n'.join(lines) + '\n'
 
 
-def eligible_step(step):
-    return (step.get('conclusion') != 'skipped'
-            and step.get('status') not in PENDING_STEP_STATUSES)
-
-
-def explicit_step_labels(steps, field):
-    labels = defaultdict(set)
-    for step in steps:
-        name, value = step.get('name'), short_label(step.get(field))
-        if isinstance(name, str) and name in OBSERVED_STEPS and value is not None:
-            labels[name].add(value)
-    return {name: sorted(values) for name, values in sorted(labels.items())}
-
-
-def step_identity(identities):
-    number, number_disputed = known_value(row[0] for row in identities)
-    name, name_disputed = known_value(row[1] for row in identities)
-    return ([number, name] if name else None), number_disputed or name_disputed
-
-
 def join_timestamp_choices(observations):
     # Empty means unobserved; None means a dispute with no usable witnesses.
     choices = set()
@@ -482,33 +488,31 @@ def join_timestamp_choices(observations):
     return choices
 
 
-def step_clock_observations(steps, names):
-    facts = []
+def observed_step_rows(steps):
+    rows = []
     for step in steps:
-        if step.get('name') in names:
-            start, end = timestamp(step.get('started_at')), timestamp(step.get('completed_at'))
-            if start is not None or end is not None:
-                number = step.get('number')
-                facts.append(([number if type(number) is int and number > 0 else None, step['name']], start, end))
-    identity, disputed = step_identity([fact[0] for fact in facts])
-    return identity, {
-        field: None if disputed else join_timestamp_choices({fact[index]} for fact in facts if fact[index] is not None)
-        for index, field in enumerate(('start', 'end'), start=1)
-    }
-
-
-def timed_step_observations(steps):
-    observations = defaultdict(list)
-    for step in steps:
-        name = step.get('name')
-        if name in TIMED_STEPS:
-            observations[name].append(step)
-    timed = {}
-    for name, grouped in observations.items():
-        identity, choices = step_clock_observations(grouped, {name})
-        if identity:
-            timed[name] = {'number': identity[0], **retain_endpoint_choices(choices)}
-    return timed
+        name, number = step.get('name'), step.get('number')
+        if name is not None and (not isinstance(name, str) or not name):
+            continue
+        row = {}
+        if type(number) is int and number > 0:
+            row['number'] = number
+        if name not in OBSERVED_STEPS and not row:
+            continue
+        if name is not None:
+            row['name'] = name
+        # Other named steps only constrain number bindings. A number-only
+        # row can carry facts for a recognized step identified elsewhere.
+        if name is None or name in OBSERVED_STEPS:
+            for field in ('status', 'conclusion'):
+                if value := short_label(step.get(field)):
+                    row[field] = value
+            if name is None or name in TIMED_STEPS:
+                for field in ('started_at', 'completed_at'):
+                    if value := timestamp(step.get(field)):
+                        row[field] = encode_timestamp(value)
+        rows.append(row)
+    return distinct_observations(rows)
 
 
 def job_endpoint_choices(job):
@@ -608,45 +612,24 @@ def observe_job(job, *, identity, requested, label=None, harness_steps=HARNESS_S
     start, end = timestamp(job.get('started_at')), timestamp(job.get('completed_at'))
     choices = {field: {point} if point is not None else set()
                for field, point in (('requested', requested), ('start', start), ('end', end))}
-    steps = {}
-    # Keep the original V1 projection for readers that only use the row's
-    # intervals. Reconciliation uses the independently retained step facts.
-    eligible = [step for step in job.get('steps', ()) if eligible_step(step)]
+    rows = observed_step_rows(job.get('steps', ()))
+    evidence = reconcile_steps(({'step_observations': rows},))
+    # The listed view still exposes its intervals. It applies the same phase
+    # selector to its local rows that a reopened review applies to the union.
     for kind, names in zip(STEP_KINDS, (harness_steps, BROWSER_STEPS), strict=True):
-        step, observed = step_clock_observations(eligible, names)
-        if step is not None:
-            steps[kind] = step
-        choices.update((f'{kind}_{field}', alternatives) for field, alternatives in observed.items())
+        choices.update(joined_step_clock((), kind, set(names), evidence))
     points, _ = project_job_points(choices)
     row = {
         'job_id': str(job['id']) if job.get('id') is not None else None,
         'platform': PLATFORMS.get(label), 'runner_label': label,
         'status': job.get('status'), 'conclusion': job.get('conclusion'),
         'identity_issues': {'missing': missing, 'conflicts': conflicts},
+        'step_observations': rows,
         **retain_endpoint_choices(choices),
         'seconds': job_seconds(points),
     }
     if job.get('labels'):
         row['runner_labels'] = sorted(set(job['labels']))
-    row['step_conclusions'] = explicit_step_labels(job.get('steps', ()), 'conclusion')
-    if statuses := explicit_step_labels(job.get('steps', ()), 'status'):
-        row['step_statuses'] = statuses
-    executed_layout_steps = {step['name'] for step in job.get('steps', ())
-                             if step.get('name') in WINDOWS_LAYOUT_STEPS
-                             and step.get('conclusion') == 'success' and eligible_step(step)}
-    recorded_steps = {step.get('name') for step in job.get('steps', ())
-                      if step.get('name') in WINDOWS_LAYOUT_STEPS
-                      or (step.get('name') in WINDOWS_ROLE_STEPS and step.get('conclusion') == 'success'
-                          and eligible_step(step))
-                      or (step.get('name') in WINDOWS_PROFILE_STEPS and eligible_step(step)
-                          and step.get('conclusion'))}
-    if recorded_steps:
-        row['publishing_steps'] = sorted(recorded_steps)
-    if executed_layout_steps:
-        row['executed_layout_steps'] = sorted(executed_layout_steps)
-    if steps:
-        row['step_identities'] = steps
-    row['timed_steps'] = timed_step_observations(job.get('steps', ()))
     if job.get('checkout_sha') is not None:
         if commit_id(job['checkout_sha']):
             row['checkout_sha'] = job['checkout_sha']
@@ -806,10 +789,11 @@ def authenticated_failure(run, identity):
 
 def sample_core(sample):
     core = {key: value for key, value in sample.items() if key not in {'cache', 'generated_contracts', 'windows_caches'}}
-    if recorded := timestamp(core.get('recorded_at')):
+    if recorded := report_recording_time(core.get('recorded_at')):
         # Use the same instant for reconciliation while keeping original receipt inputs.
+        point, extra_precision = recorded
         try:
-            core['recorded_at'] = recorded.astimezone(timezone.utc).isoformat()
+            core['recorded_at'] = (point.astimezone(timezone.utc).isoformat(), extra_precision)
         except OverflowError:
             pass
     return core
@@ -873,6 +857,8 @@ def valid_step_facts(job):
     disputes = job.get('endpoint_disputes', [])
     choices = job.get('endpoint_choices', {})
     timed = job.get('timed_steps', {})
+    legacy_fields = {'step_identities', 'timed_steps', 'step_conclusions', 'step_statuses',
+                     'publishing_steps', 'executed_layout_steps'}
     return (isinstance(identities, dict) and identities.keys() <= set(STEP_KINDS)
             and all(isinstance(key, list) and len(key) == 2
                     and (key[0] is None or type(key[0]) is int and key[0] > 0)
@@ -886,7 +872,23 @@ def valid_step_facts(job):
             and all(valid_step_labels(job.get(field, {})) for field in ('step_conclusions', 'step_statuses'))
             and isinstance(timed, dict) and timed.keys() <= TIMED_STEPS
             and all(valid_timed_step(row) for row in timed.values())
+            and ('step_observations' not in job
+                 or (isinstance(job['step_observations'], list) and 'endpoints' in job
+                     and not job.keys() & legacy_fields
+                     and all(valid_step_observation(row) for row in job['step_observations'])))
             and (not (identities or disputes or timed) or 'endpoints' in job))
+
+
+def valid_step_observation(row):
+    if not isinstance(row, dict) or row.keys() - {
+            'name', 'number', 'status', 'conclusion', 'started_at', 'completed_at'}:
+        return False
+    name, number = row.get('name'), row.get('number')
+    return (('number' not in row or type(number) is int and number > 0)
+            and ('name' not in row or isinstance(name, str) and bool(name))
+            and (number is not None or name in OBSERVED_STEPS)
+            and all(field not in row or short_label(row[field]) for field in ('status', 'conclusion'))
+            and all(field not in row or timestamp(row[field]) is not None for field in ('started_at', 'completed_at')))
 
 
 def valid_step_labels(labels):
@@ -1112,14 +1114,18 @@ def job_harness_steps(role):
 class StepEvidence(NamedTuple):
     conclusions: frozenset[str]
     statuses: frozenset[str]
-    identity: list | None
+    identity_disputed: bool
     endpoints: dict
     recorded: bool
     legacy_role: bool
 
     @property
     def disputed(self):
-        return len(self.conclusions) > 1
+        return self.identity_disputed or len(self.conclusions) > 1
+
+    @property
+    def has_clock(self):
+        return any(values is None or values for values in self.endpoints.values())
 
     @property
     def eligible(self):
@@ -1145,15 +1151,23 @@ def reconcile_steps(jobs, *, skipped=False):
     # A job ID has already been established. Join each step's facts before any
     # role, layout or phase can use them. Old captures contribute only the
     # facts that they retained.
-    conclusions, statuses, clocks = defaultdict(set), defaultdict(set), defaultdict(list)
+    conclusions, statuses = defaultdict(set), defaultdict(set)
+    clocks, numbers, names_by_number = defaultdict(list), defaultdict(set), defaultdict(set)
+    rows = []
     recorded, legacy_roles = set(), set()
     for job in jobs:
+        if 'step_observations' in job:
+            rows.extend(job['step_observations'])
+            continue
         for name, values in job.get('step_conclusions', {}).items():
             conclusions[name].update(values)
         for name, values in job.get('step_statuses', {}).items():
             statuses[name].update(values)
-        for identity, endpoints in named_step_clocks(job):
-            clocks[identity[1]].append((identity, endpoints))
+        for (number, name), endpoints in named_step_clocks(job):
+            clocks[name].append(endpoints)
+            if number is not None:
+                numbers[name].add(number)
+                names_by_number[number].add(name)
         if skipped:
             continue
         publishing = set(job.get('publishing_steps', ()))
@@ -1166,17 +1180,34 @@ def reconcile_steps(jobs, *, skipped=False):
             _, name = job.get('step_identities', {}).get('harness', (None, None))
             if name in WINDOWS_PROFILE_STEPS or name in WINDOWS_LANE_STEPS:
                 legacy_roles.add(name)
+    for row in rows:
+        if 'number' in row and 'name' in row:
+            names_by_number[row['number']].add(row['name'])
+    for row in rows:
+        number, name = row.get('number'), row.get('name')
+        if name is None:
+            name, _ = known_value(names_by_number.get(number, ()))
+        if name not in OBSERVED_STEPS:
+            continue
+        if number is not None:
+            numbers[name].add(number)
+        if 'conclusion' in row:
+            conclusions[name].add(row['conclusion'])
+        if 'status' in row:
+            statuses[name].add(row['status'])
+        if name in WINDOWS_LAYOUT_STEPS:
+            recorded.add(name)
+        if name in TIMED_STEPS:
+            endpoints = {field: {timestamp(row[key])} for field, key in
+                         (('start', 'started_at'), ('end', 'completed_at')) if key in row}
+            if endpoints:
+                clocks[name].append(endpoints)
     steps = {}
-    for name in conclusions.keys() | statuses.keys() | clocks.keys() | recorded | legacy_roles:
-        identity, disputed = step_identity([row for row, _ in clocks[name]])
-        # An unknown number does not erase the explicit name of the step with
-        # competing numbers. Only that step's phase endpoints become disputed.
-        if disputed:
-            identity = [None, name]
-        endpoints = {field: None if disputed else join_timestamp_choices(row.get(field, ())
-                                                                        for _, row in clocks[name])
+    for name in conclusions.keys() | statuses.keys() | clocks.keys() | numbers.keys() | recorded | legacy_roles:
+        disputed = len(numbers[name]) > 1 or any(len(names_by_number[value]) > 1 for value in numbers[name])
+        endpoints = {field: join_timestamp_choices(row.get(field, ()) for row in clocks[name])
                      for field in ('start', 'end')}
-        steps[name] = StepEvidence(frozenset(conclusions[name]), frozenset(statuses[name]), identity, endpoints,
+        steps[name] = StepEvidence(frozenset(conclusions[name]), frozenset(statuses[name]), disputed, endpoints,
                                    name in recorded, name in legacy_roles)
     return steps
 
@@ -1184,17 +1215,18 @@ def reconcile_steps(jobs, *, skipped=False):
 def joined_step_clock(primary, kind, names, steps):
     fields = ('start', 'end')
     candidates = [steps[name] for name in names & steps.keys()]
-    eligible = [step for step in candidates if step.eligible and step.identity]
+    eligible = [step for step in candidates if step.eligible and step.has_clock]
     anonymous = [row for job, row in primary
-                 if 'timed_steps' not in job and kind not in job.get('step_identities', {})]
+                 if ('step_observations' not in job and 'timed_steps' not in job
+                     and kind not in job.get('step_identities', {}))]
     if len(eligible) > 1 or (not eligible and any(step.disputed for step in candidates)):
-        return None, {f'{kind}_{field}': None for field in fields}
+        return {f'{kind}_{field}': None for field in fields}
     selected = eligible[0] if eligible else None
     # An anonymous old endpoint cannot be assigned to a surviving named step
     # if another observation established an ineligible candidate for the phase.
     if any(not step.eligible for step in candidates):
         anonymous = []
-    return selected.identity if selected else None, {
+    return {
         f'{kind}_{field}': join_timestamp_choices([selected.endpoints[field] if selected else (),
                                                  *(row.get(f'{kind}_{field}', ()) for row in anonymous)])
         for field in fields
@@ -1206,12 +1238,8 @@ def merge_job_clock(jobs, role, steps, *, projected=False):
     legacy = [job['seconds'] for job in jobs if 'endpoints' not in job]
     choices = {field: join_timestamp_choices(row.get(field, ()) for _, row in primary)
                for field in ('requested', 'start', 'end')}
-    step_identities = {}
     for kind, names in zip(STEP_KINDS, (job_harness_steps(role), BROWSER_STEPS), strict=True):
-        identity, options = joined_step_clock(primary, kind, names, steps)
-        choices.update(options)
-        if identity is not None:
-            step_identities[kind] = identity
+        choices.update(joined_step_clock(primary, kind, names, steps))
     points, unplaced = project_job_points(choices)
     retained = retain_endpoint_choices(choices)
     endpoint_disputes = frozenset(retained.get('endpoint_disputes', ()))
@@ -1236,8 +1264,6 @@ def merge_job_clock(jobs, role, steps, *, projected=False):
     resolved.update(retained, seconds=seconds)
     if checkout:
         resolved['checkout_sha'] = checkout
-    if step_identities:
-        resolved['step_identities'] = step_identities
     return resolved, tuple(disputes), endpoint_disputes, unplaced
 
 
@@ -1293,11 +1319,16 @@ def job_role_claims(claims, event, issues):
     outcome = job_claim_outcome(claims)
     skipped = outcome[0] == 'skipped'
     evidence = reconcile_steps((job for _, _, job in claims), skipped=skipped)
-    disputes = {name: sorted(step.conclusions) for name, step in sorted(evidence.items()) if step.disputed}
+    disputes = {name: sorted(step.conclusions) for name, step in sorted(evidence.items())
+                if len(step.conclusions) > 1}
     if disputes:
         _, run, job = claims[0]
         timing_issue(issues, {'run_id': run['run_id'], 'job_id': job['job_id'], 'step_conclusions': disputes,
                               'error': 'Conflicting conclusions for job steps.'})
+    if identities := sorted(name for name, step in evidence.items() if step.identity_disputed):
+        _, run, job = claims[0]
+        timing_issue(issues, {'run_id': run['run_id'], 'job_id': job['job_id'], 'steps': identities,
+                              'error': 'Conflicting number bindings for job steps.'})
     roles = {role for role, _, _ in claims if role}
     if event not in NORMAL_EVENTS or skipped:
         return JobClaims(claims, roles, False, set(), False, evidence, outcome)
@@ -1375,6 +1406,7 @@ def reconcile_job_clocks(by_id, attempt, layout, issues):
         job.pop('step_conclusions', None)
         job.pop('step_statuses', None)
         job.pop('timed_steps', None)
+        job.pop('step_observations', None)
         job.pop('runner_labels', None)
         job.pop('producer_family', None)
         platform = name if scope == 'platform' else 'Windows' if producer else None
@@ -1413,12 +1445,15 @@ def attempt_layout(runs, by_id, attempt, issues):
     older = [row for row in runs if not row.get('job_facts') and split_windows_clock(row)]
     roles, widths, scopes = set(), set(), set()
     split = bool(older)
+    disputed_profile_step = False
     for claims in by_id.values():
         roles.update(claims.roles)
         split |= claims.producer_family
         widths.update(WINDOWS_LAYOUT_STEPS[step] for step in claims.steps & WINDOWS_LAYOUT_STEPS.keys())
         if ('platform', 'Windows') in claims.roles:
             scopes.update(WINDOWS_PROFILE_STEPS[step] for step in claims.steps & WINDOWS_PROFILE_STEPS.keys())
+            disputed_profile_step |= any(claims.step_evidence[name].identity_disputed
+                                         for name in WINDOWS_PROFILE_STEPS.keys() & claims.step_evidence.keys())
     has_recovery = ('producer', WINDOWS_PRODUCERS['recovery']) in roles
     split |= bool(widths or any(scope == 'producer' for scope, _ in roles))
     if attempt[3] not in NORMAL_EVENTS:
@@ -1434,6 +1469,7 @@ def attempt_layout(runs, by_id, attempt, issues):
     # value remains a claim alongside newer per-job publishing observations.
     scopes.update(row.get('windows_profile') for row in old_workflows)
     profile, profile_disputed = known_value(scopes)
+    profile_disputed |= disputed_profile_step
     profile_disputed |= any(row.get('windows_profile_disputed') for row in old_workflows)
     if layout_disputed:
         timing_issue(issues, {'run_id': attempt[1], 'platform': 'Windows',
@@ -1900,15 +1936,10 @@ def native_publishing_catalog(revision, *, root=ROOT, object_type=b'commit'):
     """Allow a substitute only when Git confirms the requested object is absent."""
     if not commit_id(revision):
         return True, None
-    object_name = revision.encode('ascii')
-    try:
-        observed = git(root, 'cat-file', '--batch-check=%(objectname) %(objecttype)',
-                       input=object_name + b'\n').strip()
-    except (ScopeError, OSError, subprocess.SubprocessError):
-        return True, None
-    if observed == object_name + b' missing':
+    observed = git_object_types(root, (revision,))
+    if observed == (b'missing',):
         return False, None
-    if observed != object_name + b' ' + object_type:
+    if observed != (object_type,):
         return True, None
     try:
         path = f'{revision}:project/checks.json'
@@ -1949,6 +1980,7 @@ WINDOWS_PUBLISHING_PATHS = (
     'scripts/storage.py',
     'scripts/timing.py',
     'scripts/verification_evidence.py',
+    'scripts/verification_report.py',
     'scripts/verification_scope.py',
     'scripts/worktree.py',
 )
@@ -2039,54 +2071,68 @@ def known_checkout_matches_event(ci):
         return ci['checkout_sha'] == ci['head_sha']
     facts = commit_facts(ROOT, ci['checkout_sha'])
     return bool(facts and event_merge_parents(ci, facts.parents)
-                and possible_commit_types(proof_object_types(ROOT, facts.parents)))
+                and possible_commit_types(git_object_types(ROOT, facts.parents)))
+
+
+class PublishingSource(NamedTuple):
+    publishing: tuple | None = None
+    issue: str | None = None
 
 
 def publishing_catalog_source(sample):
     digest = sample.get('inputs_sha256')
     if sample.get('working_tree_dirty') is not False or not digest:
-        return None
+        return PublishingSource()
     ci = sample['ci']
     checkout = ci['checkout_sha']
     present, catalog = native_publishing_catalog(checkout)
     if present:
         if catalog is not None and known_checkout_matches_event(ci) and committed_publishing_inputs(checkout) == digest:
-            return checkout, catalog
-        return None
+            return PublishingSource((checkout, catalog))
+        return PublishingSource()
     if ci['event'] != 'pull_request':
-        return None
+        return PublishingSource()
     # An expired PR merge commit can have the same inputs as its exact head,
     # or a retained merge-tree proof. Bind the catalog to the reported digest.
     head = ci['head_sha']
-    if contradicts_missing_pr_checkout(ROOT, checkout, head):
-        return None
+    if issue := missing_pr_checkout_issue(ROOT, checkout, head):
+        return PublishingSource(issue=issue)
     _, catalog = native_publishing_catalog(head)
     if catalog is not None and committed_publishing_inputs(head) == digest:
-        return head, catalog
-    proof = generated_contracts_proof(sample, eligible_only=False)
+        return PublishingSource((head, catalog))
+    proof_issues = []
+    proof = generated_contracts_proof(sample, eligible_only=False, ancestry_issues=proof_issues)
     if proof:
         tree = proof['tree']
         _, catalog = native_publishing_catalog(tree, object_type=b'tree')
         if catalog is not None and committed_publishing_inputs(tree) == digest:
-            return tree, catalog
-    return None
+            return PublishingSource((tree, catalog))
+    return PublishingSource(issue=next(iter(proof_issues), None))
 
 
 def native_publisher_contract(sample):
-    publishing = publishing_catalog_source(sample)
+    publishing, issue = publishing_catalog_source(sample)
     if publishing and publishing_catalog_supported(ROOT, *publishing):
-        return publishing, committed_windows_assignment(ROOT, publishing[0])
-    return None, None
+        return publishing, committed_windows_assignment(ROOT, publishing[0]), None
+    return None, None, issue
 
 
-def windows_blocked_status_conflicts(sample, selected, catalog):
-    if sample['profile'] != 'full' or sample.get('report_status') != 'blocked':
-        return False
-    # A full Windows publisher permits planned omissions. Blocking instead
-    # requires an unmet implemented check, native requirement or integration gate.
+def windows_full_summary_issue(sample, selected, catalog, platform):
+    if sample['profile'] != 'full':
+        return None
+    if not windows_native_satisfied(platform, sample['checks']):
+        if sample['coverage_complete'] or sample.get('report_status') == 'passed':
+            return 'complete coverage without a passed Windows native build'
+        return None
+    if sample.get('report_status') != 'blocked':
+        return None
+    # With the native check passed, an unmet implemented check or integration
+    # gate must independently account for the blocked outcome.
     required = {row['id'] for row in catalog['checks'] if row['id'] in selected and row['status'] == 'implemented'}
-    required.update(catalog['required_change_checks'], ('windows-native-build',))
-    return required.issubset(row['id'] for row in sample['checks'] if row['status'] == 'passed')
+    required.update(catalog['required_change_checks'])
+    if required.issubset(row['id'] for row in sample['checks'] if row['status'] == 'passed'):
+        return 'a blocked status that contradicts its completed Windows checks'
+    return None
 
 
 def native_report_issue(sample, run, issues):
@@ -2104,9 +2150,10 @@ def native_report_issue(sample, run, issues):
         profile != 'full' or not (split_report or lanes) or split_identity
     )
     selected = set(sample['selected'])
-    publishing, assignment = (native_publisher_contract(sample)
-                              if identity and sample['task_id'] is None and not sample.get('raw_publisher_unverified')
-                              else (None, None))
+    publishing, assignment, source_issue = (native_publisher_contract(sample)
+                                            if identity and sample['task_id'] is None else (None, None, None))
+    if sample.get('raw_publisher_unverified'):
+        publishing, assignment = None, None
     result_issue = None
     if assignment is not None:
         _, catalog = publishing
@@ -2117,9 +2164,8 @@ def native_report_issue(sample, run, issues):
         matching_producer = bool(expected_lanes) and (not observed_lanes or observed_lanes == expected_lanes)
         if (sample['selected'] == sorted(selected) and (not producer or matching_producer)
                 and windows_published_scope(sample['selected'], profile, expected_lanes, catalog, assignment=assignment)):
-            result_issue = windows_result_issue(sample['checks'], selected, catalog)
-            if not result_issue and windows_blocked_status_conflicts(sample, selected, catalog):
-                result_issue = 'a blocked status that contradicts its completed Windows checks'
+            result_issue = (windows_result_issue(sample['checks'], selected, catalog)
+                            or windows_full_summary_issue(sample, selected, catalog, platform))
             if not result_issue:
                 work, work_complete = report_check_work(sample['checks'])
                 if sample['seconds']['check_work'] != work or sample.get('check_work_complete') is not work_complete:
@@ -2131,7 +2177,10 @@ def native_report_issue(sample, run, issues):
     issue = {'run_id': observation_id(sample), 'platform': 'Windows'}
     if producer:
         issue['producer'] = producer
-    if sample.get('raw_publisher_unverified'):
+    if source_issue:
+        error = ('Native timing check selection is unknown because the publishing catalog is unavailable. '
+                 + source_issue)
+    elif sample.get('raw_publisher_unverified'):
         error = 'Native raw timing report lacks a verified publisher source or matching project definitions.'
     elif identity and sample['task_id'] is None and not publishing:
         error = ('Native timing check selection is unknown because the publishing catalog is unavailable '
@@ -2220,7 +2269,7 @@ def observation_id(row):
 
 
 @lru_cache(maxsize=128)
-def proof_object_types(root, revisions):
+def git_object_types(root, revisions):
     names = [revision.encode('ascii') for revision in revisions]
     try:
         types = git(root, 'cat-file', '--batch-check=%(objectname) %(objecttype)',
@@ -2242,8 +2291,17 @@ def possible_commit_types(types):
 EXPIRED_ANCESTRY_LIMIT = 128
 
 
-def readable_commit_ancestor(root, facts, ancestor):
-    """Look for a parent edge at the shallow boundary, including missing objects."""
+def readable_commit_ancestor(root, descendant, ancestor, *, ancestor_missing):
+    """Check readable ancestry, including edges hidden by a shallow checkout."""
+    if ancestor_missing:
+        missing = missing_commit_parent_edges(root, descendant)
+        if missing is not None:
+            return ancestor in missing
+    # Git before 2.43 cannot enumerate missing commits with rev-list. Raw
+    # headers can also follow a local commit hidden behind a shallow edge.
+    facts = commit_facts(root, descendant)
+    if facts is None:
+        return None
     pending, searched = set(facts.parents), set()
     while pending:
         if ancestor in pending:
@@ -2251,7 +2309,7 @@ def readable_commit_ancestor(root, facts, ancestor):
         if len(pending) + len(searched) > EXPIRED_ANCESTRY_LIMIT:
             return None
         revisions = tuple(sorted(pending))
-        kinds = proof_object_types(root, revisions)
+        kinds = git_object_types(root, revisions)
         if not possible_commit_types(kinds):
             return None
         searched.update(pending)
@@ -2266,24 +2324,56 @@ def readable_commit_ancestor(root, facts, ancestor):
 
 
 @lru_cache(maxsize=128)
-def contradicts_missing_pr_checkout(root, checkout, parent):
-    """A merge preview cannot already be a parent or a parent's ancestor."""
+def missing_commit_parent_edges(root, parent):
+    """Walk available history in Git and return the raw edges to missing commits."""
+    try:
+        # Default Git traversal skips the raw parents of shallow commits.
+        # Ask Git to read those edges and print only the missing objects.
+        # Each row is '?' and a 40-digit object name, with room for CRLF.
+        output = git(root, '-c', 'core.commitGraph=false', '--shallow-file', '', 'rev-list',
+                     '--missing=print', '--quiet', parent, '--',
+                     output_limit=EXPIRED_ANCESTRY_LIMIT * 43)
+        rows = output.splitlines()
+        if (len(rows) > EXPIRED_ANCESTRY_LIMIT
+                or any(not row.startswith(b'?') or not commit_id(row[1:].decode('ascii')) for row in rows)):
+            return None
+        missing = tuple(row[1:].decode('ascii') for row in rows)
+        if missing and git_object_types(root, missing) != (b'missing',) * len(missing):
+            return None
+        return frozenset(missing)
+    except (ScopeError, OSError, subprocess.SubprocessError, ValueError):
+        return None
+
+
+def missing_pr_checkout_issue(root, checkout, parent):
+    """Contradiction or uncertainty in a claim that an absent object was a merge preview."""
+    contradiction = 'The claimed PR checkout is a parent or ancestor of the proposed merge.'
+    uncertainty = 'Available PR parent ancestry could not be verified within the local Git traversal limits.'
     if checkout == parent:
-        return True
-    facts = commit_facts(root, parent)
-    return facts is not None and readable_commit_ancestor(root, facts, checkout) is True
+        return contradiction
+    parent_type = git_object_types(root, (parent,))
+    if parent_type == (b'missing',):
+        return None  # A retained proof can supply an independently absent parent.
+    if parent_type != (b'commit',):
+        return uncertainty
+    ancestry = readable_commit_ancestor(root, parent, checkout, ancestor_missing=True)
+    if ancestry is None:
+        return uncertainty
+    return contradiction if ancestry else None
 
 
-def expired_pr_merge_tree_matches(root, parents, parent_types, tree):
+def expired_pr_merge_tree_issue(root, parents, parent_types, tree):
+    incompatible = 'The retained PR merge tree does not agree with its parent evidence.'
+    uncertainty = 'Available PR merge-tree ancestry could not be verified within the local Git traversal limits.'
     facts = tuple(commit_facts(root, parent) if kind == b'commit' else None
                   for parent, kind in zip(parents, parent_types))
     if any(kind == b'commit' and fact is None for kind, fact in zip(parent_types, facts)):
-        return False
+        return uncertainty
     # A shallow boundary can hide a direct parent even when its identifier
     # remains available in the descendant's commit header.
     for fact, other in zip(facts, reversed(parents)):
         if fact and other in fact.parents:
-            return tree == fact.tree
+            return None if tree == fact.tree else incompatible
     matching_parent_trees = False
     if None not in facts:
         try:
@@ -2293,23 +2383,25 @@ def expired_pr_merge_tree_matches(root, parents, parent_types, tree):
             shallow, merge_bases = None, []
         for fact, other in zip(facts, reversed(parents)):
             if merge_bases == [other.encode('ascii')]:
-                return tree == fact.tree
+                return None if tree == fact.tree else incompatible
         matching_parent_trees = len(merge_bases) == 1 and facts[0].tree == facts[1].tree == tree
         if shallow == b'false':
-            return matching_parent_trees
+            return None if matching_parent_trees else incompatible
     # Git traversal stops at shallow commits. Their raw headers can still
     # prove ancestry through visible commits and name an unavailable ancestor.
     incomplete = False
-    for fact, other in zip(facts, reversed(parents)):
+    for parent, fact, other, other_type in zip(parents, facts, reversed(parents), reversed(parent_types), strict=True):
         if fact is not None:
-            ancestor = readable_commit_ancestor(root, fact, other)
+            ancestor = readable_commit_ancestor(root, parent, other, ancestor_missing=other_type == b'missing')
             if ancestor is True:
-                return tree == fact.tree
+                return None if tree == fact.tree else incompatible
             incomplete |= ancestor is None
-    return not incomplete and (None in facts or matching_parent_trees)
+    if incomplete:
+        return uncertainty
+    return None if None in facts or matching_parent_trees else incompatible
 
 
-def generated_contracts_proof(sample, *, eligible_only=True):
+def generated_contracts_proof(sample, *, eligible_only=True, ancestry_issues=None):
     ci = sample['ci']
     proof = sample.get('generated_contracts')
     if not ci or not isinstance(proof, dict):
@@ -2328,15 +2420,21 @@ def generated_contracts_proof(sample, *, eligible_only=True):
             or not all(generator_version(tool, tools.get(tool)) for tool in GENERATOR_VERSIONS)
             or GENERATED_CHECK not in sample['selected']):
         return None
-    types = proof_object_types(ROOT, (proof['checkout'], proof['tree'], *parents))
+    types = git_object_types(ROOT, (proof['checkout'], proof['tree'], *parents))
     if (types is None or types[0] not in {b'commit', b'missing'} or types[1] not in {b'tree', b'missing'}
             or not possible_commit_types(types[2:])):
         return None
     if types[0] == b'commit':
         return proof if commit_facts(ROOT, proof['checkout']) == GitCommitFacts(proof['tree'], tuple(parents)) else None
     if ci['event'] == 'pull_request':
-        if (any(contradicts_missing_pr_checkout(ROOT, proof['checkout'], parent) for parent in parents)
-                or not expired_pr_merge_tree_matches(ROOT, parents, types[2:], proof['tree'])):
+        for parent in parents:
+            if issue := missing_pr_checkout_issue(ROOT, proof['checkout'], parent):
+                if ancestry_issues is not None:
+                    ancestry_issues.append(issue)
+                return None
+        if issue := expired_pr_merge_tree_issue(ROOT, parents, types[2:], proof['tree']):
+            if ancestry_issues is not None:
+                ancestry_issues.append(issue)
             return None
     return proof
 
@@ -2459,8 +2557,8 @@ def timing_view(samples, *, hosted=(), issues=None):
         issues = []
     samples = admitted_records(list(samples), valid_sample, 'timing sample', issues)
     hosted = admitted_records(list(hosted), valid_clock, 'attempt clock', issues)
-    merged = sorted(merge_samples(samples, hosted, issues), key=lambda sample: timestamp(sample['recorded_at'])
-                    or datetime.min.replace(tzinfo=timezone.utc))
+    merged = sorted(merge_samples(samples, hosted, issues), key=lambda sample: report_recording_time(sample['recorded_at'])
+                    or (datetime.min.replace(tzinfo=timezone.utc), ''))
     cohorts = defaultdict(list)
     objective_scopes = defaultdict(list)
     for sample in merged:
@@ -2609,7 +2707,7 @@ def measure_budget_recovery(scope, repair, reports, growth_baseline, samples, an
     linked = [row for row in linked if report_key(row) not in conflicts]
     unavailable = sorted(required_reports - {report_key(row) for row in linked})
     # All linked observations in this scope bound the correction, even when they belong to another cohort.
-    last_time = max((timestamp(row['recorded_at']) for row in linked), default=None)
+    last_time = max((report_recording_time(row['recorded_at']) for row in linked), default=None)
     last_run = max((int(row['ci']['run_id']) for row in linked), default=0)
     cohorts = defaultdict(list)
     for row in rows if linked else ():
@@ -2624,7 +2722,7 @@ def measure_budget_recovery(scope, repair, reports, growth_baseline, samples, an
         selected = tuple(key for key, *_ in cohort[3])
         candidates, successful, recovered_window, history_missing = [], [], [], False
         for row in rows if commit_id(repair) else ():
-            if (timestamp(row['recorded_at']) <= last_time or int(row['ci']['run_id']) <= last_run
+            if (report_recording_time(row['recorded_at']) <= last_time or int(row['ci']['run_id']) <= last_run
                     or budget_cohort(row, row['selected']) != (*cohort[:3], selected)):
                 continue
             elapsed = row['seconds']['total']
@@ -2647,7 +2745,7 @@ def measure_budget_recovery(scope, repair, reports, growth_baseline, samples, an
                 if not restored['material_growth'] and restored['recent_objective_breaches'] < 2:
                     recovered_window = recent
             if recovered_window:
-                cutoffs[cohort] = (int(row['ci']['run_id']), timestamp(row['recorded_at']))
+                cutoffs[cohort] = (int(row['ci']['run_id']), report_recording_time(row['recorded_at']))
         baseline_median = median(row['seconds']['total'] for row in baseline)
         latest = recovery_observation(candidates[-1]) if candidates else None
         if latest and latest['conclusion'] == 'success':
@@ -2778,7 +2876,7 @@ def budget_follow_up(view, feedback, tasks, *, root=ROOT, indexed_conflicts=froz
                 last_run, last_time = cutoff
                 after = [row for row in view['samples'] if row['review_exclusion'] is None and row['ci']
                          and positive_id(row['ci']['run_id']) and int(row['ci']['run_id']) > last_run
-                         and timestamp(row['recorded_at']) > last_time
+                         and report_recording_time(row['recorded_at']) > last_time
                          and matches_budget_scope(row, scope) and budget_cohort(row, coverage_key(row)) == cohort]
                 metric = metric_review(after, metric['metric'], metric['objective_seconds'])
             comparable.append({**group, **metric})

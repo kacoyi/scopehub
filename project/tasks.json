@@ -26581,18 +26581,21 @@
         "tests/project/test_timing_job_roles.py",
         "tests/project/test_timing_job_observations.py",
         "contracts/decisions/0031-shared-timing-producer-contract.json",
-        "contracts/decisions/0032-normalized-timing-evidence.json"
+        "contracts/decisions/0032-normalized-timing-evidence.json",
+        "contracts/decisions/0033-source-evidence-before-timing-attribution.json"
       ],
       "decision_refs": [
         "0004",
         "0007",
         "0031",
-        "0032"
+        "0032",
+        "0033"
       ],
       "acceptance": [
         "Retain the original independent rejection. Through the ordinary timing and budget-review entries, observe the browser-job and checkout conflicts both before and after twelve later captures rotate the original attempt out of the recent window.",
         "Keep disputed browser and runner values unknown while preserving an independently established 804-second platform clock. A conflicting checkout must continue to withhold platform eligibility and its runner total. Check unchanged valid and unrelated attempts, both arrival orders, and reopening from the retained originals.",
-        "Use bounded historical lookup and retain the existing capture and saved-review formats. Verify the correction through the selected task checks and the exact independent review. Preserve each prior timing decision and the existing reports."
+        "Use bounded historical lookup and retain the existing capture and saved-review formats. Verify the correction through the selected task checks and the exact independent review. Preserve each prior timing decision and the existing reports.",
+        "On the common source, preserve compatible number-only step fragments, withhold conflicting or unbound fragments from their dependent phases, and retain independent clocks through ordinary reads, offline weekly collection, rotation and cold reopen."
       ],
       "checks": [
         "project-state",
@@ -26600,7 +26603,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Replay the retained independent findings on da5d83da and qualify the common correction with exact-source positive, negative and held-out controls. Keep hosted verification, the five dependent decisions and the November 28 actual observation with the coordinator.",
+      "next_action": "Coordinator obtains independent decisions on the common committed source in .reports/m0-155-post-da5d83da/handoff.json and runs matching hosted verification. Keep the five dependent requests on their original sources and the November 28 actual scheduled observation separate.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26621,7 +26624,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-155-9ea5b514/original-assistant-response.jsonl",
           "contracts/decisions/0031-shared-timing-producer-contract.json",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-155-438302ef/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-155-da5d83da/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-155-da5d83da/original-assistant-response.jsonl",
+          "contracts/decisions/0033-source-evidence-before-timing-attribution.json"
         ],
         "hypotheses": [
           "Recent preload and historical linked reads can see different retained evidence when a conflict removes the platform index entry or an attempt is older than the routine window.",
@@ -26852,7 +26856,8 @@
           "entrypoints": [
             "scripts/timing.py",
             "tests/project/test_timing.py",
-            "tests/project/test_timing_job_observations.py"
+            "tests/project/test_timing_job_observations.py",
+            "tests/project/test_timing_job_roles.py"
           ],
           "rules": [
             {
@@ -26882,7 +26887,8 @@
             "Make role, conclusion, checkout and clock attribution invariant to equivalent grouping and arrival order, and use attempt identities discovered through either index or live CI before final historical reconciliation.",
             "Resolve each job field once across the retained observations. Absent assertions may be completed by compatible evidence, and contradictory assertions withdraw only dependent measurements and eligibility.",
             "Derive protected role and profile evidence from all claims for each job ID, delay dependent projections until attempt reconciliation, and allow bounded acquisition of independently missing clocks with a disputed producer.",
-            "Keep explicit legacy publishing scope claims alongside new compatible role observations; use successful execution evidence for role inference and retain name-only legacy layout context for independently known roles."
+            "Keep explicit legacy publishing scope claims alongside new compatible role observations; use successful execution evidence for role inference and retain name-only legacy layout context for independently known roles.",
+            "Capture step facts before name selection and bind number-only fragments only within the established job. Use joined eligibility for both listed and reopened phase projections."
           ],
           "data_plan": "Read existing saved reviews and retained per-attempt captures. Cover missing, conflicting and intact historical data. Retain compatible V1 evidence, including individually supported legacy intervals. Recompute derived layout where the original assertions survive. Use retained report timestamps and job boundaries to withdraw incompatible old attributions and preserve original bytes.",
           "cleanup": "Remove superseded lookup or reconciliation only after equivalent accepted and rejected observations pass. The coordinator commissions three material decisions first, one for job facts, one for historical publisher selection and outcomes, and one for checkout proof, each with an ordinary genuine positive. Reuse originals by digest and consolidate reproducers and risk assertions under each owner. Hold downstream reviews while a primary decision is red. Obtain the remaining formal decisions before acceptance, and compare against the next genuine capture or product change when available."
@@ -26905,19 +26911,22 @@
         "tests/project/test_timing.py",
         "project/tasks.json",
         "project/feedback.json",
-        "contracts/decisions/0032-normalized-timing-evidence.json"
+        "contracts/decisions/0032-normalized-timing-evidence.json",
+        "contracts/decisions/0033-source-evidence-before-timing-attribution.json"
       ],
       "decision_refs": [
         "0004",
         "0007",
         "0031",
-        "0032"
+        "0032",
+        "0033"
       ],
       "acceptance": [
         "Run the ordinary weekly timing CLI in the supported system Python environment with the archived full Windows selection, unavailable preview and a source-equivalent historical substitute. Confirm it writes the weekly summary and current comparison with the original clocks.",
         "Keep omitted or extra checks, unavailable catalogs, contradictory identities and mismatched substitute digests unqualified. Exercise the original present-preview case and the project entry that computes the same Git source identity.",
         "Reject the null Git checkout identity through normal and weekly public timing readers, with and without proof, in full and shallow Git. Preserve the original clocks for a valid preview commit or a genuinely missing preview with digest-bound substitute inputs. Keep known non-commit checkout objects ineligible.",
-        "Retain the original failing interpretation and the positive control. Verify the change through focused regression, normal task verification and source-bound independent review."
+        "Retain the original failing interpretation and the positive control. Verify the change through focused regression, normal task verification and source-bound independent review.",
+        "At ordinary and offline weekly entries, reject a proved event-head ancestor across shallow boundaries and withhold fallback when Git ancestry is incomplete at the reader. Preserve independently observed Actions clocks and the qualified expired-preview controls on cold reread."
       ],
       "checks": [
         "project-state",
@@ -26925,7 +26934,7 @@
       ],
       "diagnostic_reports": [],
       "evidence": [],
-      "next_action": "Replay the retained independent findings on da5d83da and qualify the common correction with exact-source positive, negative and held-out controls. Keep hosted verification, the five dependent decisions and the November 28 actual observation with the coordinator.",
+      "next_action": "Coordinator obtains independent decisions on the common committed source in .reports/m0-155-post-da5d83da/handoff.json and runs matching hosted verification. Keep the five dependent requests on their original sources and the November 28 actual scheduled observation separate.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26948,7 +26957,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-9ea5b514/original-assistant-response.jsonl",
           "contracts/decisions/0031-shared-timing-producer-contract.json",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-438302ef/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-da5d83da/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-da5d83da/original-assistant-response.jsonl",
+          "contracts/decisions/0033-source-evidence-before-timing-attribution.json"
         ],
         "hypotheses": [
           "The substitute Git fingerprint is computable with the standard library; importing the full project entry brings an unrelated parser into the weekly job.",
@@ -27085,7 +27095,8 @@
             "Make the historical substitute verification available in the declared weekly environment.",
             "Reject the Git null sentinel as a timing identity before publisher fallback or timing attribution.",
             "Validate parent uniqueness and known object facts against the observed event in the shared proof path before admitting substitution. Preserve a separately verified execution-input fallback when the preview is genuinely unavailable.",
-            "When a PR preview is unavailable, compare the claimed merge tree with locally observable direct ancestry from the event head header, including at shallow boundaries."
+            "When a PR preview is unavailable, compare the claimed merge tree with locally observable direct ancestry from the event head header, including at shallow boundaries.",
+            "Use local Git parent observations to distinguish proved ancestry, examined boundaries and inconclusive traversal before evaluating either missing-preview fallback."
           ],
           "data_plan": "Use the retained real run and the existing committed-tree fingerprint format. Compare old and new identity results on supported inputs. Read existing proof shapes through the shared Git checks with system Python. Keep original reports and distinguish unsupported attribution from independently measured harness time.",
           "cleanup": "Share the authoritative identity calculation and remove redundant imports and transitional code after both call sites pass. The coordinator commissions three material decisions first, one for job facts, one for historical publisher selection and outcomes, and one for checkout proof, each with an ordinary genuine positive. Reuse originals by digest and consolidate reproducers and risk assertions under each owner. Hold downstream reviews while a primary decision is red. Obtain the remaining formal decisions before acceptance, and compare against the next genuine capture or product change when available."
@@ -27114,14 +27125,18 @@
         "tests/project/test_timing.py",
         "contracts/decisions/0031-shared-timing-producer-contract.json",
         "scripts/execution_inputs.py",
-        "contracts/decisions/0032-normalized-timing-evidence.json"
+        "contracts/decisions/0032-normalized-timing-evidence.json",
+        "scripts/verification_report.py",
+        "scripts/verification_evidence.py",
+        "contracts/decisions/0033-source-evidence-before-timing-attribution.json"
       ],
       "decision_refs": [
         "0004",
         "0007",
         "0030",
         "0031",
-        "0032"
+        "0032",
+        "0033"
       ],
       "checks": [
         "project-state",
@@ -27130,9 +27145,10 @@
       "acceptance": [
         "The normal timing entry accepts the genuine original browser and recovery selections before and after market-recovery-ui changed its publishing job on Windows. The aggregate selection, coverage and measured durations retain their original meaning.",
         "The verifier binds a producer to its publishing job, platform, source or verified execution-equivalent catalog and exact ordered scope. Incorrectly swapped, missing, extra and unverifiable assignments cannot establish a warm comparable observation.",
-        "Previously supported publishing layouts, incomplete sources and historical evidence retain their respective outcomes. Verify the shared current selection together with its integration consumer."
+        "Previously supported publishing layouts, incomplete sources and historical evidence retain their respective outcomes. Verify the shared current selection together with its integration consumer.",
+        "At the public timing entry, retain historical genuine publisher controls while distinguishing precision-level recording conflicts, a required native result missing from a complete report, and a contradicted raw integration summary."
       ],
-      "next_action": "Replay the retained independent findings on da5d83da and qualify the common correction with exact-source positive, negative and held-out controls. Keep hosted verification, the five dependent decisions and the November 28 actual observation with the coordinator.",
+      "next_action": "Coordinator obtains independent decisions on the common committed source in .reports/m0-155-post-da5d83da/handoff.json and runs matching hosted verification. Keep the five dependent requests on their original sources and the November 28 actual scheduled observation separate.",
       "blocker": null,
       "evidence": [],
       "closure_reason": null,
@@ -27156,7 +27172,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-150-9ea5b514/original-assistant-response.jsonl",
           "contracts/decisions/0031-shared-timing-producer-contract.json",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-150-438302ef/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-da5d83da/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-da5d83da/original-assistant-response.jsonl",
+          "contracts/decisions/0033-source-evidence-before-timing-attribution.json"
         ],
         "hypotheses": [
           "The earlier and later sources had the same four Windows producer jobs and aggregate catalog. The browser and recovery assignments changed while the reader used one current mapping for both.",
@@ -27395,7 +27412,9 @@
             "scripts/timing.py",
             "scripts/verification_scope.py",
             "scripts/ci_artifacts.py",
-            "scripts/check.py"
+            "scripts/check.py",
+            "scripts/verification_report.py",
+            "scripts/verification_evidence.py"
           ],
           "rules": [
             {
@@ -27425,7 +27444,8 @@
             "Verify historical producer assignments using the applicable publishing inputs at the normal timing boundary.",
             "Keep independent producer qualification separate from incomplete aggregate topology and reject source assignments whose final ownership cannot be established.",
             "Require source-bound final selection and publisher-allowed outcomes for every native result row. Preserve compatible historical publisher forms and surface unknown qualification when the source cannot establish the final selection.",
-            "Share the bounded publishing check inventory, cadence and profile-reference rules with the current project loader. Preserve publisher order on raw Windows reports and validate it before aggregate reconciliation."
+            "Share the bounded publishing check inventory, cadence and profile-reference rules with the current project loader. Preserve publisher order on raw Windows reports and validate it before aggregate reconciliation.",
+            "Check report instants at observed precision and share result-derived summary and required native build predicates between current producers and the timing reader. Keep the verified historical profiles and register new publisher closures only on genuine publication."
           ],
           "data_plan": "Use the four authenticated producer artifacts and original compact measurements. Keep their raw source, artifact IDs, checksums and publishing check selections. Preserve the original reviews and replays in archives/observations/repo-hygiene-20261125/m0-150-review-followup-460248f9/, archives/observations/repo-hygiene-20261125/independent-final-m0-150-73fd4773/ and archives/observations/repo-hygiene-20261125/m0-150-combined-replay-73fd4773/. Retain the resumed contradictory-cache and checkout-marker inputs and raw outputs with their source identities for coordinator handoff. Preserve original producer, compact and raw aggregate bytes. Recover usable report measurements even when publisher eligibility or job attribution cannot be established. Compare the shared selection projection against statically inspected, observed historical publisher forms. Read their committed data and identities without executing historical programs. The full project loader also depends on schema and project state validation, which the scheduled system Python reader does not replay.",
           "cleanup": "Keep synthetic inconsistent controls isolated from the genuine artifacts and preserve any indeterminate original as a diagnostic. The coordinator commissions three material decisions first, one for job facts, one for historical publisher selection and outcomes, and one for checkout proof, each with an ordinary genuine positive. Reuse originals by digest and consolidate reproducers and risk assertions under each owner. Hold downstream reviews while a primary decision is red. Obtain the remaining formal decisions before acceptance, and compare against the next genuine capture or product change when available."

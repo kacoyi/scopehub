@@ -1767,16 +1767,16 @@ def verified_candidate_files(root, project, report, results, source, report_path
         from .verification_evidence import (
             release_artifacts,
             collect_run_observation,
-            integration_validation,
             RUN_OBSERVATION_CHECKS,
         )
+        from .verification_report import integration_summary_matches
     else:
         from verification_evidence import (
             release_artifacts,
             collect_run_observation,
-            integration_validation,
             RUN_OBSERVATION_CHECKS,
         )
+        from verification_report import integration_summary_matches
     reports_root = (root / '.reports').resolve()
     report_path = (root / report_path).resolve()
     origin = reports_root
@@ -1829,7 +1829,7 @@ def verified_candidate_files(root, project, report, results, source, report_path
         if key in RUN_OBSERVATION_CHECKS and result.get('observation') != collect_run_observation(root, run_dir, key, source):
             raise ProjectError(f'Changed external-session evidence: {key}')
     verify_primary_model(project, results)
-    if report.get('integration_validation') != integration_validation(results.values()):
+    if not integration_summary_matches(report.get('integration_validation'), results.values()):
         raise ProjectError('The integration summary does not match the observed sessions')
     if not isinstance(report.get('candidate_artifacts'), dict):
         raise ProjectError('Release report lacks bound installer and manifest digests')

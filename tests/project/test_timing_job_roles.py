@@ -95,9 +95,7 @@ class TimingJobRoleTests(unittest.TestCase):
                 legacy.pop('job_facts')
                 legacy['workflow']['windows_profile'] = profile
                 for job in (*legacy['jobs'], *legacy['sibling_jobs']):
-                    job.pop('publishing_steps', None)
-                    job.pop('step_conclusions', None)
-                    job.pop('step_statuses', None)
+                    job.pop('step_observations')
                 archive = self.write(f'legacy-{profile}.json', {
                     'kind': timing.ARCHIVE_KIND, 'samples': [], 'hosted': [legacy],
                 })
@@ -123,9 +121,9 @@ class TimingJobRoleTests(unittest.TestCase):
         # it cannot establish whether the marker executed.
         legacy = timing.hosted_timing(self.run, jobs)
         for row in legacy['sibling_jobs']:
-            row.pop('executed_layout_steps', None)
-            row.pop('step_conclusions', None)
-            row.pop('step_statuses', None)
+            if row['name'] is None:
+                row.pop('step_observations')
+                row['publishing_steps'] = [timing.WINDOWS_RECOVERY_MARKER]
         archive = self.write('legacy-nameless.json', {
             'kind': timing.ARCHIVE_KIND, 'samples': [], 'hosted': [legacy],
         })
@@ -213,8 +211,11 @@ class TimingJobRoleTests(unittest.TestCase):
                                             for issue in view['input_issues']))
 
         legacy = timing.hosted_timing(self.run, [self.jobs[0], aggregate, *self.jobs[2:]])
-        for row in (*legacy['jobs'], *legacy['sibling_jobs']):
-            row.pop('step_conclusions', None)
+        for row in legacy['sibling_jobs']:
+            if row['name'] is None:
+                row.pop('step_observations')
+                row['publishing_steps'] = [marker['name']]
+                row['executed_layout_steps'] = [marker['name']]
         archive = self.write('legacy-executed-marker.json', {
             'kind': timing.ARCHIVE_KIND, 'samples': [], 'hosted': [legacy],
         })
@@ -271,7 +272,9 @@ class TimingJobRoleTests(unittest.TestCase):
         current = self.read_modes([*others, unnamed], 'timestamp-only')
         self.assertTrue(all(not list(timing.platform_report_receipts(view['samples'])) for view in current))
         historical_clock = timing.hosted_timing(self.run, [unnamed])
-        historical_clock['sibling_jobs'][0].pop('step_conclusions', None)
+        historical_job, = historical_clock['sibling_jobs']
+        historical_job.pop('step_observations')
+        historical_job['step_identities'] = {'harness': [success['number'], success['name']]}
         archived = self.write('historical-timed-step-input.json', {
             'kind': timing.ARCHIVE_KIND, 'samples': [], 'hosted': [historical_clock],
         })

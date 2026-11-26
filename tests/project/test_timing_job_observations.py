@@ -44,6 +44,10 @@ class PublicJobObservationTests(unittest.TestCase):
         conflict = {**outcome, 'conclusion': 'success'}
         contradicted_active = {**active, 'conclusion': 'skipped'}
         conflicting_end = {**active, 'completed_at': '2026-11-20T00:06:39Z'}
+        active_start = {key: value for key, value in active.items() if key != 'completed_at'}
+        numbered_end = {key: active[key] for key in ('number', 'completed_at')}
+        conflicting_numbered_end = dict(numbered_end, completed_at=conflicting_end['completed_at'])
+        incompatible_name = dict(numbered_end, name='An unrelated step')
         pending = {**active, 'status': 'queued', 'conclusion': None}
         pending_state = {key: value for key, value in pending.items() if key not in ('started_at', 'completed_at')}
         pending_times = {key: value for key, value in pending.items() if key != 'status'}
@@ -65,6 +69,12 @@ class PublicJobObservationTests(unittest.TestCase):
                 ('unrelated contradiction', ([active, outcome], [times, conflict]), (55, 335, 20)),
                 ('fully contradicted', ([active, outcome], [times, conflict, contradicted_active]), (None, None, None)),
                 ('one contradicted endpoint', ([active, skipped], [conflicting_end]), (55, None, None)),
+                ('numbered completion in one row', ([active_start, numbered_end],), (55, 335, 20)),
+                ('numbered completion in separate rows', ([active_start], [numbered_end]), (55, 335, 20)),
+                ('numbered completion reversed', ([numbered_end], [active_start]), (55, 335, 20)),
+                ('absent completion', ([active_start],), (55, None, None)),
+                ('conflicting numbered completion', ([active], [conflicting_numbered_end]), (55, None, None)),
+                ('contradicted number binding', ([active], [incompatible_name]), (None, None, None)),
                 ('two executed candidates', ([active, {**times, 'conclusion': 'success'}],), (None, None, None)),
                 ('pending stale times', ([pending],), (None, None, None)),
                 ('pending fields split', ([pending_state], [pending_times]), (None, None, None)),
@@ -83,6 +93,8 @@ class PublicJobObservationTests(unittest.TestCase):
                     self.assertEqual((*expected, 420, 410, 14), tuple(seconds[key] for key in (
                         'setup', 'harness_step', 'tail', 'total', 'runner', 'browser_step',
                     )))
+                    if label == 'contradicted number binding':
+                        self.assertTrue(any(issue.get('steps') == [active['name']] for issue in view['input_issues']))
 
     def test_job_field_conflicts_survive_listing_partitions_and_archive_reopen(self):
         use_catalog(self, SPLIT_CATALOG, lanes=timing.LEGACY_WINDOWS_LANES)
@@ -171,8 +183,7 @@ class PublicJobObservationTests(unittest.TestCase):
                     clock.pop('job_facts', None)
                     clock['workflow'].update(windows_split=True, windows_layout_identified=True, windows_profile='full')
                     for job in (*clock['jobs'], *clock.get('sibling_jobs', ())):
-                        job.pop('publishing_steps', None)
-                        job.pop('executed_layout_steps', None)
+                        job.pop('step_observations')
                         job.pop('runner_labels', None)
                     saved = root / f'{name}.json'
                     saved.write_bytes(timing.json_bytes({'kind': timing.ARCHIVE_KIND,

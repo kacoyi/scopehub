@@ -1,6 +1,7 @@
 """Exercise publisher eligibility and evidence identity at the public timing entry."""
 
 from contextlib import redirect_stdout
+from copy import deepcopy
 from io import StringIO
 import json
 from pathlib import Path
@@ -18,10 +19,11 @@ class PublicPublisherObservationTests(unittest.TestCase):
         fixtures.use_catalog(self, fixtures.OLD_FULL_CATALOG, lanes=())
         self.directory = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.run = fixtures.hosted_run()
-        self.clock = timing.actions_clock(self.run, [
+        self.jobs = [
             fixtures.hosted_job(31, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50'),
             fixtures.hosted_job(32, 'windows', '00:20', '06:00', timing.WINDOWS_FULL_STEP, '00:50', '05:20'),
-        ])
+        ]
+        self.clock = timing.actions_clock(self.run, self.jobs)
         ci = dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(self.clock)), checkout_sha='a' * 40)
         report = dict(fixtures.historical_report(), ci=ci)
         self.linux = timing.report_sample(report, cache='warm')
@@ -29,6 +31,7 @@ class PublicPublisherObservationTests(unittest.TestCase):
         report['checks'][3] = {
             'id': 'windows-native-build', 'status': 'passed', 'exit_code': 0, 'duration_seconds': 12,
         }
+        self.windows_report = report
         self.windows = timing.report_sample(report, cache='warm')
 
     def invoke(self, *args):
@@ -83,10 +86,11 @@ class PublicPublisherObservationTests(unittest.TestCase):
         self.assert_view(self.weekly(self.directory / 'genuinely-blocked.json', blocked), {}, [])
 
     def test_weekly_reopen_reconciles_equivalent_instants_and_preserves_exact_receipts(self):
+        self.windows['recorded_at'] = '2026-11-20T00:02:00.683387+00:00'
         original = {'Windows': timing.report_input_sha256(self.windows)}
         archive = self.directory / 'genuine.json'
         self.assert_view(self.weekly(archive, self.windows), original, [])
-        equivalent = dict(self.windows, recorded_at='2026-11-19T16:02:00-08:00')
+        equivalent = dict(self.windows, recorded_at='2026-11-20T05:47:00.683387000+05:45')
         alternative = {'Windows': timing.report_input_sha256(equivalent)}
         self.assertNotEqual(original, alternative)
         self.assert_view(self.weekly(self.directory / 'equivalent.json', equivalent), alternative, [])
@@ -97,6 +101,65 @@ class PublicPublisherObservationTests(unittest.TestCase):
             admitted, = (row for row in view['samples'] if row['platform'] == 'Windows')
             self.assertCountEqual([original['Windows'], alternative['Windows']], admitted['report_inputs_sha256'])
 
-        different = self.write_variant('different', dict(equivalent, recorded_at='2026-11-19T16:02:01-08:00'))
-        self.assert_view(self.invoke('--report', archive, '--report', different), {},
-                         ['Conflicting complete timing samples for this run and platform.'])
+        for fraction in ('683388', '683387001'):
+            with self.subTest(fraction=fraction):
+                different = self.write_variant('different', dict(
+                    equivalent, recorded_at=f'2026-11-20T05:47:00.{fraction}+05:45',
+                ))
+                self.assert_view(self.invoke('--report', archive, '--report', different), {},
+                                 ['Conflicting complete timing samples for this run and platform.'])
+
+    def test_full_publisher_requires_a_passed_native_build_even_if_catalog_excludes_it(self):
+        for check in ('project-state', 'windows-native-build'):
+            with self.subTest(omission=check):
+                catalog = deepcopy(fixtures.OLD_FULL_CATALOG)
+                catalog['required_change_checks'].remove(check)
+                next(row for row in catalog['checks'] if row['id'] == check)['cadence'] = 'task'
+                variant = dict(self.windows, selected=[key for key in self.windows['selected'] if key != check])
+                variant['checks'] = [
+                    dict(row, status='blocked', reason_code='not_selected', duration_seconds=None, exit_code=None)
+                    if row['id'] == check else row for row in self.windows['checks']
+                ]
+                work, complete = timing.report_check_work(variant['checks'])
+                variant.update(seconds=dict(variant['seconds'], check_work=work), check_work_complete=complete)
+                statuses = ('passed',) if check != 'windows-native-build' else ('passed', 'blocked')
+                for status in statuses:
+                    sample = dict(variant, report_status=status)
+                    archive = self.directory / f'{check}-{status}.json'
+                    valid = check != 'windows-native-build'
+                    expected = {'Windows': timing.report_input_sha256(sample)} if valid else {}
+                    issues = [] if valid else ['Native timing report has complete coverage without a passed Windows native build.']
+                    publishing = timing.PublishingSource((sample['source_commit'], catalog))
+                    with patch.object(timing, 'publishing_catalog_source', return_value=publishing):
+                        view = self.weekly(archive, sample)
+                        self.assert_view(view, expected, issues)
+                        actions, = view['hosted']
+                        windows, = (job for job in actions['jobs'] if job['platform'] == 'Windows')
+                        self.assertEqual(360, windows['seconds']['total'])
+
+    def test_raw_native_report_checks_the_integration_summary_before_projection(self):
+        report = deepcopy(self.windows_report)
+        report['timing'] = {'elapsed_seconds': 240}
+        report['generated_at'] = '2026-11-20T00:02:00.683387001+00:00'
+        fixtures.native_raw_fixture(self, report, fixtures.OLD_FULL_CATALOG)
+        summary = {key: {'status': 'not_evaluated', 'observations': []}
+                   for key in ('configured_models', 'cloud_models', 'real_market_data')}
+        args = ('--actions', self.write_variant('run', self.run), self.write_variant('jobs', self.jobs))
+        for evaluated in (False, True):
+            with self.subTest(mock_ai_evaluated=evaluated):
+                report['integration_validation'] = dict(summary, mock_ai_evaluated=evaluated)
+                path = self.write_variant('raw', report)
+                view = self.invoke('--report', path, *args)
+                if evaluated:
+                    self.assertEqual([], view['samples'])
+                    self.assertEqual([{'file': path.name, 'error':
+                                       'Timing report has an integration summary that contradicts its check results.'}],
+                                     view['input_issues'])
+                else:
+                    sample, = view['samples']
+                    self.assertEqual(report['generated_at'], sample['recorded_at'])
+                    self.assertEqual((360, 340), (sample['seconds']['total'], sample['seconds']['runner']))
+                    self.assertEqual([], view['input_issues'])
+                actions, = view['hosted']
+                windows, = (job for job in actions['jobs'] if job['platform'] == 'Windows')
+                self.assertEqual(360, windows['seconds']['total'])

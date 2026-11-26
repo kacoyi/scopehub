@@ -18,7 +18,8 @@ from scripts.check import PRIVATE_CHECK_LOGS, ci_provenance, redacted_check_log
 from scripts.ci_artifacts import SCOPE_FILE, PublicationError, prepare_reports, stage_artifacts
 from scripts.diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic
 from scripts.project import ProjectError, archive_evidence, digest, json_bytes, load_project, product_progress, read_json, source_identity, validate_model, verified_candidate_files
-from scripts.verification_evidence import FIELD_ACTIONS, collect_session, field_observation, integration_validation, release_artifacts
+from scripts.verification_evidence import FIELD_ACTIONS, collect_session, field_observation, release_artifacts
+from scripts.verification_report import integration_validation
 from tests.contracts.test_qualification import observed_case
 from tests.project.fixtures import owner_workbench_fixture, task_by_id, ubuntu_test_host
 from tests.project.test_continuity import ProjectFixture
