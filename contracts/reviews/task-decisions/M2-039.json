@@ -117,6 +117,35 @@
       },
       "supersedes": "b76cf2efa4c20ddb3038c01ba832ba19e68d3050e3294013cdbdd3ed9238780c",
       "evidence_sha256": "afb19037f3a71b4249a39687648ab6ff3cf8f96d658fa088e714f0ec37b4c236"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e59f853673d76e4c71983834f40784dbf64e262d",
+      "scope": "Exercise CSV and folder list discovery without a prefilled revision ID, repeat refresh and close/reopen after temporary loss, and compare with the explicit-ID path. Challenge positive restoration, denied or still-pending access and late results in the public UI. Recheck original workspace selection, peer note fallback and first chart reopen, evidence and separate Windows qualification. Recheck the original decision on 359e3323.",
+      "supersedes": "c986d9221f5d617163bc9a45785ab443443a6a06e5a121d424c22360dd3eaa2a",
+      "requested_at": "2026-11-26T05:11:28.355939+00:00",
+      "request_id": "d7ddfd44d2cb54ff96cfbaa786d9a14c7d664b93819852a96b96f196e89ab4ef",
+      "evidence_sha256": "ccb2e547d9c045ae2f3df63394c7198cddf2925aaebbeff517e372b0924f928b"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e59f853673d76e4c71983834f40784dbf64e262d",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 e59f853673d76e4c71983834f40784dbf64e262d",
+      "scope": "APPROVE M2-039 e59f853673d76e4c71983834f40784dbf64e262d",
+      "observation": "In my React replay, both the CSV and folder lists restored the withheld entry after exactly one matching status read when the other library’s lookup settled, without a fourth list request.",
+      "reviewer": "Independent Astra Standard (t13h)",
+      "original_sha256": "c31564bd9d31ce1f6b08f436f71938c171a8f691859d749b30a090fdf3c12f80",
+      "response_id": "16f3b0db15b719e9ad3ebf2024d557167c8c6d6f95c44b083829f2fc39489f42",
+      "response_sha256": "1f5eee5f08b273248365897e42a13e2422b0c34308fcced6468d13036556a8e4",
+      "legacy_response_sha256": "9fb80aaf5004d5b885434b20a2fcfd27a30abdbc09425560d40d603c8eaee531",
+      "observation_body_sha256": "ce4112c048fd6d381cff628d82c0644657abc5a14fe853791e2cc5e9ee081d9c",
+      "event": {
+        "id": "msg_02f9c08327a7ec77016b07c1944c5087d292adea6eb519c893",
+        "timestamp": "2026-11-26T05:20:36.210Z"
+      },
+      "supersedes": "d7ddfd44d2cb54ff96cfbaa786d9a14c7d664b93819852a96b96f196e89ab4ef",
+      "evidence_sha256": "a6c02f2aa30ef297bbaff6061ea78a97760b3dc2cb69c8a0365c528e65b10a9a"
     }
   ]
 }

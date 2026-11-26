@@ -137,6 +137,35 @@
       },
       "supersedes": "ed387df6f11e11c3c6bd9c6fc6a8126b2099518f97da52bbabd8bdc3f075061b",
       "evidence_sha256": "3f44330e68f6a220203825d18e36c63796f0e2c957d9fd3325c9ec3803c306b0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e59f853673d76e4c71983834f40784dbf64e262d",
+      "scope": "Reproduce the original SNAPSHOT_UNAVAILABLE behavior from raw rows for both CSV and folder publications. Distinguish temporary unavailability from confirmed permission loss at retry. Test stale, reordered and late results, contents remaining hidden until fresh authorization, and a recovered source row and chart via the public interface. Recheck the original decision on 359e3323.",
+      "supersedes": "faf133029eec902d79e5a4395bc9d478953ce92f998d01b39d0b9d968bfc1051",
+      "requested_at": "2026-11-26T05:11:27.416485+00:00",
+      "request_id": "8bf8af61d8a18f33133cf17530f9fc4bfaa08231c97f7ebfab15bd76c823d7d5",
+      "evidence_sha256": "8882bef87ad8774d0598fae4626f0587a79b846b563c27aca58c14f9c202fc86"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e59f853673d76e4c71983834f40784dbf64e262d",
+      "verdict": "approved",
+      "decision": "APPROVE M2-035 e59f853673d76e4c71983834f40784dbf64e262d",
+      "scope": "APPROVE M2-035 e59f853673d76e4c71983834f40784dbf64e262d",
+      "observation": "For both CSV and folder publications, an explicit-ID retry showed distinct alerts for temporary unavailability, timeout, and confirmed revocation, and fresh authorization restored the chart and a newly read source row.",
+      "reviewer": "Independent Astra Standard (t13g)",
+      "original_sha256": "48d295f081355e9868b39cf2a13e473f5e7bb673be84751f4bf76c8dbe34c416",
+      "response_id": "6387da8938c538ca67cde7665fb5c792f0ec76767e222cc84db4f1c1147ef3a2",
+      "response_sha256": "4b0124478c0674b04022fc345aabb030b410399e25ca02f6684c72dca472fa2c",
+      "legacy_response_sha256": "64403a7e49ce3daef927f72b377f27587f7f9b81f7d4a74d97b977c1bd9bba52",
+      "observation_body_sha256": "c82c1d77f3b7c2d2d36c9205c0b3ae211283ea3dfaca5e19f080213d2d7de642",
+      "event": {
+        "id": "msg_01516dfade991add016b07c19f740487d2aac87c349a0a50ae",
+        "timestamp": "2026-11-26T05:20:44.017Z"
+      },
+      "supersedes": "8bf8af61d8a18f33133cf17530f9fc4bfaa08231c97f7ebfab15bd76c823d7d5",
+      "evidence_sha256": "49ae4c8024a77e23ad4d00007d27b7eb77d16af14e7e1f73433d16793987b1ad"
     }
   ]
 }
