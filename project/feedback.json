@@ -8372,7 +8372,7 @@
     {
       "id": "published-revision-access-native-webview2-journey-unobserved",
       "source": "Local coverage audit of clean composition 771700fab16f2e17006134f40d54c27ca12afcbf at .reports/m2-039-native-access-gap/coverage.json (SHA-256 88d48086f55ecc333d36325c092df267d8e52bc700e9ae8498c1139e0e0408f6).",
-      "observation": "The compiled WebView2 UI Automation check reaches the prototype editor and chart-free renderer but never opens a published revision, reads an original row or observes its native access status. The source-bound Chromium checks use a separate Rust bridge. Native admission, closing and reopening, restoration and withdrawal remain unobserved in the compiled application for this interaction.",
+      "observation": "The compiled WebView2 UI Automation check reaches the prototype editor and chart-free renderer but never opens a published revision, reads an original row or observes its native access status. The source-bound Chromium checks use a separate Rust bridge. Native admission, closing and reopening, restoration and withdrawal remain unobserved in the compiled application for this interaction. First guarded Windows run 45828181845 on 07424b39 staged the hashed x64 application and its log-bound observation. The owned WebView2 endpoint was ready at 5927 ms and its identity at 8495 ms. The first seeded CSV availability call at published-revision-access-windows.spec.mjs:353 returned a nonretryable INTERNAL_ERROR. Desktop stderr reported a local-path ACL preparation refusal. The admission and public drawer observations were empty. The artifact does not identify the ownership or path property that triggered the refusal.",
       "severity": "major",
       "status": "open",
       "task_ids": [
@@ -8382,7 +8382,14 @@
         "windows-published-revision-access"
       ],
       "resolution": null,
-      "deferral_reason": null
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261126T132212.486758Z-cbf7c751",
+          "source_commit": "07424b3955546ae6ff1c8302caca024a235d1bba",
+          "report_sha256": "a7b2db876efc08093f0c5c35b797bf555163695e194574f9424f2656cf754e59"
+        }
+      ]
     },
     {
       "id": "published-revision-probe-stops-at-withdrawal-status",
