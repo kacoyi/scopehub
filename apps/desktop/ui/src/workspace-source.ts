@@ -40,8 +40,8 @@ export function useRestoredWorkspaceSource(workspace: LocalWorkspace | undefined
   const source = workspace?.snapshot?.source;
   const id = source?.kind === 'frozen' ? source.revision_id : undefined;
   const status = source?.kind === 'frozen' ? source.status : undefined;
-  const revoked = id !== undefined && (status === 'revoked' || access.revoked.has(id));
-  const missing = id !== undefined && access.unavailable.has(id);
+  const revoked = id !== undefined && (status === 'revoked' || access.withheldStatus('csv', id) === 'revoked');
+  const missing = id !== undefined && access.withheldStatus('csv', id) === 'unavailable';
   const available = id && status === 'available' && !revoked && !missing ? id : undefined;
   const focus = workspace?.focus;
   const hasConfirmedFocus = workspace?.hasConfirmedFocus;
@@ -64,7 +64,7 @@ export function useRestoredWorkspaceSource(workspace: LocalWorkspace | undefined
       return;
     }
     const controller = new AbortController();
-    const allowed = beginRead(openable);
+    const allowed = beginRead('csv', openable);
     const reading = () => focusIsCurrent() && allowed();
     setLoaded({ kind: 'frozen', revision_id: openable, status: 'loading' });
     void openAuthenticatedFrozenChart(openable, crypto.randomUUID(), controller.signal).then(result => {
@@ -78,7 +78,7 @@ export function useRestoredWorkspaceSource(workspace: LocalWorkspace | undefined
       // The first read can lose access before the open chart's watcher starts.
       // The current snapshot distinguishes a withdrawal from missing data.
       if (reading() && displayAccessDenied(error)) {
-        withhold(openable);
+        withhold('csv', openable);
         refreshAccess(openable);
       }
     });

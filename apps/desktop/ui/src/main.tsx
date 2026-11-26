@@ -54,7 +54,7 @@ function App() {
   const { restored, retry } = useRestoredWorkspaceSource(localWorkspace, revisionAccess);
   const target = snapshot?.chart_evidence;
   const targetUnavailable = Boolean(target && 'revision_id' in target
-    && (!revisionAccess.canDisplay(target.revision_id) || localWorkspace?.unconfirmedRevisions.has(target.revision_id)));
+    && (!revisionAccess.canDisplay('csv', target.revision_id) || localWorkspace?.unconfirmedRevisions.has(target.revision_id)));
   const displaySnapshot = useMemo(() => snapshot && targetUnavailable
     ? { ...snapshot, chart_evidence: { unavailable: true as const } } : snapshot, [snapshot, targetUnavailable]);
   const workspace = localWorkspace && { ...localWorkspace, snapshot: displaySnapshot };

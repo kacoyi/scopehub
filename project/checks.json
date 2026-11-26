@@ -427,7 +427,7 @@
     {
       "id": "local-folder-refresh-preview",
       "status": "implemented",
-      "purpose": "Exercise folder review and guarded publication through the built UI, Rust registry, Python checker and SQLite. Observe additions, all alias locators, competing prices, explicit unit, adjustment and venue contradictions, incomplete coverage and discarded late replies. Publish with explicit source and bar withdrawals, recover a lost reply, and reopen and revoke frozen folder revisions after restart.",
+      "purpose": "Exercise folder review and guarded publication through the built UI, Rust registry, Python checker and SQLite. Observe additions, all alias locators, competing prices, explicit unit, adjustment and venue contradictions, incomplete coverage and discarded late replies. Publish with explicit source and bar withdrawals, recover a lost reply, and reopen and revoke frozen folder revisions after restart. Exercise both directions of status contention between published CSV and folder libraries and distinguish temporary absence from durable withdrawal on explicit retry, including CSV without a workspace.",
       "platforms": "all",
       "command": [
         "{python}",

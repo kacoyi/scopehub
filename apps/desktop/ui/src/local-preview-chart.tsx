@@ -99,7 +99,7 @@ export function FrozenLocalChart({ result, workspace, access }: {
   const [acceptedIndicators, setAcceptedIndicators] = useState<readonly IndicatorChartLayer[]>([]);
   const { revision, bars: events } = result;
   const bars = useMemo(() => events.map(event => event.bar), [events]);
-  const showIndicators = result.snapshot && workspace && access.canDisplay(revision.revision_id);
+  const showIndicators = result.snapshot && workspace && access.canDisplay('csv', revision.revision_id);
   return <>
     <LocalBarChart title={t('Frozen chart')} label={t('Frozen local CSV chart')} styleLabel={t('Frozen chart style')}
       series={revision.series} symbol={revision.symbol} bars={bars} indicatorPreview={showIndicators ? indicatorPreview : undefined}
@@ -168,8 +168,8 @@ function useSourceRowRead(revisionId: string, kind: PublishedRevisionKind, acces
     recordNumber: number,
     load: (requestId: string, review: boolean) => Promise<OriginalSourceRow | undefined>,
   ) {
-    if (!access.canDisplay(revisionId)) return;
-    const reading = access.beginRead(revisionId);
+    if (!access.canDisplay(kind, revisionId)) return;
+    const reading = access.beginRead(kind, revisionId);
     let requestId = crypto.randomUUID();
     pending.current = requestId;
     setRead({ loading: recordNumber });
@@ -197,11 +197,11 @@ function useSourceRowRead(revisionId: string, kind: PublishedRevisionKind, acces
       if (displayAccessDenied(error)) {
         clearRead();
         if (code === 'SNAPSHOT_UNAVAILABLE') {
-          access.withhold(revisionId);
+          access.withhold(kind, revisionId);
           void access.verify(kind, revisionId);
           workspace?.refreshPublishedAccess(revisionId);
         } else {
-          access.revoke(revisionId);
+          access.revoke(kind, revisionId);
           workspace?.reload();
         }
         return;
@@ -213,7 +213,7 @@ function useSourceRowRead(revisionId: string, kind: PublishedRevisionKind, acces
     }
   }
 
-  return { read: access.canDisplay(revisionId) ? read : undefined, clearRead, inspect };
+  return { read: access.canDisplay(kind, revisionId) ? read : undefined, clearRead, inspect };
 }
 
 function OriginalSourceFields({ read }: { read: SourceRowRead | undefined }) {

@@ -1,135 +1,158 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { readFrozenRevisionStatus, type LocalWorkspace } from './use-local-workspace';
 import { readLocalFolderRevision } from './local-import-transport';
-import { withReplyDeadline } from './reply-deadline';
+import { waitForReply, withReplyDeadline } from './reply-deadline';
 
-type AccessStatus = 'available' | 'missing' | 'revoked' | undefined;
 export type PublishedRevisionKind = 'csv' | 'folder';
+type RevisionKey = `${PublishedRevisionKind}:${string}`;
+type WithheldStatus = 'unavailable' | 'revoked';
+export type PublishedRevisionStatus = 'available' | WithheldStatus | 'unconfirmed';
+type StatusRequest = {
+  result: Promise<PublishedRevisionStatus>;
+  key: RevisionKey;
+  superseded: boolean;
+};
+
+function revisionKey(kind: PublishedRevisionKind, id: string): RevisionKey {
+  return `${kind}:${id}`;
+}
 
 export function displayAccessDenied(error: unknown) {
   return error !== null && typeof error === 'object' && 'code' in error
     && (error.code === 'SNAPSHOT_UNAVAILABLE' || error.code === 'PERMISSION_DENIED');
 }
 
-async function readAccessStatus(kind: PublishedRevisionKind, id: string, signal: AbortSignal): Promise<AccessStatus> {
+async function readAccessStatus(kind: PublishedRevisionKind, id: string, signal: AbortSignal): Promise<PublishedRevisionStatus> {
   if (kind === 'csv') {
     const reply = await readFrozenRevisionStatus(id, signal);
     if (reply?.available === true && reply.revoked === undefined) return 'available';
-    if (reply?.available === false) return reply.revoked === true ? 'revoked' : 'missing';
-    return;
+    if (reply?.available === false && reply.revoked === true) return 'revoked';
+    if (reply?.available === false && reply.revoked === undefined) return 'unavailable';
+    return 'unconfirmed';
   }
   try {
     const reply = await readLocalFolderRevision(
       { version: 1, revision_id: id, include_details: false }, crypto.randomUUID(), signal);
-    if (reply.revision.revision_id === id) return 'available';
+    return reply.revision.revision_id === id ? 'available' : 'unconfirmed';
   } catch (error) {
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'PERMISSION_DENIED') return 'revoked';
+    if (error && typeof error === 'object' && 'code' in error) {
+      if (error.code === 'PERMISSION_DENIED') return 'revoked';
+      if (error.code === 'SNAPSHOT_UNAVAILABLE') return 'unavailable';
+    }
     throw error;
   }
 }
 
 export function usePublishedRevisionAccess(workspace: LocalWorkspace | undefined) {
-  const observed = useRef(new Set<string>());
-  const missing = useRef(new Set<string>());
-  const generations = useRef(new Map<string, number>());
-  const checking = useRef(new Map<string, { controller: AbortController; request: Promise<AccessStatus> }>());
-  const [revoked, setRevoked] = useState<ReadonlySet<string>>(observed.current);
-  const [unavailable, setUnavailable] = useState<ReadonlySet<string>>(missing.current);
+  const withheld = useRef(new Map<RevisionKey, WithheldStatus>());
+  const generations = useRef(new Map<RevisionKey, number>());
+  const checking = useRef<StatusRequest | undefined>(undefined);
+  const profile = useRef(new AbortController());
+  const [, setWithheld] = useState<ReadonlyMap<RevisionKey, WithheldStatus>>(withheld.current);
   const selected = useRef<{ token: number; id: string } | undefined>(undefined);
   const previousUnavailableSource = useRef<string | undefined>(undefined);
   const snapshot = workspace?.snapshot;
   const canCheckRevision = workspace?.canCheckRevision;
   const refreshPublishedAccess = workspace?.refreshPublishedAccess;
 
-  const stopChecking = useCallback((id: string) => {
-    checking.current.get(id)?.controller.abort();
-    checking.current.delete(id);
-  }, []);
-  const revoke = useCallback((id: string) => {
-    if (observed.current.has(id)) return;
-    stopChecking(id);
-    observed.current = new Set(observed.current).add(id);
-    setRevoked(observed.current);
-  }, [stopChecking]);
-  // The ref also fences a response delivered before React commits the revoked view.
-  const canDisplay = useCallback((id: string) => !observed.current.has(id) && !missing.current.has(id), []);
-  const beginRead = useCallback((id: string) => {
-    const generation = generations.current.get(id);
-    return () => canDisplay(id) && generations.current.get(id) === generation;
-  }, [canDisplay]);
-  const setMissing = useCallback((id: string, absent: boolean) => {
-    if (missing.current.has(id) === absent) return;
-    const next = new Set(missing.current);
-    if (absent) {
-      next.add(id);
-      generations.current.set(id, (generations.current.get(id) ?? 0) + 1);
-    } else next.delete(id);
-    missing.current = next;
-    setUnavailable(next);
-  }, []);
-  const withhold = useCallback((id: string) => {
-    if (observed.current.has(id)) return;
-    stopChecking(id);
-    setMissing(id, true);
-  }, [setMissing, stopChecking]);
-
-  const verify = useCallback(async (kind: PublishedRevisionKind, id: string, fresh?: AbortSignal) => {
-    // A focus fence needs an observation that started after focus. Let a shared
-    // earlier read finish, then check again without overlapping reads of this revision.
-    if (fresh) {
-      for (let current = checking.current.get(id); current && !fresh.aborted; current = checking.current.get(id)) {
-        await current.request;
-      }
-      if (fresh.aborted) return;
+  const setStatus = useCallback((key: RevisionKey, status?: WithheldStatus) => {
+    const previous = withheld.current.get(key);
+    if (previous === status || previous === 'revoked') return;
+    const next = new Map(withheld.current);
+    if (status === undefined) next.delete(key);
+    else {
+      next.set(key, status);
+      generations.current.set(key, (generations.current.get(key) ?? 0) + 1);
     }
-    if (observed.current.has(id) || canCheckRevision?.() === false) return;
-    const current = checking.current.get(id);
-    if (current) return current.request;
-    const controller = new AbortController();
-    const request = withReplyDeadline(5000, signal => readAccessStatus(kind, id, signal), controller.signal).then(status => {
-      if (controller.signal.aborted) return;
-      if (status === 'revoked') revoke(id);
-      else if (status === 'missing') setMissing(id, true);
-      else if (status === 'available' && missing.current.has(id)) {
-        setMissing(id, false);
-        refreshPublishedAccess?.(id);
-      }
-      return status;
-    }, error => {
-      if (!controller.signal.aborted && displayAccessDenied(error)) {
-        setMissing(id, true);
-        return 'missing' as const;
-      }
-    }).finally(() => {
-      if (checking.current.get(id)?.controller === controller) checking.current.delete(id);
-    });
-    checking.current.set(id, { controller, request });
-    return request;
-  }, [canCheckRevision, refreshPublishedAccess, revoke, setMissing]);
+    withheld.current = next;
+    setWithheld(next);
+  }, []);
+  const withheldStatus = useCallback((kind: PublishedRevisionKind, id: string) =>
+    withheld.current.get(revisionKey(kind, id)), []);
+  // The ref also fences a response delivered before React commits the withheld view.
+  const canDisplay = useCallback((kind: PublishedRevisionKind, id: string) =>
+    withheldStatus(kind, id) === undefined, [withheldStatus]);
+  const beginRead = useCallback((kind: PublishedRevisionKind, id: string) => {
+    const key = revisionKey(kind, id);
+    const generation = generations.current.get(key);
+    return () => canDisplay(kind, id) && generations.current.get(key) === generation;
+  }, [canDisplay]);
+  const hold = useCallback((kind: PublishedRevisionKind, id: string, status: WithheldStatus) => {
+    const key = revisionKey(kind, id);
+    const current = checking.current;
+    if (current?.key === key) current.superseded = true;
+    setStatus(key, status);
+  }, [setStatus]);
+  const withhold = useCallback((kind: PublishedRevisionKind, id: string) =>
+    hold(kind, id, 'unavailable'), [hold]);
+  const revoke = useCallback((kind: PublishedRevisionKind, id: string) =>
+    hold(kind, id, 'revoked'), [hold]);
+
+  const verify = useCallback(async (kind: PublishedRevisionKind, id: string,
+    options: { signal?: AbortSignal; fresh?: boolean } = {}): Promise<PublishedRevisionStatus> => {
+    const { signal, fresh } = options;
+    const key = revisionKey(kind, id);
+    const lifetime = profile.current.signal;
+    const prior = fresh ? checking.current : undefined;
+    const wait = (result: Promise<PublishedRevisionStatus>) =>
+      signal ? waitForReply(signal, () => result).catch(() => 'unconfirmed' as const) : result;
+
+    for (;;) {
+      if (lifetime.aborted || signal?.aborted) return 'unconfirmed';
+      if (withheld.current.get(key) === 'revoked') return 'revoked';
+      if (canCheckRevision?.() === false) return 'unconfirmed';
+
+      const current = checking.current;
+      if (!current) break;
+      // Share only the same revision and provider. A check issued before focus
+      // cannot confirm the new view. Other checks wait on the same native lane.
+      if (current.key === key && current !== prior && !current.superseded) return wait(current.result);
+      await wait(current.result);
+    }
+
+    // Once sent, the observation belongs to the profile. Page cancellation
+    // stops its wait without releasing the slot or discarding the observation.
+    const result = withReplyDeadline(5000, deadline => readAccessStatus(kind, id, deadline), lifetime)
+      .catch(() => 'unconfirmed' as const).then(status => {
+        if (lifetime.aborted) return 'unconfirmed';
+        if (withheld.current.get(key) === 'revoked') return 'revoked';
+        if (request.superseded) return 'unconfirmed';
+        if (status === 'revoked' || status === 'unavailable') setStatus(key, status);
+        else if (status === 'available' && withheld.current.has(key)) {
+          setStatus(key);
+          if (kind === 'csv') refreshPublishedAccess?.(id);
+        }
+        return status;
+      }).finally(() => {
+        if (checking.current === request) checking.current = undefined;
+      });
+    const request: StatusRequest = { key, result, superseded: false };
+    checking.current = request;
+    return wait(result);
+  }, [canCheckRevision, refreshPublishedAccess, setStatus]);
 
   const recheckListed = useCallback(async (kind: PublishedRevisionKind, ids: readonly string[], signal: AbortSignal) => {
-    // A list observes membership. Only a status read can restore a withheld grant.
-    // Keep checks serial on the native lane. An admitted check belongs to the
-    // profile, while the page controls whether to start any remaining checks.
+    // A list observes membership. Only status can restore a withheld revision.
     for (const id of new Set(ids)) {
       if (signal.aborted) return;
-      if (missing.current.has(id) && !observed.current.has(id)) await verify(kind, id);
+      if (withheldStatus(kind, id) === 'unavailable') await verify(kind, id, { signal });
     }
-  }, [verify]);
+  }, [verify, withheldStatus]);
 
   useLayoutEffect(() => {
-    const requests = checking.current;
+    if (profile.current.signal.aborted) profile.current = new AbortController();
+    const lifetime = profile.current;
     return () => {
-      for (const { controller } of requests.values()) controller.abort();
-      requests.clear();
+      lifetime.abort();
+      checking.current = undefined;
     };
   }, []);
   useLayoutEffect(() => {
     if (!snapshot) return;
     const { source, chart_evidence: target, selection_revision: token } = snapshot;
-    if (source?.kind === 'frozen' && source.status === 'revoked') revoke(source.revision_id);
+    if (source?.kind === 'frozen' && source.status === 'revoked') revoke('csv', source.revision_id);
     const unavailableSource = source?.kind === 'frozen' && source.status === 'unavailable' ? source.revision_id : undefined;
-    if (unavailableSource && unavailableSource !== previousUnavailableSource.current) withhold(unavailableSource);
+    if (unavailableSource && unavailableSource !== previousUnavailableSource.current) withhold('csv', unavailableSource);
     previousUnavailableSource.current = unavailableSource;
 
     const previous = selected.current;
@@ -137,11 +160,11 @@ export function usePublishedRevisionAccess(workspace: LocalWorkspace | undefined
     if (target && 'unavailable' in target && previous?.token === token) {
       // The same selection is now redacted. Fence its previous reply immediately,
       // then let the registry distinguish temporary absence from withdrawal.
-      withhold(previous.id);
+      withhold('csv', previous.id);
       void verify('csv', previous.id);
     }
   }, [snapshot, revoke, verify, withhold]);
-  return { revoked, unavailable, canDisplay, beginRead, revoke, withhold, verify, recheckListed };
+  return { withheldStatus, canDisplay, beginRead, revoke, withhold, verify, recheckListed };
 }
 
 export type PublishedRevisionAccess = ReturnType<typeof usePublishedRevisionAccess>;
@@ -161,13 +184,17 @@ export function useWatchPublishedRevision(
     // The foreground read authorizes its own result. An independent profile change
     // still rechecks access, including while that result is in transit.
     const profileChanged = observed.id === id && (observed.refresh !== refresh || observed.errorId !== errorId);
-    if (id && (initialAccess === 'check' || profileChanged)) void verify(kind, id);
+    if (!id || (initialAccess !== 'check' && !profileChanged)) return;
+    const lifetime = new AbortController();
+    void verify(kind, id, { signal: lifetime.signal });
+    return () => lifetime.abort();
   }, [id, kind, verify, refresh, errorId, initialAccess]);
 
   useEffect(() => {
     if (!id) return;
+    const lifetime = new AbortController();
     const check = () => {
-      if (document.visibilityState === 'visible') void verify(kind, id);
+      if (document.visibilityState === 'visible') void verify(kind, id, { signal: lifetime.signal });
     };
     const focus = () => {
       if (!workspaceHandlesFocus && canCheckRevision?.() !== false) check();
@@ -176,6 +203,7 @@ export function useWatchPublishedRevision(
     window.addEventListener('focus', focus);
     document.addEventListener('visibilitychange', focus);
     return () => {
+      lifetime.abort();
       window.clearInterval(timer);
       window.removeEventListener('focus', focus);
       document.removeEventListener('visibilitychange', focus);

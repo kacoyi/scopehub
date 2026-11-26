@@ -322,31 +322,31 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
   const alive = useRef(true);
   const revision = useRef(0);
   const publishedId = publishedRecord?.revision_id;
-  const lostAccess = publishedId !== undefined && revisionAccess.revoked.has(publishedId);
+  const lostAccess = publishedId !== undefined && revisionAccess.withheldStatus('csv', publishedId) === 'revoked';
   const revokedSourceHash = lostAccess ? publishedRecord?.source_sha256 : undefined;
-  const published = publishedId && revisionAccess.canDisplay(publishedId) ? publishedRecord : undefined;
-  const frozen = frozenChart && revisionAccess.canDisplay(frozenChart.revision.revision_id) ? frozenChart : undefined;
+  const published = publishedId && revisionAccess.canDisplay('csv', publishedId) ? publishedRecord : undefined;
+  const frozen = frozenChart && revisionAccess.canDisplay('csv', frozenChart.revision.revision_id) ? frozenChart : undefined;
   const publishedFolderId = publishedFolderRecord?.revision_id;
-  const folderAccessLost = publishedFolderId !== undefined && revisionAccess.revoked.has(publishedFolderId);
-  const publishedFolder = publishedFolderId && revisionAccess.canDisplay(publishedFolderId) ? publishedFolderRecord : undefined;
-  const frozenFolder = frozenFolderRecord && revisionAccess.canDisplay(frozenFolderRecord.revision.revision_id) ? frozenFolderRecord : undefined;
+  const folderAccessLost = publishedFolderId !== undefined && revisionAccess.withheldStatus('folder', publishedFolderId) === 'revoked';
+  const publishedFolder = publishedFolderId && revisionAccess.canDisplay('folder', publishedFolderId) ? publishedFolderRecord : undefined;
+  const frozenFolder = frozenFolderRecord && revisionAccess.canDisplay('folder', frozenFolderRecord.revision.revision_id) ? frozenFolderRecord : undefined;
   const folderRefresh = stagedRefresh?.result;
   const focusGeneration = workspace?.focus.generation ?? standaloneFocus;
   const focusPending = workspace?.focus.pending ?? false;
   const workspaceHandlesFocus = workspace !== undefined;
   const refreshRevisionId = folderRefresh?.folder_base?.revision_id ?? folderRefresh?.base?.revision_id;
-  const refreshRevoked = refreshRevisionId !== undefined && revisionAccess.revoked.has(refreshRevisionId);
-  const refreshMissing = refreshRevisionId !== undefined && revisionAccess.unavailable.has(refreshRevisionId);
+  const refreshKind = folderRefresh?.folder_base ? 'folder' : 'csv';
+  const refreshRevoked = refreshRevisionId !== undefined && revisionAccess.withheldStatus(refreshKind, refreshRevisionId) === 'revoked';
+  const refreshMissing = refreshRevisionId !== undefined && revisionAccess.withheldStatus(refreshKind, refreshRevisionId) === 'unavailable';
   const refreshNeedsConfirmation = stagedRefresh !== undefined && stagedRefresh.focusGeneration !== focusGeneration;
   const refreshVisible = !focusPending && !refreshNeedsConfirmation && refreshRevisionId !== undefined
-    && revisionAccess.canDisplay(refreshRevisionId);
-  const refreshKind = folderRefresh?.folder_base ? 'folder' : 'csv';
+    && revisionAccess.canDisplay(refreshKind, refreshRevisionId);
   const { verify } = revisionAccess;
   useWatchPublishedRevision(lostAccess ? undefined : publishedId, 'csv', verify, workspace);
   useWatchPublishedRevision(folderAccessLost ? undefined : publishedFolderId, 'folder', verify, undefined);
   useWatchPublishedRevision(
     refreshRevoked || (refreshNeedsConfirmation && !refreshMissing)
-      || refreshRevisionId === publishedId || refreshRevisionId === publishedFolderId ? undefined : refreshRevisionId,
+      || refreshRevisionId === (refreshKind === 'folder' ? publishedFolderId : publishedId) ? undefined : refreshRevisionId,
     refreshKind, verify, refreshKind === 'folder' ? undefined : workspace,
   );
 
@@ -366,12 +366,12 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
   useEffect(() => {
     if (!refreshNeedsConfirmation || !refreshRevisionId || focusPending || refreshRevoked || refreshMissing) return;
     const controller = new AbortController();
-    void verify(refreshKind, refreshRevisionId, controller.signal).then(status => {
+    void verify(refreshKind, refreshRevisionId, { signal: controller.signal, fresh: true }).then(status => {
       if (controller.signal.aborted) return;
       if (status === 'available') {
         setPublicationFailure(undefined);
         setFolderRefresh(current => current && current.result === folderRefresh ? { ...current, focusGeneration } : current);
-      } else if (status === undefined) {
+      } else if (status === 'unconfirmed') {
         setPublicationFailure({ message: message('The folder preview could not be verified for this revision.') });
       }
     });
@@ -566,7 +566,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       ...(!raw && sourceHash ? { expected_sha256: sourceHash } : {}),
     };
     await runRequest('preview', id => previewImport(input, id), output => {
-      if (published && output.sha256 === published.source_sha256 && !revisionAccess.canDisplay(published.revision_id)) return;
+      if (published && output.sha256 === published.source_sha256 && !revisionAccess.canDisplay('csv', published.revision_id)) return;
       setLoadedSourceHash(undefined);
       if (savedDraft && savedDraft.sha256 !== output.sha256) setApproved(undefined);
       setInspection({ output, draft, mapping, rowLimit, raw });
@@ -619,7 +619,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       version: 1, folder_id: catalog.folder_id, file_id: file.file_id,
       expected_sha256: publishable.sha256, review_revision: publishable.record.review_revision,
     }, id), reply => {
-      if (!revisionAccess.canDisplay(reply.revision.revision_id)) {
+      if (!revisionAccess.canDisplay('csv', reply.revision.revision_id)) {
         setPublicationNotice(message('Access removed for this published revision.'));
         return;
       }
@@ -636,8 +636,9 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     await runRequest('refresh', id => previewLocalFolderRefresh({
       version: 1, folder_id: catalog.folder_id, revision_id: revisionId,
     }, id), (reply, requestId) => {
-      if (!revisionAccess.canDisplay(revisionId)) {
-        const accessMessage = revisionAccess.revoked.has(revisionId)
+      const kind = reply.folder_base ? 'folder' : 'csv';
+      if (!revisionAccess.canDisplay(kind, revisionId)) {
+        const accessMessage = revisionAccess.withheldStatus(kind, revisionId) === 'revoked'
           ? message('Access removed for this published revision.')
           : message('This frozen revision is unavailable in the current profile.');
         setPublicationFailure({ message: accessMessage });
@@ -657,7 +658,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     await runRequest('prepare-folder', id => prepareLocalFolderPublication({
       version: 1, folder_id: catalog.folder_id, review_id: reviewId, ...choices,
     }, id), review => {
-      if (!revisionAccess.canDisplay(refreshRevisionId)) return;
+      if (!revisionAccess.canDisplay(refreshKind, refreshRevisionId)) return;
       if (review.review_id !== reviewId || review.parent_revision_id !== refreshRevisionId || !/^[a-f0-9]{64}$/.test(review.candidate_sha256)) {
         setPublicationFailure({ message: message('The reviewed publication reply could not be verified.') });
         return;
@@ -691,7 +692,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
         return;
       }
       setFolderRefresh(undefined);
-      if (!revisionAccess.canDisplay(revision.revision_id)) {
+      if (!revisionAccess.canDisplay('folder', revision.revision_id)) {
         setPublicationNotice(message('Access removed for this published folder revision.'));
         return;
       }
@@ -704,14 +705,14 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
   async function openFrozenFolder() {
     if (!publishedFolder) return;
     const revisionId = publishedFolder.revision_id;
-    const reading = revisionAccess.beginRead(revisionId);
+    const reading = revisionAccess.beginRead('folder', revisionId);
     const controller = new AbortController();
     await runRequest('read-folder', async id => {
       try {
         return await readLocalFolderRevision({ version: 1, revision_id: revisionId }, id, controller.signal);
       } catch (error) {
         if (!controller.signal.aborted && reading() && displayAccessDenied(error)) {
-          revisionAccess.withhold(revisionId);
+          revisionAccess.withhold('folder', revisionId);
           void verify('folder', revisionId);
         }
         throw error;
@@ -737,14 +738,14 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
         setPublicationFailure({ message: message('The folder access removal reply could not be verified.') });
         return;
       }
-      revisionAccess.revoke(publishedFolder.revision_id);
+      revisionAccess.revoke('folder', publishedFolder.revision_id);
     });
   }
 
   async function openFrozenChart() {
     if (!published) return;
     const revisionId = published.revision_id;
-    const reading = revisionAccess.beginRead(revisionId);
+    const reading = revisionAccess.beginRead('csv', revisionId);
     const controller = new AbortController();
     await runRequest('read', async id => {
       try {
@@ -752,7 +753,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
           : await readLocalImportRevision({ version: 1, revision_id: revisionId }, id, controller.signal);
       } catch (error) {
         if (!controller.signal.aborted && reading() && displayAccessDenied(error)) {
-          revisionAccess.withhold(revisionId);
+          revisionAccess.withhold('csv', revisionId);
           void verify('csv', revisionId);
           workspace?.refreshPublishedAccess(revisionId);
         }
@@ -779,7 +780,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
         setPublicationFailure({ message: message('The access removal reply could not be verified.') });
         return;
       }
-      revisionAccess.revoke(published.revision_id);
+      revisionAccess.revoke('csv', published.revision_id);
       setPublicationNotice(message('Access removed for this published revision.'));
       workspace?.reload();
     });

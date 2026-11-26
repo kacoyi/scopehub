@@ -409,6 +409,7 @@
   "Unable to inspect the original CSV row.": "无法查看原始 CSV 行。",
   "Unable to load a reviewed mapping.": "无法加载已审核的映射。",
   "Unable to open the frozen chart.": "无法打开冻结图表。",
+  "Unable to verify access to this published revision. Try opening it again.": "无法确认此已发布修订版本的访问权限。请重新打开。",
   "Unable to open the frozen folder revision.": "无法打开冻结的文件夹修订版本。",
   "Unable to prepare the folder publication.": "无法准备发布文件夹。",
   "Unable to preview this CSV file.": "无法预览此 CSV 文件。",

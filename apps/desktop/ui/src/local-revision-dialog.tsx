@@ -1,4 +1,4 @@
-import { waitForReply, withReplyDeadline } from './reply-deadline';
+import { withReplyDeadline } from './reply-deadline';
 import { useEffect, useId, useRef, useState } from 'react';
 import type { ListLocalFolderRevisionsOutput, ListLocalImportRevisionsOutput, ReadLocalFolderRevisionOutput } from '../../../../contracts/generated/protocol';
 import { formatNumber, message, plural, t } from './i18n';
@@ -8,7 +8,7 @@ import {
 } from './local-import-transport';
 import { formatSourceBarValue, FrozenFolderChart, FrozenLocalChart } from './local-preview-chart';
 import { openAuthenticatedFrozenChart, UnavailableSharedSelection, type FrozenChartResult } from './frozen-evidence';
-import { displayAccessDenied, useWatchPublishedRevision, type PublishedRevisionAccess, type PublishedRevisionKind } from './published-revision-access';
+import { displayAccessDenied, useWatchPublishedRevision, type PublishedRevisionAccess, type PublishedRevisionKind, type PublishedRevisionStatus } from './published-revision-access';
 import { type LocalWorkspace, WorkspaceSourceError } from './use-local-workspace';
 
 export function RevisionAccessActions({ disabled, folder = false, onRevoke }: { disabled: boolean; folder?: boolean; onRevoke: () => void }) {
@@ -41,6 +41,16 @@ function failureMessage(error: unknown, fallback: string) {
     return message('The access removal reply could not be verified.');
   }
   return localImportErrorMessage(error) ?? message(fallback);
+}
+
+type AccessFailure = Exclude<PublishedRevisionStatus, 'available'>;
+
+function accessFailure(status: AccessFailure) {
+  switch (status) {
+    case 'unavailable': return message('This frozen chart is unavailable in the current profile.');
+    case 'revoked': return message('This profile does not have permission to display this revision.');
+    case 'unconfirmed': return message('Unable to verify access to this published revision. Try opening it again.');
+  }
 }
 
 type LibraryPage =
@@ -77,7 +87,7 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
   const library = listing?.selection === selection ? listing.page : { status: 'loading' } as const;
   const [draft, setDraft] = useState('');
   const [frozen, setFrozen] = useState<OpenedRevision>();
-  const [opening, setOpening] = useState<{ id: string; kind: PublishedRevisionKind }>();
+  const [opening, setOpening] = useState<{ id: string; kind: PublishedRevisionKind; checkingAccess: boolean }>();
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<ReturnType<typeof failureMessage>>();
   const [notice, setNotice] = useState<ReturnType<typeof message>>();
@@ -85,18 +95,19 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
   const validId = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(revisionId);
   const watchedId = opening?.id ?? frozen?.result.revision.revision_id;
   const watchedKind = opening?.kind ?? frozen?.kind;
-  const lostAccess = watchedId !== undefined && revisionAccess.revoked.has(watchedId);
-  const visibleFrozen = frozen && revisionAccess.canDisplay(frozen.result.revision.revision_id) ? frozen : undefined;
+  const lostAccess = watchedId !== undefined && watchedKind !== undefined
+    && revisionAccess.withheldStatus(watchedKind, watchedId) === 'revoked';
+  const visibleFrozen = frozen && revisionAccess.canDisplay(frozen.kind, frozen.result.revision.revision_id) ? frozen : undefined;
   const visibleRevisions = library.status === 'ready'
-    ? library.result.revisions.filter(entry => revisionAccess.canDisplay(entry.revision_id)) : [];
+    ? library.result.revisions.filter(entry => revisionAccess.canDisplay(kind, entry.revision_id)) : [];
   useWatchPublishedRevision(lostAccess ? undefined : watchedId, watchedKind ?? 'csv', revisionAccess.verify,
     watchedKind === 'folder' ? undefined : workspace, 'checked-by-reader');
 
   useEffect(() => {
-    if (!lostAccess) return;
+    if (!lostAccess || opening?.checkingAccess) return;
     setFrozen(undefined);
-    setFailure(message('This frozen chart is unavailable in the current profile.'));
-  }, [lostAccess]);
+    setFailure(previous => previous ?? accessFailure('unavailable'));
+  }, [lostAccess, opening?.checkingAccess]);
   const listLoading = nativeLocalImport && library.status === 'loading';
   const workspacePending = Boolean(workspace?.pending);
   const working = busy || listLoading || workspacePending;
@@ -185,21 +196,36 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
     if (active.current || !signal || signal.aborted) return;
     setFrozen(undefined);
     await request(async () => {
-      setOpening({ id, kind });
-      const denied = { code: workspace && kind === 'csv' ? 'SNAPSHOT_UNAVAILABLE' : 'PERMISSION_DENIED' };
+      const checkingAccess = !revisionAccess.canDisplay(kind, id);
+      setOpening({ id, kind, checkingAccess });
       let reading: (() => boolean) | undefined;
+      const showAccessFailure = (status: AccessFailure) => {
+        if (fromLibrary) libraryTitle.current?.focus();
+        setFailure(() => accessFailure(status));
+      };
       try {
-        if (!revisionAccess.canDisplay(id)) {
-          await waitForReply(signal, () => revisionAccess.verify(kind, id));
+        if (checkingAccess) {
+          const status = await revisionAccess.verify(kind, id, { signal });
+          signal.throwIfAborted();
+          const current = revisionAccess.withheldStatus(kind, id);
+          const failure = status === 'available' ? current : status;
+          if (failure) {
+            showAccessFailure(current === 'revoked' ? current : failure);
+            return;
+          }
+          setOpening({ id, kind, checkingAccess: false });
         }
-        if (!revisionAccess.canDisplay(id)) throw denied;
-        reading = revisionAccess.beginRead(id);
+        reading = revisionAccess.beginRead(kind, id);
         const opened: OpenedRevision = kind === 'folder'
           ? { kind, result: await readLocalFolderRevision({ version: 1, revision_id: id }, crypto.randomUUID(), signal) }
           : { kind, result: workspace ? await openAuthenticatedFrozenChart(id, crypto.randomUUID(), signal)
             : await readLocalImportRevision({ version: 1, revision_id: id }, crypto.randomUUID(), signal) };
         if (signal.aborted) return;
-        if (!reading()) throw denied;
+        if (!reading()) {
+          const revoked = revisionAccess.withheldStatus(kind, id) === 'revoked';
+          showAccessFailure(revoked && !(workspace && kind === 'csv') ? 'revoked' : 'unavailable');
+          return;
+        }
         const { result } = opened;
         if (result.revision.revision_id !== id || result.bars.length !== result.revision.bar_count
           || (opened.kind === 'folder' && opened.result.files.length !== opened.result.revision.source_count)) {
@@ -211,8 +237,8 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
         if (displayAccessDenied(error)) {
           if (fromLibrary) libraryTitle.current?.focus();
           if (reading?.()) {
-            revisionAccess.withhold(id);
-            void revisionAccess.verify(kind, id);
+            revisionAccess.withhold(kind, id);
+            void revisionAccess.verify(kind, id, { signal });
             if (kind === 'csv') workspace?.refreshPublishedAccess(id);
           }
         }
@@ -236,7 +262,7 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
       setFrozen(undefined);
       removeFromLibrary(revision_id);
       setNotice(message('Access removed for this published revision.'));
-      revisionAccess.revoke(revision_id);
+      revisionAccess.revoke(visibleFrozen.kind, revision_id);
       workspace?.reload();
     }, 'Unable to remove access to this revision.');
   }

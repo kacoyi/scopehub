@@ -3595,6 +3595,309 @@ for (const kind of ['CSV', 'folder']) {
   }
 }
 
+async function withPublishedAccessFixture(page, testInfo, isFolder, run) {
+  const binary = process.env.SCOPEHUB_LOCAL_IMPORT_BRIDGE;
+  base.skip(!binary, 'Set SCOPEHUB_LOCAL_IMPORT_BRIDGE to the portable Rust test example.');
+  const root = await mkdtemp(join(await realpath(tmpdir()), 'scopehub-publication-access-'));
+  const profile = join(root, 'profile');
+  const folder = join(root, 'source');
+  const path = 'daily.csv';
+  let bridge;
+  const calls = [];
+  const observations = [];
+  const publication = {};
+  let phase = 'initial';
+  let deliver = (_, reply) => reply;
+  try {
+    await mkdir(profile, { mode: 0o700 });
+    await mkdir(folder, { mode: 0o700 });
+    const csv = [equity.header, ...equity.rows].map(row => row.join(',')).join('\n') + '\n';
+    await writeFile(join(folder, path), csv);
+    bridge = startLocalImportBridge(binary, profile, folder);
+    const market = async (operation, input) => {
+      const reply = await bridge.request('execute_operation', {
+        operation: `market.${operation}`, payload: { version: 1, ...input }, requestId: randomUUID(),
+      });
+      expect(reply.error, JSON.stringify(reply.error)).toBeUndefined();
+      return reply.result;
+    };
+    const picked = (await bridge.request('choose_local_csv_folder', {})).result;
+    const { folder_id } = picked;
+    const source = {
+      folder_id, file_id: picked.files[0].file_id,
+      expected_sha256: createHash('sha256').update(csv).digest('hex'),
+    };
+    const mapping = {
+      version: 1, revision: 'publication-access', encoding: 'utf-8', delimiter: ',', record_kind: 'native_ohlcv',
+      volume_semantics: 'per_bar', timestamp_convention: 'bar_start', ...equity.settings, columns: equity.columns,
+    };
+    const input = { ...source, mapping, row_limit: 2 };
+    await market('previewLocalImport', input);
+    const { record } = await market('saveLocalImportMapping', input);
+    const { revision: csvRevision } = await market('publishLocalImport', { ...source, review_revision: record.review_revision });
+    const staged = await market('previewLocalFolderRefresh', { folder_id, revision_id: csvRevision.revision_id });
+    const review = { folder_id, review_id: staged.review_id };
+    const prepared = await market('prepareLocalFolderPublication', { ...review, conflicts: [], withdraw_bars: [], withdraw_sources: [] });
+    const { revision: folderRevision } = await market('publishLocalFolderRefresh', {
+      ...review, candidate_sha256: prepared.candidate_sha256, idempotency_key: randomUUID(),
+    });
+    const id = (isFolder ? folderRevision : csvRevision).revision_id;
+    Object.assign(publication, { id, csvRevision, folderRevision, source });
+    expect(csvRevision.revision_id).not.toBe(folderRevision.revision_id);
+
+    await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
+      const { payload, operation } = args;
+      const statusKind = payload.type === 'frozen_chart_status' ? 'CSV'
+        : operation === 'market.readLocalFolderRevision' && payload.include_details === false ? 'folder' : undefined;
+      const call = { phase, operation: operation ?? payload.type, id: payload.revision_id, statusKind,
+        requestId: args.requestId ?? payload.request_id };
+      calls.push(call);
+      const reply = await bridge.request(command, args);
+      if (call.operation?.match(/listLocal(?:Import|Folder)Revisions$/)) {
+        call.listed = reply.result?.revisions.map(revision => revision.revision_id);
+      }
+      if (reply.error || statusKind || call.id === id) {
+        call.native = { error: reply.error?.code, available: reply.result?.available, revoked: reply.result?.revoked,
+          revision: reply.result?.revision?.revision_id ?? reply.result?.revision_id };
+      }
+      const delivered = await deliver(call, reply);
+      if (delivered !== reply) call.substituted = delivered;
+      call.delivered = true;
+      return delivered;
+    });
+    await page.addInitScript(() => {
+      window.isTauri = true;
+      window.__TAURI_INTERNALS__ = {
+        async invoke(command, args) {
+          const reply = await window.testNativeInvoke(command, args);
+          if (reply.error) throw reply.error;
+          return reply.result;
+        },
+      };
+    });
+    const clock = new Date('2026-04-16T08:00:00Z');
+    await page.clock.install({ time: clock });
+    await page.clock.pauseAt(new Date(clock.getTime() + 1000));
+    await page.goto('/');
+
+    const kind = isFolder ? 'folder' : 'CSV';
+    const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+    const inputId = dialog.getByLabel('Revision ID');
+    const entry = dialog.getByRole('button', { name: new RegExp(isFolder ? 'Open folder revision from daily\\.csv' : 'Open daily\\.csv') });
+    const chart = dialog.getByRole('region', { name: `Frozen local ${kind} chart` });
+    const provenance = dialog.getByRole('region', { name: `Published ${isFolder ? 'folder ' : ''}source provenance` });
+    const rows = dialog.getByRole('table', { name: `Published ${isFolder ? 'folder ' : ''}source rows` });
+    const original = dialog.getByRole('region', { name: 'Original CSV fields' });
+    const status = dialog.getByRole('alert');
+    const observe = async label => {
+      const value = { label, entry: await entry.count(), chart: await chart.count(), provenance: await provenance.count(),
+        rows: await rows.count(), original: await original.count(), explanation: await status.allTextContents() };
+      observations.push(value);
+      return value;
+    };
+    const hidden = async label => {
+      for (const item of [entry, chart, provenance, rows, original]) await expect(item).toHaveCount(0);
+      await observe(label);
+    };
+    const click = name => control(dialog, name).click();
+    const chooseKind = folder => click(folder ? 'Folder revisions' : 'Single-file revisions');
+    const openLibrary = async folder => {
+      await control(page, 'Open published CSV').last().click();
+      if (folder) await chooseKind(true);
+      await expect(inputId).toHaveValue('');
+    };
+    const openId = folder => click(folder ? 'Open frozen folder revision' : 'Open frozen chart');
+    const inspect = () => click(isFolder ? `Inspect record 2 from ${path}` : 'Inspect record 2');
+    const showRow = async () => {
+      await expect(chart.getByLabel('Selected bar')).toContainText('C 40');
+      await expect(provenance).toContainText(id);
+      await dialog.getByText('Source rows (2)', { exact: true }).click();
+      await inspect();
+      await expect(original.getByRole('row', { name: 'Native close 40', exact: true })).toBeVisible();
+    };
+    const correctStatus = () => calls.filter(call => call.id === id && call.statusKind === kind);
+    const chartCalls = () => calls.filter(call => call.id === id && !call.statusKind
+      && call.operation === (isFolder ? 'market.readLocalFolderRevision' : 'market.readLocalImportRevision'));
+    const temporary = isFolder ? { error: { code: 'SNAPSHOT_UNAVAILABLE' } } : { result: { available: false } };
+    await run({ calls, phase: value => { phase = value; }, deliver: intercept => { deliver = intercept; },
+      id, kind, market, inputId, entry, chart, status, observe, hidden, click, chooseKind, openLibrary, openId,
+      inspect, showRow, correctStatus, chartCalls, temporary });
+  } finally {
+    await bridge?.close();
+    await rm(root, { recursive: true, force: true });
+    await testInfo.attach('published-revision-access', {
+      body: JSON.stringify({ ...publication, calls, observations }, null, 2), contentType: 'application/json',
+    });
+  }
+}
+
+for (const isFolder of [false, true]) {
+  const kind = isFolder ? 'folder' : 'CSV';
+  const otherKind = isFolder ? 'CSV' : 'folder';
+
+  base(`${kind} revision discovery resumes after a pending ${otherKind} lookup`, {
+    tag: '@profile-folder-refresh',
+  }, async ({ page }, testInfo) => withPublishedAccessFixture(page, testInfo, isFolder, async fixture => {
+    const { id, calls, inputId, entry, chart, hidden, click, chooseKind, openLibrary, openId, inspect, showRow,
+      chartCalls, correctStatus, temporary, phase, deliver } = fixture;
+    const releaseOther = Promise.withResolvers();
+    const releaseCorrect = Promise.withResolvers();
+    const matchingLists = () => calls.filter(call => ['reopen', 'refresh 1', 'refresh 2'].includes(call.phase)
+      && call.operation === (isFolder ? 'market.listLocalFolderRevisions' : 'market.listLocalImportRevisions') && call.delivered);
+    const wrongStatus = () => calls.find(call => call.id === id && call.statusKind === otherKind);
+    const recoveryStatus = () => correctStatus().filter(call => ['reopen', 'refresh 1', 'refresh 2'].includes(call.phase));
+    deliver(async (call, reply) => {
+      if (call.phase === 'source row interrupted') {
+        if (call.operation.endsWith('SourceRow')) return { error: { code: 'SNAPSHOT_UNAVAILABLE' } };
+        if (call.statusKind === kind) return temporary;
+      }
+      if (call.statusKind === otherKind) await releaseOther.promise;
+      if (recoveryStatus().includes(call)) await releaseCorrect.promise;
+      return reply;
+    });
+    try {
+      await openLibrary(isFolder);
+      await entry.click();
+      await showRow();
+      phase('source row interrupted');
+      await inspect();
+      await hidden('original row interrupted');
+      await expect.poll(() => correctStatus().map(call => call.delivered)).toEqual([true]);
+
+      phase('other library lookup');
+      await chooseKind(!isFolder);
+      await inputId.fill(id);
+      await openId(!isFolder);
+      await expect.poll(() => wrongStatus()?.native).toBeDefined();
+      expect(wrongStatus().native).toMatchObject(isFolder ? { available: false } : { error: 'SNAPSHOT_UNAVAILABLE' });
+      expect(wrongStatus().delivered).toBeUndefined();
+      await click('Close');
+
+      phase('reopen');
+      await openLibrary(isFolder);
+      await expect.poll(() => matchingLists().length).toBe(1);
+      for (const number of [1, 2]) {
+        phase(`refresh ${number}`);
+        await click('Refresh revisions');
+        await expect.poll(() => matchingLists().length).toBe(number + 1);
+        await expect(inputId).toHaveValue('');
+        await hidden(`refresh ${number} while the other lookup is pending`);
+      }
+      expect(matchingLists().map(call => [call.phase, call.listed])).toEqual([
+        ['reopen', [id]], ['refresh 1', [id]], ['refresh 2', [id]],
+      ]);
+      expect(recoveryStatus()).toEqual([]);
+      expect(chartCalls()).toHaveLength(1);
+
+      releaseOther.resolve();
+      await expect.poll(() => recoveryStatus().map(call => call.id), {
+        timeout: 2500, message: 'The current library must check its own revision after the preceding lookup settles',
+      }).toEqual([id]);
+      expect(wrongStatus().delivered).toBe(true);
+      await hidden('matching status is pending');
+      releaseCorrect.resolve();
+      await expect(entry).toBeVisible();
+      await expect(chart).toHaveCount(0);
+      expect(chartCalls()).toHaveLength(1);
+      expect(matchingLists()).toHaveLength(3);
+      expect(recoveryStatus()).toHaveLength(1);
+      phase('open recovered chart');
+      await entry.click();
+      await showRow();
+      expect(chartCalls()).toHaveLength(2);
+      await fixture.observe('recovered chart and original row');
+    } finally {
+      releaseOther.resolve();
+      releaseCorrect.resolve();
+    }
+  }));
+
+  base(`${kind} explicit ID distinguishes a temporary status from confirmed revocation without a workspace`, {
+    tag: '@profile-folder-refresh',
+  }, async ({ page }, testInfo) => withPublishedAccessFixture(page, testInfo, isFolder, async fixture => {
+    const { id, calls, inputId, entry, status, hidden, openLibrary, openId, inspect, showRow, chartCalls,
+      correctStatus, temporary, phase, deliver, market, observe } = fixture;
+    const retry = Promise.withResolvers();
+    const revoked = Promise.withResolvers();
+    deliver(async (call, reply) => {
+      if (['source row interrupted', 'native revocation'].includes(call.phase) && call.operation.endsWith('SourceRow')) {
+        // Deliver only the interruption to the browser. The status below must
+        // independently establish the genuine withdrawal on the second attempt.
+        if (call.phase === 'native revocation') expect(reply.error?.code).toBe('PERMISSION_DENIED');
+        return { error: { code: 'SNAPSHOT_UNAVAILABLE' } };
+      }
+      if (call.statusKind && ['source row interrupted', 'explicit temporary result'].includes(call.phase)) return temporary;
+      if (call.statusKind && call.phase === 'explicit unconfirmed result') return { error: { code: 'INTERNAL_ERROR' } };
+      if (call.statusKind && call.phase === 'explicit recovery') await retry.promise;
+      if (call.statusKind && call.phase === 'native revocation') await revoked.promise;
+      return reply;
+    });
+    try {
+      await openLibrary(isFolder);
+      await inputId.fill(id);
+      await entry.click();
+      await showRow();
+      phase('source row interrupted');
+      await inspect();
+      await hidden('original row interrupted');
+      await expect.poll(() => correctStatus().map(call => call.delivered)).toEqual([true]);
+
+      phase('explicit temporary result');
+      await openId(isFolder);
+      await expect(status).toBeVisible();
+      await hidden('explicit temporary status with explanation');
+      await expect.soft(status).toHaveText('This frozen chart is unavailable in the current profile.', { timeout: 2500 });
+      expect(chartCalls()).toHaveLength(1);
+
+      phase('explicit unconfirmed result');
+      await openId(isFolder);
+      await expect(status).toBeVisible();
+      await hidden('explicit unconfirmed status with explanation');
+      await expect.soft(status).toHaveText('Unable to verify access to this published revision. Try opening it again.', { timeout: 2500 });
+      expect(chartCalls()).toHaveLength(1);
+
+      phase('explicit recovery');
+      await openId(isFolder);
+      await expect.poll(() => correctStatus().map(call => call.phase)).toEqual([
+        'source row interrupted', 'explicit temporary result', 'explicit unconfirmed result', 'explicit recovery',
+      ]);
+      await hidden('waiting for the explicit status reply');
+      await expect(status).toHaveCount(0);
+      retry.resolve();
+      await showRow();
+      await expect(status).toHaveCount(0);
+      expect(chartCalls()).toHaveLength(2);
+      await observe('explicit recovery restored the chart and original row');
+
+      phase('native revocation');
+      await market(isFolder ? 'revokeLocalFolderRevision' : 'revokeLocalImportRevision', { revision_id: id });
+      await inspect();
+      await hidden('actual revocation hides the chart and original row');
+      await expect.poll(() => correctStatus().filter(call => call.phase === 'native revocation').map(call => call.native))
+        .toMatchObject([isFolder ? { error: 'PERMISSION_DENIED' } : { available: false, revoked: true }]);
+      phase('explicit while revocation is pending');
+      await openId(isFolder);
+      await hidden('explicit retry before the revoked status arrives');
+      await expect(status).toHaveCount(0);
+      revoked.resolve();
+      await expect(status).toHaveText('This profile does not have permission to display this revision.');
+      await hidden('explicit denial after the revoked status arrives');
+      phase('explicit after confirmed revocation');
+      await openId(isFolder);
+      await expect(status).toHaveText('This profile does not have permission to display this revision.');
+      await hidden('explicit denial after confirmed revocation');
+      expect(correctStatus().map(call => call.phase)).toEqual([
+        'source row interrupted', 'explicit temporary result', 'explicit unconfirmed result', 'explicit recovery', 'native revocation',
+      ]);
+      expect(chartCalls()).toHaveLength(2);
+      expect(calls.some(call => ['frozen_chart', 'snapshot'].includes(call.operation))).toBe(false);
+    } finally {
+      retry.resolve();
+      revoked.resolve();
+    }
+  }));
+}
+
 base('a silent folder status releases the published drawer and cannot reopen it late', async ({ page }) => {
   const id = randomUUID();
   const statusEntered = Promise.withResolvers();

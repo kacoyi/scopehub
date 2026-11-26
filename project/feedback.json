@@ -7917,6 +7917,36 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "cross-library-status-lookup-blocks-recovered-revision",
+      "source": "Independent Astra Standard t130 requested changes on 359e33231892432813493958b580ee25aaf94a5f. Decision: contracts/reviews/task-decisions/M2-039.json#/events/7. Original: archives/observations/repo-hygiene-20261125/independent-final-m2-039-359e3323/final-response.txt (SHA-256 f03fc29c22d6dfc75591c087bea0f04aafe84e429d9e7eff44031d7b83e341bf). Original event SHA-256 14167c8ad137d07f4bd149447c607a33f75f61bb7b0c1f2503581766f39797f3.",
+      "observation": "The independent React replay opened a listed revision with the ID blank and withheld it after a source-row SNAPSHOT_UNAVAILABLE. With an explicit status lookup for the same ID pending in the other library, reopening the correct library and refreshing twice returned the target on all three pages without issuing a matching status read. A further refresh after the pending lookup returned missing finally issued the correct read and recovered its entry. The reviewer replayed both CSV then folder and folder then CSV.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "local-folder-refresh-preview"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "published-revision-retry-reports-missing-as-denied",
+      "source": "Independent Astra Standard t12z requested changes on 359e33231892432813493958b580ee25aaf94a5f. Decision: contracts/reviews/task-decisions/M2-035.json#/events/8. Original: archives/observations/repo-hygiene-20261125/independent-final-m2-035-359e3323/final-response.txt (SHA-256 8567061ee3ed4f2b05d8148782d2f6200f706f394872ae312b77d6028dc83faa). Original event SHA-256 550092325820651fe8d209023f89340bbf84f487fded230cc35aad6ebf3791ca.",
+      "observation": "During the independent React replay of explicit-ID retry after a source-row interruption, a folder status reply of SNAPSHOT_UNAVAILABLE and a CSV status reply of available false without revocation each produced the confirmed permission-denied alert. The CSV dialog was opened without a workspace. Private content stayed hidden, and a later valid status allowed the same revision to reopen.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "local-folder-refresh-preview"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

@@ -92,7 +92,7 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
   const state = workspace.snapshot;
   const canDisplay = access?.canDisplay;
   const verify = access?.verify;
-  const revoked = access?.revoked.has(snapshot.dataset_id);
+  const revoked = access?.withheldStatus('csv', snapshot.dataset_id) === 'revoked';
 
   useLayoutEffect(() => {
     setLayers([]);
@@ -102,7 +102,7 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
     const abort = new AbortController();
     const signal = AbortSignal.any([abort.signal, AbortSignal.timeout(15_000)]);
     void readLayers(snapshot, signal).then(({ layers: restored, undo: hint }) => {
-      if (signal.aborted || canDisplay && !canDisplay(snapshot.dataset_id)) return;
+      if (signal.aborted || canDisplay && !canDisplay('csv', snapshot.dataset_id)) return;
       setLayers(restored);
       setUndo(hint);
       showAccepted(restored.flatMap(({ document }) => document && matchesChart(document.snapshot, snapshot)
