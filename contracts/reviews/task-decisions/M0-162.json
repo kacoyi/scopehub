@@ -97,6 +97,26 @@
       "requested_at": "2026-11-26T13:42:13.808301+00:00",
       "request_id": "21f3d81b60516c4df9656e54e94a1de024d8359ebc3b66ebed1352e2edfe4218",
       "evidence_sha256": "af466a94cec3d24ed980b430cefe81808a1c13fca23868b248ee51a54b87cd9f"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d777f43b81fb116ceccad05a6836eee63259902d",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-162 d777f43b81fb116ceccad05a6836eee63259902d",
+      "scope": "CHANGES_REQUESTED M0-162 d777f43b81fb116ceccad05a6836eee63259902d",
+      "observation": "In my public-entry replay, releasing the lock after the ten-second deadline left the runner paused even when the collector verified the exact archived return.",
+      "reviewer": "Independent Astra Standard (t17q)",
+      "original_sha256": "83f407765fbebe12665a77bc99ac9028007cf9c364866b80653f8f208bd1a015",
+      "response_id": "c5258201ef093b5ed9d99588e569bc161c9720798440d867dbb3123d94159c68",
+      "response_sha256": "50a19994966ea0b88ad327238b7275f3707d7b2c94127762bdaab9b7d1a5fbbe",
+      "legacy_response_sha256": "9847d85144557ce53f59c802e00fe26c4a46b5955c877aea4cc3cf2c92c2d08c",
+      "observation_body_sha256": "06e2559ded2e2c0ab4c974cc593b2af5e53e0dfa25d39e7dec42a10d76e0b1c8",
+      "event": {
+        "id": "msg_06c0f1383fbfde62016b08384a509887d2b249b06a31c95bd0",
+        "timestamp": "2026-11-26T13:47:13.644Z"
+      },
+      "supersedes": "21f3d81b60516c4df9656e54e94a1de024d8359ebc3b66ebed1352e2edfe4218",
+      "evidence_sha256": "dfe2d902128bcbbb9ba3e10a7cf032bd1ef4dc03d715f932a2226a88e6044f4a"
     }
   ]
 }
