@@ -213,6 +213,26 @@
       "requested_at": "2026-11-26T12:29:26.341166+00:00",
       "request_id": "8464cea93f476911741e79d729dac2c5019f4ed9e188203dfb7f3d58a1f74548",
       "evidence_sha256": "e2f29da359b51a89e01f9207789479a88701d0d8a39b9bc4da9cc9b6d7a7ac6f"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "2ba0355110d2610107199475c719eb2874cb6088",
+      "verdict": "approved",
+      "decision": "APPROVE M0-139 2ba0355110d2610107199475c719eb2874cb6088",
+      "scope": "APPROVE M0-139 2ba0355110d2610107199475c719eb2874cb6088",
+      "observation": "The public M0-139 importer reopened the original receipt for Windows run 45680128413, rejected an attempt-two claim backed by both attempt-one logs, and rejected separate substitutions of the Python and project-state log references from another run of the same pull request.",
+      "reviewer": "Independent Astra Standard (t15t)",
+      "original_sha256": "b2c021fd1874d34fbac51494a3840c41c9cd8c9ca2501edd6bef1128a1439fa0",
+      "response_id": "8e91c08ffd324bc50b5c09f2d67556bf8282ef03acedacdd45ea498755ae4c21",
+      "response_sha256": "4bb258cf0ab1bb70f0de0eeb3e7304f4a403dc55d7e16d5375a7811797941224",
+      "legacy_response_sha256": "dc2da848e5185e5fd5cd5c6a363d8692445b36ab2c730f13fcefce5a4f18ceda",
+      "observation_body_sha256": "f32890a86afc1ce764b665ce79569f8867ddb539959a306bdf487628376c06b7",
+      "event": {
+        "id": "msg_04a2412c925e4ba3016b082dfe497487d2aa0fce560e4a1a3b",
+        "timestamp": "2026-11-26T13:03:19.329Z"
+      },
+      "supersedes": "8464cea93f476911741e79d729dac2c5019f4ed9e188203dfb7f3d58a1f74548",
+      "evidence_sha256": "5bde7abcc72be115c56515f26d1cc46cc69a4cf38d6d6fc03ec0b3a62b4175be"
     }
   ]
 }
