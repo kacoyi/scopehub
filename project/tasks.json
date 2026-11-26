@@ -25985,7 +25985,7 @@
           "report_sha256": "febcca8e29fa0d23ecc437b3f99486d62d13c538886a005fe4ecfb50256aa873"
         }
       ],
-      "next_action": "Calibrate the first-row submitted and stored ACEs under the original and protected test writers. Verify the exact candidate with all 24 stored, managed and witness comparisons and the fixed live handoff deadline.",
+      "next_action": "Reconcile the two native baseline observations on the same test-owned fixture recorded in run 45744210597. Then repeat the eligible first-row controls, all 24 ordinary comparisons and the fixed live handoff deadline. Preserve the original two failures and their limits.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
