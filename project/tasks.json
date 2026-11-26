@@ -26594,7 +26594,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Replay the retained source-bound timing rejections through the ordinary and linked budget readers, compare the corrected results, and request independent review of the exact correction. Keep the prior timing evidence and the first scheduled weekly review due on 2026-11-28 distinct.",
+      "next_action": "Compare the retained rejection and exact correction through ordinary, saved, cold and linked-budget reads. Hand the clean correction and required-check outcomes to the coordinator for renewed independent reviews and native verification. The first scheduled weekly review due on 2026-11-28 remains separate.",
       "blocker": null,
       "closure_reason": null,
       "plan": {

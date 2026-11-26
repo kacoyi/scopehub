@@ -826,6 +826,46 @@ class HostedTimingTests(unittest.TestCase):
                 self.assertIsNone(row['job'])
                 self.assertIsNone(row['seconds']['total'])
 
+    def test_duplicate_job_ids_retain_conflicting_producer_roles_within_one_listing(self):
+        *siblings, aggregate = self.split_windows_jobs()
+        aggregate = dict(aggregate, steps=[
+            aggregate['steps'][0], {'name': timing.WINDOWS_RECOVERY_MARKER, 'conclusion': 'success'},
+        ])
+        recovery = hosted_job(36, 'windows', '00:35', '05:05', 'Verify the Windows recovery lane', '02:00', '05:00')
+        recovery['name'] = timing.WINDOWS_PRODUCERS['recovery']
+        browser = next(job for job in siblings if job['name'] == timing.WINDOWS_PRODUCERS['browser'])
+        conflicting_role = dict(recovery, id=browser['id'])
+        run = hosted_run()
+        complete = timing.hosted_timing(run, [*siblings, recovery, aggregate])
+
+        report = split_harness_report(675)
+        report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(complete))), 'checkout_sha': 'a' * 40}
+        platform = timing.report_sample(report)
+        samples = [platform, lane_sample(platform, 'browser'), lane_sample(platform, 'recovery')]
+
+        for case, partial_listings, disputed in (
+            ('separate listings', [[browser], [conflicting_role]], True),
+            ('one listing', [[browser, conflicting_role]], True),
+            ('reverse row order', [[conflicting_role, browser]], True),
+            ('duplicate same role', [[browser, browser]], False),
+            ('unrelated attempt', [[browser, dict(conflicting_role, run_attempt=2)]], False),
+        ):
+            with self.subTest(case=case):
+                partial = [timing.hosted_timing(run, jobs) for jobs in partial_listings]
+                view = timing.timing_view(samples, hosted=[complete, *partial])
+                rows = {row['profile']: row for row in view['samples']}
+                self.assertEqual(765, rows['full']['seconds']['total'])
+                self.assertIsNone(rows['full']['review_exclusion'])
+                self.assertEqual(None if disputed else 1957, rows['full']['seconds']['runner'])
+                self.assertEqual(None if disputed else 30, rows['full']['seconds']['browser_step'])
+                self.assertEqual(None if disputed else 720, rows['ci-windows-browser']['seconds']['total'])
+                self.assertEqual(None if disputed else 305, rows['ci-windows-recovery']['seconds']['total'])
+                self.assertSetEqual(
+                    {timing.WINDOWS_PRODUCERS[lane] for lane in ('browser', 'recovery')} if disputed else set(),
+                    {issue['producer'] for issue in view['input_issues']
+                     if issue['error'] == 'Conflicting Windows producer job observations.'},
+                )
+
     def test_shared_capture_preserves_job_and_checkout_evidence_in_both_orders(self):
         jobs = self.split_windows_jobs()
         run = hosted_run()
@@ -883,7 +923,8 @@ class HostedTimingTests(unittest.TestCase):
                         self.assertEqual(expected_browser, observed['Windows', 'ci-windows-browser']['seconds']['total'])
                     linked_issues = []
                     linked, linked_clocks = timing.linked_capture_inputs(
-                        [shared], {timing.report_key(windows)}, [], linked_issues,
+                        [shared], {timing.report_key(windows)}, timing.RetainedCaptureReads(root / '.reports/timing'),
+                        linked_issues,
                     )
                     self.assertFalse(linked_issues)
                     if extra_samples:
@@ -1014,7 +1055,8 @@ class HostedTimingTests(unittest.TestCase):
             path = retained / 'ci-pull_request-11-1.json'
             paths = timing.retained_attempt_paths([retained], [prior], [])
             self.assertEqual({path}, set(paths))
-            rows, clocks = timing.retained_capture_inputs(paths, {}, [], [], budget=timing.TimingReadBudget())
+            reads = timing.RetainedCaptureReads(retained)
+            rows, clocks = timing.retained_capture_inputs(paths, {}, reads, [], budget=timing.TimingReadBudget())
             portable, = timing.timing_view([prior, *rows], hosted=clocks)['samples']
             self.assertIsNone(portable['seconds']['total'])
             self.assertIsNotNone(portable['review_exclusion'])
@@ -1022,9 +1064,10 @@ class HostedTimingTests(unittest.TestCase):
             budget = timing.TimingReadBudget()
             budget.remaining = 64
             issues = []
-            self.assertEqual(([], []), timing.retained_capture_inputs(paths, {}, [], issues, budget=budget))
+            self.assertEqual(([], []), timing.retained_capture_inputs(paths, {}, reads, issues, budget=budget))
             self.assertIn('combined timing read limit', issues[0]['error'])
-            rows, clocks = timing.retained_capture_inputs(paths, {}, [], [], budget=timing.TimingReadBudget())
+            reads = timing.RetainedCaptureReads(retained)
+            rows, clocks = timing.retained_capture_inputs(paths, {}, reads, [], budget=timing.TimingReadBudget())
             measured, = timing.timing_view(rows, hosted=clocks)['samples']
             self.assertEqual(765, measured['seconds']['total'])
             self.assertIsNone(measured['review_exclusion'])
@@ -2298,6 +2341,140 @@ class RecentTimingTests(unittest.TestCase):
     def write_archive(self, path, samples, clocks):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(timing.json_bytes({'kind': timing.ARCHIVE_KIND, 'samples': samples, 'hosted': clocks}))
+
+    def retained_reader_fixture(self):
+        root = Path(self.enterContext(tempfile.TemporaryDirectory())).resolve()
+        shared = root / 'shared'
+        self.enterContext(patch.object(timing, 'ROOT', root))
+        self.enterContext(patch.object(timing, 'shared_timing_directory', return_value=shared))
+        self.enterContext(patch.object(timing, 'weekly_review', return_value=None))
+        self.enterContext(patch.object(timing, 'command', side_effect=AssertionError('Unexpected hosted request')))
+        project = root / 'project'
+        project.mkdir()
+        (project / 'tasks.json').write_bytes(timing.json_bytes({'tasks': []}))
+        (project / 'feedback.json').write_bytes(timing.json_bytes({'items': []}))
+        run, samples, clock = self.budget_run(11, '13:24')
+        _, controls, control_clock = self.budget_run(10, '09:46', event='push')
+        saved = root / '.reports/timing/earlier-review.json'
+        self.write_archive(saved, [*samples, *controls], [clock, control_clock])
+        capture = shared / 'ci-pull_request-11-1.json'
+        self.write_archive(capture, samples, [clock])
+        return root, capture, saved, run, clock
+
+    def ordinary_timing(self, *args):
+        output = StringIO()
+        with patch.object(sys, 'argv', ['timing.py', *map(str, args)]), redirect_stdout(output):
+            timing.main()
+        return json.loads(output.getvalue())
+
+    def rotate_retained_reader(self, capture):
+        for run_id in range(12, 12 + timing.MAX_RECENT):
+            self.write_archive(capture.with_name(f'ci-pull_request-{run_id}-1.json'), [], [])
+        self.assertNotIn(capture, timing.incremental_timing_paths([capture.parent]))
+
+    def assert_retained_timing(self, view, *, conclusion='success', qualified=True):
+        rows = {row['ci']['run_id']: row for row in view['samples'] if row['platform'] == 'Windows'}
+        sample, control = rows['11'], rows['10']
+        self.assertEqual((586, 566), (control['seconds']['total'], control['seconds']['runner']))
+        self.assertIsNone(control['review_exclusion'])
+        self.assertEqual(conclusion, sample['workflow_conclusion'])
+        self.assertEqual((804, 784) if qualified else (None, None),
+                         (sample['seconds']['total'], sample['seconds']['runner']))
+        self.assertEqual(qualified, sample['review_exclusion'] is None)
+
+    def assert_retained_budget(self, root, qualified):
+        budget = timing.offline_budget_status(root, [], {})
+        measured = {(row['event'], row['platform']): row['sample_count'] for row in budget['elapsed_observations']}
+        self.assertEqual(1, measured['push', 'Windows'])
+        self.assertEqual(int(qualified), measured.get(('pull_request', 'Windows'), 0))
+        return budget
+
+    def test_separate_failure_remains_authoritative_in_ordinary_reader_after_rotation(self):
+        root, capture, _, run, _ = self.retained_reader_fixture()
+        self.assert_retained_timing(self.ordinary_timing())
+        self.assert_retained_budget(root, True)
+        failed = dict(run, conclusion='failure')
+        authority = timing.authenticated_failure(failed, timing.actions_attempt_identity('fixture/scopehub', failed))
+        with timing.exclusive_git_lock(capture.with_suffix('.lock')):
+            timing.retain_authenticated_failure(root, authority)
+        self.assert_retained_timing(self.ordinary_timing(), conclusion='failure', qualified=False)
+        self.assert_retained_budget(root, False)
+
+        self.rotate_retained_reader(capture)
+        reopened = root / 'reopened.json'
+        self.assert_retained_timing(self.ordinary_timing('--save', reopened), conclusion='failure', qualified=False)
+        self.assert_retained_timing(self.ordinary_timing('--report', reopened), conclusion='failure', qualified=False)
+        budget = self.assert_retained_budget(root, False)
+        self.assertTrue(any(note.get('authenticated_conclusions') == ['failure'] for note in budget['input_issues']))
+
+    def test_unreadable_retained_capture_withholds_saved_attribution_after_rotation(self):
+        root, capture, saved, _, clock = self.retained_reader_fixture()
+        conflict = dict(clock, jobs=[], checkout_sha='d' * 40, padding='x' * 4096,
+                        workflow=dict(clock['workflow'], matrix_complete=False, identity_complete=False))
+        self.write_archive(capture, [], [conflict])
+        self.rotate_retained_reader(capture)
+        original = capture.read_bytes()
+        self.assert_retained_timing(self.ordinary_timing(), conclusion=None, qualified=False)
+        self.assert_retained_budget(root, False)
+        recent_size = sum(path.stat().st_size for path in timing.incremental_timing_paths([capture.parent]))
+
+        for case, detail in (('budget', 'combined timing read limit'), ('corrupt', 'Could not read retained timing capture'),
+                             ('oversized', 'compact timing read limit')):
+            with self.subTest(case=case):
+                capture.write_bytes(original)
+                limit = timing.REVIEW_READ_LIMIT
+                if case == 'budget':
+                    limit = saved.stat().st_size + recent_size + 16
+                elif case == 'corrupt':
+                    capture.write_bytes(b'{')
+                else:
+                    with capture.open('wb') as stream:
+                        stream.truncate(timing.TIMING_READ_LIMIT + 1)
+                reopened = root / f'{case}-reopened.json'
+                with patch.object(timing, 'REVIEW_READ_LIMIT', limit):
+                    ordinary = self.ordinary_timing('--save', reopened)
+                    budget = self.assert_retained_budget(root, False)
+                for view in (ordinary, budget):
+                    self.assertTrue(any(detail in note['error'] and note.get('file') == capture.name
+                                        for note in view['input_issues']))
+                self.assert_retained_timing(ordinary, conclusion=None, qualified=False)
+                self.assert_retained_timing(self.ordinary_timing('--report', reopened), conclusion=None, qualified=False)
+
+    def test_misnamed_recent_captures_do_not_change_another_attempt(self):
+        root, capture, _, _, clock = self.retained_reader_fixture()
+        conflict = dict(clock, jobs=[], checkout_sha='d' * 40,
+                        workflow=dict(clock['workflow'], matrix_complete=False, identity_complete=False))
+        for name in ('ci-pull_request-12-1.json', 'ci-push-11-1.json'):
+            wrong = capture.with_name(name)
+            self.write_archive(wrong, [], [conflict])
+            with self.subTest(filename=name):
+                ordinary = self.ordinary_timing()
+                self.assert_retained_timing(ordinary)
+                budget = self.assert_retained_budget(root, True)
+                for view in (ordinary, budget):
+                    self.assertTrue(any(note.get('file') == name for note in view['input_issues']))
+            wrong.unlink()
+
+    def test_saved_read_issue_is_cleared_by_its_original_store_and_attempt(self):
+        root, capture, saved, _, clock = self.retained_reader_fixture()
+        original = capture.read_bytes()
+        capture.write_bytes(b'{')
+        reopened = saved.with_name('unverified-review.json')
+        self.assert_retained_timing(self.ordinary_timing('--save', reopened), conclusion=None, qualified=False)
+
+        capture.unlink()
+        saved.with_name(capture.name).write_bytes(original)
+        self.assert_retained_timing(self.ordinary_timing(), conclusion=None, qualified=False)
+        self.assert_retained_budget(root, False)
+
+        another = dict(clock, head_sha='d' * 40)
+        self.write_archive(capture, [], [another])
+        self.assert_retained_timing(self.ordinary_timing(), conclusion=None, qualified=False)
+        self.assert_retained_budget(root, False)
+
+        capture.write_bytes(original)
+        self.assert_retained_timing(self.ordinary_timing())
+        self.assert_retained_budget(root, True)
 
     def recovery_fixture(self):
         self.enterContext(isolated_git_environment())
