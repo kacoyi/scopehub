@@ -8167,6 +8167,117 @@
         "prevention": "First ordinary PR 139 run 45830747074 verified both hosted platforms. The full window and one-reset cropped recovery rendered zero terminal volatility, and the cropped run retained warm-up provenance. The two-reset cropped trial recorded one genuine gated status refusal, one cancellation of the current task and the expected terminal alert. Separate synthetic refusal controls exercised termination between requests and expiry with an unforwarded final status request held in flight. The latter recorded the browser abort and no HTTP response before cancellation. Both use the existing 15-second polling deadline. The split-upload draft control delivered retryable HTTP 429 after complete upload, including after the writer became free, and checked committed receipt identity on an identical retry and rejection of altered same-key bytes. The coordinator owns the protected main recheck."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-cancelled-indicator-scratch-survives-completion",
+      "status": "addressed",
+      "severity": "major",
+      "source": "First native observation archives/observations/repo-hygiene-20261125/main-producer-45825584085-core/observation.json (SHA-256 f23ddb7c013e30d93646825be88687fb316419a46db23daaf0d1ccdb82882a68). Resolve its producer report with the observation's files directory as the archive root. The supplementary linked aggregate is retained at archives/observations/repo-hygiene-20261125/main-native-original-45825584085/manifest.json (SHA-256 aa5bc4a30d63ab2c7f9c3984abd01464ab61cd7f740cf1eccfcab3059e0446a9). Resolve its Windows report with the aggregate's artifacts/windows directory as the archive root.",
+      "observation": "First protected main push 45825584085 failed its Windows core producer. After the typed cancellation check, cancellation_discards_a_correlated_result_from_a_child_that_has_not_exited failed at the scratch absence assertion at trusted_indicator.rs:340:9. Thirteen adjacent cases passed. The process assertions did not run. The linked protected aggregate retained rust-contracts-workers as its only failed check. The same case passed in both retained PR 135 Windows runs with identical worker and test source blobs. The original does not identify the surviving entry, a process or handle, elapsed cleanup or a filesystem error.",
+      "task_ids": [
+        "M0-167"
+      ],
+      "regression_checks": [
+        "project-state",
+        "rust-contracts-workers",
+        "indicator-workflow"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45825584085-1",
+          "source_commit": "8d088f7cba3e7d6322ee9eeb396bd2db59bfa4a2",
+          "report_sha256": "49e0b487bd0cd4501a5c5888ae2198149015b40a9cbcc78242d916ff08d4fff8"
+        },
+        {
+          "run_id": "windows-change-45825584085-1",
+          "source_commit": "8d088f7cba3e7d6322ee9eeb396bd2db59bfa4a2",
+          "report_sha256": "224cf1a54de8ed450870007188fd2b81ec999eaad48374cda7e40081e5b1f9b9"
+        }
+      ],
+      "resolution": {
+        "cause": "Unknown for the original protected Windows failure. It stopped at the scratch assertion after typed cancellation. The retained Linux interruption control separately reproduced a surviving scratch directory after both processes had exited.",
+        "correction": "Dispose of the supervisor handle after reaping, keep the task-owned scratch and permit with the asynchronous cleanup, retry transient removal errors within the cleanup budget and report unconfirmed cleanup. Cancellation retains its terminal outcome and suppresses artifacts and committed effects.",
+        "prevention": "The guarded Ubuntu and Windows logs pass the original trusted cancellation case and the separate adjacent scratch and result case. Windows also passes the real sharing-denied handle control. Ordinary PR 141 independently repeats the scratch regression and the Windows sharing-denied control. Recheck the composed protected source."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-scratch-removal-retries-after-cleanup-deadline",
+      "source": "Independent Astra Standard review of 5623272d990220dab2bffd3e11556d3cb8d134cb at archives/observations/repo-hygiene-20261125/independent-final-m0-167-5623272d/original-assistant-response.jsonl (SHA-256 92ce12ad7c8d0bbb7c1b3fc4aba62333023d2a03b7515aa05f29e668afb789ca).",
+      "observation": "The retry loop can invoke removal after a transient error and a partial backoff that reaches the cleanup deadline. The prior test covered an already expired deadline at the first removal and omitted expiry during backoff.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-167"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The retry loop checked the deadline after removal and could then start another attempt after a partial backoff exhausted the budget.",
+        "correction": "Check the deadline before each retry following backoff, while allowing the initial removal attempt and preserving the reported error at expiry.",
+        "prevention": "The deterministic deadline-after-backoff, interrupted-removal and out-of-budget controls passed in guarded Rust verification on Ubuntu and Windows."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-scratch-removal-blocks-single-thread-cancellation",
+      "source": "Independent Astra Standard review of 5623272d990220dab2bffd3e11556d3cb8d134cb at archives/observations/repo-hygiene-20261125/independent-final-m0-167-5623272d/original-assistant-response.jsonl (SHA-256 92ce12ad7c8d0bbb7c1b3fc4aba62333023d2a03b7515aa05f29e668afb789ca).",
+      "observation": "Synchronous directory removal on the current-thread runtime can prevent the caller's cleanup timer from polling. Returning while a slow operation is queued or active requires the actual task scratch and admission permit to stay with that operation until cleanup finishes.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-167"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "indicator-workflow"
+      ],
+      "resolution": {
+        "cause": "Synchronous directory removal could occupy the current-thread runtime while the caller was waiting on its cleanup timer.",
+        "correction": "Move removal to a blocking worker that owns the actual scratch directory and admission permit until the operation returns. Let the caller's bounded wait finish with its existing terminal outcome.",
+        "prevention": "Guarded Rust verification on Ubuntu and Windows passes the held-removal check for bounded caller return and continued scratch and permit ownership. The separate local real-carrier observation follows cleanup to removal after release."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "preview-worker-terminal-error-waits-for-child-close",
+      "source": "Independent Astra Standard review of 5585d26a63ebe8a54885b1aa5d9046a78218d38a at archives/observations/repo-hygiene-20261125/independent-final-m0-167-5585d26a/original-assistant-response.jsonl (SHA-256 81b6a7ec76e77105d5c5f015cdfcc2b68056eb916ef809572640a164e02f7c2d). The retained decision is contracts/reviews/task-decisions/M0-167.json#/events/3.",
+      "observation": "The reviewer exercised the exact preview transport with a controlled stream and observed that a complete WORKER_EXITED response remained pending until the carrier closed. A local replay through authenticated preview HTTP and the actual registry confirmed that a competing approval returned BUSY while the completed failure and child close were separate. The expiry path can replace an undispatched failure with TIMEOUT. The Windows producer observation did not exercise this mechanism.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-167"
+      ],
+      "regression_checks": [
+        "indicator-workflow",
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The preview deferred delivery of a complete worker error until the child closed, leaving the registry admission and timeout paths active.",
+        "correction": "Send a validated failure through the private completion channel as soon as its frame is complete. Keep the carrier responsible for reaping and bounded shutdown after publication.",
+        "prevention": "The guarded public registry case on Ubuntu and Windows passes partial and complete failure, adjacent admission, late frames, capacity and shutdown controls. The retained local real preview published WORKER_EXITED during held cleanup, admitted and completed adjacent work, and preserved the failure across the registry deadline until cleanup and shutdown finished."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "preview-indicator-success-survives-abnormal-carrier-exit",
+      "source": "Independent Astra Standard review of cf1eb9da0acb97e1dc74c59377280f1a4bcf3274 at archives/observations/repo-hygiene-20261125/independent-final-m0-167-cf1eb9da/original-assistant-response.jsonl (SHA-256 105cc38ebe5ba8119ec8dc3400a1f6ea0406a4dbe7bbf92188aff519e13b6c82). The retained decision is contracts/reviews/task-decisions/M0-167.json#/events/5.",
+      "observation": "The exact preview transport returned the same valid success after the controlled indicator carrier exited with status 0, exited with status 1 or terminated by SIGTERM. Each result stayed pending until close. The transport checks abnormal close only when stdout is empty and the preview writer receives the accepted frame without the carrier exit status. The independent reproduction observed transport delivery. The original Windows scratch failure did not establish this mechanism.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-167"
+      ],
+      "regression_checks": [
+        "indicator-workflow"
+      ],
+      "resolution": {
+        "cause": "The preview checked abnormal carrier close only for empty stdout, so a complete success frame could reach the writer after an abnormal exit.",
+        "correction": "Require carrier close with exit code 0 before forwarding an indicator success. Treat abnormal close as WORKER_EXITED, while retaining already delivered failures and explicit cancellation.",
+        "prevention": "The retained local public-registry comparison and guarded indicator-workflow on Ubuntu and Windows exercise the same success payload at exit 0, exit 1 and Node-observed SIGTERM. The abnormal cases return WORKER_EXITED with no artifact or committed effects and allow adjacent approval before the first status read."
+      },
+      "deferral_reason": null
     }
   ]
 }
