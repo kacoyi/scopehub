@@ -26449,16 +26449,16 @@
           "archives/observations/repo-hygiene-20261125/m0-159-protected-handoff-intake/observations.json (SHA-256 650f6772d64fce5c463905a28279ffdae103e0334b2930d098ae5d04213c0735)",
           ".reports/audit-20261125/m0-159-protected-observation/current-red.json (SHA-256 a7f22be8c10ea5f9ec4bc480fd4480e68c4ec977a5dc36d9f1fb2e223b350eac)",
           ".reports/audit-20261125/m0-159-protected-observation/native-comparison.json (SHA-256 2e47d5de216a986c67ed171efaf4724f16aff25c4b1c803c966f8f100c1538d7)",
-        ".reports/audit-20261125/m0-159-protected-observation/renewed/public-delivery-scope-red.log (SHA-256 21a611101c9c54874b78b5f3b032ac515db94ed5243219b65ed401b76575fa36)",
-        "archives/observations/repo-hygiene-20261125/independent-final-m0-159-5a542187/original-assistant-response.jsonl (SHA-256 51926b3d40a69aa4969eae244dab01b7054823902c0f9f9eb83f3b701c678ac7)",
-        "archives/observations/repo-hygiene-20261125/independent-final-m0-159-10104031/original-assistant-response.jsonl (SHA-256 256f6c5fb291e33055614d0bb9cfc6542fb6a031909451ad4faade688a18c071)"
+          ".reports/audit-20261125/m0-159-protected-observation/renewed/public-delivery-scope-red.log (SHA-256 21a611101c9c54874b78b5f3b032ac515db94ed5243219b65ed401b76575fa36)",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-159-5a542187/original-assistant-response.jsonl (SHA-256 51926b3d40a69aa4969eae244dab01b7054823902c0f9f9eb83f3b701c678ac7)",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-159-10104031/original-assistant-response.jsonl (SHA-256 256f6c5fb291e33055614d0bb9cfc6542fb6a031909451ad4faade688a18c071)"
         ],
         "hypotheses": [
           "The retained PR 131 assessment at 109c6a051e42df7dab31ca3c0dcb36ecab42ec22 reproduces the unfinished task and open major feedback blockers. A completed delivery with the original finding would still block through ordinary task ownership. The separately adopted M0-142 warm-workflow handoff governs a different finding and measures the 900-second Windows job objective.",
           "Native ordinary PR run 45750690146 and guarded task run 45750708557 match all 838 ordered cases and 72 skips with terminal serial times of 708.843 and 860.734 seconds. The ordinary Windows full harness alone took 904.508 seconds. These runs precede the reconciled repair checkpoint 68847f66d160e50dc057b4a8916a126c7dd6a535 and require renewed verification for its eventual integration head.",
           "The independent decision and exact public reproduction on ff71dc66409852b24121590b88aa512cada2e3e4 against its first parent confirm that the timing loop overwrites prior task state. Exercise the combined policies with both prior feedback states and distinguish reuse of evidence intake from reuse of the Python deadline policy.",
-        "PR 131 ordinary run 45769694690 and guarded run 45769715154 preserved 843 ordered Python outcomes and 72 skips. The Python timings were 1138.859 and 1169.422 seconds and the ordinary Windows harness alone took 1192.299 seconds. The existing protected workflow timing rules cannot qualify that process result. PR 127 reproduced the same Python inventory on different exact inputs while its M0-147 native acceptance measured the private startup handoff in workspace-timeframe.",
-        "The independent decision on 1010403186cc9004da907cbdf90774b4ad271a20 shows that the same nominated conflict can authorize closure after an interruption. Verify that relevance is proved before excluding any same-commit nomination and that unresolved nominations survive order changes and reopening."
+          "PR 131 ordinary run 45769694690 and guarded run 45769715154 preserved 843 ordered Python outcomes and 72 skips. The Python timings were 1138.859 and 1169.422 seconds and the ordinary Windows harness alone took 1192.299 seconds. The existing protected workflow timing rules cannot qualify that process result. PR 127 reproduced the same Python inventory on different exact inputs while its M0-147 native acceptance measured the private startup handoff in workspace-timeframe.",
+          "The independent decision on 1010403186cc9004da907cbdf90774b4ad271a20 shows that the same nominated conflict can authorize closure after an interruption. Verify that relevance is proved before excluding any same-commit nomination and that unresolved nominations survive order changes and reopening."
         ],
         "risks": [
           {
@@ -26473,30 +26473,30 @@
             "checks": [
               "python-contracts-workers"
             ]
-        },
-        {
-          "failure": "An absent or present prior timing finding replaces the prior task ledger and prevents the protected Python observation from reaching its accountable owner.",
-          "checks": [
-            "python-contracts-workers"
-          ]
-        },
-        {
-          "failure": "A second guarded receipt substitutes for the ordered inventory selected by the pre-merge decision and permits premature closure.",
-          "checks": [
-            "python-contracts-workers"
-          ]
-        },
-        {
-          "failure": "An ineligible same-push diagnostic or a second agreeing Windows report conceals the first Windows result. Contradictory eligible evidence can be mistaken for agreement.",
-          "checks": [
-            "python-contracts-workers"
-          ]
-        },
-        {
-          "failure": "An unreadable or ambiguous nomination is discarded and turns a blocked first-push observation into closure after reopening. A proven unrelated diagnostic can also be mistaken for a Windows conflict.",
-          "checks": [
-            "python-contracts-workers"
-          ]
+          },
+          {
+            "failure": "An absent or present prior timing finding replaces the prior task ledger and prevents the protected Python observation from reaching its accountable owner.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A second guarded receipt substitutes for the ordered inventory selected by the pre-merge decision and permits premature closure.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An ineligible same-push diagnostic or a second agreeing Windows report conceals the first Windows result. Contradictory eligible evidence can be mistaken for agreement.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An unreadable or ambiguous nomination is discarded and turns a blocked first-push observation into closure after reopening. A proven unrelated diagnostic can also be mistaken for a Windows conflict.",
+            "checks": [
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Preserve the original incident, active repair and protected integration blocks if the qualified route cannot be verified.",
@@ -26532,9 +26532,9 @@
             "Protected source binding, the two existing workflow timing rules, ordinary receipts, independent reviews and feedback outside M0-153."
           ],
           "change": [
-          "Share the exact full PR and required-job checks. Keep the additional binding specific to the Python process deadline, its exact native evidence and the planned observer.",
-          "Keep the chosen receipt reference and ordered inventory digest as evidence state on the observer. Require the public pre-merge decision to match that committed record and recover it from the first protected commit for ordinary closure. Resolve the Windows producer and aggregate before interpreting agreement.",
-          "Classify each nominated first-commit original before reducing the observation. Restore or resolve unreadable and ambiguous originals before closure and preserve independent action for verified failure."
+            "Share the exact full PR and required-job checks. Keep the additional binding specific to the Python process deadline, its exact native evidence and the planned observer.",
+            "Keep the chosen receipt reference and ordered inventory digest as evidence state on the observer. Require the public pre-merge decision to match that committed record and recover it from the first protected commit for ordinary closure. Resolve the Windows producer and aggregate before interpreting agreement.",
+            "Classify each nominated first-commit original before reducing the observation. A nomination can be excluded only while its verified content establishes an unrelated context, so losing archive bytes cannot authorize closure. Keep verified failure actionable when the aggregate is unavailable."
           ],
           "data_plan": "Keep the native originals in the development archive and preserve checkout-local reproductions for independent review. Bind the original feedback, both native originals and the guarded receipt to the separate adoption. Record the first protected observation using its report locator on M0-160, including a verified producer failure if the aggregate is unavailable.",
           "cleanup": "Keep the original finding open while the observation is unavailable or failed. Preserve the exact first attempt and assign corrective work after a failure. Close the finding and observer together after verified serial success, with separate whole-workflow timing follow-through."

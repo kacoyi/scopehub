@@ -183,6 +183,7 @@ class NativeSerialResultTests(unittest.TestCase):
             if no_python:
                 report['selection']['checks'].remove(CHECK)
                 report['checks'].remove(row)
+                report['checks'].append({'id': CHECK, 'status': 'blocked', 'reason_code': 'not_selected'})
                 logs.pop(CHECK)
             raw = json.dumps(report).encode()
             report_sha256 = sha256(raw).hexdigest()
@@ -228,7 +229,8 @@ class NativeSerialResultTests(unittest.TestCase):
 
         unresolved, _ = observe({}, extra=(missing,))
         self.assertEqual({'unresolved_diagnostics': [missing]}, unresolved)
-        for ambiguous in ({'profile': 'unknown'}, {**unrelated, 'no_python': False}, {'system': ''}):
+        for ambiguous in ({'profile': 'unknown'}, {**unrelated, 'no_python': False}, {'system': ''},
+                          {**producer, 'system': 'Linux'}, {**unrelated, 'system': 'Linux'}):
             with self.subTest(ambiguous=ambiguous):
                 observation, (_, locator) = observe({}, ambiguous)
                 self.assertEqual({'unresolved_diagnostics': [locator]}, observation)

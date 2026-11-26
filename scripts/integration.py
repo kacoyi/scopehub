@@ -781,18 +781,22 @@ def python_push_unrelated(report, original):
     if original['report_kind'] == 'recovery':
         return True
     environment, ci, selection = (report.get(key) for key in ('environment', 'ci', 'selection'))
-    if isinstance(environment, dict) and environment.get('system') in ('Linux', 'Darwin'):
-        return True
     if (isinstance(ci, dict) and ci.get('provider') == 'github-actions'
             and ci.get('event') in ('pull_request', 'workflow_dispatch')):
         return True
-    if isinstance(selection, dict):
-        profile, selected = selection.get('profile'), selection.get('checks')
-        return (isinstance(profile, str) and profile.startswith('ci-windows-')
-                and profile.removeprefix('ci-windows-') in timing.WINDOWS_PRODUCERS
-                and profile != 'ci-windows-python' and isinstance(selected, list) and PYTHON_CHECK not in selected
-                and all(row['id'] != PYTHON_CHECK for row in report['checks']))
-    return False
+    if not isinstance(environment, dict) or not isinstance(selection, dict):
+        return False
+    profile, selected = selection.get('profile'), selection.get('checks')
+    if not isinstance(profile, str):
+        return False
+    system = environment.get('system')
+    if not profile.startswith('ci-windows-'):
+        return system in ('Linux', 'Darwin')
+    return (system == 'Windows' and profile.removeprefix('ci-windows-') in timing.WINDOWS_PRODUCERS
+            and profile != 'ci-windows-python' and isinstance(selected, list) and PYTHON_CHECK not in selected
+            and PYTHON_CHECK not in original['verified_logs']
+            and all(row['id'] != PYTHON_CHECK or (row['status'], row.get('reason_code')) == ('blocked', 'not_selected')
+                    for row in report['checks']))
 
 
 def python_push_producer_conclusion(root, first, ci):
