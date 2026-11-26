@@ -26175,7 +26175,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Independently review the exact clean source and local handoff at .reports/audit-20261126/m0-146-pr123-split/handoff.json. The coordinator owns composition, independent Astra decisions including the stale M0-139 gate, and native verification. Obtain a successful comparable ordinary full warm Windows PR with all 35 selected checks within 900 seconds and the separate 1200-second Python execution deadline. Retain the failed first split PR123 and the independent PR134, PR137, PR138 and PR140 timeout originals.",
+      "next_action": "Review the exact clean candidate and qualification at .reports/audit-20261126/m0-146-composition-qualification/handoff.json. Use the isolated and real overlap controls and the first retained storage report on any recurrence. Obtain independent M0-139 and M0-146 decisions for the combined source. The coordinator owns the stale review gate and a comparable ordinary full warm Windows PR with all 35 selected checks within 900 seconds and the separate 1200-second Python execution deadline.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -26236,6 +26236,7 @@
           "scripts/project.py",
           "tests/project",
           "project/delivery.json",
+          "Original Linux overlap, isolated recovery control and separate native indices: .reports/audit-20261126/m0-146-composition-qualification/originals.json (SHA-256 967fce3bf888d3311bcf35a87d6bc5c82467e8ffa1c09e99b45336f1fc9f6cc5).",
           "archives/observations/repo-hygiene-20261125/windows-warm-pr-python-20261125/intake.json",
           "Paired public history and check reads: .reports/audit-20261125/m0-146-verification-reads/paired/measurement.json (SHA-256 d1f6956f9b4aa15f73585f4fdd8e77fa93cb03b0c5c35e1d2fbfe5d5f6c7d129), comparing 8763eee588ff18e880155d5e4a89573ca77a3f75 with implementation 528ca59f5655f554396a4cbc0ff460cff0384ddd. Retain the complete raw traces, outputs and profile manifest beside it.",
           "archives/runs/windows-change-45674883737-1/test-report.json",
@@ -26496,6 +26497,13 @@
             ]
           },
           {
+            "failure": "The Linux managed-storage fixture observed an empty collection for its disposable normal target during the recovery overlap. The original assertion omitted the collection decision. Regress the ordinary collection and known holds on disposable targets, retain complete failure diagnostics, and run the same recovery suffix with and without the three real market checks. Keep separate Windows and protected timing evidence and preserve storage eligibility, case membership, deadlines and schema identities.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
             "failure": "A smaller Python interval comes from omitted or newly skipped critical tests, breaks an existing consumer, shifts the full workflow bottleneck, or adds material runner cost. Compare original part timings and absolute job clocks and keep the 35 selected outcomes, unskipped case coverage, prior report formats and separate budgets.",
             "checks": [
               "project-state",
@@ -26514,9 +26522,11 @@
             "scripts/ci_artifacts.py",
             "scripts/diagnostic_archive.py",
             "scripts/project.py",
+            "scripts/storage.py",
             "scripts/timing.py",
             "contracts/schemas/project.schema.json",
             "tests/project/test_delivery.py",
+            "tests/project/test_storage.py",
             "tests/project/test_verification_scheduling.py",
             ".github/workflows/verify.yml"
           ],
@@ -26535,13 +26545,15 @@
           ],
           "open_questions": [
             "Does the full ordinary warm Windows PR meet the objective after the coordinator composes the independent recovery-UI assignment and the Python partition?",
-            "Does the same four-producer topology restore the full Windows budget on an ordinary warm hosted PR while preserving all selected checks, unskipped cases and failed evidence?"
+            "Does the same four-producer topology restore the full Windows budget on an ordinary warm hosted PR while preserving all selected checks, unskipped cases and failed evidence?",
+            "Can a disposable Linux replay reproduce the first empty collection and identify its inventory, eligibility or revalidation reason?"
           ]
         },
         "evolution": {
           "kind": "refactor",
           "preserve": [
-            "The original 35 selected checks, individual Python test outcomes, accurate native artifact imports and failures, and the complete M0-143 status behavior."
+            "The original 35 selected checks, individual Python test outcomes, accurate native artifact imports and failures, and the complete M0-143 status behavior.",
+            "The full production storage eligibility and revalidation path, Linux fixture case IDs and original Windows clock and schema boundaries."
           ],
           "change": [
             "Read the project schema once per project load and reuse only the fixed legacy predecessor after proving ancestry. Reinitialize after hosted recovery.",
@@ -26551,7 +26563,8 @@
             "For the current producer, bind the callback payload and transcript prefix with the existing versioned record. For legacy 2.1, use the full closed original and the standard CPython 3.12 verbose runner's required duration and summary writes to identify all possible outer endpoints independently of the proposed manifest. Qualify simple direct pass and skip callbacks only with one supported endpoint, an exact rounded duration table and one compatible ordered callback assignment. Treat possible status fragments in all intervening output as alternatives, without suppressing named lines or details that resemble an inner run. Refuse competing endpoints, partial framing, fixture or subtest ownership, unprovable display or skip spellings and transcripts outside parser limits.",
             "Move market-workflow and the review-acceptance-through-verification-scheduling Python modules to recovery for full Windows PRs using the standard Python suite. Run the recovery Python part and serial market checks concurrently on that existing runner. Preserve canonical catalog and discovery order, terminal outcomes, cancellation and cleanup.",
             "Select the original cutoff and producer assignment from the tested committed runner during publication, collection and receipt reopening. Keep earlier sources and serial and main push paths compatible. Restore original report bytes in repeatable publication and receipt regressions.",
-            "Reuse immutable Git branch-policy reads and the protected observation basis only within a single maintenance comparison."
+            "Reuse immutable Git branch-policy reads and the protected observation basis only within a single maintenance comparison.",
+            "Keep the managed-storage fixture's complete report on assertion failure and verify the real Cargo lock hold reason within the existing Linux suite."
           ],
           "data_plan": "Use synthetic fixtures, read-only hosted originals and matching check logs. Preserve actual job durations, original identifiers and coverage for comparison. Archived 2.0 and legacy 2.1 evidence depends on authenticated retrieval for attempt lineage within canonical paths. Legacy merged output supports identifiable printed events under the historical runner format. The stream cannot prove unprinted discovery members or recover ambiguous callbacks. Diagnostic resolution checks the pinned report bytes, identities and attachment digests and returns the recorded check outcome. This path can reopen an ambiguous legacy original with all its bound attachments and grants no per-case receipt. The record command revalidates the supplied report and originals before returning either a new or existing receipt. The two genuine teardown executions with identical merged output and opposite outer callbacks establish that historical per-case recovery is mathematically impossible for those bytes. A newly submitted manifest or a chosen prefix cannot supply the missing ownership. Qualification relies on the supported historical runner's visible standard writes. Exact high-resolution durations, unprinted details and overridden or obscured runner writes require independently bound evidence.",
           "cleanup": "Remove temporary profiling from the delivery path, archive the focused comparison and retain any unresolved timing investigation with its next observable action."

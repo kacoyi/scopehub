@@ -8735,6 +8735,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "linux-storage-fixture-empty-collection-during-recovery-overlap",
+      "source": "Local Linux recovery overlap originals from 2026-11-26 and isolated, exact full and suffix replay controls are byte-preserved in .reports/audit-20261126/m0-146-composition-qualification/originals.json (SHA-256 967fce3bf888d3311bcf35a87d6bc5c82467e8ffa1c09e99b45336f1fc9f6cc5). The working-copy driver used check.run_overlapped with Windows timeout selection and the actual scripts/windows_python.py recovery process plus three serial Playwright checks. The first run started before 8b79d175 was committed, has no clean source binding, and recorded no failing storage report. The storage script and fixture are byte-identical in 8b79d175 and clean composition 81f4bdc7. The first full and suffix controls are separate 8b79d175 observations.",
+      "observation": "On Linux, test_managed_collection_retains_actual_nested_and_mounted_paths received collected=[] for its expected disposable normal target while the real recovery Python suffix overlapped market checks. Python exited 1 with one failure and one skip across 331 cases. The three market checks passed. The fixture passed in isolation and in the later exact full and recovery suffix suites. The first assertion printed only the collected paths, so its first collection hold or error is unknown. PR123 skipped this Linux-only case and separately failed two byte-restoration assertions. Keep the original Windows results and the 900-second ordinary full warm PR objective distinct from the 1200-second Python deadline and the local Linux overlap.",
+      "severity": "minor",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
