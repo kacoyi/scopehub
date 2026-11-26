@@ -1,9 +1,10 @@
 import { formatNumber, message as uiMessage, plural, t, type Message } from './i18n';
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import isIndicatorPreviewStatus, { type ReadyPreviewStatus } from 'virtual:indicator-preview-status';
 import type {
   Bar, CancelTaskReply11, ConfirmationChallenge11, DeclarativeDraft11, FrozenSnapshot, IndicatorCreateDraftCommand11,
   IndicatorCreateDraftReply11, IndicatorRunPreviewCommand11, IndicatorRunPreviewReply11,
-  Metadata, MutationScope11, PreviewReady11, TaskTerminalEvent11, TrustedConfirmationDecision11,
+  Metadata, MutationScope11, TrustedConfirmationDecision11,
 } from '../../../../contracts/generated/protocol';
 import type { IndicatorChartLayer } from './chart-adapter/history';
 import { IndicatorAcceptance } from './indicator-acceptance';
@@ -11,13 +12,6 @@ import { IndicatorDiagnostics } from './indicator-diagnostics';
 import { IndicatorRegionValues } from './indicator-region-values';
 import { displayAccessDenied, type PublishedRevisionAccess } from './published-revision-access';
 import { exchangeWorkspace, IndicatorStatusDeliveryError, readIndicatorPreviewStatus, type LocalWorkspace } from './use-local-workspace';
-
-type Ready = {
-  status: 'ready'; task_id: string; event: PreviewReady11; source_snapshot: FrozenSnapshot;
-  resolved_parameters: Record<string, unknown>; warmup_from_ms: number | null; calendar_hash: string | null;
-};
-type Waiting = { status: 'running'; task_id: string };
-type Terminal = { status: 'terminal'; task_id: string; event: TaskTerminalEvent11 };
 
 type Field = 'close' | 'volume';
 const draftFor = (field: Field): DeclarativeDraft11 => ({
@@ -33,7 +27,6 @@ const draftFor = (field: Field): DeclarativeDraft11 => ({
   },
 });
 
-const validHash = (value: string) => /^[0-9a-f]{64}$/.test(value);
 const command = () => ({
   protocol_version: '1.1', type: 'request', message_id: crypto.randomUUID(),
   request_id: crypto.randomUUID(), timestamp_ms: Date.now(),
@@ -128,7 +121,7 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
   const [first, setFirst] = useState(bars[0]?.time_ms ?? snapshot.from_ms);
   const [last, setLast] = useState(bars.at(-1)?.time_ms ?? snapshot.from_ms);
   const [running, setRunning] = useState(false);
-  const [result, setResult] = useState<Ready>();
+  const [result, setResult] = useState<ReadyPreviewStatus>();
   const [message, setMessage] = useState<{ text: Message; error?: boolean }>();
   const active = useRef<PreviewAttempt | undefined>(undefined);
   const displayed = useRef<PreviewAttempt | undefined>(undefined);
@@ -254,7 +247,7 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
         await pause();
         signal.throwIfAborted();
         let admissionBusy = false;
-        let status: Ready | Waiting | Terminal;
+        let status: unknown;
         try {
           status = await readIndicatorPreviewStatus(id, signal, () => { admissionBusy = true; });
         } catch (error) {
@@ -268,22 +261,18 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
           throw error;
         }
         signal.throwIfAborted();
-        if (status.task_id !== id) throw new Error();
+        if (!isIndicatorPreviewStatus(status) || status.task_id !== id) throw new Error();
         if (status.status === 'running') continue;
+        if (status.event.task_id !== id) throw new Error();
         if (status.status === 'terminal') {
-          if (status.event.task_id !== id) throw new Error();
           const outcome = status.event.outcome;
           if (outcome.status === 'failed') throw outcome.error;
           if (outcome.status === 'cancelled') throw { code: 'CANCELLED' };
           throw new Error();
         }
-        if (status.status !== 'ready') throw new Error();
         const event = status.event;
-        if (event.task_id !== id || event.draft_id !== draft_id || event.code_hash !== code_hash
-          || !validHash(event.params_hash) || !validHash(event.snapshot.content_hash)
-          || event.artifact.storage !== 'inline' || !validHash(event.artifact.result_hash)
-          || (snapshot.series.provider_id === 'scopehub.synthetic' && (typeof status.calendar_hash !== 'string'
-            || !validHash(status.calendar_hash)))
+        if (event.draft_id !== draft_id || event.code_hash !== code_hash || event.artifact.storage !== 'inline'
+          || (sample && status.calendar_hash === null)
           || status.source_snapshot.content_hash !== snapshot.content_hash
           || event.snapshot.dataset_id !== snapshot.dataset_id || event.snapshot.dataset_revision !== snapshot.dataset_revision
           || event.snapshot.as_of_ms !== snapshot.as_of_ms || event.snapshot.from_ms !== range.from_ms

@@ -7804,6 +7804,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "sample-indicator-recovery-malformed-status-envelope",
+      "source": "Focused Chromium and Rust writer reproduction in .reports/M3-007/status-envelope/before/workspace-timeframe/results.json at ccdbacde3ac9ad8261c5d3103caea5826b57b45f (SHA-256 f5c61443e111566db1255c88a16142cdadbabe2cccc1a1c43a8288777cbb21c7).",
+      "observation": "After one lost status delivery, the normal chart displayed a ready artifact with the wrong event protocol version and displayed cancellation with the wrong terminal message type. A terminal error with a string retryable flag displayed the resource limit message. A running envelope carrying a ready event was ignored and a third logical read displayed the artifact. Each invalid branch must fail at the consumer with one cleanup of the original task.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M3-007"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

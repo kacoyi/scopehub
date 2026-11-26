@@ -131,6 +131,9 @@ test('translates indicator diagnostics by engine in preview and accepted details
         status: 'ready', task_id: taskId, source_snapshot: frozenCsv.snapshot,
         resolved_parameters: { period: 2 }, warmup_from_ms: null, calendar_hash: null,
         event: {
+          protocol_version: '1.1', type: 'event', event: 'indicator.preview_ready',
+          message_id: '8a4b297b-bd95-40fe-83f0-c05693948d89', timestamp_ms: frozenCsv.snapshot.as_of_ms,
+          preview_id: 'diagnostic-preview', stream_id: taskId, sequence: 0,
           task_id: taskId, draft_id: draftId, code_hash: codeHash, params_hash: paramsHash, engine_version: engine,
           snapshot: { ...frozenCsv.snapshot, ...range }, artifact: artifact(engine),
         },

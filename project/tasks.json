@@ -26238,8 +26238,12 @@
         "M0-149"
       ],
       "scope": [
+        "apps/desktop/ui/indicator-preview-status-schema.mjs",
+        "apps/desktop/ui/vite.config.ts",
+        "apps/desktop/ui/src/env.d.ts",
         "apps/desktop/ui/src/indicator-preview.tsx",
         "apps/desktop/ui/src/use-local-workspace.ts",
+        "tests/localization/market-messages.spec.mjs",
         "tests/ubuntu-preview/workspace.spec.mjs",
         "tests/ubuntu-preview/workspace_indicator_probe.mjs",
         "project/tasks.json",
@@ -26260,7 +26264,8 @@
         "ui-build",
         "market-workflow",
         "indicator-workflow",
-        "workspace-timeframe"
+        "workspace-timeframe",
+        "desktop-localization"
       ],
       "diagnostic_reports": [
         {
@@ -26279,7 +26284,7 @@
           "report_sha256": "c0ec1dc7ccf4eda159ccb2edd29f0ae73e09e3fc44e48d46acb3331de5abe7f3"
         }
       ],
-      "next_action": "Reproduce the independent ready and terminal event-name conflicts at the offline sample chart, then validate the complete status envelope before consuming its branch. Keep the paired browser and writer controls at exact source and preserve the two earlier calendar timeouts as separately unclassified.",
+      "next_action": "Verify the complete status envelope at the chart consumer using the paired browser and writer controls. Keep both controls at their exact source and preserve the two earlier calendar timeouts as separately unclassified.",
       "blocker": null,
       "closure_reason": null,
       "evidence": [
@@ -26310,6 +26315,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m3-007-c1cefee5/final-response.txt",
           "archives/observations/repo-hygiene-20261125/independent-final-m3-007-87d0b846/original-assistant-response.jsonl",
           "contracts/reviews/task-decisions/M3-007.json",
+          "contracts/schemas/protocol.schema.json",
+          ".reports/M3-007/status-envelope/before/workspace-timeframe/results.json",
           ".reports/runs/20261126T073858.234369Z-31cf891c/workspace-timeframe/results.json",
           "apps/desktop/ui/src/indicator-preview.tsx",
           "apps/desktop/ui/src/use-local-workspace.ts",
@@ -26359,6 +26366,7 @@
             "ui"
           ],
           "entrypoints": [
+            "apps/desktop/ui/indicator-preview-status-schema.mjs",
             "apps/desktop/ui/src/indicator-preview.tsx",
             "apps/desktop/ui/src/use-local-workspace.ts",
             "tests/ubuntu-preview/workspace.spec.mjs",

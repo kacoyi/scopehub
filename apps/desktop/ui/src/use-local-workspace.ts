@@ -198,8 +198,8 @@ async function postWorkspace<T>(path: string, body: object, signal: AbortSignal,
 
 export const exchangeWorkspace: <T>(body: LocalRequest, signal: AbortSignal) => Promise<T> = exchange;
 
-export function readIndicatorPreviewStatus<T>(taskId: string, signal: AbortSignal, onAdmissionBusy: () => void) {
-  return exchange<T>({ type: 'indicator_preview_status', request_id: crypto.randomUUID(), task_id: taskId },
+export function readIndicatorPreviewStatus(taskId: string, signal: AbortSignal, onAdmissionBusy: () => void) {
+  return exchange<unknown>({ type: 'indicator_preview_status', request_id: crypto.randomUUID(), task_id: taskId },
     signal, onAdmissionBusy);
 }
 
