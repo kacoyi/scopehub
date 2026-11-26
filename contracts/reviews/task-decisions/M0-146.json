@@ -108,6 +108,15 @@
       },
       "supersedes": "869cbce8113844e8eb03d344ef27abadf459fcc4c37b0919381c80fa7a58be2a",
       "evidence_sha256": "d09728a07e1ce019a363d25febcb257a08062634ad0be43eaeda4d2339ae94b6"
+    },
+    {
+      "kind": "request",
+      "source_commit": "6c4effe33210598993fcd8bf7bca26d40d8569ba",
+      "scope": "Reproduce the previous four independent receipt, legacy compatibility, stderr and interrupted publication findings at their supported entries. Recheck positive and rejected 2.1 publication, real 2.0 import, both original 2.1 compatibility controls, and the genuine 975-second warm Windows PR against its 900-second target.",
+      "supersedes": "5500dccf92e91cd51dae038bcd497b33297a79abd7f9cbc76ae86cbdacdf85dd",
+      "requested_at": "2026-11-26T03:52:31.359471+00:00",
+      "request_id": "b5fe41be658cf661f864c09fce25f290876076cc8598ac3c0055f83a4c13ce9e",
+      "evidence_sha256": "d0580fa20c62ceabde58c3aefb802d8b243cb97a591cac197adbd3fae1e355b6"
     }
   ]
 }

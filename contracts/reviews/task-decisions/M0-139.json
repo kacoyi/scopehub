@@ -108,6 +108,15 @@
       },
       "supersedes": "b6dc11b8770cb252a926075a6e9fb814495da7c00a754a9491613709b87dd07c",
       "evidence_sha256": "3a29f16bb0f04b3272329f0638a3b54eba47b25e058afb0f5066152457af9772"
+    },
+    {
+      "kind": "request",
+      "source_commit": "6c4effe33210598993fcd8bf7bca26d40d8569ba",
+      "scope": "Recheck the accepted warm Windows schedule and gate on the corrected combined source. Exercise retained compatibility, matching and mismatching role receipts, publication boundaries and the independence of the later ordinary 900-second Windows PR observation.",
+      "supersedes": "09ed0aecd290b1c246d773e3cbd79c87e787e7b5cba4fb62050711db0d5e197e",
+      "requested_at": "2026-11-26T03:52:30.420250+00:00",
+      "request_id": "bc08f13cb000351dece7856ee9c43ede17274f4b8932b26dd26641965bb02afc",
+      "evidence_sha256": "5a24928d31f26b800a1ea4d9e2d1b94daeb2ff4360677a33e99fd19ab7591f0f"
     }
   ]
 }
