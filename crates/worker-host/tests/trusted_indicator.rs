@@ -615,6 +615,57 @@ while True:
     fixture.assert_reaped(pid, parent, scratch);
 }
 
+#[tokio::test]
+async fn cancelling_one_live_computation_preserves_adjacent_scratch_and_result() {
+    let cancelled = Fixture::observe_real_worker();
+    let adjacent = Fixture::observe_real_worker();
+    let cancelled_request = request(LOOP);
+    let adjacent_source = SOURCE.replace(
+        "    print(\"synthetic stdout\")",
+        r#"    from pathlib import Path
+    from time import sleep
+    Path('pending-output').write_text('adjacent synthetic output', encoding='utf-8')
+    while not Path('allow-result').exists():
+        sleep(0.01)"#,
+    );
+    let adjacent_request = request(&adjacent_source);
+    let (cancel, cancellation) = oneshot::channel();
+    let first = compute(&cancelled.config, &cancelled_request, async {
+        cancellation.await.unwrap();
+    });
+    let second = compute(&adjacent.config, &adjacent_request, future::pending());
+    tokio::pin!(first, second);
+
+    let ((pid, parent, scratch), (adjacent_pid, adjacent_parent, adjacent_scratch)) = tokio::select! {
+        result = &mut first => panic!("first computation ended before cancellation: {result:?}"),
+        result = &mut second => panic!("adjacent computation ended before release: {result:?}"),
+        witnesses = async { tokio::join!(cancelled.witness(), adjacent.witness()) } => witnesses,
+    };
+    assert_ne!(scratch, adjacent_scratch);
+    let pending_output = adjacent_scratch.join("pending-output");
+    timeout(Duration::from_secs(2), async {
+        while !pending_output.exists() {
+            sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .expect("the adjacent computation must write its own scratch output");
+
+    cancel.send(()).unwrap();
+    let failure = first.await.unwrap_err();
+    assert_eq!(failure.code, ErrorCode::CANCELLED);
+    cancelled.assert_reaped(pid, parent, scratch);
+    assert_eq!(
+        fs::read_to_string(pending_output).unwrap(),
+        "adjacent synthetic output"
+    );
+    fs::write(adjacent_scratch.join("allow-result"), b"").unwrap();
+
+    let reply = second.await.unwrap();
+    assert_result(&serde_json::to_value(reply).unwrap(), &adjacent_request);
+    adjacent.assert_reaped(adjacent_pid, adjacent_parent, adjacent_scratch);
+}
+
 async fn carrier(request: &IndicatorCompute11, cancel: bool) -> Value {
     let mut child = Command::new(env!("CARGO_BIN_EXE_scopehub-indicator-child"))
         .arg("--root")
@@ -655,6 +706,16 @@ async fn carrier(request: &IndicatorCompute11, cancel: bool) -> Value {
 async fn private_cli_delivers_one_terminal_result_with_parent_input_open() {
     let request = request(SOURCE);
     assert_result(&carrier(&request, false).await, &request);
+}
+
+#[tokio::test]
+async fn private_cli_rejects_an_exact_source_change_after_hashing() {
+    let mut request = request(&format!("{SOURCE}\n"));
+    request.code_hash = sha(SOURCE.as_bytes());
+    let reply = carrier(&request, false).await;
+    assert_eq!(reply["error"]["code"], "INVALID_ARGUMENT");
+    assert_eq!(reply.as_object().unwrap().len(), 1);
+    assert!(reply.get("artifact").is_none());
 }
 
 #[tokio::test]

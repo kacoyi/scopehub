@@ -26661,7 +26661,7 @@
           "report_sha256": "224cf1a54de8ed450870007188fd2b81ec999eaad48374cda7e40081e5b1f9b9"
         }
       ],
-      "next_action": "Correct the reviewed retry boundary and single-thread cleanup ownership, compare rejected and passing controls on exact sources, and hand the clean candidate and retained reports to the coordinator for independent review and Windows native and integrated rechecks.",
+      "next_action": "Use the worker handoff and exact-source controls for independent review, then obtain the Windows native and integrated rechecks. Compare process state, scratch metadata and cleanup diagnostics against the retained protected failure without assuming its cause.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26714,7 +26714,8 @@
           ],
           "entrypoints": [
             "crates/worker-host/tests/trusted_indicator.rs",
-            "crates/worker-host/src/indicator.rs"
+            "crates/worker-host/src/indicator.rs",
+            "crates/worker-host/src/indicator/carrier.rs"
           ],
           "rules": [
             {

@@ -58,9 +58,16 @@ impl<T: Send + 'static> PendingCleanup<T> {
         cleanup: impl Future<Output = T> + Send + 'static,
         budget: Duration,
     ) -> Self {
+        Self::start_at(cleanup, Instant::now() + budget)
+    }
+
+    pub(super) fn start_at(
+        cleanup: impl Future<Output = T> + Send + 'static,
+        deadline: Instant,
+    ) -> Self {
         Self {
             task: tokio::spawn(cleanup),
-            deadline: Instant::now() + budget,
+            deadline,
         }
     }
 
@@ -71,6 +78,10 @@ impl<T: Send + 'static> PendingCleanup<T> {
             Ok(Err(_)) => Err(ProtocolError::Io),
             Err(_) => Err(ProtocolError::Timeout),
         }
+    }
+
+    pub(super) async fn finish(self) {
+        let _ = self.task.await;
     }
 }
 
