@@ -50,6 +50,15 @@
       },
       "supersedes": "b46244c11bdf5c033c462c8f801b42de4b9823138e3b7389b5bfd2636722acea",
       "evidence_sha256": "658f361bf8f7bf852fbc48a1d130b0776f4a2eda7bb7f16c716ee29bcc9cc6b2"
+    },
+    {
+      "kind": "request",
+      "source_commit": "8c34ff030a889aa43bc83bf026a7893d0b5ec87a",
+      "scope": "Recheck the first Windows leaf-permission fixture and the diagnostic marker against both original failed native reports. Verify the submitted and stored descriptor observations, inherited permissions, unchanged production checks and deadlines, rejected controls and cleanup at the public fixture boundary.",
+      "supersedes": "02424da46c21c04daf4709ca55e8ca97fad7eae6fa915ec3e4e782c58b06fca3",
+      "requested_at": "2026-11-26T02:38:40.577861+00:00",
+      "request_id": "fb08d2d8442fecde11ccf6fae317df377d39d549f6bdbb95aede1bd490bab6be",
+      "evidence_sha256": "d3186616f14fe99e77b3a26524ef005b4f26e3f17caea7c26c32675f7d51f5c0"
     }
   ]
 }
