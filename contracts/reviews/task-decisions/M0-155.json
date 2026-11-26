@@ -184,6 +184,26 @@
       "requested_at": "2026-11-26T13:20:04.021943+00:00",
       "request_id": "57176d91352a49cc8f5d6d1461b6ddec3596304b92119d35ca658f9e79b775d9",
       "evidence_sha256": "73e68a4234ba196a8ada53d73bdbfa2ce3c4dd399f8945bbff1e70869bceaf1c"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "9ea5b5140042ac013e022c2edd7d0a79e93fee67",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 9ea5b5140042ac013e022c2edd7d0a79e93fee67",
+      "scope": "CHANGES_REQUESTED M0-155 9ea5b5140042ac013e022c2edd7d0a79e93fee67",
+      "observation": "For PR 84, the weekly reader issued zero Windows receipts when two step observations shared one browser job row and one receipt when the same observations were split across two rows with the same job ID.",
+      "reviewer": "Independent Astra Standard (t174)",
+      "original_sha256": "5aff4274d512309336c0c68e69116827b63f10852cee9ca35098b7080cd11b03",
+      "response_id": "537cc10e55d19c9a95842a96e390a665ce0194132782e6f4807a396ec02f4da1",
+      "response_sha256": "cc5b9c3dfe3d46f0f8ef48464b18f66faba44e4708d245669f9824f0952e5e54",
+      "legacy_response_sha256": "08707d6c52119cc6788c29c13e584483f2f6ff6270446281c098a6ba807adb14",
+      "observation_body_sha256": "4e8c1358a3a7fccb03579e90d4393d778ee5ed1899b62bafef10c3bc677ed0ee",
+      "event": {
+        "id": "msg_067275778dc7152e016b0833f9736487d2abf2c5349e77379a",
+        "timestamp": "2026-11-26T13:28:52.754Z"
+      },
+      "supersedes": "57176d91352a49cc8f5d6d1461b6ddec3596304b92119d35ca658f9e79b775d9",
+      "evidence_sha256": "7ebb99ce7b3dce3ded63ba18bf1290dfd9a2dfdcfb8aed707a4febb7c4cb8acd"
     }
   ]
 }

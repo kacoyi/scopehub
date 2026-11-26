@@ -213,6 +213,26 @@
       "requested_at": "2026-11-26T13:20:04.718672+00:00",
       "request_id": "b3b0a797a82bc90700d18ec054328046e742b2c2de337254585b60eede1c8d8c",
       "evidence_sha256": "8ef6b74599ea0bea2e5e4e6298cdc052f7fb46af727f8a750de0724676a15cf7"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "9ea5b5140042ac013e022c2edd7d0a79e93fee67",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 9ea5b5140042ac013e022c2edd7d0a79e93fee67",
+      "scope": "CHANGES_REQUESTED M0-156 9ea5b5140042ac013e022c2edd7d0a79e93fee67",
+      "observation": "With the objects from a depth-two Git fetch, the weekly reader issued a Windows receipt for PR 84 when the proof claimed the intermediate commit’s tree and retained both original parents.",
+      "reviewer": "Independent Astra Standard (t176)",
+      "original_sha256": "571bb0c4d9eb02cb0ef913b18c24c126f62d5202dcb3035364c9ee62a2954cf1",
+      "response_id": "36c13ceef43ce8d2deed8184ef76e5606034544cc6400410534f6085f71d06a8",
+      "response_sha256": "c5c370772dfb6739d485ae92eb59d754e036bc957e7e10351db4fc4772ec7115",
+      "legacy_response_sha256": "8d1ea2a4ba5df5b125cc07df38d9b33354420094fde8f39f670c7948dab975bf",
+      "observation_body_sha256": "a43b0d88f11456996a6fba8e73db1f13c0370a184ed9c8d04dd1da9ccbc6578d",
+      "event": {
+        "id": "msg_0671016ddfd29af0016b083493fdcc87d190a19ce343133126",
+        "timestamp": "2026-11-26T13:31:23.655Z"
+      },
+      "supersedes": "b3b0a797a82bc90700d18ec054328046e742b2c2de337254585b60eede1c8d8c",
+      "evidence_sha256": "50ca7c5907f426d715880dd2d3c1d832c5a7a86d5481ffc55f0229b9bcf1694b"
     }
   ]
 }

@@ -204,6 +204,26 @@
       "requested_at": "2026-11-26T13:20:03.338121+00:00",
       "request_id": "a4c4b3e066dbb801422b1b7e824fe6c65bef140e4db57527c3387852cb2cd0ca",
       "evidence_sha256": "b68ae5dd8e4b764428a4bbfc66d8a9548717648d9d86028639b90b11dc65813f"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "9ea5b5140042ac013e022c2edd7d0a79e93fee67",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 9ea5b5140042ac013e022c2edd7d0a79e93fee67",
+      "scope": "CHANGES_REQUESTED M0-150 9ea5b5140042ac013e022c2edd7d0a79e93fee67",
+      "observation": "The reader credited 702 seconds to the PR 121 browser report and 421 seconds to the PR 116 recovery report after I removed a required command from each.",
+      "reviewer": "Independent Astra Standard (t175)",
+      "original_sha256": "7a63d837295ae42ff80e3575b42891c81818017a5c2038f13b314c9d4370155d",
+      "response_id": "962541b52ec1c7a6c1ede5c3480ba8c579e55863eaf661ed0d1774060009e8a5",
+      "response_sha256": "0f8d577f66a69115aaf7d7d0aca6dfcee9a82723b5ac80a23ffcab74a53fda20",
+      "legacy_response_sha256": "d39de069c94aa13c5d75a892f90cd977c7c14ad095524437c5aca85b6cd6799b",
+      "observation_body_sha256": "13e6a68eecb8835c7fb8fd51b572428f85327030468fd090f1c947c57e92d170",
+      "event": {
+        "id": "msg_0dfa18070d8f36a0016b08334e2cac87d2b39a0b33d461666c",
+        "timestamp": "2026-11-26T13:25:59.902Z"
+      },
+      "supersedes": "a4c4b3e066dbb801422b1b7e824fe6c65bef140e4db57527c3387852cb2cd0ca",
+      "evidence_sha256": "7430432f3e91458f908703ad81c552b54bb743e4fa7e59c8101819ad8f33d36d"
     }
   ]
 }
