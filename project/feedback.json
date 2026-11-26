@@ -7754,6 +7754,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "protected-python-observation-loses-base-task-ledger",
+      "status": "open",
+      "severity": "major",
+      "source": "archives/observations/repo-hygiene-20261125/independent-final-m0-159-ff71dc66/original-assistant-response.jsonl (SHA-256 f36de017e36a06c4be70df990c52409d3a35e497c5c910afd8413b7aa63ad88d).",
+      "observation": "The public delivery_scope decision on ff71dc66409852b24121590b88aa512cada2e3e4 against its first parent d81357d4f299d676ea4c35d12885836bdb1aae40 raised AttributeError before reaching the Python follow-up. With all three protected rules active, the timing loop replaces the prior task ledger with the prior recurring finding. A missing finding aborts the call. An existing finding hides the completed repair from the observation path.",
+      "task_ids": [
+        "M0-159"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
