@@ -26913,8 +26913,13 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Retain the source-matched isolated Core and App observations and required harness receipts, then obtain independent review on the exact clean candidate.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-162-e85d2d5b26c3e73a.json",
+          "sha256": "9c1132e153f0263273fb8f4d42edd4b164c3e8d84f8854ff833012d4375edbe3"
+        }
+      ],
+      "next_action": "Obtain independent review on the exact clean handoff. The default coordinator entry, deliberate standalone control and restart recovery are bound to the tested source in archives/observations/herdr-session-follow-through/M0-162-71fbce9f/primary-observation-index.json (SHA-256 4a4f6a501328e100ce1593eb28ce8ce21a56515bbfd93945b4bbf43ccfe7ffd1).",
       "blocker": null,
       "closure_reason": null,
       "plan": {
