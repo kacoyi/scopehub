@@ -2,11 +2,11 @@ import { Channel, invoke } from '@tauri-apps/api/core';
 import type { InstrumentSearchInput, InstrumentSearchOutput, MarketHistoryPageInput, MarketHistoryPageOutput } from '../../../../contracts/generated/protocol';
 import { message, type Message } from './i18n';
 import { isAdmissionBusy, marketAdmissionDeadline, retryMarketAdmission } from './market-admission';
+import { isMarketOutput, type MarketOutputs } from './market-output';
 import { sampleHistoryMatchesRequest, sampleHistoryPageFitsSnapshot } from './sample-history-validation';
 
 export type { Bar, DatasetDescriptor, Instrument, MarketGetBarsOutput } from '../../../../contracts/generated/protocol';
 type Inputs = { 'instrument.search': InstrumentSearchInput; 'market.readHistoryPage': MarketHistoryPageInput };
-type Outputs = { 'instrument.search': InstrumentSearchOutput; 'market.readHistoryPage': MarketHistoryPageOutput };
 type Job = {
   operation: keyof Inputs; payload: Inputs[keyof Inputs]; signal: AbortSignal;
   resolve: (value: unknown) => void; reject: (reason: unknown) => void;
@@ -37,7 +37,7 @@ async function readOperation(
     }
     if (reply?.ok === false && operationCode(reply.error)) throw reply.error;
     if (!response.ok) throw new PreviewHttpFailure(response.status);
-    if (reply?.ok !== true || !reply.result) throw invalidMarketData();
+    if (reply?.ok !== true) throw invalidMarketData();
     return reply.result;
   }
   return invoke('execute_operation', { operation, payload });
@@ -49,7 +49,7 @@ class HistoryReader {
   private pending: Job | undefined;
   private previewReleaseUntil = 0;
 
-  read<K extends keyof Inputs>(operation: K, payload: Inputs[K], signal: AbortSignal): Promise<Outputs[K]> {
+  read<K extends keyof Inputs>(operation: K, payload: Inputs[K], signal: AbortSignal): Promise<MarketOutputs[K]> {
     return new Promise((resolve, reject) => {
       if (signal.aborted) { reject(aborted()); return; }
       this.pending?.reject(aborted());
@@ -57,7 +57,11 @@ class HistoryReader {
       signal.addEventListener('abort', cancel, { once: true });
       this.pending = {
         operation, payload, signal,
-        resolve: value => { signal.removeEventListener('abort', cancel); resolve(value as Outputs[K]); },
+        resolve: value => {
+          signal.removeEventListener('abort', cancel);
+          if (isMarketOutput(operation, value)) resolve(value);
+          else reject(invalidMarketData());
+        },
         reject: reason => { signal.removeEventListener('abort', cancel); reject(reason); },
       };
       void this.drain();

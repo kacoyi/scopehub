@@ -7585,6 +7585,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "sample-startup-accepts-structurally-invalid-frozen-history",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent changes-requested decision 25f18c909377b012f42761502c36a36bb32c99dd46f8b4539cce6c9a2a39d98b for source 2f02d0f7d674bf1fb83b507f1e3303f3a7edaad5. The original response is retained at archives/observations/repo-hygiene-20261125/independent-final-m0-154-2f02d0f7/final-response.txt (SHA-256 e1a9a386def352c803a74161243a6fcd2611dd4338b08f6eda91c3346ed7d765). Matched traffic and its authenticated trace references are indexed in .reports/m0-154-history-response/traffic/archive-provenance.json and SHA256SUMS. The unchanged application and observer were replayed on Chromium with the archived control and the single-field deletion. The responses, startup attachments and unchanged execution inputs are bound by .reports/m0-154-response-admission/before/observations.json (SHA-256 63fcf6ba5f8464b2422dbb71a203f82b01755d8545a64064bfbcf8296fbaf276).",
+      "observation": "Removing only the required snapshot.content_hash from the matched 40-bar success reply still rendered all 40 bars in Chromium and produced sample-verified when the recorded events were replayed through the startup observer. Existing browser cases removed a field the request comparison already checked, omitted the whole result, shifted the range or changed event order. They did not reject a schema-invalid success that passed the shared comparisons. The first-page check compared the absent hash with itself and treated equality as proof of identity.",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery",
+        "ui-build"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

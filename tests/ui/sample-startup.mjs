@@ -1,5 +1,6 @@
 import { isDeepStrictEqual } from 'node:util';
 import { expect } from '@playwright/test';
+import { isMarketOutput } from '../../apps/desktop/ui/src/market-output.ts';
 import { sampleHistoryMatchesRequest, sampleHistoryPageFitsSnapshot } from '../../apps/desktop/ui/src/sample-history-validation.ts';
 import { replayStage } from './replay-stages.mjs';
 
@@ -221,11 +222,13 @@ export async function openDefaultSample(page, { trigger, verifyChart, reportStar
     if (navigation?.status() >= 400) throw new Error(`Sample document GET returned HTTP ${navigation.status()}`);
     const catalog = await observer.read(sampleCatalogCall.operation);
     await verifyRequest(sampleCatalogCall);
+    expect(isMarketOutput(sampleCatalogCall.operation, catalog), 'Catalog reply satisfies the operation output schema').toBe(true);
     const instrument = catalog.instruments.find(item => item.id === future);
     expect(instrument).toBeDefined();
     startup?.mark('catalog_verified_ms');
     const history = await observer.read(historyCall.operation);
     await verifyRequest(historyCall);
+    expect(isMarketOutput(historyCall.operation, history), 'History reply satisfies the operation output schema').toBe(true);
     expect(sampleHistoryMatchesRequest(history, historyCall.payload, instrument), 'History reply matches the sample request').toBe(true);
     expect(sampleHistoryPageFitsSnapshot(history, history.snapshot, history.total_bars, []), 'History reply is a valid first page').toBe(true);
     expect(history.snapshot.series).toEqual(historyCall.payload.series);

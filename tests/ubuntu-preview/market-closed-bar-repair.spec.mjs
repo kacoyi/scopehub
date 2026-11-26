@@ -1,4 +1,7 @@
+import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
+import Ajv2020 from 'ajv/dist/2020.js';
+import addFormats from 'ajv-formats';
 import { painted } from '../ui/chart-pixels.mjs';
 import { replayStage, waitForReplayRequest } from '../ui/replay-stages.mjs';
 import { openDefaultSample, sampleCatalogCall, sampleHistoryCall } from '../ui/sample-startup.mjs';
@@ -329,7 +332,7 @@ for (const [change, stage, rejectedOperation] of [
   });
 }
 
-test.describe('sample startup history reply compatibility', () => {
+test.describe('sample startup reply compatibility', () => {
   const operation = '/__scopehub/operation';
   const historyCall = sampleHistoryCall();
   const catalogName = sampleCatalogCall.operation;
@@ -337,6 +340,14 @@ test.describe('sample startup history reply compatibility', () => {
   let catalogReply;
   let historyReply;
   let shiftedReply;
+  let legacyReply;
+  const readSchema = path => JSON.parse(readFileSync(new URL(`../../contracts/schemas/${path}`, import.meta.url), 'utf8'));
+  const ajv = new Ajv2020();
+  addFormats(ajv);
+  ajv.addSchema(readSchema('protocol.schema.json'));
+  const validateCatalog = ajv.compile(readSchema(`operations/${catalogName}.output.schema.json`));
+  const validateHistory = ajv.compile(readSchema(`operations/${historyName}.output.schema.json`));
+  const validateLegacyBars = ajv.compile(readSchema('operations/market.getBars.output.schema.json'));
 
   test.beforeAll(async ({ request, baseURL }) => {
     const headers = { Origin: new URL(baseURL).origin };
@@ -352,27 +363,46 @@ test.describe('sample startup history reply compatibility', () => {
     const shiftedCall = structuredClone(historyCall);
     shiftedCall.payload.from_ms += 60_000;
     shiftedReply = await capture(shiftedCall);
+    const { series: { instrument_id, timeframe, provider_id }, from_ms, to_ms } = historyCall.payload;
+    legacyReply = await capture({ operation: 'market.getBars', payload: { instrument_id, timeframe, provider_id, from_ms, to_ms } });
+    expect(validateLegacyBars(legacyReply.result)).toBe(true);
     for (const [call, reply] of [[historyCall, historyReply], [shiftedCall, shiftedReply]]) {
       expect(reply.result.snapshot).toMatchObject({
         from_ms: call.payload.from_ms, to_ms: call.payload.to_ms, series: call.payload.series,
         dataset_revision: call.payload.expected_revision,
       });
       expect(reply.result.bars).toHaveLength(40);
+      expect(reply.result.stream_position).toBeNull();
+      expect(reply.result.next_cursor).toBeNull();
     }
   });
 
-  for (const [kind, ready, stage] of [
-    ['compatible', true, 'sample-verified'],
-    ['shifted snapshot', false, 'catalog-verified'],
-    ['omitted snapshot start', false, 'catalog-verified'],
-    ['omitted history result', false, 'catalog-verified'],
-    ['history completed before catalog', true, 'catalog-verified'],
+  const invalidData = 'The data response failed validation.';
+  const invalidHistory = 'History reply satisfies the operation output schema';
+  for (const [kind, scenario] of [
+    ['compatible', { stage: 'sample-verified' }],
+    ['shifted snapshot', { shifted: true, error: 'History reply matches the sample request' }],
+    ['omitted snapshot start', { mutate: history => delete history.result.snapshot.from_ms }],
+    ['omitted snapshot content hash', { mutate: history => delete history.result.snapshot.content_hash }],
+    ['malformed snapshot content hash', { mutate: history => { history.result.snapshot.content_hash = 'X'.repeat(64); } }],
+    ['omitted nullable stream position', { mutate: history => delete history.result.stream_position }],
+    ['invalid bar trading day', { mutate: history => { history.result.bars[0].trading_day = '2024-02-30'; } }],
+    ['omitted history result', { mutate: history => delete history.result }],
+    ['legacy bars returned for frozen history', { legacy: true }],
+    ['omitted catalog provider mappings', { catalogInvalid: true, stage: 'dom-content-loaded',
+      error: 'Catalog reply satisfies the operation output schema' }],
+    ['failed history response', { failed: true, error: 'returned HTTP 503 (WORKER_EXITED)' }],
+    ['history completed before catalog', { outOfOrder: true,
+      error: `Previous response finished before ${historyName} was sent` }],
   ]) {
     test(`public sample startup handles the ${kind} case`, async ({ page }) => {
-      const outOfOrder = kind === 'history completed before catalog';
-      const history = structuredClone(kind === 'shifted snapshot' ? shiftedReply : historyReply);
-      if (kind === 'omitted snapshot start') delete history.result.snapshot.from_ms;
-      if (kind === 'omitted history result') delete history.result;
+      const { outOfOrder, shifted, legacy, mutate, catalogInvalid, failed, stage = 'catalog-verified', error = invalidHistory } = scenario;
+      const catalog = structuredClone(catalogReply);
+      if (catalogInvalid) delete catalog.result.instruments.find(item => item.id === historyCall.payload.series.instrument_id).provider_mappings;
+      const history = structuredClone(legacy ? legacyReply : shifted ? shiftedReply : historyReply);
+      if (mutate) mutate(history);
+      expect(validateCatalog(catalog.result)).toBe(!catalogInvalid);
+      expect(validateHistory(history.result)).toBe(!(legacy || mutate));
       if (outOfOrder) {
         await page.addInitScript(({ operation, historyCall }) => {
           const fetch = window.fetch;
@@ -405,39 +435,48 @@ test.describe('sample startup history reply compatibility', () => {
         calls.push(call);
         if (call.operation === catalogName) {
           if (outOfOrder) await releaseCatalog.promise;
-          return route.fulfill({ json: catalogReply });
+          return route.fulfill({ json: catalog });
         }
+        if (failed) return route.fulfill({ status: 503, json: { ok: false, error: { code: 'WORKER_EXITED', retryable: true } } });
         return route.fulfill({ json: history });
       });
 
       try {
         const reports = [];
-        const startup = openDefaultSample(page, { reportStartup: report => {
+        const startupEvents = ['request', 'response', 'requestfinished', 'requestfailed', 'framenavigated', 'domcontentloaded'];
+        const listenerCounts = () => startupEvents.map(event => page.listenerCount(event));
+        const before = listenerCounts();
+        const countsAtAttachment = [];
+        const startup = openDefaultSample(page, { reportStartup: async report => {
           reports.push(report);
-          return attachSampleStartup(report);
+          countsAtAttachment.push(listenerCounts());
+          await attachSampleStartup(report);
+          if (failed) throw new Error('Simulated attachment sink failure');
         } }).catch(error => error);
-        if (ready) {
+        if (stage === 'sample-verified' || outOfOrder) {
           await expect(chart(page)).toHaveAttribute('data-bars', '40');
         } else {
           const plot = page.getByRole('region', { name: 'Price chart' });
-          await expect(plot.getByRole('alert')).toHaveText('The data response failed validation.');
+          await expect(plot.getByRole('alert')).toHaveText(failed ? 'The market worker is disconnected.' : invalidData);
           await expect(plot.locator('.chart canvas')).toHaveCount(0);
+          await expect(plot.getByRole('button', { name: 'Retry history' })).toHaveCount(failed ? 1 : 0);
         }
         const result = await startup;
-        expect(calls).toEqual([sampleCatalogCall, historyCall]);
-        expect(completed).toEqual(outOfOrder ? [historyName, catalogName] : [catalogName, historyName]);
+        expect(calls).toEqual(catalogInvalid ? [sampleCatalogCall] : [sampleCatalogCall, historyCall]);
+        expect(completed).toEqual(catalogInvalid ? [catalogName] : outOfOrder ? [historyName, catalogName] : [catalogName, historyName]);
         expect(reports).toHaveLength(1);
+        expect(countsAtAttachment).toEqual([before]);
         const [observation] = reports;
         expect(observation.stage).toBe(stage);
-        expect(observation.catalog_verified_ms).toBeGreaterThanOrEqual(observation.document.dom_content_loaded_ms);
+        if (catalogInvalid) expect(observation.catalog_verified_ms).toBeUndefined();
+        else expect(observation.catalog_verified_ms).toBeGreaterThanOrEqual(observation.document.dom_content_loaded_ms);
         if (stage === 'sample-verified') {
           expect(result).toEqual(history.result.snapshot);
           expect(observation.history_verified_ms).toBeGreaterThanOrEqual(observation.catalog_verified_ms);
           expect(observation.sample_verified_ms).toBeGreaterThanOrEqual(observation.history_verified_ms);
         } else {
           expect(result).toBeInstanceOf(Error);
-          expect(result.message).toContain(outOfOrder
-            ? `Previous response finished before ${historyName} was sent` : 'History reply matches the sample request');
+          expect(result.message).toContain(error);
           expect(observation.history_verified_ms).toBeUndefined();
           expect(observation.sample_verified_ms).toBeUndefined();
         }
