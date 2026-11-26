@@ -126,6 +126,26 @@
       "requested_at": "2026-11-26T14:10:58.215685+00:00",
       "request_id": "e1626b76b87fa52f5f9027c3f355ca53daca140a9fe8bc5d26a4214ec93953ed",
       "evidence_sha256": "500a73be7e1e1872433d30cb22738279d0f1164e29fa8d0d00de1cae5b95687a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "0c4a1a14b90c7427c62108f57d7170dcb7d0b5aa",
+      "verdict": "approved",
+      "decision": "APPROVE M0-162 0c4a1a14b90c7427c62108f57d7170dcb7d0b5aa",
+      "scope": "APPROVE M0-162 0c4a1a14b90c7427c62108f57d7170dcb7d0b5aa",
+      "observation": "I verified that t186 exited with code 0 after both lock waits exceeded 10.5 seconds and that both archived events matched the original rollout byte for byte.",
+      "reviewer": "Independent Astra Standard (t188)",
+      "original_sha256": "f5377a04e28ff722727cf39596cfcff114a553a0f4c588a5bf3aa11795cb64c6",
+      "response_id": "9f817107bdedc72b45b5fd154eb6ae67e00883c2250dd2af94dda07845aea4e5",
+      "response_sha256": "c10954d3ec36bff9b09dbe5b6d2e5b657597e8b8a32b36f3b2366ec698792e62",
+      "legacy_response_sha256": "ba380b7ec462ffbc0b76012bc3f814826ae4aa95c8b3080b3633c68fa93c3329",
+      "observation_body_sha256": "fb7e7879af4468716c85914265c6ae88fec04e0c87d3f2883d20a3c2b1a9dee6",
+      "event": {
+        "id": "msg_03035e5de24f4f8a016b083eca99a087d2aee63fff69111030",
+        "timestamp": "2026-11-26T14:14:52.643Z"
+      },
+      "supersedes": "e1626b76b87fa52f5f9027c3f355ca53daca140a9fe8bc5d26a4214ec93953ed",
+      "evidence_sha256": "e5a46b356f04192c31aebb304eb9ebe54cd6569e3f8f45cf954bd6c86cb5d73d"
     }
   ]
 }
