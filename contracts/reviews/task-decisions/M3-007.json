@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M3-007",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "c1cefee5537c5ef4b80dd1ce7a6f28eaaaa69540",
+      "scope": "Exercise an offline sample indicator through the actual chart, native admission and UI. Compare one lost logical status delivery, ordinary ready results and terminal, cancelled or unavailable inputs. Check task identity, calculation, visible outcome, bounds and cleanup. Challenge an independently chosen neighboring input and verify what the original calendar failure establishes.",
+      "supersedes": null,
+      "requested_at": "2026-11-26T06:14:21.549917+00:00",
+      "request_id": "5c5b010ba79ded36557dedee9d9482c0aabbb85145c5f7778b6e00d7dca4bbdc",
+      "evidence_sha256": "e5614561c24ee9c2e56ab2f3af7a05decf942de839f05c03f3336b9a6d7b64e8"
+    }
+  ]
+}
