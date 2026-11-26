@@ -455,12 +455,19 @@ class PublicationTests(ProjectFixture):
         self.assertEqual('failed', read_json(self.destination / 'test-report.json')['status'])
 
     def native_revision_report(self, *, status='failed'):
-        check = 'windows-published-revision-access'
-        self.add_catalog_checks(check)
+        check_id = 'windows-published-revision-access'
+        production_catalog = read_json(ci_artifacts.ROOT / 'project/checks.json')
+        check = next(row for row in production_catalog['checks'] if row['id'] == check_id)
+        catalog_path = self.root / 'project/checks.json'
+        catalog = read_json(catalog_path)
+        catalog['checks'].append(check)
+        catalog_path.write_bytes(json_bytes(catalog))
         report = self.hosted_report(system='Windows', event='workflow_dispatch')
+        report['environment']['machine'] = 'AMD64'
         report['status'] = status
-        self.add_result(report, check, status=status)
-        return report, f'runs/fixture/{check}'
+        self.add_result(report, check_id, status=status)
+        report['checks'][-1]['command'] = check['command']
+        return report, f'runs/fixture/{check_id}'
 
     def save_native_revision_observation(self, report, directory, observation, *, marker=None):
         contents = json_bytes(observation)
@@ -539,6 +546,43 @@ class PublicationTests(ProjectFixture):
                 self.assertFalse((destination / 'test-report.json').exists())
                 self.assertFalse((destination / manifest).exists())
                 self.assertFalse((destination / executable).exists())
+
+    def test_passing_native_revision_access_requires_a_supported_host(self):
+        report, directory = self.native_revision_report(status='passed')
+        for system, machine in (('Windows', 'ARM64'), ('Linux', 'x86_64')):
+            with self.subTest(system=system, machine=machine):
+                report['environment'].update(system=system, machine=machine)
+                self.save_report(report)
+                destination = self.destination.with_name(f'{system}-{machine}')
+                with self.assertRaisesRegex(PublicationError, 'requires Windows x64'):
+                    stage_artifacts(self.root, destination, self.env)
+                self.assertFalse((destination / 'test-report.json').exists())
+                self.assertFalse((destination / (directory + '.log')).exists())
+                self.assertFalse((destination / directory).exists())
+
+    def test_blocked_or_unselected_native_revision_access_retains_the_report(self):
+        report, directory = self.native_revision_report()
+        check = report['checks'][-1]
+        for field in ('exit_code', 'log', 'log_sha256'):
+            del check[field]
+        check['status'] = 'blocked'
+        for system, machine, reason_code in (
+            ('Windows', 'ARM64', 'unsupported_platform'),
+            ('Linux', 'x86_64', 'unsupported_platform'),
+            ('Windows', 'AMD64', 'not_selected'),
+        ):
+            with self.subTest(system=system, machine=machine, reason_code=reason_code):
+                report['environment'].update(system=system, machine=machine)
+                check['reason_code'] = reason_code
+                report['status'] = 'passed' if reason_code == 'not_selected' else 'blocked'
+                self.save_report(report)
+                destination = self.destination.with_name(f'{system}-{machine}')
+                self.assertTrue(stage_artifacts(self.root, destination, self.env))
+                contents = (self.reports / 'test-report.json').read_bytes()
+                self.assertEqual(contents, (destination / 'test-report.json').read_bytes())
+                self.assertEqual(contents, (destination / 'runs/fixture/test-report.json').read_bytes())
+                self.assertFalse((destination / (directory + '.log')).exists())
+                self.assertFalse((destination / directory).exists())
 
     def test_native_revision_access_removes_truncated_observation_after_write_failure(self):
         report, directory = self.native_revision_report()

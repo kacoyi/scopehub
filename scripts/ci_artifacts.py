@@ -331,6 +331,7 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False):
 
     scope = None if lane else scope_provenance(report, digest(contents), env)
     project = load_project(root)
+    native_host = windows_x64(report['environment'])
     destination.mkdir()
     executed = {}
     # The hosted producer logs synthetic inputs and redacted outcomes. The catalog owns check identities.
@@ -342,8 +343,12 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False):
             raise PublicationError('The check has an unexpected observation.')
         if 'log' not in result:
             continue
-        if project['checks'].get(check, {}).get('status') != 'implemented' or check in executed:
+        catalog_check = project['checks'].get(check, {})
+        if catalog_check.get('status') != 'implemented' or check in executed:
             raise PublicationError('A check log is absent from the active catalog or duplicated.')
+        if (check == NATIVE_REVISION_ACCESS and passed
+                and catalog_check['platforms'] == 'windows-x64' and not native_host):
+            raise PublicationError(f'A passing {check} check requires Windows x64.')
         relative = f'{run}/{check}.log'
         if result['log'] != '.reports/' + relative:
             raise PublicationError('Check log is outside the current verification run.')
@@ -367,9 +372,9 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False):
     if 'integration_validation' in report and report['integration_validation'] != integration_validation(report['checks']):
         raise PublicationError('The integration summary differs from the checked observations.')
 
-    if NATIVE_REVISION_ACCESS in executed and windows_x64(report['environment']):
-        stage_native_revision_access(reports, destination, run, report['source'],
-                                     required=executed[NATIVE_REVISION_ACCESS] == 'passed')
+    native_status = executed.get(NATIVE_REVISION_ACCESS)
+    if native_status == 'passed' or (native_status is not None and native_host):
+        stage_native_revision_access(reports, destination, run, report['source'], required=native_status == 'passed')
     browser_roots = {'chart-history': f'chart-history/{run}', 'ubuntu-preview': f'ubuntu-preview/{run_id}'}
     for check in BROWSER_OUTPUTS:
         if check in executed:
