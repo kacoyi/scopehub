@@ -25973,9 +25973,13 @@
         {
           "path": "project/evidence/M0-154-10729f8012c6ad43.json",
           "sha256": "1aa7c7e38ce631d105e5bdd7f30e69ad64aabc4b21c97495a08f44c31ca8520a"
+        },
+        {
+          "path": "project/evidence/M0-154-8bf9a6ef0193add5.json",
+          "sha256": "15a80ca98b3eb1e32d257a20dca060bc21d765582e525255ab9b482abbb2c51b"
         }
       ],
-      "next_action": "Qualify the corrected clean source locally, then obtain independent source-bound review and ordinary first-attempt Windows market-recovery evidence. The Linux Chromium baseline on decision head d82aa466250e9872978c92a0a2b735e1e5cf5049 is retained in .reports/m0-154-chart-presentation/baseline/observations.json. The historical Windows asset attribution remains unknown.",
+      "next_action": "Obtain independent source-bound review of clean implementation 523db34430c3eeb2b0c9ffeefa4c462038d405c1 and ordinary first-attempt Windows market-recovery evidence. The Linux task run is retained in project/evidence/M0-154-8bf9a6ef0193add5.json and .reports/m0-154-chart-presentation/candidate/observations.json (SHA-256 691ff3d71c8011495426c9db16a6ca827dbdf6170889d9b5bdf5a18752264e3e). The historical Windows asset attribution remains unknown.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
