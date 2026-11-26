@@ -280,6 +280,15 @@
       },
       "supersedes": "9f655d0688aa7f88d71f34e9f89a5621c5de755d7ef3565ded6d1ae689282b08",
       "evidence_sha256": "8f7d1593de5045297f753324dc18c21e6dd59bcd31fa6745733919fa631cdbc0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "030661a9862276017321f94b621bd70e99561020",
+      "scope": "Inspect the first-reopen proof helper on the changed shared desktop-workspace test and preserved clear, replacement and source-revision behavior. Exercise at least one positive and one refused read without assuming the committed selection was lost.",
+      "supersedes": "29e822206c5f3ec8263e7b464ad7a33a2c062b3149983e544a4bc4eb1d685511",
+      "requested_at": "2026-11-26T13:58:53.566030+00:00",
+      "request_id": "a419f8e25a0f5c3673fe9a1267476fb003aaa3d6b1933f7033dc584efbf68d38",
+      "evidence_sha256": "9fcb9daa427a1749d9648be0448e77f7d5ba1d0ee6127111a454a38f1e63a2b5"
     }
   ]
 }

@@ -300,6 +300,15 @@
       },
       "supersedes": "0d44310a01747a837147169cb15c619a24e2d2d9535f57045004e90bef440db7",
       "evidence_sha256": "126284ef9ede3384703bd8c9556dd947ff39455c63bc7d8e370f34eaa30151c6"
+    },
+    {
+      "kind": "request",
+      "source_commit": "030661a9862276017321f94b621bd70e99561020",
+      "scope": "Review shared test and transport behavior for replacement, focus, temporary unavailability and reopen. Check that the new retry does not silently retry an admitted or malformed reply or weaken the CSV and folder boundaries. Use previously approved source and genuine current controls.",
+      "supersedes": "7eb9286670918b01cf141364d15c0c5455ca97f34cfcf5b603e3ed47146ca833",
+      "requested_at": "2026-11-26T13:58:54.246054+00:00",
+      "request_id": "44c1ca86b95fd80a797d0acff83ab9660f96c453a8813b460b7989e7566a1bfc",
+      "evidence_sha256": "a7914e1135a00026dcf994c36b070e632600aadcc7e1fd2a1f8bf79c6cd4a9e0"
     }
   ]
 }

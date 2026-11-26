@@ -349,6 +349,15 @@
       },
       "supersedes": "23ebd4f2066a06991f6911496a33f500fd4d54c0aa78312a16a549db87ef205e",
       "evidence_sha256": "39bf245219e8296ba539a1942de488265d605d9ac83c4c0d7385bb7c58fe8a9f"
+    },
+    {
+      "kind": "request",
+      "source_commit": "030661a9862276017321f94b621bd70e99561020",
+      "scope": "Review the first-reopen independent proof read after the second window showed close 106. Verify accepted and rejected response status, identity, selection revision and timeout, retaining the unknown historical envelope.",
+      "supersedes": "e5f7ab8e8dbdcafa558a112601a846bff69af4095e94be770cc16b66a3e65ba2",
+      "requested_at": "2026-11-26T13:58:52.812761+00:00",
+      "request_id": "a05ba6b5aa05bc7789d397cf1ec46b4fbedf5b0014a9c49484942658187e5baa",
+      "evidence_sha256": "051a63afa4d02e4845ce85de0ca57b8790358d6d1fb7ecc5847e188ac7d8d807"
     }
   ]
 }
