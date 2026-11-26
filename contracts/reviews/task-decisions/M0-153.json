@@ -59,6 +59,15 @@
       },
       "supersedes": "90f3dfdd0158de0e40cb962556d82e9d8f74066de05df90e5d04c63b292eff2f",
       "evidence_sha256": "8bf3a3a9ea4b8d4e2df308e07ee112fd6b81fa2b7b7e160e083eb2b11036287d"
+    },
+    {
+      "kind": "request",
+      "source_commit": "68847f66d160e50dc057b4a8916a126c7dd6a535",
+      "scope": "Compare the native reports and complete ordered case results on the reconciled candidate with the original successful and timed-out controls. Check old and new skips, the captured terminal result and which source was tested. Independently assess changes from the protected merge, remaining first-push ownership, the ordinary integration outcome and the separate process and workflow objectives.",
+      "supersedes": "b2b3033bfe2e5b333ce8dc4c8dc9e6da144fc10a6cc8d8615cdf45aeb4dabfc0",
+      "requested_at": "2026-11-26T05:53:07.431167+00:00",
+      "request_id": "e5e59d4e136951c9008e8b6a802fb514e6dfa2dda8bc3668268c7d33cf0e8495",
+      "evidence_sha256": "8035fdfa05352c9c65a9e743eeb8de5026a49d07ff05ce3405302466a59547eb"
     }
   ]
 }
