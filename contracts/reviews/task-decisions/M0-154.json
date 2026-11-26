@@ -126,6 +126,26 @@
       "requested_at": "2026-11-26T05:16:00.146745+00:00",
       "request_id": "e6904baa46cd636e5a2826d0c6bfb14e5aafe19e8ab9ec5d37b3cd02ea940c11",
       "evidence_sha256": "da8f956a18f4e13c46e57e0c07af74dba62c64dee3ac675e516dece238448d24"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e11e24fcb079430b0e13414c5d969e63108411fa",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-154 e11e24fcb079430b0e13414c5d969e63108411fa",
+      "scope": "CHANGES_REQUESTED M0-154 e11e24fcb079430b0e13414c5d969e63108411fa",
+      "observation": "With candle drawing suppressed, the startup observer counted 1,194 pixels from the last-price line and axis label and reported `sample-verified`.",
+      "reviewer": "Independent Astra Standard (t141)",
+      "original_sha256": "7b10d48f04e8d0f865efe4999455181608f0cfb5f255d93f60860b113a99ffd7",
+      "response_id": "985ad89feb9dd836325744647162a0d52801aa17181bcca2688c4ea00456c433",
+      "response_sha256": "e308d2a6fa084522ac8215e731e13c6b9214dd274fa034491c9d4089db271688",
+      "legacy_response_sha256": "4939b073bda32e20dba526a77eeebacd31534a03acacee0b0d3a8dfbdec1df4c",
+      "observation_body_sha256": "f2620bfa6f3b8a57851b59538203d2dcb9414979f0dbcf74956dcc98fe402337",
+      "event": {
+        "id": "msg_037fc657fe7313eb016b07cbaafad887d2b012e958efa4ef95",
+        "timestamp": "2026-11-26T06:03:44.535Z"
+      },
+      "supersedes": "e6904baa46cd636e5a2826d0c6bfb14e5aafe19e8ab9ec5d37b3cd02ea940c11",
+      "evidence_sha256": "7a5afb98edfbfee5900b9078eb4d9c16c0b65a62d250721e47a0afc586e50918"
     }
   ]
 }
