@@ -137,6 +137,15 @@
       },
       "supersedes": "27334b15beebb0d3da60675b5aede2678f471a4e019edb36f2ac366378e1e995",
       "evidence_sha256": "22871778933429f44da0d50de30d57830e4662c4246d99d955ee725836ad917b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "39413fd304e8575605dc5b70a352d2e394ae1e35",
+      "scope": "Challenge the combined publisher ownership. Use original PR121, PR116, PR84 and absent, Linux-only or conflicting jobs as controls. Separate verified cache from unproven clocks. Inspect native_report_issue, committed_publishing_inputs, catalog lookup and other consumers for inconsistent exception policy. Recheck the original decision on e00b088b.",
+      "supersedes": "7bbe6b61fe484a556d119e0a9bdc2bfc283879ba4c485f5a64278083eb4d570f",
+      "requested_at": "2026-11-26T12:29:21.623645+00:00",
+      "request_id": "e24f0f416a1f099fea888b41978bfec5a3f67e193cb2106dc60745a93cdc719f",
+      "evidence_sha256": "ded8f6293408bad7a6ea456a7edd68eb67a2976259a7ff5556bdc2a7ba602f4b"
     }
   ]
 }

@@ -146,6 +146,15 @@
       },
       "supersedes": "0f5d67f548be04f391b25832d31e4181471d2752271f80f7c5f7aee4b01a6dab",
       "evidence_sha256": "13ea904a733f2728c1022f44632104c88dfa64ea676c54591499cd81a10fda39"
+    },
+    {
+      "kind": "request",
+      "source_commit": "39413fd304e8575605dc5b70a352d2e394ae1e35",
+      "scope": "Exercise Windows job role, cache, partial clock and conflicting participant attribution across both readers. Derive separate recovery, browser, wall and runner results from the original PR84, PR116 and PR121 job evidence. Include save, reload and contradictory inputs. Recheck the original decision on e00b088b.",
+      "supersedes": "01e2334a4390e5d464aa9d6885bc139af0831b8bf575dbf798352949285e64b8",
+      "requested_at": "2026-11-26T12:29:17.799409+00:00",
+      "request_id": "2a96feafe961d65f591b0f9111b1ca1b31b3a6e483e388b9645cb7bb30fb1f35",
+      "evidence_sha256": "93395bd68ec56918491d91d79fe448126e04f49c39de89dc252f4bdf3bf5025a"
     }
   ]
 }
