@@ -26921,6 +26921,10 @@
         {
           "path": "project/evidence/M0-162-4d0ab4864211bc4b.json",
           "sha256": "9f336d77da284e317e923a7a727d9f3504bb2a5b247f11033e24f07afdb2b874"
+        },
+        {
+          "path": "project/evidence/M0-162-9bc780d559793964.json",
+          "sha256": "3d45973b40b738e4254a13577a79436bf2ce4df0a9de9356dde2e93991038f1e"
         }
       ],
       "next_action": "Coordinator to review the exact clean source and retained observations in .reports/observations/M0-162-lifecycle-follow-through/handoff.json. Independently exercise competing collection, archive recovery, incomplete desktop observations and corruption holds before task closure or publication.",
