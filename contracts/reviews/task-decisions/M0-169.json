@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-169",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "2727e7b359dc1b6ef9e26dcb9467063417458075",
+      "scope": "Review the two ordinary trusted-indicator timeout cases and their synthetic fixture against the independently archived protected Windows producer and aggregate. Check early startup and actually running child witnesses, timeout type and retryability, absence of artifacts, PID and scratch cleanup at terminal return, and adjacent successful completion and cancellation. Verify the extended time budget is fixture-only and cannot turn absent witnesses into a pass. Distinguish the separately owned M0-167 scratch incident and unobserved native stages.",
+      "supersedes": null,
+      "requested_at": "2026-11-26T15:30:30.234925+00:00",
+      "request_id": "53652cdd3d2880ae1751c557e70fd8e7c0056709218bbe218e2d5ee948789c27",
+      "evidence_sha256": "2dff36099fb4211be1078f698df4652f919758dd99f63aba359fa7199d6dcd67"
+    }
+  ]
+}
