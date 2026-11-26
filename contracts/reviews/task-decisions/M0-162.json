@@ -184,6 +184,26 @@
       "requested_at": "2026-11-26T15:16:44.905506+00:00",
       "request_id": "cd584624ae073514e8b5a351b7168ca16a0db7a3324dcd664e7e24328c122029",
       "evidence_sha256": "229137fcb017c1c8e0a23695030fb900447d4eeb02284bdaf4c82d0e38891035"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a216dd82fa7065cd7761d8a0f05e3343a3d90cb8",
+      "verdict": "approved",
+      "decision": "APPROVE M0-162 a216dd82fa7065cd7761d8a0f05e3343a3d90cb8",
+      "scope": "APPROVE M0-162 a216dd82fa7065cd7761d8a0f05e3343a3d90cb8",
+      "observation": "I replayed both retained Linux desktop runs with the reviewed source and verified that each recovered the exact response and completion bytes and that neither run removed a preexisting tab.",
+      "reviewer": "Independent Astra Standard (t19d)",
+      "original_sha256": "b6534e3b15ae18b76a4759deb6429cfc2c830c18eca548ae2f1a92ee98b5929f",
+      "response_id": "492ec231655744d9f49f53447114b038d0702fcc2aba4b7042db57fc948abfa9",
+      "response_sha256": "71e203395233a1ddba107bd5a364b81eb54edb1996d06af4e4f9b6d4bd606362",
+      "legacy_response_sha256": "6d73615ed3edbac57f2d7f08e9b095e33ae7b3f2cc4c1afe5849b5a97842f03f",
+      "observation_body_sha256": "cb17bc8c3412a03e0f423dab03f9f21431196513a1f6a5a38ba35c670b73314b",
+      "event": {
+        "id": "msg_0f33559de70fc215016b084e47054087d2adde177fbb6dea91",
+        "timestamp": "2026-11-26T15:20:53.912Z"
+      },
+      "supersedes": "cd584624ae073514e8b5a351b7168ca16a0db7a3324dcd664e7e24328c122029",
+      "evidence_sha256": "2a88a7f33bbf16303a9f3d77f963fb9708a6a13781f08bfb647734392931e34a"
     }
   ]
 }
