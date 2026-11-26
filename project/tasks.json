@@ -26969,6 +26969,12 @@
             "checks": [
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "Deeply nested malformed child output can unwind the owned runner before its inspection hold. Replay valid and malformed child output through public run-owned and retain the rejected input without an archive or normal exit.",
+            "checks": [
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain the original response and completion event before the owned one-shot process exits. Keep reusable or ambiguous sessions intact and recover by terminal and source receipt.",

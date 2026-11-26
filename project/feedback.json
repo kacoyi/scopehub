@@ -7910,6 +7910,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "herdr-deep-invalid-runner-output-bypasses-inspection-hold",
+      "status": "open",
+      "severity": "major",
+      "source": "Observed on a627f12b3a746473b09fd12933ee4cfe1b4f49bd through scripts/herdr.py run-owned with a synthetic child. The checkout-local original observations are indexed at .reports/observations/M0-162-lifecycle-follow-through/cf7e0805-follow-through/simulated-adjacent/runner-output-baseline-a627f12b-confirmed.json, SHA-256 a38154d2fe56a2702fa03d45b250fd0aea5b457dffb1baff7fb468f3d38f4c52.",
+      "observation": "Deeply nested newline-terminated child output raised an unhandled RecursionError in run-owned and unwound the owned process before its inspection hold, without a verified archive. Missing newline, malformed JSON, non-object JSON and invalid UTF-8 reached the hold in the same probe.",
+      "task_ids": [
+        "M0-162"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
