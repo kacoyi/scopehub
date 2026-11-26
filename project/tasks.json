@@ -28779,6 +28779,172 @@
           "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
         }
       }
+    },
+    {
+      "id": "M0-167",
+      "title": "Verify scratch cleanup when an admitted indicator is cancelled before child exit",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M3-005"
+      ],
+      "scope": [
+        "crates/worker-host",
+        "python/worker_runtime",
+        "python/indicators",
+        "apps/desktop/ui/ubuntu-workspace.mjs",
+        "crates/persistence/src/bin/workspace_bridge.rs",
+        "tests/ubuntu-preview"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain the first protected Windows failure, its named assertion and neighboring results. Determine what the application guarantees when returning a cancelled task and distinguish a remaining child, handle or scratch path using observations.",
+        "Exercise the ordinary trusted worker cancellation entry with an approved benign fixture. Verify one terminal cancellation, absence of a persistable result and cleanup of only its owned scratch files. Preserve normal completion, deadlines, task isolation and interruption. Retain a controlled failure that distinguishes the chosen correction.",
+        "Through the preview transport and its ordinary registry, observe a complete worker failure before the carrier exits, no artifact, and an independently approved run during the first run's cleanup. Preserve the success and cancellation lifecycles, and observe bounded carrier ownership and shutdown.",
+        "Through the ordinary preview and public registry, submit the same valid indicator success frame before exit 0, exit 1 and signal termination. Require close with exit 0 for success. For both abnormal closes require WORKER_EXITED, no artifact, no committed effects, and available adjacent admission. Preserve previously delivered terminal errors, explicit cancellation, late-frame rejection and bounded carrier cleanup.",
+        "Obtain independent review and qualifying Windows and Linux observations for the corrected responsibility, including an integrated Windows recheck. Record remaining limits and account for cleanup failures without loosening the terminal contract."
+      ],
+      "checks": [
+        "project-state",
+        "rust-contracts-workers",
+        "indicator-workflow"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-167-e7e23925f74c9c25.json",
+          "sha256": "fbe9b1dd8c863a2178cf04d938e61be9764831f5c03385c394aa309ac2f5a928"
+        },
+        {
+          "path": "project/evidence/M0-167-8075a8551f55d506.json",
+          "sha256": "e74516b8e68feb9268d3e4a317b5de1bbdcf941b436100d001e3934680726bca"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45825584085-1",
+          "source_commit": "8d088f7cba3e7d6322ee9eeb396bd2db59bfa4a2",
+          "report_sha256": "49e0b487bd0cd4501a5c5888ae2198149015b40a9cbcc78242d916ff08d4fff8"
+        },
+        {
+          "run_id": "windows-change-45825584085-1",
+          "source_commit": "8d088f7cba3e7d6322ee9eeb396bd2db59bfa4a2",
+          "report_sha256": "224cf1a54de8ed450870007188fd2b81ec999eaad48374cda7e40081e5b1f9b9"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent approval of 0ca842a35ca077d433c5b2d7930d29a7d8b1f23f applies to guarded source 3ef15d9e96e8f71c4da3f2af4b24e8c6c091fa25. Run 45840015267 passed every selected M0-167 check on Ubuntu and Windows. Its integrated preview check covered approval, restoration and controlled carrier lifecycles, including exit 0 with a held close, exit 1 and Node-observed SIGTERM. Ordinary PR 141 run 45839529927 independently passed the earlier Rust scratch failure on both platforms and the Windows sharing-denied case on the merge preview f025c01a8a868702632a2f4069bf153ac599b673. The ordinary selection omitted the task-cadence indicator-workflow. Prior local public-registry controls retain the exit comparison and the separate real delayed cleanup observation, including adjacent admission and success before release. Protected run 45825584085 returned CANCELLED before failing scratch absence at trusted_indicator.rs:340:9. Thirteen neighboring cases passed and the process assertions were unreached. The original internal cause remains unknown. The coordinator must recheck the composed protected candidate, retaining the first protected Windows result and any task-cadence results.",
+      "plan": {
+        "outcome": "Retain the first protected Windows failure, its named assertion and neighboring results. Determine what the application guarantees when returning a cancelled task and distinguish a remaining child, handle or scratch path using observations. Exercise the ordinary trusted worker cancellation entry with an approved benign fixture. Verify one terminal cancellation, absence of a persistable result and cleanup of only its owned scratch files. Preserve normal completion, deadlines, task isolation and interruption. Retain a controlled failure that distinguishes the chosen correction. Require the public preview registry to reject the same valid success frame after abnormal carrier close and preserve it after exit status 0.",
+        "change_types": [
+          "indicators"
+        ],
+        "context": [
+          "crates/worker-host/tests/trusted_indicator.rs",
+          "crates/worker-host/src/indicator.rs",
+          "crates/worker-host/src/indicator/carrier.rs",
+          "apps/desktop/ui/ubuntu-workspace.mjs",
+          "crates/persistence/src/bin/workspace_bridge.rs",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ubuntu-preview/workspace_indicator_gate.mjs",
+          "project/checks.json",
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json"
+        ],
+        "hypotheses": [
+          "The first Windows failure did not distinguish a reaper wait that exceeded the caller grace from a filesystem removal error. The test previously checked the path before checking the processes.",
+          "An injected Linux interruption of the first scratch removal reproduced the surviving directory after cancellation with both processes gone. An ordinary success and an uninjected cancellation removed their scratch directories. This establishes a silent removal failure mechanism, while attribution of the original Windows failure remains open.",
+          "The first protected producer and the linked Windows aggregate both recorded the same failed scratch assertion before the process assertions. Both PR 135 Windows reports passed the same test with identical worker and test source blobs. These observations provide no process, handle or filesystem error evidence for the original failure.",
+          "The independent review of 5623272d found that partial backoff can initiate a retry at the deadline and that synchronous scratch removal can block the current-thread caller's timer. The deadline test and the controlled slow filesystem test distinguish these from the historical Windows assertion.",
+        "The independent review of 5585d26a observed the preview transport waiting for child close before relaying a complete WORKER_EXITED frame. The carrier already owns the reaper beyond terminal publication. Exercise the public writer path with separate frame delivery, child close and scratch removal observations.",
+        "The independent review of cf1eb9da observed identical success delivery after exit 0, exit 1 and SIGTERM. The preview closes over stdout length when evaluating the exit status, and the writer only receives the resulting frame. Exercise the same valid frame through the public registry with each close outcome."
+        ],
+        "risks": [
+          {
+            "failure": "Suppressing a remove error, broad directory cleanup, or delaying the assertion indiscriminately could hide a leak or affect another task.",
+            "checks": [
+              "project-state",
+              "rust-contracts-workers",
+              "indicator-workflow"
+            ]
+          },
+          {
+            "failure": "An expired or queued retry could start another filesystem operation. Check the first attempt after budget exhaustion, a retry within budget, and the partial backoff boundary with deterministic time.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A slow deletion or carrier shutdown could delay terminal cancellation or release scratch ownership or the admission permit early. Hold deletion under test control while observing the native caller, the scratch data, the permit and the independent task.",
+            "checks": [
+              "rust-contracts-workers",
+              "indicator-workflow"
+            ]
+          },
+          {
+            "failure": "An indicator failure that waits for close can keep the registry busy or expire as TIMEOUT. An early response can leave an untracked carrier or release success early. Exercise an owned delayed close, competing admission, cancellation, invalid or partial output, and service shutdown.",
+            "checks": [
+              "rust-contracts-workers",
+              "indicator-workflow"
+            ]
+        },
+        {
+          "failure": "A valid indicator success can pass through an abnormal close, or correcting close validation can overwrite an already delivered error or explicit cancellation. Exercise the ordinary preview registry with zero, nonzero and signal termination, the same valid frame and no effects on rejection, then verify neighboring admission, late frames and bounded cleanup.",
+          "checks": [
+            "indicator-workflow"
+          ]
+          }
+        ],
+        "rollback": "Restore the preceding implementation and retain the diagnosed failures and controls if the ordinary contract changes.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "worker-host",
+            "worker-runtime",
+            "desktop",
+            "persistence"
+          ],
+          "entrypoints": [
+            "crates/worker-host/tests/trusted_indicator.rs",
+            "crates/worker-host/src/indicator.rs",
+            "crates/worker-host/src/indicator/carrier.rs",
+            "apps/desktop/ui/ubuntu-workspace.mjs",
+            "crates/persistence/src/bin/workspace_bridge.rs",
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ubuntu-preview/workspace_indicator_gate.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/0"
+            }
+          ],
+          "non_goals": [
+            "Preserve task boundaries, approved interpreter authority, resource limits and user data. Only inspect the owned synthetic workspace; avoid changes to product permissions."
+          ],
+          "open_questions": [
+            "Does qualifying Windows execution reproduce a cleanup wait or removal failure, or pass with both the physical path and processes absent?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Preserve task boundaries, approved interpreter authority, resource limits and user data. Only inspect the owned synthetic workspace; avoid changes to product permissions."
+          ],
+          "change": [
+            "Observe scratch removal after supervisor exit. Allow one initial removal and only retry transient interruptions or Windows sharing and lock failures before the same deadline used for the caller wait. Offload blocking removal with the task-owned scratch and permit, and make the terminal response observable while cleanup continues. Require confirmed cleanup before returning a successful result.",
+          "Replace the status-coupled preview reply with an ordered, private completion notification. Deliver a validated indicator failure while the carrier owns cleanup. Stage a success only after carrier close with exit status 0 and continue to publish only through an ordinary status read. Bound the preview to two live indicator carriers and wait for their close during shutdown."
+          ],
+          "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
+          "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
+        }
+      }
     }
   ]
 }
