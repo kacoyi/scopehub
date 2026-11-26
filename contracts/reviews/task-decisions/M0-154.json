@@ -68,6 +68,26 @@
       "requested_at": "2026-11-26T03:51:44.528196+00:00",
       "request_id": "45b9477428edd3deac80a853b291c0280c7aa844e25b8ab9ea99a81dd79ee1f5",
       "evidence_sha256": "cdd7347d5095e1a0d40219cbdebb6de3833539db7db103f3439fc1f6b6f15bd2"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "2f02d0f7d674bf1fb83b507f1e3303f3a7edaad5",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-154 2f02d0f7d674bf1fb83b507f1e3303f3a7edaad5",
+      "scope": "CHANGES_REQUESTED M0-154 2f02d0f7d674bf1fb83b507f1e3303f3a7edaad5",
+      "observation": "After I removed only `snapshot.content_hash` from the archived history reply, Chromium displayed all 40 bars and replaying its events through `openDefaultSample` produced `sample-verified`.",
+      "reviewer": "Independent Astra Standard (t12d)",
+      "original_sha256": "82ddf8ae019d485bb7bc59ee44fc2e9874e3095496a1d7d36af8b14862be37b6",
+      "response_id": "25f18c909377b012f42761502c36a36bb32c99dd46f8b4539cce6c9a2a39d98b",
+      "response_sha256": "c8d9a6a901b807fd96e981bb8e60b346d6797e389243c298641db39c9d926aa0",
+      "legacy_response_sha256": "7a6c41b89fa9289f6ebe25ffd8887a49834a6412ebdd60f957520106498ed36e",
+      "observation_body_sha256": "218ea8b6a18225e99e06df7538bce7623d644984a096a22d6fd6b5d249260c78",
+      "event": {
+        "id": "msg_02f560ca4150a851016b07af8ea06487d2b5db4efa759b890b",
+        "timestamp": "2026-11-26T04:03:42.932Z"
+      },
+      "supersedes": "45b9477428edd3deac80a853b291c0280c7aa844e25b8ab9ea99a81dd79ee1f5",
+      "evidence_sha256": "2aded9703e350773f61dc552c1a82f43c3207a6818512c7177ec00461b8912e1"
     }
   ]
 }
