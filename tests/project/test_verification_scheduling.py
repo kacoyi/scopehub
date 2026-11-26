@@ -591,7 +591,8 @@ class WindowsLaneTests(ProjectFixture):
         return {'SCOPEHUB_SCOPE_OUTCOME': 'success', 'SCOPEHUB_SCOPE_PROFILE': profile,
                 'SCOPEHUB_SCOPE_BASE': base, 'SCOPEHUB_SCOPE_DECISION': json.dumps(decision)}
 
-    def produce(self, profile=None, *, browser_exit=0, recovery_exit=0, recovery_ui_exit=0):
+    def produce(self, profile=None, *, browser_exit=0, recovery_exit=0, recovery_ui_exit=0,
+                recovery_part_failed=False):
         reports = {}
         attempt = os.environ['GITHUB_RUN_ATTEMPT']
         for lane in ('core',) if profile else harness.WINDOWS_LANES:
@@ -601,7 +602,7 @@ class WindowsLaneTests(ProjectFixture):
             with patch.dict(os.environ, {'SCOPEHUB_FIXTURE_EXIT': str(fixture_exit),
                                          'SCOPEHUB_FIXTURE_RECOVERY_UI_EXIT': str(ui_exit)}):
                 code, report = self.run_harness(*args)
-            self.assertEqual(int(bool(fixture_exit or ui_exit)), code)
+            self.assertEqual(int(bool(fixture_exit or ui_exit or lane == 'recovery' and recovery_part_failed)), code)
             destination = self.downloads / f'verification-windows-{attempt}-{lane}'
             if lane == 'browser':
                 run = self.reports / 'runs' / report['run_id'] / 'workspace-timeframe'
@@ -646,9 +647,9 @@ class WindowsLaneTests(ProjectFixture):
             task_by_id(ledger, 'M0-001')['checks'].append(windows_python.CHECK)
             task_by_id(ledger, 'M0-004')['plan'] = deepcopy(task_by_id(ledger, 'M0-001')['plan'])
             self.save_ledger(ledger)
-            workflow = Path('.github/workflows/verify.yml')
-            (self.root / workflow).parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(Path(__file__).resolve().parents[2] / workflow, self.root / workflow)
+        workflow = Path('.github/workflows/verify.yml')
+        (self.root / workflow).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(Path(__file__).resolve().parents[2] / workflow, self.root / workflow)
         for directory in ('scripts', 'tests', 'tests/project'):
             (self.root / directory).mkdir()
         runner_source = Path(__file__).resolve().parents[2] / 'scripts/windows_python.py'
@@ -669,6 +670,10 @@ class WindowsLaneTests(ProjectFixture):
                 f'CUTOFF = {windows_python.CUTOFF!r}\n', f'CUTOFF = {windows_python.LEGACY_CUTOFF!r}\n', 1)
             runner.write_text(source, encoding='utf-8')
             self.enterContext(patch.object(windows_python, 'RECOVERY_OWNS_MARKET_WORKFLOW', False))
+            schema_path = self.root / 'contracts/schemas/project.schema.json'
+            schema = read_json(schema_path)
+            schema['$defs']['HostedHarnessReport']['properties'].pop('windows_producers', None)
+            schema_path.write_bytes(json_bytes(schema))
         for package in ('tests', 'tests/project'):
             (self.root / package / '__init__.py').write_bytes(b'')
         (self.root / 'tests/project/test_first.py').write_text(
@@ -977,19 +982,30 @@ class WindowsLaneTests(ProjectFixture):
         self.event.write_bytes(json_bytes(event))
         self.enterContext(patch.dict(os.environ, {'GITHUB_SHA': merge, 'SCOPEHUB_SOURCE_HEAD': head}))
 
-    def record_report(self, path, *, artifact=None, error=None, task='M0-001'):
-        output = StringIO()
+    def record_report(self, path, *, artifact=None, error=None, task='M0-001', cold=False):
         args = ['project.py', 'record', task, '--report', str(path)]
         if artifact:
             args.extend(('--artifact-root', str(artifact)))
-        with patch.object(project, 'ROOT', self.root), patch.object(sys, 'argv', args), redirect_stdout(output):
-            if error:
-                with self.assertRaises(SystemExit) as failed:
+        if cold:
+            command = ('from pathlib import Path\n'
+                       'import sys\n'
+                       'from scripts import project\n'
+                       'project.ROOT = Path(sys.argv.pop(1))\n'
+                       'project.main()\n')
+            process = subprocess.run([sys.executable, '-B', '-c', command, str(self.root), *args[1:]],
+                                     cwd=Path(__file__).resolve().parents[2], capture_output=True, text=True)
+            self.assertEqual(int(bool(error)), process.returncode, process.stderr)
+            result = json.loads(process.stdout)
+        else:
+            output = StringIO()
+            with patch.object(project, 'ROOT', self.root), patch.object(sys, 'argv', args), redirect_stdout(output):
+                if error:
+                    with self.assertRaises(SystemExit) as failed:
+                        project.main()
+                    self.assertEqual(1, failed.exception.code)
+                else:
                     project.main()
-                self.assertEqual(1, failed.exception.code)
-            else:
-                project.main()
-        result = json.loads(output.getvalue())
+            result = json.loads(output.getvalue())
         if error:
             self.assertIn(error, result['error'])
         return result
@@ -1052,7 +1068,7 @@ class WindowsLaneTests(ProjectFixture):
         earlier_report = earlier / 'test-report.json'
         earlier_report.write_bytes(json_bytes(altered))
         with self.subTest('other attempt paths'):
-            self.record_report(earlier_report, artifact=earlier, error='current run and check log')
+            self.record_report(earlier_report, artifact=earlier, error='original recovery producer report')
 
         swapped = deepcopy(expected)
         by_id = {row['id']: row for row in swapped['checks']}
@@ -1537,8 +1553,11 @@ class WindowsLaneTests(ProjectFixture):
 
         locator = diagnostic_locator(archive / 'test-report.json')
         archived = resolve_diagnostic(locator, archive)
-        self.assertEqual(sorted(f'windows-python-{lane}.{suffix}'
-                                for lane in windows_python.LANES for suffix in ('json', 'log', 'producer.json')),
+        observations = ['windows-browser.producer.json', *(
+            f'windows-python-{lane}.{suffix}' for lane in windows_python.LANES
+            for suffix in ('json', 'log', 'producer.json')
+        )]
+        self.assertEqual(sorted(observations),
                          sorted(archived['verified_observations']))
         shutil.rmtree(archive)
 
@@ -1573,7 +1592,9 @@ class WindowsLaneTests(ProjectFixture):
                 self.assertTrue(recovery_started.wait(8))
                 result = execute(name, command, env, run_dir, timeout, cancel=cancel)
                 return {**result, 'status': 'failed', 'reason_code': 'cleanup_failed'}
-            self.assertEqual('market-recovery', name)
+            if name != 'market-recovery':
+                self.assertNotEqual('market-recovery-ui', name)
+                return execute(name, command, env, run_dir, timeout, cancel=cancel)
             recovery_started.set()
             result = execute(name, command, env, run_dir, timeout)
             deadline = time.monotonic() + 8
@@ -1583,15 +1604,30 @@ class WindowsLaneTests(ProjectFixture):
             return result
 
         with patch.object(harness, 'execute', side_effect=fail_python_cleanup):
-            code, report = self.run_harness('--ci-windows-lane', 'recovery')
-        self.assertEqual((1, 'failed'), (code, report['status']))
-        rows = {row['id']: row for row in report['checks']}
+            producer = self.produce(recovery_part_failed=True)['recovery']
+        self.assertEqual('failed', producer['status'])
+        rows = {row['id']: row for row in producer['checks']}
         self.assertEqual('passed', rows['market-recovery']['status'])
-        self.assertEqual('earlier_failure', rows['market-recovery-ui']['reason_code'])
-        part = report['windows_python']['recovery']
+        interruption = rows['market-recovery-ui']
+        self.assertEqual(('blocked', 'earlier_failure'), (interruption['status'], interruption['reason_code']))
+        self.assertNotIn('log', interruption)
+        part = producer['windows_python']['recovery']
         self.assertEqual('cleanup_failed', part['reason_code'])
+
         archived = self.downloads / 'failed'
-        self.assertTrue(ci_artifacts.stage_artifacts(self.root, archived, os.environ, lane=True))
+        with patch.dict(os.environ, {'SCOPEHUB_WINDOWS_LANE_RESULT': 'failure'}):
+            code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+            self.assertEqual((1, 'failed'), (code, report['status']))
+            self.assertIn(interruption, report['checks'])
+            self.assertTrue(ci_artifacts.stage_artifacts(self.root, archived, os.environ))
+            changed = deepcopy(report)
+            changed['checks'][changed['checks'].index(interruption)]['reason'] = 'A different diagnostic reason.'
+            latest, per_run = 'test-report.json', f"runs/{report['run_id']}/test-report.json"
+            data, rejected = json_bytes(changed), self.downloads / 'rejected-earlier-failure'
+            with self.replace_artifact_bytes(self.reports, {latest: data, per_run: data}):
+                with self.assertRaisesRegex(ci_artifacts.PublicationError, 'market-recovery-ui'):
+                    ci_artifacts.stage_artifacts(self.root, rejected, os.environ)
+            self.assertFalse((rejected / latest).exists())
         self.assertEqual(part['log_sha256'], project.file_digest(archived / part['log'].removeprefix('.reports/')))
 
     def assert_market_workflow_producer(self, owner, *, legacy=False):
@@ -1645,13 +1681,33 @@ class WindowsLaneTests(ProjectFixture):
         relative = row['log'].removeprefix('.reports/')
         self.assertEqual((self.downloads / f'verification-windows-2-{owner}' / relative).read_bytes(),
                          (published / relative).read_bytes())
+        omitted = next(row for row in report['checks'] if row['id'] == 'runtime-stability')
+        self.assertEqual(('blocked', 'not_selected'), (omitted['status'], omitted['reason_code']))
+        self.assertNotIn('log', omitted)
+
+        # The non-owning producer really emitted this row. The aggregate still selects the check.
+        not_selected = next(item for item in lanes['core']['checks'] if item['id'] == check)
+        self.assertEqual('not_selected', not_selected['reason_code'])
+        changed = deepcopy(report)
+        changed['checks'][changed['checks'].index(row)] = not_selected
+        changed['integration_gates'].update(status='blocked', unverified=[check])
+        changed['status'] = 'blocked'
+        altered = json_bytes(changed)
+        latest, per_run = 'test-report.json', f"runs/{report['run_id']}/test-report.json"
+        rejected = self.downloads / 'rejected-workflow'
+        with self.replace_artifact_bytes(self.reports, {latest: altered, per_run: altered}):
+            with self.assertRaisesRegex(ci_artifacts.PublicationError, check):
+                ci_artifacts.stage_artifacts(self.root, rejected, os.environ)
+        self.assertFalse((rejected / latest).exists())
 
         # Open with the current reader, including when the producer predates the move.
         self.checkout_report_head(report)
         path = published / 'test-report.json'
         with patch.object(windows_python, 'RECOVERY_OWNS_MARKET_WORKFLOW', True):
             receipt = self.record_report(path, artifact=published)
-            self.assertEqual(receipt, self.record_report(path, artifact=published))
+            with self.replace_artifact_bytes(published, {latest: altered, per_run: altered}):
+                self.record_report(path, artifact=published, task='M0-004', error=check)
+            self.assertEqual(receipt, self.record_report(path, artifact=published, cold=True))
             recovery = report['windows_python']['recovery']
             producer_path = (f"runs/{report['run_id']}/windows-python-recovery.producer.json")
             producer = read_json(published / producer_path)
@@ -1665,6 +1721,93 @@ class WindowsLaneTests(ProjectFixture):
                 self.record_report(path, artifact=published, error='producer')
             self.assertEqual(receipt, self.record_report(path, artifact=published))
         self.assertEqual(recovery['producer_report_sha256'], project.file_digest(published / producer_path))
+        browser_original = published / f"runs/{report['run_id']}/windows-browser.producer.json"
+        if legacy:
+            self.assertNotIn('windows_producers', report)
+            self.assertFalse(browser_original.exists())
+        else:
+            browser_digest = project.file_digest(browser_original)
+            self.assertEqual({'browser': browser_digest}, report['windows_producers'])
+            browser_report = self.downloads / 'verification-windows-2-browser/test-report.json'
+            self.assertEqual(browser_report.read_bytes(), browser_original.read_bytes())
+
+    def test_ordinary_market_receipt_preserves_the_retained_producer_result_and_log(self):
+        catalog_path = self.root / 'project/checks.json'
+        catalog = read_json(catalog_path)
+        check = 'market-recovery-ui'
+        target = next(item for item in catalog['checks'] if item['id'] == check)
+        target['command'] = ['{python}', '-c', dedent('''\
+            import os, sys
+            print(os.environ['GITHUB_RUN_ATTEMPT'])
+            sys.exit(int(os.environ.get('SCOPEHUB_FIXTURE_RECOVERY_UI_EXIT', 0)))
+            ''')]
+        catalog_path.write_bytes(json_bytes(catalog))
+        ledger = self.ledger()
+        task_by_id(ledger, 'M0-004')['checks'].append(check)
+        self.save_ledger(ledger)
+        self.partition_fixture(receipt_scope=True)
+
+        self.produce()
+        code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+        self.assertEqual((0, 'passed'), (code, report['status']))
+        published = self.reports / 'ci' / 'ordinary-market'
+        published.parent.mkdir()
+        self.assertTrue(ci_artifacts.stage_artifacts(self.root, published, os.environ))
+        index = next(i for i, row in enumerate(report['checks']) if row['id'] == check)
+        row = report['checks'][index]
+        relative = row['log'].removeprefix('.reports/')
+        producer_path = f"runs/{report['run_id']}/windows-python-recovery.producer.json"
+        self.assertEqual(row, read_json(published / producer_path)['checks'][index])
+
+        lost = next(item for item in report['checks'] if item['id'] == 'market-recovery')
+        core = read_json(self.downloads / 'verification-windows-2-core/test-report.json')
+        non_owner = next(item for item in core['checks'] if item['id'] == lost['id'])
+        self.assertEqual('not_selected', non_owner['reason_code'])
+
+        # The substitute log came from another execution of the same check.
+        with patch.dict(os.environ, {'GITHUB_RUN_ATTEMPT': '3'}):
+            code, alternate = self.run_harness('--ci-windows-lane', 'recovery')
+        self.assertEqual(0, code)
+        other = alternate['checks'][index]
+        other_log = (self.root / other['log']).read_bytes()
+        self.assertEqual(other['log_sha256'], project.digest(other_log))
+        self.assertNotEqual(row['log_sha256'], other['log_sha256'])
+
+        latest, per_run = 'test-report.json', f"runs/{report['run_id']}/test-report.json"
+        # Reopen with the aggregate's original bytes after the other producer used the latest slot.
+        (self.reports / latest).write_bytes((published / latest).read_bytes())
+        changed_log = deepcopy(report)
+        changed_log['checks'][index]['log_sha256'] = other['log_sha256']
+        changed_omission = deepcopy(report)
+        changed_omission['checks'][changed_omission['checks'].index(lost)] = non_owner
+        changed_omission['integration_gates'].update(status='blocked', unverified=[lost['id']])
+        changed_omission['status'] = 'blocked'
+        controls = (
+            (check, changed_log, {relative: other_log}),
+            (lost['id'], changed_omission, {}),
+        )
+        for name, changed, files in controls:
+            with self.subTest(entry='publication', check=name):
+                data = json_bytes(changed)
+                rejected = self.downloads / f'rejected-{name}'
+                with self.replace_artifact_bytes(self.reports, {latest: data, per_run: data, **files}):
+                    with self.assertRaisesRegex(ci_artifacts.PublicationError, name):
+                        ci_artifacts.stage_artifacts(self.root, rejected, os.environ)
+                self.assertFalse((rejected / latest).exists())
+
+        self.checkout_report_head(report)
+        path = published / latest
+        receipt = self.record_report(path, artifact=published, task='M0-004')
+        receipt_path = self.root / receipt['path']
+        original = receipt_path.read_bytes()
+        for name, changed, files in controls:
+            with self.subTest(entry='cold receipt import', check=name):
+                data = json_bytes(changed)
+                with self.replace_artifact_bytes(published, {latest: data, per_run: data, **files}):
+                    self.record_report(path, artifact=published, error=name, task='M0-004', cold=True)
+        self.assertEqual([receipt_path], list(receipt_path.parent.glob('M0-004-*.json')))
+        self.assertEqual(receipt, self.record_report(path, artifact=published, task='M0-004', cold=True))
+        self.assertEqual(original, receipt_path.read_bytes())
 
     def test_partitioned_python_rejects_failed_and_interrupted_parts(self):
         self.partition_fixture()
@@ -1720,7 +1863,7 @@ class WindowsLaneTests(ProjectFixture):
         del producer['windows_python']
         for target in (recovery / 'test-report.json', artifact_run / 'test-report.json'):
             target.write_bytes(json_bytes(producer))
-        with self.assertRaisesRegex(ci_artifacts.PublicationError, 'Missing or unexpected Windows Python parts'):
+        with self.assertRaisesRegex(ci_artifacts.PublicationError, 'selected check results and parts'):
             self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
 
     def test_partitioned_python_rejects_contradictory_publication(self):
@@ -2086,7 +2229,7 @@ class WindowsLaneTests(ProjectFixture):
         row.update(id='dependency-review', command=command, status='blocked', reason_code='not_selected')
         for path in (producer / 'test-report.json', producer / 'runs' / report['run_id'] / 'test-report.json'):
             path.write_bytes(json_bytes(report))
-        with self.assertRaisesRegex(ci_artifacts.PublicationError, 'selected check results'):
+        with self.assertRaisesRegex(ci_artifacts.PublicationError, 'unexpected omission for selected check dependency-review'):
             self.run_harness('--profile', 'records', '--ci-windows-aggregate', str(self.downloads))
         self.assertFalse((self.reports / 'test-report.json').exists())
 
@@ -2147,7 +2290,7 @@ class WindowsLaneTests(ProjectFixture):
             record(download_report, artifact=downloaded, error='Missing or unexpected Windows Python parts')
             downgraded['selection']['profile'] = 'tooling'
             download_report.write_bytes(json_bytes(downgraded))
-            record(download_report, artifact=downloaded, error='requires a full native Windows pull request')
+            record(download_report, artifact=downloaded, error='cannot declare full producer bindings')
             downgraded['ci']['event'] = 'push'
             download_report.write_bytes(json_bytes(downgraded))
             record(download_report, artifact=downloaded, error='event differs from its CI checkout')
@@ -2593,9 +2736,16 @@ class WindowsLaneTests(ProjectFixture):
                     shutil.rmtree(self.reports, ignore_errors=True)
 
     def test_failed_moved_recovery_ui_keeps_its_result_and_attachment(self):
+        ledger = self.ledger()
+        task_by_id(ledger, 'M0-004')['checks'].append('market-recovery-ui')
+        self.save_ledger(ledger)
+        self.partition_fixture(receipt_scope=True)
         lanes = self.produce(recovery_ui_exit=7)
+        published = self.reports / 'ci' / 'failed-recovery-ui'
         with patch.dict(os.environ, {'SCOPEHUB_WINDOWS_LANE_RESULT': 'failure'}):
             code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+            published.parent.mkdir()
+            self.assertTrue(ci_artifacts.stage_artifacts(self.root, published, os.environ))
         self.assertEqual(1, code)
         self.assertEqual('failed', report['status'])
         self.assertEqual('blocked', report['integration_gates']['status'])
@@ -2608,6 +2758,23 @@ class WindowsLaneTests(ProjectFixture):
         self.assertEqual(failed['log_sha256'], harness.file_digest(self.root / failed['log']))
         ui_report = self.reports / 'runs' / report['run_id'] / self.recovery_ui_report
         self.assertEqual(b'{"synthetic": "recovery UI"}\n', ui_report.read_bytes())
+        self.assertEqual(ui_report.read_bytes(), (published / ui_report.relative_to(self.reports)).read_bytes())
+
+        # A report claiming this really executed check passed cannot override exit 7 in its original.
+        self.checkout_report_head(report)
+        path = published / 'test-report.json'
+        self.record_report(path, artifact=published, task='M0-004', error='Cannot archive a failed verification run')
+        changed = deepcopy(report)
+        row = changed['checks'][changed['checks'].index(failed)]
+        row.update(status='passed', exit_code=0)
+        changed['status'] = 'passed'
+        changed['limitations'].remove('At least one Windows lane job did not succeed.')
+        changed['integration_gates'].update(status='passed', unverified=[])
+        per_run = f"runs/{report['run_id']}/test-report.json"
+        data = json_bytes(changed)
+        with self.replace_artifact_bytes(published, {path.name: data, per_run: data}):
+            self.record_report(path, artifact=published, task='M0-004', error=failed['id'], cold=True)
+        self.assertFalse((self.root / 'project/evidence').exists())
 
     def test_cancelled_lane_result_cannot_publish_a_passing_aggregate(self):
         self.produce()

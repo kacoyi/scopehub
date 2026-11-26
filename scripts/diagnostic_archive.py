@@ -245,6 +245,18 @@ def _checked_windows_python(directory, report):
     return verified
 
 
+def _checked_windows_producers(directory, report):
+    records = report.get('windows_producers', {})
+    if not isinstance(records, dict) or records.keys() - {'browser', 'recovery'}:
+        raise DiagnosticArchiveError('Invalid Windows diagnostic producer identities')
+    verified = []
+    for lane, sha256 in records.items():
+        relative = f'windows-{lane}.producer.json'
+        _verify_file(directory, relative, sha256)
+        verified.append(relative)
+    return verified
+
+
 def _files(directory):
     for path in directory.iterdir():
         _parts(path.name)
@@ -380,6 +392,7 @@ def resolve_diagnostic(locator, archive_root):
         observations = _checked_observations(root, directory, report['checks']) if kind == 'harness' else []
         if kind == 'harness':
             observations.extend(_checked_windows_python(directory, report))
+            observations.extend(_checked_windows_producers(directory, report))
         candidate_manifest = _verify_candidate(directory, report) if kind == 'harness' else False
         originals = _verified_originals(directory, report) if kind == 'recovery' else []
         manifest = _verify_checksums(directory)

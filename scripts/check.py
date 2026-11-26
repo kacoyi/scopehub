@@ -487,6 +487,7 @@ def main():
                not any(env.get(key) for key in ('CARGO_TARGET_DIR', 'CARGO_BUILD_TARGET_DIR', 'CARGO_BUILD_BUILD_DIR')))
     concurrent_results = {}
     python_parts = {}
+    producer_reports = {}
     part_failed = False
     lane = args.ci_windows_lane
     recovery_window = []
@@ -512,6 +513,7 @@ def main():
         environment = imported['environment']
         results = imported['checks']
         python_parts = imported.get('windows_python', {})
+        producer_reports = imported.get('windows_producers', {})
         started = time.monotonic() - elapsed
         catalog = []
     else:
@@ -661,6 +663,8 @@ def main():
     }
     if python_parts:
         report['windows_python'] = python_parts
+    if producer_reports:
+        report['windows_producers'] = producer_reports
     if args.ci_windows_aggregate:
         report['limitations'].append('Elapsed time covers the interval from the first lane harness start to aggregation.')
     if lane_failure:

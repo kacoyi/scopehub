@@ -64,8 +64,13 @@ class PublicationTests(ProjectFixture):
         ]
         path.write_bytes(json_bytes(catalog))
 
-    def hosted_report(self, *, system='Linux', event='pull_request'):
+    def hosted_report(self, *, system='Linux', event='pull_request', scope=None):
         prepare_reports(self.root)
+        if scope:
+            path = self.root / 'project/checks.json'
+            catalog = read_json(path)
+            catalog['profiles'][scope] = ['project-state', 'rust-lints']
+            path.write_bytes(json_bytes(catalog))
         self.git('add', '.')
         self.git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
                  '-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', 'Retain synthetic evidence inputs')
@@ -88,6 +93,19 @@ class PublicationTests(ProjectFixture):
             'run_url': 'https://github.com/fixture/scopehub/actions/runs/10',
         }
         return report
+
+    def complete_windows_selection(self, report, profile):
+        python = report['environment']['python_executable']
+        executed = {result['id']: result for result in report['checks']}
+        report['checks'] = [
+            {**executed[check['id']], 'duration_seconds': 0.1} if check['id'] in executed else {
+                'id': check['id'], 'status': 'blocked', 'reason_code': 'not_selected',
+                'command': [python if arg == '{python}' else arg for arg in check['command'] or []],
+            } for check in load_project(self.root)['catalog']['checks']
+        ]
+        report['source_end'] = report['source']
+        report['native_requirement'] = {'requested': False, 'satisfied': True}
+        report['selection'] = {'profile': profile, 'task_id': None, 'checks': sorted(executed)}
 
     def add_result(self, report, check, *, status='passed'):
         exit_code = {'passed': 0, 'failed': 1, 'blocked': 77}[status]
@@ -215,10 +233,10 @@ class PublicationTests(ProjectFixture):
 
     @patch.dict(os.environ, {'SCOPEHUB_WINDOWS_LANE': 'python'})
     def test_windows_bundle_contains_typed_scope_and_retains_the_original_failed_report(self):
-        report = self.hosted_report(system='Windows', event='push')
+        report = self.hosted_report(system='Windows', event='push', scope='tooling')
         report['status'] = 'failed'
-        report['selection'] = {'profile': 'tooling', 'task_id': None,
-                               'checks': [row['id'] for row in report['checks']]}
+        next(row for row in report['checks'] if row['id'] == 'rust-lints').update(status='failed', exit_code=1)
+        self.complete_windows_selection(report, 'tooling')
         self.save_report(report)
         source = self.write(SCOPE_FILE, self.sentinel)
         env = self.scope_env(profile='tooling', reason='reviewed_changes')
@@ -237,9 +255,8 @@ class PublicationTests(ProjectFixture):
     @patch.dict(os.environ, {'SCOPEHUB_WINDOWS_LANE': 'python'})
     def test_records_and_split_lane_use_explicit_staging_under_inherited_lane_environment(self):
         self.add_catalog_checks('python-contracts-workers')
-        report = self.hosted_report(system='Windows')
-        report['selection'] = {'profile': 'records', 'task_id': None,
-                               'checks': [row['id'] for row in report['checks']]}
+        report = self.hosted_report(system='Windows', scope='records')
+        self.complete_windows_selection(report, 'records')
         self.save_report(report)
         outputs, _, _ = self.stage_job(self.scope_env(profile='records', reason='reviewed_changes'))
         self.assert_core_artifacts_retained(outputs, report)
@@ -250,7 +267,7 @@ class PublicationTests(ProjectFixture):
         report['checks'] = []
         self.add_result(report, 'python-contracts-workers', status='failed')
         report['status'] = 'failed'
-        report['selection'] = {'profile': 'ci-windows-python', 'task_id': None, 'checks': ['python-contracts-workers']}
+        self.complete_windows_selection(report, 'ci-windows-python')
         self.save_report(report)
         outputs, _, _ = self.stage_job(self.scope_env(), action='stage-windows-lane')
         self.assert_core_artifacts_retained(outputs, report)
@@ -333,6 +350,9 @@ class PublicationTests(ProjectFixture):
         for relative in ('test-report.json', f"runs/{report['run_id']}/test-report.json"):
             self.assertEqual(json_bytes(report), (staged / relative).read_bytes())
         for check in report['checks']:
+            if 'log' not in check:
+                self.assertFalse((staged / f"runs/{report['run_id']}/{check['id']}.log").exists())
+                continue
             relative = check['log'].removeprefix('.reports/')
             self.assertEqual((self.reports / relative).read_bytes(), (staged / relative).read_bytes())
 

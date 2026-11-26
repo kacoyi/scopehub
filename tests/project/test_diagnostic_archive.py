@@ -170,6 +170,19 @@ class DiagnosticArchiveTests(unittest.TestCase):
         with self.assertRaisesRegex(DiagnosticArchiveError, 'windows-python-python.producer.json'):
             resolve_diagnostic(locator, self.archive)
 
+    def test_resolving_verifies_the_bound_ordinary_producer_report(self):
+        report = self.harness_report()
+        producer = b'{"run_attempt":"2"}\r\n'
+        report['windows_producers'] = {'browser': sha256(producer)}
+        path, locator = self.harness(report)
+        original = self.write(path.parent / 'windows-browser.producer.json', producer)
+        self.assertIn(original.name, resolve_diagnostic(locator, self.archive)['verified_observations'])
+        original.write_bytes(producer.replace(b'2', b'1'))
+        with self.assertRaisesRegex(DiagnosticArchiveError, 'windows-browser.producer.json'):
+            resolve_diagnostic(locator, self.archive)
+        original.write_bytes(producer)
+        self.assertIn(original.name, resolve_diagnostic(locator, self.archive)['verified_observations'])
+
     def test_checksum_manifest_covers_retained_files(self):
         path, locator = self.harness()
         directory = path.parent

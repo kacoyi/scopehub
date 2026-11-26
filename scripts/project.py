@@ -2588,7 +2588,6 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
     try:
         validate_recorded_windows_evidence(
             root, project, artifact_root if artifact_root is not None else reports_root, report,
-            requires_python='python-contracts-workers' in task['checks'],
         )
     except (PublicationError, OSError) as error:
         raise ProjectError(str(error)) from error

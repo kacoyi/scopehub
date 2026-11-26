@@ -49,6 +49,7 @@ SCOPE_FIELDS = {'profile', 'reason_code', 'base', 'checkout', 'change_count'}
 COMMIT_SHA = re.compile(r'(?!0{40})[0-9a-f]{40}')
 RUN_ID = re.compile(r'[a-zA-Z0-9_-][a-zA-Z0-9._-]*')
 PRODUCER_REPORT_DIGEST = 'producer_report_sha256'
+WINDOWS_PRODUCERS = 'windows_producers'
 BROWSER_OUTPUTS = {
     'market-live-stream': ('results.json', 'market-stream-', ('synthetic-replay-final.png',)),
     'market-quality-states': ('results.json', 'market-quality-', ('synthetic-market-quality.png',)),
@@ -261,25 +262,37 @@ def python_producer_report_path(run, lane):
     return f'{run}/{windows_python.part_id(lane)}.producer.json'
 
 
-def validate_python_producer(root, project, reports, report, run, lane, record, destination, *,
-                             recovery_owns_market_workflow):
-    relative = python_producer_report_path(run, lane)
-    contents = bound_bytes(checked_path(reports, relative), record[PRODUCER_REPORT_DIGEST])
+def windows_producer_report_path(run, lane):
+    return f'{run}/windows-{lane}.producer.json'
+
+
+def validate_original_producer(root, project, reports, report, rows, lane, selected, relative, sha256, destination,
+                               *, part=None):
+    contents = bound_bytes(checked_path(reports, relative), sha256)
     producer = evidence_json(contents)
     validate_model(root, 'HostedHarnessReport', producer)
-    expected_part = {key: value for key, value in record.items() if key != PRODUCER_REPORT_DIGEST}
-    if (producer['run_id'] != report['run_id'] or producer['report_version'] != report['report_version']
+    parts = {lane: {key: value for key, value in part.items() if key != PRODUCER_REPORT_DIGEST}} if part else {}
+    version = windows_python.REPORT_VERSION if part else '2.0'
+    if (producer['run_id'] != report['run_id'] or producer['report_version'] != version
             or producer['environment']['python_executable'] != report['environment']['python_executable']
-            or producer.get('windows_python') != {lane: expected_part}):
-        raise PublicationError('Windows Python producer report differs from the run, attempt, role or part evidence.')
-    selected = windows_lane_checks(select_checks(project), lane, python_split=True,
-                                   recovery_owns_market_workflow=recovery_owns_market_workflow)
+            or producer.get('windows_python', {}) != parts or WINDOWS_PRODUCERS in producer):
+        raise PublicationError(f'Windows {lane} producer report differs from the run, attempt, role or part evidence.')
     try:
         validate_windows_lane(project, producer, report['source'], report['ci'], selected, lane, f'ci-windows-{lane}')
     except (KeyError, PublicationError) as error:
-        raise PublicationError(f'Invalid original Windows Python producer report: {error}') from error
-    if 'log' in record:
-        validate_python_process_clock(record, producer)
+        raise PublicationError(f'Invalid original Windows {lane} producer report: {error}') from error
+    for row in producer['checks']:
+        key = row['id']
+        if key not in selected or project['checks'][key]['status'] != 'implemented':
+            continue
+        if row != rows[key]:
+            raise PublicationError(f'The Windows {key} result differs from its original {lane} producer report.')
+        if destination is None and 'log' in row:
+            log = f"runs/{report['run_id']}/{key}.log"
+            if (row['log'] != '.reports/' + log or file_digest(checked_path(reports, log)) != row.get('log_sha256')):
+                raise PublicationError(f'The Windows {key} log differs from its original {lane} producer report.')
+    if part and 'log' in part:
+        validate_python_process_clock(part, producer)
     if destination is not None:
         write_artifact(destination / relative, contents)
 
@@ -386,22 +399,20 @@ def combined_python(project, report, parts, *, cutoff=None):
     return record, raw
 
 
-def validate_combined_python(root, project, reports, report, source_commit, destination=None):
-    producer_reports = source_uses_python_producer_reports(root, source_commit)
-    runner = committed_windows_python(root, source_commit)
+def validate_combined_python(root, project, reports, report, rows, assignments, runner, producer_reports, destination):
     cutoff = runner_partition_cutoff(runner)
     parts = python_parts(reports, report, windows_python.LANES, destination,
                          callback_records=runner_uses_callback_records(runner), cutoff=cutoff)
     run = f"runs/{report['run_id']}"
-    recovery_owns_market_workflow = runner_assigns_market_workflow_to_recovery(runner)
     for lane, (record, _, _) in zip(windows_python.LANES, parts, strict=True):
         if (PRODUCER_REPORT_DIGEST in record) != producer_reports:
             raise PublicationError('Missing or unexpected original Windows Python producer report.')
         if producer_reports:
-            validate_python_producer(root, project, reports, report, run, lane, record, destination,
-                                     recovery_owns_market_workflow=recovery_owns_market_workflow)
+            validate_original_producer(root, project, reports, report, rows, lane, assignments[lane],
+                                       python_producer_report_path(run, lane), record[PRODUCER_REPORT_DIGEST],
+                                       destination, part=record)
     check, _ = combined_python(project, report, parts, cutoff=cutoff)
-    if [row for row in report['checks'] if row['id'] == windows_python.CHECK] != [check]:
+    if rows[windows_python.CHECK] != check:
         raise PublicationError('The Windows Python check differs from its original part results.')
 
 
@@ -433,14 +444,13 @@ def source_uses_windows_python_parts(root, head):
     return any(isinstance(step.get('run'), str) and aggregate.issubset(step['run'].split()) for step in steps)
 
 
-def source_uses_python_producer_reports(root, commit):
-    # Compatibility is determined by the tested source, independently of a
-    # report declaring or dropping the new producer binding.
+def source_producer_bindings(root, commit):
+    # Select the bindings from the tested source rather than from the submitted report.
     source = CommittedPath.at(root, commit)
     definitions = read_json(source / 'contracts/schemas/project.schema.json')['$defs']
-    harness = definitions.get('HostedHarnessReport', {})
-    parts = harness.get('properties', {}).get('windows_python', {})
-    return PRODUCER_REPORT_DIGEST in parts.get('additionalProperties', {}).get('properties', {})
+    properties = definitions.get('HostedHarnessReport', {}).get('properties', {})
+    parts = properties.get('windows_python', {}).get('additionalProperties', {}).get('properties', {})
+    return WINDOWS_PRODUCERS in properties, PRODUCER_REPORT_DIGEST in parts
 
 
 def committed_windows_python(root, commit):
@@ -466,39 +476,61 @@ def runner_assigns_market_workflow_to_recovery(runner):
                      runner, re.MULTILINE) is not None
 
 
-def validate_recorded_windows_evidence(root, project, reports, report, *, requires_python):
+def validate_recorded_windows_evidence(root, project, reports, report):
     ci = report.get('ci')
     lanes_run = report['run_id'].startswith(WINDOWS_LANES_RUN_PREFIX)
-    if lanes_run:
-        if not ci:
-            raise PublicationError('A Windows aggregate requires CI provenance.')
-        validate_windows_run_id(report)
-    if not requires_python:
-        return
+    if lanes_run and not ci:
+        raise PublicationError('A Windows aggregate requires CI provenance.')
     profile = report.get('selection', {}).get('profile')
-    native = windows_x64(report['environment'])
-    full_pr = ci and ci['event'] == 'pull_request' and (lanes_run or (native and profile == 'full'))
-    required = (full_pr and windows_python.enabled(project, ci, select_checks(project))
-                and source_uses_windows_python_parts(root, ci['head_sha']))
-    declared = report['report_version'] == windows_python.REPORT_VERSION or 'windows_python' in report
-    if not required:
-        if declared:
-            raise PublicationError('The recorded source and run do not schedule Windows Python parts.')
-        return
-    validate_model(root, 'HostedHarnessReport', report)
-    if profile != 'full' or not native:
-        raise PublicationError('Split Python completion evidence requires a full native Windows pull request.')
-    if not lanes_run:
+    if lanes_run:
         validate_windows_run_id(report)
-    validate_combined_python(root, project, reports, report, ci['head_sha'])
+        validate_model(root, 'HostedHarnessReport', report)
+        if profile in SCOPED_PROFILES:
+            check_scoped_windows_aggregate(project, report, profile)
+            return
+        validate_windows_aggregate(root, project, reports, report, report['source'], ci['head_sha'])
+        return
+    if (report['report_version'] != '2.0' or 'windows_python' in report or WINDOWS_PRODUCERS in report):
+        raise PublicationError('The recorded source and run do not schedule Windows producer bindings.')
+    if ci and windows_x64(report['environment']) and ci['event'] in {'push', 'pull_request'}:
+        producer_reports, _ = source_producer_bindings(root, ci['head_sha'])
+        split = (profile == 'full' and windows_python.enabled(project, ci, select_checks(project))
+                 and source_uses_windows_python_parts(root, ci['head_sha']))
+        if producer_reports and profile in SCOPED_PROFILES:
+            check_scoped_windows_aggregate(project, report, profile)
+        elif producer_reports or split:
+            raise PublicationError('The recorded Windows run lacks its aggregate identifier.')
 
 
-def validate_partitioned_publication(root, project, report, env, selected):
-    source = source_identity(root)
+def check_scoped_windows_aggregate(project, report, profile):
+    if report['report_version'] != '2.0' or 'windows_python' in report or WINDOWS_PRODUCERS in report:
+        raise PublicationError('A scoped Windows run cannot declare full producer bindings.')
+    selected = select_checks(project, profile=profile)
+    validate_windows_lane(project, report, report['source'], report['ci'], selected, 'core', profile)
+
+
+def windows_assignments(selected, runner):
+    split = runner is not None
+    recovery_owns_workflow = split and runner_assigns_market_workflow_to_recovery(runner)
+    return {lane: windows_lane_checks(
+        selected, lane, python_split=split, recovery_owns_market_workflow=recovery_owns_workflow,
+    ) for lane in WINDOWS_LANES}
+
+
+def ordinary_producer_lanes(assignments, split, retain):
+    lanes = ('browser',) if split else ('browser', 'recovery')
+    return {lane for lane in lanes if retain and assignments[lane]}
+
+
+def validate_windows_aggregate(root, project, reports, report, source, source_commit, destination=None,
+                               *, lane_result=None):
+    selected = select_checks(project)
     ci = report['ci']
-    _, head, _ = ci_event_checkout(root, source['git_head'], env)
-    if ci['head_sha'] != head or ci['checkout_sha'] != source['git_head']:
-        raise PublicationError('The Windows Python aggregate has another event checkout.')
+    split = (windows_python.enabled(project, ci, selected)
+             and source_uses_windows_python_parts(root, source_commit))
+    retain, part_reports = source_producer_bindings(root, source_commit)
+    runner = committed_windows_python(root, source_commit) if split else None
+    assignments = windows_assignments(selected, runner)
     rows = {row['id']: row for row in report['checks']}
     native = rows.get('windows-native-build', {})
     native_ok = native.get('status') == 'passed' and native.get('exit_code') == 0
@@ -509,14 +541,29 @@ def validate_partitioned_publication(root, project, report, env, selected):
     expected_gates = {'requested': True, 'required': required, 'unverified': unverified,
                       'status': 'blocked' if unverified else 'passed'}
     actual_selected = [rows[key]['status'] for key in selected if project['checks'][key]['status'] == 'implemented']
-    failed = 'failed' in actual_selected or env.get('SCOPEHUB_WINDOWS_LANE_RESULT') != 'success'
+    lane_failed = (lane_result != 'success' if lane_result is not None
+                   else 'At least one Windows lane job did not succeed.' in report.get('limitations', ()))
+    failed = 'failed' in actual_selected or lane_failed
     blocked = unverified or not native_ok or 'blocked' in actual_selected
     verdict = 'failed' if failed else 'blocked' if blocked else 'passed'
     if report['status'] != verdict or report.get('integration_gates') != expected_gates:
         raise PublicationError('The Windows aggregate verdict differs from its selected check results.')
+    if split:
+        validate_combined_python(root, project, reports, report, rows, assignments, runner, part_reports, destination)
+    else:
+        python_parts(reports, report, ())
+
+    original_reports = report.get(WINDOWS_PRODUCERS, {})
+    if set(original_reports) != ordinary_producer_lanes(assignments, split, retain):
+        raise PublicationError('Missing or unexpected original Windows ordinary producer report.')
+    run = f"runs/{report['run_id']}"
+    for lane in original_reports:
+        validate_original_producer(root, project, reports, report, rows, lane, assignments[lane],
+                                   windows_producer_report_path(run, lane), original_reports[lane], destination)
 
 
-def stage_artifacts(root, destination, env, *, reports=None, lane=False, collection_profile=None):
+def stage_artifacts(root, destination, env, *, reports=None, lane=False, collection_profile=None,
+                    project=None, source=None, assignments=None, runner=None):
     reports = root / '.reports' if reports is None else reports
     latest = optional_path(reports, 'test-report.json')
     if latest is None:
@@ -536,49 +583,54 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False, collect
         raise PublicationError('The latest and per-run harness reports differ.')
 
     scope = None if lane or collection_profile else scope_provenance(report, digest(contents), env)
-    project = load_project(root)
+    if project is None:
+        project = load_project(root)
     destination.mkdir()
     profile = report.get('selection', {}).get('profile')
-    required_parts = ()
-    selected = select_checks(project)
     lane_namespace = run_id.startswith(WINDOWS_LANES_RUN_PREFIX)
     hosted_aggregate = 'SCOPEHUB_WINDOWS_LANE_RESULT' in env
-    windows_job = (lane or lane_namespace or hosted_aggregate or env.get('RUNNER_OS') == 'Windows'
-                   or windows_x64(report['environment']))
-    partitioned = windows_job and windows_python.enabled(project, expected, selected)
-    runner = committed_windows_python(root, expected['checkout_sha']) if partitioned and lane else None
-    full_scope = scope is None or scope['profile'] == 'full'
-    if (lane or lane_namespace or not collection_profile and full_scope
-            and (partitioned or profile == 'full' and hosted_aggregate)):
-        validate_windows_run_id(report)
-    if partitioned and not windows_x64(report['environment']):
-        raise PublicationError('The Windows Python report has a different native platform.')
+    checkout = expected['checkout_sha']
     if lane:
+        validate_windows_run_id(report)
         lanes = {f'ci-windows-{name}': name for name in WINDOWS_LANES}
         if profile not in lanes:
             raise PublicationError('Unrecognized full Windows producer selection.')
         name = lanes[profile]
-        lane_selection = windows_lane_checks(
-            selected, name, python_split=partitioned,
-            recovery_owns_market_workflow=runner is not None and runner_assigns_market_workflow_to_recovery(runner),
-        )
-        if report.get('selection', {}).get('checks') != sorted(lane_selection):
-            raise PublicationError(f'Windows {name} lane has a different selection.')
-        if partitioned and name in windows_python.LANES:
-            required_parts = (name,)
-    elif partitioned and not collection_profile and full_scope:
-        validate_partitioned_publication(root, project, report, env, selected)
-        required_parts = windows_python.LANES
-    if required_parts == windows_python.LANES:
-        validate_combined_python(root, project, reports, report, expected['checkout_sha'], destination)
-    else:
+        if assignments is None:
+            selected = select_checks(project)
+            split = (windows_python.enabled(project, expected, selected)
+                     and source_uses_windows_python_parts(root, checkout))
+            runner = committed_windows_python(root, checkout) if split else None
+            assignments = windows_assignments(selected, runner)
+        lane_selection = assignments[name]
+        identity_failure = not report['source_unchanged'] or not report['project_unchanged']
+        if source is None and identity_failure:
+            # Retain a finalized diagnostic for the failed producer. Collection
+            # still requires every producer to match the aggregate's inputs.
+            if report['selection']['checks'] != sorted(lane_selection):
+                raise PublicationError(f'Windows {name} lane has a different selection.')
+            validate_lane_verdict(project, report, lane_selection, name, profile)
+        else:
+            validate_windows_lane(project, report, source or source_identity(root), expected, lane_selection, name, profile)
+        if WINDOWS_PRODUCERS in report:
+            raise PublicationError('A Windows lane cannot declare its own aggregate binding.')
+        required_parts = (name,) if runner is not None and name in windows_python.LANES else ()
         parts = python_parts(reports, report, required_parts, destination,
                              callback_records=runner_uses_callback_records(runner) if required_parts else None,
                              cutoff=runner_partition_cutoff(runner) if required_parts else None)
         if any(PRODUCER_REPORT_DIGEST in record for record, _, _ in parts):
             raise PublicationError('A Windows Python lane cannot declare its own aggregate binding.')
-    if lane:
-        validate_lane_verdict(project, report, lane_selection, name, profile)
+    elif lane_namespace and profile == 'full' and not collection_profile:
+        validate_windows_run_id(report)
+        source = source_identity(root)
+        if hosted_aggregate:
+            _, head, _ = ci_event_checkout(root, source['git_head'], env)
+            if expected['head_sha'] != head or checkout != source['git_head']:
+                raise PublicationError('The Windows aggregate has another event checkout.')
+        validate_windows_aggregate(root, project, reports, report, source, checkout, destination,
+                                   lane_result=env.get('SCOPEHUB_WINDOWS_LANE_RESULT'))
+    else:
+        validate_recorded_windows_evidence(root, project, reports, report)
     executed = {}
     # The hosted producer logs synthetic inputs and redacted outcomes. The catalog owns check identities.
     for result in report['checks']:
@@ -673,6 +725,12 @@ def validate_windows_lane(project, report, source, ci, selected, lane, profile, 
             if (row['status'] != 'blocked' or row.get('reason_code') not in reasons
                     or {'log', 'log_sha256', 'exit_code'}.intersection(row)):
                 raise PublicationError(f'Windows {lane} lane has an unexpected result for {key}.')
+        elif row.get('reason_code') in {'not_selected', 'not_implemented', 'retired'}:
+            raise PublicationError(f'Windows {lane} lane has an unexpected omission for selected check {key}.')
+        elif row['status'] == 'blocked' and 'log' not in row:
+            if (row.get('reason_code') not in {'earlier_failure', 'executable_unavailable'}
+                    or {'log_sha256', 'exit_code', 'duration_seconds'}.intersection(row)):
+                raise PublicationError(f'Windows {lane} lane has an unexpected blocked result for {key}.')
         elif row['status'] == 'passed' and (row.get('reason_code') or duration(row.get('duration_seconds')) is None):
             raise PublicationError(f'Windows {lane} lane has an incomplete passing result for {key}.')
     if profile != 'full':
@@ -728,27 +786,31 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
     reports = root / '.reports'
     run_id = windows_lanes_run_id(ci)
     rows = {}
-    partitioned = not profile and windows_python.enabled(project, ci, selected)
-    retain_producers = partitioned and source_uses_python_producer_reports(root, checkout)
+    partitioned = (not profile and windows_python.enabled(project, ci, selected)
+                   and source_uses_windows_python_parts(root, checkout))
+    retain, retain_part_producers = source_producer_bindings(root, checkout) if not profile else (False, False)
     runner = committed_windows_python(root, checkout) if partitioned else None
     cutoff = runner_partition_cutoff(runner) if partitioned else None
-    recovery_owns_market_workflow = partitioned and runner_assigns_market_workflow_to_recovery(runner)
+    assignments = windows_assignments(selected, runner)
+    retained_lanes = ordinary_producer_lanes(assignments, partitioned, retain)
     started = []
     caches = {}
     producer_parts = {}
+    producer_reports = {}
     with tempfile.TemporaryDirectory(prefix='scopehub-windows-', dir=env.get('RUNNER_TEMP')) as directory:
         for lane in names:
             incoming = checked_path(downloads, prefix + lane, directory=True)
             staged = Path(directory) / lane
-            if not stage_artifacts(root, staged, env, reports=incoming, lane=not profile, collection_profile=profile):
+            if not stage_artifacts(root, staged, env, reports=incoming, lane=not profile, collection_profile=profile,
+                                   project=project, source=source, assignments=assignments, runner=runner):
                 raise PublicationError(f'Windows {lane} lane has no finalized report.')
             contents = (staged / 'test-report.json').read_bytes()
             report = evidence_json(contents)
-            lane_selection = selected if profile else windows_lane_checks(
-                selected, lane, python_split=partitioned,
-                recovery_owns_market_workflow=recovery_owns_market_workflow,
-            )
-            validate_windows_lane(project, report, source, ci, lane_selection, lane, profile or f'ci-windows-{lane}')
+            lane_selection = selected if profile else assignments[lane]
+            if profile:
+                validate_windows_lane(project, report, source, ci, lane_selection, lane, profile)
+            elif report['selection']['profile'] != f'ci-windows-{lane}':
+                raise PublicationError(f'Windows {lane} lane has a different producer role.')
             if profile and report['status'] == 'passed' and env.get('SCOPEHUB_WINDOWS_LANE_RESULT') != 'success':
                 raise PublicationError('The scoped Windows lane job did not succeed.')
             if lane == 'core':
@@ -759,9 +821,12 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
                     raise PublicationError(f'Windows {lane} lane has another report identity or Python executable.')
                 started.append(datetime.fromisoformat(report['generated_at']).timestamp() - report['timing']['elapsed_seconds'])
                 rows.update((row['id'], row) for row in report['checks'] if lane == 'core' or row['id'] in lane_selection)
+                if lane in retained_lanes:
+                    write_artifact(reports / windows_producer_report_path(f'runs/{run_id}', lane), contents)
+                    producer_reports[lane] = digest(contents)
                 if partitioned and lane in windows_python.LANES:
                     (record, raw, manifest), = python_parts(staged, report, (lane,), cutoff=cutoff)
-                    if retain_producers:
+                    if retain_part_producers:
                         write_artifact(reports / python_producer_report_path(f'runs/{run_id}', lane), contents)
                         record = {**record, PRODUCER_REPORT_DIGEST: digest(contents)}
                     producer_parts[lane] = record, raw, manifest
@@ -783,6 +848,8 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
                 stream.write(f'windows_caches={json.dumps(caches, sort_keys=True)}\n')
     if profile:
         return core, 0
+    if producer_reports:
+        core[WINDOWS_PRODUCERS] = producer_reports
     if partitioned:
         parts = [producer_parts[lane] for lane in windows_python.LANES]
         core['windows_python'] = {lane: part[0] for lane, part in zip(windows_python.LANES, parts, strict=True)}

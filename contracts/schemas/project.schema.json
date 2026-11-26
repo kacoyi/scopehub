@@ -1637,6 +1637,12 @@
     "HostedHarnessReport": {
       "allOf": [{"$ref": "#/$defs/HarnessReport"}],
       "properties": {
+        "windows_producers": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {"enum": ["browser", "recovery"]},
+          "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+        },
         "windows_python": {
           "type": "object",
           "minProperties": 1,
