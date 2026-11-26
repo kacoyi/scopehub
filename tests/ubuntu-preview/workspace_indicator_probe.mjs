@@ -58,12 +58,17 @@ export function installIndicatorProbe(endpoint, writerPath, { journal, mode, ref
   const heldResponses = new Map();
   let heldAdmission;
   const lostRequests = new Set();
-  const substitutions = ['cancelled', 'wrong-terminal-task', 'unknown-status', 'wrong-ready-task', 'unknown-terminal-outcome'];
+  const substitutions = [
+    'cancelled', 'failed', 'wrong-terminal-task', 'unknown-status', 'wrong-ready-task', 'unknown-terminal-outcome',
+    'wrong-ready-event', 'wrong-terminal-event', 'wrong-ready-version', 'wrong-terminal-type', 'running-with-event',
+    'malformed-terminal-error',
+  ];
   const lossLimit = mode === 'lose-twice' ? 2 : Number([
     'lose-once', 'deadline', 'user-cancel', ...substitutions,
   ].includes(mode));
   const holdMs = mode === 'deadline' || refuse ? 800 : statusHoldMs;
   let heldReady = false;
+  let substitutedRequest;
 
   childProcess.spawn = function (program, ...args) {
     const child = spawn.call(this, program, ...args);
@@ -157,7 +162,8 @@ export function installIndicatorProbe(endpoint, writerPath, { journal, mode, ref
 
             const id = fields.request_id;
             const lose = lostRequests.has(id) || lostRequests.size < lossLimit;
-            if (!lose && substitutions.includes(mode)) {
+            if (!lose && substitutions.includes(mode) && (!substitutedRequest || substitutedRequest === id)) {
+              substitutedRequest = id;
               const replacement = substituteStatus(body, mode);
               mark('status-substituted', { ...fields, body: replacement });
               args[0] = JSON.stringify(replacement);
@@ -206,14 +212,23 @@ export function installIndicatorProbe(endpoint, writerPath, { journal, mode, ref
 
 function substituteStatus(body, mode) {
   const { result } = body;
-  if (mode === 'unknown-status') return { ...body, result: { ...result, status: 'unavailable' } };
-  if (mode === 'wrong-ready-task') {
-    return { ...body, result: { ...result, event: { ...result.event, task_id: randomUUID() } } };
+  const changeReadyEvent = fields => ({ ...body, result: { ...result, event: { ...result.event, ...fields } } });
+  switch (mode) {
+    case 'unknown-status': return { ...body, result: { ...result, status: 'unavailable' } };
+    case 'running-with-event':
+      return { ...body, result: { status: 'running', task_id: result.task_id, event: result.event } };
+    case 'wrong-ready-task': return changeReadyEvent({ task_id: randomUUID() });
+    case 'wrong-ready-event': return changeReadyEvent({ event: 'task.terminal' });
+    case 'wrong-ready-version': return changeReadyEvent({ protocol_version: '1.0' });
   }
   const { protocol_version, stream_id, sequence, task_id } = result.event;
+  const outcome = ['failed', 'malformed-terminal-error'].includes(mode) ? { status: 'failed', error: {
+    code: 'RESOURCE_LIMIT', message: 'The indicator exceeded its limits.',
+    retryable: mode === 'malformed-terminal-error' ? 'false' : false,
+  } } : { status: mode === 'unknown-terminal-outcome' ? 'unavailable' : 'cancelled' };
   const event = { protocol_version, stream_id, sequence: sequence + 1,
     task_id: mode === 'wrong-terminal-task' ? randomUUID() : task_id,
-    message_id: randomUUID(), timestamp_ms: Date.now(), type: 'event', event: 'task.terminal',
-    outcome: { status: mode === 'unknown-terminal-outcome' ? 'unavailable' : 'cancelled' }, committed_effects: [] };
+    message_id: randomUUID(), timestamp_ms: Date.now(), type: mode === 'wrong-terminal-type' ? 'request' : 'event',
+    event: mode === 'wrong-terminal-event' ? 'indicator.preview_ready' : 'task.terminal', outcome, committed_effects: [] };
   return { ok: true, result: { status: 'terminal', task_id: result.task_id, event } };
 }

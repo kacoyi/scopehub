@@ -923,18 +923,26 @@ test('workspace delivers pre-admission BUSY after a complete indicator draft req
   }
 });
 
-for (const [label, mode, losses, terminal, refuse] of [
+for (const [label, mode, losses, terminal, refuse, failureText = 'The indicator preview could not be completed.'] of [
   ['delivers a held ready reply', 'hold-ready', 0, 'ready'],
   ['recovers one lost logical delivery', 'lose-once', 1, 'ready'],
   ['survives a true pre-admission refusal during recovery', 'lose-once', 1, 'ready', true],
   ['stops after a second lost logical delivery', 'lose-twice', 2, 'failed'],
   ['stops on a definitive cancelled status', 'cancelled', 1, 'cancelled'],
+  ['preserves a definitive terminal error', 'failed', 1, 'failed', false,
+    'The indicator exceeded its limits. Try a smaller interval.'],
   ['stops at the original polling deadline', 'deadline', 1, 'failed'],
   ['cancels once while a recovery read is in flight', 'user-cancel', 1, 'cancelled'],
   ['rejects an unknown recovery status despite a ready artifact', 'unknown-status', 1, 'failed'],
   ['rejects a recovery terminal event for another task', 'wrong-terminal-task', 1, 'failed'],
   ['rejects a recovery ready event for another task', 'wrong-ready-task', 1, 'failed'],
   ['rejects an unknown outcome for the recovered task', 'unknown-terminal-outcome', 1, 'failed'],
+  ['rejects a recovered ready result with a terminal event name', 'wrong-ready-event', 1, 'failed'],
+  ['rejects a recovered terminal result with a ready event name', 'wrong-terminal-event', 1, 'failed'],
+  ['rejects a recovered ready event with the wrong protocol version', 'wrong-ready-version', 1, 'failed'],
+  ['rejects a recovered terminal event with the wrong message type', 'wrong-terminal-type', 1, 'failed'],
+  ['rejects a malformed recovered terminal error', 'malformed-terminal-error', 1, 'failed'],
+  ['rejects a recovered running result carrying a ready event', 'running-with-event', 1, 'failed'],
   ['cancels once when an admission reply arrives after user cancel', 'late-admission', 0, 'cancelled'],
 ]) {
   test(`offline sample indicator ${label}`, async ({ browser }, testInfo) => {
@@ -975,8 +983,14 @@ for (const [label, mode, losses, terminal, refuse] of [
           }
           await expect(layers.or(alert).or(cancelled)).toBeVisible({ timeout: 17_000 });
           await observer.settle();
-          const observed = await layers.isVisible() ? 'ready' : await cancelled.isVisible() ? 'cancelled' : 'failed';
-          evidence.observed = { terminal: observed, message: await alert.allTextContents(), at_ms: Date.now() };
+          const previewLayers = await layers.isVisible();
+          const cancellationVisible = await cancelled.isVisible();
+          const observed = previewLayers ? 'ready' : cancellationVisible ? 'cancelled' : 'failed';
+          evidence.observed = {
+            terminal: observed, message: await alert.allTextContents(), at_ms: Date.now(),
+            preview_layers: previewLayers, cancellation_visible: cancellationVisible,
+            history_bars: await chart.getAttribute('data-bars'),
+          };
           await expect(chart).toHaveAttribute('data-bars', '40');
           await expect(chart.locator('canvas').first()).toBeVisible();
           await expect(plot.getByText('History ready', { exact: true })).toBeVisible();
@@ -1049,7 +1063,9 @@ for (const [label, mode, losses, terminal, refuse] of [
             expect(await cancels()).toHaveLength(0);
             await expect(preview.getByText("The source's scheduled closures add no indicator buckets.")).toBeVisible();
             await preview.getByText('Preview provenance and values').click();
-            await expect(preview.getByRole('table', { name: 'Indicator preview values' })).toContainText('3500.5');
+            const values = preview.getByRole('table', { name: 'Indicator preview values' });
+            await expect(values).toContainText('3500.5');
+            evidence.observed.preview_values = await values.innerText();
             await leaveSample(page);
             await expect(preview).toHaveCount(0);
           } else {
@@ -1080,22 +1096,27 @@ for (const [label, mode, losses, terminal, refuse] of [
 
           expect.soft(observed, 'Terminal UI after the admitted status transaction').toBe(terminal);
           expect(lostIds).toHaveLength(losses);
-          const meaningful = statuses.filter(row => row.reply?.result?.status !== 'running' && row.http !== 429);
+          const substitutions = native.filter(row => row.stage === 'status-substituted');
+          const replaced = substitutions[0];
+          const meaningful = statuses.filter(row => row.http !== 429
+            && (row.reply?.result?.status !== 'running' || row.request_id === replaced?.request_id));
           const last = statuses.at(-1);
           const delivered = ['lose-twice', 'late-admission'].includes(mode) ? [] : [last.request_id];
-          expect(meaningful.map(row => row.request_id)).toEqual([
+          expect.soft(meaningful.map(row => row.request_id), 'Logical status requests after admission').toEqual([
             ...lostIds, ...delivered,
           ]);
-          expect(ready.filter(row => !lostIds.includes(row.request_id)).map(row => row.request_id))
+          expect.soft(ready.filter(row => !lostIds.includes(row.request_id)).map(row => row.request_id), 'Native ready reads after delivery loss')
             .toEqual(delivered);
           if (terminal === 'ready') expect(last.reply).toEqual({ ok: true, result: witness });
-          if (['cancelled', 'wrong-terminal-task', 'unknown-status', 'wrong-ready-task', 'unknown-terminal-outcome'].includes(mode)) {
-            const substitutions = native.filter(row => row.stage === 'status-substituted');
+          if (['cancelled', 'failed', 'wrong-terminal-task', 'unknown-status', 'wrong-ready-task', 'unknown-terminal-outcome',
+            'wrong-ready-event', 'wrong-terminal-event', 'wrong-ready-version', 'wrong-terminal-type', 'running-with-event',
+            'malformed-terminal-error'].includes(mode)) {
             expect(substitutions).toHaveLength(1);
-            verifySampleStatusSubstitution({ mode, last, taskId, witness, substitution: substitutions[0] });
+            const received = statuses.find(row => row.request_id === replaced.request_id);
+            verifySampleStatusSubstitution({ mode, received, taskId, witness, substitution: replaced });
           }
           if (terminal === 'failed') {
-            expect.soft(evidence.observed.message).toEqual(['The indicator preview could not be completed.']);
+            expect.soft(evidence.observed.message).toEqual([failureText]);
           }
           const runFinished = native.find(row => row.stage === 'http-finished' && row.request_id === runs[0].request_id);
           if (mode !== 'late-admission') evidence.terminal_elapsed_ms = evidence.observed.at_ms - runFinished.at_ms;
@@ -1161,21 +1182,32 @@ async function cancelHeldSamplePreview({ mode, server, journal, observer, previe
   return { held, clicked_at_ms, click_to_cancelled_ms };
 }
 
-function verifySampleStatusSubstitution({ mode, last, taskId, witness, substitution }) {
-  expect(last.request_id).toBe(substitution.request_id);
-  expect(last.reply).toEqual(substitution.body);
-  const result = last.reply.result;
+function verifySampleStatusSubstitution({ mode, received, taskId, witness, substitution }) {
+  expect(received?.reply).toEqual(substitution.body);
+  const result = received.reply.result;
   expect(result.task_id).toBe(taskId);
   if (mode === 'unknown-status') expect(result).toEqual({ ...witness, status: 'unavailable' });
+  else if (mode === 'running-with-event') expect(result).toEqual({ status: 'running', task_id: taskId, event: witness.event });
   else if (mode === 'wrong-ready-task') {
     expect(result.event.task_id).not.toBe(taskId);
     expect(result).toEqual({ ...witness, event: { ...witness.event, task_id: result.event.task_id } });
+  } else if (mode === 'wrong-ready-event') {
+    expect(result).toEqual({ ...witness, event: { ...witness.event, event: 'task.terminal' } });
+  } else if (mode === 'wrong-ready-version') {
+    expect(result).toEqual({ ...witness, event: { ...witness.event, protocol_version: '1.0' } });
   } else {
-    expect(result.status).toBe('terminal');
-    expect(result.event.event).toBe('task.terminal');
     if (mode === 'wrong-terminal-task') expect(result.event.task_id).not.toBe(taskId);
     else expect(result.event.task_id).toBe(taskId);
-    expect(result.event.outcome).toEqual({ status: mode === 'unknown-terminal-outcome' ? 'unavailable' : 'cancelled' });
+    const outcome = ['failed', 'malformed-terminal-error'].includes(mode) ? { status: 'failed', error: {
+      code: 'RESOURCE_LIMIT', message: 'The indicator exceeded its limits.',
+      retryable: mode === 'malformed-terminal-error' ? 'false' : false,
+    } } : { status: mode === 'unknown-terminal-outcome' ? 'unavailable' : 'cancelled' };
+    expect(result).toEqual({ status: 'terminal', task_id: taskId, event: {
+      protocol_version: '1.1', type: mode === 'wrong-terminal-type' ? 'request' : 'event',
+      event: mode === 'wrong-terminal-event' ? 'indicator.preview_ready' : 'task.terminal',
+      stream_id: witness.event.stream_id, sequence: witness.event.sequence + 1, task_id: result.event.task_id,
+      message_id: expect.any(String), timestamp_ms: expect.any(Number), committed_effects: [], outcome,
+    } });
   }
 }
 
