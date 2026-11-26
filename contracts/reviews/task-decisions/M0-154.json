@@ -117,6 +117,15 @@
       },
       "supersedes": "653c3314abd24df6ac18e41db9530e897d32df5b0ec27678dbd040e645d2470f",
       "evidence_sha256": "75f39f6d170909ebe510c43f8079748f6df8d417d673edd4ce626bcdef4f8d8c"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e11e24fcb079430b0e13414c5d969e63108411fa",
+      "scope": "Verify startup observation and actual chart rendering against the authoritative snapshot and history response contracts. Challenge the last reviewer’s absent content-hash result, a malformed or contradictory response, positive old and current inputs, and failed or out-of-order history. Observe both product and attachment outcomes, cleanup and deadline. Keep native and packaged evidence distinct. Recheck the original decision on 222ba13c.",
+      "supersedes": "3f2e7b36e1e1819b7ff73165bbe3b16965eaa63017b2c2bbf177abe081f5a6ad",
+      "requested_at": "2026-11-26T05:16:00.146745+00:00",
+      "request_id": "e6904baa46cd636e5a2826d0c6bfb14e5aafe19e8ab9ec5d37b3cd02ea940c11",
+      "evidence_sha256": "da8f956a18f4e13c46e57e0c07af74dba62c64dee3ac675e516dece238448d24"
     }
   ]
 }
