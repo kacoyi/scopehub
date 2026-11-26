@@ -30,6 +30,15 @@
       },
       "supersedes": "87179cfc72716efb031cf89dbd8d3226c65943e108a40b3ac6792047a97f932d",
       "evidence_sha256": "0750bf01a875be83578058ebf3d70ce6f0251f87f0588991274a815311860b60"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e6e5a46d9296e087b2b1c037eb6ba6c16dbe5330",
+      "scope": "Run the weekly system-Python reader on the registered historical PR 84. Independently distinguish genuine commit, known non-commit and legitimately missing preview with and without checkout proof, absent catalog, changed digest and omitted or extra selected checks. Check the normal production entry in clean and shallow Git and keep the first scheduled observation pending.",
+      "supersedes": "c697a4fdebf92de38fb692379ce8522844760dd62c686ac204820625c3039cf3",
+      "requested_at": "2026-11-26T03:19:41.350544+00:00",
+      "request_id": "54df914876e02a08872c55ac56fd6ff7211a1ab8a17b039ecf811faad51123ab",
+      "evidence_sha256": "6f153f25c2d194ae63f7222391db6695f5e6e043b83b543361b288d632b2d2af"
     }
   ]
 }
