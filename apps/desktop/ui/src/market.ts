@@ -2,6 +2,7 @@ import { Channel, invoke } from '@tauri-apps/api/core';
 import type { InstrumentSearchInput, InstrumentSearchOutput, MarketHistoryPageInput, MarketHistoryPageOutput } from '../../../../contracts/generated/protocol';
 import { message, type Message } from './i18n';
 import { isAdmissionBusy, marketAdmissionDeadline, retryMarketAdmission } from './market-admission';
+import { sampleHistoryMatchesRequest, sampleHistoryPageFitsSnapshot } from './sample-history-validation';
 
 export type { Bar, DatasetDescriptor, Instrument, MarketGetBarsOutput } from '../../../../contracts/generated/protocol';
 type Inputs = { 'instrument.search': InstrumentSearchInput; 'market.readHistoryPage': MarketHistoryPageInput };
@@ -219,34 +220,14 @@ export async function readSampleHistory(
   const expectedRevision = instrument.id === sampleRevisionInstrument ? sampleRevisions[revision].id : undefined;
   const query = { series, ...range, warmup_bars: 0, ...(expectedRevision && { expected_revision: expectedRevision }) };
   let page = await historyReader.read('market.readHistoryPage', query, signal);
-  if (!page) throw invalidMarketData();
+  if (!sampleHistoryMatchesRequest(page, query, instrument)) throw invalidMarketData();
   const { snapshot, dataset, quality_state, total_bars } = page;
-  if (!snapshot?.series || !dataset || !Array.isArray(quality_state?.gaps)
-    || quality_state.gaps.some(gap => !gap || !Number.isSafeInteger(gap.from_ms)
-      || !Number.isSafeInteger(gap.to_ms) || gap.from_ms >= gap.to_ms)
-    || Object.entries(series).some(([field, value]) => snapshot.series[field as keyof typeof series] !== value)
-    || snapshot.from_ms !== query.from_ms || snapshot.to_ms !== query.to_ms || snapshot.warmup_bars !== 0
-    || dataset.instrument_id !== instrument.id || dataset.timeframe !== timeframe || dataset.provider_id !== demoProvider
-    || dataset.mode !== 'simulated' || dataset.timezone !== instrument.timezone || dataset.calendar_id !== instrument.calendar_id
-    || dataset.quantity_unit !== instrument.quantity_unit || dataset.revision !== snapshot.dataset_revision
-    || (expectedRevision !== undefined && dataset.revision !== expectedRevision)
-    || dataset.id !== snapshot.dataset_id || quality_state.as_of_ms !== snapshot.as_of_ms
-    || !Number.isSafeInteger(total_bars) || total_bars < 0 || total_bars > 100_000) throw invalidMarketData();
   const bars: ChartHistory['bars'] = [];
   for (;;) {
     if (signal.aborted) throw aborted();
-    if (!Array.isArray(page?.bars)) throw invalidMarketData();
-    const previous = bars.at(-1);
-    const first = page.bars[0];
-    if (page.offset !== bars.length || page.total_bars !== total_bars || page.snapshot?.content_hash !== snapshot.content_hash
-      || bars.length + page.bars.length > total_bars || (previous && first && first.time_ms <= previous.time_ms)) throw invalidMarketData();
+    if (!sampleHistoryPageFitsSnapshot(page, snapshot, total_bars, bars)) throw invalidMarketData();
     for (const bar of page.bars) bars.push(bar);
-    if (page.next_cursor === null) {
-      if (bars.length !== total_bars) throw invalidMarketData();
-      return { dataset, bars, snapshot, quality_state };
-    }
-    if (!page.bars.length || bars.length >= total_bars || page.next_cursor?.next_index !== bars.length
-      || page.next_cursor.snapshot_hash !== snapshot.content_hash) throw invalidMarketData();
+    if (page.next_cursor === null) return { dataset, bars, snapshot, quality_state };
     page = await historyReader.read('market.readHistoryPage', { ...query, snapshot, cursor: page.next_cursor }, signal);
   }
 }

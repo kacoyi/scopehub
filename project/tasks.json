@@ -25948,7 +25948,8 @@
       "checks": [
         "project-state",
         "python-contracts-workers",
-        "market-recovery"
+        "market-recovery",
+        "ui-build"
       ],
       "evidence": [
         {
@@ -25960,7 +25961,7 @@
           "sha256": "5188bfaecc20c46c88a346c28690b28b36435144168f342459a46ddac4b823ba"
         }
       ],
-      "next_action": "Obtain independent review and the ordinary first-attempt Windows market-recovery result on the clean candidate inputs. Retain the cold public repair case startup attachment and the held-module attachment with its independent elapsed measurement. Preserve the historical asset attribution as unknown.",
+      "next_action": "Obtain independent review and the ordinary first-attempt Windows market-recovery result on the clean candidate. Retain the cold public repair case startup attachment and the held-module attachment with its independent elapsed measurement. The historical asset attribution remains unknown.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -25974,11 +25975,13 @@
           "tests/ubuntu-preview/market-preview-config.mjs",
           "apps/desktop/ui/index.html",
           "archives/observations/repo-hygiene-20261125/m0-154-cold-sample-45709117560/observations.json",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-232d0902/final-response.txt"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-232d0902/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-e8b8de61/final-response.txt"
         ],
         "hypotheses": [
           "The screenshot confirms that the startup panel rendered. A missing or slow deferred module, an unobserved document transition and host delay remain distinguishable hypotheses until there is request and lifecycle evidence.",
-          "On unchanged local Linux Chromium, the sample completed the real catalog and history. Holding the static entry left a committed document with manual reload and no DOMContentLoaded. Holding the dynamically imported entry allowed DOMContentLoaded before any verified sample. These controlled observations do not identify the source of the historical Windows failure."
+          "On unchanged local Linux Chromium, the sample completed the real catalog and history. Holding the static entry left a committed document with manual reload and no DOMContentLoaded. Holding the dynamically imported entry allowed DOMContentLoaded before any verified sample. These controlled observations do not identify the source of the historical Windows failure.",
+          "The startup attachment checks fewer reply fields than readSampleHistory. A valid request plus a same-series, same-revision reply for a shifted range can distinguish the two checks."
         ],
         "risks": [
           {
@@ -26005,6 +26008,13 @@
             "checks": [
               "market-recovery"
             ]
+          },
+          {
+            "failure": "The startup attachment advances on a history reply the application rejects, or on a reply that arrives before catalog completion. Use the same real synthetic startup traffic for both consumers and assert the last verified stage for compatible, shifted-range, missing-field and out-of-order replies.",
+            "checks": [
+              "market-recovery",
+              "ui-build"
+            ]
           }
         ],
         "rollback": "Keep the existing valid sample and cutoff; revert a change that hides a deliberate stall or changes the expected bars.",
@@ -26016,9 +26026,15 @@
           "entrypoints": [
             "tests/ui/sample-startup.mjs",
             "tests/ubuntu-preview/market-closed-bar-repair.spec.mjs",
+            "apps/desktop/ui/src/market.ts",
+            "apps/desktop/ui/src/sample-history-validation.ts",
             "apps/desktop/ui/index.html"
           ],
           "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/domain/history_snapshots/selection"
+            },
             {
               "path": "project/delivery.json",
               "pointer": "/scaffold_maintenance/workflow"
@@ -26042,7 +26058,8 @@
           ],
           "change": [
             "Add only the distinction or removable startup cost that measurements through the ordinary entry support.",
-            "Attach bounded document, pending code and verified market milestones to the normal repair browser check. Retain the ten-second navigation deadline, chart contract and manual reload."
+            "Attach bounded document, pending code and verified market milestones to the normal repair browser check. Retain the ten-second navigation deadline, chart contract and manual reload.",
+            "Reuse the application's history compatibility checks before recording the history milestone. Preserve single-page startup and the application's paginated history behavior."
           ],
           "data_plan": "Use synthetic sample traffic on a loopback development server and retain bounded stage observations.",
           "cleanup": "Release owned browser listeners and servers and preserve the native failure and same-tree passing artifacts."

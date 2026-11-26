@@ -7570,6 +7570,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "sample-startup-verified-incompatible-history-response",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent changes-requested decision c2ca1c11fed0dfa1fbd354224fa82acde1b2bd7954b4c85c685d337733dd8c43 for M0-154 source e8b8de61a0e98283a70bcef39b4a0aa765f035e6. Original final response retained at archives/observations/repo-hygiene-20261125/independent-final-m0-154-e8b8de61/final-response.txt (SHA-256 366cd57e60f55bd028d8ae77dc1e8de3ae887520afa094d0fe7fcd2aa3088f7c). The unchanged product and observer behavior was reproduced in Chromium with exact archived HTTP bodies in .reports/m0-154-history-response/before/observations.json (SHA-256 06212aabab7c0b7f0458d2decd46d032f4baea5d7884b4b05f4e481cb91481c4).",
+      "observation": "Replaying a correct startup history request with a real 40-bar reply whose snapshot started one minute later produced OUTPUT_INVALID in the application. The startup attachment nevertheless recorded history_verified_ms and history-verified before the chart visibility assertion failed.",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

@@ -1,5 +1,6 @@
 import { isDeepStrictEqual } from 'node:util';
 import { expect } from '@playwright/test';
+import { sampleHistoryMatchesRequest, sampleHistoryPageFitsSnapshot } from '../../apps/desktop/ui/src/sample-history-validation.ts';
 import { replayStage } from './replay-stages.mjs';
 
 const operation = '/__scopehub/operation';
@@ -220,12 +221,15 @@ export async function openDefaultSample(page, { trigger, verifyChart, reportStar
     if (navigation?.status() >= 400) throw new Error(`Sample document GET returned HTTP ${navigation.status()}`);
     const catalog = await observer.read(sampleCatalogCall.operation);
     await verifyRequest(sampleCatalogCall);
-    expect(catalog.instruments.map(item => item.id)).toContain(future);
+    const instrument = catalog.instruments.find(item => item.id === future);
+    expect(instrument).toBeDefined();
     startup?.mark('catalog_verified_ms');
     const history = await observer.read(historyCall.operation);
     await verifyRequest(historyCall);
+    expect(sampleHistoryMatchesRequest(history, historyCall.payload, instrument), 'History reply matches the sample request').toBe(true);
+    expect(sampleHistoryPageFitsSnapshot(history, history.snapshot, history.total_bars, []), 'History reply is a valid first page').toBe(true);
     expect(history.snapshot.series).toEqual(historyCall.payload.series);
-    expect(history.snapshot.dataset_revision).toBe(normalRevision);
+    expect(history.next_cursor).toBeNull();
     expect(history.total_bars).toBe(40);
     expect(history.bars).toHaveLength(40);
     startup?.mark('history_verified_ms');

@@ -329,6 +329,127 @@ for (const [change, stage, rejectedOperation] of [
   });
 }
 
+test.describe('sample startup history reply compatibility', () => {
+  const operation = '/__scopehub/operation';
+  const historyCall = sampleHistoryCall();
+  const catalogName = sampleCatalogCall.operation;
+  const historyName = historyCall.operation;
+  let catalogReply;
+  let historyReply;
+  let shiftedReply;
+
+  test.beforeAll(async ({ request, baseURL }) => {
+    const headers = { Origin: new URL(baseURL).origin };
+    const capture = async call => {
+      const response = await request.post(operation, { data: call, headers });
+      expect(response.status()).toBe(200);
+      const reply = await response.json();
+      expect(reply.ok).toBe(true);
+      return reply;
+    };
+    catalogReply = await capture(sampleCatalogCall);
+    historyReply = await capture(historyCall);
+    const shiftedCall = structuredClone(historyCall);
+    shiftedCall.payload.from_ms += 60_000;
+    shiftedReply = await capture(shiftedCall);
+    for (const [call, reply] of [[historyCall, historyReply], [shiftedCall, shiftedReply]]) {
+      expect(reply.result.snapshot).toMatchObject({
+        from_ms: call.payload.from_ms, to_ms: call.payload.to_ms, series: call.payload.series,
+        dataset_revision: call.payload.expected_revision,
+      });
+      expect(reply.result.bars).toHaveLength(40);
+    }
+  });
+
+  for (const [kind, ready, stage] of [
+    ['compatible', true, 'sample-verified'],
+    ['shifted snapshot', false, 'catalog-verified'],
+    ['omitted snapshot start', false, 'catalog-verified'],
+    ['omitted history result', false, 'catalog-verified'],
+    ['history completed before catalog', true, 'catalog-verified'],
+  ]) {
+    test(`public sample startup handles the ${kind} case`, async ({ page }) => {
+      const outOfOrder = kind === 'history completed before catalog';
+      const history = structuredClone(kind === 'shifted snapshot' ? shiftedReply : historyReply);
+      if (kind === 'omitted snapshot start') delete history.result.snapshot.from_ms;
+      if (kind === 'omitted history result') delete history.result;
+      if (outOfOrder) {
+        await page.addInitScript(({ operation, historyCall }) => {
+          const fetch = window.fetch;
+          let earlyHistory;
+          window.fetch = (url, options) => {
+            if (url !== operation) return fetch(url, options);
+            const call = JSON.parse(options.body);
+            if (call.operation === 'instrument.search') {
+              const catalog = fetch(url, options);
+              earlyHistory = fetch(url, { ...options, body: JSON.stringify(historyCall) });
+              return catalog;
+            }
+            return call.operation === historyCall.operation && earlyHistory ? earlyHistory : fetch(url, options);
+          };
+        }, { operation, historyCall });
+      }
+
+      const calls = [];
+      const completed = [];
+      const releaseCatalog = Promise.withResolvers();
+      const recordCompletion = request => {
+        if (new URL(request.url()).pathname !== operation || request.method() !== 'POST') return;
+        const { operation: name } = request.postDataJSON();
+        completed.push(name);
+        if (name === historyName) releaseCatalog.resolve();
+      };
+      page.on('requestfinished', recordCompletion);
+      await page.route(`**${operation}`, async route => {
+        const call = route.request().postDataJSON();
+        calls.push(call);
+        if (call.operation === catalogName) {
+          if (outOfOrder) await releaseCatalog.promise;
+          return route.fulfill({ json: catalogReply });
+        }
+        return route.fulfill({ json: history });
+      });
+
+      try {
+        const reports = [];
+        const startup = openDefaultSample(page, { reportStartup: report => {
+          reports.push(report);
+          return attachSampleStartup(report);
+        } }).catch(error => error);
+        if (ready) {
+          await expect(chart(page)).toHaveAttribute('data-bars', '40');
+        } else {
+          const plot = page.getByRole('region', { name: 'Price chart' });
+          await expect(plot.getByRole('alert')).toHaveText('The data response failed validation.');
+          await expect(plot.locator('.chart canvas')).toHaveCount(0);
+        }
+        const result = await startup;
+        expect(calls).toEqual([sampleCatalogCall, historyCall]);
+        expect(completed).toEqual(outOfOrder ? [historyName, catalogName] : [catalogName, historyName]);
+        expect(reports).toHaveLength(1);
+        const [observation] = reports;
+        expect(observation.stage).toBe(stage);
+        expect(observation.catalog_verified_ms).toBeGreaterThanOrEqual(observation.document.dom_content_loaded_ms);
+        if (stage === 'sample-verified') {
+          expect(result).toEqual(history.result.snapshot);
+          expect(observation.history_verified_ms).toBeGreaterThanOrEqual(observation.catalog_verified_ms);
+          expect(observation.sample_verified_ms).toBeGreaterThanOrEqual(observation.history_verified_ms);
+        } else {
+          expect(result).toBeInstanceOf(Error);
+          expect(result.message).toContain(outOfOrder
+            ? `Previous response finished before ${historyName} was sent` : 'History reply matches the sample request');
+          expect(observation.history_verified_ms).toBeUndefined();
+          expect(observation.sample_verified_ms).toBeUndefined();
+        }
+      } finally {
+        releaseCatalog.resolve();
+        page.off('requestfinished', recordCompletion);
+        await page.unrouteAll({ behavior: 'wait' });
+      }
+    });
+  }
+});
+
 async function routeCompletedRepair(page, rewrite, headers) {
   const observed = Promise.withResolvers();
   await page.route(`**${stream}`, async route => {
