@@ -21,7 +21,7 @@ if __package__:
     from .doctor import tool_version
     from .execution_inputs import committed_source_identity
     from .verification_scope import (
-        LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit, git, json_object,
+        LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit, git, json_object, oid,
         require_complete_history, windows_lane_checks, windows_lane_report_matches, windows_published_scope,
         windows_x64,
     )
@@ -30,7 +30,7 @@ else:
     from doctor import tool_version
     from execution_inputs import committed_source_identity
     from verification_scope import (
-        LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit, git, json_object,
+        LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit, git, json_object, oid,
         require_complete_history, windows_lane_checks, windows_lane_report_matches, windows_published_scope,
         windows_x64,
     )
@@ -182,7 +182,11 @@ def short_label(value):
 
 
 def commit_id(value):
-    return isinstance(value, str) and bool(re.fullmatch(r'[0-9a-f]{40}', value))
+    """Validate the full SHA-1 object names used by timing reports."""
+    try:
+        return len(oid(value)) == 40
+    except ScopeError:
+        return False
 
 
 def positive_id(value):
@@ -1421,15 +1425,15 @@ def native_publishing_catalog(revision, *, root=ROOT, object_type=b'commit'):
     """Allow a substitute only when Git confirms the requested object is absent."""
     if not commit_id(revision):
         return True, None
-    oid = revision.encode('ascii')
+    object_name = revision.encode('ascii')
     try:
         observed = git(root, 'cat-file', '--batch-check=%(objectname) %(objecttype)',
-                       input=oid + b'\n').strip()
+                       input=object_name + b'\n').strip()
     except (ScopeError, OSError, subprocess.SubprocessError):
         return True, None
-    if observed == oid + b' missing':
+    if observed == object_name + b' missing':
         return False, None
-    if observed != oid + b' ' + object_type:
+    if observed != object_name + b' ' + object_type:
         return True, None
     try:
         path = f'{revision}:project/checks.json'

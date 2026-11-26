@@ -1462,38 +1462,66 @@ class PRMainComparisonTests(unittest.TestCase):
         self.assertIn('publishing catalog is unavailable', issues[0]['error'])
 
     def test_weekly_receipts_require_a_commit_or_genuinely_missing_checkout(self):
-        tree = self.publishing_tree(fixture_catalog())
+        tree = self.publishing_tree(fixture_catalog((*BASIC_CHECKS, 'generated-contracts')))
         head = self.commit('Topic', self.base, tree=tree)
         preview = self.commit('Merge preview', self.base, head, tree=tree)
         missing = 'f' * 40
+        missing_head = 'e' * 40
+        null = '0' * 40
         self.assertEqual('commit', self.git('cat-file', '-t', preview))
         self.assertEqual('tree', self.git('cat-file', '-t', tree))
-        self.assertEqual(f'{missing} missing', self.git('cat-file', '--batch-check', contents=f'{missing}\n'))
+        for name in (missing, missing_head, null):
+            self.assertEqual(f'{name} missing', self.git('cat-file', '--batch-check', contents=f'{name}\n'))
         inputs = timing.committed_publishing_inputs(head, root=self.root)
         self.assertIsNotNone(inputs)
-        run = dict(hosted_run(), head_sha=head)
         jobs = [
-            dict(hosted_job(31, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50'), head_sha=head),
-            dict(hosted_job(32, 'windows', '00:20', '06:00', 'Run pnpm check', '00:50', '05:20'), head_sha=head),
+            hosted_job(31, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50'),
+            hosted_job(32, 'windows', '00:20', '06:00', 'Run pnpm check', '00:50', '05:20'),
         ]
         environment = {'GITHUB_ACTIONS': 'true', 'GITHUB_REPOSITORY': 'fixture/scopehub', 'GH_TOKEN': 'fixture'}
-        for kind, checkout, seconds in (('commit', preview, 360), ('missing', missing, 360), ('tree', tree, None)):
+        artifact = {'name': 'verification-timing-windows-latest', 'expired': False, 'size_in_bytes': 1024}
+        for kind, checkout, topic, proof, seconds in (
+            ('commit', preview, head, True, 360), ('missing', missing, head, False, 360),
+            ('missing-with-proof', missing, missing_head, True, 360), ('tree', tree, head, True, None),
+            ('null-without-proof', null, head, False, None), ('null-with-proof', null, missing_head, True, None),
+        ):
             with self.subTest(kind=kind):
+                run = dict(hosted_run(), head_sha=topic)
+                clock = timing.hosted_timing(run, [dict(job, head_sha=topic) for job in jobs])
                 report = fast_report(20, 190)
                 report['environment'].update(system='Windows', machine='AMD64')
                 report['selection']['profile'] = 'full'
-                report['source'].update(git_head=checkout, sha256=inputs, working_tree_dirty=False)
+                report['selection']['checks'].append('generated-contracts')
+                report['checks'].append(dict(report['checks'][0], id='generated-contracts'))
+                report['source'].update(git_head=preview, sha256=inputs, working_tree_dirty=False)
                 report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
-                                'event': 'pull_request', 'head_sha': head, 'checkout_sha': checkout}
+                                'event': 'pull_request', 'head_sha': topic, 'checkout_sha': preview}
                 compact = timing.report_sample(report)
+                compact['source_commit'] = compact['ci']['checkout_sha'] = checkout
+                if proof:
+                    compact['generated_contracts'] = {
+                        'checkout': checkout, 'tree': tree, 'parents': [self.base, topic],
+                        'comparison_base': self.base, 'ref': 'refs/pull/84/merge',
+                        'command': timing.GENERATED_COMMAND,
+                        'tools': {'python': '3.12.0', 'rustfmt': 'rustfmt 1.8.0 (abcdef 2026-01-01)'},
+                    }
                 digest = sha256(json.dumps(compact, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
-                expected = [{**report['ci'], 'platform': 'Windows', 'report_id': report['run_id'],
+                expected = [{**compact['ci'], 'platform': 'Windows', 'report_id': report['run_id'],
                              'report_input_sha256': digest}] if seconds is not None else []
                 archive, summary = (self.root / f'{kind}.{ext}' for ext in ('json', 'md'))
                 argv = ['timing.py', '--recent', '12', '--github-actions', '--save', str(archive),
                         '--summary', str(summary)]
                 load = timing.native_publishing_catalog
                 fingerprint = timing.committed_publishing_inputs
+
+                def actions_command(args):
+                    if args[:2] == ['gh', 'api']:
+                        return json.dumps({'artifacts': [artifact]})
+                    self.assertEqual(['gh', 'run', 'download', '11'], args[:4])
+                    downloaded = Path(args[args.index('--dir') + 1]) / timing.TIMING_FILE
+                    downloaded.write_text(json.dumps(compact), encoding='utf-8')
+                    return ''
+
                 with (patch.object(sys, 'argv', argv), patch.dict(os.environ, environment),
                       redirect_stdout(StringIO()) as stdout,
                       patch.object(timing, 'native_publishing_catalog',
@@ -1504,16 +1532,22 @@ class PRMainComparisonTests(unittest.TestCase):
                       patch.object(timing, 'local_paths', return_value=[]),
                       patch.object(timing, 'timing_directories', return_value=()),
                       patch.object(timing, 'recent_runs', return_value=[run]),
-                      patch.object(timing, 'download_timing', return_value=[compact]),
-                      patch.object(timing, 'inspect_jobs', return_value=timing.hosted_timing(run, jobs))):
+                      patch.object(timing, 'command', side_effect=actions_command),
+                      patch.object(timing, 'inspect_jobs', return_value=clock)):
                     timing.main()
 
                 view = json.loads(stdout.getvalue())
                 saved = json.loads(archive.read_bytes())
-                sample, = view['samples']
-                self.assertEqual(seconds, sample['seconds']['total'])
                 self.assertEqual(expected, view['recent_collection']['collected_samples'])
                 self.assertEqual(expected, saved['recent_collection']['collected_samples'])
+                if checkout == null:
+                    self.assertEqual([], view['samples'])
+                    self.assertEqual([], view['objective_reviews'])
+                    self.assertEqual(['11'], view['recent_collection']['missing_compact_run_ids'])
+                    self.assertIn('No qualified elapsed samples', summary.read_text(encoding='utf-8'))
+                    continue
+                sample, = view['samples']
+                self.assertEqual(seconds, sample['seconds']['total'])
                 self.assertEqual(1, len(view['hosted']))
                 if seconds is None:
                     self.assertIn('publishing catalog is unavailable', view['input_issues'][0]['error'])
