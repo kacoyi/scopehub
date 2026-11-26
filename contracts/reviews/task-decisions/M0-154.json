@@ -59,6 +59,15 @@
       },
       "supersedes": "c5a9f75f4ab2906fde2fbc8ae118da836db417f2bca8fdf73cc59524ccdb267e",
       "evidence_sha256": "28f29af54bc284d41ac1a94a7ed1851e3e524eb5cba6601224009e2108ee74e1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "2f02d0f7d674bf1fb83b507f1e3303f3a7edaad5",
+      "scope": "Verify the start-up observation at its public browser and history-request entries against the preceding independent rejection. Test genuine readiness and failed or out-of-order history, attachment ordering and cleanup. Distinguish local controls, external Windows samples and packaged physical acceptance.",
+      "supersedes": "c2ca1c11fed0dfa1fbd354224fa82acde1b2bd7954b4c85c685d337733dd8c43",
+      "requested_at": "2026-11-26T03:51:44.528196+00:00",
+      "request_id": "45b9477428edd3deac80a853b291c0280c7aa844e25b8ab9ea99a81dd79ee1f5",
+      "evidence_sha256": "cdd7347d5095e1a0d40219cbdebb6de3833539db7db103f3439fc1f6b6f15bd2"
     }
   ]
 }
