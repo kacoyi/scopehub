@@ -8330,6 +8330,23 @@
       "deferral_reason": null
     },
     {
+      "id": "weekly-empty-jobs-discard-qualified-windows-aggregate-cache",
+      "status": "open",
+      "severity": "major",
+      "source": "Combined candidate 99bdb0477e2cdc02deb207367ff59a5af6e4024a. Ordinary and scheduled system-Python controls use original PR 121 run 45678058104 and PR 116 run 45680128413 report bytes. Retained matrix: .reports/m0-155-composition-publisher/99bdb0477e2cdc02deb207367ff59a5af6e4024a/weekly-with-layout-contrasts/summary.json (SHA-256 ad0effa36899ef57b3828c17dfba4b29f81b0c198d4c9b9cbc5a3b9d236d5f3f).",
+      "observation": "The weekly reader received the genuine historical Windows aggregate and producers. A controlled empty or Linux-only Actions listing changed the qualified full cache from warm to unknown and reported a contradictory Windows layout. The PR 121 empty-list archive retained the authentic 861.571-second harness clock without a Windows job clock or receipt. A separate controlled listing with a bound monolithic Windows job correctly rejected the split report, and the complete genuine listing retained 903 seconds of Windows wall time, 2750 runner-seconds and one receipt.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
       "id": "interrupt-regression-peer-lock-unheld-at-last-running-stage",
       "status": "addressed",
       "severity": "major",

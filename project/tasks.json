@@ -26915,6 +26915,13 @@
           "checks": [
             "python-contracts-workers"
           ]
+        },
+        {
+          "failure": "A weekly listing without a bound Windows job can erase a qualified aggregate cache. Check empty and Linux-only lists, cache conflicts, an identified monolithic job as the rejection control and a complete split run. Keep the Windows clock and fresh receipt absent when its job authority is missing.",
+          "checks": [
+            "project-state",
+            "python-contracts-workers"
+          ]
           }
         ],
         "rollback": "Keep the original artifacts and the explicit unknown result for a source whose publishing selection cannot be established; restore the prior reader if historical coverage cannot be preserved.",
