@@ -445,6 +445,26 @@
       "requested_at": "2026-11-26T15:13:31.074107+00:00",
       "request_id": "ac456fbd31112cc9bd9a76790ae16669047e52f64133ae563a9929f3dc71840c",
       "evidence_sha256": "1e0f02f474dd975e51928a2f5f8b94b87771865e383f8ecaaed231c6115a1a05"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "3d34bec7f9dbbffb88f65af8cd0b8689b13373aa",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 3d34bec7f9dbbffb88f65af8cd0b8689b13373aa",
+      "scope": "APPROVE M2-039 3d34bec7f9dbbffb88f65af8cd0b8689b13373aa",
+      "observation": "My replay accepted the available B snapshot at selection revision 2 and rejected that same HTTP 200 snapshot on the first read when it also carried a PERMISSION_DENIED error.",
+      "reviewer": "Independent Astra Standard (t19h)",
+      "original_sha256": "3b16d066662de0eecb08418805c7e9b976fdf7cba66d56d4de690b6c454cf6d5",
+      "response_id": "7304d7464e95d678498ecbaf99a0b805716a263e43e93701f6569440d86c1230",
+      "response_sha256": "30d8dbb7d9c002fa1452f4b7940f1968af838d0cee6a2854992a65f2e6305554",
+      "legacy_response_sha256": "7aad6a53cfbe45efa5e48d41481855bb43b3d5c4d2fed7924a135ba0cd8623d0",
+      "observation_body_sha256": "3201c6ce2c7c2fe99906b1001d985d58d925cb7161753271ede175b3d524fc68",
+      "event": {
+        "id": "msg_05c80f131796adec016b084e63c6e887d292e6704f5b54c0c6",
+        "timestamp": "2026-11-26T15:21:29.449Z"
+      },
+      "supersedes": "ac456fbd31112cc9bd9a76790ae16669047e52f64133ae563a9929f3dc71840c",
+      "evidence_sha256": "377172e362bdc080c359b9a598dd40440575ea012943a0e9dc825479dfc35b9d"
     }
   ]
 }

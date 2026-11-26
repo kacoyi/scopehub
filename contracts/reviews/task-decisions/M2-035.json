@@ -376,6 +376,26 @@
       "requested_at": "2026-11-26T15:13:32.518515+00:00",
       "request_id": "1a5c3c15b5c00197000dc6be2cddd45e3bddb6d27b4ad95783a85f3e60b460cf",
       "evidence_sha256": "afbc6e09ae8f62c1ddaa94179316a90ff76007e542dfc88e046ccf335d3c3f08"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "3d34bec7f9dbbffb88f65af8cd0b8689b13373aa",
+      "verdict": "approved",
+      "decision": "APPROVE M2-035 3d34bec7f9dbbffb88f65af8cd0b8689b13373aa",
+      "scope": "APPROVE M2-035 3d34bec7f9dbbffb88f65af8cd0b8689b13373aa",
+      "observation": "In my read-only replay, only the typed HTTP 429 BUSY refusal triggered a second snapshot read, while HTTP 200 BUSY, permission denial, a contradictory reply, and a missing envelope each stopped after one read.",
+      "reviewer": "Independent Astra Standard (t19f)",
+      "original_sha256": "b2bc48ff1770ef2e24b3836e524f5e86f25f0c272b18a0b2ffbc6c32e224ebf0",
+      "response_id": "a9be0fa687ddb30da06b2eadfdb6bb673a46b0ee1cb29851dac219992fef6b59",
+      "response_sha256": "b9d78e783524546f1a5e59f9bc53f65b1a4ab034a1a37693309f2041ac8f382e",
+      "legacy_response_sha256": "b7f3a77f7e4d329e4531e32f2c23ccf3fab9bff71e8bc4f21a5ad6c13cd59a0a",
+      "observation_body_sha256": "dd2d8f7d4f4d4892504dc0dc99e792f7b166dbbf7e571ce69f9cec3dad3c8e64",
+      "event": {
+        "id": "msg_0fa8d177c812ab24016b084e6dff7c87d1b8c9f38d89f3b7c7",
+        "timestamp": "2026-11-26T15:21:34.093Z"
+      },
+      "supersedes": "1a5c3c15b5c00197000dc6be2cddd45e3bddb6d27b4ad95783a85f3e60b460cf",
+      "evidence_sha256": "54a8e386c1b5d4e56bc2cac62912fb0978fbe5eff24329b412e43bebc9e033ef"
     }
   ]
 }
