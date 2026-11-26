@@ -26656,7 +26656,7 @@
           "report_sha256": "49e0b487bd0cd4501a5c5888ae2198149015b40a9cbcc78242d916ff08d4fff8"
         }
       ],
-      "next_action": "Trace the normal trusted worker cleanup contract and the original cancellation case. Compare an ordinary success and an instrumented benign controlled interruption before choosing the smallest justified repair.",
+      "next_action": "Independently review the clean worker-host candidate and obtain the required Windows native and integrated rechecks. Compare process state, scratch metadata and cleanup diagnostics with the retained first failure and Linux controls before attributing the original Windows failure or closing feedback.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26671,7 +26671,8 @@
           "contracts/reviews/2026-11-26-maintenance-workstreams.json"
         ],
         "hypotheses": [
-          "File lifetime, child reaping or test observation ordering on Windows may leave the owned path visible after return. The observed assertion alone does not locate the cause."
+          "The first Windows failure did not distinguish a reaper wait that exceeded the caller grace from a filesystem removal error. The test previously checked the path before checking the processes.",
+          "An injected Linux interruption of the first scratch removal reproduced the surviving directory after cancellation with both processes gone. An ordinary success and an uninjected cancellation removed their scratch directories. This establishes a silent removal failure mechanism, while attribution of the original Windows failure remains open."
         ],
         "risks": [
           {
@@ -26708,7 +26709,7 @@
             "Preserve task boundaries, approved interpreter authority, resource limits and user data. Only inspect the owned synthetic workspace; avoid changes to product permissions."
           ],
           "open_questions": [
-            "File lifetime, child reaping or test observation ordering on Windows may leave the owned path visible after return. The observed assertion alone does not locate the cause."
+            "Does qualifying Windows execution reproduce a cleanup wait or removal failure, or pass with both the physical path and processes absent?"
           ]
         },
         "evolution": {
@@ -26717,7 +26718,7 @@
             "Preserve task boundaries, approved interpreter authority, resource limits and user data. Only inspect the owned synthetic workspace; avoid changes to product permissions."
           ],
           "change": [
-            "Trace the normal trusted worker cleanup contract and the original cancellation case. Compare an ordinary success and an instrumented benign controlled interruption before choosing the smallest justified repair."
+            "Observe scratch removal after supervisor exit and retry only transient interruptions or Windows sharing and lock failures within the existing cleanup budget. Report a failed or unconfirmed cleanup without replacing an established cancellation. Require confirmed cleanup before returning a successful result."
           ],
           "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
           "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."

@@ -4,7 +4,7 @@ use std::{
     collections::HashSet,
     fs, future,
     io::{self, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::{ExitStatus, Stdio},
     time::Duration,
 };
@@ -21,7 +21,7 @@ use tokio::{
     process::{Child, ChildStdin, Command},
     runtime::Handle,
     sync::OwnedSemaphorePermit,
-    time::{Instant, timeout_at},
+    time::{Instant, sleep_until, timeout_at},
 };
 use uuid::Uuid;
 
@@ -43,7 +43,7 @@ const MAX_BARS: usize = 100_000;
 /// The caller owns authorization and supplies the immutable approved input.
 /// Code runs with the interpreter's normal filesystem and network authority.
 /// Dropping this future also starts cleanup. Signal cancellation and await it
-/// when the caller needs to observe the terminal outcome after reaping.
+/// to observe the terminal outcome with a bounded wait for cleanup.
 pub async fn compute(
     config: &WorkerConfig,
     request: &IndicatorCompute11,
@@ -79,13 +79,20 @@ pub async fn compute(
             exchange(&mut run.child, &mut run.input, request, &frame).await
         }) => outcome.unwrap_or_else(|_| Err(error(ErrorCode::TIMEOUT))),
     };
-    if let Some(mut cleanup) = process.cleanup() {
+    let cleaned = if let Some(mut cleanup) = process.cleanup() {
         // Retain ownership in the reaper if the cleanup budget expires.
-        let reaped = cleanup.wait().await;
-        if outcome.is_ok() {
-            reaped.map_err(|_| error(ErrorCode::WORKEREXITED))?;
+        match cleanup.wait().await {
+            Ok(removed) => removed.is_ok(),
+            Err(failure) => {
+                eprintln!(
+                    r#"{{"level":"warning","code":"INDICATOR_CLEANUP_WAIT_FAILED","reason":"{failure:?}"}}"#
+                );
+                false
+            }
         }
-    }
+    } else {
+        true
+    };
     if outcome.is_ok() {
         tokio::select! {
             biased;
@@ -94,6 +101,9 @@ pub async fn compute(
         }
         if Instant::now() >= deadline {
             return Err(error(ErrorCode::TIMEOUT));
+        }
+        if !cleaned {
+            return Err(error(ErrorCode::WORKEREXITED));
         }
     }
     outcome
@@ -155,10 +165,10 @@ fn command(config: &WorkerConfig, scratch: &Scratch) -> Result<Command, Error> {
         .ok_or_else(|| error(ErrorCode::WORKEREXITED))?;
     let mut python = python;
     python
-        .current_dir(&scratch.0)
-        .env("TEMP", &scratch.0)
-        .env("TMP", &scratch.0)
-        .env("TMPDIR", &scratch.0)
+        .current_dir(scratch.path())
+        .env("TEMP", scratch.path())
+        .env("TMP", scratch.path())
+        .env("TMPDIR", scratch.path())
         .args([
             "-P",
             "-s",
@@ -316,7 +326,7 @@ fn valid_result(result: &IndicatorResult, request: &IndicatorCompute11) -> bool 
         })
 }
 
-struct Scratch(PathBuf);
+struct Scratch(Option<PathBuf>);
 
 impl Scratch {
     fn new() -> Result<Self, Error> {
@@ -332,14 +342,71 @@ impl Scratch {
             builder
         };
         builder.create(&directory).map_err(worker_io)?;
-        Ok(Self(directory))
+        Ok(Self(Some(directory)))
+    }
+
+    fn path(&self) -> &Path {
+        self.0.as_deref().expect("owned scratch directory")
+    }
+
+    async fn remove(mut self, deadline: Instant) -> io::Result<()> {
+        let result = retry_scratch_removal(deadline, || remove_scratch(self.path())).await;
+        self.0 = None;
+        result.inspect_err(report_scratch_failure)
     }
 }
 
 impl Drop for Scratch {
     fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.0);
+        if let Some(path) = &self.0
+            && let Err(failure) = remove_scratch(path)
+        {
+            report_scratch_failure(&failure);
+        }
     }
+}
+
+fn remove_scratch(path: &Path) -> io::Result<()> {
+    match fs::remove_dir_all(path) {
+        Err(failure) if failure.kind() == io::ErrorKind::NotFound => {
+            match fs::symlink_metadata(path) {
+                Err(missing) if missing.kind() == io::ErrorKind::NotFound => Ok(()),
+                Err(other) => Err(other),
+                Ok(_) => Err(failure),
+            }
+        }
+        result => result,
+    }
+}
+
+async fn retry_scratch_removal(
+    deadline: Instant,
+    mut remove: impl FnMut() -> io::Result<()>,
+) -> io::Result<()> {
+    loop {
+        let result = remove();
+        let now = Instant::now();
+        if now >= deadline
+            || !result.as_ref().is_err_and(|failure| {
+                failure.kind() == io::ErrorKind::Interrupted
+                // ERROR_SHARING_VIOLATION or ERROR_LOCK_VIOLATION.
+                || (cfg!(windows) && matches!(failure.raw_os_error(), Some(32 | 33)))
+            })
+        {
+            return result;
+        }
+        sleep_until((now + Duration::from_millis(10)).min(deadline)).await;
+    }
+}
+
+fn report_scratch_failure(failure: &io::Error) {
+    let kind = failure.kind();
+    let os_code = failure
+        .raw_os_error()
+        .map_or("null".to_owned(), |code| code.to_string());
+    eprintln!(
+        r#"{{"level":"warning","code":"INDICATOR_SCRATCH_REMOVE_FAILED","kind":"{kind:?}","os_code":{os_code}}}"#
+    );
 }
 
 #[derive(Default)]
@@ -354,7 +421,7 @@ struct Run {
 }
 
 impl Process {
-    fn cleanup(&mut self) -> Option<PendingCleanup> {
+    fn cleanup(&mut self) -> Option<PendingCleanup<io::Result<()>>> {
         let Run {
             mut child,
             input,
@@ -367,6 +434,7 @@ impl Process {
         drop(input);
         let grace =
             Duration::from_millis(POLICY["cancel_grace_ms"].as_u64().expect("cancel grace"));
+        let deadline = Instant::now() + grace;
         let _context = runtime.enter();
         Some(PendingCleanup::start(
             async move {
@@ -376,7 +444,10 @@ impl Process {
                     }
                     tokio::time::sleep(grace).await;
                 }
-                drop((scratch, permit));
+                drop(child);
+                let removed = scratch.remove(deadline).await;
+                drop(permit);
+                removed
             },
             grace,
         ))
@@ -471,5 +542,82 @@ fn error(code: ErrorCode) -> Error {
         message: message.into(),
         retryable: false,
         details: Default::default(),
+    }
+}
+
+#[cfg(test)]
+mod scratch_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn retries_interrupted_removal_of_owned_scratch() {
+        let scratch = Scratch::new().unwrap();
+        fs::write(scratch.path().join("synthetic-output"), b"temporary").unwrap();
+        let mut interrupted = false;
+        retry_scratch_removal(Instant::now() + Duration::from_secs(1), || {
+            if std::mem::replace(&mut interrupted, true) {
+                remove_scratch(scratch.path())
+            } else {
+                Err(io::ErrorKind::Interrupted.into())
+            }
+        })
+        .await
+        .unwrap();
+        assert_eq!(
+            fs::symlink_metadata(scratch.path()).unwrap_err().kind(),
+            io::ErrorKind::NotFound
+        );
+    }
+
+    #[tokio::test]
+    async fn reports_permanent_and_out_of_budget_removal_errors() {
+        let now = Instant::now();
+        for (deadline, kind) in [
+            (
+                now + Duration::from_secs(1),
+                io::ErrorKind::PermissionDenied,
+            ),
+            (now, io::ErrorKind::Interrupted),
+        ] {
+            let mut attempts = 0;
+            let failure = retry_scratch_removal(deadline, || {
+                attempts += 1;
+                Err(kind.into())
+            })
+            .await
+            .unwrap_err();
+            assert_eq!(failure.kind(), kind);
+            assert_eq!(attempts, 1);
+        }
+    }
+
+    #[cfg(windows)]
+    #[tokio::test]
+    async fn retries_when_a_windows_handle_temporarily_denies_delete_sharing() {
+        use std::os::windows::fs::OpenOptionsExt;
+
+        let scratch = Scratch::new().unwrap();
+        let mut handle = Some(
+            fs::OpenOptions::new()
+                .read(true)
+                .share_mode(0x0000_0003) // FILE_SHARE_READ | FILE_SHARE_WRITE
+                .custom_flags(0x0200_0000) // FILE_FLAG_BACKUP_SEMANTICS
+                .open(scratch.path())
+                .unwrap(),
+        );
+        retry_scratch_removal(Instant::now() + Duration::from_secs(1), || {
+            let removal = remove_scratch(scratch.path());
+            if let Some(blocking_handle) = handle.take() {
+                assert_eq!(removal.as_ref().unwrap_err().raw_os_error(), Some(32));
+                drop(blocking_handle);
+            }
+            removal
+        })
+        .await
+        .unwrap();
+        assert_eq!(
+            fs::symlink_metadata(scratch.path()).unwrap_err().kind(),
+            io::ErrorKind::NotFound
+        );
     }
 }
