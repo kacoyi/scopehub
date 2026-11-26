@@ -88,6 +88,15 @@
       },
       "supersedes": "8f7da71c0d2867db5804a7b25874450fc1835710c6023bb1335b59db76fe5828",
       "evidence_sha256": "152f04ee589655f6fd6212d8804b48dbfcd1b699dc89b50af6cf8e50816cf196"
+    },
+    {
+      "kind": "request",
+      "source_commit": "3b506adedc41a015abf490f91d3714c7e1516ac2",
+      "scope": "Independently review the resolved M3-007 integration against protected ff6c880b. Compare the genuine former approval and preserved product/test files, verify the merged task and feedback rows, and confirm that the chart recovery and rejection still refer to the same source. The guarded native dispatch requires this resolved review.",
+      "supersedes": "6cdf024ffafe57efdbeecaf3903859ba36e4994e512e1f2a89ad84966db7e745",
+      "requested_at": "2026-11-26T12:54:29.360806+00:00",
+      "request_id": "08cf621368656ac993e62122bc39105c42b7a983d1ef3e15bfe4ee7e99ebfd88",
+      "evidence_sha256": "7c44d2ad16c57c119c12fac4a254e5df71ffee0ab2deb9d370d10a40bd034b54"
     }
   ]
 }
