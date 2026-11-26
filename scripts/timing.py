@@ -1535,8 +1535,11 @@ def native_report_issue(sample, run, issues):
     if producer:
         identity = split_identity
     else:
+        # Only an identified Windows job can contradict a split report.
+        monolithic_clock = (run is not None and not lanes
+                            and any(job['platform'] == 'Windows' for job in bound_jobs(run['jobs'])))
         identity = (windows_x64(platform) and (not (split_report or lanes) or (
-            (profile != 'full' or split_identity) and (run is None or lanes)
+            (profile != 'full' or split_identity) and not monolithic_clock
             and not workflow.get('windows_profile_disputed') and (parent is None or parent == profile)
         )))
     selected = set(sample['selected'])

@@ -579,6 +579,31 @@ class HostedTimingTests(unittest.TestCase):
                     if received is invalid:
                         self.assertTrue(view['input_issues'])
 
+    def test_split_aggregate_cache_requires_a_real_layout_conflict_to_be_withdrawn(self):
+        use_catalog(self, SPLIT_CATALOG)
+        run = hosted_run()
+        linux = hosted_job(31, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50')
+        windows = hosted_job(32, 'windows', '00:20', '06:00',
+                             'Run uv run python scripts/check.py --require-windows', '00:50', '05:20')
+        report = split_harness_report(675)
+        report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
+                        'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'a' * 40}
+        sample = timing.report_sample(report, cache='warm')
+        sample['windows_caches'] = dict(core='warm', browser='warm', python='not_requested', recovery='warm')
+
+        for jobs, cache in ((None, 'warm'), ([], 'warm'), ([linux], 'warm'),
+                            ([linux, dict(windows, run_attempt=2)], 'warm'), ([windows], 'unknown')):
+            with self.subTest(jobs=jobs):
+                clocks = [] if jobs is None else [timing.hosted_timing(run, jobs)]
+                view = timing.timing_view([sample], hosted=clocks)
+                observed, = view['samples']
+                self.assertEqual(cache, observed['cache'])
+                self.assertIsNone(observed['seconds']['total'])
+                self.assertIsNone(observed['seconds']['runner'])
+                self.assertIsNotNone(observed['review_exclusion'])
+                self.assertEqual([], list(timing.platform_report_receipts([observed])))
+                self.assertEqual(cache == 'unknown', bool(view['input_issues']))
+
     def test_split_windows_measurement_and_joint_capture_use_the_identified_layout(self):
         linux, core, browser, python, aggregate = self.split_windows_jobs()
         run = hosted_run()
