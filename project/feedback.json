@@ -7540,6 +7540,36 @@
           "report_sha256": "495063b876f34779ecd4e844bda70c09d97720bc3caf0f900a14d1af9b23dd8a"
         }
       ]
+    },
+    {
+      "id": "sample-startup-verified-before-request-check",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent changes-requested decision for M0-154 source 232d0902bd5013392c5edd9ccacd7a875d655d12. Original final response retained at archives/observations/repo-hygiene-20261125/independent-final-m0-154-232d0902/final-response.txt (SHA-256 e9856f900204e62e36880df2820256811e53f9cb4bceb8c2ac6e096d2f2bad21).",
+      "observation": "The real startup entry reported sample-verified with ordinary requests. Shifting the history start by one minute, changing the catalog limit from 50 to 49 or reversing the two requests each made the startup entry reject, but the attachment reported history-verified in every rejected case.",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "sample-startup-held-module-elapsed-unqualified",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent changes-requested decision for M0-154 source 232d0902bd5013392c5edd9ccacd7a875d655d12. Original final response retained at archives/observations/repo-hygiene-20261125/independent-final-m0-154-232d0902/final-response.txt (SHA-256 e9856f900204e62e36880df2820256811e53f9cb4bceb8c2ac6e096d2f2bad21).",
+      "observation": "The real held-module attachment recorded 10,018 ms. The retained observation qualifier accepted copies reporting 0 ms and 60,000 ms, while rejecting a wrong pending script path. The browser check asserted the ten-second timeout text, stage and script path without checking attachment elapsed time.",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
