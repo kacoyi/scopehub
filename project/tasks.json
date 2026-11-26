@@ -25985,7 +25985,7 @@
           "report_sha256": "febcca8e29fa0d23ecc437b3f99486d62d13c538886a005fe4ecfb50256aa873"
         }
       ],
-      "next_action": "Reconcile the two native baseline observations on the same test-owned fixture recorded in run 45744210597. Then repeat the eligible first-row controls, all 24 ordinary comparisons and the fixed live handoff deadline. Preserve the original two failures and their limits.",
+      "next_action": "Qualify the revised read and write path on one native Windows runner. Observe the handle and named baselines, exact submitted and stored ACL entries, managed verdict and real witness for the zero-mask and effective allow rows. Retain any partial observations, then run all 24 ordinary comparisons and the fixed live handoff deadline on the reviewed candidate.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26010,12 +26010,13 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-147-dc5be1ff/final-response.txt",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-147-bc89c85d/final-response.txt",
           "archives/runs/windows-change-45710866374-1/test-report.json",
-          "archives/runs/20261125T221246.075646Z-9b2ba873/test-report.json"
+          "archives/runs/20261125T221246.075646Z-9b2ba873/test-report.json",
+          "archives/observations/repo-hygiene-20261125/m0-147-windows-first-row-45744210597/observation.json"
         ],
         "hypotheses": [
           "A test-owned interpreter startup shares the probe deadline with reading the descriptor. The original report identifies deadline expiry, and records no internal stage. Compare independently measured native paths before assigning the cause.",
           "The previous managed file ACL projection removed ineffective leaf entries before evaluating trustees. Check the raw and managed views of the same synthetic descriptor.",
-          "Both new native runs reached allow-zero-mask and reported no stored ACE for the fixture trustee through GetFileSecurityW. Both also passed the separate native storage matrix using protected SetFileSecurityW and handle-based readback with an explicit owner grant. Compare the submitted bytes and independent file readbacks under both fixture writers while preserving the handoff's inherited grant.",
+          "Two native runs reached allow-zero-mask and reported no stored ACE for the fixture trustee through GetFileSecurityW. Neither observed the submitted bytes. The subsequent calibration found the inherited user grant through the named reader on the unchanged files, consistent with the Rust witness, while the GetFileSecurityW observation could not find it. Six controls stopped before their write. Qualify the protected writer with a handle reader independent of the named baseline and the witness.",
           "On this Linux checkout, the portable child emitted no bytes through Node streams even with natural exit, while synchronous writes delivered both streams. This reproduces the independent marker observation and is separate from the native ACL result."
         ],
         "risks": [
@@ -26108,7 +26109,7 @@
             "Product permission changes, expanding timeouts, suppressing failures and changes to user files."
           ],
           "open_questions": [
-          "Does the protected file writer preserve the exact submitted inert ACE and original inherited grant, and do both readers agree on the first stored fixture?",
+          "Do the handle and named readers agree on the starting fixture, and does the protected file writer preserve the exact zero-mask and effective ACEs alongside the original inherited grant?",
           "Does the exact native Windows run confirm all 24 matrix rows and live handoff outcomes under the existing deadline?"
           ]
         },
@@ -26121,7 +26122,7 @@
             "Repair the verification path identified by the protected Windows incident and retain its native evidence.",
             "Require the existing Rust workspace check alongside the real Windows handoff comparison. Keep the existing example test target and native harness dispatch.",
           "Report fixed fixture creation and cleanup stages while preserving the first independently checked result and attempting cleanup for every acquired synthetic file.",
-          "Use a protected descriptor for isolated regular-file fixtures with independent admission and readback checks. Deliver portable child markers through synchronous writes."
+          "Use a protected descriptor for isolated regular-file fixtures with matching handle and named baselines. Verify the exact fixture ACE and original inherited grant bytes both before submission and through handle readback. Deliver portable child markers through synchronous writes."
           ],
           "data_plan": "Use isolated synthetic profiles and existing private diagnostic archives. Report fixed outcomes without retaining identities, file contents or process arguments.",
           "cleanup": "Remove temporary observation code and obsolete verification duplication after equivalent native controls pass. Keep the original failed report and log."

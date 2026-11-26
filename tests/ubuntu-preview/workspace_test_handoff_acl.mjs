@@ -164,8 +164,10 @@ export async function assertUnsuitableWindowsHandoffsRejected(profile) {
 
 const leafFailureReasons = {
   'fixture-start': 'could not read or construct the starting descriptor',
+  'fixture-baseline': 'starting handle and named DACL views could not be reconciled',
   'fixture-inheritance': 'starting descriptor has no required inherited user grant',
   'submitted-ace': 'submitted descriptor is missing the exact first fixture ACE',
+  'submitted-inheritance': 'submitted descriptor changed the required inherited user grant',
   'fixture-write': 'could not write the synthetic DACL',
   'raw-read': 'could not read the stored descriptor',
   'raw-parse': 'could not parse the stored descriptor',

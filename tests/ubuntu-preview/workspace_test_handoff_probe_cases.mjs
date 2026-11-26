@@ -141,7 +141,9 @@ async function verifyLeafCalibrationDiagnostics() {
     const refused = [
       ['SCOPEHUB_ACL_FIXTURE 19 raw-revision\r\n', 'case object-callback-allow-inherit-only: stored ACL revision differs'],
       ['SCOPEHUB_ACL_FIXTURE 0 raw-flags\n', 'case allow-zero-mask: stored ACE flags differ'],
+      ['SCOPEHUB_ACL_FIXTURE 0 fixture-baseline\n', 'case allow-zero-mask: starting handle and named DACL views could not be reconciled'],
       ['SCOPEHUB_ACL_FIXTURE 0 submitted-ace\n', 'case allow-zero-mask: submitted descriptor is missing the exact first fixture ACE'],
+      ['SCOPEHUB_ACL_FIXTURE 0 submitted-inheritance\n', 'case allow-zero-mask: submitted descriptor changed the required inherited user grant'],
       ['SCOPEHUB_ACL_FIXTURE 0 raw-absent\n', 'case allow-zero-mask: stored DACL has no ACE for the fixture trustee'],
       ['SCOPEHUB_ACL_FIXTURE 0 raw-inheritance\n', 'case allow-zero-mask: stored DACL changed the required inherited user grant'],
       ['SCOPEHUB_ACL_FIXTURE 23 legacy-stage-0\n', 'case object-callback-deny-effective: legacy managed stage differs (expected 54, observed 0)'],
