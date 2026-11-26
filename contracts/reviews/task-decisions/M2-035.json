@@ -88,6 +88,26 @@
       "requested_at": "2026-11-26T03:38:00.913515+00:00",
       "request_id": "160f3eaa3f1b1ef366a44fcadbe36539d43baebc313af41e77acd62dc357cb62",
       "evidence_sha256": "710db302c49e41bc2a596c6c9c6aad58850e187cce5b23699ed3d14af2467389"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "83303f3546ddb5385d4c6e5c768e7737705628e5",
+      "verdict": "approved",
+      "decision": "APPROVE M2-035 83303f3546ddb5385d4c6e5c768e7737705628e5",
+      "scope": "APPROVE M2-035 83303f3546ddb5385d4c6e5c768e7737705628e5",
+      "observation": "For both CSV and folder publications, retry issued one status read, fresh authorization restored the chart and a newly read source row, and confirmed revocation kept both hidden even after older replies arrived.",
+      "reviewer": "Independent Astra Standard (t12b)",
+      "original_sha256": "72806af74af6522804b4a6dbe09ab05a52afe2d6e9ac76b005024b76d4bc6991",
+      "response_id": "901b95b7b8ea5936321bbe5ef83d2c432e01a6edf2250b1524c262c441a74cbc",
+      "response_sha256": "df0721562c314a0042b1649b4fccf51b5d7dda30dc5a3567a690deb28eec49f1",
+      "legacy_response_sha256": "0b507029da9c55ca582c7a1910b659cbcf655dcd558f5f6bfc7a7ba4461931af",
+      "observation_body_sha256": "abc4a8e18bada84f55e50a8ba92c3fb490cc7c924afa9a743138bb92a1ca3ee0",
+      "event": {
+        "id": "msg_039047cfa751477c016b07adf5d96487d2aa1f9e5aeebaf103",
+        "timestamp": "2026-11-26T03:56:50.348Z"
+      },
+      "supersedes": "160f3eaa3f1b1ef366a44fcadbe36539d43baebc313af41e77acd62dc357cb62",
+      "evidence_sha256": "f8ab7ddf0eda0c69d77daa870b85724a5b23f09333c68e128059bcb8c8cdd9c0"
     }
   ]
 }

@@ -68,6 +68,26 @@
       "requested_at": "2026-11-26T03:38:01.844642+00:00",
       "request_id": "36cf783a3913642126deb3617fd6164cf738eaea806709da0d5af468d4d0cba3",
       "evidence_sha256": "f7446f0632daa880cdff5899e56f705e7232f31205bbe7f88eec7764ee1c035f"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "83303f3546ddb5385d4c6e5c768e7737705628e5",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-039 83303f3546ddb5385d4c6e5c768e7737705628e5",
+      "scope": "CHANGES_REQUESTED M2-039 83303f3546ddb5385d4c6e5c768e7737705628e5",
+      "observation": "In my in-memory replay of the candidate React dialog, two refreshes returned the recovered CSV revision but issued zero CSV status reads and left it hidden, while the folder control issued one status read and restored its entry.",
+      "reviewer": "Independent Astra Standard (t12c)",
+      "original_sha256": "849db57a869f404be92d5b3baa0910972555e0b0fa6336af2ab57e435f91917e",
+      "response_id": "34cf82d9d5aa27eb3eeace1813158864f6adec4e317bc683146f937f9e441364",
+      "response_sha256": "0a18ebadf17b14f9ead17933b76734e75540a5c5faf5991900d72e108427a091",
+      "legacy_response_sha256": "b6aa2f3be9370f82818503a769d65dcdbdaa7066c85a473498e3ed56cc8564cf",
+      "observation_body_sha256": "cb292578903e93a4096e889671d7da10be736105935e24d05e4c6d164c094fb8",
+      "event": {
+        "id": "msg_05968ed3fa38e9d8016b07afd4b49887d2be587410dcbdae6a",
+        "timestamp": "2026-11-26T04:04:56.197Z"
+      },
+      "supersedes": "36cf783a3913642126deb3617fd6164cf738eaea806709da0d5af468d4d0cba3",
+      "evidence_sha256": "52649a4c13461561eb8c1eaaab88404b7f52b18c6e5fa7b2571694f5315e1ae7"
     }
   ]
 }

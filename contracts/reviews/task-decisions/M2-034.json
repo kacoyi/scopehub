@@ -68,6 +68,26 @@
       "requested_at": "2026-11-26T03:38:00.003157+00:00",
       "request_id": "8cccda8612f428653f2f65525ae9c89808c92ef560e278b202ee67cb81ebb55a",
       "evidence_sha256": "141595afe3a741d41d1be667e92b63a2a282161be250b234ae5b26c592798e86"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "83303f3546ddb5385d4c6e5c768e7737705628e5",
+      "verdict": "approved",
+      "decision": "APPROVE M2-034 83303f3546ddb5385d4c6e5c768e7737705628e5",
+      "scope": "APPROVE M2-034 83303f3546ddb5385d4c6e5c768e7737705628e5",
+      "observation": "In the independent Node replay, a saved frozen-bar selection reopened at revision 8, and clearing it while the source-row access check was pending advanced the selection to revision 9 and kept it empty after the chart recovered and reopened.",
+      "reviewer": "Independent Astra Standard (t129)",
+      "original_sha256": "0971b05dc9daeabebf767266b1338b81376ebe4184ba6715e2a8b32704571e2f",
+      "response_id": "26f55494dffdb83cd61790cba0f93bc89509b9d23c9cb9af8a65f15ec02a0a02",
+      "response_sha256": "0447dc9a36dd7503b277f4fdb92c10dbc24da4ddf20a87e0174c8a8f5484aedc",
+      "legacy_response_sha256": "f7dcde829ce2f32604da59bd9ad4ee1d05587df806878286b987fbcebf80781f",
+      "observation_body_sha256": "eb53f1bf81070a2bebed0d0ccdb899046d0ce69dd308bc635e47258f986d8fe6",
+      "event": {
+        "id": "msg_06b65a2f84232688016b07ae251b0087d2926501907fef825f",
+        "timestamp": "2026-11-26T03:57:37.866Z"
+      },
+      "supersedes": "8cccda8612f428653f2f65525ae9c89808c92ef560e278b202ee67cb81ebb55a",
+      "evidence_sha256": "427db6a73432f0397226e2d84095ed227299f034ff4a9522b4127cd1d3420f39"
     }
   ]
 }
