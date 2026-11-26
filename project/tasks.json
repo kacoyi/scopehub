@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M3-007",
   "tasks": [
     {
       "id": "M0-001",
@@ -26226,6 +26226,125 @@
           ],
           "data_plan": "Use the accepted synthetic frozen chart and isolated workspace. Retain response status, operation identity and synthetic results.",
           "cleanup": "Release response controls, close owned windows and reap the portable writer on every path."
+        }
+      }
+    },
+    {
+      "id": "M3-007",
+      "title": "Recover one lost status delivery for an admitted offline sample indicator preview",
+      "milestone": "M3",
+      "status": "active",
+      "depends_on": [
+        "M0-149"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/indicator-preview.tsx",
+        "apps/desktop/ui/src/use-local-workspace.ts",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Through the normal offline sample chart, reconcile a single browser-observable status delivery loss by rereading the existing admitted task within the existing deadline. Verify one draft and one preview dispatch, one logical recovery, and the expected period-two value 3500.5 across the scheduled closure.",
+        "Verify a delivered ready response, genuine pre-admission refusal, a second lost logical delivery, and a definitive invalid or terminal response. Keep the chart and frozen source identity intact. Preserve the visible terminal failure and one correlated cancellation when recovery is exhausted or unavailable.",
+        "The ordinary calendar check records request, admission, dispatch, ready or failure, chart state and cleanup. It reports an observed preview failure without waiting exclusively for ready, retains the original diagnostic, and still verifies the gapped sample, forged snapshot and obsolete-task controls."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "indicator-workflow",
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261126T052248.924780Z-48398047",
+          "source_commit": "f16bec4d5f673b091939aa0d73e953cb44db3b73",
+          "report_sha256": "7e05fe0c83aa505b0a038d752fd0a0dbfa3263ed55401fc78fc56ced19a47597"
+        }
+      ],
+      "next_action": "The development AI owns the corrective slice. Adopt the retained two-socket logical loss as a red workspace-timeframe regression on a separate branch from a coordinator-confirmed base. Verify one same-task status recovery with the original budget and the matched rejection controls before seeking independent review. Keep M2-039 composition and native qualification independent.",
+      "blocker": null,
+      "closure_reason": null,
+      "evidence": [],
+      "plan": {
+        "outcome": "The offline sample chart renders an already-computed preview after a single browser-observable status delivery loss, and the calendar check exposes the actual outcome.",
+        "change_types": [
+          "ui",
+          "indicators"
+        ],
+        "context": [
+          "archives/runs/20261126T052248.924780Z-48398047/test-report.json",
+          "archives/observations/repo-hygiene-20261125/sample-calendar-delivery-diagnosis-9f05a4fb/runs/current-v2/lose-ready-minimal.native.jsonl",
+          "archives/observations/repo-hygiene-20261125/sample-calendar-delivery-diagnosis-9f05a4fb/runs/current-v2/lose-ready-minimal.browser.json",
+          "apps/desktop/ui/src/indicator-preview.tsx",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/fixtures/market/series.json"
+        ],
+        "hypotheses": [
+          "The sample excludes bounded status-delivery recovery even when the existing transport classifies a missing response before headers and the same Rust task already holds a verified ready artifact.",
+          "A logical browser status request can generate multiple native reads with the same request ID when Chromium retries its connection. The test should distinguish browser transport replay from an application-issued recovery ID.",
+          "The historical alert preceded a ready-only timeout. Its upstream indicator stage remains unknown."
+        ],
+        "risks": [
+          {
+            "failure": "Recovery resubmits computation, exceeds the current budget, or counts a transport replay or pre-admission refusal as a new logical recovery.",
+            "checks": [
+              "workspace-timeframe",
+              "indicator-workflow"
+            ]
+          },
+          {
+            "failure": "Recovery hides terminal or invalid output, retains an obsolete preview, alters chart identity, or omits the admitted task cancellation.",
+            "checks": [
+              "workspace-timeframe",
+              "market-workflow",
+              "ui-build"
+            ]
+          }
+        ],
+        "rollback": "Keep the source-bound original and paired witness. Revert only the sample recovery change if the same-task, failure or cleanup controls regress.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/indicator-preview.tsx",
+            "apps/desktop/ui/src/use-local-workspace.ts",
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Changing source selection, publication authorization, native writer admission, sample calculation or the existing time budgets.",
+            "Attributing the historical failure without an original indicator transaction record."
+          ],
+          "open_questions": [
+            "Can the existing same-task recovery apply to the sample without changing definitive failure, exhausted recovery or admitted BUSY semantics?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Bounded frozen-source recovery, explicit pre-admission BUSY semantics, validated artifact identity and the original draft and run receipts."
+          ],
+          "change": [
+            "Use the existing diagnostic delivery classification for one same-task sample status read and make the calendar harness observe all terminal outcomes."
+          ],
+          "data_plan": "Use an isolated synthetic SQLite profile and the pinned normal and gapped calendar fixtures. Keep retained records limited to synthetic inputs and responses.",
+          "cleanup": "Release controlled replies, cancel an obsolete admitted task, close owned browser contexts and services, and verify port release and profile removal."
         }
       }
     }
