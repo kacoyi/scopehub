@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-165",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -15367,9 +15367,7 @@
       "closure_reason": "The six local fast checks and independent read-only review passed at d355f5c. The brief and task context expose M2-013 as planned later work. Comparison against the base confirmed the first-release scope, release gates and protocol. The chart-free interaction awaits implementation and product verification.",
       "plan": {
         "outcome": "Future contributors can find the owner's product goal, the initial selection rule and an observable example without assuming a particular UI architecture.",
-        "change_types": [
-          "tooling"
-        ],
+        "change_types": ["tooling"],
         "context": [
           "engineering-contract-v1.json",
           "project/development.json",
@@ -15382,45 +15380,24 @@
         "risks": [
           {
             "failure": "A chart-free goal becomes a first-release gate or a fixed document format, or an empty display obscures unavailable data.",
-            "checks": [
-              "project-state",
-              "python-contracts-workers"
-            ]
+            "checks": ["project-state", "python-contracts-workers"]
           }
         ],
         "rollback": "Revise the policy and prospective acceptance together if product evidence changes the tradeoff.",
         "implementation": {
-          "modules": [
-            "development-tooling"
-          ],
-          "entrypoints": [
-            "engineering-contract-v1.json",
-            "project/development.json",
-            "project/tasks.json"
-          ],
+          "modules": ["development-tooling"],
+          "entrypoints": ["engineering-contract-v1.json", "project/development.json", "project/tasks.json"],
           "rules": [
-            {
-              "path": "engineering-contract-v1.json",
-              "pointer": "/ui/customization"
-            },
-            {
-              "path": "project/development.json",
-              "pointer": "/quality/evolution"
-            }
+            {"path": "engineering-contract-v1.json", "pointer": "/ui/customization"},
+            {"path": "project/development.json", "pointer": "/quality/evolution"}
           ],
-          "non_goals": [
-            "Implementing a new renderer, granting source access or scheduling a product release."
-          ],
+          "non_goals": ["Implementing a new renderer, granting source access or scheduling a product release."],
           "open_questions": []
         },
         "evolution": {
           "kind": "requirements-change",
-          "preserve": [
-            "Current single-chart commitments, supported saved layouts, existing grants and accepted decisions."
-          ],
-          "change": [
-            "Specify a user-defined information view and make future change cost explicit at initial design time."
-          ],
+          "preserve": ["Current single-chart commitments, supported saved layouts, existing grants and accepted decisions."],
+          "change": ["Specify a user-defined information view and make future change cost explicit at initial design time."],
           "data_plan": "Describe future verification with local synthetic records. The contract edit writes no product data.",
           "cleanup": "Use the existing capability and task views. Restore the native desktop delivery focus after verification."
         }
@@ -15470,32 +15447,15 @@
       "title": "Make a user-composed workbench a first-release acceptance gate",
       "milestone": "M0",
       "status": "done",
-      "depends_on": [
-        "M0-072"
-      ],
-      "decision_refs": [
-        "0007",
-        "0008",
-        "0016",
-        "0024",
-        "0027"
-      ],
-      "scope": [
-        "AGENTS.md",
-        "engineering-contract-v1.json",
-        "contracts",
-        "project",
-        "tests/project"
-      ],
+      "depends_on": ["M0-072"],
+      "decision_refs": ["0007", "0008", "0016", "0024", "0027"],
+      "scope": ["AGENTS.md", "engineering-contract-v1.json", "contracts", "project", "tests/project"],
       "acceptance": [
         "Align V1 scope, desktop defaults, input and rendering boundaries, indicator presentation, prototype selection and contributor guidance with the owner's release decision.",
         "The project brief, task graph, acceptance map and release profile require a workbench built from a blank canvas beyond built-in panels. Passing every other check leaves this requirement blocked until the product check passes.",
         "Keep the commercial exclusions, shared operation authority, saved layouts and existing gates. Distinguish contract verification from rendering, isolation and packaged product evidence."
       ],
-      "checks": [
-        "project-state",
-        "python-contracts-workers"
-      ],
+      "checks": ["project-state", "python-contracts-workers"],
       "evidence": [
         {
           "path": "project/evidence/M0-073-fc0e8d303655bc0f.json",
@@ -15507,67 +15467,22 @@
       "closure_reason": "Verified contract 1.7.0, both current-contract tasks and the required release check at bac2583. The regression covered missing, blocked, failed and passing gate results. Independent review confirmed the blank-canvas priority and the separate native-development and packaged acceptance stages. Renderer selection and product behavior await their own evidence.",
       "plan": {
         "outcome": "A first release made entirely of preset panels cannot satisfy the workbench acceptance requirement.",
-        "change_types": [
-          "tooling"
-        ],
-        "context": [
-          "engineering-contract-v1.json",
-          "contracts/contract.json",
-          "project/checks.json",
-          "project/delivery.json",
-          "project/development.json",
-          "apps/desktop/src-tauri/capabilities/main.json",
-          "scripts/check.py",
-          "scripts/project.py"
-        ],
-        "hypotheses": [
-          "The existing acceptance and release machinery can enforce the new owner decision through its normal selectors and readiness calculation."
-        ],
-        "risks": [
-          {
-            "failure": "A task-only check gets omitted from release, a prototype counts as acceptance or a default chart becomes mandatory again.",
-            "checks": [
-              "project-state",
-              "python-contracts-workers"
-            ]
-          }
-        ],
+        "change_types": ["tooling"],
+        "context": ["engineering-contract-v1.json", "contracts/contract.json", "project/checks.json", "project/delivery.json", "project/development.json", "apps/desktop/src-tauri/capabilities/main.json", "scripts/check.py", "scripts/project.py"],
+        "hypotheses": ["The existing acceptance and release machinery can enforce the new owner decision through its normal selectors and readiness calculation."],
+        "risks": [{"failure": "A task-only check gets omitted from release, a prototype counts as acceptance or a default chart becomes mandatory again.", "checks": ["project-state", "python-contracts-workers"]}],
         "rollback": "Revise an unsuitable renderer after prototype evidence while keeping the owner-approved product gate. Keep older supported layouts readable.",
         "implementation": {
-          "modules": [
-            "development-tooling"
-          ],
-          "entrypoints": [
-            "engineering-contract-v1.json",
-            "project/tasks.json",
-            "project/checks.json",
-            "project/delivery.json"
-          ],
-          "rules": [
-            {
-              "path": "project/development.json",
-              "pointer": "/quality/evolution"
-            },
-            {
-              "path": "project/delivery.json",
-              "pointer": "/release_policy"
-            }
-          ],
-          "non_goals": [
-            "Shipping a renderer, granting new runtime access or retiring accepted capabilities."
-          ],
-          "open_questions": [
-            "Which renderer meets the interaction, isolation and recovery requirements on both native hosts?"
-          ]
+          "modules": ["development-tooling"],
+          "entrypoints": ["engineering-contract-v1.json", "project/tasks.json", "project/checks.json", "project/delivery.json"],
+          "rules": [{"path": "project/development.json", "pointer": "/quality/evolution"}, {"path": "project/delivery.json", "pointer": "/release_policy"}],
+          "non_goals": ["Shipping a renderer, granting new runtime access or retiring accepted capabilities."],
+          "open_questions": ["Which renderer meets the interaction, isolation and recovery requirements on both native hosts?"]
         },
         "evolution": {
           "kind": "requirements-change",
-          "preserve": [
-            "The first chart journey, existing data and indicator formats, permissions and accepted task history."
-          ],
-          "change": [
-            "Promote product and prototype work into V1 and bind product acceptance to the released workbench."
-          ],
+          "preserve": ["The first chart journey, existing data and indicator formats, permissions and accepted task history."],
+          "change": ["Promote product and prototype work into V1 and bind product acceptance to the released workbench."],
           "data_plan": "Use synthetic records for the prospective journeys and a copy of an existing chart layout for compatibility.",
           "cleanup": "Remove later-only scheduling from live plans and keep the historical proposal and receipts intact."
         }
@@ -17658,9 +17573,7 @@
       "milestone": "M2",
       "status": "done",
       "delivery": "current-contract",
-      "depends_on": [
-        "M2-021"
-      ],
+      "depends_on": ["M2-021"],
       "scope": [
         "contracts/workbench-v1.json",
         "tests/fixtures/workbench-qualification-v1.json",
@@ -17668,19 +17581,12 @@
         "project/delivery.json",
         "project/tasks.json"
       ],
-      "decision_refs": [
-        "0004",
-        "0027",
-        "0028"
-      ],
+      "decision_refs": ["0004", "0027", "0028"],
       "acceptance": [
         "The workbench contract links one versioned specification containing six authoring cases, five pass gates, independently checkable synthetic expectations and a challenge disclosed after package freeze.",
         "The renderer prototype, the chart-free journey and the packaged qualification have named owners and distinct evidence. The release catalog exposes the new gate as planned."
       ],
-      "checks": [
-        "project-state",
-        "python-contracts-workers"
-      ],
+      "checks": ["project-state", "python-contracts-workers"],
       "evidence": [
         {
           "path": "project/evidence/M2-025-5551b094bf471f4a.json",
@@ -17692,9 +17598,7 @@
       "closure_reason": "The contract and catalog expose the six cases, five gates and frozen-package challenge. The task harness passed on bf95684. Independent recalculation confirmed the spread and scatter expectations, and the readiness view blocked a missing qualification. The new release check and the renderer decision remain planned.",
       "plan": {
         "outcome": "A reviewer can decide what to verify on a frozen build and see which product results are still outstanding.",
-        "change_types": [
-          "tooling"
-        ],
+        "change_types": ["tooling"],
         "context": [
           "contracts/workbench-v1.json",
           "contracts/market-data-v1.json",
@@ -17708,52 +17612,28 @@
         "risks": [
           {
             "failure": "A prototype receipt or a documentation check closes the new product gate.",
-            "checks": [
-              "project-state",
-              "python-contracts-workers"
-            ]
+            "checks": ["project-state", "python-contracts-workers"]
           },
           {
             "failure": "A duplicated performance or financial oracle drifts from its existing owner.",
-            "checks": [
-              "project-state",
-              "python-contracts-workers"
-            ]
+            "checks": ["project-state", "python-contracts-workers"]
           }
         ],
         "rollback": "Revert the qualification specification and its catalog bindings together.",
         "implementation": {
-          "modules": [
-            "development-tooling"
-          ],
-          "entrypoints": [
-            "contracts/workbench-v1.json",
-            "project/checks.json",
-            "project/delivery.json"
-          ],
+          "modules": ["development-tooling"],
+          "entrypoints": ["contracts/workbench-v1.json", "project/checks.json", "project/delivery.json"],
           "rules": [
-            {
-              "path": "contracts/workbench-v1.json",
-              "pointer": "/customization/extensibility"
-            },
-            {
-              "path": "project/checks.json",
-              "pointer": "/desktop_performance"
-            }
+            {"path": "contracts/workbench-v1.json", "pointer": "/customization/extensibility"},
+            {"path": "project/checks.json", "pointer": "/desktop_performance"}
           ],
-          "non_goals": [
-            "Product implementation, renderer selection, running the proposed trials or approving a release."
-          ],
+          "non_goals": ["Product implementation, renderer selection, running the proposed trials or approving a release."],
           "open_questions": []
         },
         "evolution": {
           "kind": "requirements-change",
-          "preserve": [
-            "The existing chart-free release journey, operation registry, permissions and accepted evidence."
-          ],
-          "change": [
-            "Add the owner-approved qualification to release planning."
-          ],
+          "preserve": ["The existing chart-free release journey, operation registry, permissions and accepted evidence."],
+          "change": ["Add the owner-approved qualification to release planning."],
           "data_plan": "The specification uses synthetic data and opaque evidence identities.",
           "cleanup": "Archive the documentary task check and return focus to the planned renderer decision."
         }
@@ -17765,104 +17645,47 @@
       "milestone": "M2",
       "status": "done",
       "delivery": "current-contract",
-      "depends_on": [
-        "M2-025"
-      ],
+      "depends_on": ["M2-025"],
       "scope": [
-        "contracts/workbench-v1.json",
-        "tests/fixtures/workbench-qualification-v2.json",
-        "tests/fixtures/workbench-inputs-v2.json",
-        "project/checks.json",
-        "project/delivery.json",
-        "project/tasks.json"
+        "contracts/workbench-v1.json", "tests/fixtures/workbench-qualification-v2.json",
+        "tests/fixtures/workbench-inputs-v2.json", "project/checks.json", "project/delivery.json", "project/tasks.json"
       ],
-      "decision_refs": [
-        "0004",
-        "0008",
-        "0027",
-        "0028"
-      ],
+      "decision_refs": ["0004", "0008", "0027", "0028"],
       "acceptance": [
         "The current contract resolves eight qualification cases and five gates. It specifies process and egress isolation, synchronized geometry, calculation authority, actual style application, shared evidence with independent client grants and revoked-source recovery on cold restart.",
         "Local synthetic event and paired-market inputs support a renderer trial. The catalog identifies an unimplemented SDK and shell smoke check, native trials and packaged qualification. Earlier qualification records remain reproducible."
       ],
-      "checks": [
-        "project-state",
-        "python-contracts-workers"
-      ],
+      "checks": ["project-state", "python-contracts-workers"],
       "evidence": [
-        {
-          "path": "project/evidence/M2-026-42f5a725cf4cd620.json",
-          "sha256": "1198b982ab92429de514f6dd41299a8a16aaf6f825d25f4f4e69692d8934d931"
-        }
+        {"path": "project/evidence/M2-026-42f5a725cf4cd620.json", "sha256": "1198b982ab92429de514f6dd41299a8a16aaf6f825d25f4f4e69692d8934d931"}
       ],
       "next_action": null,
       "blocker": null,
       "closure_reason": "The task harness passed on 338599e. The effective contract resolved eight cases and five gates. A separate review recomputed the seven paired-market rows and validated all three selection targets against the protocol and source records. The runtime smoke, native and packaged qualifications remain planned.",
       "plan": {
         "outcome": "A reviewer can distinguish an isolated, truthful, state-preserving workbench from an apparently successful demo on the same inputs.",
-        "change_types": [
-          "tooling"
-        ],
-        "context": [
-          "contracts/workbench-v1.json",
-          "contracts/ai-workflows-v1.json",
-          "tests/fixtures/workbench-qualification-v1.json",
-          "project/checks.json",
-          "project/delivery.json"
-        ],
-        "hypotheses": [
-          "Versioned inputs and normal-entry observations make all eight cases reproducible without selecting a renderer or purchasing a service."
-        ],
+        "change_types": ["tooling"],
+        "context": ["contracts/workbench-v1.json", "contracts/ai-workflows-v1.json", "tests/fixtures/workbench-qualification-v1.json", "project/checks.json", "project/delivery.json"],
+        "hypotheses": ["Versioned inputs and normal-entry observations make all eight cases reproducible without selecting a renderer or purchasing a service."],
         "risks": [
-          {
-            "failure": "A browser smoke run is recorded as native isolation or packaged acceptance.",
-            "checks": [
-              "project-state",
-              "python-contracts-workers"
-            ]
-          },
-          {
-            "failure": "A numeric display or a restored cache silently becomes a financial fact or a new grant.",
-            "checks": [
-              "project-state",
-              "python-contracts-workers"
-            ]
-          }
+          {"failure": "A browser smoke run is recorded as native isolation or packaged acceptance.", "checks": ["project-state", "python-contracts-workers"]},
+          {"failure": "A numeric display or a restored cache silently becomes a financial fact or a new grant.", "checks": ["project-state", "python-contracts-workers"]}
         ],
         "rollback": "Restore the preceding qualification pointer and catalog bindings from the reviewed commit.",
         "implementation": {
-          "modules": [
-            "development-tooling"
-          ],
-          "entrypoints": [
-            "contracts/workbench-v1.json",
-            "project/checks.json",
-            "project/delivery.json"
-          ],
+          "modules": ["development-tooling"],
+          "entrypoints": ["contracts/workbench-v1.json", "project/checks.json", "project/delivery.json"],
           "rules": [
-            {
-              "path": "contracts/workbench-v1.json",
-              "pointer": "/shared_evidence/selection_ownership"
-            },
-            {
-              "path": "project/checks.json",
-              "pointer": "/desktop_performance"
-            }
+            {"path": "contracts/workbench-v1.json", "pointer": "/shared_evidence/selection_ownership"},
+            {"path": "project/checks.json", "pointer": "/desktop_performance"}
           ],
-          "non_goals": [
-            "Implementing the renderer, writing executable probes or changing the CI workflow."
-          ],
+          "non_goals": ["Implementing the renderer, writing executable probes or changing the CI workflow."],
           "open_questions": []
         },
         "evolution": {
           "kind": "requirements-change",
-          "preserve": [
-            "All prior qualification cases, existing grants, native platform requirements and the sustained workload."
-          ],
-          "change": [
-            "Strengthen the qualification and declare the future smoke gate."
-          ],
+          "preserve": ["All prior qualification cases, existing grants, native platform requirements and the sustained workload."],
+          "change": ["Strengthen the qualification and declare the future smoke gate."],
           "data_plan": "Commit synthetic inputs only. All evidence targets are scoped and versioned.",
           "cleanup": "Archive the specification check and return focus to the planned renderer task."
         }
@@ -17874,84 +17697,38 @@
       "milestone": "M2",
       "status": "done",
       "delivery": "current-contract",
-      "depends_on": [
-        "M2-026"
-      ],
-      "scope": [
-        "tests/fixtures/workbench-qualification-v2.json",
-        "project/tasks.json"
-      ],
-      "decision_refs": [
-        "0027",
-        "0028"
-      ],
+      "depends_on": ["M2-026"],
+      "scope": ["tests/fixtures/workbench-qualification-v2.json", "project/tasks.json"],
+      "decision_refs": ["0027", "0028"],
       "acceptance": [
         "The motion trial has an absolute alignment oracle, a separate bounded frame-loss rule and examples on either side of each limit.",
         "The native trial specifies per-canvas bridge admission, clipboard and device denial, production style and network restrictions, and observed WebView2 renderer failure and recovery."
       ],
-      "checks": [
-        "project-state",
-        "python-contracts-workers"
-      ],
+      "checks": ["project-state", "python-contracts-workers"],
       "evidence": [
-        {
-          "path": "project/evidence/M2-027-202658fef445417d.json",
-          "sha256": "c7fd824ce8de1150dd5e3e3dd0231895093f0fb2d66e51431cd263b0453c3deb"
-        }
+        {"path": "project/evidence/M2-027-202658fef445417d.json", "sha256": "c7fd824ce8de1150dd5e3e3dd0231895093f0fb2d66e51431cd263b0453c3deb"}
       ],
       "next_action": null,
       "blocker": null,
       "closure_reason": "The task harness passed on ca15314. Each of the five motion examples matched its independent verdict. The effective qualification carries the bridge, device, production CSP and native failure procedures. Runtime observation remains planned.",
       "plan": {
         "outcome": "The declared motion, bridge, permission and native failure outcomes can each be falsified by a named observation.",
-        "change_types": [
-          "tooling"
-        ],
-        "context": [
-          "tests/fixtures/workbench-qualification-v2.json",
-          "contracts/workbench-v1.json",
-          "project/checks.json"
-        ],
-        "hypotheses": [
-          "Presented viewport and overlay revisions can be checked independently of occasional missed display refreshes."
-        ],
-        "risks": [
-          {
-            "failure": "A stale frame or privileged side effect passes a superficially successful trial.",
-            "checks": [
-              "project-state",
-              "python-contracts-workers"
-            ]
-          }
-        ],
+        "change_types": ["tooling"],
+        "context": ["tests/fixtures/workbench-qualification-v2.json", "contracts/workbench-v1.json", "project/checks.json"],
+        "hypotheses": ["Presented viewport and overlay revisions can be checked independently of occasional missed display refreshes."],
+        "risks": [{"failure": "A stale frame or privileged side effect passes a superficially successful trial.", "checks": ["project-state", "python-contracts-workers"]}],
         "rollback": "Revert this qualification amendment and its native task reference together.",
         "implementation": {
-          "modules": [
-            "development-tooling"
-          ],
-          "entrypoints": [
-            "tests/fixtures/workbench-qualification-v2.json",
-            "project/tasks.json"
-          ],
-          "rules": [
-            {
-              "path": "contracts/workbench-v1.json",
-              "pointer": "/customization/extensibility"
-            }
-          ],
-          "non_goals": [
-            "Runtime or CI implementation and executing fault trials."
-          ],
+          "modules": ["development-tooling"],
+          "entrypoints": ["tests/fixtures/workbench-qualification-v2.json", "project/tasks.json"],
+          "rules": [{"path": "contracts/workbench-v1.json", "pointer": "/customization/extensibility"}],
+          "non_goals": ["Runtime or CI implementation and executing fault trials."],
           "open_questions": []
         },
         "evolution": {
           "kind": "requirements-change",
-          "preserve": [
-            "The eight cases, five gates, independent host recovery and the existing release workload."
-          ],
-          "change": [
-            "Define motion tolerances, bridge and device limits, production style policy and the Windows process observation."
-          ],
+          "preserve": ["The eight cases, five gates, independent host recovery and the existing release workload."],
+          "change": ["Define motion tolerances, bridge and device limits, production style policy and the Windows process observation."],
           "data_plan": "Use bounded synthetic observations and disposable test devices.",
           "cleanup": "Archive the documentary evidence and return focus to the planned renderer task."
         }
@@ -17963,49 +17740,30 @@
       "milestone": "M2",
       "status": "done",
       "delivery": "current-contract",
-      "depends_on": [
-        "M2-027"
-      ],
+      "depends_on": ["M2-027"],
       "scope": [
-        "tests/fixtures/workbench-qualification-v2.json",
-        "tests/project/test_workbench_qualification.py",
-        "project/tasks.json",
-        "project/checks.json",
-        "project/feedback.json"
+        "tests/fixtures/workbench-qualification-v2.json", "tests/project/test_workbench_qualification.py",
+        "project/tasks.json", "project/checks.json", "project/feedback.json"
       ],
-      "decision_refs": [
-        "0004",
-        "0027",
-        "0028"
-      ],
+      "decision_refs": ["0004", "0027", "0028"],
       "acceptance": [
         "The effective qualification preserves each v1 denied path, including direct access to the application SQLite database and saved credentials, with synthetic controls, per-path host and independent observations and zero unauthorized data or mutations.",
         "A WebView2 candidate retains the process reuse and ProcessFailed evidence. A demonstrably different native candidate supplies its actual loss signal and equivalent Rust, independent process exit and restored first-frame evidence. The native and exact-package gates remain required.",
         "The granted cold reopen reproduces a concrete frozen value and its saved selection with provenance. Its revoked counterpart proves zero protected reads and zero protected data frames. The existing project tests exercise source resolution and valid and rejected specification examples."
       ],
-      "checks": [
-        "project-state",
-        "python-contracts-workers"
-      ],
+      "checks": ["project-state", "python-contracts-workers"],
       "evidence": [
-        {
-          "path": "project/evidence/M2-028-462b29a0b2053939.json",
-          "sha256": "e5a0b247b403e2c1d19e63a75bfa0bb8f90eb13bcf0bd76c135de76a0ed9ec8f"
-        }
+        {"path": "project/evidence/M2-028-462b29a0b2053939.json", "sha256": "e5a0b247b403e2c1d19e63a75bfa0bb8f90eb13bcf0bd76c135de76a0ed9ec8f"}
       ],
       "next_action": null,
       "blocker": null,
       "closure_reason": "The task checks passed on 045c76d. Independent review verified the four denied paths, candidate-specific native loss evidence and the paired granted and revoked cold-restore requirements. Runtime observations remain with M2-003, M2-013 and M5-001.",
       "plan": {
         "outcome": "Each of the three omissions found in PR 73 is independently detectable in the effective specification before any native or packaged trial is credited.",
-        "change_types": [
-          "tooling"
-        ],
+        "change_types": ["tooling"],
         "context": [
-          "tests/fixtures/workbench-qualification-v1.json",
-          "tests/fixtures/workbench-qualification-v2.json",
-          "tests/fixtures/workbench-inputs-v2.json",
-          "contracts/decisions/0027-v1-user-composed-workbench.json",
+          "tests/fixtures/workbench-qualification-v1.json", "tests/fixtures/workbench-qualification-v2.json",
+          "tests/fixtures/workbench-inputs-v2.json", "contracts/decisions/0027-v1-user-composed-workbench.json",
           "project/checks.json"
         ],
         "hypotheses": [
@@ -18013,62 +17771,26 @@
           "An engine-specific loss observation can prove the same recovery sequence without prescribing WebView2 to a different native candidate."
         ],
         "risks": [
-          {
-            "failure": "Generic local-resource or network evidence masks a missing application database, saved credential or other v1 denied path.",
-            "checks": [
-              "python-contracts-workers"
-            ]
-          },
-          {
-            "failure": "A WebView2 case loses its reuse or ProcessFailed proof, or another runtime bypasses independent native loss and recovery evidence.",
-            "checks": [
-              "python-contracts-workers"
-            ]
-          },
-          {
-            "failure": "A restore that shows no authorized data or loses the saved selection appears to pass the paired cold-reopen case.",
-            "checks": [
-              "python-contracts-workers"
-            ]
-          }
+          {"failure": "Generic local-resource or network evidence masks a missing application database, saved credential or other v1 denied path.", "checks": ["python-contracts-workers"]},
+          {"failure": "A WebView2 case loses its reuse or ProcessFailed proof, or another runtime bypasses independent native loss and recovery evidence.", "checks": ["python-contracts-workers"]},
+          {"failure": "A restore that shows no authorized data or loses the saved selection appears to pass the paired cold-reopen case.", "checks": ["python-contracts-workers"]}
         ],
         "rollback": "Revert the specification and regression together if the selected representation fails to preserve the existing controls. Retain the review feedback and historical receipts.",
         "implementation": {
-          "modules": [
-            "development-tooling"
-          ],
-          "entrypoints": [
-            "engineering-contract-v1.json",
-            "tests/fixtures/workbench-qualification-v2.json",
-            "tests/project/test_workbench_qualification.py"
-          ],
+          "modules": ["development-tooling"],
+          "entrypoints": ["engineering-contract-v1.json", "tests/fixtures/workbench-qualification-v2.json", "tests/project/test_workbench_qualification.py"],
           "rules": [
-            {
-              "path": "contracts/workbench-v1.json",
-              "pointer": "/customization/extensibility"
-            },
-            {
-              "path": "tests/fixtures/workbench-qualification-v1.json",
-              "pointer": "/cases/fault-and-permission-containment"
-            },
-            {
-              "path": "contracts/decisions/0027-v1-user-composed-workbench.json",
-              "pointer": "/consequences"
-            }
+            {"path": "contracts/workbench-v1.json", "pointer": "/customization/extensibility"},
+            {"path": "tests/fixtures/workbench-qualification-v1.json", "pointer": "/cases/fault-and-permission-containment"},
+            {"path": "contracts/decisions/0027-v1-user-composed-workbench.json", "pointer": "/consequences"}
           ],
-          "non_goals": [
-            "Implementing product probes or runtime changes, taking on M0-086, recording acceptance receipts, posting or integrating PR 73."
-          ],
+          "non_goals": ["Implementing product probes or runtime changes, taking on M0-086, recording acceptance receipts, posting or integrating PR 73."],
           "open_questions": []
         },
         "evolution": {
           "kind": "requirements-change",
-          "preserve": [
-            "The existing gate set, native platform coverage, synthetic inputs, and accepted M2-026 and M2-027 records."
-          ],
-          "change": [
-            "Make access denial, conditional native loss evidence and both cold-reopen outcomes explicit and testable in the live specification."
-          ],
+          "preserve": ["The existing gate set, native platform coverage, synthetic inputs, and accepted M2-026 and M2-027 records."],
+          "change": ["Make access denial, conditional native loss evidence and both cold-reopen outcomes explicit and testable in the live specification."],
           "data_plan": "Use synthetic marker categories and the existing frozen input. No product profile changes or live credentials.",
           "cleanup": "Hand the local correction and verification to the coordinator for the evidence and review lifecycle."
         }
@@ -18205,21 +17927,9 @@
       "title": "Probe authored numeric annotations in the candlestick draw cycle",
       "milestone": "M2",
       "status": "done",
-      "depends_on": [
-        "M2-014",
-        "M2-025"
-      ],
-      "scope": [
-        "apps/desktop/ui",
-        "tests/ui",
-        "project/checks.json",
-        "project/development.json"
-      ],
-      "decision_refs": [
-        "0004",
-        "0007",
-        "0027"
-      ],
+      "depends_on": ["M2-014", "M2-025"],
+      "scope": ["apps/desktop/ui", "tests/ui", "project/checks.json", "project/development.json"],
+      "decision_refs": ["0004", "0007", "0027"],
       "acceptance": [
         "Through the normal synthetic prototype entry, author a candlestick binding that displays 3.2% only on the 09:40 UTC five-minute candle and 4.7% on the 09:30 UTC fifteen-minute candle. Show result, revision, unit and bar attribution, including missing values.",
         "Add a valid editable candlestick example through the existing draft flow. Scope source disclosures to their blocks in chart-only and mixed compositions and keep the original disclosure on the blank canvas.",
@@ -18228,12 +17938,7 @@
         "Keep the selected timeframe and result revision when appending an identical block or applying an unambiguous same-source edit to its threshold, plotted field or condition field. Verify independent replicas, reorder distinguishable blocks by binding, and document the fallback order for indistinguishable definitions.",
         "Extend the native WebView2 editor probe to verify accessible UTC rows, values and revisions during the timeframe round trip, rejection recovery and threshold-only preview and acceptance. Hand off the repeatable slice to the coordinator for the Windows run and the independent Ubuntu trial."
       ],
-      "checks": [
-        "architecture",
-        "ui-build",
-        "market-workflow",
-        "renderer-prototype-interaction"
-      ],
+      "checks": ["architecture", "ui-build", "market-workflow", "renderer-prototype-interaction"],
       "evidence": [
         {
           "path": "project/evidence/M2-029-a54db22ae150b4d4.json",
@@ -18257,9 +17962,7 @@
       "closure_reason": "Archived local and hosted Linux and Windows task checks on c637c35. Read-only review, Chromium, the staged Ubuntu native window and hosted WebView2 verified the scoped synthetic binding and recovery. Six settled Ubuntu captures placed the annotation tip within one logical pixel of its wick. See contracts/reviews/2026-11-24-candlestick-native-observations.json. M2-003 retains moving-frame, native containment and renderer selection work.",
       "plan": {
         "outcome": "A declarative numeric annotation follows its exact candle as the viewport or timeframe changes. A reviewer can inspect the frozen input and recover the accepted draft.",
-        "change_types": [
-          "ui"
-        ],
+        "change_types": ["ui"],
         "context": [
           "apps/desktop/ui/src/workbench-prototype.tsx",
           "apps/desktop/ui/src/chart-adapter/history.ts",
@@ -18274,54 +17977,36 @@
         "risks": [
           {
             "failure": "A label drifts from its candle, goes stale during a timeframe switch, or is drawn for a missing value.",
-            "checks": [
-              "renderer-prototype-interaction"
-            ]
+            "checks": ["renderer-prototype-interaction"]
           },
           {
             "failure": "An ungranted field or source is admitted, or a rejected edit loses the accepted composition or its source identity.",
-            "checks": [
-              "architecture",
-              "renderer-prototype-interaction"
-            ]
+            "checks": ["architecture", "renderer-prototype-interaction"]
           },
           {
             "failure": "Native WebView2 exposes stale or mismatched attribution even when the Chromium pixel check is green.",
-            "checks": [
-              "renderer-prototype-interaction"
-            ]
+            "checks": ["renderer-prototype-interaction"]
           },
           {
             "failure": "A canvas-wide source disclosure attributes the synthetic equity candles to the legacy futures fixture.",
-            "checks": [
-              "renderer-prototype-interaction"
-            ]
+            "checks": ["renderer-prototype-interaction"]
           },
           {
             "failure": "An empty preview unmounts a 15-minute accepted binding and rejection restores its text with a different timeframe, result revision and financial value.",
-            "checks": [
-              "renderer-prototype-interaction"
-            ]
+            "checks": ["renderer-prototype-interaction"]
           },
           {
             "failure": "Appending a duplicate or scoping an edit to a threshold, plotted field or condition field resets the accepted chart's timeframe or assigns a sibling's timeframe, changing the observed financial value and revision.",
-            "checks": [
-              "renderer-prototype-interaction"
-            ]
+            "checks": ["renderer-prototype-interaction"]
           },
           {
             "failure": "The native probe assumes InvokePattern for every button and stops without reporting which control and capabilities it observed.",
-            "checks": [
-              "renderer-prototype-interaction"
-            ]
+            "checks": ["renderer-prototype-interaction"]
           }
         ],
         "rollback": "Revert the prototype block, its fixture and the scoped chart entry together. Retain observations for M2-003.",
         "implementation": {
-          "modules": [
-            "ui",
-            "chart-adapter"
-          ],
+          "modules": ["ui", "chart-adapter"],
           "entrypoints": [
             "apps/desktop/ui/src/workbench-prototype.tsx",
             "apps/desktop/ui/src/chart-adapter/candle-annotations.ts",
@@ -18329,18 +18014,9 @@
             "tests/ui/renderer-probe-windows.ps1"
           ],
           "rules": [
-            {
-              "path": "contracts/workbench-v1.json",
-              "pointer": "/customization/extensibility"
-            },
-            {
-              "path": "contracts/workbench-v1.json",
-              "pointer": "/shared_evidence/attribution"
-            },
-            {
-              "path": "tests/fixtures/workbench-qualification-v1.json",
-              "pointer": "/cases/unconventional-indicator"
-            }
+            {"path": "contracts/workbench-v1.json", "pointer": "/customization/extensibility"},
+            {"path": "contracts/workbench-v1.json", "pointer": "/shared_evidence/attribution"},
+            {"path": "tests/fixtures/workbench-qualification-v1.json", "pointer": "/cases/unconventional-indicator"}
           ],
           "non_goals": [
             "Author code execution, real data, permissions or persistence.",
@@ -18352,12 +18028,8 @@
         },
         "evolution": {
           "kind": "additive",
-          "preserve": [
-            "Blank startup, threshold tiles, value tables, accepted draft recovery and the existing chart workspace."
-          ],
-          "change": [
-            "Allow an authored candlestick block to bind scoped read-only numeric fields to a conditional annotation. Seed an editable example and disclose each source only for its applicable blocks. Retain each accepted block's timeframe in the host with its validated definition and keep preview changes separate."
-          ],
+          "preserve": ["Blank startup, threshold tiles, value tables, accepted draft recovery and the existing chart workspace."],
+          "change": ["Allow an authored candlestick block to bind scoped read-only numeric fields to a conditional annotation. Seed an editable example and disclose each source only for its applicable blocks. Retain each accepted block's timeframe in the host with its validated definition and keep preview changes separate."],
           "data_plan": "Use immutable synthetic inputs, identified by source, timeframe, revision and bar open time. Within each source and field binding, pair identical definitions in occurrence order. For threshold edits within an equal-size group, reserve unchanged occurrences first and pair remaining edits in order. Match a remaining field edit only when one previous and one draft block share that source. Unmatched blocks use five minutes. Instance identities and timeframes stay in memory and outside author JSON.",
           "cleanup": "Revisit the prototype entry and primitive at the M2-003 renderer decision."
         }
@@ -19071,29 +18743,15 @@
       "title": "Keep rejected chart evidence and the question composer consistent",
       "milestone": "M4",
       "status": "done",
-      "depends_on": [
-        "M4-015"
-      ],
-      "scope": [
-        "apps/desktop/ui",
-        "tests/ui",
-        "project/checks.json"
-      ],
-      "decision_refs": [
-        "0007",
-        "0019"
-      ],
+      "depends_on": ["M4-015"],
+      "scope": ["apps/desktop/ui", "tests/ui", "project/checks.json"],
+      "decision_refs": ["0007", "0019"],
       "delivery": "current-contract",
       "acceptance": [
         "A confirmed peer revocation observed during a chart jump invalidates the matching outdated composer binding before send, keeps the draft and completed answer, and preserves a newer valid binding.",
         "A keyboard retry of a returned citation after revocation keeps the citation focused and preserves the transcript reading position. Deliberate follow-up retains normal composer focus and scrolling. Rejected navigation creates no model operation or provider request."
       ],
-      "checks": [
-        "architecture",
-        "ui-build",
-        "market-workflow",
-        "model-connection-workflow"
-      ],
+      "checks": ["architecture", "ui-build", "market-workflow", "model-connection-workflow"],
       "evidence": [
         {
           "path": "project/evidence/M4-016-4a2e783a5d4c61b0.json",
@@ -19105,61 +18763,33 @@
       "closure_reason": "Astra confirmed both corrections on d1d04a3. Both citation task suites passed on merge 325610b using Linux Chromium and the existing local synthetic model peer. The focused personal CSV test also opened Settings, previewed a corrected mapping through the portable Rust bridge, restored Settings focus, and resumed the same review. Its browser report is retained at .reports/m4-csv-integration-325610b/browser-results.json. No hosted or native Windows verification was performed by this local run.",
       "plan": {
         "outcome": "A rejected citation leaves the reader at that citation and prevents the composer from reusing a binding already shown to be stale.",
-        "change_types": [
-          "ui"
-        ],
-        "context": [
-          "apps/desktop/ui/src/main.tsx",
-          "apps/desktop/ui/src/model-chat.tsx",
-          "apps/desktop/ui/src/chart-workspace.tsx",
-          "tests/ui/ai-workflow.spec.mjs"
-        ],
+        "change_types": ["ui"],
+        "context": ["apps/desktop/ui/src/main.tsx", "apps/desktop/ui/src/model-chat.tsx", "apps/desktop/ui/src/chart-workspace.tsx", "tests/ui/ai-workflow.spec.mjs"],
         "hypotheses": [
           "The workspace snapshot already read by a chart jump can identify an outdated composer binding without another read. The conversation can distinguish reading a citation from deliberate composing."
         ],
         "risks": [
           {
             "failure": "A confirmed obsolete selection still permits send, rejection of an old citation clears a current binding, or rejection overwrites the draft.",
-            "checks": [
-              "model-connection-workflow"
-            ]
+            "checks": ["model-connection-workflow"]
           },
           {
             "failure": "Retrying a rejected citation sends focus or scroll to the composer or interferes with deliberate follow-up.",
-            "checks": [
-              "model-connection-workflow"
-            ]
+            "checks": ["model-connection-workflow"]
           }
         ],
         "rollback": "Revert the composer binding and reading position correction with its regression changes while keeping the original chart navigation and receipt.",
         "implementation": {
-          "modules": [
-            "ui"
-          ],
-          "entrypoints": [
-            "apps/desktop/ui/src/main.tsx",
-            "apps/desktop/ui/src/model-chat.tsx",
-            "tests/ui/ai-workflow.spec.mjs"
-          ],
-          "rules": [
-            {
-              "path": "contracts/workbench-v1.json",
-              "pointer": "/shared_evidence/navigation"
-            }
-          ],
-          "non_goals": [
-            "New operations, additional model traffic during navigation, profile mutations and Settings navigation changes."
-          ],
+          "modules": ["ui"],
+          "entrypoints": ["apps/desktop/ui/src/main.tsx", "apps/desktop/ui/src/model-chat.tsx", "tests/ui/ai-workflow.spec.mjs"],
+          "rules": [{"path": "contracts/workbench-v1.json", "pointer": "/shared_evidence/navigation"}],
+          "non_goals": ["New operations, additional model traffic during navigation, profile mutations and Settings navigation changes."],
           "open_questions": []
         },
         "evolution": {
           "kind": "additive",
-          "preserve": [
-            "The existing read-only chart jump, answer, draft and deliberate follow-up behavior."
-          ],
-          "change": [
-            "Use confirmed selection authority in the composer and keep the transcript position on a rejected citation."
-          ],
+          "preserve": ["The existing read-only chart jump, answer, draft and deliberate follow-up behavior."],
+          "change": ["Use confirmed selection authority in the composer and keep the transcript position on a rejected citation."],
           "data_plan": "Keep observed selection authority and citation reading state in the current window. Reuse the existing workspace snapshot and keep all persisted data and historical receipts.",
           "cleanup": "Keep one check for matching an observed selection and use the existing composer reselection path."
         }
@@ -19487,24 +19117,13 @@
       "title": "Measure the first ordinary Windows main push containing the verification repair",
       "milestone": "M0",
       "status": "done",
-      "depends_on": [
-        "M0-087"
-      ],
-      "scope": [
-        "scripts/timing.py",
-        "project/feedback.json"
-      ],
-      "decision_refs": [
-        "0004",
-        "0007"
-      ],
+      "depends_on": ["M0-087"],
+      "scope": ["scripts/timing.py", "project/feedback.json"],
+      "decision_refs": ["0004", "0007"],
       "acceptance": [
         "Retain the actual protected main-push report and comparable Windows elapsed observation for the merge containing the M0-087 repair. Use the existing timing proof to assess the objective. A missing, failed, incomparable, or over-budget result keeps the finding open and requires a concrete corrective action."
       ],
-      "checks": [
-        "project-state",
-        "python-contracts-workers"
-      ],
+      "checks": ["project-state", "python-contracts-workers"],
       "evidence": [
         {
           "path": "project/evidence/M0-091-fa998352ab6ba274.json",
@@ -19516,55 +19135,27 @@
       "closure_reason": "The authentic full warm Windows main push 45478822360 passed in 897 seconds against the 900-second objective, and the clean ordinary status read the same recovery. The exact Windows receipt confirms the required checks. The observed source, previous attempts, job costs and handoff are retained in archives/observations/m0-091-closure-c4f07b3/review.json (SHA-256 2246234ef554b05453ea89e011d6bc76e18b9a7caea48d43bf9322011ce7ba49).",
       "plan": {
         "outcome": "The coordinator records a comparable ordinary main-push observation for the integrated repair and retains the actual verdict.",
-        "change_types": [
-          "tooling"
-        ],
-        "context": [
-          "scripts/timing.py",
-          "project/delivery.json",
-          "project/feedback.json"
-        ],
-        "hypotheses": [
-          "A full main push containing the repaired inputs can show whether the pull-request improvement carries over."
-        ],
+        "change_types": ["tooling"],
+        "context": ["scripts/timing.py", "project/delivery.json", "project/feedback.json"],
+        "hypotheses": ["A full main push containing the repaired inputs can show whether the pull-request improvement carries over."],
         "risks": [
           {
             "failure": "A PR run, wrong merge, failed workflow, incomparable control or over-budget clock is mistaken for main-push recovery.",
-            "checks": [
-              "python-contracts-workers"
-            ]
+            "checks": ["python-contracts-workers"]
           }
         ],
         "rollback": "Keep the original finding and observations open, and record the next corrective action if recovery is unproven.",
         "implementation": {
-          "modules": [
-            "development-tooling"
-          ],
-          "entrypoints": [
-            "scripts/timing.py",
-            "project/feedback.json"
-          ],
-          "rules": [
-            {
-              "path": "project/delivery.json",
-              "pointer": "/source_control/post_merge_main_push_budget"
-            }
-          ],
-          "non_goals": [
-            "No simulated clocks, PR timing substitution, or repair changes before the main observation."
-          ],
-          "open_questions": [
-            "Does the first comparable full Windows main push meet the existing objective?"
-          ]
+          "modules": ["development-tooling"],
+          "entrypoints": ["scripts/timing.py", "project/feedback.json"],
+          "rules": [{"path": "project/delivery.json", "pointer": "/source_control/post_merge_main_push_budget"}],
+          "non_goals": ["No simulated clocks, PR timing substitution, or repair changes before the main observation."],
+          "open_questions": ["Does the first comparable full Windows main push meet the existing objective?"]
         },
         "evolution": {
           "kind": "additive",
-          "preserve": [
-            "The independent PR and main-push observations and the original timing evidence."
-          ],
-          "change": [
-            "Assign the protected main-push observation after the verified repair integrates."
-          ],
+          "preserve": ["The independent PR and main-push observations and the original timing evidence."],
+          "change": ["Assign the protected main-push observation after the verified repair integrates."],
           "data_plan": "Use the ordinary main-push report and existing timing artifacts with recorded revision, coverage and cache state.",
           "cleanup": "Keep the main-push finding open until the authoritative timing result and required evidence support closure."
         }
@@ -23434,9 +23025,7 @@
       "title": "Bound operator-selected worktree retirement observation budgets",
       "milestone": "M0",
       "status": "done",
-      "depends_on": [
-        "M0-035"
-      ],
+      "depends_on": ["M0-035"],
       "scope": [
         "AGENTS.md",
         "scripts/worktree.py",
@@ -23444,20 +23033,14 @@
         "tests/project",
         "project"
       ],
-      "decision_refs": [
-        "0004",
-        "0007"
-      ],
+      "decision_refs": ["0004", "0007"],
       "acceptance": [
         "The existing read-only retirement command accepts an explicit bounded per-checkout entry limit, rejects invalid input before observation, and retains the 20,000-entry default.",
         "The same selected limit applies to the directory and consumer scans. A real downstream consumer past the default is observed with a sufficient explicit limit, and genuinely exhausted scans retain their holds.",
         "A real checkout with many ignored sibling roots retains at most one entry beyond the supplied limit to detect overflow before sorting. Independent tracked dirty status and Git failures remain observable.",
         "A retained read-only inventory using the development archive observes the three affected registrations with a sufficient explicit limit, records the report digest and distinguishes candidates, process visibility, observed activity and unresolved evidence."
       ],
-      "checks": [
-        "project-state",
-        "python-contracts-workers"
-      ],
+      "checks": ["project-state", "python-contracts-workers"],
       "evidence": [
         {
           "path": "project/evidence/M0-115-6305e120f6261f97.json",
@@ -23469,9 +23052,7 @@
       "closure_reason": "The corrected source d2c15146bb2f8c3606f4df3e12fca469d775f9b7 passed both required Linux checks. The already-running 200,000-entry read-only capture used 10bd459fae00e67c3f8d7ae0b3b7ef860351d22a and cleared all three prior consumer budget errors. It classified all 92 registrations as held, with zero candidates or review intake and eight rows with observed activity. Host process visibility was unavailable. The invoking checkout's sandbox mount and changes to registrations and recovery references produced additional holds. The raw capture remains at .reports/audit-20261125/retirement-after-entry-limit.json with SHA-256 64e394ada899cdb84aa109920a66dc18e9bc30dc3c95038cdc48464fa7f5800c. The coordinator owns supported-host review and publication.",
       "plan": {
         "outcome": "An operator can complete retirement consumer observation on large worktrees while every uncertain checkout remains held.",
-        "change_types": [
-          "tooling"
-        ],
+        "change_types": ["tooling"],
         "context": [
           "M0-035 worktree protection and evidence semantics.",
           "The 2026-11-25 retirement observation of 88 Git registrations.",
@@ -23486,43 +23067,24 @@
         "risks": [
           {
             "failure": "A larger budget permits an incomplete traversal to claim eligibility, or one pass silently keeps using the fixed limit.",
-            "checks": [
-              "project-state",
-              "python-contracts-workers"
-            ]
+            "checks": ["project-state", "python-contracts-workers"]
           },
           {
             "failure": "Invalid input admits unbounded enumeration, or incomplete process and evidence observations are mistaken for viable retirement.",
-            "checks": [
-              "python-contracts-workers"
-            ]
+            "checks": ["python-contracts-workers"]
           },
           {
             "failure": "A tiny limit permits unbounded ignored path intake, or an overflow or interrupted status process loses dirty or incomplete observation holds.",
-            "checks": [
-              "project-state",
-              "python-contracts-workers"
-            ]
+            "checks": ["project-state", "python-contracts-workers"]
           }
         ],
         "rollback": "Revert the new option and retain the original reports. The command only observes filesystem and Git state.",
         "implementation": {
-          "modules": [
-            "development-tooling"
-          ],
-          "entrypoints": [
-            "scripts/worktree.py",
-            "scripts/worktree_retirement.py"
-          ],
+          "modules": ["development-tooling"],
+          "entrypoints": ["scripts/worktree.py", "scripts/worktree_retirement.py"],
           "rules": [
-            {
-              "path": "project/delivery.json",
-              "pointer": "/scaffold_maintenance"
-            },
-            {
-              "path": "project/delivery.json",
-              "pointer": "/source_control/verification"
-            }
+            {"path": "project/delivery.json", "pointer": "/scaffold_maintenance"},
+            {"path": "project/delivery.json", "pointer": "/source_control/verification"}
           ],
           "non_goals": [
             "Worktree, ref or file retirement, publication and supported host qualification."
@@ -23547,27 +23109,19 @@
       "title": "Stop reading ignored worktree status after budget overflow",
       "milestone": "M0",
       "status": "done",
-      "depends_on": [
-        "M0-115"
-      ],
+      "depends_on": ["M0-115"],
       "scope": [
         "scripts/worktree_retirement.py",
         "tests/project/test_worktree_retirement.py",
         "project"
       ],
-      "decision_refs": [
-        "0004",
-        "0007"
-      ],
+      "decision_refs": ["0004", "0007"],
       "acceptance": [
         "The retirement entry retains the existing default and reports budget exhaustion after reading the ignored-root overflow witness, with bounded pipe read-ahead and a closed, reaped status child.",
         "An independent ordinary status query preserves tracked and untracked dirtiness even when the ignored listing ends early. Small ignored inventories preserve Git pathname semantics and verify successful completion.",
         "A measured real Git regression limits ignored records and bytes at a budget of one. Tail-dirty and failed or unreadable status streams preserve the applicable holds and process cleanup."
       ],
-      "checks": [
-        "project-state",
-        "python-contracts-workers"
-      ],
+      "checks": ["project-state", "python-contracts-workers"],
       "evidence": [
         {
           "path": "project/evidence/M0-116-36fa036d0b2cb670.json",
@@ -23579,9 +23133,7 @@
       "closure_reason": "A real Git fixture with 2,048 sibling ignored roots and a budget of one fell from 2,048 records and 165,888 bytes consumed to two records and 4,096 bytes read from stdout. The tail-dirty, status failure, unreadable pipe, cleanup and small-tree controls passed. Both required Linux checks passed on 4e54112a55a00764b0a268a53f925c9536592a09. The existing retirement default and holds were preserved. M0-115's accepted definition and receipt were verified unchanged. The coordinator owns the separate host capture and publication.",
       "plan": {
         "outcome": "A small retirement observation budget stops ignored pathname consumption at overflow while preserving dirty and incomplete observations.",
-        "change_types": [
-          "tooling"
-        ],
+        "change_types": ["tooling"],
         "context": [
           "M0-115 accepted limits and receipt.",
           "Second independent Astra Standard review of 95f20e9.",
@@ -23594,36 +23146,20 @@
         "risks": [
           {
             "failure": "An ignored overflow still consumes the rest of stdout or hides a tracked or untracked change.",
-            "checks": [
-              "project-state",
-              "python-contracts-workers"
-            ]
+            "checks": ["project-state", "python-contracts-workers"]
           },
           {
             "failure": "Early cutoff hides a completed Git error, leaks a child or stream, or changes the ignored roots of a small checkout.",
-            "checks": [
-              "python-contracts-workers"
-            ]
+            "checks": ["python-contracts-workers"]
           }
         ],
         "rollback": "Revert this correction while preserving the accepted M0-115 task, receipts and conservative candidate rules.",
         "implementation": {
-          "modules": [
-            "development-tooling"
-          ],
-          "entrypoints": [
-            "scripts/worktree.py",
-            "scripts/worktree_retirement.py"
-          ],
+          "modules": ["development-tooling"],
+          "entrypoints": ["scripts/worktree.py", "scripts/worktree_retirement.py"],
           "rules": [
-            {
-              "path": "project/delivery.json",
-              "pointer": "/scaffold_maintenance"
-            },
-            {
-              "path": "project/delivery.json",
-              "pointer": "/source_control/verification"
-            }
+            {"path": "project/delivery.json", "pointer": "/scaffold_maintenance"},
+            {"path": "project/delivery.json", "pointer": "/source_control/verification"}
           ],
           "non_goals": [
             "Changes to accepted M0-115 records, publication, host observation, and worktree or file retirement."
@@ -23648,27 +23184,19 @@
       "title": "Retain dirty worktree observations across status queries",
       "milestone": "M0",
       "status": "done",
-      "depends_on": [
-        "M0-116"
-      ],
+      "depends_on": ["M0-116"],
       "scope": [
         "scripts/worktree_retirement.py",
         "tests/project/test_worktree_retirement.py",
         "project"
       ],
-      "decision_refs": [
-        "0004",
-        "0007"
-      ],
+      "decision_refs": ["0004", "0007"],
       "acceptance": [
         "A tracked modification or ordinary untracked path introduced between the two status queries produces a dirty checkout hold when Git reports it through the retirement entry.",
         "Any ordinary status record observed by either query keeps the dirty result true. The ignored-root cutoff, pathname handling, status errors, and process cleanup retain their established behavior.",
         "The coordinator receives the clean implementation revision for independent review. Task closure follows confirmed review approval and required evidence."
       ],
-      "checks": [
-        "project-state",
-        "python-contracts-workers"
-      ],
+      "checks": ["project-state", "python-contracts-workers"],
       "evidence": [
         {
           "path": "project/evidence/M0-117-f629b37066178251.json",
@@ -23688,9 +23216,7 @@
       "closure_reason": "The coordinator confirmed Astra Standard approval of exact source 37cb4e896e8a99f8af07eb7829d2550d84c99c19. Both full-entry replays held a tracked or ordinary untracked change observed on the second read. The small clean fixture remained eligible. At a limit of one the 2,048-path fixture consumed two ignored records and 4,096 bytes. All 47 retirement tests were confirmed, and the attached receipt covers both required Linux checks on the approved source.",
       "plan": {
         "outcome": "A retirement observation retains every dirty status it actually observes while keeping bounded ignored-path intake.",
-        "change_types": [
-          "tooling"
-        ],
+        "change_types": ["tooling"],
         "context": [
           "M0-116 accepted bounds, process cleanup, and receipt.",
           "Astra Standard review of the M0-116 retirement entry.",
@@ -23703,36 +23229,20 @@
         "risks": [
           {
             "failure": "An observed intervening tracked or ordinary untracked change leaves an otherwise eligible worktree marked clean.",
-            "checks": [
-              "project-state",
-              "python-contracts-workers"
-            ]
+            "checks": ["project-state", "python-contracts-workers"]
           },
           {
             "failure": "Retaining ordinary observations expands the ignored read or changes error, literal pathname, or cleanup behavior.",
-            "checks": [
-              "python-contracts-workers"
-            ]
+            "checks": ["python-contracts-workers"]
           }
         ],
         "rollback": "Revert the dirty observation correction as a separate change while retaining the accepted earlier records.",
         "implementation": {
-          "modules": [
-            "development-tooling"
-          ],
-          "entrypoints": [
-            "scripts/worktree.py",
-            "scripts/worktree_retirement.py"
-          ],
+          "modules": ["development-tooling"],
+          "entrypoints": ["scripts/worktree.py", "scripts/worktree_retirement.py"],
           "rules": [
-            {
-              "path": "project/delivery.json",
-              "pointer": "/scaffold_maintenance"
-            },
-            {
-              "path": "project/delivery.json",
-              "pointer": "/source_control/verification"
-            }
+            {"path": "project/delivery.json", "pointer": "/scaffold_maintenance"},
+            {"path": "project/delivery.json", "pointer": "/source_control/verification"}
           ],
           "non_goals": [
             "Changes to accepted history, the separate host inventory, publication, and checkout retirement."
@@ -25954,7 +25464,7 @@
       "acceptance": [
         "Reproduce the observing window receiving committed revision 5, an unavailable deleted detail and a retryable busy reply for its fallback list. The initiating deletion commits exactly once.",
         "Return the observer to the current list after a recoverable read. Exercise continuing contention, nonretryable errors, cancellation and a new selection without replaying a mutation or showing the deleted content.",
-        "Preserve the initiating window’s verified list retry and both windows’ ability to recover. Run the actual paired-window workspace journey on Linux and Windows and retain the original failed trace.",
+        "Preserve the initiating window\u2019s verified list retry and both windows\u2019 ability to recover. Run the actual paired-window workspace journey on Linux and Windows and retain the original failed trace.",
         "Bound the observer fallback from its revision read through delivery of the list reply. A held genuine reply must release the drawer to Reload or close, and its later delivery must not replace a newer selection or a reopened drawer.",
         "Retry a definite pre-admission busy fallback snapshot, then obtain the current list within the original shared deadline. Verify snapshot-only denial or missing delivery, mixed admission retries and one committed peer delete."
       ],
@@ -26002,7 +25512,7 @@
           "apps/desktop/ui/src/use-local-workspace.ts"
         ],
         "hypotheses": [
-          "The observer’s fallback list read after an unavailable deleted detail can stop at one retryable refusal. Inspect the regular and manual recovery read owners and their deadline.",
+          "The observer\u2019s fallback list read after an unavailable deleted detail can stop at one retryable refusal. Inspect the regular and manual recovery read owners and their deadline.",
           "A retryable busy response starts the same request again, but the admission retry function only checks its budget after an exchange settles. The revision read and in-flight list response need a shared caller deadline.",
           "The observed fallback snapshot uses the non-retrying snapshot read while its subsequent note list opts into definite admission retry. Apply the same admission classification only to this snapshot under the existing shared deadline."
         ],
@@ -26070,7 +25580,7 @@
         "evolution": {
           "kind": "refactor",
           "preserve": [
-            "The initiating window’s deletion receipt and single committed delete, manual reload, freshness checks, and the handling of denied access and stale confirmations."
+            "The initiating window\u2019s deletion receipt and single committed delete, manual reload, freshness checks, and the handling of denied access and stale confirmations."
           ],
           "change": [
             "Restore a temporarily refused observer-side fallback list read within its existing observation deadline.",
@@ -26879,7 +26389,7 @@
       "id": "M0-165",
       "title": "Reconcile the implemented indicator module with the engineering inventory",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M3-005"
       ],
@@ -26904,10 +26414,15 @@
         "architecture",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Independently review the clean candidate, the retained original observation and the static Python import controls before recording acceptance and handing off for protected verification.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-165-b7c0ef6e2b718035.json",
+          "sha256": "2e312f4b1b1b7f7c7e2c2262d5e4a8f5ebac1d7ee6bbaaafec7fc257715582ca"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The ordinary module entry identifies Python trusted evaluation and Rust declarative calculation. Independent review restored the former planned label, observed the real worker import fail validation and accepted a separate genuinely planned module. The Linux task checks passed. The change affects the engineering inventory and static architecture validation.",
       "plan": {
         "outcome": "A fresh engineering agent sees the actual Python and Rust indicator responsibilities through ordinary module navigation.",
         "change_types": [
