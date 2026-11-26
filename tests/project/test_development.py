@@ -364,11 +364,15 @@ class MaintenanceHandoffTests(ProjectFixture):
                 command = f"{entry} {command.removeprefix('pnpm project:')}"
             return cli(command)
 
-        for status in ('active', 'ended', None):
-            if status == 'ended':
+        stop = self.authority['engagement']
+        assignment = 'Link this existing finding to an unfinished corrective task and verify its assigned checks.'
+        ended_action = ' '.join(stop[key] for key in ('on_completion', 'later_implementation'))
+        for open_count in (2, 1, 0, None):
+            if open_count == 1:
                 self.accept_workstream('repository-cleanup')
+            if open_count == 0:
                 self.accept_workstream('ongoing-maintenance')
-            if status is None:
+            if open_count is None:
                 del self.delivery['scaffold_maintenance']['engagement']
                 self.delivery_path.write_bytes(json_bytes(self.delivery))
             else:
@@ -377,7 +381,7 @@ class MaintenanceHandoffTests(ProjectFixture):
             records = (self.root / 'project/tasks.json', self.delivery_path, feedback)
             before = [path.read_bytes() for path in records]
             for read_only in (False, True):
-                with self.subTest(engagement=status, read_only=read_only):
+                with self.subTest(open_workstreams=open_count, read_only=read_only):
                     mode = ' --read-only' if read_only else ''
                     overview = cli(f'{entry} status --overview{mode}')
                     self.assertEqual((feature, 'planned'), (overview['focus']['id'], overview['focus']['status']))
@@ -385,34 +389,42 @@ class MaintenanceHandoffTests(ProjectFixture):
                     self.assertEqual(1, overview['backlog']['unassigned_findings'])
                     action = overview['next']
                     self.assertEqual((finding['id'], 'assignment_needed'), (action['id'], action['state']))
-                    self.assertEqual(finding, follow(action['command'], read_only)['value'])
+                    destination = follow(action['command'], read_only)
+                    self.assertEqual(finding, destination['value'])
+                    self.assertEqual(ended_action if open_count == 0 else assignment,
+                                     destination['follow_through'])
                     summary = overview['maintenance'].get('engagement')
-                    if status is None:
+                    if open_count is None:
                         self.assertIsNone(summary)
                         continue
                     handoff = follow(summary['handoff_command'], read_only)['maintenance_engagement']
-                    self.assertEqual(status, handoff['status'])
-                    self.assertEqual(self.authority['engagement'], handoff['stop_when'])
-                    if status == 'ended':
-                        self.assertEqual(0, handoff['open_count'])
-                        self.assertTrue(all(row['status'] == 'accepted' and 'next_action' not in row
-                                            for row in handoff['workstreams']))
+                    self.assertEqual('active' if open_count else 'ended', handoff['status'])
+                    self.assertEqual(stop, handoff['stop_when'])
+                    self.assertEqual(open_count, handoff['open_count'])
+                    self.assertEqual(open_count, sum(bool(row.get('next_action')) for row in handoff['workstreams']))
             self.assertEqual(before, [path.read_bytes() for path in records])
-            if status == 'active':
+            if open_count in (2, None):
                 minor = {**finding, 'id': 'synthetic-minor-incident', 'severity': 'minor'}
-                feedback.write_bytes(json_bytes({'schema_version': '1.0', 'items': [minor, finding]}))
-                with self.subTest(engagement=status, findings='major and minor'):
-                    mixed = cli(f'{entry} status --overview')
-                    self.assertEqual(2, mixed['backlog']['unassigned_findings'])
-                    self.assertEqual(finding['id'], mixed['next']['id'])
-                    self.assertEqual(finding, follow(mixed['next']['command'], False)['value'])
+                for items in ([minor, finding], [finding, minor]):
+                    feedback.write_bytes(json_bytes({'schema_version': '1.0', 'items': items}))
+                    for read_only in (False, True):
+                        with self.subTest(open_workstreams=open_count, first=items[0]['severity'],
+                                          read_only=read_only):
+                            mode = ' --read-only' if read_only else ''
+                            mixed = cli(f'{entry} status --overview{mode}')
+                            self.assertEqual(2, mixed['backlog']['unassigned_findings'])
+                            self.assertEqual(finding['id'], mixed['next']['id'])
+                            destination = follow(mixed['next']['command'], read_only)
+                            self.assertEqual((finding, assignment),
+                                             (destination['value'], destination['follow_through']))
+            if open_count == 2:
                 critical = {**finding, 'id': 'synthetic-critical-incident', 'severity': 'critical'}
                 feedback.write_bytes(json_bytes({'schema_version': '1.0', 'items': [finding, critical]}))
-                with self.subTest(engagement=status, findings='critical and major'):
+                with self.subTest(findings='critical and major'):
                     urgent = cli(f'{entry} status --overview')
                     self.assertEqual(critical, follow(urgent['next']['command'], False)['value'])
                     self.assertEqual(finding, follow(urgent['also_urgent']['command'], False)['value'])
-                feedback.write_bytes(before[-1])
+            feedback.write_bytes(before[-1])
 
     def test_read_only_handoff_commands_run_verbatim_with_an_unwritable_cache(self):
         cli, entry = self.fixture_cli()

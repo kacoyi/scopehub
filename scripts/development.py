@@ -619,7 +619,8 @@ def project_overview(state, *, read_only=False):
     active = set(state['active_task_ids'])
     ready = set(state['ready_task_ids'])
     completed = set(state['completed_task_ids'])
-    unassigned = set(state['feedback_needing_assignment'])
+    assignment_ids = state['feedback_needing_assignment']
+    unassigned = set(assignment_ids)
 
     def finding_action(finding):
         identity = finding['id']
@@ -649,9 +650,12 @@ def project_overview(state, *, read_only=False):
         if report := original.get('report'):
             failure.update(id=original['check_id'], command=navigation('diagnostic', 'identify', report))
     missing = action(first) if first and first['state'] in {'evidence_missing', 'evidence_invalid', 'intake_needed'} else None
-    needs_assignment = next((finding_action(finding) for finding in opened if finding['id'] in unassigned), None)
-    unassigned_major = next((finding_action(finding) for finding in opened
-                             if finding['severity'] == 'major' and finding['id'] in unassigned), None)
+    opened_by_id = {finding['id']: finding for finding in opened}
+    # Critical findings already use the urgent route above. Keep the remaining queue in severity order.
+    pending = next((opened_by_id[key] for key in assignment_ids
+                    if opened_by_id[key]['severity'] != 'critical'), None)
+    needs_assignment = finding_action(pending) if pending else None
+    unassigned_major = needs_assignment if pending and pending['severity'] == 'major' else None
     engagement = state.get('maintenance_engagement')
     engagement_summary = {}
     engagement_action = None
