@@ -26086,7 +26086,16 @@
         "rust-contracts-workers",
         "workspace-timeframe"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-147-9c3db7d433ef1c64.json",
+          "sha256": "713f6f5bc5e093370ee704061dd269ebca75b207ab74ec053f8b1a0ff2b8de99"
+        },
+        {
+          "path": "project/evidence/M0-147-9181c7bb0ba5eef5.json",
+          "sha256": "b57edb59629e558abe68621bb8447e16188726a2600707c693c8148bf9e36e18"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "windows-change-45668943982-1",
@@ -26114,7 +26123,7 @@
           "report_sha256": "febcca8e29fa0d23ecc437b3f99486d62d13c538886a005fe4ecfb50256aa873"
         }
       ],
-      "next_action": "Two first-row native Windows controls on ad8ec4ff admitted the fixture, observed actual writes, verified exact stored input and inherited access, and yielded the expected witness stages 0 and 58 in run 45748342112. Obtain independent review of the corrected ordinary entry and a complete 24-row matrix with the actual handoff, both rejected controls and leaf rotation. The earlier seven-row calibration and the two previous native failures remain separate original observations.",
+      "next_action": "Development AI coordinator owns renewed independent review and ordinary protected verification of the reconciled PR 127 head. On b8ed20ea, ordinary run 45750681402 and guarded run 45750700993 both passed the mandatory Windows journey with all 24 leaf comparisons, the real handoff, broad, explicit-only and read-only refusals, fixture cleanup and capability rotation. The guarded Windows and Linux receipts cover the selected task checks, including all seven Rust parser tests. Run 45748342112 separately observed two first-row writes on ad8ec4ff. After protected integration, inspect the first main-push Windows workspace-timeframe original for the live handoff, matrix, cleanup and rotation under the existing deadline. The original timeout cause and last internal stage remain unknown.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
