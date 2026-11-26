@@ -7,6 +7,7 @@ import json
 import math
 import os
 from pathlib import Path
+import re
 import sys
 from time import perf_counter
 import unittest
@@ -22,6 +23,11 @@ FAILURES = ('failures', 'errors', 'unexpectedSuccesses')
 # Process duration is rounded independently to milliseconds by the harness.
 CLOCK_ROUNDING = .002
 SEPARATOR = b'-' * 70
+RUNNER_SUMMARY = re.compile(
+    rb'^' + SEPARATOR + rb'\r?\n(Ran [0-9]+ tests?) in [0-9]+\.[0-9]{3}s\r?\n\r?\n'
+    rb'((?:OK|FAILED|NO TESTS RAN)(?: \([^\r\n]*\))?)\r?$',
+    re.MULTILINE,
+)
 COUNT_NAMES = {'expectedFailures': 'expected failures', 'unexpectedSuccesses': 'unexpected successes'}
 OUTCOMES = {'ok': None, 'FAIL': 'failures', 'ERROR': 'errors', 'skipped': 'skipped',
             'expected failure': 'expectedFailures', 'unexpected success': 'unexpectedSuccesses'}
@@ -341,6 +347,33 @@ def process_interval(record):
         raise ValueError('Invalid Windows Python process clock interval.') from error
 
 
+def verify_legacy_execution(raw, cases, verdict):
+    # Without explicit fixture owners, dotted IDs cannot distinguish nested classes
+    # from submodules. The original runner's footer and progress attest which cases ran.
+    summaries = list(RUNNER_SUMMARY.finditer(raw))
+    count = len(cases)
+    expected = f'Ran {count} test{"s" if count != 1 else ""}'.encode('ascii')
+    # Test stdout can contain the same shape before unittest writes its footer.
+    if not summaries or summaries[-1].groups() != (expected, verdict):
+        raise ValueError('Original unittest run count or verdict differs from the legacy case manifest.')
+
+    summary = summaries[-1]
+    offset = 0
+    for _, display, *_ in cases:
+        # Legacy Windows stderr did not record its encoding. The ASCII footer
+        # still checks completeness if the case display uses a regional code page.
+        if not display.isascii():
+            continue
+        # Verbose unittest prints the display and an optional docstring line before
+        # the case runs, even when its output later interrupts the status line.
+        label = re.escape(display.encode('ascii'))
+        progress = re.compile(label + rb'(?:\r?\n[^\r\n]*)? \.\.\. ')
+        match = progress.search(raw, offset, summary.start())
+        if match is None:
+            raise ValueError('Original unittest executed cases differ from the legacy case manifest.')
+        offset = match.end()
+
+
 def verify_original(record, raw, manifest, lane):
     expected = verify_manifest(manifest, lane)
     size = manifest['log_size']
@@ -355,6 +388,8 @@ def verify_original(record, raw, manifest, lane):
     elif trailer and not reason:
         raise ValueError('Unexpected output after the original unittest run.')
     verdict = unittest_verdict(manifest['counts'], len(manifest['cases']))
+    if 'owners' not in manifest:
+        verify_legacy_execution(raw, manifest['cases'], verdict)
     exit_code = int(verdict.startswith(b'FAILED'))
     if not reason and (record.get('exit_code') != exit_code or (record['status'] == 'passed') != (exit_code == 0)):
         raise ValueError('Original unittest verdict does not match the process result.')

@@ -93,6 +93,7 @@ WINDOWS_LANE_CHECKS = {
     'recovery': {'market-recovery', 'market-recovery-ui'},
 }
 WINDOWS_LANES = ('core', *WINDOWS_LANE_CHECKS)
+WINDOWS_LANES_RUN_PREFIX = 'windows-change-'
 CHECK_OUTPUT_LOCK = Lock()
 CHECK_CONSOLE = ContextVar('check_console', default=None)
 
@@ -273,7 +274,7 @@ def windows_lane_checks(selected, lane, *, python_split=False):
 
 
 def windows_lanes_run_id(ci):
-    return f"windows-change-{ci['run_id']}-{ci['run_attempt']}"
+    return f"{WINDOWS_LANES_RUN_PREFIX}{ci['run_id']}-{ci['run_attempt']}"
 
 
 def build_window(catalog, selected, environment, index):

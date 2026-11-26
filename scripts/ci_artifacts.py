@@ -11,10 +11,11 @@ import tempfile
 
 if __package__:
     from . import windows_python
-    from .check import (PRIVATE_CHECK_LOGS, WINDOWS_LANES, check_timeout, ci_provenance, redacted_check_log, select_checks,
-                        windows_lane_checks, windows_lanes_run_id)
+    from .check import (PRIVATE_CHECK_LOGS, WINDOWS_LANES, WINDOWS_LANES_RUN_PREFIX, check_timeout, ci_provenance,
+                        redacted_check_log, select_checks, windows_lane_checks, windows_lanes_run_id)
     from .project import (ProjectError, digest, file_digest, json_bytes, load_project,
                           project_definition_hash, source_identity, task_definition_hash, validate_model, windows_x64)
+    from .review_tree import CommittedPath
     from .timing import (TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample,
                          windows_aggregate_cache)
     from .verification_evidence import (
@@ -26,10 +27,11 @@ if __package__:
     from .verification_scope import SCOPED_PROFILES, ci_base, ci_event_checkout, require_ancestor
 else:
     import windows_python
-    from check import (PRIVATE_CHECK_LOGS, WINDOWS_LANES, check_timeout, ci_provenance, redacted_check_log, select_checks,
-                       windows_lane_checks, windows_lanes_run_id)
+    from check import (PRIVATE_CHECK_LOGS, WINDOWS_LANES, WINDOWS_LANES_RUN_PREFIX, check_timeout, ci_provenance,
+                       redacted_check_log, select_checks, windows_lane_checks, windows_lanes_run_id)
     from project import (ProjectError, digest, file_digest, json_bytes, load_project,
                          project_definition_hash, source_identity, task_definition_hash, validate_model, windows_x64)
+    from review_tree import CommittedPath
     from timing import (TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample,
                         windows_aggregate_cache)
     from verification_evidence import (
@@ -358,12 +360,68 @@ def validate_combined_python(project, reports, report, destination=None):
         raise PublicationError('The Windows Python check differs from its original part results.')
 
 
+def validate_windows_run_id(report):
+    ci = report['ci']
+    if report['run_id'] != windows_lanes_run_id(ci):
+        raise PublicationError('The Windows aggregate run identifier differs from its CI run or attempt.')
+    if (ci['event'] not in {'push', 'pull_request'}
+            or (ci['event'] == 'push' and ci['head_sha'] != ci['checkout_sha'])):
+        raise PublicationError('The Windows aggregate event differs from its CI checkout.')
+
+
+def source_uses_windows_python_parts(root, head):
+    # A historic aggregate can use the same run namespace and Python command.
+    # Read the execution-input-equivalent source already verified by the importer.
+    source = CommittedPath.at(root, head)
+    workflow = source / '.github/workflows/verify.yml'
+    if not (source / 'scripts/windows_python.py').is_file() or not workflow.is_file():
+        return False
+    import yaml
+
+    try:
+        steps = yaml.safe_load(workflow.read_text(encoding='utf-8'))['jobs']['windows_change']['steps']
+    except KeyError:
+        return False
+    except (TypeError, yaml.YAMLError) as error:
+        raise PublicationError('Cannot read the recorded source Windows verification workflow.') from error
+    aggregate = {'scripts/check.py', '--require-windows', '--ci-windows-aggregate'}
+    return any(isinstance(step.get('run'), str) and aggregate.issubset(step['run'].split()) for step in steps)
+
+
+def validate_recorded_windows_evidence(root, project, reports, report, *, requires_python):
+    ci = report.get('ci')
+    lanes_run = report['run_id'].startswith(WINDOWS_LANES_RUN_PREFIX)
+    if lanes_run:
+        if not ci:
+            raise PublicationError('A Windows aggregate requires CI provenance.')
+        validate_windows_run_id(report)
+    if not requires_python:
+        return
+    profile = report.get('selection', {}).get('profile')
+    native = windows_x64(report['environment'])
+    full_pr = ci and ci['event'] == 'pull_request' and (lanes_run or (native and profile == 'full'))
+    required = (full_pr and windows_python.enabled(project, ci, select_checks(project))
+                and source_uses_windows_python_parts(root, ci['head_sha']))
+    declared = report['report_version'] == windows_python.REPORT_VERSION or 'windows_python' in report
+    if not required:
+        if declared:
+            raise PublicationError('The recorded source and run do not schedule Windows Python parts.')
+        return
+    validate_model(root, 'HostedHarnessReport', report)
+    if profile != 'full' or not native:
+        raise PublicationError('Split Python completion evidence requires a full native Windows pull request.')
+    if not lanes_run:
+        validate_windows_run_id(report)
+    validate_combined_python(project, reports, report)
+
+
 def validate_partitioned_publication(root, project, report, env, selected):
     source = source_identity(root)
     ci = report['ci']
     _, head, _ = ci_event_checkout(root, source['git_head'], env)
-    if report['run_id'] != windows_lanes_run_id(ci) or ci['head_sha'] != head or ci['checkout_sha'] != source['git_head']:
-        raise PublicationError('The Windows Python aggregate has another run or event checkout.')
+    validate_windows_run_id(report)
+    if ci['head_sha'] != head or ci['checkout_sha'] != source['git_head']:
+        raise PublicationError('The Windows Python aggregate has another event checkout.')
     rows = {row['id']: row for row in report['checks']}
     native = rows.get('windows-native-build', {})
     native_ok = native.get('status') == 'passed' and native.get('exit_code') == 0

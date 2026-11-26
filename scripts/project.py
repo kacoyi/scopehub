@@ -2520,28 +2520,24 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
         raise ProjectError('Task completion has unfinished dependencies')
     results = indexed(report['checks'], 'report check')
     if __package__:
+        from .ci_artifacts import PublicationError, validate_recorded_windows_evidence
         from .verification_evidence import (
             EXTERNAL_CLIENT_CHECK, FIELD_ACTIONS, RUN_OBSERVATION_CHECKS,
             collect_run_observation, field_observation, redacted_check_log,
         )
     else:
+        from ci_artifacts import PublicationError, validate_recorded_windows_evidence
         from verification_evidence import (
             EXTERNAL_CLIENT_CHECK, FIELD_ACTIONS, RUN_OBSERVATION_CHECKS,
             collect_run_observation, field_observation, redacted_check_log,
         )
-    if 'python-contracts-workers' in task['checks'] and (report['report_version'] == '2.1' or 'windows_python' in report):
-        validate_model(root, 'HostedHarnessReport', report)
-        if (not ci or ci['event'] != 'pull_request' or report['selection']['profile'] != 'full'
-                or not windows_x64(report['environment'])):
-            raise ProjectError('Split Python completion evidence requires a full native Windows pull request.')
-        if __package__:
-            from .ci_artifacts import PublicationError, validate_combined_python
-        else:
-            from ci_artifacts import PublicationError, validate_combined_python
-        try:
-            validate_combined_python(project, artifact_root if artifact_root is not None else reports_root, report)
-        except (PublicationError, OSError) as error:
-            raise ProjectError(str(error)) from error
+    try:
+        validate_recorded_windows_evidence(
+            root, project, artifact_root if artifact_root is not None else reports_root, report,
+            requires_python='python-contracts-workers' in task['checks'],
+        )
+    except (PublicationError, OSError) as error:
+        raise ProjectError(str(error)) from error
     selected = []
     field_records = {}
     external_client_observation = None

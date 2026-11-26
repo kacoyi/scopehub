@@ -26175,7 +26175,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Review the four locally reproduced and corrected publication, receipt and compatibility findings on the clean candidate. The coordinator owns fresh exact-source review including the M0-139 acceptance on the combined source and the first ordinary full warm Windows PR retaining 35 selected outcomes within 900 seconds.",
+      "next_action": "Review the linked receipt and legacy completeness corrections and retained public-entry replays on the clean candidate. The coordinator owns fresh independent M0-139 and M0-146 decisions on that exact source. Separately, qualify the first ordinary full warm Windows PR retaining 35 selected outcomes within 900 seconds.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -26228,6 +26228,9 @@
           "Local producer and publication controls for concurrent stderr finalization: .reports/audit-20261125/m0-146-3f74a1e9-stderr-prefix/SHA256SUMS (SHA-256 33ae106026c6a170068e07fa2360ce0078d016b6e6fe0a912c3ea8302ab1cd60). Both workers exited successfully before and after. After the fix, both preserved the same 43-byte stderr trailer and published valid runner prefixes and complete closed originals.",
           "Local real SIGINT producer controls: .reports/audit-20261125/m0-146-3f74a1e9-finalization/before/results.json (SHA-256 2386607de71dc78bfc3768f2ae16c36e8549ae7e7c9872910142fb78d8e92397) and after/results.json (SHA-256 b9e8a05265a868ad8727a48c7246bd6ac8d9a8606e9ed47287f467d2c5b13fb2). Retain the corresponding raw logs and manifests.",
           "Local public publication controls using the actual a3d2030997def2937ac28e961a243809fe0b40fb runner: .reports/audit-20261125/m0-146-legacy-fixture-owner/reviewed-repro/results.json (SHA-256 cadfe78f8acfd65eed95cd6fc812f3541e4de1f7e6ecf9fc4f054b19f1948a5f) and corrected-replay/results.json (SHA-256 1003b8c012bd0588e5d4bc83fa89ffdbffe1ebd443f59f8daa07e3c44e63e01f). Keep the serial output, original no-owners manifests and publication verdicts.",
+          "Independent decisions on 6f57130d70af1b971c1a268edb4065e5b7895c05: contracts/reviews/task-decisions/M0-139.json and contracts/reviews/task-decisions/M0-146.json. Original responses are retained in the corresponding independent-final-m0-139-6f57130d and independent-final-m0-146-6f57130d archive observations.",
+          "The exact 6f57130d public M0-139 receipt baseline is retained at .reports/audit-20261125/m0-146-linked-review-corrections/receipt/before-exact/observations.json (SHA-256 82072cf8feee2137ed3c341116dad686e58c2821fe8fc0ac90ec33bf6c7fff34). Keep the downloaded inputs, published controls and receipt attempts.",
+          "The actual a3d2030997 legacy runner replay on 6f57130d is retained at .reports/audit-20261125/m0-146-linked-review-corrections/publication/before/results.json (SHA-256 daee44ab935e6d66800664111578d9bd99c11eedd57c5d82703964224ce9a551). Keep both original streams, the edited manifest and the original and corrected publication attempts beside it.",
           "M0-153 carries the previously measured M0-146 verifier read reuse into its serial Windows main-push investigation. M0-146 correctness repairs and qualification are independent of that measurement. The separate M0-153 focused native policy-read crossover is retained at archives/observations/repo-hygiene-20261125/m0-153-windows-policy-45743693200/observation.json (SHA-256 6414388a6abe9a4eeb307732c737888622f3301392a8cf091172acbdbd15bd61)."
         ],
         "hypotheses": [
@@ -26368,6 +26371,20 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "A partitioned Windows PR can bypass both Python parts in the public receipt importer by claiming report version 2.0. A separate receipt can claim an attempt different from its original run identifier. Exercise the source-selected requirements and run identity through the public importer with intact and rejected first attempts and retries, including authentic 2.0 compatibility.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An edited legacy manifest can publish an incomplete passing Python aggregate by dropping an executed case after a parent package fixture skip. Check the original two-part runner output and exercise valid legacy fixture semantics, omitted execution, retry and actual publication.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain the original reports, revert a change that loses coverage or increases measured cost, and keep the open budget finding assigned until a qualifying observation is available.",
@@ -26409,7 +26426,8 @@
           ],
           "change": [
             "Read the project schema once per project load and reuse only the fixed legacy predecessor after proving ancestry. Reinitialize after hosted recovery.",
-            "For full ordinary Windows PRs, run the contiguous Python suffix on the existing recovery producer after its own checks. Authenticate both source-bound discoveries, ordered test outcomes, process clocks and raw logs before publishing the original single Python check. Preserve serial execution elsewhere."
+            "For full ordinary Windows PRs, run the contiguous Python suffix on the existing recovery producer after its own checks. Authenticate both source-bound discoveries, ordered test outcomes, process clocks and raw logs before publishing the original single Python check. Preserve serial execution elsewhere.",
+            "Derive receipt part requirements from the verified source and hosted run identity. Check legacy structured manifest completeness against the original unittest footer and identifiable executed case displays."
           ],
           "data_plan": "Use synthetic fixtures, read-only hosted originals and matching check logs. Preserve actual job durations, original identifiers and coverage for comparison.",
           "cleanup": "Remove temporary profiling from the delivery path, archive the focused comparison and retain any unresolved timing investigation with its next observable action."

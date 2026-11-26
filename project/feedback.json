@@ -7881,6 +7881,39 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-python-receipt-source-membership-and-attempt",
+      "source": "Independent Astra Standard t11t decision 09ed0aecd290b1c246d773e3cbd79c87e787e7b5cba4fb62050711db0d5e197e on 6f57130d70af1b971c1a268edb4065e5b7895c05, retained at archives/observations/repo-hygiene-20261125/independent-final-m0-139-6f57130d/final-response.txt (SHA-256 d68729f6c1b84241a056c8d35ec9001f1e77effe31f5b1dffbbe0dca25fdac59; original response SHA-256 69dd0ac1491d25f966859519b5e96509f0531da1e784259786d8fb5d62501a5f).",
+      "observation": "The public M0-139 importer accepted a partitioned full Windows pull-request report after marking it as 2.0 and removing both Python parts and all four originals. It also accepted a separate 2.1 report with all originals intact when ci.run_attempt was 3 and the run ID was windows-change-10-2. Publication rejected both. Bind part membership to the verified source and run selection, and bind attempts to the original run identity. Preserve authentic historical 2.0 import.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-139",
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-legacy-executed-case-completeness",
+      "source": "Independent Astra Standard t11v decision 5500dccf92e91cd51dae038bcd497b33297a79abd7f9cbc76ae86cbdacdf85dd on 6f57130d70af1b971c1a268edb4065e5b7895c05, retained at archives/observations/repo-hygiene-20261125/independent-final-m0-146-6f57130d/final-response.txt (SHA-256 3140c637a75272692c88c5160c5e90957ffe7cf94285942047397857a9c11521; original response SHA-256 89ff70f36607f2dbc7f48af3ad36382d43ed16696afbfda894200e6e7b144845).",
+      "observation": "Public part and aggregate publication accepted a legacy 2.1 manifest after one executed submodule test and its callbacks were removed and the manifest digest was recomputed. The original two-part log and serial control recorded three executed tests. The aggregate published two tests as passing. Verify executed case completeness against the original runner output while preserving real nested-module and package fixture skips.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
