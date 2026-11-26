@@ -26923,7 +26923,7 @@
           "sha256": "9f336d77da284e317e923a7a727d9f3504bb2a5b247f11033e24f07afdb2b874"
         }
       ],
-      "next_action": "Coordinator to obtain independent review on the exact clean source identified in .reports/observations/M0-162-lifecycle-follow-through/handoff.json. Review both public-entry race controls, private original and completion recovery, and the disposable native one-shot observation before task closure or publication.",
+      "next_action": "Reproduce and correct the competing one-shot collector and incomplete desktop observation findings, then retain public-entry controls and an exact-source native observation for coordinator review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26940,7 +26940,9 @@
         ],
         "hypotheses": [
           "The initial launcher had no versioned return-to-retirement path. The external collector treated human-facing wording as an identity test and serialized unrelated collections.",
-          "An exact snapshot cannot bind a subsequent address-only kill to its completed turn. Restart must independently observe the finished turn or hold its terminal intact. A dedicated noninteractive one-shot can archive its original and completion event before exiting, allowing the desktop to remove its tab naturally."
+          "An exact snapshot cannot bind a subsequent address-only kill to its completed turn. Restart must independently observe the finished turn or hold its terminal intact. A dedicated noninteractive one-shot can archive its original and completion event before exiting, allowing the desktop to remove its tab naturally.",
+          "The owned runner mistakes a transient assignment lock for an unrecoverable return. Recheck the same assignment after lock release and verify the stored original and completion against the completed execution before exiting.",
+          "Flattening desktop rows drops explicit empty spaces and treats missing identities like absence. Preserve the original local space and require complete tab, pane and terminal identities before claiming disappearance."
         ],
         "risks": [
           {
@@ -26952,6 +26954,18 @@
           },
           {
             "failure": "A new turn can start after the last live read or finish after a retiring journal write. Replay both boundaries and assert the terminal remains intact, its exact original and turn proof persist, and an independent assignment can still be archived.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A competing collector could strand the completed one-shot, or a stale or damaged receipt could permit premature exit. Exercise public run-owned with a valid competing archive, interrupted collection and mismatched or damaged evidence, and verify the same owned process exits only with its exact recoverable pair.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An incomplete desktop snapshot could report a false closure or hide closure in an explicitly empty original space. Exercise public collect with a fixed verified receipt and native exit while varying only the desktop observation.",
             "checks": [
               "python-contracts-workers"
             ]
@@ -26994,7 +27008,8 @@
           "change": [
             "Make a scoped and resumable result/retirement path available through the repository-owned Herdr workflow with direct behavior checks.",
             "Register the ordinary visible coordinator launch with an exact local parent, preserve deliberate standalone sessions and native service tiers, and schedule an independent watcher so a final assignment is collectable without a later dispatch.",
-            "Archive reusable assignments without terminal operations. Allow a dedicated one-shot implementation to archive its paired return evidence and end its own process, with independently observed desktop closure."
+            "Archive reusable assignments without terminal operations. Allow a dedicated one-shot implementation to archive its paired return evidence and end its own process, with independently observed desktop closure.",
+            "After a competing collection, let the same finished one-shot exit with its verified return pair. Retain complete empty-space evidence and report unresolved desktop snapshots as process exit only."
           ],
           "data_plan": "Development records only. Keep task originals private and preserve existing product data and permissions.",
           "cleanup": "Use the supported repository entry for the corrected behavior. Version 2 registrations keep older collectors from processing migrated lanes. Recover Version 1 originals without assuming prior retirement was verified. Retire superseded local workarounds after matched verification and preserve originals required for audit."

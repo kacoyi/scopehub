@@ -7880,6 +7880,36 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "herdr-one-shot-waits-forever-after-competing-collection",
+      "status": "open",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-162.json#/events/3 on cf7e0805ee0430e6aa7bfcc06b6120b10aa09172. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-162-cf7e0805/original-assistant-response.jsonl, SHA-256 8338db299cc24a687c2d5fb9831ecee59f56e404b8ee22d5a82a4fb234972f15.",
+      "observation": "An independent replay through run-owned completed the same registered one-shot without competition and with a competing independent collector. Under assignment lock competition the runner received assignment_busy and paused indefinitely. Repeated reads then recovered the verified archive, but the original runner never checked again and held its tab open.",
+      "task_ids": [
+        "M0-162"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "herdr-incomplete-desktop-observation-misreports-tab-closure",
+      "status": "open",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-162.json#/events/3 on cf7e0805ee0430e6aa7bfcc06b6120b10aa09172. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-162-cf7e0805/original-assistant-response.jsonl, SHA-256 8338db299cc24a687c2d5fb9831ecee59f56e404b8ee22d5a82a4fb234972f15.",
+      "observation": "An independent collect replay held the successful Core exit constant while varying desktop observations. An incomplete tab, pane and terminal record still led to one_shot_tab_closed even though the original tab could not be excluded. An explicitly present original space with an empty tabs list instead lost the space evidence and yielded only one_shot_exited.",
+      "task_ids": [
+        "M0-162"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
