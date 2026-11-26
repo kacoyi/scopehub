@@ -7561,8 +7561,8 @@
     },
     {
       "id": "verification-windows-warm-pr-python-budget",
-      "source": "Authenticated ordinary full Windows pull requests 45665595957, 45666385494 and 45667368453, with full reports, original logs and clocks indexed in archives/observations/repo-hygiene-20261125/windows-warm-pr-python-20261125/intake.json (SHA-256 8b8c89a6a46b440de8ec51fef266e6b8760250250242ae4cda276c8f5d8cf298). Original jobs, both verified native artifacts and timing inputs for PR111 and PR133 are indexed in archives/observations/repo-hygiene-20261125/warm-windows-pr-intake-45762646887/intake.json (SHA-256 c7caf588cb9234a1e65b373e3421ffd003505d060d15fe5a763a2540e94b2728).",
-      "observation": "The three comparable full warm Windows pull requests took 1075, 868 and 999 seconds against the 900-second objective. The Python checks took 966.594, 776.266 and 899.781 seconds, and the Python producer finished last before aggregation each time. Each report selected the same 35 outcomes with 28 passes and seven planned omissions. Interleaved run 45666697288 used a partial Cargo cache and belongs to M0-128. Ordinary warm Windows PR run 45674883737 on the first repair selected the same 35 checks: 28 passed and seven planned checks were omitted. The full run took 975 seconds elapsed and 2851 runner seconds, with 889.719 seconds in python-contracts-workers. The Python producer finished last. The first repair eliminated measured redundant reads but this run remained 75 seconds over the existing objective. The next repair distributes a contiguous Python suffix to the existing PR recovery producer. The complete local test and artifact evidence belongs to M0-146. The combined native follow-up is pending. Two ordinary warm PRs on sources preceding the partition also exceeded the 900-second objective with the same 35 outcomes. PR111 took 958 seconds and the browser producer finished last. PR133 took 1245 seconds and the Python producer finished last, with 1134.688 seconds in the Python check. The first comparable PR containing the new partition is pending.",
+      "source": "Authenticated ordinary full Windows pull requests 45665595957, 45666385494 and 45667368453, with full reports, original logs and clocks indexed in archives/observations/repo-hygiene-20261125/windows-warm-pr-python-20261125/intake.json (SHA-256 8b8c89a6a46b440de8ec51fef266e6b8760250250242ae4cda276c8f5d8cf298). Original jobs, both verified native artifacts and timing inputs for PR111 and PR133 are indexed in archives/observations/repo-hygiene-20261125/warm-windows-pr-intake-45762646887/intake.json (SHA-256 c7caf588cb9234a1e65b373e3421ffd003505d060d15fe5a763a2540e94b2728). PR137 attempt one archive report archives/runs/windows-change-45823962357-1/test-report.json, with the incident and resolver input retained as .reports/audit-20261126/m0-146-callback-identity/originals/pr137/pr137-first-ordinary-incidents.json (SHA-256 5dd03164d5141d1badf71515fee8bbe0c41c2817e909d2c1db85ef9fc6b15bb7) and .reports/audit-20261126/m0-146-callback-identity/originals/pr137/M0-166-aggregate-resolution.json (SHA-256 661b56cb54ec9e9471baa116906f9e63fcd9f98d83b2836f8fc01f77225eb734). Its original Python log SHA-256 is de753a913aad0fe4967d3060f3b701a4dfc5945be089df144217f62f22470a8e.",
+      "observation": "The three comparable full warm Windows pull requests took 1075, 868 and 999 seconds against the 900-second objective. The Python checks took 966.594, 776.266 and 899.781 seconds, and the Python producer finished last before aggregation each time. Each report selected the same 35 outcomes with 28 passes and seven planned omissions. Interleaved run 45666697288 used a partial Cargo cache and belongs to M0-128. Ordinary warm Windows PR run 45674883737 on the first repair selected the same 35 checks: 28 passed and seven planned checks were omitted. The full run took 975 seconds elapsed and 2851 runner seconds, with 889.719 seconds in python-contracts-workers. The Python producer finished last. The first repair eliminated measured redundant reads but this run remained 75 seconds over the existing objective. The next repair distributes a contiguous Python suffix to the existing PR recovery producer. The complete local test and artifact evidence belongs to M0-146. Two ordinary warm PRs on sources preceding the partition also exceeded the 900-second objective with the same 35 outcomes. PR111 took 958 seconds and the browser producer finished last. PR133 took 1245 seconds and the Python producer finished last, with 1134.688 seconds in the Python check. PR137 ordinary full warm Windows attempt one selected 35 checks, with 26 passes, two failures and seven planned omissions. The unsplit python-contracts-workers check timed out after 1200.047 seconds, and the original log has no terminal case count. This is a failed ordinary PR observation. Successful comparable verification of the partition within 900 seconds remains pending. M0-166 owns the independent workspace-timeframe failure and M0-153 owns the first protected push.",
       "severity": "major",
       "status": "open",
       "task_ids": [
@@ -7601,6 +7601,11 @@
           "run_id": "windows-change-45762646887-1",
           "source_commit": "b1097e82c981fce3573d06ee82e0cc5c438ef113",
           "report_sha256": "208f6516a8eb67754aa4595c68ef8a7737d0b5eca6f81f2441fe2eeb36f41de0"
+        },
+        {
+          "run_id": "windows-change-45823962357-1",
+          "source_commit": "9f3a91950aee9e7c81819a0d27027fa2b9cc7514",
+          "report_sha256": "078717eb8956e711ef6b2262f43f70349a0d1d0901983b395af324135ec03f8c"
         }
       ],
       "verification_budget": {
@@ -8011,6 +8016,22 @@
       "id": "windows-python-legacy-nested-runner-summary",
       "source": "Independent M0-146 decision 66752e14e7428cdc46abdb25705832c86ac1bf9b695b70bb899eca68b3d1fa2e on 2ba0355110d2610107199475c719eb2874cb6088, recorded at contracts/reviews/task-decisions/M0-146.json#/events/15. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-146-2ba03551/original-assistant-response.jsonl (SHA-256 ec46ecd8fc6cf480b36bc64eaccbe974642874e69cb08bde1643f90cc22e2fd1). Local nested rendering originals on b3360c1a870cc50e4423d899a58d29e2ebacaa87 are in .reports/audit-20261126/m0-146-legacy-qualification/originals/nested-rendering.",
       "observation": "A passing inner unittest run printed its progress and Ran 1 test footer before the outer case's skip callback. Both actual legacy producers exited zero, but the candidate rejected the genuine outer case result during aggregation, publication, import and reopen. The same case passed with the current callback witness. A later real unittest replay also reproduced rejection of uniquely assignable nested results when the inner case had a short description or wrote inline progress before the callback. Regress the genuine nested result and an exchanged outcome through both producer formats, preserving the prior cleanup and interpreter-exit controls.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-legacy-teardown-footer-ownership",
+      "source": "Independent M0-146 decision 012995bd5db7f93328e8f67a6ba42f900afadb4aae1f042e8bbf5544f503250b on 482fc9e542308392095cae7e87d7820d50391435, recorded at contracts/reviews/task-decisions/M0-146.json#/events/17 by c1bfd234935d7468a686f1d46f01f8bc50df9038. The original is retained in archives/observations/repo-hygiene-20261125/independent-final-m0-146-482fc9e5/original-assistant-response.jsonl and .reports/audit-20261126/m0-146-callback-identity/originals/independent-final-m0-146-482fc9e5/original-assistant-response.jsonl (SHA-256 c86194093f6fd493f35e6aa93156f85a42c16f81c4e6ea193d45551456bcc123).",
+      "observation": "With the genuine a3d20309 runner, tearDownModule used TextTestResult to write two named child progress lines and no child summary. Two executions reversed the outer pass and skip while the raw Python log stayed byte-identical (SHA-256 b32271592c5d611377e6d17719b5bca5733f0443f998742879a6a7cb9ce41ac4). The verifier paired child progress with the outer summary, discarded the real outer callbacks after an earlier compatible footer and rejected the genuine inventory. Swapping only the per-case outcomes and skip flags while retaining both original logs, durations and totals passed producer publication, collection, aggregate publication, receipt import and reopen. Exercise both interpretations through those entries, preserve diagnostic-only reopening of ambiguous originals, and retain authentic 2.0, identifiable legacy 2.1 and current versioned callback controls.",
       "severity": "major",
       "status": "open",
       "task_ids": [

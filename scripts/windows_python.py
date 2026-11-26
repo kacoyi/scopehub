@@ -29,24 +29,16 @@ FAILURES = ('failures', 'errors', 'unexpectedSuccesses')
 # Process duration is rounded independently to milliseconds by the harness.
 CLOCK_ROUNDING = .002
 SEPARATOR = b'-' * 70
-RUNNER_SUMMARY = re.compile(
-    rb'^' + SEPARATOR + rb'\n(Ran ([0-9]+) tests?) in [0-9]+\.[0-9]{3}s\n\n'
-    rb'((?:OK|FAILED|NO TESTS RAN)(?: \([^\n]*\))?)$',
-    re.MULTILINE,
-)
-RUNNER_OUTCOME = re.compile(
-    rb'''(ok|FAIL|ERROR|expected failure|unexpected success|skipped (?:'[^\n]*'|"[^\n]*"))\Z''',
-)
-RUNNER_DURATIONS = re.compile(
-    rb'^Slowest test durations\n' + SEPARATOR + rb'\n(?:[0-9]+\.[0-9]{3}s +[^\n]+\n)+\n\Z',
-    re.MULTILINE,
-)
-RUNNER_ERRORS = re.compile(rb'^={70}\n(?:FAIL|ERROR|UNEXPECTED SUCCESS): ', re.MULTILINE)
-NESTED_TEST_LABEL = re.compile(rb'[^\s()]+ \([^\n()]+\)')
-# Redirected legacy Windows stderr used the host ANSI code page unless Python
-# was configured for UTF-8. Verify a consistent encoding across the whole run.
-RUNNER_ENCODINGS = ('utf-8', 'cp874', 'cp932', 'cp936', 'cp949', 'cp950',
-                    *(f'cp{code}' for code in range(1250, 1259)))
+LEGACY_LOG_LIMIT = 8 * 1024 * 1024
+LEGACY_LINE_LIMIT = 64 * 1024
+LEGACY_LINE_COUNT_LIMIT = 100_000
+RUNNER_TOTAL = re.compile(rb'Ran ([0-9]+) tests? in [0-9]+\.[0-9]{3}s')
+RUNNER_DURATION_ROW = re.compile(rb'[0-9]+\.[0-9]{3}s +[^ \t].*')
+RUNNER_SKIP_COUNT = re.compile(rb'[(, ]skipped=([0-9]+)')
+RUNNER_VERDICT = re.compile(rb'(?:OK|FAILED|NO TESTS RAN)(?: \([^()]+\))?')
+RUNNER_NAME = re.compile(rb' \(([^\s()]+)\)')
+RUNNER_FIXTURE = re.compile(rb'(?:setUp|tearDown)(?:Class|Module) \(')
+RUNNER_SKIP = re.compile(rb'''skipped ['"]''')
 COUNT_NAMES = {'expectedFailures': 'expected failures', 'unexpectedSuccesses': 'unexpected successes'}
 OUTCOMES = {'ok': None, 'FAIL': 'failures', 'ERROR': 'errors', 'skipped': 'skipped',
             'expected failure': 'expectedFailures', 'unexpected success': 'unexpectedSuccesses'}
@@ -394,151 +386,114 @@ def process_interval(record):
         raise ValueError('Invalid Windows Python process clock interval.') from error
 
 
-def runner_execution(raw, progress):
-    """Find the footer belonging to the observed verbose progress, in order."""
-    offset = 0
-    previous = None
-    observed = []
-    headers = {}
-    starts = set()
+def legacy_footers(lines):
+    """Find every possible outer footer under the historical verbose runner format."""
+    max_digits = len(str(len(lines)))
+    for total_line, line in enumerate(lines):
+        # An emitted count cannot exceed the number of physical progress lines.
+        # Bound decimal parsing even for a forged summary with thousands of digits.
+        totals = (match for match in RUNNER_TOTAL.finditer(line) if len(match[1]) <= max_digits
+                  and int(match[1]) <= len(lines))
+        total = next(totals, None)
+        if total is None:
+            continue
+        count = int(total[1])
+        index = total_line - 1
+        if (index < 1 or total_line + 3 >= len(lines) or total[0] != line
+                or lines[index] != SEPARATOR or lines[total_line + 1]
+                or not RUNNER_VERDICT.fullmatch(verdict := lines[total_line + 2])):
+            # Partial or interleaved completion text cannot establish which
+            # other summary, if any, belongs to the outer result.
+            yield count, b'', index, index
+            continue
+        # An oversized skip total is a contender, never a usable verdict.
+        skip_count = RUNNER_SKIP_COUNT.search(verdict)
+        skipped = 0 if skip_count is None else (
+            int(skip_count[1]) if len(skip_count[1]) <= max_digits else len(lines))
+        duration = index
+        if not lines[index - 1]:
+            first_row = index - 1
+            while first_row > 0 and RUNNER_DURATION_ROW.fullmatch(lines[first_row - 1]):
+                first_row -= 1
+            rows = index - 1 - first_row
+            if (rows and first_row >= 2 and lines[first_row - 2] == b'Slowest test durations'
+                    and lines[first_row - 1] == SEPARATOR and rows <= count <= rows + skipped):
+                duration = first_row - 2
+        # Ordinary cases always report a duration except decorator skips.
+        # Fixture skips can increase the skipped total without starting a case.
+        if duration != index or count <= skipped:
+            yield count, verdict, duration, index
+
+
+def legacy_progress(raw, progress):
+    """Prove the ordered callback statuses without assigning any writes to nested runners."""
+    # A case can print a fixture lookalike before its own status. A fixture
+    # has no mandatory startTest callback to establish that boundary.
+    if RUNNER_FIXTURE.search(raw):
+        return False
+    # Look for extra and duplicated direct case or subtest headers, including
+    # after inline output, so they cannot be mistaken for another case's status.
+    headers = (match for match in RUNNER_NAME.finditer(raw) if b'.' in match[1])
+    regions = []
     for label, status in progress:
-        pattern = rb'\n' + re.escape(label)
-        if status is None:
-            pattern += rb'(?:\n[^\n]*)? \.\.\. '
-        if pattern not in headers:
-            headers[pattern] = re.compile(pattern)
-        if (match := headers[pattern].search(raw, offset)) is None:
-            return None
-        start, end = match.span()
-        starts.add(start)
-        if previous is not None:
-            footer, outcomes, alternatives = runner_section(raw[offset:start + 1])
-            # A completed outer run cannot obtain more cases from shutdown.
-            if footer is not None or previous not in outcomes:
-                return None
-            observed.append((previous, alternatives))
-        offset = end
-        previous = status
-
-    footer, outcomes, alternatives = runner_section(raw[offset:], empty_run=not progress, final=True)
-    if footer is None:
-        return None
-    # A printed lookalike cannot silently move the boundary of the next case.
-    if any(match.start() not in starts for header in headers.values()
-           for match in header.finditer(raw, 0, offset + footer.start())):
-        return None
-    if not progress:
-        return footer[1], footer[3]
-    if previous in outcomes and identifiable_outcomes([*observed, (previous, alternatives)]):
-        return footer[1], footer[3]
-    return None
-
-
-def runner_section(segment, *, empty_run=False, final=False):
-    """Read one outer progress segment, distinguishing complete nested runners."""
-    outcomes = set()
-    alternatives = set()
-    offset = 0
-    terminal = None
-    for footer in RUNNER_SUMMARY.finditer(segment):
-        prefix = segment[offset:footer.start()]
-        # Keep competing suffixes even if the bytes resemble nested runner
-        # details. Test output can imitate the detail headings too.
-        alternatives.update(runner_outcomes(prefix))
-        durations = RUNNER_DURATIONS.search(prefix)
-        if durations is not None:
-            prefix = prefix[:durations.start()]
-        if footer[3].startswith(b'FAILED') and (errors := RUNNER_ERRORS.search(prefix)):
-            prefix = prefix[:errors.start()]
-        nested = nested_run_start(prefix, footer)
-        outcomes.update(runner_outcomes(prefix[:nested]))
-        if nested is None and (outcomes or empty_run):
-            if not final:
-                return footer, outcomes, alternatives
-            if terminal is None:
-                terminal = footer, outcomes.copy(), alternatives.copy()
-            elif footer[2] == terminal[0][2]:
-                # An equally plausible outer footer can leave real callbacks
-                # after the first apparent end. Neither cutoff is independent.
-                return None, set(), set()
-        offset = footer.end()
-    if terminal is not None:
-        return terminal
-    remaining = runner_outcomes(segment[offset:])
-    return None, outcomes | remaining, alternatives | remaining
-
-
-def nested_run_start(prefix, footer):
-    # Only exclude a nested run with its own named result lines and a matching
-    # complete footer. A stray status or footer alone does not hide a contender.
-    counts = dict.fromkeys(COUNTS, 0)
-    count = int(footer[2])
-    if not count:
-        return None
-    end = len(prefix.rstrip(b'\n'))
-    for _ in range(count):
-        if end <= 0:
-            return None
-        start = prefix.rfind(b'\n', 0, end) + 1
-        description, delimiter, tail = prefix[start:end].partition(b' ... ')
-        if not delimiter or (status := RUNNER_OUTCOME.search(tail)) is None:
-            return None
-        if not NESTED_TEST_LABEL.fullmatch(description):
-            # unittest puts the optional short description on its own line.
-            if not start or not description:
-                return None
-            name = prefix.rfind(b'\n', 0, start - 1) + 1
-            if not NESTED_TEST_LABEL.fullmatch(prefix[name:start - 1]):
-                return None
-            start = name
-        outcome = 'skipped' if status[1].startswith(b'skipped ') else status[1].decode('ascii')
-        if key := OUTCOMES[outcome]:
-            counts[key] += 1
-        end = start - 1
-    if unittest_verdict(counts, count) == footer[3]:
-        return start
-    return None
-
-
-def runner_outcomes(segment):
-    # Output in the case or its cleanup can end in the same bytes as a callback.
-    # The named header does not give the first line priority over a later one.
-    return {match[1] for line in segment.split(b'\n')[:-1] if (match := RUNNER_OUTCOME.search(line))}
-
-
-def outcome_kind(status):
-    return b'skipped' if status.startswith(b'skipped ') else status
-
-
-def identifiable_outcomes(observed):
-    # The primary footer fixes the count of each outcome kind. Another
-    # assignment with those counts exists exactly when possible changes form
-    # a cycle. A different reason for the same skip is a one-edge cycle.
-    changes = {}
-    for outcome, alternatives in observed:
-        if other := alternatives - {outcome}:
-            changes.setdefault(outcome_kind(outcome), set()).update(map(outcome_kind, other))
-    while changes:
-        sinks = {kind for kind, targets in changes.items() if not targets.intersection(changes)}
-        if not sinks:
+        if (status is None or '\n' in label or not label.isascii() or not status.isascii()
+                or status != 'ok' and (not status.startswith('skipped ') or '\\' in status)):
             return False
-        for kind in sinks:
-            del changes[kind]
+        rendered = label.encode('ascii')
+        description = rendered.removesuffix(b' ... ')
+        header = next(headers, None)
+        if header is None:
+            return False
+        end = header.end()
+        start = end - len(description)
+        if start < 0 or not raw.startswith(rendered, start):
+            return False
+        regions.append((start, start + len(rendered), status.encode('ascii')))
+    if next(headers, None) is not None:
+        return False
+
+    can_change_pass = can_change_skip = False
+    for index, (_, start, status) in enumerate(regions):
+        end = regions[index + 1][0] if index + 1 < len(regions) else len(raw)
+        if start > end:
+            return False
+        segment = raw[start:end]
+        if not any(line.endswith(status) for line in segment.split(b'\n')[:-1]):
+            return False
+        # A status is written separately from the header and newline. Even a
+        # fragment of unrelated output can supply a competing status. Do not
+        # erase any of these possibilities on the strength of printed syntax.
+        skips = RUNNER_SKIP.finditer(segment)
+        if status == b'ok':
+            can_change_pass |= next(skips, None) is not None
+        else:
+            if any(not segment.startswith(status, match.start()) for match in skips):
+                return False
+            can_change_skip |= b'ok' in segment
+        # The outer skip count is fixed. An alternative assignment must
+        # exchange at least one pass and skip or change a skip reason.
+        if can_change_pass and can_change_skip:
+            return False
     return True
 
 
-def verify_execution(raw, progress, count, verdict):
-    raw = b'\n' + raw.replace(b'\r\n', b'\n')
-    expected = f'Ran {count} test{"s" if count != 1 else ""}'.encode('ascii'), verdict
-    encodings = (RUNNER_ENCODINGS[:1] if all(label.isascii() and (status is None or status.isascii())
-                                          for label, status in progress) else RUNNER_ENCODINGS)
-    for encoding in encodings:
-        encoded = [(label.encode(encoding, errors='backslashreplace'),
-                    status.encode(encoding, errors='backslashreplace') if status is not None else None)
-                   for label, status in progress]
-        if runner_execution(raw, encoded) == expected:
-            return
-    raise ValueError('Original unittest progress, run count or verdict does not establish the case manifest.')
+def verify_execution(raw, progress, count, verdict, durations=()):
+    error = 'Original unittest progress, run count or verdict does not establish the case manifest.'
+    if len(progress) != count or len(raw) > LEGACY_LOG_LIMIT or raw.count(b'\n') > LEGACY_LINE_COUNT_LIMIT:
+        raise ValueError(error)
+    lines = raw.replace(b'\r\n', b'\n').split(b'\n')
+    if any(len(line) > LEGACY_LINE_LIMIT for line in lines):
+        raise ValueError(error)
+    candidates = legacy_footers(lines)
+    footer = next(candidates, None)
+    if footer is None or next(candidates, None) is not None:
+        raise ValueError(error)
+    actual_count, actual_verdict, section, summary = footer
+    if (actual_count != count or actual_verdict != verdict
+            or raw.count(b'Slowest test durations') != int(section != summary)
+            or lines[section:summary] != duration_lines(durations)
+            or not legacy_progress(b'\n'.join(lines[:section]) + b'\n', progress)):
+        raise ValueError(error)
 
 
 def verify_callback_record(raw, manifest):
@@ -578,13 +533,16 @@ def verify_original(record, raw, manifest, lane, *, callback_records=None):
         raise ValueError('Original unittest verdict does not match the process result.')
     runner_seconds = manifest['runner_seconds']
     start, end = process_interval(record)
+    durations = case_times([manifest])
     if (type(runner_seconds) not in (int, float) or not math.isfinite(runner_seconds)
             or not 0 <= runner_seconds <= (end - start).total_seconds() + CLOCK_ROUNDING
-            or sum(elapsed for _, elapsed in case_times([manifest])) > runner_seconds + CLOCK_ROUNDING):
+            or sum(elapsed for _, elapsed in durations) > runner_seconds + CLOCK_ROUNDING):
         raise ValueError('Original unittest runner duration exceeds its process duration or understates case time.')
     progress, diagnostics, runner_progress = verify_events(manifest, expected)
     if version is None:
-        verify_execution(raw[:size], runner_progress, len(manifest['cases']), verdict)
+        # The older producer did not bind its callback boundary to the log.
+        # A supplied prefix cannot exclude contenders in the closed original.
+        verify_execution(raw, runner_progress, len(manifest['cases']), verdict, durations)
     else:
         verify_callback_record(raw[:size], manifest)
     return progress, diagnostics + (trailer if reason else b'')
