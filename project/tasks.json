@@ -26165,7 +26165,7 @@
           "sha256": "fb4345db27bf793accfd0d67401a044be089c0305a0dc51c347691e17756de4a"
         }
       ],
-      "next_action": "Review the ordinary two-window proof, its typed refusal and terminal controls, and the adjacent focus orders on the same clean source as M2-034 and M2-035. Keep the first guarded Ubuntu proof reply unclassified and collect the existing Windows attempt separately before matching hosted verification.",
+      "next_action": "Compare native and seed profile setup using the actual first guarded Windows refusal. Qualify normal local profile preparation and retained typed failure before requesting the next exact-source Windows journey. Preserve the independent Ubuntu proof correction, existing task checks and physical qualification gate.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26384,6 +26384,14 @@
             "checks": [
               "desktop-workspace-transport"
             ]
+          },
+          {
+            "failure": "The seed bridge and native desktop may prepare or select different private profile paths or owners. Verify the documented isolated setup in both processes, preserve storage access checks and retain a staged refusal without attributing an unobserved cause.",
+            "checks": [
+              "windows-published-revision-access",
+              "published-revision-launch-deadline",
+              "desktop-workspace-transport"
+            ]
           }
         ],
         "rollback": "Revert the UI change while retaining the independent red and green observations. Existing stored revisions and schemas need no migration.",
@@ -26509,6 +26517,11 @@
           "run_id": "20261126T132144.208214Z-e6b6c2d4",
           "source_commit": "07424b3955546ae6ff1c8302caca024a235d1bba",
           "report_sha256": "281f9a11fed3d407ea81479b0d20f093c4bedd1ce3db47e143c3a87c1e573583"
+        },
+        {
+          "run_id": "20261126T132212.486758Z-cbf7c751",
+          "source_commit": "07424b3955546ae6ff1c8302caca024a235d1bba",
+          "report_sha256": "a7b2db876efc08093f0c5c35b797bf555163695e194574f9424f2656cf754e59"
         }
       ]
     },
