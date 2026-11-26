@@ -26596,7 +26596,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Compare the per-job facts once through ordinary, weekly, rotated linked-budget and cold reads. Replay the three original PRs, the failed push and an independently selected later native control. Ask the coordinator for the job-facts decision first. Hand the exact clean candidate to t113 for decisions and native verification. Retain the 2026-11-28 scheduled observation as pending.",
+      "next_action": "Compare legacy tooling scope and skipped role markers through ordinary, weekly, rotated linked-budget and cold reads. Replay the original three PRs, failed push and later native control, then hand the clean source and retained evidence to the coordinator for the three owning decisions. Keep the five dependent formal reviews and November 28 due cycle pending.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26611,7 +26611,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-133-57f1c772/final-response.txt",
           "archives/observations/repo-hygiene-20261125/combined-timing-caea2a0a58/SHA256SUMS",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-155-b12aefdc/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-145-b12aefdc/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-145-b12aefdc/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-155-39413fd3/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "Recent preload and historical linked reads can see different retained evidence when a conflict removes the platform index entry or an attempt is older than the routine window.",
@@ -26760,6 +26761,20 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "Compare direct job claims and the original legacy scope after compatible role lookup. Cover ordinary, weekly, rotated linked-budget and cold reads while retaining independent browser and recovery clocks.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Pair the nameless aggregate with an untimed skipped marker and a genuinely executed role marker. Verify both public readers, rotated linked-budget and cold reads, and preserve independent clocks.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain all source captures, saved reviews and original classifications if a change loses a valid clock or expands the ordinary read without a bound.",
@@ -26836,7 +26851,7 @@
       ],
       "diagnostic_reports": [],
       "evidence": [],
-      "next_action": "Compare exact event and known Git facts against a contradictory merge proof and a genuinely missing object on full and shallow history via both readers. Ask the coordinator for the checkout-proof decision before commissioning downstream reviews. Hand the exact clean candidate to t113 for decisions and native verification. Retain the 2026-11-28 scheduled observation as pending.",
+      "next_action": "Compare the available direct event ancestor and genuinely unavailable first parent on full and shallow history. Hand the clean source and evidence to the coordinator for the checkout-proof decision. Keep the downstream reviews and November 28 due cycle pending.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26853,7 +26868,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-148-57f1c772/final-response.txt",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-e6e5a46d/final-response.txt",
           "archives/observations/repo-hygiene-20261125/combined-timing-caea2a0a58/SHA256SUMS",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-b12aefdc/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-b12aefdc/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-39413fd3/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "The substitute Git fingerprint is computable with the standard library; importing the full project entry brings an unrelated parser into the weekly job.",
@@ -26910,6 +26926,13 @@
           },
           {
             "failure": "A known preview with the correct publisher tree and a foreign second parent can bypass the observed PR event identity. Compare otherwise equal known previews on full and shallow history, with the genuinely missing first-parent control.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Check the direct event ancestor case on full and shallow history and retain the matching genuine proof with an actually missing first parent through the ordinary and weekly readers.",
             "checks": [
               "project-state",
               "python-contracts-workers"
@@ -26990,7 +27013,7 @@
         "The verifier binds a producer to its publishing job, platform, source or verified execution-equivalent catalog and exact ordered scope. Incorrectly swapped, missing, extra and unverifiable assignments cannot establish a warm comparable observation.",
         "Previously supported publishing layouts, incomplete sources and historical evidence retain their respective outcomes. Verify the shared current selection together with its integration consumer."
       ],
-      "next_action": "Compare a genuine publisher product and distinct invalid selection and result rows through ordinary, weekly and reopened reads. Ask the coordinator for the publisher decision before commissioning downstream reviews. Hand the exact clean candidate to t113 for decisions and native verification. Retain the 2026-11-28 scheduled observation as pending.",
+      "next_action": "Compare required-change catalog validation and ordered aggregate selection across both genuine historical publishers. Hand the clean source to the coordinator for the publisher decision, then matching hosted and native verification. Keep the downstream reviews and November 28 due cycle pending.",
       "blocker": null,
       "evidence": [],
       "closure_reason": null,
@@ -27008,7 +27031,8 @@
           "tests/project/test_timing.py",
           "PR 121 run 45678058104 and PR 116 run 45680128413",
           "archives/observations/repo-hygiene-20261125/combined-timing-caea2a0a58/SHA256SUMS",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-b12aefdc/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-b12aefdc/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-39413fd3/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "The earlier and later sources had the same four Windows producer jobs and aggregate catalog. The browser and recovery assignments changed while the reader used one current mapping for both.",
@@ -27127,6 +27151,20 @@
           },
           {
             "failure": "Unchanged call syntax may resolve to a different loader in the historical publishing launcher. Compare the rebound publisher and its stale artifact with the genuine publisher and a recognized publisher selecting a different catalog.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Reject the inconsistent historical catalog through ordinary, weekly and cold readers; verify the paired valid 34-check selection and the genuine 35-check reports with their independent clocks.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Check the historical selected order before reconciliation. Verify an isolated reordered aggregate and its co-existence with the genuine receipt, for both historical publishing programs.",
             "checks": [
               "project-state",
               "python-contracts-workers"

@@ -8852,6 +8852,91 @@
       "diagnostic_reports": [],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "timing-legacy-explicit-tooling-scope-lost-with-role-lookup",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-155 decision on 39413fd304e8575605dc5b70a352d2e394ae1e35, recorded at c837fd2ad86e07b1f0f974fdd92b1e27b822970f. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-155-39413fd3/original-assistant-response.jsonl (SHA-256 ea22127bb95eccdfb5fbb322af3a37275e83d618d2df2b0da60c81468d625e02).",
+      "observation": "An e00b088b archive explicitly saved tooling scope for the PR 84 aggregate with an untimed successful tooling step. A later full listing restored 804 wall seconds and 2467 runner-seconds plus a weekly receipt; direct job observations still withdrew them.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-skipped-layout-marker-identifies-nameless-job",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-155 decision on 39413fd304e8575605dc5b70a352d2e394ae1e35, recorded at c837fd2ad86e07b1f0f974fdd92b1e27b822970f. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-155-39413fd3/original-assistant-response.jsonl (SHA-256 ea22127bb95eccdfb5fbb322af3a37275e83d618d2df2b0da60c81468d625e02).",
+      "observation": "Adding only an untimed skipped lane-layout step to the nameless PR 84 aggregate restored 804 wall seconds, 2467 runner-seconds and a weekly receipt, including after rotation and cold reopen.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-merge-proof-ignores-available-event-ancestor",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-156 decision on 39413fd304e8575605dc5b70a352d2e394ae1e35, recorded at c837fd2ad86e07b1f0f974fdd92b1e27b822970f. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-156-39413fd3/original-assistant-response.jsonl (SHA-256 817fde758fb208ad0900652c3738b911717b9f5abc7d577d464078e3276998e1).",
+      "observation": "PR 84 proof replaced its first parent and comparison base with an available direct parent of the event head. Both parent and head used the same verification workflow, yet the contrary claimed tree earned a weekly receipt on full and shallow history, also after reopen.",
+      "task_ids": [
+        "M0-156"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-publisher-mandatory-change-catalog-constraint",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 decision on 39413fd304e8575605dc5b70a352d2e394ae1e35, recorded at c837fd2ad86e07b1f0f974fdd92b1e27b822970f. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-150-39413fd3/original-assistant-response.jsonl (SHA-256 b99179f1912f5d97394c0ff7074fa92aca6e838f546cbfc3c47bd48e1ae7cf4d).",
+      "observation": "The weekly and ordinary readers admitted 34-check PR 116 and PR 121 aggregates from catalogs that left market-recovery-ui in required_change_checks after moving it to task cadence. Both historical publishing loaders reject that catalog before selecting checks.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-aggregate-selected-order-accepted-before-reconciliation",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 decision on 39413fd304e8575605dc5b70a352d2e394ae1e35, recorded at c837fd2ad86e07b1f0f974fdd92b1e27b822970f. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-150-39413fd3/original-assistant-response.jsonl (SHA-256 b99179f1912f5d97394c0ff7074fa92aca6e838f546cbfc3c47bd48e1ae7cf4d).",
+      "observation": "Swapping only the first two selected entries in the genuine PR 116 and PR 121 Windows aggregates independently earned a weekly receipt and invalidated the genuine aggregate when both were read together.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
