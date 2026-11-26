@@ -7561,8 +7561,8 @@
     },
     {
       "id": "verification-windows-warm-pr-python-budget",
-      "source": "Authenticated ordinary full Windows pull requests 45665595957, 45666385494 and 45667368453, with full reports, original logs and clocks indexed in archives/observations/repo-hygiene-20261125/windows-warm-pr-python-20261125/intake.json (SHA-256 8b8c89a6a46b440de8ec51fef266e6b8760250250242ae4cda276c8f5d8cf298).",
-      "observation": "The three comparable full warm Windows pull requests took 1075, 868 and 999 seconds against the 900-second objective. The Python checks took 966.594, 776.266 and 899.781 seconds, and the Python producer finished last before aggregation each time. Each report selected the same 35 outcomes with 28 passes and seven planned omissions. Interleaved run 45666697288 used a partial Cargo cache and belongs to M0-128. Ordinary warm Windows PR run 45674883737 on the first repair selected the same 35 checks: 28 passed and seven planned checks were omitted. The full run took 975 seconds elapsed and 2851 runner seconds, with 889.719 seconds in python-contracts-workers. The Python producer finished last. The first repair eliminated measured redundant reads but this run remained 75 seconds over the existing objective. The next repair distributes a contiguous Python suffix to the existing PR recovery producer. The complete local test and artifact evidence belongs to M0-146. The combined native follow-up is pending.",
+      "source": "Authenticated ordinary full Windows pull requests 45665595957, 45666385494 and 45667368453, with full reports, original logs and clocks indexed in archives/observations/repo-hygiene-20261125/windows-warm-pr-python-20261125/intake.json (SHA-256 8b8c89a6a46b440de8ec51fef266e6b8760250250242ae4cda276c8f5d8cf298). Original jobs, both verified native artifacts and timing inputs for PR111 and PR133 are indexed in archives/observations/repo-hygiene-20261125/warm-windows-pr-intake-45762646887/intake.json (SHA-256 c7caf588cb9234a1e65b373e3421ffd003505d060d15fe5a763a2540e94b2728).",
+      "observation": "The three comparable full warm Windows pull requests took 1075, 868 and 999 seconds against the 900-second objective. The Python checks took 966.594, 776.266 and 899.781 seconds, and the Python producer finished last before aggregation each time. Each report selected the same 35 outcomes with 28 passes and seven planned omissions. Interleaved run 45666697288 used a partial Cargo cache and belongs to M0-128. Ordinary warm Windows PR run 45674883737 on the first repair selected the same 35 checks: 28 passed and seven planned checks were omitted. The full run took 975 seconds elapsed and 2851 runner seconds, with 889.719 seconds in python-contracts-workers. The Python producer finished last. The first repair eliminated measured redundant reads but this run remained 75 seconds over the existing objective. The next repair distributes a contiguous Python suffix to the existing PR recovery producer. The complete local test and artifact evidence belongs to M0-146. The combined native follow-up is pending. Two ordinary warm PRs on sources preceding the partition also exceeded the 900-second objective with the same 35 outcomes. PR111 took 958 seconds and the browser producer finished last. PR133 took 1245 seconds and the Python producer finished last, with 1134.688 seconds in the Python check. The first comparable PR containing the new partition is pending.",
       "severity": "major",
       "status": "open",
       "task_ids": [
@@ -7591,6 +7591,16 @@
           "run_id": "windows-change-45674883737-1",
           "source_commit": "89668fa44ffb56cf848518c5959329ef89992ba9",
           "report_sha256": "00703b6bfc35ee5dd6ba35e2550efc3726e1f4a6a4fbd868c292d1def4fee7d2"
+        },
+        {
+          "run_id": "windows-change-45601205813-1",
+          "source_commit": "b2838310471c9c405d9fcdbaaf66d62c4f2cb4b8",
+          "report_sha256": "8e283fb387cc424716c06321148ff14ee1ed2ae0a67ce70ca74a34247c36b123"
+        },
+        {
+          "run_id": "windows-change-45762646887-1",
+          "source_commit": "b1097e82c981fce3573d06ee82e0cc5c438ef113",
+          "report_sha256": "208f6516a8eb67754aa4595c68ef8a7737d0b5eca6f81f2441fe2eeb36f41de0"
         }
       ],
       "verification_budget": {
