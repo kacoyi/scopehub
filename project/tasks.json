@@ -26919,7 +26919,7 @@
           "sha256": "9c1132e153f0263273fb8f4d42edd4b164c3e8d84f8854ff833012d4375edbe3"
         }
       ],
-      "next_action": "Obtain independent review on the exact clean handoff. The default coordinator entry, deliberate standalone control and restart recovery are bound to the tested source in archives/observations/herdr-session-follow-through/M0-162-71fbce9f/primary-observation-index.json (SHA-256 4a4f6a501328e100ce1593eb28ce8ce21a56515bbfd93945b4bbf43ccfe7ffd1).",
+      "next_action": "Correct both independent lifecycle findings. Replay the live turn change and interrupted retirement through collect with a fake adapter. Verify original recovery and any supported self-exit using a disposable owned assignment, then hand off the exact clean source and private observations to the coordinator.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26935,13 +26935,20 @@
           "tests/project/test_herdr.py"
         ],
         "hypotheses": [
-          "The launcher has no versioned return-to-retirement path; the current external collector additionally treats human-facing wording as an identity test and serializes unrelated collections."
+          "The initial launcher had no versioned return-to-retirement path. The external collector treated human-facing wording as an identity test and serialized unrelated collections.",
+          "An exact snapshot cannot bind a subsequent address-only kill to its completed turn. Restart must independently observe the finished turn or hold its terminal intact."
         ],
         "risks": [
           {
             "failure": "A premature close could interrupt live or unrelated work or lose its original; a hold on one lane could starve other collections. Waiting for new work alone could strand the last completed assignment.",
             "checks": [
               "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A new turn can start after the last live read or finish after a retiring journal write. Replay both boundaries and assert the terminal remains intact, its exact original and turn proof persist, and an independent assignment can still be archived.",
+            "checks": [
               "python-contracts-workers"
             ]
           }

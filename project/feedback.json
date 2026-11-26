@@ -7850,6 +7850,36 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "herdr-live-retirement-is-not-bound-to-the-completed-turn",
+      "status": "open",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-162.json#/events/1 on c879713b9799e8450418d2e36efe25e225d28ac6. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-162-c879713b/original-assistant-response.jsonl, SHA-256 9b97fa79e595bb174503e4127a176565efb2be8c7dabcd51863305c9ef7ae5e6.",
+      "observation": "The independent replay through scripts/herdr.py collect started a second turn immediately after the last terminal.get reply. The collector sent terminal.kill by address, interrupted the second turn and marked the first turn retired. Starting the second turn before that read instead preserved the terminal. The original first response was archived in both cases.",
+      "task_ids": [
+        "M0-162"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "herdr-retirement-retry-attributes-a-later-finished-turn-to-the-original",
+      "status": "open",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-162.json#/events/1 on c879713b9799e8450418d2e36efe25e225d28ac6. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-162-c879713b/original-assistant-response.jsonl, SHA-256 9b97fa79e595bb174503e4127a176565efb2be8c7dabcd51863305c9ef7ae5e6.",
+      "observation": "The independent replay interrupted collection after journaling retiring but before issuing kill, then finished a second turn at the same terminal address. Restart supplied the archived first turn identity as if it were observed, removed the second turn's finished terminal and marked the first turn retired. The control which interrupted after a successful first-turn kill recovered the existing original and did not send a second kill.",
+      "task_ids": [
+        "M0-162"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
