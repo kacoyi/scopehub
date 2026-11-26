@@ -8937,6 +8937,91 @@
       "diagnostic_reports": [],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "timing-conflicting-layout-step-conclusions-collapsed",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-155 decision on 3eeb59bc39219905204e6aab95bd16af4d22a65e, recorded at 51b86e045b5ddff7a3b620168d52b321fb0e4bf2. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-155-3eeb59bc/original-assistant-response.jsonl (SHA-256 03f744883a1b237ac950b85b8a0b7d619e3ac5951f451fa344258dab899448c0).",
+      "observation": "PR 84 job 138982816287 had only layout step 14 as role evidence. One row containing both success and skipped was saved identically to success alone. Ordinary and cold reads restored 804 Windows wall seconds and 2467 runner-seconds, weekly issued one receipt, and the linked budget retained the sample after twelve captures.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-proof-ignores-indirect-ancestor-tree",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-156 decision on 3eeb59bc39219905204e6aab95bd16af4d22a65e, recorded at 51b86e045b5ddff7a3b620168d52b321fb0e4bf2. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-156-3eeb59bc/original-assistant-response.jsonl (SHA-256 8e0f2ed83cdff79886509c51ea2fbe9b4a0c04ba8b708f417f29a360c652d346).",
+      "observation": "PR 84 kept both recorded parents but substituted the first parent tree and its digest for the merged tree. A known indirect event-head ancestor relation was available in full and shallow history. Ordinary timing showed 804 wall seconds and 2467 runner-seconds and weekly issued a receipt after cold reopen.",
+      "task_ids": [
+        "M0-156"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-unbound-historical-compact-projection",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 decision on 3eeb59bc39219905204e6aab95bd16af4d22a65e, recorded at 51b86e045b5ddff7a3b620168d52b321fb0e4bf2. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-150-3eeb59bc/original-assistant-response.jsonl (SHA-256 096d2cfb551481e654add2abc9e0b2fa37036a18e84f07bf8fa5f39573bc4ac8).",
+      "observation": "Two altered historical report_sample implementations wrote reversed selections while all previously bound publisher objects were unchanged. They rejected the published order but accepted the old order, issuing weekly receipts for 903 and 883 Windows wall seconds.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-publisher-catalog-accepts-unusable-project-inputs",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 decision on 3eeb59bc39219905204e6aab95bd16af4d22a65e, recorded at 51b86e045b5ddff7a3b620168d52b321fb0e4bf2. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-150-3eeb59bc/original-assistant-response.jsonl (SHA-256 096d2cfb551481e654add2abc9e0b2fa37036a18e84f07bf8fa5f39573bc4ac8).",
+      "observation": "The original PR 121 and PR 116 loaders rejected catalogs with zero environment timeout, linux-only platforms, or a nonexistent milestone check. All six corresponding 35-check summaries on the prior reader kept the warm cache and each earned one weekly Windows receipt.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-raw-projection-erases-invalid-required-fields",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 decision on 3eeb59bc39219905204e6aab95bd16af4d22a65e, recorded at 51b86e045b5ddff7a3b620168d52b321fb0e4bf2. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-150-3eeb59bc/original-assistant-response.jsonl (SHA-256 096d2cfb551481e654add2abc9e0b2fa37036a18e84f07bf8fa5f39573bc4ac8).",
+      "observation": "The PR 121 browser and PR 116 recovery publishers rejected missing selection.task_id and invalid reason_code on passed rows. The ordinary raw reader granted 702 and 421 seconds. Raw aggregate variants projected identically to originals and each earned a weekly receipt.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

@@ -26596,7 +26596,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Compare legacy tooling scope and skipped role markers through ordinary, weekly, rotated linked-budget and cold reads. Replay the original three PRs, failed push and later native control, then hand the clean source and retained evidence to the coordinator for the three owning decisions. Keep the five dependent formal reviews and November 28 due cycle pending.",
+      "next_action": "Verify the five independent findings against the shared corrected reader and replay the original PRs, failed push and later native control. Hand the clean commit and retained local observations to the coordinator. Keep the five dependent reviews and November 28 due cycle pending.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26612,7 +26612,8 @@
           "archives/observations/repo-hygiene-20261125/combined-timing-caea2a0a58/SHA256SUMS",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-155-b12aefdc/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-145-b12aefdc/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-155-39413fd3/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-155-39413fd3/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-155-3eeb59bc/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "Recent preload and historical linked reads can see different retained evidence when a conflict removes the platform index entry or an attempt is older than the routine window.",
@@ -26775,6 +26776,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "Replay successful, skipped, and contradictory step conclusions on the same job, together and across captures, through ordinary, weekly, linked budget and cold reads. Preserve the 645-second browser and 321-second recovery clocks.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain all source captures, saved reviews and original classifications if a change loses a valid clock or expands the ordinary read without a bound.",
@@ -26872,7 +26880,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-e6e5a46d/final-response.txt",
           "archives/observations/repo-hygiene-20261125/combined-timing-caea2a0a58/SHA256SUMS",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-b12aefdc/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-39413fd3/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-39413fd3/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-3eeb59bc/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "The substitute Git fingerprint is computable with the standard library; importing the full project entry brings an unrelated parser into the weekly job.",
@@ -26936,6 +26945,13 @@
           },
           {
             "failure": "Check the direct event ancestor case on full and shallow history and retain the matching genuine proof with an actually missing first parent through the ordinary and weekly readers.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Reconcile available parent trees and observed merge topology for the original and substituted tree, in complete and shallow history. Retain genuinely missing-parent and independently equivalent event-source controls.",
             "checks": [
               "project-state",
               "python-contracts-workers"
@@ -27039,7 +27055,8 @@
           "PR 121 run 45678058104 and PR 116 run 45680128413",
           "archives/observations/repo-hygiene-20261125/combined-timing-caea2a0a58/SHA256SUMS",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-150-b12aefdc/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-39413fd3/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-39413fd3/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-3eeb59bc/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "The earlier and later sources had the same four Windows producer jobs and aggregate catalog. The browser and recovery assignments changed while the reader used one current mapping for both.",
@@ -27176,6 +27193,27 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "Bind the actual historical report_sample with its publishing closure. Verify the genuine ordered output and withdraw qualification for both layouts attributed to an unrecognized publisher.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Compare both historical catalogs and each rejected catalog through the public entries. Prove supported publishing inputs with a bounded versioned identity and shared data projection.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Validate native raw reports before projection. Compare explicit null, missing task identity and illegal reason code in both raw producer and aggregate inputs with genuine positive controls.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Keep the original artifacts and the explicit unknown result for a source whose publishing selection cannot be established; restore the prior reader if historical coverage cannot be preserved.",
@@ -27204,7 +27242,8 @@
           ],
           "open_questions": [
             "Which committed input identifies the assignment of the publishing job across old and new implementations, including when an ephemeral preview is unavailable locally?",
-            "Compare changes to the publisher schema, scope bindings, and selection and result-order behavior before admitting a substantively different publisher form."
+            "Compare changes to the publisher schema, scope bindings, and selection and result-order behavior before admitting a substantively different publisher form.",
+            "Measure the conversion and historical coverage of a fixed publisher identity set and a shared data projection versus per-version reconstruction. Inspect archived source without executing it."
           ]
         },
         "evolution": {
