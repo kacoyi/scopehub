@@ -242,6 +242,26 @@
       "requested_at": "2026-11-26T13:20:00.206683+00:00",
       "request_id": "d14b540924708c65cef0a20916b8e4524ffca47e160f1419cbebbe878a95370d",
       "evidence_sha256": "0cbb34980011e729e964b9cd3539680e6ba776fc1a9478cf04fa55e9760ce986"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "482fc9e542308392095cae7e87d7820d50391435",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 482fc9e542308392095cae7e87d7820d50391435",
+      "scope": "CHANGES_REQUESTED M0-146 482fc9e542308392095cae7e87d7820d50391435",
+      "observation": "The candidate published and reopened a receipt with two legacy case outcomes reversed while both original producer logs, all case durations, and the skip total stayed unchanged.",
+      "reviewer": "Independent Astra Standard (t173)",
+      "original_sha256": "c86194093f6fd493f35e6aa93156f85a42c16f81c4e6ea193d45551456bcc123",
+      "response_id": "012995bd5db7f93328e8f67a6ba42f900afadb4aae1f042e8bbf5544f503250b",
+      "response_sha256": "2cee38eb4fa9e1fcc0bc88335482c1f95ef909bf3b640ac5dff5ede66e3ad675",
+      "legacy_response_sha256": "e10a6b1aed005d9d56cffe6b6bde525820337d5dbd130ac1f12504c62cf3fa9c",
+      "observation_body_sha256": "c4f9d6d9f4445d665c876aea74b981ac8dc5d7f52bc3a89ea4a81c82ce7f33b8",
+      "event": {
+        "id": "msg_071c9284106a7406016b0833b4f71c87d18c6d7d2cc1842171",
+        "timestamp": "2026-11-26T13:27:40.115Z"
+      },
+      "supersedes": "d14b540924708c65cef0a20916b8e4524ffca47e160f1419cbebbe878a95370d",
+      "evidence_sha256": "935cf0c01c8d1706aa1fca73f376ca097cb21e929c6861c5faf5f22d51e54d73"
     }
   ]
 }

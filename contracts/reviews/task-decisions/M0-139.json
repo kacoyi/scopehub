@@ -242,6 +242,26 @@
       "requested_at": "2026-11-26T13:19:59.666692+00:00",
       "request_id": "5911cbdb53e225a8997f54e22c1fa0d1c79c9f1e9a30ed7c2b3d50636f0593bd",
       "evidence_sha256": "ba3323cba93a394f131d2d0f10d594b00f0a634cbea3dfa663c98ad4a8b16dfe"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "482fc9e542308392095cae7e87d7820d50391435",
+      "verdict": "approved",
+      "decision": "APPROVE M0-139 482fc9e542308392095cae7e87d7820d50391435",
+      "scope": "APPROVE M0-139 482fc9e542308392095cae7e87d7820d50391435",
+      "observation": "The public M0-139 importer reopened the original receipt for Windows run 45680128413 and rejected an attempt-two claim backed by both attempt-one logs.",
+      "reviewer": "Independent Astra Standard (t172)",
+      "original_sha256": "ed4e8c85d2e14590752dc06e628ffdb9df23b0cd8204cd00c650637e4deea9b2",
+      "response_id": "17b4f0ebd3ade252eef65e5fd15dbab32d83b39cfbd5ac2361a40e628119c020",
+      "response_sha256": "c327b9e7ec974f0c0aa33c98095b951afc781618e533fe579dadab88ad88aef6",
+      "legacy_response_sha256": "bf5c3966fefbed53c3bdf580ecd1c489847def403d02f8291f58fcab52aa503e",
+      "observation_body_sha256": "a97d6dccaf05131090a50f83be67795eda257f06ac75461b99f4dda6c350f97f",
+      "event": {
+        "id": "msg_050336bac82c5c72016b083388905087d1ae450768ed44ecbb",
+        "timestamp": "2026-11-26T13:26:51.133Z"
+      },
+      "supersedes": "5911cbdb53e225a8997f54e22c1fa0d1c79c9f1e9a30ed7c2b3d50636f0593bd",
+      "evidence_sha256": "364ac51140a08f325f0cba10a5e2f50c137dd9a52a664680eeb2766010bef271"
     }
   ]
 }
