@@ -20,15 +20,32 @@ function revisionStatus(dispatch, revisionId, requestId = randomUUID()) {
   return dispatch({ type: 'frozen_chart_status', request_id: requestId, revision_id: revisionId });
 }
 
-async function readProofSnapshot(dispatchResponse, onRefused = () => {}) {
+function snapshotOutcome({ status, body }) {
+  return {
+    status, ok: body?.ok ?? null, code: body?.error?.code ?? null, retryable: body?.error?.retryable ?? null,
+    hasResult: Object.hasOwn(body ?? {}, 'result'),
+    selection: body?.result?.selection_revision ?? null, source: body?.result?.source ?? null,
+  };
+}
+
+async function readProofSnapshot(dispatchResponse, observe) {
   let response;
   await expect.poll(async () => {
-    response = await dispatchResponse({ type: 'snapshot' });
-    if (!preAdmissionBusy(response)) return true;
-    onRefused(response);
-    return false;
+    try {
+      response = await dispatchResponse({ type: 'snapshot' });
+    } catch (error) {
+      observe({ transportError: error.name, code: error.code ?? error.cause?.code ?? null });
+      throw error;
+    }
+    const outcome = snapshotOutcome(response);
+    const refused = !outcome.hasResult && preAdmissionBusy(response);
+    observe({ ...outcome, refused });
+    return !refused;
   }, { timeout: 4_000, message: 'The verified state read must reach a terminal snapshot reply' }).toBe(true);
-  return response;
+  expect(response, 'The independent proof must return a successful workspace snapshot').toMatchObject({
+    status: 200, body: { ok: true, result: { selection_revision: expect.any(Number) } },
+  });
+  return response.body.result;
 }
 
 function workspace(timeframe, revision) {
@@ -59,7 +76,7 @@ function committed(operation, result, id, undoable) {
   };
 }
 
-async function nativeTransport(page, { optedIn, native = true, textModel = false }, use) {
+async function nativeTransport(page, { optedIn, native = true, textModel = false, observeFrozenRevision }, use) {
   const calls = [];
   await page.exposeBinding('dispatchNativeWorkspace', async (_, command, args) => {
     calls.push({ command, args });
@@ -68,7 +85,7 @@ async function nativeTransport(page, { optedIn, native = true, textModel = false
       ? ['operation', 'payload', 'requestId'] : ['operation', 'payload']);
     return use(args);
   });
-  await page.addInitScript(({ optedIn, native, textModel }) => {
+  await page.addInitScript(({ optedIn, native, textModel, observeFrozenRevision }) => {
     window.isTauri = native;
     if (optedIn) Object.defineProperty(window, '__SCOPEHUB_DESKTOP_WORKSPACE__', { value: true });
     if (textModel) Object.defineProperty(window, '__SCOPEHUB_DESKTOP_TEXT_MODEL__', { value: true });
@@ -76,10 +93,13 @@ async function nativeTransport(page, { optedIn, native = true, textModel = false
       async invoke(command, args) {
         const reply = await window.dispatchNativeWorkspace(command, args);
         if (reply.error) throw reply.error;
+        if (args.payload.type === 'frozen_chart' && args.payload.revision_id === observeFrozenRevision) {
+          (window.receivedFrozenReplies ??= []).push(args.payload.request_id);
+        }
         return reply.result;
       },
     };
-  }, { optedIn, native, textModel });
+  }, { optedIn, native, textModel, observeFrozenRevision });
   return calls;
 }
 
@@ -892,6 +912,57 @@ test('a retryable admission rejection cannot disable authorized selection clear'
   expect(cleared?.workspace_id).toBe(base.workspace.id);
 });
 
+test('the independent snapshot proof retries only a typed pre-admission refusal', async ({}, testInfo) => {
+  const source = { kind: 'frozen', revision_id: randomUUID(), status: 'available' };
+  const result = { selection_revision: 2, source };
+  const admitted = { status: 200, body: { ok: true, result } };
+  const refusal = { status: 429, body: { ok: false, error: { code: 'BUSY', retryable: true } } };
+  const traces = [];
+  const run = (name, first) => {
+    const calls = [];
+    const outcomes = [];
+    traces.push({ name, calls, outcomes });
+    const attempt = readProofSnapshot(async frame => {
+      calls.push(frame);
+      if (calls.length > 1) return admitted;
+      if (first instanceof Error) throw first;
+      return first;
+    }, outcome => outcomes.push(outcome));
+    return { calls, outcomes, attempt };
+  };
+  const frame = { type: 'snapshot' };
+  try {
+    const recovered = run('pre-admission refusal followed by an admitted proof', refusal);
+    await expect(recovered.attempt).resolves.toEqual(result);
+    expect(recovered.calls).toEqual([frame, frame]);
+    expect(recovered.outcomes).toMatchObject([
+      { status: 429, ok: false, code: 'BUSY', retryable: true, hasResult: false, refused: true },
+      { status: 200, ok: true, hasResult: true, refused: false, selection: 2, source },
+    ]);
+    for (const [name, response] of [
+      ['admitted BUSY', { ...refusal, status: 200 }],
+      ['denied', { status: 403, body: { ok: false, error: { code: 'PERMISSION_DENIED', retryable: false } } }],
+      ['contradictory refusal', { ...refusal, body: { ...refusal.body, result } }],
+      ['missing envelope', { status: 200, body: undefined }],
+      ['missing result', { status: 200, body: { ok: true } }],
+    ]) {
+      const rejected = run(name, response);
+      await expect(rejected.attempt).rejects.toThrow('The independent proof must return a successful workspace snapshot');
+      expect(rejected.calls).toEqual([frame]);
+      expect(rejected.outcomes).toEqual([{ ...snapshotOutcome(response), refused: false }]);
+    }
+    const error = new Error('Synthetic snapshot transport failure');
+    const interrupted = run('transport failure', error);
+    await expect(interrupted.attempt).rejects.toBe(error);
+    expect(interrupted.calls).toEqual([frame]);
+    expect(interrupted.outcomes).toEqual([{ transportError: 'Error', code: null }]);
+  } finally {
+    await testInfo.attach('independent-snapshot-proof-controls', {
+      body: JSON.stringify(traces, null, 2), contentType: 'application/json',
+    });
+  }
+});
+
 for (const order of ['before the focus snapshot', 'after the replacement is visible', 'with the same source confirmed']) {
   test(`first saved-chart reopen fences a held reply ${order}`, async ({ page }, testInfo) => {
     test.setTimeout(180_000);
@@ -904,52 +975,78 @@ for (const order of ['before the focus snapshot', 'after the replacement is visi
       });
       await seedDisplayOnlyChart(profile, a, bar('2026-02-03', 41, 46, 40, 44));
       await seedDisplayOnlyChart(profile, b, bar('2026-02-04', 102, 109, 101, 106));
-      await withWorkspaceTransport(profile, async ({ dispatch }) => {
+      await withWorkspaceTransport(profile, async ({ dispatch, dispatchResponse }) => {
         const initial = await dispatch({ type: 'snapshot' });
+        expect(initial).toMatchObject({ ok: true, result: { selection_revision: 0, source: null } });
         const selected = await dispatch({ type: 'workspace_source', request_id: randomUUID(),
           expected_selection_revision: initial.result.selection_revision, source: { kind: 'frozen', revision_id: a } });
-        expect(selected.ok).toBe(true);
-        let capturedFirst = false;
+        expect(selected).toMatchObject({ ok: true, result: { selection_revision: 1 } });
+        const peerChangesSource = !order.startsWith('with the same');
+        const expected = {
+          selection_revision: selected.result.selection_revision + Number(peerChangesSource),
+          source: { kind: 'frozen', revision_id: peerChangesSource ? b : a, status: 'available' },
+        };
         const oldReply = Promise.withResolvers();
         const focusSnapshot = Promise.withResolvers();
         const history = [];
+        const proofAttempts = [];
+        const peerWrites = [];
         let snapshots = 0;
+        let capturedRequestId;
         let held = false;
+        let focusRequested = false;
+        const expectedClose = peerChangesSource ? 106 : 44;
         const ordinary = ({ operation, payload }) => operation === 'market.listLocalImportRevisions'
           ? { result: { version: 1, revisions: [], next_after_revision_id: null } } : dispatch(payload);
-        await nativeTransport(page, { optedIn: true }, async args => {
+        await nativeTransport(page, { optedIn: true, observeFrozenRevision: a }, async args => {
           const { payload } = args;
           if (payload.type === 'snapshot') {
-            const number = ++snapshots;
-            const reply = await ordinary(args);
-            history.push({ number, snapshot: reply.result?.source });
-            if (number === 2) await focusSnapshot.promise;
-            return reply;
+            const afterFocus = focusRequested;
+            const response = await dispatchResponse(payload);
+            const outcome = snapshotOutcome(response);
+            const number = outcome.status === 200 && outcome.ok === true && outcome.hasResult ? ++snapshots : null;
+            history.push({ number, afterFocus, snapshotReply: outcome });
+            if (number === 2) {
+              await focusSnapshot.promise;
+              history.push({ releasedSnapshot: number });
+            }
+            return response.body;
           }
           if (payload.type === 'frozen_chart' && payload.revision_id === a && !held) {
             held = true;
             const captured = await ordinary(args);
             expect(captured.ok).toBe(true);
             expect(captured.result.bars[0].bar.close).toBe(44);
-            capturedFirst = true;
+            capturedRequestId = payload.request_id;
             await oldReply.promise;
-            history.push({ delivered: a, close: 44 });
+            history.push({ released: a, close: 44, requestId: capturedRequestId });
             return captured;
           }
           return ordinary(args);
         });
         const price = page.getByRole('region', { name: 'Price chart' });
         const selectedBar = price.getByLabel('Selected bar');
+        const releaseOriginalChart = async () => {
+          oldReply.resolve();
+          await page.waitForFunction(id => window.receivedFrozenReplies?.includes(id), capturedRequestId);
+          history.push({ received: a, requestId: capturedRequestId });
+        };
         let peer;
         try {
-          if (!order.startsWith('with the same')) {
+          if (peerChangesSource) {
             peer = await page.context().newPage();
-            await nativeTransport(peer, { optedIn: true }, ordinary);
+            await nativeTransport(peer, { optedIn: true }, async args => {
+              const reply = await ordinary(args);
+              if (args.payload.type === 'workspace_source') peerWrites.push({ request: args.payload, reply });
+              return reply;
+            });
           }
           await page.goto('/');
-          await expect.poll(() => capturedFirst, { timeout: 8000 }).toBe(true);
+          await expect.poll(() => capturedRequestId, { timeout: 8000 }).toEqual(expect.any(String));
+          expect(history.find(row => row.number === 1)?.snapshotReply).toMatchObject({
+            selection: selected.result.selection_revision, source: { kind: 'frozen', revision_id: a, status: 'available' },
+          });
           await expect(selectedBar).toHaveCount(0);
-          const peerChangesSource = !order.startsWith('with the same');
           if (peerChangesSource) {
             const window = peer;
             await window.goto('/', { timeout: 8000 });
@@ -964,9 +1061,14 @@ for (const order of ['before the focus snapshot', 'after the replacement is visi
             await control(dialog, 'Use as workspace source').click();
             await expect(dialog).toHaveCount(0);
             await expect(peerChart.getByLabel('Selected bar')).toContainText('C 106');
-            const confirmed = await dispatch({ type: 'snapshot' });
-            expect(confirmed.result.source).toMatchObject({ kind: 'frozen', revision_id: b, status: 'available' });
-            expect(confirmed.result.selection_revision).toBe(selected.result.selection_revision + 1);
+            history.push({ peerRenderedClose: 106 });
+            expect(peerWrites.filter(write => write.reply.ok === true)).toMatchObject([{
+              request: { request_id: expect.any(String), expected_selection_revision: selected.result.selection_revision,
+                source: { kind: 'frozen', revision_id: b } },
+              reply: { ok: true, result: { selection_revision: expected.selection_revision } },
+            }]);
+            const confirmed = await readProofSnapshot(dispatchResponse, outcome => proofAttempts.push(outcome));
+            expect(confirmed, 'The independent proof confirms the committed peer selection').toMatchObject(expected);
           }
           await page.evaluate(() => {
             window.observedFirstReopen = [];
@@ -980,19 +1082,23 @@ for (const order of ['before the focus snapshot', 'after the replacement is visi
             window.observedFocus = false;
             window.addEventListener('focus', () => { window.observedFocus = true; }, { once: true });
           });
+          expect(snapshots).toBe(1);
+          focusRequested = true;
+          history.push({ focusRequested });
           await page.bringToFront();
           await page.evaluate(() => { if (!window.observedFocus) window.dispatchEvent(new Event('focus')); });
-          if (!order.startsWith('after')) {
-            oldReply.resolve();
-            await expect.poll(() => history.some(item => item.delivered === a)).toBe(true);
-          }
+          if (!order.startsWith('after')) await releaseOriginalChart();
           await expect.poll(() => snapshots, { timeout: 2500 }).toBe(2);
+          expect(history.find(row => row.number === 2)).toMatchObject({
+            afterFocus: true, snapshotReply: { selection: expected.selection_revision, source: expected.source },
+          });
           await expect(selectedBar).toHaveCount(0);
           focusSnapshot.resolve();
-          await expect(selectedBar).toContainText(peerChangesSource ? 'C 106' : 'C 44');
-          oldReply.resolve();
-          await expect.poll(() => history.some(item => item.delivered === a)).toBe(true);
-          await expect(selectedBar).toContainText(peerChangesSource ? 'C 106' : 'C 44');
+          await expect(selectedBar).toContainText(`C ${expectedClose}`);
+          history.push({ renderedClose: expectedClose });
+          if (order.startsWith('after')) await releaseOriginalChart();
+          await expect(selectedBar).toContainText(`C ${expectedClose}`);
+          expect(snapshots).toBe(2);
           if (peerChangesSource) {
             expect((await page.evaluate(() => window.observedFirstReopen)).some(text => text.includes('C 44'))).toBe(false);
           }
@@ -1002,7 +1108,7 @@ for (const order of ['before the focus snapshot', 'after the replacement is visi
           const visible = page.isClosed() ? [] : await selectedBar.allTextContents();
           const observed = page.isClosed() ? [] : await page.evaluate(() => window.observedFirstReopen ?? []);
           await testInfo.attach('first-reopen-ordering', {
-            body: JSON.stringify({ order, a, b, snapshots, history, visible, observed }, null, 2),
+            body: JSON.stringify({ order, a, b, snapshots, history, proofAttempts, peerWrites, visible, observed }, null, 2),
             contentType: 'application/json',
           });
           await peer?.close();
@@ -1117,8 +1223,8 @@ for (const scenario of [
             await control(dialog, 'Use as workspace source').click();
             await expect(dialog).toHaveCount(0);
             await expect(peerChart.getByLabel('Selected bar')).toContainText('C 106');
-            const current = await readProofSnapshot(dispatchResponse);
-            expect(current).toMatchObject({ status: 200, body: { ok: true, result: { source: { revision_id: b }, selection_revision: 2 } } });
+            const current = await readProofSnapshot(dispatchResponse, outcome => trace.push({ proofSnapshot: outcome }));
+            expect(current).toMatchObject({ source: { revision_id: b }, selection_revision: 2 });
             trace.push({ peerCommitted: b, close: 106, selection: 2 });
           }
           await page.evaluate(() => {
@@ -1299,15 +1405,8 @@ for (const scenario of [
             }
             expect(await holder.reply).toMatchObject({ ok: true, result: { available: true } });
           }
-          const proof = await readProofSnapshot(dispatchResponse, response => {
-            trace.push({ proofAdmissionRefused: response.body.error.code, status: response.status });
-          });
-          trace.push({ phase: 'proof-settled', status: proof.status, ok: proof.body.ok, code: proof.body.error?.code });
-          expect(proof).toMatchObject({
-            status: 200, body: {
-              ok: true, result: { selection_revision: confirmedRevision, source: { revision_id: currentId } },
-            },
-          });
+          const proof = await readProofSnapshot(dispatchResponse, outcome => trace.push({ proofSnapshot: outcome }));
+          expect(proof).toMatchObject({ selection_revision: confirmedRevision, source: { revision_id: currentId } });
 
           await page.evaluate(() => {
             window.sourceSaveFocusBars = [];
