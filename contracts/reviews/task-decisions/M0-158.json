@@ -39,6 +39,26 @@
       "requested_at": "2026-11-26T04:19:49.323806+00:00",
       "request_id": "f61cd91ae37e11c45ae4093df8e19ce0ff24ce552b963412ece4af8a8aab9275",
       "evidence_sha256": "231f372e0fa5674b9edff32f15a2bbaafe7d0d872ed432f95d211195b2fbcc24"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "236bd00c12f1efe58ce44d2b292c4fc389854ece",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-158 236bd00c12f1efe58ce44d2b292c4fc389854ece",
+      "scope": "CHANGES_REQUESTED M0-158 236bd00c12f1efe58ce44d2b292c4fc389854ece",
+      "observation": "The overview and handoff showed both workstreams as accepted when one digest-verified closure record explicitly reported rejection.",
+      "reviewer": "Independent Astra Standard (t12x)",
+      "original_sha256": "46885dac4cf1b285faa86cf30a132f04f2f448affeba5427a0fc57ff4bc1da21",
+      "response_id": "389e58faea2732182da846bc9bc2d03d6d26a48e97c532c6e69f4d2660db818d",
+      "response_sha256": "d2fc308f02dc2c32afe2f25c169a0c170c62cafe938b6aeb7fadfefcb47693fd",
+      "legacy_response_sha256": "792f63284faf9e5b4c2a433f3c82f72f974d2ca40c99603246c28f4c1651732c",
+      "observation_body_sha256": "99fac5ee118f8aee75590606083281be94caf5ecbafbe2d34a196fec2da64572",
+      "event": {
+        "id": "msg_0c614aa78e8f3df8016b07b8860f8887d2a5baace23de2e879",
+        "timestamp": "2026-11-26T04:42:03.064Z"
+      },
+      "supersedes": "f61cd91ae37e11c45ae4093df8e19ce0ff24ce552b963412ece4af8a8aab9275",
+      "evidence_sha256": "545774c5cb2dd4d83cfe990cc7febbc29907da22388f23e2cac692045d1045b4"
     }
   ]
 }
