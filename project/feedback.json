@@ -7769,6 +7769,36 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "protected-python-observation-substitutes-reviewed-inventory",
+      "status": "open",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-159.json#/events/4. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-159-5a542187/original-assistant-response.jsonl, SHA-256 51926b3d40a69aa4969eae244dab01b7054823902c0f9f9eb83f3b701c678ac7.",
+      "observation": "The public pre-merge decision selected a guarded receipt and ordered inventory. On the reviewed source, the same retained protected push returned inventory_mismatch with the selected reordered inventory and passed after a second receipt with a matching inventory was added.",
+      "task_ids": [
+        "M0-159"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "protected-python-observation-counts-ineligible-diagnostics",
+      "status": "open",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-159.json#/events/4. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-159-5a542187/original-assistant-response.jsonl, SHA-256 51926b3d40a69aa4969eae244dab01b7054823902c0f9f9eb83f3b701c678ac7.",
+      "observation": "On the reviewed source, the public observation changed from passed to missing when the same protected push supplied its original Windows and Linux reports together. The same decision changed from failed with timeout to missing when the original Windows aggregate and Python producer job reports were listed together.",
+      "task_ids": [
+        "M0-159"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

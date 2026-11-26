@@ -26445,7 +26445,8 @@
           "archives/observations/repo-hygiene-20261125/m0-159-protected-handoff-intake/observations.json (SHA-256 650f6772d64fce5c463905a28279ffdae103e0334b2930d098ae5d04213c0735)",
           ".reports/audit-20261125/m0-159-protected-observation/current-red.json (SHA-256 a7f22be8c10ea5f9ec4bc480fd4480e68c4ec977a5dc36d9f1fb2e223b350eac)",
           ".reports/audit-20261125/m0-159-protected-observation/native-comparison.json (SHA-256 2e47d5de216a986c67ed171efaf4724f16aff25c4b1c803c966f8f100c1538d7)",
-          ".reports/audit-20261125/m0-159-protected-observation/renewed/public-delivery-scope-red.log (SHA-256 21a611101c9c54874b78b5f3b032ac515db94ed5243219b65ed401b76575fa36)"
+        ".reports/audit-20261125/m0-159-protected-observation/renewed/public-delivery-scope-red.log (SHA-256 21a611101c9c54874b78b5f3b032ac515db94ed5243219b65ed401b76575fa36)",
+        "archives/observations/repo-hygiene-20261125/independent-final-m0-159-5a542187/original-assistant-response.jsonl (SHA-256 51926b3d40a69aa4969eae244dab01b7054823902c0f9f9eb83f3b701c678ac7)"
         ],
         "hypotheses": [
           "The retained PR 131 assessment at 109c6a051e42df7dab31ca3c0dcb36ecab42ec22 reproduces the unfinished task and open major feedback blockers. A completed delivery with the original finding would still block through ordinary task ownership. The separately adopted M0-142 warm-workflow handoff governs a different finding and measures the 900-second Windows job objective.",
@@ -26469,6 +26470,18 @@
         },
         {
           "failure": "An absent or present prior timing finding replaces the prior task ledger and prevents the protected Python observation from reaching its accountable owner.",
+          "checks": [
+            "python-contracts-workers"
+          ]
+        },
+        {
+          "failure": "A second guarded receipt substitutes for the ordered inventory selected by the pre-merge decision and permits premature closure.",
+          "checks": [
+            "python-contracts-workers"
+          ]
+        },
+        {
+          "failure": "An ineligible same-push diagnostic or a second agreeing Windows report conceals the first Windows result. Contradictory eligible evidence can be mistaken for agreement.",
           "checks": [
             "python-contracts-workers"
           ]
