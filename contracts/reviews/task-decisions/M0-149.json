@@ -1,0 +1,55 @@
+{
+  "version": 3,
+  "task_id": "M0-149",
+  "events": [
+    {
+      "kind": "decision",
+      "source_commit": "2738fa7edc800b37ba3eb3d4196eb86908e36104",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-149 2738fa7edc800b37ba3eb3d4196eb86908e36104",
+      "scope": "CHANGES_REQUESTED M0-149 2738fa7edc800b37ba3eb3d4196eb86908e36104",
+      "observation": "In an in-memory replay of the candidate’s status loop, an HTTP 200 BUSY stopped after one read, while a native BUSY returned after admission caused a second read of the same task.",
+      "reviewer": "Independent Astra Standard (t111)",
+      "original_sha256": "3105f8f2892adc939861ba04b339cb5c2a52b5d4b43afb8d49f9ea408eb231fd",
+      "response_id": "d368394b8f75360b9dfdc70478254f64101980bf1d66c86ef99977e7476013bf",
+      "response_sha256": "8d4fe28655b191562d7f49da93fd8c2ecffa45d085b1862246d027b44a9147a7",
+      "legacy_response_sha256": "599b3d776f59bb14d11dcb751a0aaf978004010b132b7001f71fd13d43999701",
+      "observation_body_sha256": "8c3466f054b7108f1d117e17bab710bcb35b6a5d697584739104df8333632407",
+      "event": {
+        "id": "msg_01a7f09ec8c5b980016b073d2fb7fc87d087b5f4de9065dea0",
+        "timestamp": "2026-11-25T19:55:41.431Z"
+      },
+      "supersedes": null,
+      "evidence_sha256": "cc0a8e0b8d4262ddd3b6afe02e0e1dcb874c6e36c0e4844788ffa8229bb65d1f"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a3041eaf212d363d2356563b3657ea8cd7a38c7c",
+      "scope": "Independently review the protected first-window and workspace status composition, HTTP and native admission, the terminal browser abort and cancellation journal, and the retained protected Windows equal-close diagnostic with its existing controls.",
+      "supersedes": "d368394b8f75360b9dfdc70478254f64101980bf1d66c86ef99977e7476013bf",
+      "requested_at": "2026-11-25T21:59:35.363746+00:00",
+      "request_id": "c67f8eb17b79997e4eaf195cd2f35f24e86cf11650e74b129ff782fd7760b66d",
+      "evidence_sha256": "f150899de64610a61bc354d4451ccebce29de838083c4c979544d0d2d33188e8"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a3041eaf212d363d2356563b3657ea8cd7a38c7c",
+      "verdict": "approved",
+      "decision": "APPROVE M0-149 a3041eaf212d363d2356563b3657ea8cd7a38c7c",
+      "scope": "APPROVE M0-149 a3041eaf212d363d2356563b3657ea8cd7a38c7c",
+      "observation": "I verified that the retained Chromium control delivered two 429 refusals, recorded the browser deadline on the final unforwarded status request, and then cancelled the original task exactly once.",
+      "reviewer": "Independent Astra Standard (t111)",
+      "original_sha256": "8e9e4848e15df9552eb2cc0345bff17a10608e92ce10a6fbf96e381df959d942",
+      "response_id": "acc1ac293c15b5435352dde6194df5997727d989f5ea98a59ab11369aa04accf",
+      "response_sha256": "56c9a38dcecbc80e4286292cb4f98cd9f77452600db5f9c4e0a43cb2dcb2915b",
+      "legacy_response_sha256": "eea6f215c8f11fd5230c5c672dd510d1c44a55b7fc515c7a4c7d67a93bc679d1",
+      "observation_body_sha256": "c1aa3a8abc8dd65f04990a333bb3b05b3178af1c2108a8584bb6f603eb2e4548",
+      "event": {
+        "id": "msg_01a7f09ec8c5b980016b075bc8472887d0b8dd0a066fece226",
+        "timestamp": "2026-11-25T22:06:11.325Z"
+      },
+      "supersedes": "c67f8eb17b79997e4eaf195cd2f35f24e86cf11650e74b129ff782fd7760b66d",
+      "evidence_sha256": "1c4fa2de60220d9a7b63dbe3e9b6ed2238fb3fd55ed85c413b2b14994ceef4b6"
+    }
+  ]
+}

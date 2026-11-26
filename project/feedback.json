@@ -7551,6 +7551,116 @@
       "deferral_reason": null
     },
     {
+      "id": "frozen-indicator-post-loss-status-busy-counted-as-admitted",
+      "source": "PR 116 ordinary native Windows run 45682874140 on 00dfb23fc59e5e73f964eb574d29edfb48c5bf5e. Original archives/runs/windows-change-45682874140-1/test-report.json and workspace-timeframe.log. The corresponding native Linux check passed. Protected Windows run 45702463807 and same-tree preview run 45698603142: archives/observations/repo-hygiene-20261125/main-python-and-indicator-45702463807/observations.json SHA-256 31ae8c90aff05cae6779e17f0603ac4fe4431e00ff6adefcb02372146d669ae9.",
+      "observation": "After the first ready status for task 479d7460-afa8-421a-b8bd-34759939826d was reset, status cadf2bd2 received HTTP 429 BUSY and 5175c3ec reached another ready reply whose delivery was reset. The expected terminal message and a cancellation were observed with no new preview submission. The assertion expected one raw status request and rejected both outbound reads. A local Chromium replay with the portable writer reproduced the false count using a real authenticated refusal. When a separate control substituted HTTP 200 BUSY for an admitted ready response, the preview retried and displayed the result. An application BUSY does not establish that a request was refused before admission. The protected failure in the full or cropped zero-volatility case printed two different status request IDs for the same synthetic task. Those HTTP outcomes were not observed. Its preceding preview with the identical Git tree passed the named case.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-149"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45682874140-1",
+          "source_commit": "00dfb23fc59e5e73f964eb574d29edfb48c5bf5e",
+          "report_sha256": "fd2955be884d13462c10aeb350f6ac33569d62ba0aec545a4ec3bc5ef1bacbb3"
+        },
+        {
+          "run_id": "windows-change-45702463807-1",
+          "source_commit": "beb6fa11cee8923675f9fdbcc327b24f8fede2e9",
+          "report_sha256": "291ada56b3627513814fcaeb478508b97e6874ea4cc0ff234b7db221ce9161a0"
+        }
+      ],
+      "resolution": {
+        "cause": "The recovery assertion counted every outgoing status request as an admitted read. Polling also treated an admitted application BUSY as a refusal. The protected equal-closes failure did not retain the HTTP outcomes of its two reads.",
+        "correction": "Classify a retry from the documented admission response, keep polling the original frozen task within one deadline and account for each attempted status and cancellation.",
+        "prevention": "Exercise full and cropped zero-volatility calculations, zero through two lost ready replies, a contradictory or nonretryable 429, admitted BUSY, persistent refusal and wrong-task replies in the real workspace."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-native-admitted-busy-retried",
+      "source": "Independent Astra Standard review of 2738fa7edc800b37ba3eb3d4196eb86908e36104. Private original independent-final-m0-149-2738fa7e/final-response.txt SHA-256 a3408ef80cae92a7bba28f669213a0bc8ea0e51f53ddd66b529ce6863a5146a7.",
+      "observation": "The native polling replay reads the same task again after an admitted retryable BUSY. Tauri treats all retryable BUSY replies as refusals even though reaching a ready indicator job can acquire the writer slot and return SQLite BUSY during its application read.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-149"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "desktop-workspace-transport"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T194525.509241Z-4e48ed14",
+          "source_commit": "2738fa7edc800b37ba3eb3d4196eb86908e36104",
+          "report_sha256": "88266e9796629772a779229c75bbc857111c5dcb104245769e690f891336e025"
+        }
+      ],
+      "resolution": {
+        "cause": "The native transport treated every retryable BUSY as a refusal even when the application had admitted the read and SQLite returned BUSY.",
+        "correction": "The writer marks refused admission in the native error details only before admission. Native polling retries a matching, explicitly refused status read.",
+        "prevention": "A built desktop transport exercises explicit writer refusal, an admitted storage BUSY, an older unclassified reply and the nonretryable shape. The latter three each produce one read and one same-task cancellation."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-first-trial-cancel-without-task-accepted",
+      "source": "Independent Astra Standard review of 2738fa7edc800b37ba3eb3d4196eb86908e36104. Private original independent-final-m0-149-2738fa7e/final-response.txt SHA-256 a3408ef80cae92a7bba28f669213a0bc8ea0e51f53ddd66b529ce6863a5146a7.",
+      "observation": "Adding a raw task.cancel without task_id and with HTTP 400 to the retained cut=0 browser journal passes the recorded verifier. There is no previous task in this trial, but the missing task is classified as previous cleanup and skipped.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-149"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T194525.509241Z-4e48ed14",
+          "source_commit": "2738fa7edc800b37ba3eb3d4196eb86908e36104",
+          "report_sha256": "88266e9796629772a779229c75bbc857111c5dcb104245769e690f891336e025"
+        }
+      ],
+      "resolution": {
+        "cause": "The first trial treated a missing cancellation identity as a match for its absent previous task.",
+        "correction": "Match cancellation against an actual current or prior task identity and count cleanup independently for each trial.",
+        "prevention": "The retained full and cropped trial sequence accepts identified prior-task cleanup, rejects an added first-trial cancellation without a task and verifies one cancellation on exhaustion."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-persistent-admission-terminal-request-unclassified",
+      "source": "PR128 ordinary run 45693164625 attempt 1 on approved 6104e365e2736c3520465e1c31aa5dbf3ab1cad3. archives/observations/repo-hygiene-20261125/m0-149-deadline-abort-45693164625/observations.json SHA-256 283ef56de72e7e35fa1e965bfe386bba784bf1ac4e0de3fccad4b4fdc62b08e0. Retained Linux original archives/runs/20261125T201655.779125Z-2e9681e2/test-report.json and matching Windows case in the private PR128 originals.",
+      "observation": "After an upstream HTTP 200 ready status for the frozen task was reset at 349 ms, the persistent-refusal test saw a different request for the same task at 15247 ms on its explicit synthetic route. Chromium recorded net::ERR_ABORTED with no HTTP status or reply. The journal assertion counted that unresolved request alongside the real ready observation and failed the Linux case. The abort does not identify an admitted read or a delivered refusal. The matching Windows case passed. The failed assertion retained a printed subset and no complete bounded journal attachment.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-149"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T201655.779125Z-2e9681e2",
+          "source_commit": "1a95eec502041af7903bd9405f5a37cc4f257fbc",
+          "report_sha256": "2ea16881b4c1bf92d66d5b47e91755c7f441eca72daff032baa380418586df37"
+        }
+      ],
+      "resolution": {
+        "cause": "The original persistent-refusal browser assertion classified an aborted terminal request with no HTTP result alongside admitted recovery. Its failure retained a partial journal, leaving the original request disposition unclassified.",
+        "correction": "Record the browser deadline, held test route and delivery outcome together and require proof the terminal request was never forwarded before accepting this bounded abort.",
+        "prevention": "Exercise the held browser route and check two delivered refusals, a single terminal abort, no new status or preview after the deadline and one cancellation of the original task. Reject incomplete or contradictory journals."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "windows-private-handoff-verification-deadline",
       "source": "Protected main push 45668943982, attempt 1, Windows browser producer 139398629052. The aggregate report is archives/runs/windows-change-45668943982-1/test-report.json. Its workspace-timeframe log has SHA-256 79d9d51be67b34df9c44be45c536f233d9eb17ac5a4e642c6d6eddcade96a35c.",
       "severity": "major",
