@@ -436,7 +436,7 @@ def legacy_progress(raw, progress):
     headers = (match for match in RUNNER_NAME.finditer(raw) if b'.' in match[1])
     regions = []
     for label, status in progress:
-        if (status is None or '\n' in label or not label.isascii() or not status.isascii()
+        if (status is None or '\n' in label or '\\' in label or not label.isascii() or not status.isascii()
                 or status != 'ok' and (not status.startswith('skipped ') or '\\' in status)):
             return False
         rendered = label.encode('ascii')

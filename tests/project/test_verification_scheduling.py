@@ -481,6 +481,15 @@ class LegacyWindowsPythonTranscriptTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Original unittest progress'):
             windows_python.verify_execution(raw, [(label, 'ok')], 1, b'OK')
 
+    def test_backslash_escaped_display_cannot_prove_the_original_case_id(self):
+        # A redirected legacy console can render a Unicode ID this way.
+        display = r'test_\u624b (sample.First.test_\u624b)'
+        durations = [(display, .01)]
+        raw = (f'{display} ... ok\n\nSlowest test durations\n'.encode() + b'-' * 70
+               + f'\n0.010s     {display}\n\n'.encode() + b'-' * 70 + b'\nRan 1 test in 0.010s\n\nOK\n')
+        with self.assertRaisesRegex(ValueError, 'Original unittest progress'):
+            windows_python.verify_execution(raw, [(display + ' ... ', 'ok')], 1, b'OK', durations)
+
     def test_unterminated_skip_like_output_has_bounded_parse_work(self):
         code = dedent('''\
             from scripts import windows_python
