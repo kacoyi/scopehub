@@ -146,6 +146,15 @@
       },
       "supersedes": "e1626b76b87fa52f5f9027c3f355ca53daca140a9fe8bc5d26a4214ec93953ed",
       "evidence_sha256": "e5a46b356f04192c31aebb304eb9ebe54cd6569e3f8f45cf954bd6c86cb5d73d"
+    },
+    {
+      "kind": "request",
+      "source_commit": "01c20758e8f3871a66da0738db0eac811380e541",
+      "scope": "Review the owned initial-save and completion transitions after contention outlasts the original budget. Verify genuine recovery, exact-return identity, continued safe inspection, bounded resource use and ownership of the terminal and private archived data.",
+      "supersedes": "9f817107bdedc72b45b5fd154eb6ae67e00883c2250dd2af94dda07845aea4e5",
+      "requested_at": "2026-11-26T14:36:19.090918+00:00",
+      "request_id": "515b6ca8d7aee3341ec737494d93df8de13bbc3e87596ef938e07dbbce9d50f5",
+      "evidence_sha256": "64f116acc514bc6cd77d9aa1a9b83c3347e51a049a00e58d411e5343c43b60c6"
     }
   ]
 }
