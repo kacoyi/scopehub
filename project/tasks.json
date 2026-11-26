@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-166",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -26744,7 +26744,7 @@
       "id": "M0-166",
       "title": "Recover or classify the interrupted frozen preview on a cropped window",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-149"
       ],
@@ -26771,7 +26771,16 @@
         "ui-build",
         "market-workflow"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-166-0d9980eb56dc3963.json",
+          "sha256": "c19fd78b3720b956e25635413d42285e116cb4fd4302de674ce61207bfb6ae08"
+        },
+        {
+          "path": "project/evidence/M0-166-6e1ce9fbb282ac1a.json",
+          "sha256": "f57d888dda01be09bd8a9eff416c6ccda5b36856a72937f95866e4f3818e9caa"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "windows-change-45823962357-1",
@@ -26779,9 +26788,9 @@
           "report_sha256": "078717eb8956e711ef6b2262f43f70349a0d1d0901983b395af324135ec03f8c"
         }
       ],
-      "next_action": "Independently review the frozen preview fixture diagnostics and controls on the clean implementation commit. Qualify the current source in the ordinary Windows browser workflow and recheck after protected integration.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Scoped pre-integration delivery verified. Independent review approved the fixture diagnostics and recovery control on 057cc2c2f0638fdd3986e3817d7956868a788b05. The first ordinary PR 139 run 45830747074 passed all six task checks on Linux and Windows Server 2025 for submitted b71bf7dce6465d05f817219a63be8e433d240352 and tested merge preview df296d1a679f2d4c3b39e415986743e5ce5552fe. The Linux aggregate was blocked outside this task. Both browser runs showed three full-window rows and one cropped row with zero terminal volatility, identical same-task ready recovery after one reset and two genuine status refusals, and one same-task cancellation with the terminal alert after two resets and one genuine refusal. The controls covered both phases of the existing 15-second status deadline, complete-upload pre-admission BUSY, and a genuine tagged snapshot refusal with a separately witnessed recovery and cleanup. The original PR 137 abort is retained with its same-tree passing control. Its exact timeout call and internal cause remain unknown. The coordinator owns the recheck on the first protected main push after integration. Physical Windows and both maintenance workstreams retain their separate acceptance gates.",
       "plan": {
         "outcome": "Bind the failed browser case, its three bounded journals and the same-tree passing control to their actual OS, scenario, phase and source. Distinguish the failing observation from a wrong numeric result or another task’s calendar preview. Reproduce or classify the interruption through the ordinary frozen preview entry with an independently observed valid and interrupted trial. Verify full and cropped equal closes, correct request and task correlation, the existing polling and admission policy, and cleanup. Keep unresolved attribution explicit.",
         "change_types": [
