@@ -242,6 +242,15 @@
       "requested_at": "2026-11-26T12:44:43.657195+00:00",
       "request_id": "e927f14959f6344b5a2a63a6c1629edc8df2234c8199a8eeabcddc5d195a5510",
       "evidence_sha256": "2f23695ce8f042f6de5fa5d4ba5fc7099ed9e10e250967c8d03314c30af9e3f7"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b39a02e2130ed16f9ccbef223839752aa7ad9ffd",
+      "scope": "Review the native journal boundary for temporary loss, confirmed withdrawal and close/reopen through the existing public CSV and folder paths. Challenge missing or late evidence before admission, and distinguish the verified compiled Linux controls from Windows evidence.",
+      "supersedes": "e927f14959f6344b5a2a63a6c1629edc8df2234c8199a8eeabcddc5d195a5510",
+      "requested_at": "2026-11-26T12:58:53.184244+00:00",
+      "request_id": "c363cc7ea021eb50009d108a647be72fcc845401c033e8fe1d559c4a8cbfe0bd",
+      "evidence_sha256": "7ad7d8af2a5182e297cba4c30a63d90049b134ff80d166709191fbd8adcedac2"
     }
   ]
 }
