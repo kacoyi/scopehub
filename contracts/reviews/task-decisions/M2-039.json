@@ -320,6 +320,15 @@
       },
       "supersedes": "b2081837548683ff20d2a525eaab939a26ed66f9ba75b38472f556406f2fcfbe",
       "evidence_sha256": "351e187129857c9cb65701cc39bf5e4d4d80558f38fc1a34d7c15f17442b7213"
+    },
+    {
+      "kind": "request",
+      "source_commit": "07424b3955546ae6ff1c8302caca024a235d1bba",
+      "scope": "Qualify the exact Windows task submission after incorporation of the three genuine review decisions. Verify the ledger-only diff, source bindings, restored project validation and preserved native selection and evidence criteria.",
+      "supersedes": "d53b2118199987762742ca0388cfa7b1485d12c44a997611af93519eee59cba1",
+      "requested_at": "2026-11-26T13:15:49.372199+00:00",
+      "request_id": "23ebd4f2066a06991f6911496a33f500fd4d54c0aa78312a16a549db87ef205e",
+      "evidence_sha256": "90f5909fc8384f13e60154debc00e9fdc137501406accfbd7fd4fe30a1cd322d"
     }
   ]
 }
