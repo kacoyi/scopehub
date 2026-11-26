@@ -10,6 +10,26 @@
       "requested_at": "2026-11-26T07:36:24.759333+00:00",
       "request_id": "636940018c3c024d8881ffbd8fcceee558ca6493c8077ea5feeb3abf5ee1a3cf",
       "evidence_sha256": "519e39f65b478b815fb4c89bdb0d63385491dafab8839342a4c7004e139a0fea"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c879713b9799e8450418d2e36efe25e225d28ac6",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-162 c879713b9799e8450418d2e36efe25e225d28ac6",
+      "scope": "CHANGES_REQUESTED M0-162 c879713b9799e8450418d2e36efe25e225d28ac6",
+      "observation": "In my replay through the repository collector, a simulated second turn started after the final state read, and the collector killed that turn and reported the assignment as retired.",
+      "reviewer": "Independent Astra Standard (t15n)",
+      "original_sha256": "9b97fa79e595bb174503e4127a176565efb2be8c7dabcd51863305c9ef7ae5e6",
+      "response_id": "8ee2427840f5e3af450187e19df1812d829f120f710761582f1c219cd9eddb33",
+      "response_sha256": "e07d30e5a1552c76336bffd4003284a3f6131c2c8e442312b71228ffbe12b68d",
+      "legacy_response_sha256": "7054eb838123d1ace65dd7d2c5248110dafc4d1c91c88f9946af2580205499df",
+      "observation_body_sha256": "cd2dee610f8e8c7aea4cea174f545545285a30111b974b3ccb11549eb5f23587",
+      "event": {
+        "id": "msg_04b54508e30fd27b016b082a5ad8e887d1a5dbc3cb1b649311",
+        "timestamp": "2026-11-26T12:47:39.623Z"
+      },
+      "supersedes": "636940018c3c024d8881ffbd8fcceee558ca6493c8077ea5feeb3abf5ee1a3cf",
+      "evidence_sha256": "e1aeb7e84939eaa59680826ababbf97ec7bddda36b187c3fdf2b7b7565a24df1"
     }
   ]
 }
