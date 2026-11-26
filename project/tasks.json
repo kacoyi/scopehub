@@ -25930,9 +25930,12 @@
       ],
       "scope": [
         "tests/ui/sample-startup.mjs",
+        "tests/ui/history.spec.mjs",
         "tests/ubuntu-preview",
         "apps/desktop/ui",
         "project/tasks.json",
+        "project/checks.json",
+        "project/development.json",
         "project/feedback.json",
         "project/evidence"
       ],
@@ -25943,7 +25946,8 @@
       "acceptance": [
         "Retain the failed protected producer, same-tree native passing control and aggregate diagnostic when available. Identify the last observed startup stage before the chart repair assertion.",
         "Use the public sample entry to distinguish an absent or failed document, a delivered document with pending required code, and a mounted sample with verified catalog and history. Preserve the original deadline, rejection of a genuine stall and chart expectations.",
-        "Demonstrate the correction or diagnostic on real controlled navigation and in the ordinary native Windows check, with original unsuccessful and successful controls retained. Keep historical cause and Windows acceptance explicit until observed."
+        "Demonstrate the correction or diagnostic on real controlled navigation and in the ordinary native Windows check, with original unsuccessful and successful controls retained. Keep historical cause and Windows acceptance explicit until observed.",
+        "Reject request-bound history contradictions before displaying the sample. A valid history with a failed chart mount stays history-verified. A successful cold sample includes independently observed price marks."
       ],
       "checks": [
         "project-state",
@@ -25952,7 +25956,10 @@
         "ui-build",
         "generated-contracts",
         "market-workflow",
-        "chart-history"
+        "chart-history",
+        "architecture",
+        "market-live-stream",
+        "market-quality-states"
       ],
       "evidence": [
         {
@@ -25968,7 +25975,7 @@
           "sha256": "1aa7c7e38ce631d105e5bdd7f30e69ad64aabc4b21c97495a08f44c31ca8520a"
         }
       ],
-      "next_action": "Obtain an independent review of clean implementation source 272aed5402860db8994c733fb24c339b5652e549 and the ordinary first-attempt Windows market-recovery result on the candidate. Local verification is retained in project/evidence/M0-154-73ba274b16ba8fd4.json and .reports/m0-154-response-admission/task/observations.json, including the cold repair and held-module timing attachments. The historical asset attribution remains unknown.",
+      "next_action": "Qualify the corrected clean source locally, then obtain independent source-bound review and ordinary first-attempt Windows market-recovery evidence. The Linux Chromium baseline on decision head d82aa466250e9872978c92a0a2b735e1e5cf5049 is retained in .reports/m0-154-chart-presentation/baseline/observations.json. The historical Windows asset attribution remains unknown.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -25987,13 +25994,17 @@
           "archives/observations/repo-hygiene-20261125/m0-154-cold-sample-45709117560/observations.json",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-154-232d0902/final-response.txt",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-154-e8b8de61/final-response.txt",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-2f02d0f7/final-response.txt"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-2f02d0f7/final-response.txt",
+          "contracts/market-data-v1.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-222ba13c/final-response.txt"
         ],
         "hypotheses": [
           "The screenshot confirms that the startup panel rendered. A missing or slow deferred module, an unobserved document transition and host delay remain distinguishable hypotheses until there is request and lifecycle evidence.",
           "On unchanged local Linux Chromium, the sample completed the real catalog and history. Holding the static entry left a committed document with manual reload and no DOMContentLoaded. Holding the dynamically imported entry allowed DOMContentLoaded before any verified sample. These controlled observations do not identify the source of the historical Windows failure.",
           "The startup attachment previously checked fewer reply fields than readSampleHistory. A same-series, same-revision reply for a shifted range distinguished the two checks.",
-          "Both consumers trust the structural output type after transport decoding. A frozen snapshot can pass their shared first-page comparison even if a required field absent from comparisons is missing. Compare the same archived 40-bar success with a one-field deletion at both public consumers."
+          "Both consumers trust the structural output type after transport decoding. A frozen snapshot can pass their shared first-page comparison even if a required field absent from comparisons is missing. Compare the same archived 40-bar success with a one-field deletion at both public consumers.",
+          "The wrapper carries accepted history metadata before the renderer mounts. A valid equivalent decimal with excessive trailing zeros reaches Intl formatting and distinguishes history admission from successful chart presentation.",
+          "The Rust operation already binds worker output to the request. A loopback response altered after the bridge can pass generated shape checks while contradicting a dataset, snapshot, stream or page relationship at the UI admission boundary."
         ],
         "risks": [
           {
@@ -26029,21 +26040,43 @@
               "generated-contracts",
               "chart-history"
             ]
+          },
+          {
+            "failure": "The observer marks sample readiness without price marks or rejects a contract-valid decimal spelling. Replay the ordinary and equivalent ticks, force a chart mount failure after valid history, and independently measure price pixels, the visible alert, and the final startup stages.",
+            "checks": [
+              "market-recovery",
+              "ui-build",
+              "architecture"
+            ]
+          },
+          {
+            "failure": "A schema-valid response to a different request or an inconsistent continuation reaches the chart. Exercise the real public history validator before claiming startup history readiness with current and supported legacy inputs, single-field contradictions and real replay preparation.",
+            "checks": [
+              "market-recovery",
+              "chart-history",
+              "market-live-stream",
+              "market-quality-states"
+            ]
           }
         ],
         "rollback": "Keep the existing valid sample and cutoff; revert a change that hides a deliberate stall or changes the expected bars.",
         "implementation": {
           "modules": [
             "development-tooling",
-            "ui"
+            "ui",
+            "chart-adapter"
           ],
           "entrypoints": [
             "tests/ui/sample-startup.mjs",
+            "tests/ui/history.spec.mjs",
             "tests/ubuntu-preview/market-closed-bar-repair.spec.mjs",
             "apps/desktop/ui/src/market.ts",
             "apps/desktop/ui/src/market-output.ts",
             "apps/desktop/ui/src/sample-history-validation.ts",
-            "apps/desktop/ui/index.html"
+            "apps/desktop/ui/index.html",
+            "apps/desktop/ui/src/price-chart.tsx",
+            "apps/desktop/ui/src/chart-adapter/history.ts",
+            "apps/desktop/ui/src/chart-adapter/price-format.ts"
           ],
           "rules": [
             {
@@ -26061,6 +26094,10 @@
             {
               "path": "project/development.json",
               "pointer": "/quality/feedback_loop"
+            },
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/domain/stream_handoff"
             }
           ],
           "non_goals": [
@@ -26073,12 +26110,15 @@
         "evolution": {
           "kind": "refactor",
           "preserve": [
-            "The explicit synthetic sample, real chart repair path, source ownership, verified bars and manual reload behavior."
+            "The explicit synthetic sample, real chart repair path, source ownership, verified bars and manual reload behavior.",
+            "Keep supported legacy market reads, chart styles and no-tick formatting, the fixed required-hash control, partial startup stages, the ten-second document deadline and independently measured elapsed time."
           ],
           "change": [
             "Add only the distinction or removable startup cost that measurements through the ordinary entry support.",
             "Attach bounded document, pending code and verified market milestones to the normal repair browser check. Retain the ten-second navigation deadline, chart contract and manual reload.",
-            "Generate shared market response validators from the operation output types registered in the canonical JSON Schema. Standalone generation reuses the locked validator without compiling a schema in Chromium or WebView. Keep semantic checks for the application's paginated reads and the startup witness's single-page expectation."
+            "Generate shared market response validators from the operation output types registered in the canonical JSON Schema. Standalone generation reuses the locked validator without compiling a schema in Chromium or WebView. Keep semantic checks for the application's paginated reads and the startup witness's single-page expectation.",
+            "Replace the two partial UI history comparisons with one request-bound validator at the existing public client entry. Per-field patches to the old first-page check would leave replay preparation and pinned continuations on separate identity rules. Rust retains digest verification.",
+            "Retain the chart renderer and normalize the instrument's decimal tick once for price formatting. The format helper has no renderer dependency. PriceChart owns the mount and its error, while the startup check witnesses visible price marks before recording a successful cold sample."
           ],
           "data_plan": "Use synthetic sample traffic on a loopback development server and retain bounded stage observations.",
           "cleanup": "Release owned browser listeners and servers and preserve the native failure and same-tree passing artifacts."

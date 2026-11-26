@@ -366,6 +366,8 @@ test.describe('sample startup reply compatibility', () => {
     const { series: { instrument_id, timeframe, provider_id }, from_ms, to_ms } = historyCall.payload;
     legacyReply = await capture({ operation: 'market.getBars', payload: { instrument_id, timeframe, provider_id, from_ms, to_ms } });
     expect(validateLegacyBars(legacyReply.result)).toBe(true);
+    expect(legacyReply.result.dataset).toMatchObject({ instrument_id, timeframe, provider_id, price_adjustment: 'raw' });
+    expect(legacyReply.result.bars).toHaveLength(40);
     for (const [call, reply] of [[historyCall, historyReply], [shiftedCall, shiftedReply]]) {
       expect(reply.result.snapshot).toMatchObject({
         from_ms: call.payload.from_ms, to_ms: call.payload.to_ms, series: call.payload.series,
@@ -379,9 +381,23 @@ test.describe('sample startup reply compatibility', () => {
 
   const invalidData = 'The data response failed validation.';
   const invalidHistory = 'History reply satisfies the operation output schema';
+  const contradictory = 'History reply matches the sample request';
+  const chartFailure = 'The chart could not be displayed. Review the bars in the data table.';
   for (const [kind, scenario] of [
     ['compatible', { stage: 'sample-verified' }],
-    ['shifted snapshot', { shifted: true, error: 'History reply matches the sample request' }],
+    ['equivalent price tick', { equivalentTick: true, stage: 'sample-verified' }],
+    ['chart mount failure', { mountFailure: true, stage: 'history-verified', error: 'Initial sample price series is painted' }],
+    ['shifted snapshot', { shifted: true, error: contradictory }],
+    ['contradictory dataset adjustment', { schemaValid: true, error: contradictory,
+      mutate: history => { history.result.dataset.price_adjustment = 'split_adjusted'; } }],
+    ['unsolicited stream position', { schemaValid: true, error: contradictory,
+      mutate: history => {
+        history.result.stream_position = { stream_id: history.result.snapshot.dataset_id, epoch: 'fixture', sequence: 0 };
+      } }],
+    ['contradictory quality source', { schemaValid: true, error: contradictory,
+      mutate: history => { history.result.quality_state.source_kind = 'native_bars'; } }],
+    ['contradictory bar prices', { schemaValid: true, error: contradictory,
+      mutate: history => { history.result.bars[0].high = history.result.bars[0].low - 1; } }],
     ['omitted snapshot start', { mutate: history => delete history.result.snapshot.from_ms }],
     ['omitted snapshot content hash', { mutate: history => delete history.result.snapshot.content_hash }],
     ['malformed snapshot content hash', { mutate: history => { history.result.snapshot.content_hash = 'X'.repeat(64); } }],
@@ -396,13 +412,33 @@ test.describe('sample startup reply compatibility', () => {
       error: `Previous response finished before ${historyName} was sent` }],
   ]) {
     test(`public sample startup handles the ${kind} case`, async ({ page }) => {
-      const { outOfOrder, shifted, legacy, mutate, catalogInvalid, failed, stage = 'catalog-verified', error = invalidHistory } = scenario;
+      const {
+        outOfOrder, shifted, legacy, mutate, catalogInvalid, failed, equivalentTick, mountFailure,
+        schemaValid = !(legacy || mutate), stage = 'catalog-verified', error = invalidHistory,
+      } = scenario;
       const catalog = structuredClone(catalogReply);
-      if (catalogInvalid) delete catalog.result.instruments.find(item => item.id === historyCall.payload.series.instrument_id).provider_mappings;
+      const instrument = catalog.result.instruments.find(item => item.id === historyCall.payload.series.instrument_id);
+      if (catalogInvalid) delete instrument.provider_mappings;
+      if (equivalentTick) {
+        await page.setViewportSize({ width: 720, height: 900 });
+        expect(instrument.price_tick).toBe('0.2');
+        instrument.price_tick += '0'.repeat(100);
+        expect(Number(instrument.price_tick)).toBe(0.2);
+      }
+      if (mountFailure) {
+        // Fail the real chart's first layout subscription, leaving the market response alone.
+        await page.addInitScript(() => {
+          const observe = ResizeObserver.prototype.observe;
+          ResizeObserver.prototype.observe = function(element, options) {
+            if (element.classList.contains('chart')) throw new Error('Synthetic chart mount failure');
+            return observe.call(this, element, options);
+          };
+        });
+      }
       const history = structuredClone(legacy ? legacyReply : shifted ? shiftedReply : historyReply);
       if (mutate) mutate(history);
       expect(validateCatalog(catalog.result)).toBe(!catalogInvalid);
-      expect(validateHistory(history.result)).toBe(!(legacy || mutate));
+      expect(validateHistory(history.result)).toBe(schemaValid);
       if (outOfOrder) {
         await page.addInitScript(({ operation, historyCall }) => {
           const fetch = window.fetch;
@@ -453,15 +489,41 @@ test.describe('sample startup reply compatibility', () => {
           await attachSampleStartup(report);
           if (failed) throw new Error('Simulated attachment sink failure');
         } }).catch(error => error);
-        if (stage === 'sample-verified' || outOfOrder) {
-          await expect(chart(page)).toHaveAttribute('data-bars', '40');
+        const result = await startup;
+        const plot = page.getByRole('region', { name: 'Price chart' });
+        const alerts = plot.getByRole('alert');
+        const readChart = async () => ({
+          barCount: await chart(page).evaluateAll(elements => elements.map(element => element.getAttribute('data-bars'))),
+          alert: await alerts.allTextContents(),
+          pricePixels: await painted(page, 'candlestick'),
+        });
+        const draws = stage === 'sample-verified' || outOfOrder;
+        await expect.poll(async () => {
+          const { alert, pricePixels } = await readChart();
+          return alert.length > 0 || pricePixels > 20;
+        }, { message: 'Wait for the actual browser presentation to settle' }).toBe(true);
+        const presentation = await readChart();
+        await test.info().attach('sample-startup-product', {
+          contentType: 'application/json',
+          body: JSON.stringify({ ...presentation, responseSchemaValid: schemaValid, error: result instanceof Error ? result.message : null }),
+        });
+        expect(presentation.alert, 'Price chart alerts').toEqual(draws ? [] : [
+          mountFailure ? chartFailure : failed ? 'The market worker is disconnected.' : invalidData,
+        ]);
+        if (draws) {
+          expect(presentation.barCount).toEqual(['40']);
+          expect(presentation.pricePixels).toBeGreaterThan(20);
+          if (equivalentTick) {
+            await page.setViewportSize({ width: 1366, height: 900 });
+            await openPanel(page, 'Watchlist');
+            const details = page.getByRole('region', { name: 'Selected instrument details' });
+            await expect(details.locator('.quote')).toHaveText('3,500.8 CNY');
+          }
         } else {
-          const plot = page.getByRole('region', { name: 'Price chart' });
-          await expect(plot.getByRole('alert')).toHaveText(failed ? 'The market worker is disconnected.' : invalidData);
+          expect(presentation.pricePixels).toBe(0);
           await expect(plot.locator('.chart canvas')).toHaveCount(0);
           await expect(plot.getByRole('button', { name: 'Retry history' })).toHaveCount(failed ? 1 : 0);
         }
-        const result = await startup;
         expect(calls).toEqual(catalogInvalid ? [sampleCatalogCall] : [sampleCatalogCall, historyCall]);
         expect(completed).toEqual(catalogInvalid ? [catalogName] : outOfOrder ? [historyName, catalogName] : [catalogName, historyName]);
         expect(reports).toHaveLength(1);
@@ -477,7 +539,10 @@ test.describe('sample startup reply compatibility', () => {
         } else {
           expect(result).toBeInstanceOf(Error);
           expect(result.message).toContain(error);
-          expect(observation.history_verified_ms).toBeUndefined();
+          if (mountFailure) {
+            expect(observation.history_verified_ms).toBeGreaterThanOrEqual(observation.catalog_verified_ms);
+            expect(observation.chart_failed_ms).toBeGreaterThanOrEqual(observation.history_verified_ms);
+          } else expect(observation.history_verified_ms).toBeUndefined();
           expect(observation.sample_verified_ms).toBeUndefined();
         }
       } finally {

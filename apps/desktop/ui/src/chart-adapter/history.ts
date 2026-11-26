@@ -4,6 +4,7 @@ import {
 } from 'lightweight-charts';
 import type { Bar, DatasetDescriptor, FrozenSnapshot, IndicatorResult, Instrument, VisibleRange } from '../../../../../contracts/generated/protocol';
 import { clipIndicatorRegions, indicatorBarIntervals, mountIndicatorRegions } from './indicator-regions';
+import { priceTickFormat } from './price-format';
 
 export type ChartStyle = 'candlestick' | 'line';
 export type ChartCursorMode = 'crosshair' | 'pan';
@@ -60,18 +61,18 @@ export function mountHistoryChart(
   let appearance = defaultChartAppearance;
   let bars = [...history.bars];
   const lookup = new Map(bars.map(bar => [bar.time_ms / 1000, bar]));
-  const tick = instrument.price_tick;
-  const minMove = tick ? Number(tick) || 0.01 : observedDisplayStep(bars);
-  const precision = tick?.split('.')[1]?.length ?? 0;
+  const priceOptions = priceTickFormat(instrument.price_tick);
+  const numericTick = Number(instrument.price_tick);
+  const tick = Number.isFinite(numericTick) && numericTick > 0 && priceOptions.maximumFractionDigits !== undefined
+    ? numericTick : undefined;
+  const minMove = tick ?? observedDisplayStep(bars);
   const chartLocale = (locale: string) => locale === 'en' ? 'en-GB' : locale;
   const intradayTime = (locale: string) => new Intl.DateTimeFormat(chartLocale(locale), {
     timeZone: history.dataset.timezone, month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
   });
   const makeFormatters = (locale: string) => ({
     time: intradayTime(locale),
-    price: new Intl.NumberFormat(locale, tick
-      ? { useGrouping: false, minimumFractionDigits: precision, maximumFractionDigits: precision }
-      : { useGrouping: false, maximumSignificantDigits: 21 }),
+    price: new Intl.NumberFormat(locale, { useGrouping: false, ...priceOptions }),
     volume: new Intl.NumberFormat(locale, { useGrouping: false, notation: 'compact', maximumFractionDigits: 2 }),
     indicator: new Intl.NumberFormat(locale, { useGrouping: false, minimumFractionDigits: 2, maximumFractionDigits: 2 }),
   });
@@ -107,7 +108,9 @@ export function mountHistoryChart(
     const priceFormat = {
       type: 'custom' as const, minMove,
       formatter: (value: number) => {
-        const price = tick ? Math.round(Math.abs(value) / minMove) * minMove * Math.sign(value) : value;
+        const steps = tick === undefined ? undefined : Math.round(Math.abs(value) / tick);
+        const price = tick !== undefined && steps !== undefined && Number.isSafeInteger(steps)
+          ? steps * tick * Math.sign(value) : value;
         return formatters.price.format(price === 0 ? 0 : price);
       },
     };

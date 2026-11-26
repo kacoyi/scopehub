@@ -7601,6 +7601,38 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "sample-startup-verified-without-chart-paint",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent changes-requested decision 3f2e7b36e1e1819b7ff73165bbe3b16965eaa63017b2c2bbf177abe081f5a6ad for source 222ba13c9ac8fca4e6e9962cd8a8c79e5e73843c. The original response is retained under archives/observations/repo-hygiene-20261125/independent-final-m0-154-222ba13c/ (original-assistant-response.jsonl SHA-256 914d34e7fb9bdadb4ca9304c0b1ebc6ea840fb158cd3a39fae1f9c72570ac5c8, final-response.txt SHA-256 b0133e5226b8091baf7c0b7a84a283eae876ab18f87125741eb8759990b28d33). Linux Chromium baseline on product source d82aa466250e9872978c92a0a2b735e1e5cf5049 is retained at .reports/m0-154-chart-presentation/baseline/observations.json (SHA-256 88eb8b3d9f976ae550f8f4f169ef4f1d38e07cecb990aaaa5ba225599f083079).",
+      "observation": "Appending 100 trailing zeros to the valid catalog price tick 0.2, with the archived 40-bar history unchanged, made the real React chart show its rendering error and draw no candles. Replaying startup events still produced sample_verified_ms because the element had data-bars=40. Linux Chromium reproduced the same false success with the equivalent tick and with a controlled renderer mount failure.",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery",
+        "ui-build"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "sample-history-admits-contradictory-dataset-or-stream-position",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent changes-requested decision 3f2e7b36e1e1819b7ff73165bbe3b16965eaa63017b2c2bbf177abe081f5a6ad for source 222ba13c9ac8fca4e6e9962cd8a8c79e5e73843c. The original response is retained under archives/observations/repo-hygiene-20261125/independent-final-m0-154-222ba13c/ (original-assistant-response.jsonl SHA-256 914d34e7fb9bdadb4ca9304c0b1ebc6ea840fb158cd3a39fae1f9c72570ac5c8, final-response.txt SHA-256 b0133e5226b8091baf7c0b7a84a283eae876ab18f87125741eb8759990b28d33). Linux Chromium baseline on product source d82aa466250e9872978c92a0a2b735e1e5cf5049 is retained at .reports/m0-154-chart-presentation/baseline/observations.json (SHA-256 88eb8b3d9f976ae550f8f4f169ef4f1d38e07cecb990aaaa5ba225599f083079).",
+      "observation": "Changing only the history dataset adjustment to split_adjusted with a raw request and raw snapshot, or returning a valid non-null stream position without a request for it, each let the UI draw all 40 candles and startup report sample-verified. The reviewer injected replies after the Rust/Python operation boundary. The Linux browser baseline also admitted a contradictory quality source and invalid OHLC bounds. The desktop history client separately admitted contradictory continuation data or sent it as a later request, as shown in .reports/m0-154-chart-presentation/validator-before/product-observations/observations.json (SHA-256 9ce0755b78e3c3a773526c0013c0a87f19a44984bb6801a6dc7276d406a21184).",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery",
+        "chart-history"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

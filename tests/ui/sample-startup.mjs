@@ -1,7 +1,8 @@
 import { isDeepStrictEqual } from 'node:util';
 import { expect } from '@playwright/test';
 import { isMarketOutput } from '../../apps/desktop/ui/src/market-output.ts';
-import { sampleHistoryMatchesRequest, sampleHistoryPageFitsSnapshot } from '../../apps/desktop/ui/src/sample-history-validation.ts';
+import { sampleHistoryPageMatchesRequest } from '../../apps/desktop/ui/src/sample-history-validation.ts';
+import { painted } from './chart-pixels.mjs';
 import { replayStage } from './replay-stages.mjs';
 
 const operation = '/__scopehub/operation';
@@ -229,8 +230,7 @@ export async function openDefaultSample(page, { trigger, verifyChart, reportStar
     const history = await observer.read(historyCall.operation);
     await verifyRequest(historyCall);
     expect(isMarketOutput(historyCall.operation, history), 'History reply satisfies the operation output schema').toBe(true);
-    expect(sampleHistoryMatchesRequest(history, historyCall.payload, instrument), 'History reply matches the sample request').toBe(true);
-    expect(sampleHistoryPageFitsSnapshot(history, history.snapshot, history.total_bars, []), 'History reply is a valid first page').toBe(true);
+    expect(sampleHistoryPageMatchesRequest(history, historyCall.payload, instrument), 'History reply matches the sample request').toBe(true);
     expect(history.snapshot.series).toEqual(historyCall.payload.series);
     expect(history.next_cursor).toBeNull();
     expect(history.total_bars).toBe(40);
@@ -241,6 +241,17 @@ export async function openDefaultSample(page, { trigger, verifyChart, reportStar
     await expect(chart(page)).toHaveAttribute('data-instrument', future);
     await expect(chart(page)).toHaveAttribute('data-timeframe', '1m');
     await expect(chart(page)).toHaveAttribute('data-bars', '40');
+    if (startup) {
+      let presentation;
+      await expect.poll(async () => {
+        if (await chart(page).getByRole('alert').count()) presentation = 'failed';
+        else if (await chart(page).locator('.chart canvas').first().isVisible()
+          && await painted(page, 'candlestick') > 20) presentation = 'painted';
+        return presentation;
+      }, { message: 'Wait for initial sample chart presentation' }).toBeDefined();
+      if (presentation === 'failed') startup.mark('chart_failed_ms');
+      expect(presentation, 'Initial sample price series is painted').toBe('painted');
+    }
     if (verifyChart) await verifyChart(history.snapshot);
 
     expect(attempts.next().done, 'catalog and history each completed once').toBe(true);

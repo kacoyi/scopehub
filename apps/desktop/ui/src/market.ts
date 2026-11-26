@@ -3,7 +3,7 @@ import type { InstrumentSearchInput, InstrumentSearchOutput, MarketHistoryPageIn
 import { message, type Message } from './i18n';
 import { isAdmissionBusy, marketAdmissionDeadline, retryMarketAdmission } from './market-admission';
 import { isMarketOutput, type MarketOutputs } from './market-output';
-import { sampleHistoryMatchesRequest, sampleHistoryPageFitsSnapshot } from './sample-history-validation';
+import { sampleHistoryPageMatchesRequest } from './sample-history-validation';
 
 export type { Bar, DatasetDescriptor, Instrument, MarketGetBarsOutput } from '../../../../contracts/generated/protocol';
 type Inputs = { 'instrument.search': InstrumentSearchInput; 'market.readHistoryPage': MarketHistoryPageInput };
@@ -187,7 +187,9 @@ async function prepareNativeReplay(payload: MarketHistoryPageInput, signal: Abor
     };
     signal.addEventListener('abort', cancel, { once: true });
     try {
-      return await invoke<MarketHistoryPageOutput>('prepare_market_subscription', { preparationId, payload, progress });
+      const result = await invoke<unknown>('prepare_market_subscription', { preparationId, payload, progress });
+      if (!isMarketOutput('market.readHistoryPage', result)) throw invalidMarketData();
+      return result;
     } finally {
       signal.removeEventListener('abort', cancel);
       progress.onmessage = () => {};
@@ -195,7 +197,7 @@ async function prepareNativeReplay(payload: MarketHistoryPageInput, signal: Abor
   });
 }
 
-export async function readStreamPosition(snapshot: ChartHistory['snapshot'], signal: AbortSignal) {
+export async function readStreamPosition({ snapshot, dataset }: ChartHistory, signal: AbortSignal) {
   const { series, from_ms, to_ms, warmup_bars } = snapshot;
   const payload = {
     series, from_ms, to_ms, warmup_bars, snapshot, page_size: 1, include_stream_position: true,
@@ -204,11 +206,8 @@ export async function readStreamPosition(snapshot: ChartHistory['snapshot'], sig
     ? await historyReader.read('market.readHistoryPage', payload, signal)
     : await prepareNativeReplay(payload, signal);
   signal.throwIfAborted();
-  if (page?.snapshot?.content_hash !== snapshot.content_hash) throw invalidMarketData();
-  const position = page.stream_position;
-  if (position !== null && (!position?.stream_id || !position.epoch
-    || !Number.isSafeInteger(position.sequence) || position.sequence < 0)) throw invalidMarketData();
-  return position;
+  if (!sampleHistoryPageMatchesRequest(page, payload, dataset)) throw invalidMarketData();
+  return page.stream_position;
 }
 
 export async function readSampleHistory(
@@ -223,15 +222,16 @@ export async function readSampleHistory(
   const range = start === undefined ? sampleRange : { from_ms: start, to_ms: start + utcDayMs };
   const expectedRevision = instrument.id === sampleRevisionInstrument ? sampleRevisions[revision].id : undefined;
   const query = { series, ...range, warmup_bars: 0, ...(expectedRevision && { expected_revision: expectedRevision }) };
-  let page = await historyReader.read('market.readHistoryPage', query, signal);
-  if (!sampleHistoryMatchesRequest(page, query, instrument)) throw invalidMarketData();
+  let request: MarketHistoryPageInput = query;
+  let page = await historyReader.read('market.readHistoryPage', request, signal);
   const { snapshot, dataset, quality_state, total_bars } = page;
   const bars: ChartHistory['bars'] = [];
   for (;;) {
     if (signal.aborted) throw aborted();
-    if (!sampleHistoryPageFitsSnapshot(page, snapshot, total_bars, bars)) throw invalidMarketData();
+    if (!sampleHistoryPageMatchesRequest(page, request, instrument) || page.total_bars !== total_bars) throw invalidMarketData();
     for (const bar of page.bars) bars.push(bar);
     if (page.next_cursor === null) return { dataset, bars, snapshot, quality_state };
-    page = await historyReader.read('market.readHistoryPage', { ...query, snapshot, cursor: page.next_cursor }, signal);
+    request = { ...query, snapshot, cursor: page.next_cursor };
+    page = await historyReader.read('market.readHistoryPage', request, signal);
   }
 }
