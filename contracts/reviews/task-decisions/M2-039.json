@@ -242,6 +242,26 @@
       "requested_at": "2026-11-26T12:44:44.346263+00:00",
       "request_id": "0f479fc770b795a60072386e424eeb91abba2e5eb7b67b181b01ff307157f321",
       "evidence_sha256": "70eb01a505cffa70c6162175e4dbf75b3debbcfb641ef4d1698615093e12e842"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "09514768174b878432665898058eb9c4d7fca038",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-039 09514768174b878432665898058eb9c4d7fca038",
+      "scope": "CHANGES_REQUESTED M2-039 09514768174b878432665898058eb9c4d7fca038",
+      "observation": "In my in-memory replay, `stage_artifacts` accepted a Windows ARM64 report that marked the x64-only native check as passed and staged neither the observation nor the executable.",
+      "reviewer": "Independent Astra Standard (t15v)",
+      "original_sha256": "8714a35f154cd6bb75d3c0c56cf3a72acf9451c8e5f03d0e4eb096c6d5264ae0",
+      "response_id": "9b24cce7597470b5037cc59b14a195fb1922ef32c951d2e2563875233dae8a6d",
+      "response_sha256": "a670d3506a07d10ead23d3f8c77ac545b78444a5d9ff296e8eff276986fd4910",
+      "legacy_response_sha256": "e4d41ea7ccf83176040e401bf303737adfc01e46d8fa8a9c6d3ffbc373c3b2f9",
+      "observation_body_sha256": "f1ff99e8c8c2cf56938cb0190f1a7937612fa2f60bf6b2eaeaf85b29c237b42d",
+      "event": {
+        "id": "msg_0bc271d9d2445fb1016b082b17fb5487d19b286fa75aadf891",
+        "timestamp": "2026-11-26T12:50:52.124Z"
+      },
+      "supersedes": "0f479fc770b795a60072386e424eeb91abba2e5eb7b67b181b01ff307157f321",
+      "evidence_sha256": "f75336707f88dcb564acab850ba36f50d92aa731b12f79359a5946a111640a8f"
     }
   ]
 }
