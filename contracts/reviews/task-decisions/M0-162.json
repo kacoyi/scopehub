@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-162",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "c879713b9799e8450418d2e36efe25e225d28ac6",
+      "scope": "Exercise owned session return and retirement through the repository entry. Independently challenge response wording, completed-turn identity, retry after interruption, mixed active or foreign tabs, and the last outstanding session. Check originals survive close and no private material enters Git.",
+      "supersedes": null,
+      "requested_at": "2026-11-26T07:36:24.759333+00:00",
+      "request_id": "636940018c3c024d8881ffbd8fcceee558ca6493c8077ea5feeb3abf5ee1a3cf",
+      "evidence_sha256": "519e39f65b478b815fb4c89bdb0d63385491dafab8839342a4c7004e139a0fea"
+    }
+  ]
+}
