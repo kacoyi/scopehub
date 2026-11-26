@@ -155,6 +155,26 @@
       "requested_at": "2026-11-26T05:30:42.184957+00:00",
       "request_id": "04e7fe96d68c5db7fcbf8c751083ad95b40762fb0cb6a1f292e9e96a3662ccfd",
       "evidence_sha256": "f8104b94be273bd918a8e58a7cab32a74e67701edc7fcb214173fd518b4d9fb5"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "76fe9dd86e2838ac31463efd8e2a84ac432009e3",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-039 76fe9dd86e2838ac31463efd8e2a84ac432009e3",
+      "scope": "CHANGES_REQUESTED M2-039 76fe9dd86e2838ac31463efd8e2a84ac432009e3",
+      "observation": "In my in-memory replay of the candidate dialog, withdrawing the sole folder or CSV revision rendered two status messages, and the Windows probe’s withdrawal assertion matched both.",
+      "reviewer": "Independent Astra Standard (t13v)",
+      "original_sha256": "1ac7be6264519d8992c987bf59624495676ec4104aa39920d16ddb6e3fd20c3a",
+      "response_id": "b40fb0755d47c2871d52797c927dfdba289d9c180b7014a90d107aae1475d4b1",
+      "response_sha256": "47184636cdf8f40d8bf8b1ee99d95935155f527ff77f2bc2e35a28a643a69825",
+      "legacy_response_sha256": "190e2f04d675da709052907ddee50e01410ddaace9b558aa2a42dd778b1dee3f",
+      "observation_body_sha256": "eeb314f062722a67b61699dd5ff1da3a19c2684342a4488a51ba066330a65773",
+      "event": {
+        "id": "msg_0625bcde14dcef43016b07c5fbbea487d29b8292b5ee385acf",
+        "timestamp": "2026-11-26T05:39:25.314Z"
+      },
+      "supersedes": "04e7fe96d68c5db7fcbf8c751083ad95b40762fb0cb6a1f292e9e96a3662ccfd",
+      "evidence_sha256": "dbadae25234c7e3ad729b621fd3851a9998417f26bfeb56a98e302f12c8eaabf"
     }
   ]
 }

@@ -175,6 +175,26 @@
       "requested_at": "2026-11-26T05:30:41.253206+00:00",
       "request_id": "b17f70c2a600483a285b05e03fbc3fa9b8fcf8497b93d61b086ee54370dc4d2e",
       "evidence_sha256": "5d189c28e3944fed2726258f19cfa2e4c4bf9ca726b688c3a8cabe638b1d416b"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "76fe9dd86e2838ac31463efd8e2a84ac432009e3",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-035 76fe9dd86e2838ac31463efd8e2a84ac432009e3",
+      "scope": "CHANGES_REQUESTED M2-035 76fe9dd86e2838ac31463efd8e2a84ac432009e3",
+      "observation": "After I removed the only publication through the candidate’s dialog, both the CSV and folder views rendered two status messages, while the Windows probe’s withdrawal assertion requires a single match.",
+      "reviewer": "Independent Astra Standard (t13t)",
+      "original_sha256": "44804428b2ba62a107bcad8521ed20e6ddb371e7bd027ed8ea6fec61160d29e3",
+      "response_id": "5c751e8cd6c8dc8a682270a54661dae7cc3a8b5393f079e73fc00e64cc3721ab",
+      "response_sha256": "23117c76ad920172e5a83341dea01fc2e2bcfc811efad98ee29c0b391c01418f",
+      "legacy_response_sha256": "d0175949d7a7564dfeab7ac264230444e45bfd805a684b08cfd85e8429767b28",
+      "observation_body_sha256": "d96f7bd2c4a8b4ec1007f41f076c352ab9c80baa59a09ff3a99bbb9050eb3d9c",
+      "event": {
+        "id": "msg_00980f4d9ed15a03016b07c5d6a2cc87d19b12bb1aaa7aeade",
+        "timestamp": "2026-11-26T05:38:45.064Z"
+      },
+      "supersedes": "b17f70c2a600483a285b05e03fbc3fa9b8fcf8497b93d61b086ee54370dc4d2e",
+      "evidence_sha256": "ebfd64f582321b9a01d75ba2d887d88adbc92c77fa79f93168e7f0f096ac6473"
     }
   ]
 }

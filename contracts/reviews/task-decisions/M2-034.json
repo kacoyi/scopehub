@@ -155,6 +155,26 @@
       "requested_at": "2026-11-26T05:30:40.285730+00:00",
       "request_id": "b62031e27615779e086aa6d4b09ba287f49fec96ac5b76d2df0fe239c8191167",
       "evidence_sha256": "2ec5bf51d5c6d6a561b1f0adb885d63f1d72791a7b2ca79db803f62bee39a3c3"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "76fe9dd86e2838ac31463efd8e2a84ac432009e3",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-034 76fe9dd86e2838ac31463efd8e2a84ac432009e3",
+      "scope": "CHANGES_REQUESTED M2-034 76fe9dd86e2838ac31463efd8e2a84ac432009e3",
+      "observation": "After I withdrew the only folder revision through the candidate UI in Chromium, the Windows probe’s status locator matched both the withdrawal confirmation and the empty-library message, causing a Playwright strict-mode failure.",
+      "reviewer": "Independent Astra Standard (t13s)",
+      "original_sha256": "bd78f8852cbde7fbb4d3f46eb9182248c7eeeb105dd0dafaa205deac99802def",
+      "response_id": "9b254345ab52c4d05998ed5cdb73fb3765df06c595d7f414c53539465d6f90c0",
+      "response_sha256": "504a1f21e1555a121419edf522d7675101440a9ec1062f371ea67a582a1cb344",
+      "legacy_response_sha256": "c3032d4feba83188a515e47c163e07b9e956227d1a6ba65ee6d2e357608969dc",
+      "observation_body_sha256": "7672789869815073bfbd30b79e6347526dd02731637e4a873fcab3214d66d0cb",
+      "event": {
+        "id": "msg_0d6b455134d4d499016b07c5ecab3487d1b6d881be845ab789",
+        "timestamp": "2026-11-26T05:39:12.132Z"
+      },
+      "supersedes": "b62031e27615779e086aa6d4b09ba287f49fec96ac5b76d2df0fe239c8191167",
+      "evidence_sha256": "e865eeff5bfd8e88e90a29afc0b4cadca4fd133db5fa66ab4b9a8a0e34072890"
     }
   ]
 }
