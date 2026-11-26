@@ -159,7 +159,8 @@ class NativeSerialResultTests(unittest.TestCase):
                    'event': 'push', 'status': 'completed', 'head_branch': 'main'}
 
         def stage(archive, *, profile='full', system='Windows', report_event='push', report_log=LOG,
-                  run_id=RUN, github_run='100', failure=None, other_check_failure=False):
+                  run_id=RUN, github_run='100', failure=None, other_check_failure=False,
+                  no_python=False):
             report = deepcopy(original)
             report['run_id'] = run_id
             report['selection'] = {'profile': profile, 'task_id': None, 'checks': [CHECK]}
@@ -179,6 +180,10 @@ class NativeSerialResultTests(unittest.TestCase):
                 report['checks'].append({'id': 'workspace-timeframe', 'status': 'failed', 'exit_code': 1,
                                          'log': f'.reports/runs/{run_id}/workspace-timeframe.log',
                                          'log_sha256': sha256(logs['workspace-timeframe']).hexdigest()})
+            if no_python:
+                report['selection']['checks'].remove(CHECK)
+                report['checks'].remove(row)
+                logs.pop(CHECK)
             raw = json.dumps(report).encode()
             report_sha256 = sha256(raw).hexdigest()
             run = archive / 'runs' / run_id
@@ -190,7 +195,9 @@ class NativeSerialResultTests(unittest.TestCase):
                 (run / f'{name}.log').write_bytes(log)
             return {'run_id': run_id, 'source_commit': COMMIT, 'report_sha256': report_sha256}
 
-        def observe(*reports, branch='main', jobs=(job,), include_missing=False):
+        missing = {'run_id': RUN, 'source_commit': COMMIT, 'report_sha256': '0' * 64}
+
+        def observe(*reports, branch='main', jobs=(job,), extra=()):
             def command(args, _):
                 endpoint = args[2]
                 self.assertTrue(endpoint.startswith(f'repos/{repository}/actions/runs/'))
@@ -202,25 +209,29 @@ class NativeSerialResultTests(unittest.TestCase):
             with TemporaryDirectory() as directory:
                 archive = Path(directory)
                 locators = [stage(archive, **report) for report in reports]
-                diagnostics = list(locators)
-                if include_missing:
-                    diagnostics.append({'run_id': RUN, 'source_commit': COMMIT, 'report_sha256': '0' * 64})
                 with (patch.object(integration, 'committed_source_identity', return_value=source),
                       patch.object(integration, 'diagnostic_archive_root', return_value=archive),
                       patch.object(integration, 'command', side_effect=command)):
                     observation = integration.python_push_evidence(
-                        archive, project, COMMIT, {'diagnostic_reports': diagnostics}, policy)
+                        archive, project, COMMIT, {'diagnostic_reports': [*locators, *extra]}, policy)
             return observation, locators
 
         producer = {'profile': 'ci-windows-python'}
         linux = {'system': 'Linux', 'run_id': 'linux-100-1'}
-        unrelated = {'profile': 'ci-windows-browser', 'run_id': 'browser-100-1'}
+        unrelated = {'profile': 'ci-windows-browser', 'run_id': 'browser-100-1', 'no_python': True}
         for reports, full_index in ((({},), 0), ((linux, producer, {}, unrelated), 2),
                                     (({}, producer, linux), 0), (({'other_check_failure': True}, producer), 0)):
             with self.subTest(reports=reports):
-                passing, locators = observe(*reports, include_missing=True)
+                passing, locators = observe(*reports, extra=({**missing, 'source_commit': 'a2' * 20},))
                 self.assertEqual(OUTCOMES, passing['inventory'])
                 self.assertEqual(locators[full_index], passing['diagnostic'])
+
+        unresolved, _ = observe({}, extra=(missing,))
+        self.assertEqual({'unresolved_diagnostics': [missing]}, unresolved)
+        for ambiguous in ({'profile': 'unknown'}, {**unrelated, 'no_python': False}, {'system': ''}):
+            with self.subTest(ambiguous=ambiguous):
+                observation, (_, locator) = observe({}, ambiguous)
+                self.assertEqual({'unresolved_diagnostics': [locator]}, observation)
 
         timeout_log = LOG.split(b'continuation')[0]
         timeout = {'report_log': timeout_log,
@@ -232,13 +243,20 @@ class NativeSerialResultTests(unittest.TestCase):
                 failure, locators = observe(*reports, jobs=(failed_job,))
                 self.assertEqual('timeout', failure['reason_code'])
                 self.assertEqual(locators[reports.index(timeout) if timeout in reports else 0], failure['diagnostic'])
+        failure, (locator, _) = observe(failed_producer, unrelated, jobs=(failed_job,), extra=(missing,))
+        self.assertEqual({'diagnostic': locator, 'reason_code': 'timeout', 'unresolved_diagnostics': [missing]}, failure)
         other_failure, _ = observe({**producer, 'failure': {'exit_code': 1}}, jobs=(failed_job,))
         self.assertEqual('python_check_failed', other_failure['reason_code'])
 
         conflict = {**producer, 'report_log': LOG.replace(b'test_posix', b'test_other')}
         second_run = {'run_id': 'windows-change-101-1', 'github_run': '101'}
+        for reports in (({}, conflict), (conflict, {}), ({}, second_run)):
+            with self.subTest(conflict=reports):
+                observation, locators = observe(*reports)
+                self.assertCountEqual(locators, observation['conflicting_diagnostics'])
+                self.assertNotIn('inventory', observation)
+
         for reports, job_options in (((producer,), {}), ((linux, unrelated), {}),
-                                     (({}, conflict), {}), ((conflict, {}), {}), (({}, second_run), {}),
                                      (({},), {'branch': 'other'}), (({'report_event': 'pull_request'},), {}),
                                      (({},), {'jobs': (job, job)}), (({},), {'jobs': ()}),
                                      (({},), {'jobs': ({**job, 'status': 'in_progress'},)}),
@@ -246,4 +264,5 @@ class NativeSerialResultTests(unittest.TestCase):
                                      (({},), {'jobs': ({**job, 'head_sha': 'a2' * 20},)}),
                                      (({'report_log': timeout_log},), {}), (({},), {'jobs': (failed_job,)})):
             with self.subTest(reports=reports, job_options=job_options):
-                self.assertIsNone(observe(*reports, **job_options)[0])
+                observation, _ = observe(*reports, **job_options)
+                self.assertNotIn('diagnostic', observation or {})

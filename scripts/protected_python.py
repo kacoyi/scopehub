@@ -73,20 +73,28 @@ def python_row(report):
     return python[0]
 
 
-def read_native(archive_root, locator):
-    """Resolve a diagnostic original and return its report and bound Python log bytes."""
+def read_original(archive_root, locator):
+    """Resolve a diagnostic and return the original report and archive bindings."""
     original = resolve_diagnostic(locator, archive_root)
-    if original['report_kind'] != 'harness' or PYTHON_CHECK not in original['verified_logs']:
-        raise ValueError('The original lacks a verified Python check log.')
-    path = Path(original['report_path'])
-    raw = path.read_bytes()
+    raw = Path(original['report_path']).read_bytes()
     if hashlib.sha256(raw).hexdigest() != locator['report_sha256']:
         raise ValueError('The native report changed after diagnostic resolution.')
-    report = json.loads(raw)
-    log = path.with_name(PYTHON_CHECK + '.log').read_bytes()
+    return json.loads(raw), original
+
+
+def read_python_log(report, original):
+    if original['report_kind'] != 'harness' or PYTHON_CHECK not in original['verified_logs']:
+        raise ValueError('The original lacks a verified Python check log.')
+    log = Path(original['report_path']).with_name(PYTHON_CHECK + '.log').read_bytes()
     if hashlib.sha256(log).hexdigest() != python_row(report)['log_sha256']:
         raise ValueError('The Python log changed after diagnostic resolution.')
-    return report, log
+    return log
+
+
+def read_native(archive_root, locator):
+    """Resolve a diagnostic original and return its report and bound Python log bytes."""
+    report, original = read_original(archive_root, locator)
+    return report, read_python_log(report, original)
 
 
 def serial_result(report, log, check):

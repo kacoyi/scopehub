@@ -16,7 +16,7 @@ if __package__:
                          json_bytes, load_project, project_definition_hash, read_json, read_review_report, source_identity,
                          task_definition_hash, windows_x64)
     from .protected_python import (PYTHON_CHECK, SERIAL_COMMAND, WINDOWS_DEADLINE_SECONDS,
-                                    python_row, read_native, serial_result)
+                                    python_row, read_native, read_original, read_python_log, serial_result)
     from .protection import violations
     from .verification_evidence import hosted_artifact_path
     from .verification_scope import (SCOPED_PROFILES, ScopeError, checkout_git_environment, committed_scope,
@@ -29,7 +29,7 @@ else:
                          json_bytes, load_project, project_definition_hash, read_json, read_review_report, source_identity,
                          task_definition_hash, windows_x64)
     from protected_python import (PYTHON_CHECK, SERIAL_COMMAND, WINDOWS_DEADLINE_SECONDS,
-                                  python_row, read_native, serial_result)
+                                  python_row, read_native, read_original, read_python_log, serial_result)
     from protection import violations
     from verification_evidence import hosted_artifact_path
     from verification_scope import (SCOPED_PROFILES, ScopeError, checkout_git_environment, committed_scope,
@@ -768,12 +768,31 @@ def python_hosted_report(report, repository, event, head, checkout, *, profile='
 
 def python_push_original(archive, locator):
     try:
-        return read_native(archive, locator)
+        return read_original(archive, locator)
     except (OSError, ValueError):
         # The aggregate and its producer can have the same internal run ID.
         alternative = hosted_artifact_path(Path(archive).resolve(strict=True),
                                            f"observations/{locator['report_sha256']}", directory=True)
-        return read_native(alternative, locator)
+        return read_original(alternative, locator)
+
+
+def python_push_unrelated(report, original):
+    """Exclude only contexts established by a digest-verified original."""
+    if original['report_kind'] == 'recovery':
+        return True
+    environment, ci, selection = (report.get(key) for key in ('environment', 'ci', 'selection'))
+    if isinstance(environment, dict) and environment.get('system') in ('Linux', 'Darwin'):
+        return True
+    if (isinstance(ci, dict) and ci.get('provider') == 'github-actions'
+            and ci.get('event') in ('pull_request', 'workflow_dispatch')):
+        return True
+    if isinstance(selection, dict):
+        profile, selected = selection.get('profile'), selection.get('checks')
+        return (isinstance(profile, str) and profile.startswith('ci-windows-')
+                and profile.removeprefix('ci-windows-') in timing.WINDOWS_PRODUCERS
+                and profile != 'ci-windows-python' and isinstance(selected, list) and PYTHON_CHECK not in selected
+                and all(row['id'] != PYTHON_CHECK for row in report['checks']))
+    return False
 
 
 def python_push_producer_conclusion(root, first, ci):
@@ -785,7 +804,7 @@ def python_push_producer_conclusion(root, first, ci):
 
 
 def python_push_evidence(root, project, first, follow_up, policy):
-    """Select the aggregate or a verified failure from the first protected push."""
+    """Classify nominated originals before deciding the first protected push."""
     if not policy or policy['branch'] != 'main':
         return None
     locators = [locator for locator in follow_up.get('diagnostic_reports', []) if locator['source_commit'] == first]
@@ -800,9 +819,12 @@ def python_push_evidence(root, project, first, follow_up, policy):
     archive = diagnostic_archive_root(root)
     attempts = {}
     evidence = []
+    unresolved = []
     for locator in locators:
         try:
-            report, log = python_push_original(archive, locator)
+            report, original = python_push_original(archive, locator)
+            if python_push_unrelated(report, original):
+                continue
             profile = report['selection']['profile']
             selected = report['selection']['checks']
             if (profile not in {'full', 'ci-windows-python'}
@@ -810,43 +832,49 @@ def python_push_evidence(root, project, first, follow_up, policy):
                     or not isinstance(selected, list) or selected.count(PYTHON_CHECK) != 1
                     or (profile == 'ci-windows-python' and selected != [PYTHON_CHECK])
                     or report['source'] != source):
-                continue
+                raise ValueError('The nominated report does not establish its Windows Python selection or source.')
             row = python_row(report)
+            if profile == 'ci-windows-python' and row['status'] != report['status']:
+                raise ValueError('The Windows Python producer disagrees with its only selected check.')
             python = report['environment']['python_executable']
             if not isinstance(python, str) or not python or row['command'] != [python, *SERIAL_COMMAND[1:]]:
-                continue
+                raise ValueError('The nominated report does not bind the serial Python command.')
+            log = read_python_log(report, original)
             ci = report['ci']
             project_hash = report['project_definition_sha256']
-            if not re.fullmatch(r'[0-9a-f]{64}', project_hash):
-                continue
-            identity = (ci, project_hash, row)
             run = ci['run_id']
-            if not re.fullmatch(r'[1-9][0-9]*', run):
-                continue
+            if not re.fullmatch(r'[0-9a-f]{64}', project_hash) or not re.fullmatch(r'[1-9][0-9]*', run):
+                raise ValueError('The nominated report does not bind its project definition and run.')
             if run not in attempts:
                 attempts[run] = python_push_producer_conclusion(root, first, ci)
             conclusion = attempts[run]
-            if conclusion in {'success', 'failure', 'timed_out'}:
-                evidence.append((locator, report, log, conclusion, identity))
+            if conclusion not in {'success', 'failure', 'timed_out'}:
+                raise ValueError('The Windows Python producer has no verified terminal conclusion.')
+            evidence.append((locator, report, log, conclusion, (ci, project_hash, row)))
         except (OSError, ValueError, ScopeError, TypeError, KeyError, RuntimeError, subprocess.SubprocessError):
-            continue
+            unresolved.append(locator)
+    issues = {'unresolved_diagnostics': unresolved} if unresolved else {}
     if not evidence:
-        return None
+        return issues or None
 
     # The aggregate imports the producer's Python row and exact Python log. Its
     # overall outcome can differ when a separate check fails.
     locator, report, log, conclusion, identity = min(evidence, key=lambda entry: (
         entry[1]['selection']['profile'] != 'full', entry[0]['report_sha256']))
     if any(candidate_identity != identity for *_, candidate_identity in evidence):
-        return None
+        return {**issues, 'conflicting_diagnostics': [candidate[0] for candidate in evidence]}
     _, _, row = identity
+    # A verified failure remains actionable with incomplete evidence. Success
+    # requires the entire nomination set to be resolved.
     if conclusion in {'failure', 'timed_out'} and report['status'] == row['status'] == 'failed':
-        return {'diagnostic': locator, 'reason_code': row.get('reason_code') or 'python_check_failed'}
+        return {**issues, 'diagnostic': locator, 'reason_code': row.get('reason_code') or 'python_check_failed'}
+    if unresolved:
+        return issues
     if report['selection']['profile'] == 'full' and conclusion == 'success':
         try:
             return {'diagnostic': locator, 'report': report, 'inventory': serial_result(report, log, check)}
         except ValueError:
-            pass
+            return {'unresolved_diagnostics': [locator]}
     return None
 
 
@@ -882,6 +910,12 @@ def python_push_observation(root, project, base, binding, follow_up, policy):
         missing['protected_python_handoff'] = handoff
         evidence = python_push_evidence(root, project, first, follow_up, policy)
         if evidence is None:
+            return missing
+        issues = {key: evidence[key] for key in ('unresolved_diagnostics', 'conflicting_diagnostics') if key in evidence}
+        if issues:
+            missing.update(issues, next_action='Restore or verify the listed first-push originals and reconcile '
+                                               'any conflicting Windows evidence before closing the finding.')
+        if 'diagnostic' not in evidence:
             return missing
         observed = {**missing, 'diagnostic': evidence['diagnostic']}
         failed = {**observed, 'status': 'failed',
