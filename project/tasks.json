@@ -25954,6 +25954,10 @@
         {
           "path": "project/evidence/M0-154-531c8c110e824c73.json",
           "sha256": "8fdd6d6b0d89c6804a2c4826ad9e2b304bc05575e317f02c0b4337748188eef4"
+        },
+        {
+          "path": "project/evidence/M0-154-54aa0eb51119f849.json",
+          "sha256": "5188bfaecc20c46c88a346c28690b28b36435144168f342459a46ddac4b823ba"
         }
       ],
       "next_action": "Obtain independent review and the ordinary first-attempt Windows market-recovery result on the clean candidate inputs. Retain the cold public repair case startup attachment and the held-module attachment with its independent elapsed measurement. Preserve the historical asset attribution as unknown.",
@@ -25969,8 +25973,8 @@
           "tests/ubuntu-preview/market-closed-bar-repair.spec.mjs",
           "tests/ubuntu-preview/market-preview-config.mjs",
           "apps/desktop/ui/index.html",
-        "archives/observations/repo-hygiene-20261125/m0-154-cold-sample-45709117560/observations.json",
-        "archives/observations/repo-hygiene-20261125/independent-final-m0-154-232d0902/final-response.txt"
+          "archives/observations/repo-hygiene-20261125/m0-154-cold-sample-45709117560/observations.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-232d0902/final-response.txt"
         ],
         "hypotheses": [
           "The screenshot confirms that the startup panel rendered. A missing or slow deferred module, an unobserved document transition and host delay remain distinguishable hypotheses until there is request and lifecycle evidence.",
@@ -25989,18 +25993,18 @@
               "market-recovery",
               "project-state"
             ]
-        },
-        {
-          "failure": "A valid reply to a changed request or reversed startup order advances readiness. Drive the real sample boundary with the ordinary calls, a changed history start, a changed catalog limit and reversed calls, and check each last verified stage.",
-          "checks": [
-            "market-recovery"
-          ]
-        },
-        {
-          "failure": "The held-module attachment misstates elapsed time while passing the deadline check. Compare it with an independent elapsed measurement under the original ten-second navigation cutoff and reject false-zero and implausible values.",
-          "checks": [
-            "market-recovery"
-          ]
+          },
+          {
+            "failure": "A valid reply to a changed request or reversed startup order advances readiness. Drive the real sample boundary with the ordinary calls, a changed history start, a changed catalog limit and reversed calls, and check each last verified stage.",
+            "checks": [
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "The held-module attachment misstates elapsed time while passing the deadline check. Compare it with an independent elapsed measurement under the original ten-second navigation cutoff and reject false-zero and implausible values.",
+            "checks": [
+              "market-recovery"
+            ]
           }
         ],
         "rollback": "Keep the existing valid sample and cutoff; revert a change that hides a deliberate stall or changes the expected bars.",
