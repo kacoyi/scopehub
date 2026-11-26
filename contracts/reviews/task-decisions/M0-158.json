@@ -68,6 +68,26 @@
       "requested_at": "2026-11-26T05:00:07.570276+00:00",
       "request_id": "7697357d71c741c3193e6e5a2107481efdf7c53698f8c7f51eb9b3df18c34990",
       "evidence_sha256": "718ce52bbefcbc4050103c508fa4da42f5beef82dcb7a101598a9311e5be24bb"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "da5fd0a6f56c6308d116e95d7174849bf62d70d2",
+      "verdict": "approved",
+      "decision": "APPROVE M0-158 da5fd0a6f56c6308d116e95d7174849bf62d70d2",
+      "scope": "APPROVE M0-158 da5fd0a6f56c6308d116e95d7174849bf62d70d2",
+      "observation": "After audit focus moved to M0-157, the overview and handoff showed both workstreams as open, and the emitted read-only source command returned all six acceptance criteria with an unwritable cache.",
+      "reviewer": "Independent Astra Standard (t139)",
+      "original_sha256": "fabc3525a0750a083af1e6032234dd282e0147312d7dcc86d24c490501d19a65",
+      "response_id": "c0d8efa8ca297fcd6249c472f10f00bff294aef47ec599cbe1411bde9800f080",
+      "response_sha256": "96fe51fdbb3187c65df4020dcbd9c0e4dc183abc590ee48e5da3011cca8c8504",
+      "legacy_response_sha256": "ff6ef50c29fa707f05cc617c3dfcf5a0d78417489e724164de015b8b2736735d",
+      "observation_body_sha256": "f665633dd8d7844f7423a86155a9fde4ef899a2fc8942abab4cde4b993ec75b5",
+      "event": {
+        "id": "msg_034c8f7247482b9d016b07be860cc487d18d17a9d9c1f4a981",
+        "timestamp": "2026-11-26T05:07:39.460Z"
+      },
+      "supersedes": "7697357d71c741c3193e6e5a2107481efdf7c53698f8c7f51eb9b3df18c34990",
+      "evidence_sha256": "8f1febc69b30586ce89903b87c27b715f2c8f018b0e7c925205014d7a763f970"
     }
   ]
 }
