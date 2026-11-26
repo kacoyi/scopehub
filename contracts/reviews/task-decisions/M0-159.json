@@ -19,6 +19,26 @@
       "requested_at": "2026-11-26T07:13:15.754412+00:00",
       "request_id": "c3af62e4333327cb208f0ff69e641711579e7a4235bf7e567a37c964e1b0db9a",
       "evidence_sha256": "7034c90e673a655492fc570c4a6073ec9986022894f0eb9cee3f429a8dfd23ba"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ff71dc66409852b24121590b88aa512cada2e3e4",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-159 ff71dc66409852b24121590b88aa512cada2e3e4",
+      "scope": "CHANGES_REQUESTED M0-159 ff71dc66409852b24121590b88aa512cada2e3e4",
+      "observation": "The integration decision raised an AttributeError when the recurring timing rule supplied no prior finding and the Python handoff tried to read the prior task ledger.",
+      "reviewer": "Independent Astra Standard (t14w)",
+      "original_sha256": "f36de017e36a06c4be70df990c52409d3a35e497c5c910afd8413b7aa63ad88d",
+      "response_id": "a79d95a3e19c74170edd4c9cb6bc463df5eb12b7320f3970182fdfef39375832",
+      "response_sha256": "3e949db221bd963c185310f76b20d5176cfaf9cb079f42e88bf37fb0a23976ce",
+      "legacy_response_sha256": "18c6853c1426a7191fe2b72dd679014a33b102bb0c311dc30d114e0c0f8993a7",
+      "observation_body_sha256": "bc875be0e5485a1ce9a5150d843997ed302fd6a46a6170c0e32a2cbd1c65cada",
+      "event": {
+        "id": "msg_0bb87c19e5588385016b07e0270d8887d193c25093cb79610f",
+        "timestamp": "2026-11-26T07:31:14.711Z"
+      },
+      "supersedes": "c3af62e4333327cb208f0ff69e641711579e7a4235bf7e567a37c964e1b0db9a",
+      "evidence_sha256": "95e997aefd4562f11b8ee4057eb801737f6e0949819a0e3e6852fa0f9a0d0f2d"
     }
   ]
 }
