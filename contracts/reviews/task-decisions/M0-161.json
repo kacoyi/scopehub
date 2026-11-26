@@ -97,6 +97,26 @@
       "requested_at": "2026-11-26T13:29:28.252401+00:00",
       "request_id": "c59b8162de6c918263468ebff2f3d35568c1935096cbe362f1233346670e1407",
       "evidence_sha256": "4333849a8de9fb43e273ab748efd70b7330ff1a25ea2dcd607389e02a5eb59f0"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ab6355e343569d7a55e6b3d617a0598606e9adbf",
+      "verdict": "approved",
+      "decision": "APPROVE M0-161 ab6355e343569d7a55e6b3d617a0598606e9adbf",
+      "scope": "APPROVE M0-161 ab6355e343569d7a55e6b3d617a0598606e9adbf",
+      "observation": "With both workstreams accepted in the controlled case, ordinary and read-only navigation kept the unassigned major finding inspectable and directed the coordinator to stop assigning work.",
+      "reviewer": "Independent Astra Standard (t17d)",
+      "original_sha256": "9a921df7f71d9bd02b06f976c0b2095674a19b982d69e4f063d1a26c63cb6eed",
+      "response_id": "e7abf2057200849ef9f488aa0cfabf78b31f7ac6e5bef1324519da01f06f5f4e",
+      "response_sha256": "4dfe12ea5228f98ef751f7a2f6aeb587affc842e0f8f1dd2ed371acb1347043a",
+      "legacy_response_sha256": "67f9321814bad6d00f55366d62c3d2f4cf8bf28d5141b83cc12768af28995be3",
+      "observation_body_sha256": "6a54c72e6a784e4eabbe2fa9039fb567069493567359ca7cdd33b9140b11d0bd",
+      "event": {
+        "id": "msg_01a98471c0fb6924016b0834dd895c87d2835ef9e8841d10f2",
+        "timestamp": "2026-11-26T13:32:28.464Z"
+      },
+      "supersedes": "c59b8162de6c918263468ebff2f3d35568c1935096cbe362f1233346670e1407",
+      "evidence_sha256": "13f7c41b0622f9cfffdabe5eaffeb05ff21b03e5560ec24dc9411b4e679ffae3"
     }
   ]
 }
