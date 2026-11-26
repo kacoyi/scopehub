@@ -39,6 +39,26 @@
       "requested_at": "2026-11-26T07:47:12.275276+00:00",
       "request_id": "c2b44f90f73746270af7a4700f6bbb701e3328abfe67af907cca4bd182620e3c",
       "evidence_sha256": "19b013dfab9ee99ac7ac3efa09b06dd76d5daffdd565c0d808eaa403939f908a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "87d0b846aad69fb84afe371b65814856ec7a118f",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M3-007 87d0b846aad69fb84afe371b65814856ec7a118f",
+      "scope": "CHANGES_REQUESTED M3-007 87d0b846aad69fb84afe371b65814856ec7a118f",
+      "observation": "After one lost status delivery, the chart displayed 3500.5 when I changed only the recovered ready event’s name from `indicator.preview_ready` to `task.terminal`.",
+      "reviewer": "Independent Astra Standard (t158)",
+      "original_sha256": "141daf24715f091209b60978d25a3f31ed6db0769c48f8086337553e2433399c",
+      "response_id": "99e095b219762f567d6e0ec3ed3221cea5701c17745d6ebd4b1a538b7982d360",
+      "response_sha256": "aabbc138e6ab588edd7e4634778d0ccfa76e162a09bae74ba63cd085559d5160",
+      "legacy_response_sha256": "ba33d40f71c317abe90c3b422566310068d9cdd27fad85b907efeaf05d5cfb14",
+      "observation_body_sha256": "7cf8b34cfe1b3b60069b830844a7b6648b5fe9e155653ba1bfc3471bf4462a2f",
+      "event": {
+        "id": "msg_067969c531592916016b082777d1ec87d2b5ed8fe75788ad2c",
+        "timestamp": "2026-11-26T12:35:26.289Z"
+      },
+      "supersedes": "c2b44f90f73746270af7a4700f6bbb701e3328abfe67af907cca4bd182620e3c",
+      "evidence_sha256": "977749cb0d5093762b64c0bf5559d9e88c8df0020b79d77e5f1a6f83652edfee"
     }
   ]
 }
