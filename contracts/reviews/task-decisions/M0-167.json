@@ -117,6 +117,15 @@
       },
       "supersedes": "f1fd47ace71ddd6fcae8964194f77936d455b68e1c5644481f567b5fff97a29c",
       "evidence_sha256": "bf9b5f09f111d4bcd214cfe1a98258c4cdb0f6a398517b629d1d2b02da077134"
+    },
+    {
+      "kind": "request",
+      "source_commit": "6e8b80b18a9cc7af0c7869c809a444f73934aeb4",
+      "scope": "Independently review the completed M0-167 closure composed with protected 774b5704. Both parents changed tests/ubuntu-preview/workspace.spec.mjs. Exercise the shared browser cases for frozen admission and carrier terminal/cleanup behavior, review guarded native receipts and scoped reports on both platforms. Verify public result and failure precedence, ordinary adjacent admission, the actual two-parent change, historical diagnostic limits and no regression in the M0-166 journal controls.",
+      "supersedes": "d8a082955cea3caf5567f5c478dc455401dde8936915f2513c60b9334ad76ce9",
+      "requested_at": "2026-11-26T15:06:19.961557+00:00",
+      "request_id": "c8521ba1e9ba0748a72e932ae9075e56e5e71255dc372f519f00a73748f93e87",
+      "evidence_sha256": "b4fe3b6761793efe5ff160ddfabe537e5515a639c0a42e3247bf2a9626faf308"
     }
   ]
 }
