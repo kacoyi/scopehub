@@ -89,7 +89,7 @@ class HerdrOwnedEntryTests(unittest.TestCase):
         self.enterContext(patch.object(herdr, 'find_worktree', return_value=self.root))
         self.enterContext(patch.object(herdr, 'inherited_parent', return_value=self.terminal['address']))
         self.enterContext(patch.object(herdr, 'check_review_source'))
-        self.enterContext(patch.object(herdr, 'exec_rollout', return_value=self.rollout))
+        self.rollout_probe = self.enterContext(patch.object(herdr, 'exec_rollout', return_value=self.rollout))
         self.enterContext(patch.object(herdr.signal, 'pause', side_effect=RunnerHeld))
 
     def new_lifecycle(self):
@@ -106,8 +106,10 @@ class HerdrOwnedEntryTests(unittest.TestCase):
     def run_owned(self, output=None):
         self.child.stdout = BytesIO(self.thread_started if output is None else output)
         argv = ['herdr.py', 'run-owned', *self.args, '--', self.prompt]
-        with (patch.object(sys, 'argv', argv), patch.object(herdr.subprocess, 'Popen', return_value=nullcontext(self.child)),
+        with (patch.object(sys, 'argv', argv),
+              patch.object(herdr.subprocess, 'Popen', return_value=nullcontext(self.child)) as start_child,
               redirect_stdout(TextIOWrapper(self.stdout, write_through=True)) as out, redirect_stderr(self.stderr)):
+            self.start_child = start_child
             try:
                 return herdr.main()
             finally:
@@ -123,6 +125,21 @@ class HerdrOwnedEntryTests(unittest.TestCase):
         self.assertEqual(receipt['reason'], 'one_shot_awaiting_exit')
         self.assertEqual(Path(receipt['original']).read_bytes(), self.original)
         self.assertEqual(Path(receipt['completion']).read_bytes(), self.completion)
+
+    def lock_at_start(self):
+        lock = self.enterContext(ExitStack())
+
+        def capture(*_):
+            lock.enter_context(exclusive_git_lock(self.pending / 'operation.lock'))
+            return self.rollout
+
+        self.rollout_probe.side_effect = capture
+        return lock
+
+    def write_execution(self, execution):
+        path = self.pending / 'execution.json'
+        path.touch(mode=0o600)
+        path.write_text(json.dumps(execution, sort_keys=True) + '\n', encoding='utf-8')
 
     def compete(self, *, after_lock=None, interrupt=None):
         lock = self.enterContext(ExitStack())
@@ -151,6 +168,92 @@ class HerdrOwnedEntryTests(unittest.TestCase):
         self.assertEqual(self.run_owned(), 0)
         self.assert_saved_pair()
         self.assertIn(b'Verified assignment return archived', self.stdout.getvalue())
+
+    def test_run_owned_cannot_launch_another_child_for_a_previously_started_assignment(self):
+        self.write_execution(self.execution)
+
+        with self.assertRaises(RunnerHeld):
+            self.run_owned()
+
+        self.start_child.assert_not_called()
+        self.rollout_probe.assert_not_called()
+        self.assertIn('assignment_execution_changed', self.stderr.getvalue())
+        self.assertEqual(self.lifecycle.execution(self.assignment), self.execution)
+        self.assertFalse(self.archived.exists())
+        self.probe.assert_not_called()
+
+    def test_run_owned_retries_the_same_captured_start_after_competing_collection(self):
+        lock = self.lock_at_start()
+
+        def release(_):
+            self.assertEqual(self.collect()['reason'], 'assignment_busy')
+            lock.close()
+            self.assertEqual(self.collect()['reason'], 'one_shot_start_unobserved')
+
+        with patch.object(herdr.time, 'sleep', side_effect=release) as retry:
+            self.assertEqual(self.run_owned(), 0)
+
+        retry.assert_called_once()
+        self.rollout_probe.assert_called_once_with(self.child.pid, Path(self.binding['sessions']), self.session)
+        self.assertEqual(self.lifecycle.execution(self.assignment), self.execution)
+        self.assert_saved_pair()
+        self.assertEqual(self.stdout.getvalue().splitlines(keepends=True)[0], self.thread_started)
+
+    def test_run_owned_accepts_identical_committed_start_and_competing_archive(self):
+        lock = self.lock_at_start()
+
+        def publish(_):
+            self.write_execution(self.execution)
+            lock.close()
+            self.assertEqual(self.collect()['status'], 'archived')
+
+        with patch.object(herdr.time, 'sleep', side_effect=publish) as retry:
+            self.assertEqual(self.run_owned(), 0)
+
+        retry.assert_called_once()
+        self.rollout_probe.assert_called_once()
+        self.probe.assert_called_once_with(self.binding, self.execution)
+        self.assert_saved_pair()
+
+    def test_run_owned_preserves_conflicting_committed_start(self):
+        lock = self.lock_at_start()
+        different = dict(self.execution, pid=self.terminal['pid'] + 1)
+
+        def publish(_):
+            self.write_execution(different)
+            lock.close()
+
+        with (patch.object(herdr.time, 'sleep', side_effect=publish) as retry,
+              self.assertRaises(RunnerHeld)):
+            self.run_owned()
+
+        retry.assert_called_once()
+        self.rollout_probe.assert_called_once()
+        self.assertIn('assignment_execution_changed', self.stderr.getvalue())
+        self.assertEqual(self.lifecycle.execution(self.assignment), different)
+        self.assertFalse((self.pending / 'return').exists())
+        self.assertFalse(self.archived.exists())
+        self.probe.assert_not_called()
+
+    def test_run_owned_bounds_a_persistently_locked_start(self):
+        self.lock_at_start()
+        elapsed = 0
+
+        def advance(_):
+            nonlocal elapsed
+            elapsed += 30
+            self.assertLessEqual(elapsed, 30)
+
+        with (patch.object(herdr.time, 'monotonic', side_effect=lambda: elapsed),
+              patch.object(herdr.time, 'sleep', side_effect=advance) as retry,
+              self.assertRaises(RunnerHeld)):
+            self.run_owned()
+
+        retry.assert_called_once()
+        self.assertIn('assignment_busy', self.stderr.getvalue())
+        self.assertFalse((self.pending / 'execution.json').exists())
+        self.assertFalse(self.archived.exists())
+        self.probe.assert_not_called()
 
     def test_run_owned_waits_for_competing_public_collector_then_exits(self):
         with self.compete() as retry:
@@ -200,6 +303,31 @@ class HerdrOwnedEntryTests(unittest.TestCase):
         self.assertIn('assignment_execution_changed', self.stderr.getvalue())
         self.assertEqual((self.archived / 'return/completion.jsonl').read_bytes(), self.completion)
         self.assertNotIn(b'Verified assignment return archived', self.stdout.getvalue())
+
+    def test_run_owned_completion_cannot_recreate_a_missing_start_identity(self):
+        def lose_start():
+            (self.pending / 'execution.json').unlink()
+            return 0
+
+        self.child.wait.side_effect = lose_start
+        with self.assertRaises(RunnerHeld):
+            self.run_owned()
+
+        self.assertIn('one_shot_start_unobserved', self.stderr.getvalue())
+        self.assertFalse((self.pending / 'execution.json').exists())
+        self.assertFalse(self.archived.exists())
+        self.probe.assert_not_called()
+
+    def test_run_owned_later_start_event_cannot_replace_the_first_identity(self):
+        later = json.dumps({'type': 'thread.started', 'thread_id': 'other'}).encode() + b'\n'
+        with self.assertRaises(RunnerHeld):
+            self.run_owned(self.thread_started + later)
+
+        self.rollout_probe.assert_called_once()
+        self.assertIn('assignment_execution_changed', self.stderr.getvalue())
+        self.assertEqual(self.lifecycle.execution(self.assignment), self.execution)
+        self.assertFalse(self.archived.exists())
+        self.probe.assert_not_called()
 
     def test_run_owned_corrupt_output_never_unwinds_the_inspection_hold(self):
         for output in (b'{}', b'{\n', b'[]\n', b'\xff\n', b'{"deep":' + b'[' * 10000 + b']' * 10000 + b'}\n'):

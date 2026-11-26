@@ -1,5 +1,6 @@
 """Journal and retire only registered local Herdr assignments."""
 
+from contextlib import ExitStack, contextmanager
 from hashlib import sha256
 import json
 import os
@@ -209,25 +210,82 @@ class Lifecycle:
             raise LifecycleHold('unregistered_assignment')
         return self._read_record(lane, assignment)['binding']
 
-    def save_execution(self, assignment, terminal):
-        lane = self._lane(self.pending, assignment)
-        if lane is None:
-            raise LifecycleHold('unregistered_assignment')
-        with exclusive_git_lock(lane / 'operation.lock'):
-            path = lane / 'execution.json'
-            data = _record_data(terminal)
+    @contextmanager
+    def _assignment_lock(self, lane, assignment):
+        with ExitStack() as lock:
             try:
-                previous = _private_read(path, RECORD_LIMIT)
+                lock.enter_context(exclusive_git_lock(lane / 'operation.lock'))
+            except BlockingIOError as error:
+                raise LifecycleHold('assignment_busy') from error
             except FileNotFoundError:
-                _atomic_write(path, data)
-            else:
-                if previous != data:
-                    raise LifecycleHold('assignment_execution_changed')
+                if lane.parent == self.pending and self._lane(self.archived, assignment):
+                    # Collection published the lane between lookup and lock acquisition.
+                    raise LifecycleHold('assignment_busy') from None
+                raise
+            except WorktreeError as error:
+                raise LifecycleHold('assignment_io_unavailable') from error
+            yield
 
-    def execution(self, assignment):
+    def _required_lane(self, assignment):
+        if not _matches(ID, assignment):
+            raise LifecycleHold('invalid_assignment')
         lane = self._find(assignment)
         if lane is None:
             raise LifecycleHold('unregistered_assignment')
+        return lane
+
+    def _owned_record(self, lane, binding):
+        record = self._read_record(lane, binding['id'])
+        if (binding.get('mode') != 'one-shot' or binding['role'] != 'implement'
+                or _record_data(record['binding']) != _record_data(binding)
+                or lane.parent == self.retired or record['phase'] not in ('registered', 'archived')
+                or lane.parent == self.archived and record['phase'] != 'archived'):
+            raise LifecycleHold('assignment_execution_changed')
+        return record
+
+    def _require_start_slot(self, lane, record):
+        if lane.parent != self.pending or record['phase'] != 'registered':
+            raise LifecycleHold('assignment_execution_changed')
+        try:
+            (lane / 'return').lstat()
+        except FileNotFoundError:
+            return
+        raise LifecycleHold('assignment_execution_changed')
+
+    def prepare_owned(self, binding):
+        """Admit a child only for an exact, still unstarted one-shot."""
+        assignment = binding['id']
+        lane = self._required_lane(assignment)
+        with self._assignment_lock(lane, assignment):
+            self._require_start_slot(lane, self._owned_record(lane, binding))
+            try:
+                (lane / 'execution.json').lstat()
+            except FileNotFoundError:
+                return
+            raise LifecycleHold('assignment_execution_changed')
+
+    def save_execution(self, binding, execution):
+        """Persist a captured start once, or recognize the identical committed execution."""
+        assignment = binding['id']
+        lane = self._required_lane(assignment)
+        with self._assignment_lock(lane, assignment):
+            record = self._owned_record(lane, binding)
+            data = _record_data(execution)
+            try:
+                previous = self._read_execution(lane)
+            except LifecycleHold as error:
+                if str(error) != 'one_shot_start_unobserved':
+                    raise
+                if lane.parent != self.pending or record['phase'] != 'registered':
+                    raise
+                self._require_start_slot(lane, record)
+                _atomic_write(lane / 'execution.json', data)
+            else:
+                if _record_data(previous) != data:
+                    raise LifecycleHold('assignment_execution_changed')
+
+    @staticmethod
+    def _read_execution(lane):
         try:
             execution = json.loads(_private_read(lane / 'execution.json', RECORD_LIMIT))
         except FileNotFoundError:
@@ -237,6 +295,9 @@ class Lifecycle:
         if not isinstance(execution, dict):
             raise LifecycleHold('assignment_execution_changed')
         return execution
+
+    def execution(self, assignment):
+        return self._read_execution(self._required_lane(assignment))
 
     def collect(self, assignment=None, *, dry_run=False):
         """Inspect one registered lane or the bounded pending lanes of this owner."""
@@ -269,16 +330,8 @@ class Lifecycle:
                 return dict(result, status='held', reason='unregistered_assignment')
             if owned is None and (dry_run or lane.parent != self.pending):
                 return dict(result, **self._advance(lane, assignment, True))
-            try:
-                with exclusive_git_lock(lane / 'operation.lock'):
-                    return dict(result, **self._advance(lane, assignment, False, owned=owned))
-            except FileNotFoundError:
-                if owned is not None and lane.parent == self.pending and self._lane(self.archived, assignment):
-                    # A competing collector moved the lane while we opened its lock.
-                    raise LifecycleHold('assignment_busy') from None
-                raise
-        except BlockingIOError:
-            return dict(result, status='held', reason='assignment_busy')
+            with self._assignment_lock(lane, assignment):
+                return dict(result, **self._advance(lane, assignment, False, owned=owned))
         except (OSError, WorktreeError):
             return dict(result, status='held', reason='assignment_io_unavailable')
         except (KeyError, TypeError):
@@ -352,13 +405,14 @@ class Lifecycle:
         return archive
 
     def _advance(self, lane, assignment, dry_run, *, owned=None):
-        record = self._read_record(lane, assignment)
-        binding = record['binding']
-        if owned is not None:
+        if owned is None:
+            record = self._read_record(lane, assignment)
+        else:
             expected_binding, execution = owned
-            if (binding != expected_binding or binding.get('mode') != 'one-shot'
-                    or lane.parent == self.retired or self.execution(assignment) != execution):
+            record = self._owned_record(lane, expected_binding)
+            if _record_data(self._read_execution(lane)) != _record_data(execution):
                 raise LifecycleHold('assignment_execution_changed')
+        binding = record['binding']
         if (record['version'] == 1 and record['phase'] != 'retired'
                 and not dry_run and lane.parent == self.pending):
             # Older detached collectors reject this version before considering any terminal operation.
@@ -379,7 +433,7 @@ class Lifecycle:
                 return {'status': 'eligible', 'original_sha256': archive['sha256']}
             archive, directory = self._archive(lane, record)
         has_completion = directory != lane
-        if owned is not None and (not has_completion or archive['terminal'] != execution or any(
+        if owned is not None and (not has_completion or _record_data(archive['terminal']) != _record_data(execution) or any(
                 archive['proof'].get(key) != execution[key] for key in ('session_id', 'rollout_path'))):
             raise LifecycleHold('archive_execution_changed')
         if not dry_run and lane.parent == self.pending:

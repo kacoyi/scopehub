@@ -41,6 +41,7 @@ MANAGED_TIERS = {'implement': 'priority', 'review': 'default'}
 WATCH_SECONDS = 24 * 60 * 60
 LAUNCH_SETTLE_SECONDS = 90
 ONE_SHOT_BIND_SECONDS = 3
+ONE_SHOT_LOCK_SECONDS = 10
 ONE_SHOT_RETRY_SECONDS = 0.2
 WATCH_FINAL_HOLDS = {'unregistered_assignment', 'foreign_terminal', 'terminal_finished_without_archive',
                      'terminal_turn_changed', 'turn_changed', 'turn_interrupted', 'wrong_core'}
@@ -378,6 +379,20 @@ def capture_execution(native, binding, terminal, pid, session):
         time.sleep(0.1)
 
 
+def retry_owned_transition(transition, *args):
+    deadline = time.monotonic() + ONE_SHOT_LOCK_SECONDS
+    while True:
+        try:
+            return transition(*args)
+        except LifecycleHold as error:
+            if str(error) != 'assignment_busy':
+                raise
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise
+        time.sleep(min(ONE_SHOT_RETRY_SECONDS, remaining))
+
+
 def run_owned_main():
     parser = argparse.ArgumentParser(prog='project:herdr run-owned', allow_abbrev=False)
     parser.add_argument('--state-dir', type=Path, required=True)
@@ -396,6 +411,7 @@ def run_owned_main():
         terminal = native.own_process(binding, address, os.getpid())
         owned = True
         check_review_source(Path(binding['checkout']), binding['source'])
+        retry_owned_transition(lifecycle.prepare_owned, binding)
         with subprocess.Popen([*binding['codex_argv'], args.prompt], cwd=binding['checkout'],
                               env={**os.environ, 'CODEX_HOME': binding['codex_home']},
                               stdin=subprocess.DEVNULL, stdout=subprocess.PIPE) as codex:
@@ -413,20 +429,12 @@ def run_owned_main():
                     if execution is not None:
                         raise LifecycleHold('assignment_execution_changed')
                     execution = capture_execution(native, binding, terminal, codex.pid, event.get('thread_id'))
-                    lifecycle.save_execution(args.assignment_id, execution)
+                    retry_owned_transition(lifecycle.save_execution, binding, execution)
                 sys.stdout.buffer.write(raw)
                 sys.stdout.buffer.flush()
             if codex.wait() != 0 or execution is None:
                 raise LifecycleHold('one_shot_execution_failed')
-        while True:
-            try:
-                digest = lifecycle.complete_owned(binding, execution)
-            except LifecycleHold as error:
-                if str(error) != 'assignment_busy':
-                    raise
-                time.sleep(ONE_SHOT_RETRY_SECONDS)
-            else:
-                break
+        digest = retry_owned_transition(lifecycle.complete_owned, binding, execution)
         print(f'Verified assignment return archived ({digest}).', flush=True)
         return 0
     except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:

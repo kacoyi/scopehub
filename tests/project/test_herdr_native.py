@@ -150,9 +150,10 @@ class HerdrCollectEntryTests(unittest.TestCase):
         lifecycle, _ = herdr.collector(self.state, PARENT)
         lifecycle.register(binding)
         if one_shot:
-            lifecycle.save_execution(assignment, {'address': address, 'created_ms': pid, 'pid': pid,
-                                                  'session_id': session, 'rollout_path': str(rollout),
-                                                  'tab': {'id': 'tab-a', 'pane': 'pane-a'}})
+            lifecycle.save_execution(binding, {
+                'address': address, 'created_ms': pid, 'pid': pid, 'session_id': session,
+                'rollout_path': str(rollout), 'tab': {'id': 'tab-a', 'pane': 'pane-a'},
+            })
         return lines[-2:] if complete else None
 
     def lane(self, assignment, *, section='pending'):
