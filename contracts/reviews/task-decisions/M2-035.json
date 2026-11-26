@@ -166,6 +166,15 @@
       },
       "supersedes": "8bf8af61d8a18f33133cf17530f9fc4bfaa08231c97f7ebfab15bd76c823d7d5",
       "evidence_sha256": "49ae4c8024a77e23ad4d00007d27b7eb77d16af14e7e1f73433d16793987b1ad"
+    },
+    {
+      "kind": "request",
+      "source_commit": "76fe9dd86e2838ac31463efd8e2a84ac432009e3",
+      "scope": "Review source-row interruption, stale or withheld data, late status, timeout, confirmed withdrawal and reauthorization on CSV and folder publications after the protected merge. Exercise the ordinary public interaction and assess the actual reach of the separate Windows harness and prior source evidence.",
+      "supersedes": "6387da8938c538ca67cde7665fb5c792f0ec76767e222cc84db4f1c1147ef3a2",
+      "requested_at": "2026-11-26T05:30:41.253206+00:00",
+      "request_id": "b17f70c2a600483a285b05e03fbc3fa9b8fcf8497b93d61b086ee54370dc4d2e",
+      "evidence_sha256": "5d189c28e3944fed2726258f19cfa2e4c4bf9ca726b688c3a8cabe638b1d416b"
     }
   ]
 }

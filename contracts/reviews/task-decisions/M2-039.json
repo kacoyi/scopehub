@@ -146,6 +146,15 @@
       },
       "supersedes": "d7ddfd44d2cb54ff96cfbaa786d9a14c7d664b93819852a96b96f196e89ab4ef",
       "evidence_sha256": "a6c02f2aa30ef297bbaff6061ea78a97760b3dc2cb69c8a0365c528e65b10a9a"
+    },
+    {
+      "kind": "request",
+      "source_commit": "76fe9dd86e2838ac31463efd8e2a84ac432009e3",
+      "scope": "Review the three-way resolution with protected main, both public libraries and the new native Windows qualification. Challenge actual native status admission, interruption, closing and reopening, late results and confirmed withdrawal. Verify the probe identifies the compiled application, its WebView2 runtime and observed action outcomes. Distinguish its modeled inputs and any remaining native evidence.",
+      "supersedes": "16f3b0db15b719e9ad3ebf2024d557167c8c6d6f95c44b083829f2fc39489f42",
+      "requested_at": "2026-11-26T05:30:42.184957+00:00",
+      "request_id": "04e7fe96d68c5db7fcbf8c751083ad95b40762fb0cb6a1f292e9e96a3662ccfd",
+      "evidence_sha256": "f8104b94be273bd918a8e58a7cab32a74e67701edc7fcb214173fd518b4d9fb5"
     }
   ]
 }

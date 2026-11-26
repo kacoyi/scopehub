@@ -146,6 +146,15 @@
       },
       "supersedes": "60336b393902e32e7a247d4238f3c375eedddc2bd41932f2c8ff15f032c5f721",
       "evidence_sha256": "11983859d649d570a2d131b11cc8ece9d5283915c516951d6768aade191eced7"
+    },
+    {
+      "kind": "request",
+      "source_commit": "76fe9dd86e2838ac31463efd8e2a84ac432009e3",
+      "scope": "Review the resolved source, protected native admission and persistence of a cleared frozen selection across refocus, interruption and reopen. Exercise the actual public boundary and compare with the approved e59f8536 source. Verify that indicator status distinguishes refusal before admission from a busy result after admission.",
+      "supersedes": "5fde653824b911598cd45b6c8c83374030eef7889529b3206dcac8ddbd35d967",
+      "requested_at": "2026-11-26T05:30:40.285730+00:00",
+      "request_id": "b62031e27615779e086aa6d4b09ba287f49fec96ac5b76d2df0fe239c8191167",
+      "evidence_sha256": "2ec5bf51d5c6d6a561b1f0adb885d63f1d72791a7b2ca79db803f62bee39a3c3"
     }
   ]
 }
