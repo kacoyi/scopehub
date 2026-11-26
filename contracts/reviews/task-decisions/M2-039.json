@@ -291,6 +291,15 @@
       },
       "supersedes": "eb139a955ea2345862cf20b7a2e611f0cb9e7b4470eedd7c190445285d42b394",
       "evidence_sha256": "39b85acaaa71d2d0f6d09e9697372362ba1ed74d6cb733c3048ebddcf22c7234"
+    },
+    {
+      "kind": "request",
+      "source_commit": "01026c1b3545c940f8d3d960eb64b603e1324b33",
+      "scope": "Check the actual combined reviewed revision-access harness and protected private workspace test on PR 127's main revision. Reuse your three original decisions at b39a02e2, the native pre-admission failure and qualifying Linux controls. Inspect the interaction and case selection of the resulting workspace.spec.mjs, the official scoped x64 check and artifact provenance. Identify any regression attributable to this combined source and distinguish the pending first native candidate result.",
+      "supersedes": "7aec827f7cfc17a90d3af07161fe1b623559e38addf038d8f511d444bda7e61e",
+      "requested_at": "2026-11-26T13:09:50.284980+00:00",
+      "request_id": "b2081837548683ff20d2a525eaab939a26ed66f9ba75b38472f556406f2fcfbe",
+      "evidence_sha256": "3266aaa9de4ed7766a83d7c0e5958c6ad9b4b80fa165bd8bc950a132704736b2"
     }
   ]
 }

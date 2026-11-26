@@ -271,6 +271,15 @@
       },
       "supersedes": "c363cc7ea021eb50009d108a647be72fcc845401c033e8fe1d559c4a8cbfe0bd",
       "evidence_sha256": "2751eccc704077d8dad9a11caf942149077af1e669103b37b73bf62b55761ba9"
+    },
+    {
+      "kind": "request",
+      "source_commit": "01026c1b3545c940f8d3d960eb64b603e1324b33",
+      "scope": "Review the combined workspace startup/recovery test after integrating PR 127. On this commit, verify the preserved temporary-loss, confirmed withdrawal and reopen behavior and that the new private handoff comparison is scoped to its own case. Reuse the source-bound b39a02e2 decision, original controls and observed native boundary; concentrate on the shared test file and test lifecycle changes.",
+      "supersedes": "4506a963008929094284e002bbcbb2d495e8fb3b6fbe94accc1376ac662b6d32",
+      "requested_at": "2026-11-26T13:09:51.707807+00:00",
+      "request_id": "0d44310a01747a837147169cb15c619a24e2d2d9535f57045004e90bef440db7",
+      "evidence_sha256": "172b113410c224149908efbef5ed85307100cdd774ee0f89e11590e3f02e9645"
     }
   ]
 }

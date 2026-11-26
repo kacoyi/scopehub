@@ -251,6 +251,15 @@
       },
       "supersedes": "78e23dd3db5efe54eaec41a2a60f8757c5c9e03d5c7998c4d8aff6ef832a2625",
       "evidence_sha256": "e283c7d271b2b4335a90ee4591cb934239301019aac47bd3b90bc6c6e766bfab"
+    },
+    {
+      "kind": "request",
+      "source_commit": "01026c1b3545c940f8d3d960eb64b603e1324b33",
+      "scope": "Check the combined workspace fixture against the accepted frozen selection, owned clear and restart behavior, including the relevant ordinary browser selection and private handoff assertions after PR 127. The b39a02e2 source decision and actual individual focused observations remain available. Trace the changed file's combined behavior to the preserved product callers; report what remains unobserved on Windows.",
+      "supersedes": "de754d0f1ed30f96f55a325fefdc0083987b5304b6454f3fffd36372edf42294",
+      "requested_at": "2026-11-26T13:09:50.978311+00:00",
+      "request_id": "9f655d0688aa7f88d71f34e9f89a5621c5de755d7ef3565ded6d1ae689282b08",
+      "evidence_sha256": "66874b51ddb8e9908d80226334cebc721b4bfb0859f0e9564378d07fa74b0db6"
     }
   ]
 }
