@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-168",
   "tasks": [
     {
       "id": "M0-001",
@@ -27276,6 +27276,129 @@
           ],
           "data_plan": "Development records only. Keep task originals private and preserve existing product data and permissions.",
           "cleanup": "Use the supported repository entry for the corrected behavior. Version 2 registrations keep older collectors from processing migrated lanes. Recover Version 1 originals without assuming prior retirement was verified. Retire superseded local workarounds after matched verification and preserve originals required for audit."
+        }
+      }
+    },
+    {
+      "id": "M0-168",
+      "title": "Qualify Herdr transport capability and return-byte evidence on Windows verification",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-162"
+      ],
+      "scope": [
+        "scripts/herdr.py",
+        "scripts/herdr_native.py",
+        "scripts/herdr_returns.py",
+        "tests/project/test_herdr_native.py",
+        "tests/project/test_herdr_returns.py",
+        "tests/project/test_herdr.py",
+        "tests/project/test_herdr_lifecycle.py",
+        "project/feedback.json",
+        "project/tasks.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0030"
+      ],
+      "acceptance": [
+        "Bind the supported host transport and unsupported-capability behavior to the actual repository entry. Exercise the supported native handshake and preserve a precise safe hold on an unavailable transport.",
+        "Preserve original session bytes and distinguish a genuine return, changed bytes and an unrelated review subject through the normal return collector. Verify LF and CRLF handling according to the actual producer format without normalizing away the recorded identity.",
+        "Keep the genuine Linux desktop interruption and neighboring-window controls, verify the corrected behavior independently, and obtain current hosted Windows and Linux observations. Recheck the integrated source."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45841715488-1",
+          "source_commit": "bc37367abf26f5bf97e3d15558ead399065c7212",
+          "report_sha256": "8c50ac9561b6320a11957b0085492253fde911bb6b681299b9680555c378fcc5"
+        }
+      ],
+      "next_action": "Inspect the two independent Windows observations, diagnose fixture and production boundaries and exercise paired valid and rejected inputs against the public Herdr entry.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Qualify the public collector and its controls on both hosted operating systems under the supported local Herdr contract.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/herdr.py",
+          "scripts/herdr_native.py",
+          "scripts/herdr_returns.py",
+          "tests/project/test_herdr_native.py",
+          "tests/project/test_herdr_returns.py",
+          "project/checks.json",
+          "project/development.json"
+        ],
+        "hypotheses": [
+          "The mocked handshake may omit the platform transport capability boundary.",
+          "Producer/fixture newline translation may change the byte identity of the ordinary and rejected review cases. Verify at the original byte boundary."
+        ],
+        "risks": [
+          {
+            "failure": "Bypassing a host prerequisite could permit an unsupported native operation.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Normalizing all raw transcript data could falsely accept a changed original or a different review.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Restore the previous behavior with the first Windows failure and native Linux evidence preserved, and keep unsupported cases held.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/herdr.py",
+            "scripts/herdr_native.py",
+            "scripts/herdr_returns.py",
+            "tests/project/test_herdr_native.py",
+            "tests/project/test_herdr_returns.py"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/herdr/parallel"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/review"
+            }
+          ],
+          "non_goals": [
+            "Respect the existing supported Herdr host and transport scope. Preserve exact original response identity and scoped collection. Use local synthetic sessions and retain the separate real Linux desktop observation."
+          ],
+          "open_questions": [
+            "Which original bytes represent the matching result, and where is the supported host capability first observable?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Respect the existing supported Herdr host and transport scope. Preserve exact original response identity and scoped collection. Use local synthetic sessions and retain the separate real Linux desktop observation."
+          ],
+          "change": [
+            "Bind the supported host transport and unsupported-capability behavior to the actual repository entry. Exercise the supported native handshake and preserve a precise safe hold on an unavailable transport.",
+            "Preserve original session bytes and distinguish a genuine return, changed bytes and an unrelated review subject through the normal return collector. Verify LF and CRLF handling according to the actual producer format without normalizing away the recorded identity."
+          ],
+          "data_plan": "Preserve all archived session bytes and formats. Exercise disposable synthetic originals.",
+          "cleanup": "After checking both platforms and earlier real desktop observations, remove any superseded fixture assumptions and preserve the first failure."
         }
       }
     }

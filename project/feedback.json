@@ -8358,6 +8358,52 @@
         "prevention": "Exercise a real Linux lock with a collector-first replay after the budget and verify the exact pair. Retain the separate native late-release, self-archive and repeat collection control."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "herdr-native-test-assumes-unix-socket-capability",
+      "status": "open",
+      "severity": "major",
+      "source": "First Windows PR 142 attempt in archives/observations/repo-hygiene-20261125/pr142-native-original-45841715488/manifest.json (SHA-256 d2697819124f8fa2dd91e044abd19c060326ed94ff96cd07a704641151b24db5).",
+      "observation": "The Windows Python producer for PR 142 reached socket.AF_UNIX in the restarted-core handshake control and raised AttributeError on the hosted interpreter. The task has separate evidence on a live Linux desktop.",
+      "task_ids": [
+        "M0-168"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45841715488-1",
+          "source_commit": "bc37367abf26f5bf97e3d15558ead399065c7212",
+          "report_sha256": "8c50ac9561b6320a11957b0085492253fde911bb6b681299b9680555c378fcc5"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "herdr-exact-return-windows-original-mismatch",
+      "status": "open",
+      "severity": "major",
+      "source": "First Windows PR 142 attempt in archives/observations/repo-hygiene-20261125/pr142-native-original-45841715488/manifest.json (SHA-256 d2697819124f8fa2dd91e044abd19c060326ed94ff96cd07a704641151b24db5).",
+      "observation": "The Windows producer raised original_changed on the ordinary same-turn steering return fixture. All three wrong-subject or incomplete review heading cases returned original_changed before the expected review_verdict_mismatch. The failing log does not identify which bytes differed.",
+      "task_ids": [
+        "M0-168"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45841715488-1",
+          "source_commit": "bc37367abf26f5bf97e3d15558ead399065c7212",
+          "report_sha256": "8c50ac9561b6320a11957b0085492253fde911bb6b681299b9680555c378fcc5"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
