@@ -184,6 +184,26 @@
       "requested_at": "2026-11-26T06:21:22.208186+00:00",
       "request_id": "f62e6a7ca1083726bd5cfc3abc9c2314f1d99eece90dc2bef5c964c5d95d30be",
       "evidence_sha256": "09f5fd15e30a0b6d41f2b6b8366e622eef7f6bd456872a9041ea32f4ab08d258"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a47fe65ae18064d3147f86e6a3cb32784bca4d9d",
+      "verdict": "approved",
+      "decision": "APPROVE M0-139 a47fe65ae18064d3147f86e6a3cb32784bca4d9d",
+      "scope": "APPROVE M0-139 a47fe65ae18064d3147f86e6a3cb32784bca4d9d",
+      "observation": "The public M0-139 importer accepted the original Windows report for run 45680128413, rejected an attempt-two claim backed by both attempt-one logs, and rejected a report that replaced only the Python log with the same check’s log from another run of the same pull request.",
+      "reviewer": "Independent Astra Standard (t14d)",
+      "original_sha256": "a29f695d68325b5270915715fe31dc7d8e3b2046efa0d862ed1b0eeb3d920364",
+      "response_id": "c42a9ee5530a279ecc947aa2e38b96dcd8af677bc979ea50bbbd2dae14a8b6f4",
+      "response_sha256": "0f2c1e40051e8fa2580526690d52f1afa1bf15ab39332be1bc415aa940a33cb0",
+      "legacy_response_sha256": "f508826718244d5d1d0d7a5091ca9cc0fb332f8699bbe01b4f4e1ca09d04bb4f",
+      "observation_body_sha256": "41bc54634b1b1c6e93c0cf2f4b8eae040da0a8c5d249ac0f62d315e54d42aa39",
+      "event": {
+        "id": "msg_0b0b13a2595fcce0016b07d608223487d2b9f1643c3db4660d",
+        "timestamp": "2026-11-26T06:47:57.527Z"
+      },
+      "supersedes": "f62e6a7ca1083726bd5cfc3abc9c2314f1d99eece90dc2bef5c964c5d95d30be",
+      "evidence_sha256": "f3a2f373d089cba60b8c19f1a5afcc2488dcf882c81cfa373bbc33727c15f95b"
     }
   ]
 }

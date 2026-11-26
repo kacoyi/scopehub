@@ -184,6 +184,26 @@
       "requested_at": "2026-11-26T06:21:22.815615+00:00",
       "request_id": "7d56f8db8864dc969f748cbcc55d7c91678bc930b2d956349220b1025c1366ba",
       "evidence_sha256": "fb0ea287b70553a1f635314b371566806a10497ba58b22d61dd3a6670f30328c"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a47fe65ae18064d3147f86e6a3cb32784bca4d9d",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 a47fe65ae18064d3147f86e6a3cb32784bca4d9d",
+      "scope": "CHANGES_REQUESTED M0-146 a47fe65ae18064d3147f86e6a3cb32784bca4d9d",
+      "observation": "The candidate published reversed pass and skip outcomes from a legacy runner and reopened the resulting receipt while both original producer logs and all per-case durations remained unchanged.",
+      "reviewer": "Independent Astra Standard (t14f)",
+      "original_sha256": "624cd9af629eb0bf378210d7ca3203e15a263faee6f7b223c188eeab016d984f",
+      "response_id": "6cb654e3272d9dac21ffd5ca0414e55a626cd1fa7f2d7b2800aaf93726a2d36c",
+      "response_sha256": "740b02933b5a036cd58695f4ae6b791f6e180b50e21c9d5ca7f5d3335c6b65a3",
+      "legacy_response_sha256": "8d8de0511af16b62ae481bf98bebd5487c24db9733dae6d0aa04f68d12489a63",
+      "observation_body_sha256": "c8819aeef95b032b0fab4085dc5a7de23e425240524b3cea0e39e3564e665251",
+      "event": {
+        "id": "msg_0cd8169d362279a1016b07d7a05ce087d287ec0afdaa054b95",
+        "timestamp": "2026-11-26T06:54:45.865Z"
+      },
+      "supersedes": "7d56f8db8864dc969f748cbcc55d7c91678bc930b2d956349220b1025c1366ba",
+      "evidence_sha256": "ba7753cb59e83d03ad295aab60d6428d5812d54ce082e57ba7c3b9f42845d341"
     }
   ]
 }
