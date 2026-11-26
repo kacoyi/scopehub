@@ -68,6 +68,26 @@
       "requested_at": "2026-11-26T14:36:19.840966+00:00",
       "request_id": "f0cb03a4f38310f3a12f2dfda81b7fb43810ff145d7eb2cab19dae002a4ebc3e",
       "evidence_sha256": "6c22f416402550a4ecae49c5d1d9420dcac09878fac0da1a010353ff64c479ae"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "8e7af472becfc99a017c23e31355de413d9d4495",
+      "verdict": "approved",
+      "decision": "APPROVE M0-165 8e7af472becfc99a017c23e31355de413d9d4495",
+      "scope": "APPROVE M0-165 8e7af472becfc99a017c23e31355de413d9d4495",
+      "observation": "The public architecture check rejected the original planned indicator record while the worker imported its trusted evaluator, and accepted that same record when the import was removed.",
+      "reviewer": "Independent Astra Standard (t18t)",
+      "original_sha256": "b07c00f91f1e5dbe992786a8fa4c823d6d6d14a379a5e5ba77c605243eeba4d2",
+      "response_id": "c524828e10aa9f05a5d6688dbaef204b8b0c015e24342c75c776ff6034039176",
+      "response_sha256": "f5bf56d7fc91345262ddf8acb14dd188241e594f8f379dbc1bdfe76afab85a7e",
+      "legacy_response_sha256": "471c451db680e142dee6e63e4d73f73d4a6a7d2084bb07c3d5f1a5c0f1f2b21d",
+      "observation_body_sha256": "e452dc6a3442de78ddf0dfc7dcd57a3408a399027f1e625763c061d17ea5d59e",
+      "event": {
+        "id": "msg_0d07ef71c2017d35016b08447a11b887d2bac241d0aa96189a",
+        "timestamp": "2026-11-26T14:39:02.305Z"
+      },
+      "supersedes": "f0cb03a4f38310f3a12f2dfda81b7fb43810ff145d7eb2cab19dae002a4ebc3e",
+      "evidence_sha256": "9213fc1f2968eac0c90d5bd7e26c9b830a643418c42b85ee439b933e9efd2e57"
     }
   ]
 }
