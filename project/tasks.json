@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-157",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -25923,7 +25923,7 @@
       "id": "M0-157",
       "title": "Verify peer lock ownership across a slow interrupted console check",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-138"
       ],
@@ -25948,7 +25948,20 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-157-de21eedf9be349e7.json",
+          "sha256": "fd16e42541d8dc34490fe88374472ca9560e377a0668a0f354500625b2ddc86c"
+        },
+        {
+          "path": "project/evidence/M0-157-99117aff466fa0b0.json",
+          "sha256": "f2058cbb7eb5164b25b57b35a41279b5a8549e54ed706abf765e04d77fbd2c0d"
+        },
+        {
+          "path": "project/evidence/M0-157-3d83af1e735f571d.json",
+          "sha256": "a04d051d9ea46761e8df8dc3c7652be23923a00064fc15ff4718f50b2d141dde"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "20261125T222514.810400Z-4ec1e5c9",
@@ -25961,9 +25974,9 @@
           "report_sha256": "67fce911b24ee381336706ccddc7190909437d577c2dceaa9ce7ef400873ad6c"
         }
       ],
-      "next_action": "Verify the test-owned peer lifetime and the seven console interruption stages on the corrected Linux source, retain the raw controls and task report, then request independent source review.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The corrected Linux test passed all seven SIGINT stages in the ordinary PR and exact-source task workflows. A slow control retained the unrelated lock beyond the old deadline and an early-release control failed the expected assertion. Both original native failures remain archived. Their peer exit reasons were not recorded.",
       "plan": {
         "outcome": "A slow interrupted check verifies a live independent lock holder for the entire interaction and releases its owned fixture on every exit.",
         "change_types": [
