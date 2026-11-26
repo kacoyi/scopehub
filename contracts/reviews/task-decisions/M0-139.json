@@ -320,6 +320,15 @@
       },
       "supersedes": "2469049455b82d0c6715270727f0b94b5a2fec7776be7a56ad7040b7e52891e1",
       "evidence_sha256": "cd6e99067a32da8999df85c8381710b13eb34cf4854d38ca66a0e1df1616911e"
+    },
+    {
+      "kind": "request",
+      "source_commit": "07cc51a941fe209608fa32b69663f0f47a17420c",
+      "scope": "Review ordinary selection, role mapping, warm Windows coverage and importer. Check original producer attempts (2.0 and 2.1 where applicable), independent matched positive and wrong-attempt rejected cases, and compatibility after the repartition. Trace both real CRLF failures to their repairs. Reconcile four concurrent producer returns with their full sequential cases. Keep first-attempt Windows warm qualification open.",
+      "supersedes": "6f10c3d3f78c8b55950a36e20aba2bbca8add24518ac04b9ddd8eaca7b9dd427",
+      "requested_at": "2026-11-26T15:30:30.693519+00:00",
+      "request_id": "c7403f9b7fb1d695bc21b49d8f57a40325d622a7bcd20e1369dfed1094201b22",
+      "evidence_sha256": "5167b32eb4207c4a950d13c9fc6d67b2eaf9b6ee851fce1c0c3a809aa2fd1b6d"
     }
   ]
 }

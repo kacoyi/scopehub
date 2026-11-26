@@ -320,6 +320,15 @@
       },
       "supersedes": "3e8b9846ee1a77dd0469247d23177f790b57987fe1d99b921c312cd01ee62981",
       "evidence_sha256": "b48ae07361a388ce99f6b188194ea1733fadb48dad9bcdedde6a6d418db41df1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "07cc51a941fe209608fa32b69663f0f47a17420c",
+      "scope": "Review the actual Windows run 45839731781, both CRLF failures and new candidate qualifications at the normal producer and consumer. Verify the contiguous Python suffix and market-workflow move, case-level skip/pass and attempt compatibility, overlap controls against actual original sequential outcomes, clean lock observation, and all 35 selected checks. Distinguish prior missing cause, 1200-second Python timeout and the unmeasured 900-second warm target.",
+      "supersedes": "bd171f5cae20106208af764acc9a886e0dad738ead45812f78e0d30a398e45f9",
+      "requested_at": "2026-11-26T15:30:30.123205+00:00",
+      "request_id": "a278bfb20b4bdc236983f4d27befb0cafa4fa70c3a69e28d92484e94d75e1536",
+      "evidence_sha256": "a88dcc92a530c513043daf4e0b91f0f2bdf72ed4bee75e430e669988303f3881"
     }
   ]
 }
