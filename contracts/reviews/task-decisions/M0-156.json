@@ -242,6 +242,26 @@
       "requested_at": "2026-11-26T13:58:57.506195+00:00",
       "request_id": "ba3b3053b1108f97ae4ca13fd3baa245301ac7aaf0a27d60cbf8cab6db7d9d26",
       "evidence_sha256": "c4a4659a9bda045a3a0fb9acae1c75e577b59ef47f24bfb75d367e0c0b7c6819"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "438302ef9ebb720039a5f0dd77e6b051c5010560",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 438302ef9ebb720039a5f0dd77e6b051c5010560",
+      "scope": "CHANGES_REQUESTED M0-156 438302ef9ebb720039a5f0dd77e6b051c5010560",
+      "observation": "At Git depth two, the weekly reader issued a Windows receipt for PR 84 when the claimed checkout was a provable ancestor of the event head, both with and without the merge proof.",
+      "reviewer": "Independent Astra Standard (t17x)",
+      "original_sha256": "797bfa07054036c85a1c623830121920d1104d2e0aa2123e8d7f9c1b12d3ca52",
+      "response_id": "b01f1cae1fb601987dad1c77e61609b45190b928cb66d5b7065025848e8006d2",
+      "response_sha256": "a7a6aba51396a952d5a2c8e097df3eccc0bedab700525e6afdd4258ea396dc38",
+      "legacy_response_sha256": "59e785fba4ee265a24a7acb7a826bb58bef3b847943636023307939fa3e465c1",
+      "observation_body_sha256": "5f2a8ad6dd288d7a6f55476e7e0b507eba52787ccee76117f9299f4cacfbafde",
+      "event": {
+        "id": "msg_04015f7f0cf3409e016b083c75a66487d1a7d21bb21eeb4edd",
+        "timestamp": "2026-11-26T14:04:59.078Z"
+      },
+      "supersedes": "ba3b3053b1108f97ae4ca13fd3baa245301ac7aaf0a27d60cbf8cab6db7d9d26",
+      "evidence_sha256": "ea2ff0885a84aab0984373268607152bb78fccad4c71a4901f44b5f128467d8b"
     }
   ]
 }

@@ -213,6 +213,26 @@
       "requested_at": "2026-11-26T13:58:56.830307+00:00",
       "request_id": "d706465e9923a6f59e153acd92bc2b7148ccd3533dd38974eac9f25558e139f6",
       "evidence_sha256": "6aa1262d39eaa65c7bd4d342e37e17dbbb3df62a7427746936c31fff27f24d5d"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "438302ef9ebb720039a5f0dd77e6b051c5010560",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 438302ef9ebb720039a5f0dd77e6b051c5010560",
+      "scope": "CHANGES_REQUESTED M0-155 438302ef9ebb720039a5f0dd77e6b051c5010560",
+      "observation": "For archived push 45765544396, splitting a skipped step’s conclusion and timestamps across two rows of the same Linux job changed the reported duration of a separate successful step from 864 seconds to unknown.",
+      "reviewer": "Independent Astra Standard (t17r)",
+      "original_sha256": "d6bd71d73c2749b640b8ee4300dd83ab8f41723be8829ad266f20834d341d3e6",
+      "response_id": "417d3f3d74e5feb22075fa48415b81588f4c73b4b763c01064a316d01e3128ed",
+      "response_sha256": "1ae6fdf74067637a7fedca1ec2cf6f4ce19002c43342bc8c2b7775b1a4847c78",
+      "legacy_response_sha256": "3850872657a501dac4fc8a743b2c6d37facc490f930597ad791421a843e3fedc",
+      "observation_body_sha256": "0d88d391f3f911e6ee04d124af0e7d90221d73a30e44245dbd603ae04a24e089",
+      "event": {
+        "id": "msg_0eb34120a495990d016b083cc10cb887d19727e46359b2cd9f",
+        "timestamp": "2026-11-26T14:06:13.312Z"
+      },
+      "supersedes": "d706465e9923a6f59e153acd92bc2b7148ccd3533dd38974eac9f25558e139f6",
+      "evidence_sha256": "61da175b926697f47d47900e2b2c22d76f990e0c71a224d6b9ea36cf09e4aef8"
     }
   ]
 }

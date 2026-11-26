@@ -233,6 +233,26 @@
       "requested_at": "2026-11-26T13:58:56.157362+00:00",
       "request_id": "9bd765852bd702edddc1306281d8fba0c6d281f08eec242cecd3e77568e06eef",
       "evidence_sha256": "791b9e39cc26ffa016b39d2cd2a5c2cffa2650260a817b523eb8cb75ada68bb3"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "438302ef9ebb720039a5f0dd77e6b051c5010560",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 438302ef9ebb720039a5f0dd77e6b051c5010560",
+      "scope": "CHANGES_REQUESTED M0-150 438302ef9ebb720039a5f0dd77e6b051c5010560",
+      "observation": "Changing only the Windows aggregate status from passed to blocked in PR 121 and PR 116 still produced one Windows receipt per run in the offline weekly reader.",
+      "reviewer": "Independent Astra Standard (t17t)",
+      "original_sha256": "1725ce3f687b48029040557843ef48df8842dff91a4e346e587175d032259920",
+      "response_id": "24c291b61a07bde71683194ed43d48700af13fe44e0f06d8d80ed60a50daec89",
+      "response_sha256": "38927dac70bbb833b8dd38544115e9ff8844ce8fd71a363aaaf122ff31d1e492",
+      "legacy_response_sha256": "22aebdf5440d3754f763054b4659282aab0f6a50beeaab8d7609ef117d2ca404",
+      "observation_body_sha256": "82d9e82a68513868607b9f11f16087eab5becc6d0f3480e6ea9b25138b24a29a",
+      "event": {
+        "id": "msg_0d4665855d1b766c016b083d10c47c87d1ada3091c1d8af60c",
+        "timestamp": "2026-11-26T14:07:45.969Z"
+      },
+      "supersedes": "9bd765852bd702edddc1306281d8fba0c6d281f08eec242cecd3e77568e06eef",
+      "evidence_sha256": "1c11a007866da71182bd6ec4873a1728915e9f21e628957ce58e94386d061e65"
     }
   ]
 }
