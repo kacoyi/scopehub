@@ -26660,7 +26660,7 @@
           "report_sha256": "078717eb8956e711ef6b2262f43f70349a0d1d0901983b395af324135ec03f8c"
         }
       ],
-      "next_action": "Compare the ordinary failed frozen preview with the same-tree guarded pass, find the first divergent consumer observation, then retain a bounded positive and interrupted control.",
+      "next_action": "Independently review the frozen preview fixture diagnostics and controls on the clean implementation commit. Qualify the current source in the ordinary Windows browser workflow and recheck after protected integration.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26677,7 +26677,7 @@
           "contracts/reviews/2026-11-26-maintenance-workstreams.json"
         ],
         "hypotheses": [
-          "The truncated third journal is consistent with a fixture or transport interruption between the admitted status and the next observable recovery step. Determine the actual boundary before selecting a repair."
+          "The ordinary Windows third journal stops after the fixture intercepted a real ready status. The same-tree guarded Windows journal next records the browser reset, a genuine gated 429, a second reset and cancellation for that task. The original duration is consistent with the fixture's tagged snapshot write wait; the original HTTP and writer events are unavailable."
         ],
         "risks": [
           {
@@ -26718,7 +26718,7 @@
             "Preserve the 15-second polling deadline, frozen full and cropped values and ordinary permissions. Omit unrelated feature work and the separate ordinary Python process deadline."
           ],
           "open_questions": [
-            "The truncated third journal is consistent with a fixture or transport interruption between the admitted status and the next observable recovery step. Determine the actual boundary before selecting a repair."
+            "The original timeout call and the cause of the missing writer observation remain unconfirmed. Qualify the updated fixture in the ordinary Windows browser workflow."
           ]
         },
         "evolution": {
@@ -26727,7 +26727,7 @@
             "Preserve the 15-second polling deadline, frozen full and cropped values and ordinary permissions. Omit unrelated feature work and the separate ordinary Python process deadline."
           ],
           "change": [
-            "Compare the ordinary failed frozen preview with the same-tree guarded pass, find the first divergent consumer observation, then retain a bounded positive and interrupted control."
+            "Journal the intercepted upstream status, tagged snapshot HTTP and writer observations, and browser delivery separately. Fail the fixture explicitly if its snapshot settles before the tagged write. Exercise a real refusal while a competing snapshot holds the writer."
           ],
           "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
           "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."

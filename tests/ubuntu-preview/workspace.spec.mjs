@@ -865,6 +865,12 @@ test('indicator-preview shows zero volatility for equal closes in a full or crop
   ]);
 });
 
+test('indicator-preview identifies a refused snapshot before discarding the cropped status', async ({ browser }, testInfo) => {
+  await observeFrozenIndicatorPreview(browser, testInfo, [
+    { count: 1, cut: 1, refusals: 1, contendSnapshot: true },
+  ]);
+});
+
 const indicatorStatusFaults = [
   ['an admitted BUSY', 200, () => busy, 'The workspace is busy. Try the preview again.'],
   ['a nonretryable 429', 429, () => ({ ok: false, error: { code: 'BUSY', retryable: false } }),
@@ -1090,6 +1096,11 @@ function frozenJournalEvidence(journal) {
       at_ms: attempt.at_ms, body_sha256: createHash('sha256').update(attempt.body ?? '').digest('hex'),
       http: attempt.http, reply: reply(attempt.reply), delivery: bounded(attempt.delivery),
       response_error: bounded(attempt.response_error), browserDeadline: attempt.browserDeadline,
+      route_failure: attempt.routeFailure, fixture: attempt.fixture,
+      dispose_error: bounded(attempt.disposeError),
+      intercepted_ready: attempt.interceptedReady && {
+        http: attempt.interceptedReady.http, result: result(attempt.interceptedReady.result),
+      },
       syntheticRefusalRoute: attempt.syntheticRefusalRoute, heldForDeadline: attempt.heldForDeadline,
       triedLateFulfillment: attempt.triedLateFulfillment,
       lateFulfillmentError: bounded(attempt.lateFulfillmentError), gated: attempt.gated,
@@ -1102,8 +1113,55 @@ function frozenJournalEvidence(journal) {
   };
 }
 
+function startFrozenSnapshotHold(server) {
+  const tag = server.tagSnapshot();
+  const stop = new AbortController();
+  const signal = AbortSignal.any([stop.signal, AbortSignal.timeout(5_000)]);
+  const observation = {};
+  const reply = post(server, snapshot, tag.headers, signal).then(async response => {
+    observation.http = response.status;
+    const frame = await response.json();
+    observation.ok = frame.ok === true;
+    if (frame.error) observation.error = { code: frame.error.code, retryable: frame.error.retryable };
+    return response.status;
+  }).catch(error => {
+    observation.delivery_error = error.name;
+    throw error;
+  });
+  void reply.catch(() => {});
+  return {
+    async waitForWriter() {
+      const stopWaiting = new AbortController();
+      const waiting = AbortSignal.any([stopWaiting.signal, AbortSignal.timeout(3_000)]);
+      try {
+        return await Promise.race([tag.wait('written', waiting), reply.then(http => {
+          throw new Error(`Tagged frozen indicator snapshot settled before reaching the writer (HTTP ${http}).`);
+        })]);
+      } finally {
+        stopWaiting.abort();
+      }
+    },
+    async drain(written) {
+      tag.release();
+      expect(await tag.wait('drained')).toMatchObject({ request_id: written.request_id, ok: true });
+      expect(await reply).toBe(200);
+      expect(observation.ok).toBe(true);
+      expect(await tag.wait('finished')).toMatchObject({ http: 200 });
+    },
+    evidence() {
+      return { ...observation, stages: tag.stages() };
+    },
+    async close() {
+      tag.release();
+      if (!tag.stages().written) stop.abort();
+      await Promise.allSettled([reply]);
+    },
+  };
+}
+
 async function observeFrozenIndicatorPreview(browser, testInfo, trials) {
   const profile = await makeProfile();
+  let port;
   const revision = randomUUID();
   const prices = [133.33, 120.21, 120.21].map((close, index) => {
     const time = Date.UTC(2026, 1, 3 + index);
@@ -1112,7 +1170,8 @@ async function observeFrozenIndicatorPreview(browser, testInfo, trials) {
   });
   try {
     await seedFrozenEvidence(profile, revision, prices[0].time_ms, prices[2].time_ms, prices);
-    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+    port = await freePort();
+    await inService(port, profile, 'ubuntu-workspace', async server => {
       await inFreshBrowser(browser, server, async page => {
         await control(page, 'Open published CSV').click();
         const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
@@ -1125,6 +1184,7 @@ async function observeFrozenIndicatorPreview(browser, testInfo, trials) {
         if (trials.some(trial => trial.fault?.persistent)) await page.evaluate(observeFrozenStatusDeadlines);
         let journal = new Map();
         let routeStatus;
+        let onRouteFailure;
         let startedAt;
         const elapsed = () => Math.round(performance.now() - startedAt);
         page.on('request', request => {
@@ -1146,24 +1206,40 @@ async function observeFrozenIndicatorPreview(browser, testInfo, trials) {
           const attempt = journal.get(request);
           if (attempt) attempt.delivery = request.failure()?.errorText;
         });
-        await page.route(server.url + endpoint, route => {
+        await page.route(server.url + endpoint, async route => {
           const attempt = journal.get(route.request());
-          return attempt?.operation === 'indicator_preview_status' ? routeStatus(route, attempt) : route.continue();
+          if (!onRouteFailure || attempt?.operation !== 'indicator_preview_status') return route.continue();
+          const reportFailure = onRouteFailure;
+          try {
+            await routeStatus(route, attempt);
+          } catch (error) {
+            onRouteFailure = undefined;
+            attempt.routeFailure = { phase: attempt.routePhase, at_ms: elapsed(), name: error.name, cause: error.cause?.name };
+            try { await route.abort('failed'); }
+            catch (abortError) { attempt.routeFailure.abort_error = abortError.name; }
+            reportFailure({ error, attempt });
+          }
         });
 
         let previousTask;
         for (const trial of trials) {
-          const { count, cut, fault, refusals = 0 } = trial;
+          const { count, cut, fault, refusals = 0, contendSnapshot = false } = trial;
           journal = new Map();
           startedAt = performance.now();
+          const routeFailed = Promise.withResolvers();
+          onRouteFailure = routeFailed.resolve;
           let lost = 0;
           let substituted = false;
           let simulatedAttempts = 0;
           let remaining = refusals;
           let holder;
-          let snapshotReply;
+          let written;
+          let holdingAttempt;
+          let competing;
+          let competingWritten;
           let alert;
           routeStatus = async (route, attempt) => {
+            attempt.routePhase = 'deliver-status';
             if (fault?.persistent && lost === cut) {
               attempt.syntheticRefusalRoute = true;
               if (++simulatedAttempts === 3 && fault.holdFinalReply) {
@@ -1181,17 +1257,20 @@ async function observeFrozenIndicatorPreview(browser, testInfo, trials) {
               return route.fulfill({ status: fault.http, json: fault.body() });
             }
             if (!remaining && lost >= cut && (!fault || substituted)) return route.continue();
+            attempt.routePhase = 'fetch-status';
             const response = await route.fetch({ timeout: 5_000, maxRetries: 0 });
+            let failedBeforeDisposal = false;
             try {
+              attempt.routePhase = 'read-status';
               const reply = await response.json();
               if (holder && remaining > 0) {
                 expect({ http: response.status(), reply }).toEqual({ http: 429, reply: busy });
                 attempt.gated = true;
                 if (--remaining === 0) {
-                  holder.release();
-                  await holder.wait('drained');
-                  expect(await responseStatus(await snapshotReply)).toBe(200);
+                  attempt.routePhase = 'drain-snapshot';
+                  await holder.drain(written);
                 }
+                attempt.routePhase = 'deliver-refusal';
                 return await route.fulfill({ response });
               }
               if (reply.result?.status !== 'ready') return await route.fulfill({ response });
@@ -1201,18 +1280,34 @@ async function observeFrozenIndicatorPreview(browser, testInfo, trials) {
                 substituted = true;
                 return await route.fulfill({ status: fault.http, json: replacement });
               }
-              attempt.lost = { http: response.status(), result: reply.result };
-              if (++lost === 1 && remaining > 0) {
+              attempt.interceptedReady = { http: response.status(), result: reply.result };
+              if (lost === 0 && remaining > 0) {
                 // Hold an actual snapshot reply at the portable writer pipe.
                 // The authenticated status receives the host's own refusal.
-                holder = server.tagSnapshot();
-                snapshotReply = post(server, snapshot, holder.headers, AbortSignal.timeout(5_000));
-                void snapshotReply.catch(() => {});
-                await holder.wait('written');
+                holdingAttempt = attempt;
+                if (contendSnapshot) {
+                  attempt.routePhase = 'write-competing-snapshot';
+                  competing = startFrozenSnapshotHold(server);
+                  competingWritten = await competing.waitForWriter();
+                }
+                attempt.routePhase = 'write-snapshot';
+                holder = startFrozenSnapshotHold(server);
+                written = await holder.waitForWriter();
               }
+              attempt.routePhase = 'discard-ready-status';
+              lost++;
               await route.abort('connectionreset');
+              attempt.lost = attempt.interceptedReady;
+            } catch (error) {
+              failedBeforeDisposal = true;
+              throw error;
             } finally {
-              await response.dispose();
+              if (!failedBeforeDisposal) attempt.routePhase = 'dispose-status';
+              try { await response.dispose(); }
+              catch (error) {
+                if (!failedBeforeDisposal) throw error;
+                attempt.disposeError = error.name;
+              }
             }
           };
           try {
@@ -1220,7 +1315,40 @@ async function observeFrozenIndicatorPreview(browser, testInfo, trials) {
               await panel.getByLabel('First visible bar').selectOption(String(prices[2].time_ms));
             }
             await run.click();
-            await expect(panel.getByText(/Preview layers/).or(failure)).toBeVisible({ timeout: 30_000 });
+            const verdict = await Promise.race([routeFailed.promise,
+              panel.getByText(/Preview layers/).or(failure).waitFor({ timeout: 30_000 }).then(() => ({}))]);
+            if (contendSnapshot) {
+              expect(verdict.error?.message).toBe('Tagged frozen indicator snapshot settled before reaching the writer (HTTP 429).');
+              const { attempt } = verdict;
+              const admitted = operation => expectSingleAdmittedCommand([...journal.values()].filter(row => row.operation === operation),
+                { outcome: { state: 'committed' } });
+              const draft = admitted('indicator.createDraft');
+              const submitted = admitted('indicator.runPreview');
+              expect(submitted.payload.intent.arguments.draft_id).toBe(draft.reply.result.outcome.result.draft_id);
+              const taskId = submitted.reply.result.outcome.result.task_id;
+              expect(attempt).toMatchObject({ task_id: taskId, routeFailure: { phase: 'write-snapshot' },
+                interceptedReady: { http: 200, result: { status: 'ready', task_id: taskId, event: { task_id: taskId,
+                  snapshot: { from_ms: prices[2].time_ms, to_ms: prices[2].time_ms + 1 } } } } });
+              expect(attempt.lost).toBeUndefined();
+              await expect.poll(() => attempt.delivery).toBe('net::ERR_FAILED');
+              const refused = holder.evidence();
+              expect(refused).toMatchObject({ http: 429, ok: false, error: busy.error });
+              expect(refused.stages.written).toBeUndefined();
+              await competing.drain(competingWritten);
+              await expect(panel.getByText(/Preview layers/)).toBeVisible();
+              const statuses = () => [...journal.values()].filter(row => row.operation === 'indicator_preview_status');
+              await expect.poll(() => statuses().at(-1)?.reply?.result).toEqual(attempt.interceptedReady.result);
+              const statusRows = statuses();
+              expect(statusRows.at(-1)).not.toBe(attempt);
+              expect(statusRows.every(row => row.task_id === taskId && typeof row.request_id === 'string')).toBe(true);
+              expect(new Set(statusRows.map(row => row.request_id)).size).toBe(statusRows.length);
+              await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+              const cancels = () => [...journal.values()].filter(row => row.operation === 'task.cancel');
+              await expect.poll(() => cancels().at(-1)?.reply?.ok).toBe(true);
+              expectSingleAdmittedCommand(cancels(), { task_id: taskId, outcome: { status: 'completed' } });
+              continue;
+            }
+            if (verdict.error) throw verdict.error;
             alert = await failure.isVisible() ? await failure.innerText() : null;
             expect(alert).toBe(fault?.alert ?? (cut === 2 ? 'The indicator preview could not be completed.' : null));
             await expect(run).toBeEnabled();
@@ -1264,16 +1392,17 @@ async function observeFrozenIndicatorPreview(browser, testInfo, trials) {
             await expect(table.locator('tbody tr')).toHaveCount(count);
             await expect(table.locator('tbody tr').last().getByRole('cell').last()).toHaveText('0');
           } finally {
-            try {
-              const evidence = { count, cut, refusals, fault: fault?.name, alert, elapsed_ms: elapsed(),
-                ...frozenJournalEvidence(journal) };
-              await testInfo.attach('Frozen indicator request journal', {
-                body: JSON.stringify(evidence), contentType: 'application/json',
-              });
-            } finally {
-              holder?.release();
-              if (snapshotReply) await Promise.allSettled([snapshotReply.then(responseStatus)]);
+            const elapsedMs = elapsed();
+            await Promise.all([holder?.close(), competing?.close()]);
+            if (holdingAttempt) {
+              holdingAttempt.fixture = { snapshot: holder?.evidence(), competing: competing?.evidence() };
             }
+            const evidence = { count, cut, refusals, contendSnapshot, fault: fault?.name, alert, elapsed_ms: elapsedMs,
+              ...frozenJournalEvidence(journal) };
+            await testInfo.attach('Frozen indicator request journal', {
+              body: JSON.stringify(evidence), contentType: 'application/json',
+            });
+            onRouteFailure = undefined;
           }
         }
       });
@@ -1281,6 +1410,8 @@ async function observeFrozenIndicatorPreview(browser, testInfo, trials) {
   } finally {
     await profile.close();
   }
+  await expect(stat(profile.root)).rejects.toMatchObject({ code: 'ENOENT' });
+  expect(await portAvailable(port)).toBe(true);
 }
 
 test('indicator-preview evaluates real frozen chart bytes and isolates failure and cancellation', async ({ browser }, testInfo) => {
