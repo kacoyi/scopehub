@@ -7958,6 +7958,17 @@
       "regression_checks": ["project-state", "python-contracts-workers"],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-python-cleanup-output-case-outcomes",
+      "source": "Independent M0-146 decision df45b5c167a419e03363bf86a59839b89050de30688df3f32adc0fab49e64180 on ba27e2478d6bdbfe7736ac0f390b640f8a7fb9a4, recorded at contracts/reviews/task-decisions/M0-146.json#/events/10 on decision head 9607ec8aa557e520e7dc967f8536dbe7e9a95c8a. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-146-ba27e247/original-assistant-response.jsonl (SHA-256 abf441234963e5ebec5714f888e221f039c97092f385ffa82b084aabc9c99613).",
+      "observation": "Both the a3d20309 and ba27e247 runners recorded a passing case and a skipped case, followed by ordinary tearDownClass stderr ending in skipped 'fixture' and ok respectively. Publication rejected the genuine manifests. Exchanging the case outcomes and durations while preserving both original logs and the order, count and summary allowed producer publication, aggregate publication, receipt import and reopen. Exercise these public boundaries with the same real tests and intact or exchanged outcomes, and preserve the independent M0-139 attempt controls.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-146"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

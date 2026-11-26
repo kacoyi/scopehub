@@ -24,7 +24,7 @@ if __package__:
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, integration_validation, release_artifacts, validate_notice,
     )
-    from .verification_scope import SCOPED_PROFILES, ci_base, ci_event_checkout, require_ancestor
+    from .verification_scope import SCOPED_PROFILES, ci_base, ci_event_checkout, git, require_ancestor
 else:
     import windows_python
     from check import (PRIVATE_CHECK_LOGS, WINDOWS_LANES, WINDOWS_LANES_RUN_PREFIX, check_timeout, ci_provenance,
@@ -40,7 +40,7 @@ else:
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, integration_validation, release_artifacts, validate_notice,
     )
-    from verification_scope import SCOPED_PROFILES, ci_base, ci_event_checkout, require_ancestor
+    from verification_scope import SCOPED_PROFILES, ci_base, ci_event_checkout, git, require_ancestor
 
 ROOT = Path(__file__).resolve().parents[1]
 SCOPE_FILE = 'verification-scope.json'
@@ -297,7 +297,7 @@ def validate_python_process_clock(record, report):
         raise PublicationError(str(error)) from error
 
 
-def python_parts(reports, report, lanes, destination=None):
+def python_parts(reports, report, lanes, destination=None, *, callback_records=None):
     """Validate and optionally retain native part evidence from one authenticated report."""
     records = report.get('windows_python', {})
     if set(records) != set(lanes):
@@ -342,7 +342,7 @@ def python_parts(reports, report, lanes, destination=None):
             contents = bound_bytes(checked_path(reports, manifest), record['manifest_sha256'])
             try:
                 manifest_value = evidence_json(contents)
-                windows_python.verify_original(record, raw, manifest_value, lane)
+                windows_python.verify_original(record, raw, manifest_value, lane, callback_records=callback_records)
             except (TypeError, ValueError, KeyError) as error:
                 raise PublicationError(str(error)) from error
         if report['status'] == 'passed' and not passed:
@@ -385,7 +385,8 @@ def combined_python(project, report, parts):
 
 def validate_combined_python(root, project, reports, report, source_commit, destination=None):
     producer_reports = source_uses_python_producer_reports(root, source_commit)
-    parts = python_parts(reports, report, windows_python.LANES, destination)
+    parts = python_parts(reports, report, windows_python.LANES, destination,
+                         callback_records=source_uses_python_callback_records(root, source_commit))
     run = f"runs/{report['run_id']}"
     for lane, (record, _, _) in zip(windows_python.LANES, parts, strict=True):
         if (PRODUCER_REPORT_DIGEST in record) != producer_reports:
@@ -433,6 +434,13 @@ def source_uses_python_producer_reports(root, commit):
     harness = definitions.get('HostedHarnessReport', {})
     parts = harness.get('properties', {}).get('windows_python', {})
     return PRODUCER_REPORT_DIGEST in parts.get('additionalProperties', {}).get('properties', {})
+
+
+def source_uses_python_callback_records(root, commit):
+    # The committed runner selects the manifest format, even if an edited
+    # manifest removes the version and still matches its mutable report digest.
+    runner = git(root, 'cat-file', 'blob', f'{commit}:scripts/windows_python.py')
+    return re.search(rb'^CALLBACK_RECORD_VERSION[ \t]*=', runner, re.MULTILINE) is not None
 
 
 def validate_recorded_windows_evidence(root, project, reports, report, *, requires_python):
@@ -537,7 +545,8 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False, collect
     if required_parts == windows_python.LANES:
         validate_combined_python(root, project, reports, report, expected['checkout_sha'], destination)
     else:
-        parts = python_parts(reports, report, required_parts, destination)
+        callbacks = source_uses_python_callback_records(root, expected['checkout_sha']) if required_parts else None
+        parts = python_parts(reports, report, required_parts, destination, callback_records=callbacks)
         if any(PRODUCER_REPORT_DIGEST in record for record, _, _ in parts):
             raise PublicationError('A Windows Python lane cannot declare its own aggregate binding.')
     if lane:

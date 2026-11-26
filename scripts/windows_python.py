@@ -18,6 +18,12 @@ CUTOFF = 'tests.project.test_verification_scope'
 COMMAND = ['{python}', '-m', 'unittest', 'discover', '-s', 'tests', '-t', '.',
            '-p', 'test_*.py', '-v', '--durations', '0']
 REPORT_VERSION = '2.1'
+# Publication also reads this declaration from the tested commit.
+CALLBACK_RECORD_VERSION = 1
+CALLBACK_RECORD = re.compile(
+    rb'\r?\nScopeHub unittest callbacks v1: ([0-9]{1,20}) ([a-f0-9]{64}) ([a-f0-9]{64})(?=\r?\n)',
+)
+CALLBACK_FIELDS = ('inventory', 'cases', 'counts', 'events', 'runner_seconds')
 COUNTS = ('failures', 'errors', 'skipped', 'expectedFailures', 'unexpectedSuccesses')
 FAILURES = ('failures', 'errors', 'unexpectedSuccesses')
 # Process duration is rounded independently to milliseconds by the harness.
@@ -29,7 +35,7 @@ RUNNER_SUMMARY = re.compile(
     re.MULTILINE,
 )
 RUNNER_OUTCOME = re.compile(
-    rb'''(ok|FAIL|ERROR|expected failure|unexpected success|skipped (?:'[^\n]*'|"[^\n]*"))(?=\n)''',
+    rb'''(ok|FAIL|ERROR|expected failure|unexpected success|skipped (?:'[^\n]*'|"[^\n]*"))\Z''',
 )
 RUNNER_DETAILS = re.compile(rb'^(?:={70}|Slowest test durations)\n', re.MULTILINE)
 # Redirected legacy Windows stderr used the host ANSI code page unless Python
@@ -153,14 +159,29 @@ class PartResult(unittest.TextTestResult):
                 self.event(subtest, 'ERROR', self.errors[-1][1], owner=test)
 
 
-def write_manifest(label, result, owners):
-    if result is None:
+def callback_bytes(payload):
+    return json.dumps(payload, sort_keys=True, separators=(',', ':'), allow_nan=False).encode('ascii')
+
+
+def write_callback_record(log, payload):
+    sys.stdout.flush()
+    sys.stderr.flush()
+    with open(log, 'rb') as raw:
+        prefix = raw.read(os.fstat(raw.fileno()).st_size)
+    outcome = sha256(callback_bytes(payload)).hexdigest()
+    record = (f'\nScopeHub unittest callbacks v{CALLBACK_RECORD_VERSION}: '
+              f'{len(prefix)} {sha256(prefix).hexdigest()} {outcome}\n').encode('ascii')
+    if os.write(2, record) != len(record):
+        raise OSError('Could not write the complete unittest callback record.')
+
+
+def write_manifest(destination, payload):
+    if payload is None:
         return
     # Bind the output observed inside the interpreter. The harness separately seals
     # the original stream after the process exits and its redirection is closed.
     sys.stdout.flush()
     sys.stderr.flush()
-    destination = Path(os.environ['SCOPEHUB_RUN_DIR']) / (label + '.json')
     log_digest = sha256()
     log_size = 0
     with destination.with_suffix('.log').open('rb') as raw:
@@ -168,12 +189,8 @@ def write_manifest(label, result, owners):
             log_digest.update(chunk)
             log_size += len(chunk)
     manifest = {
-        'inventory': list(owners),
-        'owners': owners,
-        'cases': result.cases,
-        'counts': {key: len(getattr(result, key)) for key in COUNTS},
-        'events': result.events,
-        'runner_seconds': result.elapsed,
+        **payload,
+        'callback_record_version': CALLBACK_RECORD_VERSION,
         'log_size': log_size,
         'log_sha256': log_digest.hexdigest(),
     }
@@ -195,9 +212,9 @@ def seal_manifest(destination, log_sha256):
 
 
 def run(lane):
-    result = None
-    owners = {}
-    atexit.register(lambda: write_manifest(part_id(lane), result, owners))
+    payload = None
+    destination = Path(os.environ['SCOPEHUB_RUN_DIR']) / (part_id(lane) + '.json')
+    atexit.register(lambda: write_manifest(destination, payload))
     discovered = list(tests(unittest.defaultTestLoader.discover('tests', 'test_*.py', '.')))
     inventory = [test.id() for test in discovered]
     # These are the same owners unittest uses to invoke module and class fixtures.
@@ -206,13 +223,25 @@ def run(lane):
     suite = unittest.TestSuite(test for test in discovered if test.id() in live)
     warnings = None if sys.warnoptions else 'default'
     result = unittest.TextTestRunner(verbosity=2, durations=0, warnings=warnings, resultclass=PartResult).run(suite)
+    outcomes = {
+        'inventory': inventory,
+        'owners': owners,
+        'cases': result.cases,
+        'counts': {key: len(getattr(result, key)) for key in COUNTS},
+        'events': result.events,
+        'runner_seconds': result.elapsed,
+    }
+    # Only this process receives the callbacks. Seal their payload alongside the
+    # original transcript before fixture shutdown can append any later output.
+    write_callback_record(destination.with_suffix('.log'), outcomes)
+    payload = outcomes
     return 0 if result.wasSuccessful() else 1
 
 
 def verify_manifest(manifest, lane):
-    required = {'inventory', 'cases', 'counts', 'events', 'runner_seconds', 'log_size', 'log_sha256'}
+    required = {*CALLBACK_FIELDS, 'log_size', 'log_sha256'}
     if (not isinstance(manifest, dict) or required - manifest.keys()
-            or manifest.keys() - required - {'owners', 'final_log_sha256'}):
+            or manifest.keys() - required - {'owners', 'final_log_sha256', 'callback_record_version'}):
         raise ValueError('Incomplete Windows Python case manifest.')
     expected = partition(manifest['inventory'])[lane]
     if 'owners' in manifest:
@@ -379,7 +408,7 @@ def runner_execution(raw, progress):
             # A footer after a completed callback closes this run. Later
             # shutdown runners cannot supply missing primary callbacks.
             footer = RUNNER_SUMMARY.search(raw, offset, start)
-            if footer is not None and RUNNER_OUTCOME.search(raw[offset:footer.start()]):
+            if footer is not None and runner_outcome(raw[offset:footer.start()]) is not None:
                 return None
         if previous is not None and runner_outcome(raw[offset:start + 1]) != previous:
             return None
@@ -401,10 +430,16 @@ def runner_execution(raw, progress):
 
 
 def runner_outcome(segment):
-    # Unittest flushes the named prefix, runs the body, then writes its
-    # outcome and newline. Test output may precede it, even on the same line.
-    outcomes = RUNNER_OUTCOME.findall(segment)
-    return outcomes[-1] if outcomes else None
+    # Legacy unittest did not distinguish callback bytes from fixture output.
+    # A status can close the named header or occupy its own line when test
+    # output splits the header. Suffixes of subsequent prose are cleanup text.
+    lines = segment.split(b'\n')[:-1]
+    if not lines:
+        return None
+    outcomes = {match[1] for line in lines[1:] if (match := RUNNER_OUTCOME.fullmatch(line))}
+    if match := RUNNER_OUTCOME.search(lines[0]):
+        outcomes.add(match[1])
+    return outcomes.pop() if len(outcomes) == 1 else None
 
 
 def verify_execution(raw, progress, count, verdict):
@@ -421,8 +456,26 @@ def verify_execution(raw, progress, count, verdict):
     raise ValueError('Original unittest progress, run count or verdict differs from the case manifest.')
 
 
-def verify_original(record, raw, manifest, lane):
+def verify_callback_record(raw, manifest):
+    payload = {field: manifest[field] for field in (*CALLBACK_FIELDS, 'owners')}
+    expected = sha256(callback_bytes(payload)).hexdigest().encode('ascii')
+    records = []
+    for record in CALLBACK_RECORD.finditer(raw):
+        boundary = int(record[1])
+        if boundary <= record.start() and sha256(raw[:boundary]).hexdigest().encode('ascii') == record[2]:
+            records.append(record[3])
+    if records != [expected]:
+        raise ValueError('Original unittest callback record differs from the case manifest or transcript.')
+
+
+def verify_original(record, raw, manifest, lane, *, callback_records=None):
     expected = verify_manifest(manifest, lane)
+    version = manifest.get('callback_record_version')
+    if ('callback_record_version' in manifest and (type(version) is not int or version != CALLBACK_RECORD_VERSION)
+            or callback_records is not None and callback_records != (version is not None)):
+        raise ValueError('Original unittest callback record version differs from the recorded source.')
+    if version is not None and 'owners' not in manifest:
+        raise ValueError('Original unittest callback record is missing discovered fixture owners.')
     size = manifest['log_size']
     if (type(size) is not int or not 0 < size <= len(raw)
             or sha256(raw[:size]).hexdigest() != manifest['log_sha256']):
@@ -445,7 +498,10 @@ def verify_original(record, raw, manifest, lane):
             or sum(elapsed for _, elapsed in case_times([manifest])) > runner_seconds + CLOCK_ROUNDING):
         raise ValueError('Original unittest runner duration exceeds its process duration or understates case time.')
     progress, diagnostics, runner_progress = verify_events(manifest, expected)
-    verify_execution(raw[:size], runner_progress, len(manifest['cases']), verdict)
+    if version is None:
+        verify_execution(raw[:size], runner_progress, len(manifest['cases']), verdict)
+    else:
+        verify_callback_record(raw[:size], manifest)
     return progress, diagnostics + (trailer if reason else b'')
 
 

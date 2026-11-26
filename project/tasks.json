@@ -26175,7 +26175,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Review the clean correction and retained attempt and case-outcome replays. The coordinator owns fresh M0-139 and M0-146 decisions and the first ordinary full warm Windows PR on the corrected source with 35 selected outcomes within 900 seconds.",
+      "next_action": "Review the producer callback record and the retained case-outcome, summary and attempt replays. The coordinator owns fresh M0-139 and M0-146 decisions and the first ordinary full warm Windows PR on the corrected source with 35 selected outcomes within 900 seconds.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -26234,7 +26234,9 @@
           "M0-153 carries the previously measured M0-146 verifier read reuse into its serial Windows main-push investigation. M0-146 correctness repairs and qualification are independent of that measurement. The separate M0-153 focused native policy-read crossover is retained at archives/observations/repo-hygiene-20261125/m0-153-windows-policy-45743693200/observation.json (SHA-256 6414388a6abe9a4eeb307732c737888622f3301392a8cf091172acbdbd15bd61).",
           "Independent M0-139 rejection on 6c4effe33210598993fcd8bf7bca26d40d8569ba: contracts/reviews/task-decisions/M0-139.json#/events/8, response cff237850ce522ab9c76951c6328786509f4df88db93738665d78e5563582b97; original archives/observations/repo-hygiene-20261125/independent-final-m0-139-6c4effe3/original-assistant-response.jsonl (SHA-256 066e5ba2a2ebfcc70e04607bda287ac2dd411b3b5a3c404d121f82e032729b24).",
           "Independent M0-146 rejection on 6c4effe33210598993fcd8bf7bca26d40d8569ba: contracts/reviews/task-decisions/M0-146.json#/events/8, response 56fc37cf49f8aaec6cd0e8b37fe09d354f70f30cf2aff0b5221e1d08d4ce7500; original archives/observations/repo-hygiene-20261125/independent-final-m0-146-6c4effe3/original-assistant-response.jsonl (SHA-256 8ddb16dc5ac9f8ec3890a12dedccc3351dbd502b19dc6e94327359540620c4e4).",
-          "The attempt and case-outcome replay index is .reports/audit-20261125/m0-146-exact-review-6c4effe3/index.json. It identifies the genuine 2.0 Windows PR and main inputs, the original legacy 2.1 runner, same-shape substitutions, original producer bytes, public publication and receipt reopens, and the baseline detection results. Retain the indexed observations together."
+          "The attempt and case-outcome replay index is .reports/audit-20261125/m0-146-exact-review-6c4effe3/index.json. It identifies the genuine 2.0 Windows PR and main inputs, the original legacy 2.1 runner, same-shape substitutions, original producer bytes, public publication and receipt reopens, and the baseline detection results. Retain the indexed observations together.",
+          "The independent decisions on ba27e2478d6bdbfe7736ac0f390b640f8a7fb9a4 are retained in contracts/reviews/task-decisions/M0-139.json#/events/10 and contracts/reviews/task-decisions/M0-146.json#/events/10. The former approved the matching attempt controls and the latter observed exchanged case outcomes with unchanged producer logs. The decision head is 9607ec8aa557e520e7dc967f8536dbe7e9a95c8a.",
+          "Public red replay of 9607ec8aa557e520e7dc967f8536dbe7e9a95c8a with the actual a3d2030997def2937ac28e961a243809fe0b40fb and candidate producers: .reports/audit-20261125/m0-146-cleanup-case-outcomes/red/observations.json (SHA-256 0ac020c729520234f74892fa1e86fb4f3567bb5a1a0ddddf4d75670c71b68ebc) and red/SHA256SUMS (SHA-256 e6db0380a7ebdde432c9eda6fa486e01a85fb30723af7be0e3921b7b8474926f). Retain the original and changed copies, exact runner sources and observed receipts beside the index."
         ],
         "hypotheses": [
           "The Python producer finished last before aggregation on all three ordinary warm PRs. Individual test durations and process traces can separate repeated fixture or immutable repository reads from native runtime variation.",
@@ -26410,6 +26412,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "The artifact consumer infers a per-case callback from ordinary tearDownClass stderr after the case finishes. The genuine legacy and current runner manifests fail, and the same-count exchange publishes and reopens. Bind current outcomes to a producer-owned record and bound the historical text interpretation to identifiable progress. Regress genuine and exchanged outcomes through producer and aggregate publication, import and reopen using both supported runners.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain the original reports, revert a change that loses coverage or increases measured cost, and keep the open budget finding assigned until a qualifying observation is available.",
@@ -26455,7 +26464,8 @@
             "Read the project schema once per project load and reuse only the fixed legacy predecessor after proving ancestry. Reinitialize after hosted recovery.",
             "For full ordinary Windows PRs, run the contiguous Python suffix on the existing recovery producer after its own checks. Authenticate both source-bound discoveries, ordered test outcomes, process clocks and raw logs before publishing the original single Python check. Preserve serial execution elsewhere.",
             "Derive receipt part requirements from the verified source and hosted run identity. Check legacy structured manifest completeness against the original unittest footer and identifiable executed case displays.",
-            "Use exact per-run check paths for hosted receipts and keep both original lane reports in each current split aggregate. Reuse the lane validator before publication and on each receipt import or retry. Reconcile identifiable ordered case and fixture outcomes against the original runner bytes, including skips and the main footer."
+            "Use exact per-run check paths for hosted receipts and keep both original lane reports in each current split aggregate. Reuse the lane validator before publication and on each receipt import or retry. Reconcile identifiable ordered case and fixture outcomes against the original runner bytes, including skips and the main footer.",
+            "For the current producer, write a versioned record of the unittest callback payload and original transcript prefix into the original producer log as soon as the runner completes. Select the record requirement from the verified source for publication, import and reopen. Legacy runner output uses named progress and a primary footer. Ignore outcome suffixes in following prose and reject distinct standalone outcomes where the original stream has no callback boundary."
           ],
           "data_plan": "Use synthetic fixtures, read-only hosted originals and matching check logs. Preserve actual job durations, original identifiers and coverage for comparison. Archived 2.0 and legacy 2.1 evidence depends on authenticated retrieval for attempt lineage within canonical paths. Legacy merged output attests printed events and cannot distinguish identical in-band output or attest unprinted discovery members. A diagnostic reopen checks retained bytes. Accepted compact receipts retain their original report digest, and record revalidates the supplied report and originals before returning an existing receipt.",
           "cleanup": "Remove temporary profiling from the delivery path, archive the focused comparison and retain any unresolved timing investigation with its next observable action."
