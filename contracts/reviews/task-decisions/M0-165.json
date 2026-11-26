@@ -10,6 +10,26 @@
       "requested_at": "2026-11-26T12:45:06.407432+00:00",
       "request_id": "7a30a42fd66542eb31be920b08dbf242fa2320b3d33cdd1839a83bccfcc47df2",
       "evidence_sha256": "e6632efb7a7bffc8eeb26cb517c6fb0a4e3e5f0ac2aae25ef8185bfa5ac8abc4"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "16444fef187a3319672207576df1bbd5d607fa0d",
+      "verdict": "approved",
+      "decision": "APPROVE M0-165 16444fef187a3319672207576df1bbd5d607fa0d",
+      "scope": "APPROVE M0-165 16444fef187a3319672207576df1bbd5d607fa0d",
+      "observation": "The architecture check accepted the corrected inventory, rejected the original planned indicator entry, and raised no error for the historically planned product-ai module.",
+      "reviewer": "Independent Astra Standard (t15w)",
+      "original_sha256": "235209c055c20e0bfa2c7ae02e24af9edb37e0b0c784a2280f768da34d4c5d49",
+      "response_id": "8d456a883c4bd6719342879dddd5b8c28e301bb812bacf29a9524c40bf51e273",
+      "response_sha256": "42d557aa28aa321caaa6cefbaf2d758b31fb6bcac50e5a4450d3905f155e5ddb",
+      "legacy_response_sha256": "3dc4435dfb0c48fa8a25e41a3361afcfac5d826aa79096e0d55a8be00314146a",
+      "observation_body_sha256": "cb519bd5602c6ea2134ca23c4e241b8697c4e22142222b6229f19a55194aea0e",
+      "event": {
+        "id": "msg_0749debd815c3522016b082a8502ac87d1b2d2c4332ea72a36",
+        "timestamp": "2026-11-26T12:48:30.825Z"
+      },
+      "supersedes": "7a30a42fd66542eb31be920b08dbf242fa2320b3d33cdd1839a83bccfcc47df2",
+      "evidence_sha256": "61e17a5b55df0039b52f6cbeb7b2deeef1542920ce9c4bfe44ee8ca47e73cd4e"
     }
   ]
 }
