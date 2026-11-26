@@ -26620,6 +26620,125 @@
           "cleanup": "Remove temporary observation code and obsolete verification duplication after equivalent native controls pass. Keep the original failed report and log."
         }
       }
+    },
+    {
+      "id": "M0-163",
+      "milestone": "M0",
+      "title": "Make first-test and shared-capability guidance unambiguous from the checkout",
+      "status": "done",
+      "depends_on": [
+        "M0-158"
+      ],
+      "scope": [
+        "AGENTS.md",
+        "engineering-contract-v1.json",
+        "project/development.json",
+        "tests/project/test_development.py",
+        "project/evidence",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0030"
+      ],
+      "acceptance": [
+        "A fresh agent can find one consistent rule for choosing a first test. A chart rendering failure starts with an observable plotted-series distinction, while a protocol or permission failure starts at the boundary that can detect it. Use semantic examples and existing validation rather than hard-coding preferred wording.",
+        "A routine local dependency decision and a real shared-capability or external-provider decision lead to the appropriate versioned engineering rules. Preserve applicable organization or provider requirements when actually available and existing grants for costs, user data and access. An optional or missing host service cannot block unrelated local work.",
+        "Retain existing M0 and V1 scope and owner boundaries. Keep the root entry concise; consolidate duplicated detail only where an authoritative usable source exists. Validate changed links and discoverability from a clean checkout with no optional ancestor or private archive."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-163-0a1e626f3ffd9652.json",
+          "sha256": "ecf36e323719f520a4ae28899c42be5d48b035e4bcb7887834b9043832eb90f1"
+        },
+        {
+          "path": "project/evidence/M0-163-52d1e40230840602.json",
+          "sha256": "03fa066cd62638d4a301db76e84234a91e6c86cc5b0604e13e6f62dd2e80be79"
+        },
+        {
+          "path": "project/evidence/M0-163-c215d7446e0780b8.json",
+          "sha256": "4435168349b9381d274152c000a52501385732331e554d8c24b53deccaccd8ad"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The task checks and independent clean-checkout navigation verified the first-test and dependency rules, with separate chart and protocol examples and an accessible provider-authorization rule.",
+      "plan": {
+        "outcome": "The agent can select the first decisive test and recover the applicable dependency rules on a standard checkout.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+          "project/delivery.json",
+          "project/development.json",
+          "AGENTS.md",
+          "engineering-contract-v1.json",
+          "tests/project/test_development.py"
+        ],
+        "hypotheses": [
+          "A universal sequencing sentence and an unresolved host-specific cross-reference can send a fresh agent away from the first observable failure or make it wait for an unnecessary tool."
+        ],
+        "risks": [
+          {
+            "failure": "Clarifying guidance could remove meaningful security, licensing or provider boundaries or make a remote service a prerequisite for ordinary development.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Revert the guidance change and retain both observed interpretations and their source references for independent reconciliation.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "AGENTS.md",
+            "engineering-contract-v1.json",
+            "project/development.json",
+            "tests/project/test_development.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/iteration_policy/during"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/implementation_policy/build_or_reuse"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/evolution"
+            }
+          ],
+          "non_goals": [
+            "Change product runtime behavior, expand owner authorization, or publish private evidence."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The scope of product and engineering roles, existing parent rules when present, M0 exclusions, privacy, generator ownership, and actual release qualification."
+          ],
+          "change": [
+            "Resolve conflicting priorities and the dangling rule reference at their authoritative sources. Align nearby agent-facing navigation with the working directions."
+          ],
+          "data_plan": "Development records only. Keep task originals private and preserve existing product data and permissions.",
+          "cleanup": "Use the supported repository entry for the corrected behavior. Retire superseded local workarounds after matched verification and preserve originals required for audit."
+        }
+      }
     }
   ]
 }
