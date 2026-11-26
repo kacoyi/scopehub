@@ -155,6 +155,26 @@
       "requested_at": "2026-11-26T15:19:32.866909+00:00",
       "request_id": "d243bb9fd38a1883cb9c94f6d012f4ff613a582b8dabc6199ee7043342e8498c",
       "evidence_sha256": "93fc672aa57c1a557c98c8b86445a0d47756a7218a69a87661c67b60a79401f0"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b8303eeeeddfd9295342108759a90b96c924eab9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-167 b8303eeeeddfd9295342108759a90b96c924eab9",
+      "scope": "APPROVE M0-167 b8303eeeeddfd9295342108759a90b96c924eab9",
+      "observation": "I verified that the writable Ubuntu run passed all eight frozen admission cases and all three carrier and restoration cases, and that all 17 decoded Playwright attachments matched the coordinator’s archived originals byte for byte.",
+      "reviewer": "Independent Astra Standard (t19k)",
+      "original_sha256": "93e0c809d92ff029212dc19732f8d9277efb0ca85461c6d424e090ec2ddba16f",
+      "response_id": "d70006506c4118741db2f656a36fd9efb289fd0775f5c968e191be8b72d18688",
+      "response_sha256": "7fc314092bf4613be29c00f61d2098faca557ca720346d94654d71911d4e1583",
+      "legacy_response_sha256": "0fae59c458c5b34d7da553eac61ff898c27e202af03856cf89ff43a1d7f6b9cd",
+      "observation_body_sha256": "01a1c3bdb6d077aef6fe300e88160847b60f71cfa3472f8e35a8774d1497bd8d",
+      "event": {
+        "id": "msg_0370be60678c057d016b084ed9737487d284a8c1e5121b7870",
+        "timestamp": "2026-11-26T15:23:27.477Z"
+      },
+      "supersedes": "d243bb9fd38a1883cb9c94f6d012f4ff613a582b8dabc6199ee7043342e8498c",
+      "evidence_sha256": "2d99b7c4375d95044c0db148e3800afa02867354628e7f2ee3c328c48b88d1d1"
     }
   ]
 }
