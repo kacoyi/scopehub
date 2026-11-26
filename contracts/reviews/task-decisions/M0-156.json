@@ -126,6 +126,26 @@
       "requested_at": "2026-11-26T06:32:14.883320+00:00",
       "request_id": "3d09b9d2a063068fd042c6ab747f39fac6ce1cb0027b3d9014eb5027e285f327",
       "evidence_sha256": "e6f243ecd37c14ee0444ed5ea740e6a09f46f2e61344eed70888e813e0865bde"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "scope": "CHANGES_REQUESTED M0-156 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "observation": "On full and shallow history, the weekly reader issued a Windows receipt for run 45546767887 when the proof named the same commit as both merge parents and claimed a different tree.",
+      "reviewer": "Independent Astra Standard (t14r)",
+      "original_sha256": "0fd5c34a4277832d0a154a78485cb7bd74eb2aa7d503b6dd45b04d9e32c0641b",
+      "response_id": "6ab97c310d7ad197de746d5aa55bd50dee9057602fe5628d9d93381b47307f51",
+      "response_sha256": "429848a42249b7f6b735d34985df50ab69378e0ba92375a458ff640fcabc5bf6",
+      "legacy_response_sha256": "9b903afa499821c3ea738d3e423bcbb107dc578c129bdb64f37d7ce56249c429",
+      "observation_body_sha256": "d9229bf74f9b5fdb960bf0bd37239a3c61751fc9c64756e5b0e9db56493e1817",
+      "event": {
+        "id": "msg_0e73ad47729f9d22016b07dc79125087d29c82eff3a51d5f9b",
+        "timestamp": "2026-11-26T07:15:23.731Z"
+      },
+      "supersedes": "3d09b9d2a063068fd042c6ab747f39fac6ce1cb0027b3d9014eb5027e285f327",
+      "evidence_sha256": "eeee016f704b723c4c4ffb03194f2afa7588b41c8acfe7259e347e2ff34c7b89"
     }
   ]
 }

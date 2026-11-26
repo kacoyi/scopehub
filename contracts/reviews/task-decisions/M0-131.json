@@ -126,6 +126,26 @@
       "requested_at": "2026-11-26T06:32:08.990677+00:00",
       "request_id": "0f5d67f548be04f391b25832d31e4181471d2752271f80f7c5f7aee4b01a6dab",
       "evidence_sha256": "eae0d9d99825a8a7c273971ad19af5fce0b7df4582136f670f03454629d557a6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-131 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "scope": "CHANGES_REQUESTED M0-131 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "observation": "For PR 84, the weekly reader issued zero Windows receipts when conflicting full and records job observations appeared in one listing and one receipt when the same rows appeared in two listings.",
+      "reviewer": "Independent Astra Standard (t14j)",
+      "original_sha256": "3e3f70adbda8727b98ce794b5f8372936745443dad011b463d1073fff26cd30f",
+      "response_id": "01e2334a4390e5d464aa9d6885bc139af0831b8bf575dbf798352949285e64b8",
+      "response_sha256": "9027e261ec9fbdcb858bbba67acdff56a948ee523334d2f1152d94e2c1117e68",
+      "legacy_response_sha256": "701915ccbadd5a5e0afe462698a2fd43699727dbbd46ae1c67993eb05d89cac6",
+      "observation_body_sha256": "0a15b16e5bed27325ebb0d82c9ef8016f32680eb4cb492e300b86f7f2e0f7a0d",
+      "event": {
+        "id": "msg_0f1f17ec16083f0f016b07d8f4b33087d1ae1f3fba896ddfdd",
+        "timestamp": "2026-11-26T07:00:25.171Z"
+      },
+      "supersedes": "0f5d67f548be04f391b25832d31e4181471d2752271f80f7c5f7aee4b01a6dab",
+      "evidence_sha256": "13ea904a733f2728c1022f44632104c88dfa64ea676c54591499cd81a10fda39"
     }
   ]
 }

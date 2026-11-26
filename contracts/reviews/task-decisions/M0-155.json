@@ -97,6 +97,26 @@
       "requested_at": "2026-11-26T06:32:13.908018+00:00",
       "request_id": "f598af8d2a15f2fd27b7fe0dd45be410016f406cbb185738ce589e7e2bd331df",
       "evidence_sha256": "4a0d030a50cf6433c5a69b7485f55a325d02fda0454553999ddd3a4fb287b649"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "scope": "CHANGES_REQUESTED M0-155 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "observation": "For run 45546767887, the weekly reader issued zero Windows receipts when conflicting publishing profiles appeared in one job listing and one receipt when the same rows were split across two listings.",
+      "reviewer": "Independent Astra Standard (t14q)",
+      "original_sha256": "aa3bd34b1b9ae6e3e510ef028b4ac7f7c1d91f5f8c362a561df4436d5deee7f2",
+      "response_id": "df0f378202b373e0f94e9189ad5e9439065f33bdb08ec0d25ec98893594c41d5",
+      "response_sha256": "1383ab3ac8940cba36ffc5888b99b11cf1538a5535ab2f65fbf177ea1f6396ab",
+      "legacy_response_sha256": "04b3e7c3dad281a2dedcfffe30241d8cf9298584589038742c01e2be9cec197d",
+      "observation_body_sha256": "a6d7e829c9a629b864ac70c1cf188a7c505be8c5509f2326f96ce7cdde2efcd2",
+      "event": {
+        "id": "msg_045cc39a2259d609016b07dbd86a3c87d1af468018587f2283",
+        "timestamp": "2026-11-26T07:12:51.558Z"
+      },
+      "supersedes": "f598af8d2a15f2fd27b7fe0dd45be410016f406cbb185738ce589e7e2bd331df",
+      "evidence_sha256": "16f5092b2753a7009fc620d1480695da14c5fa7446a1717fd47e3a2b0df8e039"
     }
   ]
 }

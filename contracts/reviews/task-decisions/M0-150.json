@@ -117,6 +117,26 @@
       "requested_at": "2026-11-26T06:32:12.931632+00:00",
       "request_id": "27334b15beebb0d3da60675b5aede2678f471a4e019edb36f2ac366378e1e995",
       "evidence_sha256": "a1115d075a23a384fd1f88997e5ea0a3a820467afb624dfe19f4fa2ba0fbb088"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "scope": "CHANGES_REQUESTED M0-150 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "observation": "The weekly reader issued one receipt each for stale 35-check PR 121 and PR 116 aggregates after the controlled publisher selected only 34 checks.",
+      "reviewer": "Independent Astra Standard (t14p)",
+      "original_sha256": "fd000926647f2d1f7a5603e55321f3f41dbb1d3bf48e57cf2989b059a41b55f3",
+      "response_id": "7bbe6b61fe484a556d119e0a9bdc2bfc283879ba4c485f5a64278083eb4d570f",
+      "response_sha256": "fd40aa6d3249bec404beb4addec7551e10593dc1bf610f50e6646821d265c55a",
+      "legacy_response_sha256": "d78b4746f08549e13c8fdcd8cca1defc71270e0bee5f7ae4e9712068ab7b3eb2",
+      "observation_body_sha256": "5261050875df9b66bfa4aebea90fedbe5ca1be550667393bcadbe0355f51d7ac",
+      "event": {
+        "id": "msg_0cb9743bed9c5e55016b07dacc27b487d190f22b977bfa5c56",
+        "timestamp": "2026-11-26T07:08:13.988Z"
+      },
+      "supersedes": "27334b15beebb0d3da60675b5aede2678f471a4e019edb36f2ac366378e1e995",
+      "evidence_sha256": "22871778933429f44da0d50de30d57830e4662c4246d99d955ee725836ad917b"
     }
   ]
 }

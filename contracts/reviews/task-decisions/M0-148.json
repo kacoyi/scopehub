@@ -126,6 +126,26 @@
       "requested_at": "2026-11-26T06:32:11.929715+00:00",
       "request_id": "43558cb21ef3117cbd75e1c5e06a75c4bcd1bbc87c726120881a7637c7072ded",
       "evidence_sha256": "5956c1606a735db53fe4f58bef241138c47e2149b83e5d5b5b08d0ecc5ee8bc1"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-148 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "scope": "CHANGES_REQUESTED M0-148 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "observation": "After I swapped the results of `generated-contracts` and `ai-workflow` in Windows push run 45577003837, the ordinary reader retained 718 wall seconds and 2,346 runner-seconds, and the weekly reader issued a receipt for the altered sample.",
+      "reviewer": "Independent Astra Standard (t14n)",
+      "original_sha256": "6089333f404eda9df4f611dd48f64e0497aada359f53631a0060031ba80a671a",
+      "response_id": "cd4e2ae0912581d9633a7bbe76f7eef7dbfa75cb37215c2141c23a0d5a1de427",
+      "response_sha256": "27e7fbe625ea46c868b847b4224bf8422b30922f3c36306c08f81a78d5242c42",
+      "legacy_response_sha256": "0ffa90f357702c5f3c021bcf0968e759fcae2c1a3b81d8d9f8dbad33a0497b68",
+      "observation_body_sha256": "ef074107e2b897bb39a4a86dcef5546276eba43523abdb983b95f769bc29cced",
+      "event": {
+        "id": "msg_035afc9800812fba016b07db07b97c87d1b5ee731b8206c8ac",
+        "timestamp": "2026-11-26T07:09:18.715Z"
+      },
+      "supersedes": "43558cb21ef3117cbd75e1c5e06a75c4bcd1bbc87c726120881a7637c7072ded",
+      "evidence_sha256": "a0d4ab4d3e30e5d474c796ac7632ab8a27582fa2281f71458aaf17dcf5fdd9fa"
     }
   ]
 }

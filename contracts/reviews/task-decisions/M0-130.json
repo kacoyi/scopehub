@@ -126,6 +126,26 @@
       "requested_at": "2026-11-26T06:32:08.008754+00:00",
       "request_id": "8b37706fa83359728b1e425afc91cad8014f24cc8672a75facccd750b77eef0c",
       "evidence_sha256": "289dbf1c3eaae938f01423078a10bd79b368a028e1ad9ab14a25ce303b38c257"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-130 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "scope": "CHANGES_REQUESTED M0-130 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "observation": "In an offline replay of PR 84 with the browser and aggregate job names swapped and two steps omitted from each listing, the weekly reader issued one Windows receipt using the browser job’s 645-second clock even though that job finished before the aggregate report was recorded.",
+      "reviewer": "Independent Astra Standard (t14h)",
+      "original_sha256": "924d728237f42216bc13c145a9088e64318548e76606daca211f5fafb25f227e",
+      "response_id": "fefc8d21651cf78bc199a5deff764e6b8a0ba7c89f710e5aac515d1ea7ccec11",
+      "response_sha256": "536f38effaf4682ad8096a7ffec4ad5166ebf1273ef3abcd19cfefac1667b26a",
+      "legacy_response_sha256": "9942a1833e38b20b313060a8b970424739916d9df7a30cc9b53e5ccd12839f58",
+      "observation_body_sha256": "3888c3f1fa8ef1a645e8c54e3ebc645deceacefe37d5c07215c9e3186ba58a20",
+      "event": {
+        "id": "msg_001b6908d60c30ed016b07d7495bb487d2bdbafdfaa65b46e4",
+        "timestamp": "2026-11-26T06:53:15.614Z"
+      },
+      "supersedes": "8b37706fa83359728b1e425afc91cad8014f24cc8672a75facccd750b77eef0c",
+      "evidence_sha256": "682cd03f982eb397f4cdcbcff99d34db3605295b03c8cd5bcced5277376ad5a1"
     }
   ]
 }

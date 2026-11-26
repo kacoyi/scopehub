@@ -126,6 +126,26 @@
       "requested_at": "2026-11-26T06:32:10.942444+00:00",
       "request_id": "2d0e8345e23b720e736ace76707cc255db3dd9dd3c506aa9e2ccdb3c9745b599",
       "evidence_sha256": "49855f572b51b8127d904528c2588e7c7ae7623e819f4bf0a8f1980604dc573f"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-145 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "scope": "CHANGES_REQUESTED M0-145 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "observation": "Both recent-collection modes issued a Windows freshness receipt for run 45546767887 when a nameless observation assigned the Ubuntu runner label to the same job ID as the Windows browser job.",
+      "reviewer": "Independent Astra Standard (t14m)",
+      "original_sha256": "529a23c2476bec7fa48c741f2fd888de76d9717929fb0731628f2ba58654c6b9",
+      "response_id": "fae626df3d8ab37181363c851bca21d806e52af85873522250d04864875e03d5",
+      "response_sha256": "30a93d465d573b9eb130b2b22f23105e3b075854a15b7d1d5c011592c51ec39f",
+      "legacy_response_sha256": "2c7de413c38b70b84ba08b3596ecb31a6e7f50d8e1a28436a0349eeac949f353",
+      "observation_body_sha256": "f434b50517b0ba5711e3aab5238df70fc2b0744c514529731e87e07918cb5db4",
+      "event": {
+        "id": "msg_020be8c06cd8519b016b07da0c780887d2833c423a342837ac",
+        "timestamp": "2026-11-26T07:05:03.591Z"
+      },
+      "supersedes": "2d0e8345e23b720e736ace76707cc255db3dd9dd3c506aa9e2ccdb3c9745b599",
+      "evidence_sha256": "b4d2bb95d1df72c817e21b77ef639bdc8301f8bca76657ed7f7305cb575e93c1"
     }
   ]
 }
