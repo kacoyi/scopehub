@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-159",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "f54b00ce0e470a589031eac5d93a4ff6f9c14a9a",
+      "scope": "Exercise the normal integration decision against the retained PR 131 incident. Compare accountable first-push handoff with incorrect source, event or serial inventory, missing ownership, self-approval and premature closure. Check historical policy and another affected or unaffected finding. Retain independent evidence for the decision and distinguish the Python deadline and complete-workflow timing.",
+      "supersedes": null,
+      "requested_at": "2026-11-26T06:38:54.801943+00:00",
+      "request_id": "766e35e7b992b20c190e4b41b9920eb04592fed33adf5108c6d0792e53db6440",
+      "evidence_sha256": "bd0b3d77007d88617db45edc4de1497bd217d4ee50fc102195d6c242d5dfc5d3"
+    }
+  ]
+}
