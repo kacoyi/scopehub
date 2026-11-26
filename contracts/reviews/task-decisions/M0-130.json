@@ -182,6 +182,15 @@
       "requested_at": "2026-11-26T13:58:52.811901+00:00",
       "request_id": "3730422e9a7381c818ef98169369fb40a1db632ff5f7d0c41b4ea4e44c17f555",
       "evidence_sha256": "c62ecf58cf9d28d6025fbd8ef1499f2dffa137134a66c0edfff7c64f78fcb04f"
+    },
+    {
+      "kind": "request",
+      "source_commit": "318f54c82e50a38c4310724b55e3e9ee6539afb8",
+      "scope": "Check the actual publishing job and the platform clock in the reviewed composition. Derive expected role and incomplete results from the retained original job, report and observed checkout. Exercise Linux-only or missing jobs beside a qualified Windows publisher and preserve any independently established fields.",
+      "supersedes": "3730422e9a7381c818ef98169369fb40a1db632ff5f7d0c41b4ea4e44c17f555",
+      "requested_at": "2026-11-26T14:56:20.010128+00:00",
+      "request_id": "a064468f348b028cb14b7c0c0ecb0cd78df7760b2e29f520495543a41d03b988",
+      "evidence_sha256": "92cd79191e0c80abb2e7ed551aef28fb45523922bdb37d9e63e1e1285d6454d8"
     }
   ]
 }

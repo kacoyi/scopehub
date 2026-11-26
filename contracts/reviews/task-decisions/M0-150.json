@@ -282,6 +282,15 @@
       },
       "supersedes": "6ce73f59b004420c8c4780fd26ef73515f2431cc6ec8ca9b199b6107e4a3e5a8",
       "evidence_sha256": "e3526a3a12e81547a5df119e895f0c1e247a2b189a298fb5808290a5f4e2e828"
+    },
+    {
+      "kind": "request",
+      "source_commit": "318f54c82e50a38c4310724b55e3e9ee6539afb8",
+      "scope": "Independently qualify exact instants, the required native result, and result-derived raw summaries with historical publisher inputs.",
+      "supersedes": "14ec74c4acfc55ed5196efce531d719792d669e9ef5c624274e9feec706dae69",
+      "requested_at": "2026-11-26T14:56:23.459103+00:00",
+      "request_id": "6e201d5783fa8402ee4d72ff492691e5399d2f2beef4fcc5bed174cdaa4d61d4",
+      "evidence_sha256": "8189823842df90367132cdc2f736c99fe8b22ec1a8cbbbbf313a92f0eb698a6a"
     }
   ]
 }

@@ -291,6 +291,15 @@
       },
       "supersedes": "1f8698026331035846c001702bd73f117e6e5174cac0a8ecf7aa4554e715f96a",
       "evidence_sha256": "c385b251a69ae204313eb08ebf6c4cda86c70237bc677a3ecf8d48c93e1d9f96"
+    },
+    {
+      "kind": "request",
+      "source_commit": "318f54c82e50a38c4310724b55e3e9ee6539afb8",
+      "scope": "Independently qualify shallow checkout provenance, incomplete ancestry, retained proof and separately observed clocks.",
+      "supersedes": "25517bc3a3195e8fdd80b295702c917ff00db428e215907fac3291c339d07634",
+      "requested_at": "2026-11-26T14:56:24.854749+00:00",
+      "request_id": "3aa12f7bdfa6fd5e7348150b7221e770429e96b163f9fecb8de0f347ac3f9ab2",
+      "evidence_sha256": "c9c43695584c5091f1aa8e9b09fcde3cfc44bdde322b4e6edbd1a2dbe2a56b49"
     }
   ]
 }
