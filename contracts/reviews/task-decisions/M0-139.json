@@ -146,6 +146,26 @@
       "requested_at": "2026-11-26T04:33:39.037866+00:00",
       "request_id": "583915aabf856331d15e9ec2b0271d7d0d99f36c2bbc71d02cbcf01e8c2bd79e",
       "evidence_sha256": "b36faeb4f51e73f39f50deb215e82dfe0eff347ea0c95f2ea2526268894f748e"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ba27e2478d6bdbfe7736ac0f390b640f8a7fb9a4",
+      "verdict": "approved",
+      "decision": "APPROVE M0-139 ba27e2478d6bdbfe7736ac0f390b640f8a7fb9a4",
+      "scope": "APPROVE M0-139 ba27e2478d6bdbfe7736ac0f390b640f8a7fb9a4",
+      "observation": "The public importer accepted matching Python producer evidence and rejected an M0-139 report for attempt 2 that referenced both required logs from attempt 1.",
+      "reviewer": "Independent Astra Standard (t135)",
+      "original_sha256": "92be9ab828145d9dc34c7203fe8a75a9dc2a4782acd0db737b6dba3fae3c1cae",
+      "response_id": "39f8a84c03b8f2ff29f708880bac4dc0415432ee9f0bf238efafe006dabca263",
+      "response_sha256": "8318da02e1a0bb5331b6e8981af6ca581271927820100553c944057e3fd10948",
+      "legacy_response_sha256": "e9b212067ce3411e16649b6aae27b4724997ce36e8edd670eaeb8e6d9a132372",
+      "observation_body_sha256": "12050c1613a2800a1f38c64402ccf8ddae2025a615df1e748e02d8d61284cdff",
+      "event": {
+        "id": "msg_000753ba86d9b9c7016b07bc50dc4c87d18e8cf253c7bc9fe2",
+        "timestamp": "2026-11-26T04:58:11.769Z"
+      },
+      "supersedes": "583915aabf856331d15e9ec2b0271d7d0d99f36c2bbc71d02cbcf01e8c2bd79e",
+      "evidence_sha256": "6754caf6957d8c78ec72400bf6f33c6d04a257996e93462ac663ab256e97777a"
     }
   ]
 }

@@ -146,6 +146,26 @@
       "requested_at": "2026-11-26T04:33:39.859204+00:00",
       "request_id": "14980db4a1bd11b6dc75a75e41268e39b14f55780583c3985fa21d1ccc3cb312",
       "evidence_sha256": "a16ad702486356c120d6e0197ed08efda646b7787a229b89e274be1f9c30c960"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ba27e2478d6bdbfe7736ac0f390b640f8a7fb9a4",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 ba27e2478d6bdbfe7736ac0f390b640f8a7fb9a4",
+      "scope": "CHANGES_REQUESTED M0-146 ba27e2478d6bdbfe7736ac0f390b640f8a7fb9a4",
+      "observation": "The candidate published reversed pass and skip outcomes and reopened the resulting receipt while both original producer logs remained unchanged.",
+      "reviewer": "Independent Astra Standard (t136)",
+      "original_sha256": "abf441234963e5ebec5714f888e221f039c97092f385ffa82b084aabc9c99613",
+      "response_id": "df45b5c167a419e03363bf86a59839b89050de30688df3f32adc0fab49e64180",
+      "response_sha256": "117632399bdacabcd53c1f7b82fdbbc79ea02b157328351d491c7d0e3dac7dcf",
+      "legacy_response_sha256": "ce392f2d1b134b6c27e6558cdebf1329b8de9252db5ff3e72911f682ea1ca7d3",
+      "observation_body_sha256": "1d944eb6fbfdcaae2bc42b3e6b24768708d382d120bfa08ad00b6b4258fb6731",
+      "event": {
+        "id": "msg_0979fc721a724a7d016b07bd63ffb887d1b672e9ec0d4b605f",
+        "timestamp": "2026-11-26T05:02:43.541Z"
+      },
+      "supersedes": "14980db4a1bd11b6dc75a75e41268e39b14f55780583c3985fa21d1ccc3cb312",
+      "evidence_sha256": "1a79194628714b6d2164660c9c5fa26e8aaf111e9cef12c8e1dcf521739adecc"
     }
   ]
 }
