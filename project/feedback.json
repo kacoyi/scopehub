@@ -7998,7 +7998,7 @@
     {
       "id": "preview-worker-terminal-error-waits-for-child-close",
       "source": "Independent Astra Standard review of 5585d26a63ebe8a54885b1aa5d9046a78218d38a at archives/observations/repo-hygiene-20261125/independent-final-m0-167-5585d26a/original-assistant-response.jsonl (SHA-256 81b6a7ec76e77105d5c5f015cdfcc2b68056eb916ef809572640a164e02f7c2d). The retained decision is contracts/reviews/task-decisions/M0-167.json#/events/3.",
-      "observation": "The reviewer exercised the exact preview transport with a controlled stream and observed that a complete WORKER_EXITED response remained pending until the carrier closed. The approval and expiry paths still see a running job while its failure is undispatched, which can exclude a competing approval or replace the failure with TIMEOUT. The Windows producer observation did not exercise this mechanism.",
+      "observation": "The reviewer exercised the exact preview transport with a controlled stream and observed that a complete WORKER_EXITED response remained pending until the carrier closed. A local replay through authenticated preview HTTP and the actual registry confirmed that a competing approval returned BUSY while the completed failure and child close were separate. The expiry path can replace an undispatched failure with TIMEOUT. The Windows producer observation did not exercise this mechanism.",
       "severity": "major",
       "status": "open",
       "task_ids": [

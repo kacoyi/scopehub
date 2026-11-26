@@ -22,6 +22,7 @@ import { assertWindowsLeafAclMatrix, assertUnsuitableWindowsHandoffsRejected, as
   from './workspace_test_handoff_acl.mjs';
 import { handoffProbeCases } from './workspace_test_handoff_probe_cases.mjs';
 import { claimProfile, withProfilePoolAclControl } from './workspace_profile_pool.mjs';
+import { observeIndicatorGate } from './workspace_indicator_gate.mjs';
 import { captureServiceOutput, observeServiceStartup, startupMessage } from './workspace_service_readiness.mjs';
 import { observeSnapshotGate } from './workspace_snapshot_gate.mjs';
 
@@ -31,6 +32,7 @@ const ui = join(root, 'apps/desktop/ui');
 const vite = pathToFileURL(join(ui, 'node_modules/vite/dist/node/index.js')).href;
 const viteCli = join(ui, 'node_modules/vite/bin/vite.js');
 const workspaceBridge = join(root, 'target/debug', process.platform === 'win32' ? 'workspace_bridge.exe' : 'workspace_bridge');
+const indicatorCarrier = join(root, 'target/debug', process.platform === 'win32' ? 'scopehub-indicator-child.exe' : 'scopehub-indicator-child');
 const python = join(root, '.venv', ...(process.platform === 'win32' ? ['Scripts', 'python.exe'] : ['bin', 'python']));
 const workspaceId = 'synthetic-workspace';
 const endpoint = '/__scopehub/workspace';
@@ -39,10 +41,11 @@ const snapshot = { type: 'snapshot' };
 // SQLite read when the actual producer is deliberately suspended.
 const admissionProbe = { type: 'snapshot', request_id: 1 };
 const snapshotGateModule = new URL('./workspace_snapshot_gate.mjs', import.meta.url).href;
+const indicatorGateModule = new URL('./workspace_indicator_gate.mjs', import.meta.url).href;
 const activeCacheSlots = new Set();
 const firstHistoryDisconnectHoldMs = 5_500;
 const service = `
-  const [entry, mode, port, cacheDir, faultEnabled, snapshotWriter, traceStartup] = process.argv.slice(1);
+  const [entry, mode, port, cacheDir, faultEnabled, snapshotWriter, traceStartup, indicatorCarrier] = process.argv.slice(1);
   const shutdown = Promise.withResolvers();
   let closing = !process.connected;
   let interrupted;
@@ -109,6 +112,9 @@ const service = `
   const snapshotGate = snapshotWriter
     ? (await import('${snapshotGateModule}')).installSnapshotGate('${endpoint}', snapshotWriter)
     : undefined;
+  const indicatorGate = indicatorCarrier
+    ? (await import('${indicatorGateModule}')).installIndicatorGate(indicatorCarrier, process.env.SCOPEHUB_WORKSPACE_PROFILE_ROOT)
+    : undefined;
   if (snapshotGate) plugins.push(snapshotGate.plugin);
   let server;
   function reportStartup(phase, code) {
@@ -137,8 +143,10 @@ const service = `
     cutHistory();
     snapshotGate?.close();
     try {
+      indicatorGate?.closing();
       await server?.close();
     } finally {
+      indicatorGate?.close();
       if (process.connected) process.disconnect();
     }
   }
@@ -2321,6 +2329,135 @@ test('indicator-preview probe bounds a pending snapshot observer', async ({}, te
     await testInfo.attach('indicator-observer-deadline', {
       contentType: 'application/json', body: JSON.stringify(witness),
     });
+  }
+});
+
+test('indicator-preview runs trusted Python once per approved task while earlier cleanup remains pending', async ({}, testInfo) => {
+  const profile = await makeProfile();
+  const scratch = join(profile.root, 'synthetic-indicator-scratch');
+  const before = 1704200940000;
+  const after = 1704243600000;
+  const observation = {};
+  const detached = { child: 0, stdin: 0, stdout: 0 };
+  const frame = () => ({ protocol_version: '1.1', type: 'request', request_id: randomUUID(),
+    message_id: randomUUID(), timestamp_ms: Date.now() });
+  const status = task_id => ({ type: 'indicator_preview_status', request_id: randomUUID(), task_id });
+  const approve = challenge_id => ({ ...frame(), operation: 'confirmation.respond', challenge_id, decision: 'approve' });
+
+  try {
+    const port = await freePort();
+    const source = await readFile(join(root, 'tests/fixtures/indicators/two-bar-mean.py'), 'utf8');
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      const { carrierGate: gate } = server;
+      const call = async body => (await readIndicatorAfterAdmission(server, body)).body;
+      const selection = await call({ type: 'workspace_source', request_id: randomUUID(),
+        source: { kind: 'sample', instrument_id: future }, expected_selection_revision: 0 });
+      expect(selection).toMatchObject({ ok: true, result: { selection_revision: 1 } });
+      const history = await fetch(server.url + operationPath, {
+        method: 'POST', headers: { Origin: server.url, 'Content-Type': 'application/json' },
+        body: JSON.stringify(sampleHistoryCall()), signal: AbortSignal.timeout(8_000),
+      });
+      expect(history.status).toBe(200);
+      const { snapshot: frozen } = (await history.json()).result;
+      const scope = target => ({ workspace_id: workspaceId, target, expected_workspace_revision: 0,
+        expected_selection_revision: 1, idempotency_key: randomUUID() });
+      async function stage() {
+        const draft = (await call({ ...frame(), task_id: null, scope: scope({ kind: 'chart', object_id: 'main-chart' }),
+          intent: { operation: 'indicator.createDraft', arguments: { language: 'python', source, params: {} } },
+        })).result.outcome;
+        expect(draft).toMatchObject({ state: 'committed' });
+        const review = (await call({ ...frame(), task_id: null,
+          scope: scope({ kind: 'chart_interval', snapshot: frozen, range: { from_ms: before, to_ms: after + 1 } }),
+          intent: { operation: 'indicator.runPreview',
+            arguments: { draft_id: draft.result.draft_id, snapshot: frozen, python_params: { divisor: 2 } } },
+        })).result.outcome;
+        expect(review).toMatchObject({ state: 'awaiting_confirmation' });
+        return review.challenge;
+      }
+      const first = await stage();
+      const firstApprovalStarted = performance.now();
+      expect((await call(approve(first.challenge_id))).result.outcome)
+        .toMatchObject({ state: 'committed', result: { task_id: first.task_id } });
+      expect(await gate.wait(0, 'started')).toEqual({ task_id: first.task_id });
+      const second = await stage();
+      await gate.command(0, 'partial');
+      await gate.wait(0, 'partial');
+      observation.partialFailure = (await call(status(first.task_id))).result;
+      expect(observation.partialFailure).toEqual({ status: 'running', task_id: first.task_id });
+      await gate.command(0, 'complete');
+      await gate.wait(0, 'frame');
+
+      // No status read delivers the complete frame before this competing
+      // approval. The same registry must already see the first failure.
+      observation.competingApproval = (await call(approve(second.challenge_id))).result.outcome;
+      expect(observation.competingApproval).toMatchObject({ state: 'committed', result: { task_id: second.task_id } });
+      observation.failureWhileOpen = (await call(status(first.task_id))).result;
+      observation.failureObservedMsAfterApproval = Math.round(performance.now() - firstApprovalStarted);
+      expect(observation.failureWhileOpen).toMatchObject({ status: 'terminal', task_id: first.task_id,
+        event: { event: 'task.terminal', outcome: { status: 'failed', error: { code: 'WORKER_EXITED' } }, committed_effects: [] },
+      });
+      expect(observation.failureWhileOpen.event.artifact).toBeUndefined();
+      expect(await readFile(join(scratch, 'input.json'), 'utf8')).toBe('synthetic input');
+
+      expect(await gate.wait(1, 'close-held')).toEqual({ exit: 0 });
+      observation.successBeforeClose = (await call(status(second.task_id))).result;
+      expect(observation.successBeforeClose).toEqual({ status: 'running', task_id: second.task_id });
+      await gate.command(1, 'release');
+      await gate.wait(1, 'closed');
+      const ready = (await call(status(second.task_id))).result;
+      expect(ready).toMatchObject({ status: 'ready', task_id: second.task_id });
+      observation.successPoints = ready.event.artifact.result.series[0].points;
+      expect(observation.successPoints).toEqual([{ time_ms: before, value: null }, { time_ms: after, value: 3500.5 }]);
+
+      const third = await stage();
+      expect((await call(approve(third.challenge_id))).result.outcome)
+        .toMatchObject({ state: 'committed', result: { task_id: third.task_id } });
+      expect(await gate.wait(2, 'started')).toEqual({ task_id: third.task_id });
+      observation.cancellation = (await call({ ...frame(), operation: 'task.cancel', task_id: third.task_id })).result;
+      expect(observation.cancellation).toMatchObject({ task_id: third.task_id,
+        outcome: { status: 'cancelled' }, committed_effects: [],
+      });
+      await gate.wait(2, 'stdin-ended');
+      await gate.command(2, 'complete');
+      await gate.wait(2, 'frame');
+
+      const fourth = await stage();
+      expect((await call(approve(fourth.challenge_id))).result.outcome)
+        .toMatchObject({ state: 'committed', result: { task_id: fourth.task_id } });
+      observation.carrierLimit = (await call(status(fourth.task_id))).result;
+      expect(observation.carrierLimit).toMatchObject({ status: 'terminal', task_id: fourth.task_id,
+        event: { outcome: { status: 'failed', error: { code: 'BUSY' } }, committed_effects: [] },
+      });
+      expect(observation.carrierLimit.event.artifact).toBeUndefined();
+      await gate.command(-1, 'count');
+      expect(await gate.wait(-1, 'count')).toEqual({ launches: 3 });
+
+      await gate.command(2, 'release');
+      observation.cancelledCarrierHandlers = await gate.wait(2, 'closed');
+      expect(observation.cancelledCarrierHandlers).toEqual(detached);
+      const cancelled = (await call(status(third.task_id))).result;
+      expect(cancelled).toMatchObject({ status: 'terminal', event: { outcome: { status: 'cancelled' }, committed_effects: [] } });
+      expect(cancelled.event.artifact).toBeUndefined();
+      expect((await call(status(first.task_id))).result).toEqual(observation.failureWhileOpen);
+
+      await server.stop();
+      await gate.wait(-1, 'closing');
+      observation.disconnectedBeforeCleanup = await gate.disconnectsWithin(150);
+      expect(observation.disconnectedBeforeCleanup).toBe(false);
+      expect(await readFile(join(scratch, 'input.json'), 'utf8')).toBe('synthetic input');
+      await gate.command(0, 'release');
+      observation.failedCarrierHandlers = await gate.wait(0, 'closed');
+      expect(observation.failedCarrierHandlers).toEqual(detached);
+      await expect(stat(scratch)).rejects.toMatchObject({ code: 'ENOENT' });
+      observation.disconnectedAfterCleanup = await gate.disconnectsWithin(5_000);
+      expect(observation.disconnectedAfterCleanup).toBe(true);
+    }, { indicatorGate: true });
+  } finally {
+    try {
+      await testInfo.attach('trusted-indicator-carrier-lifecycle', {
+        body: JSON.stringify(observation), contentType: 'application/json',
+      });
+    } finally { await profile.close(); }
   }
 });
 
@@ -5234,7 +5371,7 @@ async function portAvailable(port) {
   }
 }
 
-function spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault, snapshotGate, entry = vite, traceStartup }) {
+function spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault, snapshotGate, indicatorGate, entry = vite, traceStartup }) {
   // Vite publishes its dependency cache by renaming directories. Reuse warm
   // caches across launches, but give every live server its own write path.
   let slot = 0;
@@ -5243,7 +5380,7 @@ function spawnService(port, profile, mode, { terminalSignal, historyTrace, histo
   const args = terminalSignal
     ? [viteCli, '--mode', mode, '--host', '127.0.0.1', '--port', String(port), '--strictPort']
     : ['--input-type=module', '--eval', service, entry, mode, String(port), cacheDir,
-      historyFault ? '1' : '', snapshotGate ? workspaceBridge : '', traceStartup ? '1' : ''];
+      historyFault ? '1' : '', snapshotGate ? workspaceBridge : '', traceStartup ? '1' : '', indicatorGate ? indicatorCarrier : ''];
   const child = spawn(process.execPath, args, {
     cwd: ui,
     env: {
@@ -5272,11 +5409,15 @@ async function reapService(child, done, onForcedKill) {
 }
 
 async function inService(port, profile, mode, use, {
-  expectHandoff = true, terminalSignal, historyTrace = false, historyFault = false, snapshotGate = false, entry, holdTimeoutMs,
+  expectHandoff = true, terminalSignal, historyTrace = false, historyFault = false,
+  snapshotGate = false, indicatorGate = false, entry, holdTimeoutMs,
 } = {}) {
   const url = 'http://127.0.0.1:' + port;
   const startedAt = performance.now();
-  const child = spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault, snapshotGate, entry, traceStartup: true });
+  const child = spawnService(port, profile, mode, {
+    terminalSignal, historyTrace, historyFault, snapshotGate, indicatorGate, entry, traceStartup: true,
+  });
+  const carrierGate = indicatorGate ? observeIndicatorGate(child) : undefined;
   const startup = observeServiceStartup(child, { startedAt, mode, port });
   const output = captureServiceOutput(child, terminalSignal ? startup.observeCliStdout : undefined);
   let startupFailure;
@@ -5317,6 +5458,7 @@ async function inService(port, profile, mode, use, {
       ]);
     },
     ...(snapshotGate && { tagSnapshot: observeSnapshotGate(child) }),
+    ...(carrierGate && { carrierGate, stop: () => send('close') }),
     cutHistoryResponse: () => send('cut-history'),
     disconnectOwner: writer => {
       expect(child.connected).toBe(true);
@@ -5346,6 +5488,7 @@ async function inService(port, profile, mode, use, {
   } finally {
     const cleanupStarted = startup.elapsed();
     try {
+      await carrierGate?.command(-1, 'release-all');
       if (terminalSignal) child.kill(terminalSignal);
       else if (child.connected) child.send('close', () => {});
       else if (disconnectedWriter && child.exitCode === null && child.signalCode === null) {
@@ -5357,9 +5500,14 @@ async function inService(port, profile, mode, use, {
       }
     } finally {
       let forcedKillRequested = null;
-      const [, signal] = await reapService(child, disconnectedExit ?? startup.closed, () => {
-        forcedKillRequested = startup.elapsed();
-      });
+      let signal;
+      try {
+        [, signal] = await reapService(child, disconnectedExit ?? startup.closed, () => {
+          forcedKillRequested = startup.elapsed();
+        });
+      } finally {
+        carrierGate?.close();
+      }
       const recentOutput = output.recent();
       if (server.capability) expect(!recentOutput.includes(server.capability)).toBe(true);
       if (startupFailure) {
