@@ -627,7 +627,7 @@ class WindowsLaneTests(ProjectFixture):
         row.update(id='dependency-review', command=command, status='blocked', reason_code='not_selected')
         for path in (producer / 'test-report.json', producer / 'runs' / report['run_id'] / 'test-report.json'):
             path.write_bytes(json_bytes(report))
-        with self.assertRaisesRegex(ci_artifacts.PublicationError, 'selected check results'):
+        with self.assertRaisesRegex(ci_artifacts.PublicationError, 'unexpected result for dependency-review'):
             self.run_harness('--profile', 'records', '--ci-windows-aggregate', str(self.downloads))
         self.assertFalse((self.reports / 'test-report.json').exists())
 
@@ -716,7 +716,7 @@ class WindowsLaneTests(ProjectFixture):
         for changed, error in (
             (dict(report, ci=dict(report['ci'], run_attempt='1')), 'provenance'),
             (dict(report, selection=dict(report['selection'], checks=['python-contracts-workers'])), 'selection'),
-            (dict(report, checks=list(reversed(report['checks']))), 'catalog order'),
+            (dict(report, checks=list(reversed(report['checks']))), 'different check result catalog or order'),
             (dict(report, environment=dict(report['environment'], system='Linux')), 'platform'),
         ):
             with self.subTest(error=error):
