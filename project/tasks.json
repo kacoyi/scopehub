@@ -26239,7 +26239,9 @@
       ],
       "scope": [
         "scripts/integration.py",
+        "scripts/protected_python.py",
         "tests/project/test_integration.py",
+        "tests/project/test_protected_python.py",
         "contracts/schemas/project.schema.json",
         "project/delivery.json",
         "project/tasks.json",
@@ -26260,7 +26262,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Replay the actual M0-153 pre-integration assessment. Compare the existing split-task and protected handoff paths. Select and verify the least costly change that preserves independent original evidence and first-push ownership.",
+      "next_action": "Independently review the clean M0-159 policy candidate and the retained public decision and native evidence controls. The coordinator owns publishing, hosted checks and separate protected adoption. After adoption, the M0-153 repair owner registers planned task M0-160 and obtains current independent review and ordinary and guarded native evidence on the reconciled repair. The integration coordinator then owns M0-160 and the first actual protected main push. Keep the original deadline finding open until that event is verified.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26270,12 +26272,18 @@
         ],
         "context": [
           "scripts/integration.py",
+          "scripts/protected_python.py",
           "tests/project/test_integration.py",
+          "tests/project/test_protected_python.py",
           "project/delivery.json",
-          "project/checks.json"
+          "project/checks.json",
+          "archives/observations/repo-hygiene-20261125/m0-159-protected-handoff-intake/observations.json (SHA-256 650f6772d64fce5c463905a28279ffdae103e0334b2930d098ae5d04213c0735)",
+          ".reports/audit-20261125/m0-159-protected-observation/current-red.json (SHA-256 a7f22be8c10ea5f9ec4bc480fd4480e68c4ec977a5dc36d9f1fb2e223b350eac)",
+          ".reports/audit-20261125/m0-159-protected-observation/native-comparison.json (SHA-256 2e47d5de216a986c67ed171efaf4724f16aff25c4b1c803c966f8f100c1538d7)"
         ],
         "hypotheses": [
-          "The existing protected handoff and regression receipt checks can be reused. Its warm-workflow timing rule names another finding and measures a different outcome. A split delivery and follow-up may suffice."
+          "The retained PR 131 assessment at 109c6a051e42df7dab31ca3c0dcb36ecab42ec22 reproduces the unfinished task and open major feedback blockers. A completed delivery with the original finding would still block through ordinary task ownership. The separately adopted M0-142 warm-workflow handoff governs a different finding and measures the 900-second Windows job objective.",
+          "Native ordinary PR run 45750690146 and guarded task run 45750708557 match all 838 ordered cases and 72 skips with terminal serial times of 708.843 and 860.734 seconds. The ordinary Windows full harness alone took 904.508 seconds. These runs precede the reconciled repair checkpoint 68847f66d160e50dc057b4a8916a126c7dd6a535 and require renewed verification for its eventual integration head."
         ],
         "risks": [
           {
@@ -26299,7 +26307,8 @@
           ],
           "entrypoints": [
             "scripts/integration.py",
-            "tests/project/test_integration.py"
+            "tests/project/test_integration.py",
+            "tests/project/test_protected_python.py"
           ],
           "rules": [
             {
@@ -26308,14 +26317,14 @@
             },
             {
               "path": "project/delivery.json",
-              "pointer": "/source_control/verification"
+              "pointer": "/source_control/protected_python_observation"
             }
           ],
           "non_goals": [
             "Changing product behavior, native process timeouts, verification budgets, GitHub protection or release permissions."
           ],
           "open_questions": [
-            "Can the existing delivery split carry the original named finding and a first-push owner with all source, event and coverage checks intact?"
+            "Will the separately qualified repair deliver the same serial inventory on its first actual protected main push?"
           ]
         },
         "evolution": {
@@ -26326,8 +26335,8 @@
           "change": [
             "Resolve the evidenced transition between pre-integration qualification and the event-dependent protected observation."
           ],
-          "data_plan": "Keep native originals in the established development archive. Use synthetic controls for the integration decision.",
-          "cleanup": "Use one supported integration path, retire redundant transition handling if present, and preserve the pending native observation until it is actually verified."
+          "data_plan": "Keep the native originals in the development archive and preserve checkout-local reproductions for independent review. Bind the original feedback, both native originals and the guarded receipt to the separate adoption. Record the first protected observation using its report locator on M0-160.",
+          "cleanup": "Keep the original finding open while the observation is unavailable or failed. Preserve the exact first attempt and assign corrective work after a failure. Close the finding and observer together after verified serial success, with separate whole-workflow timing follow-through."
         }
       }
     }

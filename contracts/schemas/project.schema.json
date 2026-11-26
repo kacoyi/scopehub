@@ -1724,6 +1724,20 @@
           "minItems": 1,
           "uniqueItems": true
         },
+        "protected_python_observation": {
+          "type": "object",
+          "properties": {
+            "policy_task_id": {"const": "M0-159"},
+            "repair_task_id": {"const": "M0-153"},
+            "follow_up_task_id": {"const": "M0-160"},
+            "feedback_id": {"const": "windows-main-python-discovery-process-deadline"},
+            "repair_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+            "finding_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+          },
+          "required": ["policy_task_id", "repair_task_id", "follow_up_task_id", "feedback_id",
+                       "repair_commit", "finding_sha256"],
+          "additionalProperties": false
+        },
         "recurring_main_push_budget": {
           "type": "object",
           "properties": {

@@ -1247,3 +1247,226 @@ class RecurringBudgetHandoffTests(IntegrationFixture):
             witness['elapsed_seconds'] = 899
             receipt['report_sha256'] = '5' * 64
             self.assertFalse(verify())
+
+
+class ProtectedPythonObservationTests(IntegrationFixture):
+    repair_task = 'M0-153'
+    policy_task = 'M0-159'
+    follow_up_task = 'M0-160'
+    policy_key = 'protected_python_observation'
+    finding_id = 'windows-main-python-discovery-process-deadline'
+    python_check = 'python-contracts-workers'
+    resolution = {'cause': 'Observed fixture timeout.', 'correction': 'Fixture repair.',
+                  'prevention': 'Verify the protected observation.'}
+
+    def save_feedback(self, *findings):
+        (self.root / 'project/feedback.json').write_bytes(
+            json_bytes({'schema_version': '1.0', 'items': list(findings)}))
+
+    def finish(self, task_id, *, finding=None, event=None):
+        report = self.report(task_id, system='Windows' if event else 'Linux')
+        data = read_json(report)
+        if event:
+            revision = data['source']['git_head']
+            run_id = '101' if event == 'workflow_dispatch' else '102'
+            data['ci'] = {'provider': 'github-actions', 'repository': 'fixture/project',
+                          'run_id': run_id, 'run_attempt': '1', 'event': event,
+                          'head_sha': revision, 'checkout_sha': revision,
+                          'run_url': f'https://github.com/fixture/project/actions/runs/{run_id}'}
+        if finding:
+            data['observed_feedback'] = [feedback_fingerprint(finding)]
+        report.write_bytes(json_bytes(data))
+        receipt = archive_evidence(self.root, task_id, report)
+        ledger = self.ledger()
+        task_by_id(ledger, task_id).update(status='done', evidence=[receipt], next_action=None)
+        if ledger['focus_task_id'] == task_id:
+            ledger['focus_task_id'] = self.follow_up_task if task_id == self.repair_task else 'M0-003'
+        self.save_ledger(ledger)
+
+    def qualification_fixture(self, *, protected=True, finish_repair=True, extra_finding=False):
+        self.git('remote', 'add', 'origin', 'https://github.com/fixture/project')
+        (self.root / 'project/branch-protection.json').write_bytes(json_bytes(observations()['policy']))
+        path = self.root / 'project/checks.json'
+        catalog = read_json(path)
+        python = deepcopy(next(row for row in catalog['checks'] if row['id'] == 'rust-lints'))
+        python.update(id=self.python_check, timeout_seconds=900, windows_timeout_seconds=1200)
+        catalog['checks'].append(python)
+        catalog['required_change_checks'].append(self.python_check)
+        path.write_bytes(json_bytes(catalog))
+
+        ledger = self.ledger()
+        aliases = {'M0-001': self.repair_task, 'M0-002': self.follow_up_task, 'M0-004': self.policy_task}
+        for task in ledger['tasks']:
+            task['id'] = aliases.get(task['id'], task['id'])
+            task['depends_on'] = [aliases.get(key, key) for key in task['depends_on']]
+        ledger['focus_task_id'] = self.repair_task
+        repair = task_by_id(ledger, self.repair_task)
+        repair['checks'] = ['project-state', self.python_check]
+        task_by_id(ledger, self.policy_task)['plan'] = deepcopy(repair['plan'])
+        repair['plan']['risks'].append({'failure': 'Incomplete serial discovery.', 'checks': [self.python_check]})
+        follow_up = task_by_id(ledger, self.follow_up_task)
+        follow_up.update(depends_on=[self.repair_task], checks=['project-state', self.python_check],
+                         plan=deepcopy(repair['plan']),
+                         next_action='Retain and verify the first protected main push containing the repair.')
+        self.save_ledger(ledger)
+        initial = self.commit()
+
+        (self.root / 'implementation.py').write_text('value = 2\n', encoding='utf-8')
+        repair_source = self.commit()
+        self.git('checkout', '--quiet', '--detach', initial)
+
+        finding = {'id': self.finding_id, 'source': 'Synthetic original timeout.',
+                   'observation': 'The serial process did not report a terminal result.',
+                   'severity': 'major', 'status': 'open',
+                   'task_ids': [self.repair_task, self.follow_up_task], 'regression_checks': [self.python_check],
+                   'resolution': None, 'deferral_reason': None,
+                   'diagnostic_reports': [{'run_id': 'windows-change-99-1', 'source_commit': initial,
+                                           'report_sha256': '1' * 64}]}
+        rule = {'policy_task_id': self.policy_task, 'repair_task_id': self.repair_task,
+                'follow_up_task_id': self.follow_up_task, 'feedback_id': self.finding_id,
+                'repair_commit': repair_source, 'finding_sha256': integration.python_finding_identity(finding)}
+        path = self.root / 'project/delivery.json'
+        delivery = read_json(path)
+        delivery['source_control'][self.policy_key] = rule
+        if protected:
+            path.write_bytes(json_bytes(delivery))
+            self.commit()
+            self.finish(self.policy_task)
+            base = self.commit()
+        else:
+            base = initial
+        self.git('update-ref', 'refs/remotes/origin/main', base)
+        self.git('merge', '--quiet', '--no-ff', '--no-edit', repair_source)
+        if not protected:
+            path.write_bytes(json_bytes(delivery))
+        if extra_finding:
+            self.save_feedback(finding, dict(finding, id='unrelated-major-repair-finding'))
+        else:
+            self.save_feedback(finding)
+        ledger = self.ledger()
+        task_by_id(ledger, self.repair_task)['status'] = 'active'
+        self.save_ledger(ledger)
+        self.commit()
+        if not protected:
+            self.finish(self.policy_task)
+            self.commit()
+        if finish_repair:
+            self.finish(self.repair_task, finding=finding, event='workflow_dispatch')
+            self.commit()
+        return base, rule, finding
+
+    def scope(self, base, *, inventory=True, push=None, reject_job=False, wrong_input=False, modify=None):
+        source = source_identity(self.root)
+        if wrong_input:
+            source['sha256'] = '3' * 64
+        head = source['git_head']
+        tested = self.merge_observation(base, head)['sha']
+        workflow = {'status': 'passed', 'expected_profile': 'full',
+                    'run': {'id': 100, 'run_attempt': 1, 'head_sha': head, 'event': 'pull_request'},
+                    'checkout': {'head': head, 'base': base, 'commit': tested, 'pull_request': 1},
+                    'required_checkouts': [{'name': name, 'job_id': index, 'commit': tested, 'pull_request': 1}
+                                           for index, name in enumerate((UBUNTU, WINDOWS), 1000)]}
+        observed = observations()
+        jobs = [dict(job, id=index, head_sha=head, verification_profile='full')
+                for index, job in enumerate(observed['jobs'], 1000)]
+        if reject_job:
+            jobs[1]['conclusion'] = 'failure'
+        project = load_project(self.root)
+        if modify:
+            modify(project)
+        qualified_inventory = {'inventory_sha256': '2' * 64} if inventory else None
+        with (patch.object(integration, 'python_pr_inventory', return_value=qualified_inventory),
+              patch.object(integration, 'python_push_observation', return_value=push)):
+            return integration.delivery_scope(self.root, project, base, source=source,
+                                              policy=observed['policy'], workflow=workflow, jobs=jobs)
+
+    def test_python_observation_admits_only_the_qualified_open_finding(self):
+        base, rule, _ = self.qualification_fixture(extra_finding=True)
+        result = self.scope(base)
+        self.assertEqual(['Unresolved major feedback: unrelated-major-repair-finding'], result['blockers'])
+        handoff = result[self.policy_key]
+        self.assertEqual((self.finding_id, self.repair_task, self.follow_up_task, rule['repair_commit'], 'pending'),
+                         tuple(handoff[key] for key in ('feedback_id', 'repair_task_id', 'follow_up_task_id',
+                                                        'repair_commit', 'status')))
+        for rejection in ({'inventory': False}, {'reject_job': True}, {'wrong_input': True},
+                          {'modify': lambda project: project['feedback']['items'][0].update(
+                              source='Substituted reference to the same report.')},
+                          {'modify': lambda project: project['feedback']['items'][0].update(
+                              task_ids=[self.repair_task])},
+                          {'modify': lambda project: project['feedback']['items'][0].update(status='deferred')},
+                          {'modify': lambda project: project['tasks'][self.follow_up_task].update(
+                              depends_on=[self.repair_task, 'M0-003'])},
+                          {'modify': lambda project: project['tasks'][self.repair_task].update(evidence=[])}):
+            with self.subTest(rejection=tuple(rejection)):
+                rejected = self.scope(base, **rejection)
+                self.assertNotIn(self.policy_key, rejected)
+                self.assertIn(f'Unresolved major feedback: {self.finding_id}', rejected['blockers'])
+
+    def test_python_observation_keeps_an_active_repair_blocked(self):
+        base, _, _ = self.qualification_fixture(finish_repair=False)
+        result = self.scope(base)
+        self.assertIn(f'Unfinished delivery task: {self.repair_task}', result['blockers'])
+        self.assertIn(f'Unresolved major feedback: {self.finding_id}', result['blockers'])
+        self.assertNotIn(self.policy_key, result)
+
+    def test_python_observation_policy_cannot_adopt_and_use_itself(self):
+        base, _, _ = self.qualification_fixture(protected=False)
+        result = self.scope(base)
+        self.assertIn(f'Unresolved major feedback: {self.finding_id}', result['blockers'])
+        self.assertNotIn(self.policy_key, result)
+
+    def test_python_observation_cannot_close_from_pre_integration_receipts(self):
+        base, _, finding = self.qualification_fixture()
+        self.finish(self.follow_up_task, finding=finding, event='workflow_dispatch')
+        self.save_feedback(dict(finding, status='addressed', resolution=self.resolution))
+        self.commit()
+        result = self.scope(base)
+        self.assertTrue(any('open protected handoff' in blocker for blocker in result['blockers']), result)
+        self.assertNotIn(self.policy_key, result)
+
+    def test_python_observation_retains_failures_and_only_closes_after_first_main_success(self):
+        base, binding, finding = self.qualification_fixture()
+        head = source_identity(self.root)['git_head']
+        main = self.merge_observation(base, head)['sha']
+        self.git('checkout', '--quiet', '--detach', main)
+        self.git('update-ref', 'refs/remotes/origin/main', main)
+        later = self.git('commit-tree', f'{main}^{{tree}}', '-p', main, '-m', 'Later protected commit')
+        missing = integration.python_push_observation(self.root, load_project(self.root), later, binding,
+                                                     {}, observations()['policy'])
+        self.assertEqual(('missing', main), (missing['status'], missing['first_push_commit']))
+
+        self.finish(self.follow_up_task, finding=finding, event='push')
+        self.save_feedback(dict(finding, status='addressed', resolution=self.resolution))
+        self.commit()
+        for status in ('missing', 'failed', 'passed'):
+            with self.subTest(status=status):
+                push = {'status': status, 'first_push_commit': main, 'next_action': 'Fixture follow-through.'}
+                result = self.scope(main, push=push)
+                self.assertEqual(status == 'passed', not result['blockers'], result)
+                self.assertEqual(status, result[self.policy_key]['status'])
+
+    def test_failed_first_python_push_can_record_follow_through_with_the_finding_open(self):
+        base, _, _ = self.qualification_fixture()
+        head = source_identity(self.root)['git_head']
+        main = self.merge_observation(base, head)['sha']
+        self.git('checkout', '--quiet', '--detach', main)
+        self.git('update-ref', 'refs/remotes/origin/main', main)
+
+        locator = {'run_id': 'windows-change-102-1', 'source_commit': main, 'report_sha256': '4' * 64}
+        ledger = self.ledger()
+        task_by_id(ledger, self.follow_up_task).update(
+            diagnostic_reports=[locator], next_action='Retain the failed result and investigate the serial deadline.')
+        record_task = deepcopy(task_by_id(ledger, self.policy_task))
+        record_task.update(id='M0-161', status='planned', evidence=[], next_action='Record the failed observation.')
+        ledger['tasks'].append(record_task)
+        self.save_ledger(ledger)
+        self.commit()
+        self.finish(record_task['id'])
+        self.commit()
+
+        push = {'status': 'failed', 'first_push_commit': main, 'diagnostic': locator,
+                'next_action': 'Retain the failed result and investigate the serial deadline.'}
+        result = self.scope(main, push=push)
+        self.assertEqual([], result['blockers'], result)
+        self.assertEqual('failed', result[self.policy_key]['status'])
+        self.assertEqual('open', load_project(self.root)['feedback']['items'][0]['status'])

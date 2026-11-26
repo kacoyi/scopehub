@@ -12,9 +12,10 @@ if __package__:
     from . import timing
     from .ci import WORKFLOW, classify_runs, command, github_identity
     from .diagnostic_archive import resolve_diagnostic
-    from .project import (ProjectError, compare_history, diagnostic_archive_root, digest, feedback_fingerprint,
+    from .project import (ProjectError, committed_source_identity, compare_history, diagnostic_archive_root, digest, feedback_fingerprint,
                          json_bytes, load_project, project_definition_hash, read_json, read_review_report, source_identity,
                          task_definition_hash, windows_x64)
+    from .protected_python import PYTHON_CHECK, read_native, serial_result
     from .protection import violations
     from .verification_evidence import hosted_artifact_path
     from .verification_scope import (SCOPED_PROFILES, ScopeError, checkout_git_environment, committed_scope,
@@ -23,9 +24,10 @@ else:
     import timing
     from ci import WORKFLOW, classify_runs, command, github_identity
     from diagnostic_archive import resolve_diagnostic
-    from project import (ProjectError, compare_history, diagnostic_archive_root, digest, feedback_fingerprint,
+    from project import (ProjectError, committed_source_identity, compare_history, diagnostic_archive_root, digest, feedback_fingerprint,
                          json_bytes, load_project, project_definition_hash, read_json, read_review_report, source_identity,
                          task_definition_hash, windows_x64)
+    from protected_python import PYTHON_CHECK, read_native, serial_result
     from protection import violations
     from verification_evidence import hosted_artifact_path
     from verification_scope import (SCOPED_PROFILES, ScopeError, checkout_git_environment, committed_scope,
@@ -42,6 +44,13 @@ FULL_HARNESS_STEPS = {
 SCOPED_HARNESS_STEPS = {f'Verify {profile} changes': profile for profile in SCOPED_PROFILES}
 MAIN_PUSH_BUDGET_POLICY = 'post_merge_main_push_budget'
 RECURRING_PUSH_BUDGET_POLICY = 'recurring_main_push_budget'
+PYTHON_OBSERVATION_POLICY = 'protected_python_observation'
+PYTHON_OBSERVATION_RECORDS = {
+    'feedback_id': 'windows-main-python-discovery-process-deadline',
+    'repair_task_id': 'M0-153',
+    'follow_up_task_id': 'M0-160',
+    'policy_task_id': 'M0-159',
+}
 # This exception belongs to one reviewed repair. The first policy PR cannot
 # use its own configuration to choose which existing observation to govern.
 MAIN_PUSH_BUDGET_BINDING = {
@@ -260,13 +269,15 @@ def complete_task_receipt(project, task, receipt):
     return True
 
 
-def budget_regression_receipt(root, project, task, finding, repair, source, *, complete=False):
+def budget_regression_receipt(root, project, task, finding, repair, source, *, complete=False, dispatch_repository=None):
     project_definition = project_definition_hash(project)
     for path, receipt in budget_regression_receipts(root, task, finding):
         observed = receipt['source']
         if receipt.get('project_definition_sha256') != project_definition or observed['sha256'] != source['sha256']:
             continue
         ci = receipt.get('ci') or {}
+        if dispatch_repository and not python_dispatch_receipt(receipt, dispatch_repository):
+            continue
         if complete and (not complete_task_receipt(project, task, receipt)
                          or observed.get('file_count') != source.get('file_count')
                          or observed.get('snapshot_kind') != source.get('snapshot_kind')
@@ -617,6 +628,255 @@ def main_push_budget_closure(root, project, base, rule, push, previous, policy):
     return False
 
 
+def python_finding_identity(finding):
+    return digest(json_bytes([feedback_fingerprint(finding), finding['source'], finding['diagnostic_reports']]))
+
+
+def python_repair_in_source(root, source, binding):
+    if not source or not source.get('git_head'):
+        return False
+    try:
+        require_ancestor(root, binding['repair_commit'], source['git_head'])
+    except ScopeError:
+        return False
+    return True
+
+
+def python_observation_rule(root, project, base, affected, completed, items, previous_feedback, source):
+    candidate = project['delivery']['source_control'].get(PYTHON_OBSERVATION_POLICY)
+    try:
+        delivery = json.loads(git(root, 'show', f'{base}:project/delivery.json')) if base else {}
+    except ScopeError:
+        return None, 'The protected Windows Python observation binding could not be read.'
+    protected = delivery.get('source_control', {}).get(PYTHON_OBSERVATION_POLICY)
+    if protected is not None:
+        if candidate != protected:
+            return None, 'The PR changes or removes the protected Windows Python observation binding.'
+        return protected, None
+    if candidate:
+        if any(candidate.get(key) != value for key, value in PYTHON_OBSERVATION_RECORDS.items()):
+            return None, 'The Windows Python observation binding must name the separately owned delivery records.'
+        repair, follow_up, finding = (candidate[key] for key in ('repair_task_id', 'follow_up_task_id', 'feedback_id'))
+        if (candidate['policy_task_id'] not in completed or affected.intersection({repair, follow_up})
+                or items.get(finding) != previous_feedback.get(finding)
+                or python_repair_in_source(root, source, candidate)):
+            return None, 'The Windows Python observation binding requires separate protected adoption.'
+    return None, None
+
+
+def python_dispatch_receipt(receipt, repository):
+    ci = receipt.get('ci') or {}
+    return (ci.get('provider') == 'github-actions' and ci.get('repository') == repository
+            and ci.get('event') == 'workflow_dispatch' and ci.get('run_attempt') == '1'
+            and ci.get('head_sha') == ci.get('checkout_sha') == receipt['source']['git_head']
+            and windows_x64(receipt['environment']))
+
+
+def python_receipt_original(root, receipt):
+    ci, source = receipt['ci'], receipt['source']
+    locator = {'run_id': receipt['run_id'], 'source_commit': source['git_head'],
+               'report_sha256': receipt['report_sha256']}
+    artifacts = root / '.reports' / 'ci' / ci['run_id'] / 'windows'
+    if artifacts.is_dir():
+        archive = hosted_artifact_path(root, f".reports/ci/{ci['run_id']}/windows", directory=True)
+    else:
+        archive = diagnostic_archive_root(root)
+    report, log = read_native(archive, locator)
+    if (report['ci'] != ci or report['source'] != source or report['status'] != 'passed'
+            or report['selection'] != {'profile': 'task', 'task_id': receipt['task_id'],
+                                      'checks': sorted({'environment', *(row['id'] for row in receipt['checks'])})}
+            or report['task_definitions'].get(receipt['task_id']) != receipt['task_definition_sha256']
+            or report['project_definition_sha256'] != receipt['project_definition_sha256']
+            or report.get('observed_feedback') != receipt.get('observed_feedback')
+            or any(report.get(key) is not True for key in ('source_unchanged', 'project_unchanged'))):
+        raise ProjectError('The guarded Windows original differs from the repair receipt.')
+    rows = {row['id']: row for row in report['checks']}
+    if any(any(rows[row['id']].get(key) != value for key, value in row.items()) for row in receipt['checks']):
+        raise ProjectError('The guarded Windows check results differ from the repair receipt.')
+    return report, log
+
+
+def python_attempt_jobs(root, ci, *, branch=None, conclusion=None):
+    endpoint = f"repos/{ci['repository']}/actions/runs/{ci['run_id']}/attempts/1"
+    run = json.loads(command(['gh', 'api', endpoint], root))
+    if (run['path'] != WORKFLOW or str(run['id']) != ci['run_id'] or run['run_attempt'] != 1
+            or run['head_sha'] != ci['head_sha'] or run['event'] != ci['event'] or run['status'] != 'completed'
+            or (branch and run['head_branch'] != branch) or (conclusion and run['conclusion'] != conclusion)):
+        raise ProjectError('The authenticated workflow attempt differs from the retained Windows original.')
+    return json.loads(command(['gh', 'api', f'{endpoint}/jobs?per_page=100'], root))['jobs']
+
+
+def python_pr_inventory(root, project, policy, source, workflow, receipt_path):
+    repository = policy['repository']
+    run, checkout = workflow['run'], workflow['checkout']
+    try:
+        receipt = read_json(root / receipt_path)
+        ci = receipt['ci']
+        guard_jobs = python_attempt_jobs(root, ci, conclusion='success')
+        if not all(required_job_succeeded(guard_jobs, job, ci['head_sha']) for job in (
+                'Check reviewed task dispatch', 'verify task (windows-latest)')):
+            return None
+        guard, guard_log = python_receipt_original(root, receipt)
+        artifacts = hosted_artifact_path(root, f".reports/ci/{run['id']}/windows", directory=True)
+        staged, report_sha = read_review_report(hosted_artifact_path(artifacts, 'test-report.json'), 4 * 1024 * 1024)
+        scope, _ = read_review_report(hosted_artifact_path(artifacts, 'verification-scope.json'), 4096)
+        if (scope.get('kind') != 'scopehub-verification-scope-v1' or scope.get('profile') != 'full'
+                or scope.get('base') != checkout['base'] or scope.get('checkout') != checkout['commit']
+                or scope.get('report_sha256') != report_sha):
+            return None
+        ordinary, ordinary_log = read_native(artifacts, {
+            'run_id': staged['run_id'], 'source_commit': checkout['commit'], 'report_sha256': report_sha})
+        if (not python_hosted_report(ordinary, repository, 'pull_request', checkout['head'], checkout['commit'])
+                or ordinary['ci']['run_id'] != str(run['id']) or ordinary['status'] != 'passed'
+                or ordinary['source'] != {**source, 'git_head': checkout['commit']}
+                or ordinary['project_definition_sha256'] != guard['project_definition_sha256']):
+            return None
+        check = project['checks'][PYTHON_CHECK]
+        inventory = serial_result(ordinary, ordinary_log, check)
+        if inventory == serial_result(guard, guard_log, check):
+            return {'inventory_sha256': digest(json_bytes(inventory))}
+    except (OSError, ValueError, ScopeError, TypeError, KeyError, RuntimeError):
+        pass
+    return None
+
+
+def python_hosted_report(report, repository, event, head, checkout):
+    ci = report['ci']
+    return (ci['provider'] == 'github-actions' and ci['repository'] == repository
+            and ci['event'] == event and ci['run_attempt'] == '1'
+            and ci['head_sha'] == head and ci['checkout_sha'] == report['source']['git_head'] == checkout
+            and not report['source']['working_tree_dirty'] and report['source_unchanged']
+            and report['project_unchanged']
+            and report['native_requirement'] == {'requested': True, 'satisfied': True}
+            and report['selection']['profile'] == 'full' and report['selection']['task_id'] is None)
+
+
+def python_push_observation(root, project, base, binding, follow_up, policy):
+    missing = {'status': 'missing', 'first_push_commit': None,
+               'next_action': 'Retain the first protected main push aggregate and its Windows Python producer.'}
+    try:
+        repair = binding['repair_commit']
+        require_complete_history(root)
+        exact_commit(root, repair)
+        require_ancestor(root, repair, base)
+        descendants = set(git(root, 'rev-list', '--ancestry-path', f'{repair}..{base}').decode('ascii').splitlines())
+        descendants.add(repair)
+        first_parent = git(root, 'rev-list', '--first-parent', '--reverse', base).decode('ascii').splitlines()
+        first = next(revision for revision in first_parent if revision in descendants)
+        missing['first_push_commit'] = first
+        locators = [row for row in follow_up.get('diagnostic_reports', []) if row['source_commit'] == first]
+        if len(locators) != 1 or not policy or policy['branch'] != 'main':
+            return missing
+        locator, = locators
+        report, log = read_native(diagnostic_archive_root(root), locator)
+        repository = policy['repository']
+        if (not python_hosted_report(report, repository, 'push', first, first)
+                or report['source'] != committed_source_identity(root, first)):
+            return missing
+        jobs = python_attempt_jobs(root, report['ci'], branch='main')
+        producer = 'Windows change checks (python)'
+        if not any(job['name'] == producer and job['head_sha'] == first and job['status'] == 'completed'
+                   for job in jobs):
+            return missing
+        ledger = json.loads(git(root, 'show', f'{first}:project/tasks.json'))
+        task = next(row for row in ledger['tasks'] if row['id'] == binding['repair_task_id'])
+        finding = next(row for row in project['feedback']['items'] if row['id'] == binding['feedback_id'])
+        if task['status'] != 'done':
+            return missing
+        failed = {**missing, 'status': 'failed', 'diagnostic': locator,
+                  'next_action': 'Keep the finding open, retain the first push, and assign a corrective task.'}
+        check = project['checks'][PYTHON_CHECK]
+        try:
+            inventory = serial_result(report, log, check)
+        except ValueError:
+            return failed
+        if not required_job_succeeded(jobs, producer, first):
+            return failed
+        for _, receipt in budget_regression_receipts(root, task, finding):
+            if (not python_dispatch_receipt(receipt, repository)
+                    or receipt['source']['sha256'] != report['source']['sha256']):
+                continue
+            try:
+                guard, guard_log = python_receipt_original(root, receipt)
+                comparison = serial_result(guard, guard_log, check)
+            except (OSError, ValueError, KeyError, TypeError):
+                continue
+            if inventory == comparison:
+                return {**failed, 'status': 'passed',
+                        'next_action': 'Complete the observation task and record closure of the Python deadline finding. '
+                                       'Evaluate the separate 900-second whole-workflow objective.'}
+        return failed
+    except (OSError, ValueError, ScopeError, TypeError, KeyError, RuntimeError, StopIteration):
+        return missing
+
+
+def python_observation_scope(root, project, base, completed, previous_tasks, items, previous_feedback,
+                             binding, *, source, policy, workflow, jobs):
+    repair, follow_up = binding['repair_task_id'], binding['follow_up_task_id']
+    repair_on_base = previous_tasks.get(repair, {}).get('status') == 'done'
+    failure = 'Windows Python repair delivery requires a verified native comparison and an open protected handoff.'
+    if repair not in completed and not repair_on_base:
+        return None, failure if python_repair_in_source(root, source, binding) else None
+    finding = items.get(binding['feedback_id'], {})
+    task = project['tasks'].get(follow_up, {})
+    matches = (finding.get('severity') == 'major' and finding.get('diagnostic_reports')
+               and python_finding_identity(finding) == binding['finding_sha256']
+               and set(finding['task_ids']) == {repair, follow_up}
+               and task.get('depends_on') == [repair] and task.get('plan')
+               and set(finding['regression_checks']) <= set(task['checks'])
+               and task.get('status') in {'planned', 'active', 'blocked', 'done'})
+    details = {'feedback_id': binding['feedback_id'], 'branch': 'main', 'repair_task_id': repair,
+               'repair_commit': binding['repair_commit'], 'follow_up_task_id': follow_up}
+    if not matches:
+        return None, 'Windows Python delivery requires the original open finding and its protected observation owner.'
+    if repair_on_base:
+        previous = previous_feedback.get(finding['id'], {})
+        if previous.get('status') == 'addressed' and finding == previous:
+            return None, None
+        observation = python_push_observation(root, project, base, binding, task, policy)
+        prior_task = previous_tasks.get(follow_up, {})
+        prior_locators = prior_task.get('diagnostic_reports', [])
+        retained = all(locator in task.get('diagnostic_reports', []) for locator in prior_locators)
+        if (not retained or finding['status'] not in {'open', 'addressed'}
+                or (finding['status'] == 'addressed') != (task['status'] == 'done')
+                or (finding['status'] == 'addressed' and observation['status'] != 'passed')):
+            return {**details, **observation}, 'Windows Python deadline closure requires the verified first protected push.'
+        if (observation['status'] == 'failed' and finding == previous and task['status'] == 'planned'
+                and project['tasks'][repair] == previous_tasks[repair]
+                and observation.get('diagnostic') in task.get('diagnostic_reports', [])
+                and task == {**prior_task, 'diagnostic_reports': task['diagnostic_reports'],
+                              'next_action': task['next_action']}):
+            observation['recording_failed_observation'] = True
+        return {**details, **observation}, None
+    if (finding['status'] != 'open' or task['status'] != 'planned' or not task.get('next_action')
+            or task.get('diagnostic_reports') or not source or source['working_tree_dirty']
+            or not policy or policy['branch'] != 'main' or not workflow or workflow['status'] != 'passed'
+            or workflow.get('expected_profile') != 'full'):
+        return None, failure
+    head, checkout = source['git_head'], workflow.get('checkout', {})
+    contexts = {row['context'] for row in policy['configuration']['required_status_checks']['checks']}
+    if (checkout.get('base') != base or checkout.get('head') != head or not FULL_HARNESS_STEPS.keys() <= contexts
+            or not all(required_job_succeeded(jobs, name, head) for name in contexts)
+            or not recurring_full_workflow(workflow, jobs)):
+        return None, failure
+    try:
+        require_ancestor(root, base, head)
+        exact_commit(root, binding['repair_commit'])
+        require_ancestor(root, binding['repair_commit'], head)
+        committed = json.loads(git(root, 'show', f'{head}:project/delivery.json'))
+        if committed['source_control'].get(PYTHON_OBSERVATION_POLICY) != binding:
+            return None, failure
+    except ScopeError:
+        return None, failure
+    receipt = budget_regression_receipt(root, project, project['tasks'][repair], finding, binding['repair_commit'],
+                                        source, complete=True, dispatch_repository=policy['repository'])
+    inventory = python_pr_inventory(root, project, policy, source, workflow, receipt) if receipt else None
+    if inventory is None:
+        return None, failure
+    return {**details, **inventory, 'status': 'pending', 'regression_receipt': receipt,
+            'next_action': task['next_action']}, None
+
+
 def delivery_scope(root, project, base, *, source=None, policy=None, workflow=None, jobs=()):
     """Use actual base history and validated receipts, not a supplied task list."""
     history, previous_feedback = compare_history(root, base)
@@ -663,6 +923,18 @@ def delivery_scope(root, project, base, *, source=None, policy=None, workflow=No
             if not recorded and not main_push_budget_closure(root, project, base, binding, push, previous, policy):
                 blockers.append(f'Main-push timing closure lacks a verified main-push observation: {push_id}')
     handed_off = {handoff['feedback_id'] for handoff in handoffs.values()}
+    python_rule, python_blocker = python_observation_rule(
+        root, project, history.get('base_commit'), affected, completed, items, previous_feedback, source)
+    if python_rule:
+        observation, python_blocker = python_observation_scope(
+            root, project, base, completed, previous, items, previous_feedback, python_rule,
+            source=source, policy=policy, workflow=workflow, jobs=jobs)
+        if observation:
+            handoffs[PYTHON_OBSERVATION_POLICY] = observation
+            if observation['status'] == 'pending' or (not python_blocker and observation.get('recording_failed_observation')):
+                handed_off.add(observation['feedback_id'])
+    if python_blocker:
+        blockers.append(python_blocker)
     blockers.extend(f"Unresolved {item['severity']} feedback: {item['id']}"
                     for item in items.values() if item['status'] != 'addressed'
                     and item['id'] not in handed_off
