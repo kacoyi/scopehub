@@ -16,6 +16,74 @@ from tests.project.test_timing import (
 
 
 class PublicJobObservationTests(unittest.TestCase):
+    def timing_checkout(self):
+        root = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        project = root / 'project'
+        project.mkdir()
+        for filename, data in (('tasks.json', {'tasks': []}), ('feedback.json', {'items': []})):
+            (project / filename).write_bytes(timing.json_bytes(data))
+        return root
+
+    def ordinary(self, root, *args):
+        output = StringIO()
+        with (patch.object(timing, 'ROOT', root), patch.object(timing, 'weekly_review', return_value=None),
+              patch.object(sys, 'argv', ['timing.py', *map(str, args)]), redirect_stdout(output)):
+            timing.main()
+        return json.loads(output.getvalue())
+
+    def test_step_clocks_use_joined_eligibility_before_selecting_a_phase(self):
+        run = hosted_run()
+        job = hosted_job(31, 'ubuntu', '00:10', '07:00', 'Run pnpm check', '01:05', '06:40')
+        active, = job['steps']
+        skipped = dict(active, name='Verify the selected task', number=10, conclusion='skipped',
+                       completed_at=active['started_at'])
+        browser = dict(active, name='Start the pinned chart-test browser on Linux', number=7,
+                       started_at='2026-11-20T00:00:35Z', completed_at='2026-11-20T00:00:49Z')
+        times = {key: value for key, value in skipped.items() if key != 'conclusion'}
+        outcome = {key: value for key, value in skipped.items() if key not in ('started_at', 'completed_at')}
+        conflict = {**outcome, 'conclusion': 'success'}
+        contradicted_active = {**active, 'conclusion': 'skipped'}
+        conflicting_end = {**active, 'completed_at': '2026-11-20T00:06:39Z'}
+        pending = {**active, 'status': 'queued', 'conclusion': None}
+        pending_state = {key: value for key, value in pending.items() if key not in ('started_at', 'completed_at')}
+        pending_times = {key: value for key, value in pending.items() if key != 'status'}
+        report = fast_report(20, 450)
+        report['selection']['profile'] = 'full'
+        report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
+                        'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'a' * 40}
+
+        root = self.timing_checkout()
+        run_path, report_path = root / 'run.json', root / 'report.json'
+        run_path.write_bytes(timing.json_bytes(run))
+        report_path.write_bytes(timing.json_bytes(timing.report_sample(report)))
+
+        for label, partitions, expected in (
+                ('full', ([active, skipped],), (55, 335, 20)),
+                ('complementary', ([active, outcome], [times]), (55, 335, 20)),
+                ('reversed', ([times], [active, outcome]), (55, 335, 20)),
+                ('redundant', ([active, skipped, times],), (55, 335, 20)),
+                ('unrelated contradiction', ([active, outcome], [times, conflict]), (55, 335, 20)),
+                ('fully contradicted', ([active, outcome], [times, conflict, contradicted_active]), (None, None, None)),
+                ('one contradicted endpoint', ([active, skipped], [conflicting_end]), (55, None, None)),
+                ('two executed candidates', ([active, {**times, 'conclusion': 'success'}],), (None, None, None)),
+                ('pending stale times', ([pending],), (None, None, None)),
+                ('pending fields split', ([pending_state], [pending_times]), (None, None, None)),
+                ('pending fields reversed', ([pending_times], [pending_state]), (None, None, None)),
+                ('completed after pending', ([pending_state], [active]), (55, 335, 20))):
+            with self.subTest(case=label):
+                args = []
+                for index, steps in enumerate(partitions):
+                    path = root / f'jobs-{index}.json'
+                    path.write_bytes(timing.json_bytes({'jobs': [dict(job, steps=[*steps, browser])]}))
+                    args.extend(('--actions', run_path, path))
+                saved = root / f'{label}.json'
+                for view in (self.ordinary(root, '--report', report_path, *args, '--save', saved),
+                             self.ordinary(root, '--report', saved)):
+                    seconds = view['samples'][0]['seconds']
+                    self.assertEqual((*expected, 420, 410, 14), tuple(seconds[key] for key in (
+                        'setup', 'harness_step', 'tail', 'total', 'runner', 'browser_step',
+                    )))
+
     def test_job_field_conflicts_survive_listing_partitions_and_archive_reopen(self):
         use_catalog(self, SPLIT_CATALOG, lanes=timing.LEGACY_WINDOWS_LANES)
         run = hosted_run()

@@ -26580,12 +26580,14 @@
         "project/feedback.json",
         "tests/project/test_timing_job_roles.py",
         "tests/project/test_timing_job_observations.py",
-        "contracts/decisions/0031-shared-timing-producer-contract.json"
+        "contracts/decisions/0031-shared-timing-producer-contract.json",
+        "contracts/decisions/0032-normalized-timing-evidence.json"
       ],
       "decision_refs": [
         "0004",
         "0007",
-        "0031"
+        "0031",
+        "0032"
       ],
       "acceptance": [
         "Retain the original independent rejection. Through the ordinary timing and budget-review entries, observe the browser-job and checkout conflicts both before and after twelve later captures rotate the original attempt out of the recent window.",
@@ -26598,7 +26600,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Reproduce the three independent decisions on 438302ef and qualify the shared correction with fresh paired holdouts. Request independent decisions on the common source before releasing the five held reviews.",
+      "next_action": "Obtain new independent decisions for M0-155, M0-150 and M0-156 on the exact common source in .reports/m0-155-post-438302ef/handoff.json. Keep the five dependent reviews and November 28 actual observation separate. Hosted verification remains with the coordinator.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26825,6 +26827,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "Compare grouped and split pending-status step observations, completed status evidence and legacy captured clocks. Require unchanged job and unrelated step clocks through archive reopen.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain all source captures, saved reviews and original classifications if a change loses a valid clock or expands the ordinary read without a bound.",
@@ -26887,12 +26896,14 @@
         ".github/workflows/review-verification-timing.yml",
         "tests/project/test_timing.py",
         "project/tasks.json",
-        "project/feedback.json"
+        "project/feedback.json",
+        "contracts/decisions/0032-normalized-timing-evidence.json"
       ],
       "decision_refs": [
         "0004",
         "0007",
-        "0031"
+        "0031",
+        "0032"
       ],
       "acceptance": [
         "Run the ordinary weekly timing CLI in the supported system Python environment with the archived full Windows selection, unavailable preview and a source-equivalent historical substitute. Confirm it writes the weekly summary and current comparison with the original clocks.",
@@ -26906,7 +26917,7 @@
       ],
       "diagnostic_reports": [],
       "evidence": [],
-      "next_action": "Verify missing-checkout qualification with the retained depth-two control and a fresh ancestry pair. Obtain a new independent decision on the common correction.",
+      "next_action": "Obtain a new independent checkout decision on the common source in .reports/m0-155-post-438302ef/handoff.json. Review genuine and impossible depth-two previews with and without a merge proof and the fresh base-only ancestry control.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -27085,13 +27096,16 @@
         "project/feedback.json",
         "scripts/project.py",
         "tests/project/test_timing.py",
-        "contracts/decisions/0031-shared-timing-producer-contract.json"
+        "contracts/decisions/0031-shared-timing-producer-contract.json",
+        "scripts/execution_inputs.py",
+        "contracts/decisions/0032-normalized-timing-evidence.json"
       ],
       "decision_refs": [
         "0004",
         "0007",
         "0030",
-        "0031"
+        "0031",
+        "0032"
       ],
       "checks": [
         "project-state",
@@ -27102,7 +27116,7 @@
         "The verifier binds a producer to its publishing job, platform, source or verified execution-equivalent catalog and exact ordered scope. Incorrectly swapped, missing, extra and unverifiable assignments cannot establish a warm comparable observation.",
         "Previously supported publishing layouts, incomplete sources and historical evidence retain their respective outcomes. Verify the shared current selection together with its integration consumer."
       ],
-      "next_action": "Verify aggregate, raw producer and committed catalog eligibility against the original independent controls on 438302ef and fresh paired input. Obtain a new independent decision on the common correction.",
+      "next_action": "Obtain a new independent publisher decision on the common source in .reports/m0-155-post-438302ef/handoff.json. Review genuine and rejected archive controls, fresh holdout and retained publisher limits.",
       "blocker": null,
       "evidence": [],
       "closure_reason": null,

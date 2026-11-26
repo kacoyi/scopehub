@@ -18,11 +18,12 @@ if __package__:
     from . import execution_inputs, maintenance, review_acceptance
     from .development import expand_engineering_sources, read_only_project_command, resolve_source
     from .diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
+    from .execution_inputs import project_definition_hash, task_definition_hash
     from .retained_failures import retained_failure_view
     from .operational_paths import OPERATIONAL_PATHS, is_operational_path
     from .review_tree import CommittedPath
     from .verification_scope import (
-        ScopeError, checkout_git_environment, exact_commit, git, nul_fields, oid, publishing_check_catalog,
+        ScopeError, checkout_git_environment, decode_publishing_catalog, exact_commit, git, nul_fields, oid, publishing_check_catalog,
         require_ancestor, windows_x64,
     )
     from .worktree import WorktreeError, exclusive_git_lock, git as worktree_git, git_path, has_git_metadata
@@ -32,11 +33,12 @@ else:
     import review_acceptance
     from development import expand_engineering_sources, read_only_project_command, resolve_source
     from diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
+    from execution_inputs import project_definition_hash, task_definition_hash
     from retained_failures import retained_failure_view
     from operational_paths import OPERATIONAL_PATHS, is_operational_path
     from review_tree import CommittedPath
     from verification_scope import (
-        ScopeError, checkout_git_environment, exact_commit, git, nul_fields, oid, publishing_check_catalog,
+        ScopeError, checkout_git_environment, decode_publishing_catalog, exact_commit, git, nul_fields, oid, publishing_check_catalog,
         require_ancestor, windows_x64,
     )
     from worktree import WorktreeError, exclusive_git_lock, git as worktree_git, git_path, has_git_metadata
@@ -49,9 +51,6 @@ ROOT = Path(__file__).resolve().parents[1]
 INPUT_EXCLUSIONS = [
     'project/tasks.json', 'project/evidence/', 'contracts/decisions/',
     'contracts/reviews/', 'contracts/references.json', 'project/feedback.json',
-]
-TASK_DEFINITION_FIELDS = [
-    'id', 'title', 'milestone', 'depends_on', 'scope', 'decision_refs', 'acceptance', 'checks',
 ]
 PATH_TOKEN = re.compile(r"""[^\s'"\x60<>()\[\]{},;|]+""")
 DIAGNOSTIC_FILENAMES = {'test-report.json', 'diagnostic.json'}
@@ -87,14 +86,6 @@ def file_digest(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
-def task_definition_hash(task):
-    definition = {key: task[key] for key in TASK_DEFINITION_FIELDS}
-    for key in ('delivery', 'plan', 'diagnostic_reports'):
-        if key in task:
-            definition[key] = task[key]
-    return digest(json.dumps(definition, sort_keys=True, separators=(',', ':')).encode('utf-8'))
-
-
 def feedback_fingerprint(item):
     # Bind a regression run to the actual observation without publishing its text.
     diagnostics = sorted(report['report_sha256'] for report in item.get('diagnostic_reports', []))
@@ -102,16 +93,6 @@ def feedback_fingerprint(item):
     if baseline := item.get('verification_budget', {}).get('growth_baseline'):
         identity.append(sorted((row['run_id'], row['source_commit'], row['report_sha256']) for row in baseline))
     return digest(json_bytes(identity))
-
-
-def project_definition_hash(project):
-    # Workflow state and receipts change after recording a successful task.
-    # Definitions and decisions must not change underneath the observed checks.
-    definition = {'tasks': {key: task_definition_hash(task) for key, task in project['tasks'].items()},
-                  'decisions': project['decisions']}
-    if project.get('owner_decisions'):
-        definition['owner_decisions'] = project['owner_decisions']
-    return digest(json.dumps(definition, sort_keys=True, separators=(',', ':')).encode('utf-8'))
 
 
 def local_path(root, relative):
@@ -383,7 +364,11 @@ def load_project(root=ROOT):
     except (OSError, ValueError) as error:
         raise ProjectError(f'Invalid engineering contract: {error}') from error
     ledger = read_json(root / 'project/tasks.json')
-    catalog = read_json(root / 'project/checks.json')
+    catalog_path = root / 'project/checks.json'
+    try:
+        catalog = decode_publishing_catalog(catalog_path.read_bytes())
+    except (OSError, ValueError) as error:
+        raise ProjectError(f'Cannot read JSON record {catalog_path}: {error}') from error
     validate_model(root, 'TaskLedger', ledger)
     validate_model(root, 'CheckCatalog', catalog)
     tasks = indexed(ledger['tasks'], 'task')

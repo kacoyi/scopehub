@@ -96,6 +96,8 @@ class TimingJobRoleTests(unittest.TestCase):
                 legacy['workflow']['windows_profile'] = profile
                 for job in (*legacy['jobs'], *legacy['sibling_jobs']):
                     job.pop('publishing_steps', None)
+                    job.pop('step_conclusions', None)
+                    job.pop('step_statuses', None)
                 archive = self.write(f'legacy-{profile}.json', {
                     'kind': timing.ARCHIVE_KIND, 'samples': [], 'hosted': [legacy],
                 })
@@ -122,6 +124,8 @@ class TimingJobRoleTests(unittest.TestCase):
         legacy = timing.hosted_timing(self.run, jobs)
         for row in legacy['sibling_jobs']:
             row.pop('executed_layout_steps', None)
+            row.pop('step_conclusions', None)
+            row.pop('step_statuses', None)
         archive = self.write('legacy-nameless.json', {
             'kind': timing.ARCHIVE_KIND, 'samples': [], 'hosted': [legacy],
         })
@@ -164,6 +168,25 @@ class TimingJobRoleTests(unittest.TestCase):
             rows = {row['profile']: row['seconds'] for row in view['samples']}
             self.assertEqual(expected, (rows['full']['total'], rows['ci-windows-browser']['total'],
                                         rows['ci-windows-recovery']['total'], rows['full']['runner']))
+
+    def test_role_step_uses_normalized_status_and_conclusion(self):
+        for index, step in ((1, {'name': timing.WINDOWS_RECOVERY_MARKER, 'number': 14, 'conclusion': 'success'}),
+                            (3, self.jobs[3]['steps'][0])):
+            waiting = {**step, 'status': 'waiting'}
+            completed = {'name': step['name'], 'number': step['number'], 'status': 'completed'}
+            waiting_state = {**completed, 'status': 'waiting'}
+            result = {key: value for key, value in step.items() if key != 'status'}
+            job = dict(self.jobs[index], name=None, labels=['windows-latest'])
+            other = [*self.jobs[:index], *self.jobs[index+1:]]
+            for variant, fragments in (
+                    ('grouped', ([waiting, completed],)),
+                    ('split', ([waiting], [completed])),
+                    ('split-reversed', ([completed], [waiting])),
+                    ('separate-fields', ([waiting_state], [result], [completed]))):
+                with self.subTest(job=index, variant=variant):
+                    rows = [*other, *(dict(job, steps=steps) for steps in fragments)]
+                    views = self.read_modes(rows, f'role-status-{index}-{variant}')
+                    self.assert_public_clocks(views, wall=765, runner=1957, receipts=1)
 
     def test_competing_step_conclusions_cannot_establish_a_job_role(self):
         marker = {'name': timing.WINDOWS_RECOVERY_MARKER, 'number': 14, 'conclusion': 'success'}

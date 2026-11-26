@@ -184,6 +184,9 @@ def native_raw_fixture(test, report, catalog):
     source = {'snapshot_kind': 'execution-inputs-v1', 'sha256': 'c' * 64, 'file_count': 2,
               'git_head': report['ci']['checkout_sha'], 'working_tree_dirty': False, 'exclusions': []}
     test.enterContext(patch.object(timing, 'committed_publishing_snapshot', return_value=source))
+    test.enterContext(patch.object(timing, 'publishing_definition', return_value={
+        'project_definition_sha256': 'd' * 64, 'task_definitions': {},
+    }))
     report.update(report_version='2.0', source=source, source_end=source.copy(),
                   project_definition_sha256='d' * 64, task_definitions={},
                   native_requirement={'requested': report['selection']['profile'] == 'full', 'satisfied': True})
@@ -1713,6 +1716,29 @@ def main():
             self.register_publisher(tree, catalog)
         return tree
 
+    def test_committed_catalog_accepts_only_finite_plain_utf8(self):
+        catalog = fixture_catalog()
+        publisher = self.commit('Publishing checkout', tree=self.publishing_tree(catalog))
+        original = json.dumps(catalog).encode('utf-8')
+        git = timing.git
+        for content, expected in (
+            (original, catalog),
+            (json.dumps(catalog, indent=2).encode('utf-8'), catalog),
+            (b'\xef\xbb\xbf' + original, None),
+            (original.decode('utf-8').encode('utf-16'), None),
+            (original.replace(b'{"checks"', b'{"timeout": 1e309, "checks"', 1), None),
+        ):
+            with self.subTest(content=content[:48]):
+                timing.native_publishing_catalog.cache_clear()
+
+                def read(root, *args, **opts):
+                    if args == ('cat-file', 'blob', f'{publisher}:project/checks.json'):
+                        return content
+                    return git(root, *args, **opts)
+
+                with patch.object(timing, 'git', side_effect=read):
+                    self.assertEqual((True, expected), timing.native_publishing_catalog(publisher, root=self.root))
+
     def test_selection_comes_from_committed_publishing_catalog(self):
         full = (*BASIC_CHECKS, 'generated-contracts', 'windows-native-build')
         catalog = fixture_catalog(full, non_change=('release-artifacts',))
@@ -1895,6 +1921,10 @@ def main():
             ('other-tree-with-readable-missing-ancestor', missing, shallow_head, absent_base, None),
             ('other-tree-with-unrelated-missing-ancestor', missing, shallow_head, 'd' * 40, 360),
             ('shallow-missing-ancestor-with-matching-head', missing, shallow_head, None, 360),
+            ('shallow-claimed-checkout-is-head-ancestor', absent_base, shallow_head, None, None),
+            ('shallow-claimed-checkout-is-head-ancestor-with-proof', absent_base, shallow_head, self.base, None),
+            ('other-tree-with-claimed-checkout-is-base-ancestor', absent_base, missing_head, shallow_parent, None),
+            ('other-tree-with-unrelated-missing-checkout', missing, missing_head, shallow_parent, 360),
             ('tree', tree, head, self.base, None),
             ('null-without-proof', null, head, None, None),
             ('null-with-proof', null, missing_head, self.base, None),
@@ -1909,8 +1939,9 @@ def main():
                     # Traversal hides the parent, while the event head still carries its raw header.
                     shallow.write_bytes(f'{head}\n'.encode('ascii'))
                     self.assertEqual(head, self.git('rev-list', '-2', head))
-                if topic == shallow_head:
+                if topic == shallow_head or comparison_base == shallow_parent:
                     shallow.write_bytes(f'{shallow_parent}\n'.encode('ascii'))
+                if topic == shallow_head:
                     self.assertEqual([shallow_head, shallow_parent], self.git('rev-list', topic).splitlines())
                 run = dict(hosted_run(), head_sha=topic)
                 clock = timing.hosted_timing(run, [dict(job, head_sha=topic) for job in jobs])
@@ -2769,6 +2800,22 @@ class TimingRegressionTests(unittest.TestCase):
                                   [row['profile'] for row in mixed['samples']])
             self.assertEqual([], mixed['input_issues'])
             self.assertEqual(mixed['samples'], self.invoke_timing('--report', archive)['samples'])
+
+            for field, value in (('project_definition_sha256', 'e' * 64), ('task_definitions', {'M0-001': 'e' * 64})):
+                with self.subTest(definition=field):
+                    malformed.write_bytes(timing.json_bytes({**raw, field: value}))
+                    saved = root / f'{field}-conflict.json'
+                    rows = self.invoke_timing('--report', malformed, '--report', recovery, '--report', aggregate,
+                                              '--save', saved)
+                    self.assertCountEqual(['ci-windows-browser', 'ci-windows-recovery', 'full'],
+                                          [row['profile'] for row in rows['samples']])
+                    diagnostic = next(row for row in rows['samples'] if row['profile'] == 'ci-windows-browser')
+                    self.assertTrue(diagnostic['raw_publisher_unverified'])
+                    self.assertIsNone(diagnostic['job'])
+                    self.assertIsNone(diagnostic['seconds']['total'])
+                    self.assertEqual(1, len(rows['input_issues']))
+                    self.assertIn('matching project definitions', rows['input_issues'][0]['error'])
+                    self.assertEqual(rows['samples'], self.invoke_timing('--report', saved)['samples'])
 
             for label, edit, message in (
                 ('absent-task', lambda row: row['selection'].pop('task_id'), 'selection'),

@@ -9260,6 +9260,23 @@
       "diagnostic_reports": [],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "timing-step-status-eligibility-depends-on-job-row-grouping",
+      "status": "open",
+      "severity": "major",
+      "source": "Local integration source review of the normalized timing correction after intake ab70ca6caeeb34c1faa1d7f5f7e77aaed5b279ad. The raw timing parser filters a step with queued, pending or waiting status before retaining the timestamp facts, and the retained facts currently omit step status.",
+      "observation": "The local paired replay of the draft after ab70ca6c withheld the phase when pending status and stale timestamps shared a row. Splitting those assertions in either order produced 55 setup, 335 execution and 20 tail seconds. The 420-second wall, 410 runner seconds and 14 browser seconds remained independently supported.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

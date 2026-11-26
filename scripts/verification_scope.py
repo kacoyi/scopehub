@@ -6,6 +6,7 @@ from collections import Counter
 from dataclasses import dataclass
 from datetime import timedelta
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -50,6 +51,18 @@ def windows_lane_checks(selected, lane, lanes=WINDOWS_LANES, *, assignment=WINDO
 
 
 SCOPED_PROFILES = frozenset({'records', 'tooling', 'localization'})
+
+
+def finite_json_float(token):
+    value = float(token)
+    if not math.isfinite(value):
+        raise ValueError('Invalid JSON number')
+    return value
+
+
+def decode_publishing_catalog(data):
+    return json.loads(data.decode('utf-8'), object_pairs_hook=unique_object,
+                      parse_float=finite_json_float, parse_constant=invalid_number)
 
 
 def publishing_check_catalog(catalog):

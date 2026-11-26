@@ -11,8 +11,9 @@ import tempfile
 
 if __package__:
     from .check import PRIVATE_CHECK_LOGS, ci_provenance, redacted_check_log
+    from .execution_inputs import project_definition_claims
     from .project import (ProjectError, digest, file_digest, json_bytes, load_project,
-                          project_definition_hash, source_identity, task_definition_hash, validate_model, windows_x64)
+                          source_identity, validate_model, windows_x64)
     from .timing import (TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample,
                          windows_aggregate_cache)
     from .verification_evidence import (
@@ -28,8 +29,9 @@ if __package__:
     )
 else:
     from check import PRIVATE_CHECK_LOGS, ci_provenance, redacted_check_log
+    from execution_inputs import project_definition_claims
     from project import (ProjectError, digest, file_digest, json_bytes, load_project,
-                         project_definition_hash, source_identity, task_definition_hash, validate_model, windows_x64)
+                         source_identity, validate_model, windows_x64)
     from timing import (TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample,
                         windows_aggregate_cache)
     from verification_evidence import (
@@ -347,8 +349,8 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False):
 
 
 def validate_windows_lane(project, report, source, ci, selected, lane, profile):
-    if (report['ci'] != ci or report['project_definition_sha256'] != project_definition_hash(project)
-            or report['task_definitions'] != {key: task_definition_hash(task) for key, task in project['tasks'].items()}
+    if (report['ci'] != ci
+            or any(report[field] != expected for field, expected in project_definition_claims(project).items())
             or not windows_x64(report['environment'])):
         raise PublicationError(f'Windows {lane} lane has another checkout, run, platform or project definition.')
     if (not windows_published_scope(selected, profile, WINDOWS_LANES, project['catalog'])
