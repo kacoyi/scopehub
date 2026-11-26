@@ -30,6 +30,15 @@
       },
       "supersedes": "5c5b010ba79ded36557dedee9d9482c0aabbb85145c5f7778b6e00d7dca4bbdc",
       "evidence_sha256": "216f904d985a1d8beae5c7aca1342fd7d66f4c337a5138a567d68ebd192a77d6"
+    },
+    {
+      "kind": "request",
+      "source_commit": "87d0b846aad69fb84afe371b65814856ec7a118f",
+      "scope": "Exercise an offline sample indicator through the actual chart, native admission and UI. Compare one lost logical status delivery, ordinary ready results and terminal, cancelled or unavailable inputs. Check task identity, calculation, visible outcome, bounds and cleanup. Challenge an independently chosen neighboring input and verify what the original calendar failure establishes. Recheck the original decision on c1cefee5.",
+      "supersedes": "b501ae7c5cada5665e507f47ae86af76ff4c04ab476e30506ebea13e74b623bf",
+      "requested_at": "2026-11-26T07:47:12.275276+00:00",
+      "request_id": "c2b44f90f73746270af7a4700f6bbb701e3328abfe67af907cca4bd182620e3c",
+      "evidence_sha256": "19b013dfab9ee99ac7ac3efa09b06dd76d5daffdd565c0d808eaa403939f908a"
     }
   ]
 }
