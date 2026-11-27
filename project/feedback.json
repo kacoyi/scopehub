@@ -12414,6 +12414,125 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "timing-unnumbered-step-erases-producer-staging-bound",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-155 review of fea9a19095db891b76a2f30d8ee65763c2e880fe, recorded at b82384765b652d9541036c2a3e0c5744af0fe7ec. Original: Independent Astra Standard (t1jm), observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1jm/original-assistant-response.jsonl (SHA-256 31d43c7f17ba166555ddf4c0fa39f68efa30769a7238a658d58eeabab8eb4ed8).",
+      "observation": "On PR 123 run 45965137241, omitting the setup step number lets raw and compact browser reports dated 08:38:36 UTC through after staging ended at 08:38:35 UTC, withdrawing the authentic 983 runner-seconds in either order. The staging end retains its recorded whole-second precision.",
+      "task_ids": [
+        "M0-150",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-clockless-verification-erases-producer-predecessor-bound",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-155 review of fea9a19095db891b76a2f30d8ee65763c2e880fe, recorded at b82384765b652d9541036c2a3e0c5744af0fe7ec. Original: Independent Astra Standard (t1jm), observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1jm/original-assistant-response.jsonl (SHA-256 31d43c7f17ba166555ddf4c0fa39f68efa30769a7238a658d58eeabab8eb4ed8).",
+      "observation": "On the same PR 123 run, removing both verification clocks while retaining its number and success lets 08:25:16 UTC gain 983 browser runner-seconds despite initialization ending at 08:25:18 UTC. The latter is a viable lower bound and does not establish a verification duration.",
+      "task_ids": [
+        "M0-150",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-staging-bound-outlives-producer-report-writer",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 review of fea9a19095db891b76a2f30d8ee65763c2e880fe, recorded at b82384765b652d9541036c2a3e0c5744af0fe7ec. Original: Independent Astra Standard (t1jn), observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1jn/original-assistant-response.jsonl (SHA-256 4ddf5de57dc401f6a8e649e6d4f6ee60e40b45ed6da0c968980b83f94ecdbb65).",
+      "observation": "On the same PR 123 run, verification ended at 08:38:31 UTC and wrote the report at 08:38:31.847471 UTC. A copy dated 08:38:34 UTC still gains 983 browser runner-seconds and displaces the original in either order. The independent Windows runner total remains 3337 seconds.",
+      "task_ids": [
+        "M0-150",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-aggregate-role-digest-unchecked-without-producer-originals",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 review of fea9a19095db891b76a2f30d8ee65763c2e880fe, recorded at b82384765b652d9541036c2a3e0c5744af0fe7ec. Original: Independent Astra Standard (t1jn), observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1jn/original-assistant-response.jsonl (SHA-256 4ddf5de57dc401f6a8e649e6d4f6ee60e40b45ed6da0c968980b83f94ecdbb65).",
+      "observation": "With only the genuine aggregate original from PR 123 run 45965137241 and a browser compact claiming the Python original's digest, the browser compact gains 983 runner-seconds. An alternate feasible report instant removes genuine browser attribution in either order. Correct role claims and the legacy compact form without a digest remain valid.",
+      "task_ids": [
+        "M0-150",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-collection-unsuccessful-count-contradicts-member-runs",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-156 review of fea9a19095db891b76a2f30d8ee65763c2e880fe, recorded at b82384765b652d9541036c2a3e0c5744af0fe7ec. Original: Independent Astra Standard (t1jp), observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1jp/original-assistant-response.jsonl (SHA-256 19cf6121416c1c112ca4b1654eab7b6ca2aa1fd8eb80e2d0a27099515b174d2a).",
+      "observation": "Both bound member runs in the genuine PR 96 and push collection completed successfully. A same-time copy claiming two unsuccessful runs removes all four receipts in both orders after a cold reopen while the independent clocks remain known.",
+      "task_ids": [
+        "M0-156",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-collection-admits-out-of-range-event-limits",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-156 review of fea9a19095db891b76a2f30d8ee65763c2e880fe, recorded at b82384765b652d9541036c2a3e0c5744af0fe7ec. Original: Independent Astra Standard (t1jp), observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1jp/original-assistant-response.jsonl (SHA-256 19cf6121416c1c112ca4b1654eab7b6ca2aa1fd8eb80e2d0a27099515b174d2a).",
+      "observation": "Copies of the genuine PR 96 and push collection with limit_per_event set to 0 or 13 can withdraw all four receipts after a cold reopen. The weekly acquisition entry accepts only 1 through 12.",
+      "task_ids": [
+        "M0-156",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-collection-accepts-known-tree-as-capture-commit",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-156 review of fea9a19095db891b76a2f30d8ee65763c2e880fe, recorded at b82384765b652d9541036c2a3e0c5744af0fe7ec. Original: Independent Astra Standard (t1jp), observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1jp/original-assistant-response.jsonl (SHA-256 19cf6121416c1c112ca4b1654eab7b6ca2aa1fd8eb80e2d0a27099515b174d2a).",
+      "observation": "A copy of the genuine PR 96 and push collection that names a known Git tree as capture_source withdraws four receipts in both orders. The collection reader must reject that known contradiction and retain the treatment of genuinely unavailable historical commits.",
+      "task_ids": [
+        "M0-156",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
