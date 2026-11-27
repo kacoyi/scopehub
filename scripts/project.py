@@ -540,6 +540,15 @@ def load_project(root=ROOT):
     return project
 
 
+def read_maintenance_engagement(root, maintenance_policy):
+    if 'engagement' not in maintenance_policy:
+        return None
+    try:
+        return load_maintenance_engagement(root, maintenance_policy['engagement'])
+    except (OSError, ValueError) as error:
+        raise ProjectError(f'Invalid maintenance engagement: {error}') from error
+
+
 def validate_delivery(root, project):
     delivery = read_json(root / 'project/delivery.json')
     feedback = read_json(root / 'project/feedback.json')
@@ -547,11 +556,8 @@ def validate_delivery(root, project):
     validate_model(root, 'Feedback', feedback)
     maintenance_policy = delivery['scaffold_maintenance']
     indexed(maintenance_policy['periodic_reviews'], 'periodic review')
-    if 'engagement' in maintenance_policy:
-        try:
-            project['maintenance_engagement'] = load_maintenance_engagement(root, maintenance_policy['engagement'])
-        except (OSError, ValueError) as error:
-            raise ProjectError(f'Invalid maintenance engagement: {error}') from error
+    if engagement := read_maintenance_engagement(root, maintenance_policy):
+        project['maintenance_engagement'] = engagement
     tasks, checks = project['tasks'], project['checks']
     types = indexed(delivery['change_types'], 'change type')
     scenarios = indexed(delivery['scenarios'], 'scenario')
@@ -1620,7 +1626,7 @@ def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement', re
     engagement = {}
     if phase == 'handoff' and 'maintenance_engagement' in project:
         engagement['maintenance_engagement'] = engagement_handoff(
-            project['maintenance_engagement'], read_only=read_only, source_commit=source_commit,
+            project['maintenance_engagement'], project['tasks'], read_only=read_only, source_commit=source_commit,
         )
     if not detail:
         context = focused_context(project, key, phase, source_commit=source_commit)
@@ -2566,7 +2572,13 @@ def source_navigation(root, args):
             raise ValueError('Expected one canonical feedback item with that ID.')
         result = {'source': {'path': args.path, 'id': args.id}, 'value': matches[0]}
         if matches[0]['status'] == 'open':
-            result['follow_through'] = 'Link this existing finding to an unfinished corrective task and verify its assigned checks.'
+            policy = read_json(records / 'project/delivery.json').get('scaffold_maintenance', {})
+            engagement = read_maintenance_engagement(records, policy)
+            if engagement and engagement['status'] == 'ended':
+                stop = engagement['stop_when']
+                result['follow_through'] = ' '.join((stop['on_completion'], stop['later_implementation']))
+            else:
+                result['follow_through'] = 'Link this existing finding to an unfinished corrective task and verify its assigned checks.'
     else:
         result = {'source': reference, 'value': resolve_source(records, reference)}
     if args.source is not None:
