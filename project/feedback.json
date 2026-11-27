@@ -9716,6 +9716,21 @@
         "prevention": "The four malformed-envelope cases in Linux and Windows task dispatch 45824846885 failed before display or another logical status read. Each kept the chart intact and cleaned up the original task once."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "sample-indicator-recovery-cross-source-provenance",
+      "source": "Independent Astra Standard (t1g9) component replay on 0c3e56b4c808427b89751ff6fdee49b91741e3e9. Review decision: contracts/reviews/task-decisions/M3-007.json#/events/9. Original transcript: .reports/M3-007/provenance/review/original-assistant-response.jsonl (SHA-256 84daf687a6cc95e6af4bfc40f1d96d55d3550ab0b732ad64bf11efd8ec69b8d9).",
+      "observation": "After one lost status delivery, changing only the admitted task\u2019s recovered ready artifact to the normal sample writer output displayed 3500.5 over the gapped chart, while the gapped artifact displayed Unknown. The reciprocal substitution also displayed the other source\u2019s result. A foreign result must fail with the chart still available and one cleanup of the originally admitted task.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M3-008"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

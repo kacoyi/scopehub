@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M3-008",
   "tasks": [
     {
       "id": "M0-001",
@@ -29328,6 +29328,128 @@
           ],
           "data_plan": "Use an isolated synthetic SQLite profile and the pinned normal and gapped calendar fixtures. Keep retained records limited to synthetic inputs and responses.",
           "cleanup": "Release controlled replies, cancel an obsolete admitted task, close owned browser contexts and services, and verify port release and profile removal."
+        }
+      }
+    },
+    {
+      "id": "M3-008",
+      "title": "Bind recovered indicator results to their frozen source",
+      "milestone": "M3",
+      "status": "active",
+      "depends_on": [
+        "M3-007"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/indicator-preview.tsx",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "tests/ubuntu-preview/workspace_indicator_probe.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Through the offline chart and existing local writer, recover after one logical status delivery loss and display the normal and gapped samples only with their own results.",
+        "With the event and snapshot of the original admitted task, reject the ready artifact from the other source in both directions. Reject independently altered dataset ID and revision claims when structurally representable. Keep the original visible chart and issue exactly one cleanup for the admitted task.",
+        "Retain source-bound originals for the public-entry positive and negative controls, both directions of cancellation timing and deadline recovery, and zero volatility on both equal-close CSV windows."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "indicator-workflow",
+        "workspace-timeframe",
+        "desktop-localization"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261127T090938.091051Z-6811b617",
+          "source_commit": "0c3e56b4c808427b89751ff6fdee49b91741e3e9",
+          "report_sha256": "0d96d171823dabd3aebc06893947edb08a9055a5015b735c6309484974bbf2dc"
+        }
+      ],
+      "next_action": "Commit and reproduce the provenance controls at the compiled chart and local writer boundary, then correlate the inline result provenance before presentation and retain before and after originals.",
+      "blocker": null,
+      "closure_reason": null,
+      "evidence": [],
+      "plan": {
+        "outcome": "The offline sample chart only displays indicator result provenance for its own frozen dataset and revision after recovery.",
+        "change_types": [
+          "ui",
+          "indicators"
+        ],
+        "context": [
+          ".reports/M3-007/provenance/review/original-assistant-response.jsonl",
+          "contracts/reviews/task-decisions/M3-007.json#/events/9",
+          ".reports/runs/20261127T090938.091051Z-6811b617/test-report.json",
+          "apps/desktop/ui/src/indicator-preview.tsx",
+          "crates/application/src/workspace/indicators.rs",
+          "python/providers/simulated.py",
+          "tests/ubuntu-preview/workspace_indicator_probe.mjs"
+        ],
+        "hypotheses": [
+          "The ready branch validates the admitted task and snapshot but fails to correlate the inline result provenance with the frozen dataset identity and revision.",
+          "The normal and gapped sample IDs already include the revision, so a same-ID revision-only test needs a structurally valid response mutation of a writer-produced artifact."
+        ],
+        "risks": [
+          {
+            "failure": "A foreign artifact or stale dataset claim becomes visible, or rejection damages the chart or cancels the wrong task.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The correlation blocks valid previews or regresses bounded delivery recovery, cancellation, or frozen equal-close CSV values.",
+            "checks": [
+              "workspace-timeframe",
+              "indicator-workflow",
+              "market-workflow",
+              "ui-build"
+            ]
+          }
+        ],
+        "rollback": "Keep the review, browser and writer originals and both source commits. Revert the narrow ready-result change if it blocks valid results and use the paired controls to locate the erroneous correlation.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/indicator-preview.tsx",
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ubuntu-preview/workspace_indicator_probe.mjs"
+          ],
+          "rules": [
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/IndicatorProvenance"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Changing the public operation, writer admission, artifact generation, source selection, or the polling deadline."
+          ],
+          "open_questions": [
+            "Which browser-observable failure and cleanup outcomes are reproduced using the actual writer artifacts?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Normal and gapped source values, existing chart bindings, the one-loss recovery budget, and single task cleanup ownership."
+          ],
+          "change": [
+            "Require the inline result provenance dataset ID and revision to match the selected frozen snapshot before any preview display."
+          ],
+          "data_plan": "Use only existing synthetic samples and CSV fixtures. Replay actual writer artifacts and independently mutate provenance in the test delivery boundary.",
+          "cleanup": "Verify one cancellation of each rejected task and orderly writer, browser, listener and profile teardown."
         }
       }
     }
