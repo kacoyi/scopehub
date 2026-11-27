@@ -1,5 +1,5 @@
 import childProcess from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { appendFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { syncBuiltinESMExports } from 'node:module';
@@ -52,7 +52,7 @@ export async function readIndicatorJournal(file) {
 
 // Installed only in the journey's Vite child. Record real Rust replies before
 // the ordinary host sends them, and interrupt only the selected status delivery.
-export function installIndicatorProbe(endpoint, writerPath, { journal, mode, refuse }) {
+export function installIndicatorProbe(endpoint, writerPath, { journal, mode, refuse, provenanceCases }) {
   const mark = (stage, fields) => appendFileSync(journal, JSON.stringify({ at_ms: Date.now(), stage, ...fields }) + '\n');
   const spawn = childProcess.spawn;
   const heldResponses = new Map();
@@ -67,6 +67,7 @@ export function installIndicatorProbe(endpoint, writerPath, { journal, mode, ref
     'lose-once', 'deadline', 'user-cancel', ...substitutions,
   ].includes(mode));
   const holdMs = mode === 'deadline' || refuse ? 800 : statusHoldMs;
+  const provenanceCaseFor = provenanceCases && trackProvenanceCases(provenanceCases);
   let heldReady = false;
   let substitutedRequest;
 
@@ -98,7 +99,9 @@ export function installIndicatorProbe(endpoint, writerPath, { journal, mode, ref
         catch { mark('pipe-reply-invalid', { pid }); continue; }
         if (output?.private_profile) continue;
         const fields = pending.shift();
-        if (indicatorOperations.has(fields?.operation)) mark('pipe-reply', { ...fields, pid, output });
+        if (indicatorOperations.has(fields?.operation)) mark('pipe-reply', {
+          ...fields, pid, output, ...(provenanceCaseFor && { wire_line: line }),
+        });
       }
     });
     return child;
@@ -161,7 +164,16 @@ export function installIndicatorProbe(endpoint, writerPath, { journal, mode, ref
             if (!head || body?.result?.status !== 'ready') return release();
 
             const id = fields.request_id;
-            const lose = lostRequests.has(id) || lostRequests.size < lossLimit;
+            const provenance = provenanceCaseFor?.(body.result);
+            const losses = provenance?.lostRequests ?? lostRequests;
+            const lose = losses.has(id) || losses.size < (provenance ? 1 : lossLimit);
+            if (!lose && provenance?.artifact) {
+              const result = { ...body.result, event: { ...body.result.event, artifact: provenance.artifact } };
+              const replacement = { ...body, result };
+              mark('status-substituted', { ...fields, body: replacement, donor_task_id: provenance.donorTaskId });
+              args[0] = JSON.stringify(replacement);
+              return release();
+            }
             if (!lose && substitutions.includes(mode) && (!substitutedRequest || substitutedRequest === id)) {
               substitutedRequest = id;
               const replacement = substituteStatus(body, mode);
@@ -175,7 +187,7 @@ export function installIndicatorProbe(endpoint, writerPath, { journal, mode, ref
               return this;
             }
             if (!lose && (mode !== 'hold-ready' || heldReady)) return release();
-            if (lose) lostRequests.add(id);
+            if (lose) losses.add(id);
             heldReady = true;
             const started = performance.now();
             mark('status-held', { ...fields, hold_ms: holdMs });
@@ -207,6 +219,36 @@ export function installIndicatorProbe(endpoint, writerPath, { journal, mode, ref
         response.destroy();
       }
     },
+  };
+}
+
+function trackProvenanceCases(cases) {
+  const donors = new Map();
+  const trials = new Map();
+  return ({ task_id: taskId, event, source_snapshot: snapshot }) => {
+    if (trials.has(taskId)) return trials.get(taskId);
+    const { source, substitution } = cases[trials.size];
+    if (!snapshot.dataset_revision.endsWith(':' + source)) throw new Error('Unexpected sample provenance case.');
+    if (event.artifact.storage !== 'inline') throw new Error('Expected a native inline sample artifact.');
+    const trial = { lostRequests: new Set() };
+    if (substitution === 'own') donors.set(source, { artifact: event.artifact, taskId });
+    else {
+      const donor = donors.get(source === 'normal' ? 'gapped' : 'normal');
+      trial.donorTaskId = donor.taskId;
+      if (substitution === 'cross-source') trial.artifact = donor.artifact;
+      else {
+        // The synthetic ID already includes the revision. Vary each field in
+        // isolation at delivery, preserving the native result and its key order.
+        const artifact = event.artifact;
+        const provenance = { ...artifact.result.provenance, [substitution]: donor.artifact.result.provenance[substitution] };
+        const digest = result => createHash('sha256').update(JSON.stringify(result)).digest('hex');
+        if (digest(artifact.result) !== artifact.result_hash) throw new Error('Sample result serialization changed.');
+        const result = { ...artifact.result, provenance };
+        trial.artifact = { ...artifact, result, result_hash: digest(result) };
+      }
+    }
+    trials.set(taskId, trial);
+    return trial;
   };
 }
 

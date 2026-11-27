@@ -1075,6 +1075,202 @@ test('indicator-preview uses the bound sample calendar through the normal chart'
   }
 });
 
+test('offline sample indicator binds recovered result provenance to the frozen chart', async ({ browser }, testInfo) => {
+  const cases = [
+    { source: 'normal', substitution: 'own' },
+    { source: 'gapped', substitution: 'own' },
+    { source: 'gapped', substitution: 'cross-source' },
+    { source: 'gapped', substitution: 'dataset_revision' },
+    { source: 'gapped', substitution: 'dataset_id' },
+    { source: 'normal', substitution: 'cross-source' },
+  ];
+  const journal = testInfo.outputPath('sample-indicator-provenance.native.jsonl');
+  const port = await freePort();
+  const profile = await makeProfile();
+  const trials = [];
+  const donorBySource = new Map();
+  const day = Date.UTC(2024, 0, 3);
+  const time = Date.UTC(2024, 0, 3, 1);
+  let observer;
+  let servicePid;
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      servicePid = server.pid;
+      await inFreshBrowser(browser, server, async page => {
+        await sampleStep(page, server, testInfo, 'open sample for provenance controls', () => sampleButton(page).click());
+        const sources = page.getByRole('complementary', { name: 'Data sources' });
+        const showSources = () => control(page, 'Data sources').click();
+        const hideSources = () => sources.getByRole('button', { name: 'Close panel' }).click();
+        const sourceHistory = source => {
+          const call = sampleHistoryCall();
+          return { ...call, payload: { ...call.payload, from_ms: day, to_ms: Date.UTC(2024, 0, 4),
+            expected_revision: `scopehub-synthetic-v1:20241013:${source}` } };
+        };
+        await showSources();
+        const dated = await sampleStep(page, server, testInfo, 'freeze the January 3 normal chart',
+          () => sources.getByLabel('Sample date (UTC)').fill('2024-01-03'),
+          { catalog: false, historyCall: sourceHistory('normal'), bars: 20 });
+        let selectedSource = 'normal';
+        let frozen = (await dated.existingResponse().json()).result.snapshot;
+        await hideSources();
+        const plot = page.getByRole('region', { name: 'Price chart' });
+        const history = plot.locator(`.history[data-instrument="${future}"][data-timeframe="1m"]`);
+        const preview = plot.getByRole('region', { name: 'Indicator preview' });
+        const run = preview.getByRole('button', { name: 'Run preview' });
+        const period = preview.getByLabel('Rolling period');
+        const reset = async () => {
+          await period.fill('3');
+          await period.fill('2');
+        };
+        const ready = preview.getByText(/Preview layers/);
+        const failure = preview.getByRole('alert');
+        const values = preview.getByRole('table', { name: 'Indicator preview values' });
+        const chartState = async () => ({
+          connection: await page.locator('.connection').innerText(),
+          history: await history.evaluate(node => ({ ...node.dataset })),
+          canvas_visible: await history.locator('canvas').first().isVisible(),
+          history_ready: await plot.getByText('History ready', { exact: true }).isVisible(),
+        });
+        observer = observeIndicatorRequests(page, endpoint);
+        for (const { source, substitution } of cases) {
+          if (source !== selectedSource) {
+            await showSources();
+            const selected = await sampleStep(page, server, testInfo, `freeze the January 3 ${source} chart`,
+              () => sources.getByLabel('Sample revision').selectOption(source),
+              { catalog: false, historyCall: sourceHistory(source), bars: 20 });
+            frozen = (await selected.existingResponse().json()).result.snapshot;
+            selectedSource = source;
+            await hideSources();
+          }
+          if (await plot.locator('.chart-indicators').getAttribute('open') === null) {
+            await plot.getByText('Indicators', { exact: true }).click();
+          }
+          const first = observer.attempts.length;
+          const trial = { source, substitution, frozen, chart_before: await chartState() };
+          trials.push(trial);
+          await preview.getByLabel('First visible bar').selectOption(String(time));
+          await preview.getByLabel('Last visible bar').selectOption(String(time));
+          await expect(ready.or(failure)).toHaveCount(0);
+          await run.click();
+          await expect(ready.or(failure)).toBeVisible({ timeout: 17_000 });
+          await observer.settle();
+          const visible = await ready.isVisible();
+          trial.observed = visible ? 'ready' : 'failed';
+          const attempts = () => observer.attempts.slice(first);
+          const statuses = attempts().filter(row => row.operation === 'indicator_preview_status');
+          const request = statuses.at(-1);
+          const delivered = request?.reply?.result;
+          const taskId = request?.task_id;
+          trial.task_id = taskId;
+          const native = (await readIndicatorJournal(journal)).filter(row => row.task_id === taskId);
+          const stopped = native.filter(row => row.stage === 'status-lost');
+          const lostIds = [...new Set(stopped.map(row => row.request_id))];
+          expect(lostIds).toHaveLength(1);
+          expect(stopped.every(row => row.headers_sent === false)).toBe(true);
+          expect(statuses.filter(row => row.reply?.result?.status !== 'running').map(row => row.request_id))
+            .toEqual([...lostIds, request.request_id]);
+          expect(statuses.find(row => row.request_id === lostIds[0])).toMatchObject({ failure: 'net::ERR_EMPTY_RESPONSE' });
+          expect(statuses.every(row => row.task_id === taskId)).toBe(true);
+          const drafts = attempts().filter(row => row.operation === 'indicator.createDraft' && row.http === 200);
+          const submissions = attempts().filter(row => row.operation === 'indicator.runPreview' && row.http === 200);
+          expect(drafts).toHaveLength(1);
+          expect(submissions).toHaveLength(1);
+          expect(submissions[0].reply.result.outcome.result.task_id).toBe(taskId);
+          expect(submissions[0].payload.intent.arguments).toMatchObject({ snapshot: frozen,
+            draft_id: drafts[0].reply.result.outcome.result.draft_id });
+          const witness = native.find(row => row.stage === 'pipe-reply' && row.request_id === request.request_id).output.result;
+          expect(witness).toMatchObject({ status: 'ready', task_id: taskId, source_snapshot: frozen, event: { task_id: taskId } });
+          const artifact = witness.event.artifact;
+          const { dataset_id, dataset_revision } = frozen;
+          expect(artifact.result.provenance).toMatchObject({ dataset_id, dataset_revision });
+          const mean = source === 'normal' ? 3500.5 : null;
+          expect(artifact.result.series.find(series => series.id === 'mean').points).toEqual([{ time_ms: time, value: mean }]);
+          const substituted = native.filter(row => row.stage === 'status-substituted');
+          if (substitution === 'own') {
+            expect(substituted).toHaveLength(0);
+            expect(delivered).toEqual(witness);
+            donorBySource.set(source, { taskId, artifact });
+          } else {
+            const donor = donorBySource.get(source === 'normal' ? 'gapped' : 'normal');
+            expect(substituted).toEqual([expect.objectContaining({ request_id: request.request_id,
+              donor_task_id: donor.taskId, body: request.reply })]);
+            const replacement = delivered.event.artifact;
+            expect(delivered).toEqual({ ...witness, event: { ...witness.event, artifact: replacement } });
+            if (substitution === 'cross-source') {
+              expect(replacement).toEqual(donor.artifact);
+              expect(replacement.result.provenance.dataset_id).not.toBe(dataset_id);
+              expect(replacement.result.provenance.dataset_revision).not.toBe(dataset_revision);
+            } else {
+              const result = { ...artifact.result, provenance: { ...artifact.result.provenance,
+                [substitution]: donor.artifact.result.provenance[substitution] } };
+              expect(result.provenance[substitution]).not.toBe(artifact.result.provenance[substitution]);
+              expect(replacement).toEqual({ ...artifact, result,
+                result_hash: createHash('sha256').update(JSON.stringify(result)).digest('hex') });
+            }
+          }
+
+          if (visible) {
+            await preview.getByText('Preview provenance and values').click();
+            trial.visible_mean = await values.getByRole('row').last().getByRole('cell').first().innerText();
+          } else {
+            trial.alert = await failure.innerText();
+            await expect(values).toHaveCount(0);
+          }
+          trial.chart_after = await chartState();
+          expect(trial.chart_after).toMatchObject({ canvas_visible: true, history_ready: true, history: { bars: '20' } });
+          expect(trial.chart_after).toEqual(trial.chart_before);
+          await showSources();
+          await expect(sources.getByText(dataset_revision, { exact: true })).toBeVisible();
+          await hideSources();
+
+          const cancelWrites = () => readIndicatorJournal(journal).then(rows => rows.filter(row => row.task_id === taskId
+            && row.stage === 'pipe-write' && row.operation === 'task.cancel'));
+          trial.cancel_before_editor_change = (await cancelWrites()).length;
+          if (visible) {
+            expect(trial.cancel_before_editor_change).toBe(0);
+            // Release the displayed control before the next trial. This also
+            // keeps later trials observable on a source that accepts bad data.
+            await reset();
+          }
+          await expect.poll(cancelWrites).toHaveLength(1);
+          trial.cleanup = await readIndicatorAfterAdmission(server, {
+            type: 'indicator_preview_status', request_id: randomUUID(), task_id: taskId,
+          });
+          expect(trial.cleanup).toMatchObject({ http: 200, body: { ok: false, error: { code: 'STALE_CONTEXT' } } });
+          const cancelled = await cancelWrites();
+          expect(attempts().filter(row => row.operation === 'task.cancel').map(row => row.request_id))
+            .toEqual(cancelled.map(row => row.request_id));
+          expect(cancelled).toHaveLength(1);
+          expect.soft(trial.observed, `${source} with ${substitution} provenance`).toBe(substitution === 'own' ? 'ready' : 'failed');
+          if (substitution === 'own') expect.soft(trial.visible_mean).toBe(mean === null ? 'Unknown' : String(mean));
+          else expect.soft(trial.alert).toBe('The indicator preview could not be completed.');
+          if (!visible) await reset();
+        }
+      }, [endpoint, operationPath], { traceSample: true });
+    }, { historyTrace: true, indicatorProbe: { journal, mode: 'provenance', provenanceCases: cases } });
+  } finally {
+    await profile.close();
+    await observer?.settle();
+    const native = await readIndicatorJournal(journal);
+    const cleanup = { writer: native.find(row => row.stage === 'writer-close'),
+      service_exited: servicePid !== undefined && !alive(servicePid), port_released: await portAvailable(port),
+      profile_removed: await stat(profile.root).then(() => false, error => {
+        if (error.code === 'ENOENT') return true;
+        throw error;
+      }),
+    };
+    await testInfo.attach('Sample indicator provenance browser journal', {
+      body: JSON.stringify({ trials, attempts: observer?.attempts, cleanup }), contentType: 'application/json',
+    });
+    if (native.length) await testInfo.attach('Sample indicator provenance native journal', {
+      path: journal, contentType: 'application/x-ndjson',
+    });
+    expect(cleanup).toMatchObject({ writer: { exit: 0, signal: null },
+      service_exited: true, port_released: true, profile_removed: true });
+    expect(alive(cleanup.writer.pid)).toBe(false);
+  }
+});
+
 test('workspace delivers pre-admission BUSY after a complete indicator draft request', async () => {
   const profile = await makeProfile();
   const draft = {
