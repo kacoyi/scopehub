@@ -8505,7 +8505,7 @@
     },
     {
       "id": "herdr-native-test-assumes-unix-socket-capability",
-      "status": "open",
+      "status": "addressed",
       "severity": "major",
       "source": "First Windows PR 142 attempt in archives/observations/repo-hygiene-20261125/pr142-native-original-45841715488/manifest.json (SHA-256 d2697819124f8fa2dd91e044abd19c060326ed94ff96cd07a704641151b24db5).",
       "observation": "The Windows Python producer for PR 142 reached socket.AF_UNIX in the restarted-core handshake control and raised AttributeError on the hosted interpreter. The task has separate evidence on a live Linux desktop.",
@@ -8523,12 +8523,16 @@
           "report_sha256": "8c50ac9561b6320a11957b0085492253fde911bb6b681299b9680555c378fcc5"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The restarted-Core fixture modeled the endpoint but accessed the hosted interpreter's real socket.AF_UNIX attribute before the handshake. That attribute was absent on the first Windows producer.",
+        "correction": "Model the Linux prerequisites explicitly in the portable handshake control. Keep managed Herdr entry points gated to Linux, report unsupported_core_transport for an unavailable socket family or constructor, and stop a watch on that hold.",
+        "prevention": "PR 142 run 45937389013 passed the simulated handshake control on both platforms and the unsupported-host entry control on Windows. The real Linux socket identity and simulated missing-capability collector controls passed on Linux and skipped on Windows. The protected recheck remains with the coordinator."
+      },
       "deferral_reason": null
     },
     {
       "id": "herdr-exact-return-windows-original-mismatch",
-      "status": "open",
+      "status": "addressed",
       "severity": "major",
       "source": "First Windows PR 142 attempt in archives/observations/repo-hygiene-20261125/pr142-native-original-45841715488/manifest.json (SHA-256 d2697819124f8fa2dd91e044abd19c060326ed94ff96cd07a704641151b24db5).",
       "observation": "The Windows producer raised original_changed on the ordinary same-turn steering return fixture. All three wrong-subject or incomplete review heading cases returned original_changed before the expected review_verdict_mismatch. The failing log does not identify which bytes differed.",
@@ -8546,7 +8550,11 @@
           "report_sha256": "8c50ac9561b6320a11957b0085492253fde911bb6b681299b9680555c378fcc5"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The first Windows traceback reached the file version guard after the binary read. CPython 3.12.10 exposes change time as descriptor ctime and creation time as pathname ctime on Windows. The original log did not capture individual stat fields. CPython source and the controlled replay establish the comparison defect.",
+        "correction": "Compare pathname and descriptor identity, size, modification time and creation time on Windows. Compare descriptor change time across the read and preserve the exact response and completion bytes without newline translation.",
+        "prevention": "PR 142 run 45937389013 passed exact same-turn return and review-subject controls with LF and CRLF on both platforms. The controlled timestamp replay rejects a descriptor change or pathname replacement, and the independent collector replay detected an archived line-ending change. The protected recheck remains with the coordinator."
+      },
       "deferral_reason": null
     }
   ]
