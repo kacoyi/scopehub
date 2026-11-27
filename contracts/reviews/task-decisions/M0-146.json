@@ -387,6 +387,26 @@
       "requested_at": "2026-11-27T03:12:06.730424+00:00",
       "request_id": "3466d977e31fca07610f5b0857fc36a80f52d556bad96c0e8736cb1aa632eadf",
       "evidence_sha256": "7b897d9cf2deaddb2ef8abff324ca832e74d08e7520ee45bbd4b710d7e04e9be"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "cba1e6e4e71eb5c6564e3d8edced38057bfd7880",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 cba1e6e4e71eb5c6564e3d8edced38057bfd7880",
+      "scope": "APPROVE M0-146 cba1e6e4e71eb5c6564e3d8edced38057bfd7880",
+      "observation": "The Windows publisher rejected the unchanged Linux artifact from run 45839731781, and the browser producer rejected the replacement of its passed market-workflow result with an earlier_failure row.",
+      "reviewer": "Independent Astra Standard (t1bm)",
+      "original_sha256": "72d52aa72233544485b152d2bdf8ef1ce3ab211760b2ac27e29252cb8978b241",
+      "response_id": "d7d6d7aa0917dc5dc14b3d79f2f18045a5cf3e34332ac3973609075271fb382f",
+      "response_sha256": "3f661c80389f7b494a4ba46bd2fa8ea19e108bac8d16b04e619a7c4d116cd89d",
+      "legacy_response_sha256": "8348baf9f00dbf90d69da6eda4be8e5c4f52c99f2b969777239153f0cb428a43",
+      "observation_body_sha256": "d866cdaf218f7cf16c60dc6e5cb222ee051271d1b482587b7383a5009bb8ff55",
+      "event": {
+        "id": "msg_01e3d9bc1c89a03f016b08f6948a7887d0bd56f42ec460166b",
+        "timestamp": "2026-11-27T03:19:01.886Z"
+      },
+      "supersedes": "3466d977e31fca07610f5b0857fc36a80f52d556bad96c0e8736cb1aa632eadf",
+      "evidence_sha256": "be6beb25ba66b480737ee19c7727f9f426223176bb299453f0cdb3778f20a45a"
     }
   ]
 }

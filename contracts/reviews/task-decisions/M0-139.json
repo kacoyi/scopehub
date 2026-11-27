@@ -387,6 +387,26 @@
       "requested_at": "2026-11-27T03:12:05.917523+00:00",
       "request_id": "e4d77b92f9b855ed3486ca9adfde1a7bf092c80b7af468d0dba20b4333e7db9c",
       "evidence_sha256": "6699b40d71307be00473d2b12cb58748e2943d370baa616e4ddbb0e054889877"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "cba1e6e4e71eb5c6564e3d8edced38057bfd7880",
+      "verdict": "approved",
+      "decision": "APPROVE M0-139 cba1e6e4e71eb5c6564e3d8edced38057bfd7880",
+      "scope": "APPROVE M0-139 cba1e6e4e71eb5c6564e3d8edced38057bfd7880",
+      "observation": "For run 45839731781 attempt 1, the Windows aggregate publisher preserved all 64 evidence files and the failed verdict from the original Windows artifact, and rejected the unchanged Linux artifact from the same attempt.",
+      "reviewer": "Independent Astra Standard (t1bn)",
+      "original_sha256": "f5d36f7337cab68295e9d6f7bed1e4890633c55aa03e42bf15bf728983ece19f",
+      "response_id": "6222c15d1854b703f245197eb8cab1bfa4f69df103041c313fef1d0d389cef57",
+      "response_sha256": "b09d36c9388b638fb3b40311e483e3267f852c2bda4fb62893f09f759cbe87a7",
+      "legacy_response_sha256": "75b3cdb4d3157176fae689497de03ed4860386d60f94bfa0672811bf79d6d860",
+      "observation_body_sha256": "10b50e27518d981786473f3c69c6b101a18f643aa68b195021e98741e8808173",
+      "event": {
+        "id": "msg_0ae913d859f7a843016b08f66762dc87d09bd1985f9f9082f5",
+        "timestamp": "2026-11-27T03:18:15.196Z"
+      },
+      "supersedes": "e4d77b92f9b855ed3486ca9adfde1a7bf092c80b7af468d0dba20b4333e7db9c",
+      "evidence_sha256": "556b2106cd87ebd844d08bd889501a4960138c1cd37d1c174887b1cf5c7ab034"
     }
   ]
 }
