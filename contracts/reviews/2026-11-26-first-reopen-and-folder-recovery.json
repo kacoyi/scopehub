@@ -1,0 +1,37 @@
+{
+  "task_id": "M2-039",
+  "starting_source": "e39b8972840f6d854d40e9adfe3c84bd22c6df62",
+  "protected_review_base": "87dd07963b5dfbc648473e8a4f021ff5b8384203",
+  "independent_report": {
+    "path": "archives/observations/repo-hygiene-20261125/independent-final-m2-035-e39b8972/final-response.txt",
+    "sha256": "2f53b9d3243d690983374c4762a8924868551f69ebcd44bb6f14628d6fbe1302"
+  },
+  "private_regressions": {
+    "root": "archives/observations/m2-039-first-reopen-e39b8972",
+    "sha256sums": "616a47bbc82f764966d373b6c65810c46a265207ae8110fc2c097ef09f1291a2",
+    "sources": {
+      "starting_source": "e39b8972840f6d854d40e9adfe3c84bd22c6df62",
+      "first_reopen_red": "b5e723d9e8180f6f539c192d023593023f6f77e4",
+      "folder_refresh_red": "6f508e3cd9e5219e608084da2762193172878eef",
+      "focused_green": "1ee9fe42cc6291ace5a730daac1f3138a24b4bae",
+      "initial_regression_attempts_preserved": true
+    },
+    "report_sha256": {
+      "red-two-window/desktop/results.json": "9430ebe3cfae93a75fb2e5d3c8305c72e0eb1e4a616d7778ad7db0b700a9fda0",
+      "red/local-import-ui/browser-results.json": "9889190497ac971749ba1b9624b43524552c3523f42d28fbefab5346c2296016",
+      "green/desktop/results.json": "a62548460d70e525390e0559103079494238b7926ea216b22dd54793b9de1e58",
+      "green/local-import-ui/browser-results.json": "3394c324e8f23be50ae187975313a46b99053fac220deb07b2c10a8b124afd01"
+    }
+  },
+  "first_restore": {
+    "entry": "Two ordinary desktop Chromium windows with native-operation delivery controlled over one real synthetic Rust workspace.",
+    "before": "The peer committed source B and displayed 106. Refocusing the first waiting window admitted no new workspace snapshot; after A arrived it showed 44.",
+    "after": "A focus-triggered snapshot gated the first reopen. An A reply delivered before the snapshot or after B rendered could not display. An independent source B still showed 106, and confirmation of the unchanged A restored 44."
+  },
+  "folder_refresh": {
+    "entry": "The actual published folder drawer with synthetic native replies, three independent revision identities and a delayed positive status.",
+    "before": "A successful refresh listed the previously withheld revision but issued no new status read.",
+    "after": "The drawer kept the entry hidden until verified status arrived, then reopened the available revision with close 58 and its provenance. A still-missing revision stayed hidden. The explicitly revoked revision was neither rechecked nor shown."
+  },
+  "qualification": "Focused Linux Chromium verification with the real portable writer where applicable. The checked-in Rust storage path, protocol, and completed M2-033, M2-034, and M2-035 records remain unchanged. Native Windows and the separate shared-bar read timeout have their own scope."
+}

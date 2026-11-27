@@ -207,11 +207,11 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
     if (background) probe.current = { controller, task };
   }, [discardPrivateProjection]);
 
-  const load = useCallback(async function load(id: string | null, signal: AbortSignal): Promise<void> {
+  const load = useCallback(async function load(id: string | null, signal: AbortSignal, background = false): Promise<void> {
     if (!workspaceId) return;
     selection.current = id;
     try {
-      const current = await readPrivateRecords(workspaceId, id, signal);
+      const current = await readPrivateRecords(workspaceId, id, signal, background);
       observedRevision.current = current.workspace_revision;
       setView(current);
       setReadError(undefined);
@@ -222,7 +222,7 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
       discardPrivateProjection(code === 'DATA_UNAVAILABLE' ? id ?? undefined : undefined);
       if (id && code === 'DATA_UNAVAILABLE') {
         setError(failureMessage(fault));
-        await load(null, signal);
+        await load(null, signal, background);
         return;
       }
       setReadError(failureMessage(fault));
@@ -245,7 +245,7 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
 
   useEffect(() => {
     const refresh = () => {
-      if (!workspace.pending) run(signal => load(selection.current, signal), true);
+      if (!workspace.pending) run(signal => load(selection.current, signal, true), true);
     };
     const timer = window.setInterval(refresh, 1200);
     window.addEventListener('focus', refresh);

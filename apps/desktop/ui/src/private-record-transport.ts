@@ -3,7 +3,7 @@ import type {
   PrivateRecordChangeScope11, PrivateRecordChangeSummary, PrivateRecordExportCommand11, PrivateRecordExportReply11,
   PrivateRecordReadCommand11, PrivateRecordReadReply11,
 } from '../../../../contracts/generated/protocol';
-import { exchangeWorkspace } from './use-local-workspace';
+import { exchangeWorkspace, readWorkspaceAfterAdmission } from './use-local-workspace';
 
 type Command = PrivateRecordReadCommand11 | PrivateRecordChangeCommand11 | PrivateRecordExportCommand11;
 type Reply = PrivateRecordReadReply11 | PrivateRecordChangeReply11 | PrivateRecordExportReply11;
@@ -27,8 +27,7 @@ function envelope() {
   } as const;
 }
 
-async function send<T extends Reply>(command: Command, signal: AbortSignal): Promise<T['outcome']> {
-  const reply = await exchangeWorkspace<T>(command, signal);
+function decodeOutcome<T extends Reply>(command: Command, reply: T): T['outcome'] {
   if (reply.protocol_version !== '1.1' || reply.type !== 'response' || reply.request_id !== command.request_id) {
     throw { code: 'OUTPUT_INVALID' };
   }
@@ -38,11 +37,19 @@ async function send<T extends Reply>(command: Command, signal: AbortSignal): Pro
   return outcome;
 }
 
-export async function readPrivateRecords(workspaceId: string, recordId: string | null, signal: AbortSignal) {
-  const outcome = await send<PrivateRecordReadReply11>({
+async function send<T extends Reply>(command: Command, signal: AbortSignal): Promise<T['outcome']> {
+  return decodeOutcome(command, await exchangeWorkspace<T>(command, signal));
+}
+
+export async function readPrivateRecords(workspaceId: string, recordId: string | null, signal: AbortSignal,
+  waitForAdmission = false) {
+  const command: PrivateRecordReadCommand11 = {
     ...envelope(), scope: { workspace_id: workspaceId },
     intent: { operation: 'privateRecord.read', arguments: { record_id: recordId } },
-  }, signal);
+  };
+  const reply = await (waitForAdmission ? readWorkspaceAfterAdmission<PrivateRecordReadReply11>(command, signal)
+    : exchangeWorkspace<PrivateRecordReadReply11>(command, signal));
+  const outcome = decodeOutcome(command, reply);
   if (outcome.state !== 'completed' || !Number.isSafeInteger(outcome.result?.workspace_revision)
     || !Array.isArray(outcome.result.records)
     || (recordId === null ? outcome.result.record !== null

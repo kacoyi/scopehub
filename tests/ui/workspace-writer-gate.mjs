@@ -7,22 +7,22 @@ import { Transform } from 'node:stream';
 // The same fixture runs against the Rust writer on Linux and Windows.
 export function installPublishedRevisionGate() {
   const spawn = childProcess.spawn;
-  let armed = false;
-  let release;
+  let active;
   const releaseReply = () => {
-    armed = false;
-    release?.();
-    release = undefined;
+    const held = active;
+    active = undefined;
+    held?.release?.();
   };
-  const notify = message => {
-    if (process.connected) process.send(message, () => {});
+  const notify = (type, requestId) => {
+    if (process.connected) process.send({ type, requestId }, () => {});
   };
   process.once('disconnect', releaseReply);
   process.on('message', message => {
-    if (message === 'arm-published-revision-gate') {
-      armed = true;
-      notify('published-revision-gate-armed');
-    } else if (message === 'release-published-revision-gate' || message === 'close') {
+    if (message?.type === 'arm-published-revision-gate' && !active) {
+      active = { requestId: message.requestId };
+      notify('published-revision-gate-armed', active.requestId);
+    } else if (message === 'close'
+        || message?.type === 'release-published-revision-gate' && active?.requestId === message.requestId) {
       releaseReply();
     }
   });
@@ -43,13 +43,12 @@ export function installPublishedRevisionGate() {
       for (let end = buffer.indexOf(10); end !== -1; end = buffer.indexOf(10)) {
         const line = buffer.subarray(0, end + 1);
         buffer = buffer.subarray(end + 1);
-        if (armed && isRevisionStatus(line)) {
-          armed = false;
-          release = () => {
+        if (active && !active.release && isRevisionStatus(line, active.requestId)) {
+          active.release = () => {
             gate.push(line);
             drain(callback);
           };
-          notify('published-revision-reply-held');
+          notify('published-revision-reply-held', active.requestId);
           return;
         }
         gate.push(line);
@@ -63,8 +62,7 @@ export function installPublishedRevisionGate() {
   syncBuiltinESMExports();
 }
 
-function isRevisionStatus(line) {
+function isRevisionStatus(line, requestId) {
   const frame = JSON.parse(line);
-  return typeof frame.ok === 'boolean' && typeof frame.request_id === 'string'
-    && typeof frame.result?.available === 'boolean' && Object.keys(frame.result).length === 1;
+  return frame.request_id === requestId && frame.ok === true && typeof frame.result?.available === 'boolean';
 }

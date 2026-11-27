@@ -58,6 +58,9 @@ WINDOWS_PRODUCERS = 'windows_producers'
 WINDOWS_PRODUCER_JOBS = {f'windows_{lane}': lane for lane in WINDOWS_LANES}
 PROCESS_FIELDS = {'log', 'log_sha256', 'exit_code', 'duration_seconds'}
 DOWNLOAD_PLATFORMS = {'windows': 'Windows', 'windows-latest': 'Windows', 'linux': 'Linux', 'ubuntu-latest': 'Linux'}
+NATIVE_REVISION_ACCESS = 'windows-published-revision-access'
+NATIVE_REVISION_OBSERVATION_LIMIT = 128 * 1024
+NATIVE_REVISION_BINARY_LIMIT = 256 * 1024 * 1024
 BROWSER_OUTPUTS = {
     'market-live-stream': ('results.json', 'market-stream-', ('synthetic-replay-final.png',)),
     'market-quality-states': ('results.json', 'market-quality-', ('synthetic-market-quality.png',)),
@@ -235,6 +238,62 @@ def stage_field_observation(root, reports, destination, result):
     (destination / manifest).write_bytes(contents)
     if expected != field_observation(root, check, destination, hosted=True):
         raise PublicationError('Redacted field evidence differs from the reported observation.')
+
+
+def stage_native_revision_access(reports, destination, run, source, *, required):
+    directory = f'{run}/{NATIVE_REVISION_ACCESS}'
+    manifest = f'{directory}/observation.json'
+    staged_observation = destination / manifest
+    artifact_path = checked_path if required else optional_path
+    try:
+        observation_file = artifact_path(reports, manifest)
+        if observation_file is None:
+            return
+        with observation_file.open('rb') as stream:
+            contents = stream.read(NATIVE_REVISION_OBSERVATION_LIMIT + 1)
+        if len(contents) > NATIVE_REVISION_OBSERVATION_LIMIT:
+            raise PublicationError('Native observation exceeds the size limit.')
+        # The hosted report already binds this staged log to the current check.
+        observation_sha256 = digest(contents)
+        marker = b'native_observation_sha256=' + observation_sha256.encode('ascii')
+        with (destination / f'{run}/{NATIVE_REVISION_ACCESS}.log').open('rb') as stream:
+            if not any(line.rstrip(b'\r\n') == marker for line in stream):
+                raise PublicationError('Native observation differs from the check log.')
+        observation = evidence_json(contents)
+        if (not isinstance(observation, dict) or observation.get('source_commit') != source['git_head']
+                or observation.get('source_working_tree_dirty') is not False):
+            raise PublicationError('Native observation differs from the hosted source.')
+        if required and observation.get('outcome') != 'passed':
+            raise PublicationError('The native observation does not show a passed journey.')
+        write_artifact(staged_observation, contents)
+        if file_digest(staged_observation) != observation_sha256:
+            raise PublicationError('Staged native observation differs from the check log.')
+    except (OSError, ValueError, RecursionError) as error:
+        staged_observation.unlink(missing_ok=True)
+        if required:
+            raise PublicationError('A passing native revision access check requires its verified observation.') from error
+        print('::warning::Omitted unverified native revision access observation.')
+        return
+
+    binary = f'{directory}/scopehub-desktop.exe'
+    staged_executable = destination / binary
+    try:
+        executable = artifact_path(reports, binary)
+        if executable is None:
+            return
+        sha256 = observation.get('binary_sha256')
+        if (not isinstance(sha256, str) or not re.fullmatch(r'[0-9a-f]{64}', sha256)
+                or not 0 < executable.stat().st_size <= NATIVE_REVISION_BINARY_LIMIT):
+            raise PublicationError('Native executable lacks a valid identity or exceeds the size limit.')
+        copy_file(executable, staged_executable, sha256=sha256)
+    except (OSError, ValueError) as error:
+        if required:
+            staged_observation.unlink(missing_ok=True)
+        # Do not publish if copy_file could not remove an incomplete executable.
+        staged_executable.unlink(missing_ok=True)
+        if required:
+            raise PublicationError('A passing native revision access check requires its verified executable.') from error
+        print('::warning::Omitted unverified native revision access executable.')
 
 
 def stage_candidate(reports, destination, run, report, policy, *, expected):
@@ -710,6 +769,7 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=None, collecti
     scope = None if lane else scope_provenance(report, digest(contents), env)
     if project is None:
         project = load_project(root)
+    native_host = windows_x64(report['environment'])
     destination.mkdir()
     checkout = expected['checkout_sha']
     if lane and not collection_profile:
@@ -775,8 +835,12 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=None, collecti
         relative = check_log_path(run, result)
         if relative is None:
             continue
-        if project['checks'].get(check, {}).get('status') != 'implemented' or check in executed:
+        catalog_check = project['checks'].get(check, {})
+        if catalog_check.get('status') != 'implemented' or check in executed:
             raise PublicationError('A check log is absent from the active catalog or duplicated.')
+        if (check == NATIVE_REVISION_ACCESS and passed
+                and catalog_check['platforms'] == 'windows-x64' and not native_host):
+            raise PublicationError(f'A passing {check} check requires Windows x64.')
         log = checked_path(reports, relative)
         if check in PRIVATE_CHECK_LOGS:
             data = bound_bytes(log, result['log_sha256'])
@@ -797,6 +861,9 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=None, collecti
     if 'integration_validation' in report and report['integration_validation'] != integration_validation(report['checks']):
         raise PublicationError('The integration summary differs from the checked observations.')
 
+    native_status = executed.get(NATIVE_REVISION_ACCESS)
+    if native_status == 'passed' or (native_status is not None and native_host):
+        stage_native_revision_access(reports, destination, run, report['source'], required=native_status == 'passed')
     browser_roots = {'chart-history': f'chart-history/{run}', 'ubuntu-preview': f'ubuntu-preview/{run_id}'}
     for check in BROWSER_OUTPUTS:
         if check in executed:

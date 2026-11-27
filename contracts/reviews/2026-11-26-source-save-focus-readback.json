@@ -1,0 +1,48 @@
+{
+  "task_id": "M2-039",
+  "reviewed_source": "d986886026997ad44ed18689ee873527a350c55d",
+  "registered_feedback": "f6e6ac1645088a3c8f581427b44c790072ec7118",
+  "protected_base": "e2fc0a995de65253264e26c6d07f9adf9f9c2949",
+  "review": {
+    "path": "archives/observations/repo-hygiene-20261125/independent-final-m2-039-d9868860/final-response.txt",
+    "sha256": "bff79f282b4096758292de9f01750293e08eae90745a1e28b5030089ae2e2c12",
+    "original_response_line_sha256": "b3aa09dad5969ba27163ba5e5febbf846dd1c96ffba8be3aa460f2956439b3b2",
+    "manifest_sha256": "4171dc452255d7113aee0a3962e69d33334fed1b1d889fdd5c32244b9d40d0d3"
+  },
+  "prior_integration": {
+    "path": "archives/observations/m2-039-integration-d986886",
+    "manifest_sha256": "45b41db2884387876789e4b80fc1941657bca9a53dfc71452bff2eee00af5c5e"
+  },
+  "first_attempt": {
+    "source": "43fd510e3fb036d1ca5c2858e92b4cc1d6cb61f3",
+    "sha256": "2b77d5c780079600686161da46494629039c4f7e3a64eae2277ea64143f5df54",
+    "scope": "Saved-source red reproduced; the run was interrupted at the wrong fixture entry for a source-free workspace."
+  },
+  "focused": {
+    "red": {
+      "source": "0fef8f9b5b89fd0c06c34b5d9864fafdcb8440f6",
+      "passed": 0,
+      "failed": 6,
+      "sha256": "8b319e5c931a2665aaea063bfed8021eedce919c92a5a7be30a35c05cfc75b66"
+    },
+    "green": {
+      "source": "ef4b3a5c9e6dd70cf70818ed6b4712b5cb96b112",
+      "passed": 15,
+      "failed": 0,
+      "sha256": "7076ee16c72203a4d6c6fc6646e9c1b6ecaec89c8741272173233c943e57bf08"
+    }
+  },
+  "command": "pnpm exec playwright test --config tests/ui/desktop-workspace.config.mjs",
+  "red_filter": "source-save focus",
+  "green_filter": "source-save focus|latest workspace focus|first saved-chart reopen|briefly missing live frozen|outstanding native source invoke",
+  "private_archive": {
+    "path": "archives/observations/m2-039-source-save-focus-d9868860",
+    "manifest_sha256": "232b497c4b4091c4df7b2526070900c49404d9e7953778de7bc32d34a3074958"
+  },
+  "observations": [
+    "Both the saved-source and source-free controls previously showed A at close 44 after the peer had saved B and rendered 106. The repair confirms the peer revision in one trailing snapshot and never renders the obsolete restored bars after focus.",
+    "With no competing write, one trailing snapshot confirms the same A at close 44. Focusing during the issued write preserves the superseded-save notice. An explicit recovery keeps the focus requirement through the reply deadline, and closing the drawer does not resurrect it or resubmit the write.",
+    "The existing workspace operation owns the write and verifies its receipt as before. Snapshots proving write or recovery outcomes cannot publish the displayed workspace while focus is pending. The latest ordinary snapshot still owns focus confirmation and access fencing."
+  ],
+  "qualification": "Two built Chromium workspace windows used controlled native delivery to the real portable Rust workspace writer with independent synthetic revisions. The filter also passed the accepted startup, repeated-focus, stale-reply and revocation controls. Linux browser coverage is separate from Windows native and packaged acceptance."
+}
