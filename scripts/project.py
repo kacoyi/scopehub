@@ -2537,6 +2537,7 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
     ci = report.get('ci')
     checkout = root.resolve()
     reports_root = (checkout / '.reports').resolve()
+    download_location = artifact_root
     if artifact_root is None and report_path.is_relative_to((reports_root / 'ci').resolve()):
         raise ProjectError('Specify the downloaded CI artifact root')
     if ci:
@@ -2574,13 +2575,13 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
         raise ProjectError('Task completion has unfinished dependencies')
     results = indexed(report['checks'], 'report check')
     if __package__:
-        from .ci_artifacts import PublicationError, validate_recorded_windows_evidence
+        from .ci_artifacts import PublicationError, downloaded_platform, validate_recorded_windows_evidence
         from .verification_evidence import (
             EXTERNAL_CLIENT_CHECK, FIELD_ACTIONS, RUN_OBSERVATION_CHECKS,
             collect_run_observation, field_observation, hosted_artifact_path, redacted_check_log,
         )
     else:
-        from ci_artifacts import PublicationError, validate_recorded_windows_evidence
+        from ci_artifacts import PublicationError, downloaded_platform, validate_recorded_windows_evidence
         from verification_evidence import (
             EXTERNAL_CLIENT_CHECK, FIELD_ACTIONS, RUN_OBSERVATION_CHECKS,
             collect_run_observation, field_observation, hosted_artifact_path, redacted_check_log,
@@ -2588,6 +2589,7 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
     try:
         validate_recorded_windows_evidence(
             root, project, artifact_root if artifact_root is not None else reports_root, report,
+            platform=downloaded_platform(download_location, checkout / '.reports', ci) if download_location else None,
         )
     except (PublicationError, OSError) as error:
         raise ProjectError(str(error)) from error

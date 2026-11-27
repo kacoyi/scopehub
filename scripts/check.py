@@ -81,6 +81,7 @@ def ci_provenance(source, env, root=ROOT):
 
 PRIVATE_CHECK_LOGS = RUN_OBSERVATION_CHECKS | set(FIELD_ACTIONS) | {'credential-boundaries'}
 STOP_REASONS = {'interrupted', 'cleanup_failed'}
+PYTHON_MANIFEST_INTERRUPTED = 'Interrupted while finalizing the Windows Python manifest.'
 BUILD_CHECKS = {'typescript-contracts', 'ui-build', 'rust-format', 'rust-contracts-workers',
                 'rust-lints', 'windows-native-build'}
 WINDOWS_BROWSER_CHECKS = {'market-workflow', 'chart-history', 'ubuntu-preview',
@@ -265,12 +266,19 @@ def check_timeout(check, system):
     return check.get('windows_timeout_seconds', default) if system == 'Windows' else default
 
 
-def windows_lane_checks(selected, lane, *, python_split=False, recovery_owns_market_workflow=False):
+def stops_after_check(result, *, fail_fast=False):
+    return (result.get('reason_code') in STOP_REASONS
+            or (result['status'] != 'passed' and (fail_fast or result['id'] == 'environment')))
+
+
+def windows_lane_checks(selected, lane, *, python_split=False, recovery_owns_market_workflow=False, ownership=None):
+    if ownership is None:
+        ownership = WINDOWS_LANE_CHECKS
     if python_split and lane == 'python':
         return set()
     if lane == 'core':
-        return selected.difference(*WINDOWS_LANE_CHECKS.values())
-    owned = WINDOWS_LANE_CHECKS[lane]
+        return selected.difference(*ownership.values())
+    owned = ownership.get(lane, set())
     if python_split and recovery_owns_market_workflow:
         if lane == 'browser':
             owned = owned - {'market-workflow'}
@@ -565,8 +573,7 @@ def main():
                 except (OSError, KeyError, ValueError, TypeError) as error:
                     result.update(status='failed', reason_code='missing_acceptance_evidence', reason=str(error))
             results.append(result)
-            if result.get('reason_code') in STOP_REASONS or (
-                    result['status'] != 'passed' and (args.fail_fast or args.profile == 'fast' or check['id'] == 'environment')):
+            if stops_after_check(result, fail_fast=args.fail_fast or args.profile == 'fast'):
                 stopped = True
     if part_check is not None:
         label, part_command = part_check['id'], part_check['command']
@@ -597,7 +604,7 @@ def main():
                 CHECK_CONSOLE.get().interrupted = True
                 if record.get('reason_code') not in STOP_REASONS:
                     record.update(status='failed', reason_code='interrupted',
-                                  reason='Interrupted while finalizing the Windows Python manifest.')
+                                  reason=PYTHON_MANIFEST_INTERRUPTED)
         python_parts[lane] = record
         part_failed = record['status'] != 'passed'
     final_source = source_identity(ROOT)

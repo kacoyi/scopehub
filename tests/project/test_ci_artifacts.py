@@ -79,7 +79,7 @@ class PublicationTests(ProjectFixture):
         self.env = {
             'GITHUB_ACTIONS': 'true', 'GITHUB_SHA': head, 'SCOPEHUB_SOURCE_HEAD': head,
             'GITHUB_REPOSITORY': 'fixture/scopehub', 'GITHUB_RUN_ID': '10',
-            'GITHUB_RUN_ATTEMPT': '2', 'GITHUB_EVENT_NAME': event,
+            'GITHUB_RUN_ATTEMPT': '2', 'GITHUB_EVENT_NAME': event, 'GITHUB_JOB': 'verify', 'RUNNER_OS': system,
         }
         report = read_json(self.report(system=system))
         for result in report['checks']:
@@ -123,6 +123,31 @@ class PublicationTests(ProjectFixture):
         with self.assertRaisesRegex(PublicationError, 'fresh .reports directory'):
             prepare_reports(self.root)
         self.assertEqual(self.sentinel, saved.read_bytes())
+
+    def test_unchanged_linux_report_requires_a_linux_job_and_download(self):
+        report = self.hosted_report()
+        report['selection'] = {'profile': 'full', 'task_id': None,
+                               'checks': sorted(row['id'] for row in report['checks'])}
+        self.save_report(report)
+        outputs, _, _ = self.stage_job(self.env)
+        published = Path(outputs['path'])
+        original = (self.reports / 'test-report.json').read_bytes()
+        self.assertEqual(original, (published / 'test-report.json').read_bytes())
+
+        windows = self.destination.with_name('windows-stage')
+        with self.assertRaisesRegex(PublicationError, 'expected Windows platform'):
+            stage_artifacts(self.root, windows, {**self.env, 'GITHUB_JOB': 'windows_change', 'RUNNER_OS': 'Windows'})
+        self.assertFalse(windows.exists())
+
+        downloads = self.reports / 'ci' / self.env['GITHUB_RUN_ID']
+        linux = shutil.copytree(published, downloads / 'linux')
+        windows = shutil.copytree(published, downloads / 'windows')
+        receipt = archive_evidence(self.root, 'M0-001', linux / 'test-report.json', linux)
+        receipt_bytes = (self.root / receipt['path']).read_bytes()
+        with self.assertRaisesRegex(ProjectError, 'expected Windows platform'):
+            archive_evidence(self.root, 'M0-001', windows / 'test-report.json', windows)
+        self.assertEqual(receipt, archive_evidence(self.root, 'M0-001', linux / 'test-report.json', linux))
+        self.assertEqual(receipt_bytes, (self.root / receipt['path']).read_bytes())
 
     def test_hosted_artifact_preserves_the_public_acceptance_rows(self):
         self.add_catalog_checks('ai-workflow')
@@ -269,7 +294,8 @@ class PublicationTests(ProjectFixture):
         report['status'] = 'failed'
         self.complete_windows_selection(report, 'ci-windows-python')
         self.save_report(report)
-        outputs, _, _ = self.stage_job(self.scope_env(), action='stage-windows-lane')
+        outputs, _, _ = self.stage_job({**self.scope_env(), 'GITHUB_JOB': 'windows_python'},
+                                      action='stage-windows-lane')
         self.assert_core_artifacts_retained(outputs, report)
         self.assertFalse((Path(outputs['path']) / SCOPE_FILE).exists())
         self.assertEqual('ci-windows-python', read_json(Path(outputs['timing_path']))['profile'])

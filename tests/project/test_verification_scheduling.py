@@ -545,6 +545,7 @@ class WindowsLaneTests(ProjectFixture):
             'GITHUB_ACTIONS': 'true', 'GITHUB_REPOSITORY': 'fixture/scopehub', 'GITHUB_RUN_ID': '10',
             'GITHUB_RUN_ATTEMPT': '2', 'GITHUB_EVENT_NAME': 'pull_request', 'GITHUB_SHA': merge,
             'GITHUB_REF': 'refs/pull/1/merge', 'GITHUB_EVENT_PATH': str(self.event), 'SCOPEHUB_SOURCE_HEAD': head,
+            'GITHUB_JOB': 'windows_change', 'RUNNER_OS': 'Windows',
             'SCOPEHUB_WINDOWS_LANE_RESULT': 'success', 'SCOPEHUB_REVIEW_BASE': base, 'GITHUB_OUTPUT': '',
         }))
         self.enterContext(patch.object(harness, 'ROOT', self.root))
@@ -616,8 +617,10 @@ class WindowsLaneTests(ProjectFixture):
                 ui_report = self.reports / 'runs' / report['run_id'] / self.recovery_ui_report
                 ui_report.parent.mkdir()
                 ui_report.write_bytes(b'{"synthetic": "recovery UI"}\n')
-            publication_env = {**os.environ, **self.scope_environment(profile)} if profile else os.environ
-            self.assertTrue(ci_artifacts.stage_artifacts(self.root, destination, publication_env, lane=not profile))
+            publication_env = ({**os.environ, **self.scope_environment(profile), 'GITHUB_JOB': 'windows_core'}
+                               if profile else os.environ)
+            self.assertTrue(ci_artifacts.stage_artifacts(self.root, destination, publication_env,
+                                                         lane=None if profile else lane))
             reports[lane] = report
             shutil.rmtree(self.reports)
         return reports
@@ -1263,7 +1266,7 @@ class WindowsLaneTests(ProjectFixture):
             with self.subTest(candidate=label, entry='producer publication'):
                 published = destination / f'{label}-producer'
                 with self.assertRaisesRegex(ci_artifacts.PublicationError, error):
-                    ci_artifacts.stage_artifacts(self.root, published, os.environ, reports=producer, lane=True)
+                    ci_artifacts.stage_artifacts(self.root, published, os.environ, reports=producer, lane='python')
                 self.assertFalse((published / 'test-report.json').exists())
 
             with patch.object(windows_python, 'verify_original', side_effect=self.declared_python_events):
@@ -1355,7 +1358,7 @@ class WindowsLaneTests(ProjectFixture):
             shutil.rmtree(self.reports, ignore_errors=True)
             aggregate.rename(self.reports)
         self.assertTrue(ci_artifacts.stage_artifacts(
-            self.root, destination / 'alternative-published', os.environ, reports=alternative, lane=True))
+            self.root, destination / 'alternative-published', os.environ, reports=alternative, lane='python'))
         _, alternate_raw, alternate_manifest = ci_artifacts.python_parts(
             alternative, alternate_report, ('python',))[0]
         original_record, original_raw, original_manifest = original_parts[0]
@@ -1402,7 +1405,7 @@ class WindowsLaneTests(ProjectFixture):
             with self.subTest(case=name, entry='producer publication'):
                 rejected = destination / f'{name}-rejected-producer'
                 with self.assertRaisesRegex(ci_artifacts.PublicationError, error):
-                    ci_artifacts.stage_artifacts(self.root, rejected, os.environ, reports=producer, lane=True)
+                    ci_artifacts.stage_artifacts(self.root, rejected, os.environ, reports=producer, lane='python')
                 self.assertFalse((rejected / 'test-report.json').exists())
 
             downloaded = self.reports / 'ci' / name
@@ -1475,7 +1478,7 @@ class WindowsLaneTests(ProjectFixture):
         self.assertIn(b"skipped 'inner fixture skip'", source_log.read_bytes())
         self.assertEqual(['skipped', 'ok'], [event[2] for event in read_json(source_log.with_suffix('.json'))['events']])
         with self.assertRaisesRegex(ci_artifacts.PublicationError, 'Original unittest'):
-            ci_artifacts.stage_artifacts(self.root, self.downloads / 'unqualified', os.environ, lane=True)
+            ci_artifacts.stage_artifacts(self.root, self.downloads / 'unqualified', os.environ, lane='python')
 
     def test_current_callback_witness_after_nested_unittest_summaries(self):
         with patch.dict(os.environ, {'SCOPEHUB_NESTED_SKIP': '1'}):
@@ -1582,6 +1585,71 @@ class WindowsLaneTests(ProjectFixture):
     def test_older_split_receipt_keeps_market_workflow_on_the_browser_producer(self):
         self.assert_market_workflow_producer('browser', legacy=True)
 
+    def test_historical_browser_cannot_replace_its_first_completed_check_with_earlier_failure(self):
+        catalog_path = self.root / 'project/checks.json'
+        catalog = read_json(catalog_path)
+        check = 'market-workflow'
+        index = next(i for i, row in enumerate(catalog['checks']) if row['id'] == 'workspace-timeframe')
+        command = ['{python}', '-c', 'print("The browser workflow completed.")']
+        catalog['checks'].insert(index, dict(catalog['checks'][0], id=check, command=command))
+        catalog['required_change_checks'].append(check)
+        catalog_path.write_bytes(json_bytes(catalog))
+        self.partition_fixture(legacy_market_workflow=True)
+
+        producer = self.produce()['browser']
+        passed = producer['checks'][index]
+        self.assertEqual((check, 'passed', 0), (passed['id'], passed['status'], passed['exit_code']))
+        later = producer['checks'][index + 1]
+        self.assertEqual(('workspace-timeframe', 'passed'), (later['id'], later['status']))
+        relative_log = passed['log'].removeprefix('.reports/')
+        browser = self.downloads / 'verification-windows-2-browser'
+        self.assertIn(b'The browser workflow completed.', (browser / relative_log).read_bytes())
+        code, aggregate = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+        self.assertEqual((0, 'passed'), (code, aggregate['status']))
+        publication = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        stage = publication / 'original'
+        self.assertTrue(ci_artifacts.stage_artifacts(self.root, stage, os.environ))
+        self.assertEqual((browser / relative_log).read_bytes(), (stage / relative_log).read_bytes())
+
+        skipped = {'id': check, 'status': 'blocked', 'command': passed['command'],
+                   'reason_code': 'earlier_failure', 'reason': 'This check was not executed in this run.'}
+        latest, per_run = 'test-report.json', f"runs/{aggregate['run_id']}/test-report.json"
+        skipped_aggregate = deepcopy(aggregate)
+        skipped_aggregate['checks'][index] = skipped
+        skipped_aggregate['status'] = 'blocked'
+        skipped_aggregate['integration_gates'].update(status='blocked', unverified=[check])
+        with self.subTest(entry='publication'):
+            altered = json_bytes(skipped_aggregate)
+            rejected = publication / 'rejected'
+            with self.replace_artifact_bytes(self.reports, {latest: altered, per_run: altered}):
+                with self.assertRaisesRegex(ci_artifacts.PublicationError, 'earlier_failure'):
+                    ci_artifacts.stage_artifacts(self.root, rejected, os.environ)
+            self.assertFalse((rejected / latest).exists())
+
+        shutil.rmtree(self.reports)
+        skipped_producer = deepcopy(producer)
+        skipped_producer['checks'][index] = skipped
+        skipped_producer['status'] = 'blocked'
+        with self.subTest(entry='collection'):
+            altered = json_bytes(skipped_producer)
+            with self.replace_artifact_bytes(browser, {latest: altered, per_run: altered}):
+                with self.assertRaisesRegex(ci_artifacts.PublicationError, 'earlier_failure'):
+                    self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+
+        with self.subTest(entry='cold receipt import'):
+            self.checkout_report_head(aggregate)
+            artifact = self.reports / 'ci' / aggregate['ci']['run_id'] / 'windows'
+            shutil.copytree(stage, artifact)
+            report_path = artifact / latest
+            receipt = self.record_report(report_path, artifact=artifact, cold=True)
+            receipt_path = self.root / receipt['path']
+            original = receipt_path.read_bytes()
+            altered = json_bytes(skipped_aggregate)
+            with self.replace_artifact_bytes(artifact, {latest: altered, per_run: altered}):
+                self.record_report(report_path, artifact=artifact, error='earlier_failure', cold=True)
+            self.assertEqual(receipt, self.record_report(report_path, artifact=artifact, cold=True))
+            self.assertEqual(original, receipt_path.read_bytes())
+
     def test_recovery_overlap_does_not_restart_checks_after_python_cleanup_failure(self):
         self.partition_fixture()
         recovery_started = Event()
@@ -1629,6 +1697,40 @@ class WindowsLaneTests(ProjectFixture):
                     ci_artifacts.stage_artifacts(self.root, rejected, os.environ)
             self.assertFalse((rejected / latest).exists())
         self.assertEqual(part['log_sha256'], project.file_digest(archived / part['log'].removeprefix('.reports/')))
+
+    def test_recovery_manifest_interruption_cannot_replace_a_completed_check(self):
+        self.partition_fixture()
+        seal_manifest = windows_python.seal_manifest
+        previous_handler = signal.signal(signal.SIGINT, signal.default_int_handler)
+        self.addCleanup(signal.signal, signal.SIGINT, previous_handler)
+
+        def interrupt_recovery_manifest(path, digest):
+            seal_manifest(path, digest)
+            if path.name == 'windows-python-recovery.json':
+                signal.raise_signal(signal.SIGINT)
+
+        with patch.object(windows_python, 'seal_manifest', side_effect=interrupt_recovery_manifest):
+            producer = self.produce(recovery_part_failed=True)['recovery']
+        part = producer['windows_python']['recovery']
+        self.assertEqual('Interrupted while finalizing the Windows Python manifest.', part['reason'])
+        ordinary = [row for row in producer['checks'] if row['id'] in producer['selection']['checks']]
+        self.assertEqual([('market-recovery', 'passed'), ('market-recovery-ui', 'passed')],
+                         [(row['id'], row['status']) for row in ordinary])
+        incoming = self.downloads / 'verification-windows-2-recovery'
+        target = ordinary[-1]
+        self.assertEqual(target['log_sha256'], project.file_digest(incoming / target['log'].removeprefix('.reports/')))
+
+        changed = deepcopy(producer)
+        changed['checks'][changed['checks'].index(target)] = {
+            'id': target['id'], 'status': 'blocked', 'command': target['command'],
+            'reason_code': 'earlier_failure', 'reason': 'This check was not executed in this run.'}
+        latest, per_run = 'test-report.json', f"runs/{producer['run_id']}/test-report.json"
+        altered = json_bytes(changed)
+        rejected = self.downloads / 'rejected-finalization-omission'
+        with self.replace_artifact_bytes(incoming, {latest: altered, per_run: altered}):
+            with self.assertRaisesRegex(ci_artifacts.PublicationError, 'earlier_failure'):
+                ci_artifacts.stage_artifacts(self.root, rejected, os.environ, reports=incoming, lane='recovery')
+        self.assertFalse((rejected / latest).is_file())
 
     def assert_market_workflow_producer(self, owner, *, legacy=False):
         catalog_path = self.root / 'project/checks.json'
@@ -1829,7 +1931,7 @@ class WindowsLaneTests(ProjectFixture):
             code, producer = self.run_harness('--ci-windows-lane', 'recovery')
         self.assertEqual(1, serial.returncode)
         self.assertEqual(1, code)
-        self.assertTrue(ci_artifacts.stage_artifacts(self.root, recovery, os.environ, lane=True))
+        self.assertTrue(ci_artifacts.stage_artifacts(self.root, recovery, os.environ, lane='recovery'))
         shutil.rmtree(self.reports)
         with patch.dict(os.environ, {'SCOPEHUB_WINDOWS_LANE_RESULT': 'failure'}):
             code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
@@ -1971,7 +2073,7 @@ class WindowsLaneTests(ProjectFixture):
                         self.assertEqual(expected if lane == 'python' else 0, code)
                         part = report['windows_python'][lane]
                         self.assertTrue(ci_artifacts.stage_artifacts(
-                            fixture.root, fixture.downloads / lane, os.environ, lane=True))
+                            fixture.root, fixture.downloads / lane, os.environ, lane=lane))
                         captured.append((fixture.root / part['log']).read_text(encoding='utf-8'))
                         shutil.rmtree(fixture.reports)
                     original_events = [line for line in serial.stderr.splitlines() if ' ... ' in line]
@@ -2158,11 +2260,11 @@ class WindowsLaneTests(ProjectFixture):
                     for target in (self.reports / 'test-report.json', raw_path.parent / 'test-report.json'):
                         target.write_bytes(json_bytes(producer))
                     with self.assertRaisesRegex(ci_artifacts.PublicationError, 'unittest'):
-                        ci_artifacts.stage_artifacts(self.root, recovery, os.environ, lane=True)
+                        ci_artifacts.stage_artifacts(self.root, recovery, os.environ, lane='recovery')
                     shutil.rmtree(self.reports)
                     continue
                 try:
-                    self.assertTrue(ci_artifacts.stage_artifacts(self.root, recovery, os.environ, lane=True))
+                    self.assertTrue(ci_artifacts.stage_artifacts(self.root, recovery, os.environ, lane='recovery'))
                     shutil.rmtree(self.reports)
                     code, aggregate = self.run_harness('--require-windows', '--ci-windows-aggregate',
                                                         str(self.downloads))
@@ -2447,7 +2549,7 @@ class WindowsLaneTests(ProjectFixture):
                     for attempt in range(2):
                         rejected = staging / f'rejected-{invented_name}-{attempt}'
                         with self.assertRaisesRegex(ci_artifacts.PublicationError, error):
-                            ci_artifacts.stage_artifacts(self.root, rejected, os.environ, reports=producer, lane=True)
+                            ci_artifacts.stage_artifacts(self.root, rejected, os.environ, reports=producer, lane='python')
                         self.assertFalse((rejected / 'test-report.json').exists())
                     with self.assertRaisesRegex(ci_artifacts.PublicationError, error):
                         self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
@@ -2458,7 +2560,7 @@ class WindowsLaneTests(ProjectFixture):
                     shutil.rmtree(self.reports, ignore_errors=True)
 
         self.assertTrue(ci_artifacts.stage_artifacts(
-            self.root, staging / 'retry-python', os.environ, reports=producer, lane=True))
+            self.root, staging / 'retry-python', os.environ, reports=producer, lane='python'))
         code, retried = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
         self.assertEqual((0, 'passed'), (code, retried['status']))
         retry_publication = staging / 'retry-published'
@@ -2525,7 +2627,7 @@ class WindowsLaneTests(ProjectFixture):
                     self.assertEqual(('passed', 0), (python['status'], python['exit_code']))
                     self.assertNotIn('windows_python', report)
                     archived = retained / field
-                    self.assertTrue(ci_artifacts.stage_artifacts(self.root, archived, os.environ, lane=True))
+                    self.assertTrue(ci_artifacts.stage_artifacts(self.root, archived, os.environ, lane='python'))
                     self.assertEqual((self.reports / 'test-report.json').read_bytes(),
                                      (archived / 'test-report.json').read_bytes())
                     self.assertEqual((self.root / python['log']).read_bytes(),
@@ -2631,7 +2733,7 @@ class WindowsLaneTests(ProjectFixture):
                     latest = self.reports / 'test-report.json'
                     self.assertEqual(latest.read_bytes(), (raw.parent / latest.name).read_bytes())
                     archived = self.downloads / f'interrupted-{attempt}'
-                    self.assertTrue(ci_artifacts.stage_artifacts(self.root, archived, os.environ, lane=True))
+                    self.assertTrue(ci_artifacts.stage_artifacts(self.root, archived, os.environ, lane='python'))
                     for original in (raw, manifest, raw.parent / latest.name):
                         self.assertEqual(original.read_bytes(), (archived / original.relative_to(self.reports)).read_bytes())
 

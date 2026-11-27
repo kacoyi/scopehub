@@ -26084,7 +26084,8 @@
           "scripts/timing.py",
           "scripts/integration.py",
           "project/delivery.json",
-          "project/feedback.json"
+          "project/feedback.json",
+          "Newer protected warm main first attempts 45765544396, 45838575346 and 45852539879 used the same 35 selected outcomes (28 passes and seven planned omissions) and took 1254, 1289 and 1143 seconds from first Windows job start to aggregate finish. Python was the last producer on each. Retained originals, exact job clocks and their measured reconciliation: .reports/audit-20261127/m0-146-boundaries/protected/protected-reconciliation.json (SHA-256 9c41648a2f0d1e48c93e60d1cd8631632f7509328f51e1689ad2cc934516fb43). Treat these as pre-repair controls and identify the last producer again on the first qualifying corrected push. Its workflow objective is 900 seconds. M0-153 owns the separate 1200-second serial Python deadline, with a pre-repair check of 1044.25 seconds on the latest push."
         ],
         "hypotheses": [
           "An ordinary full warm Windows main push can show whether moving the existing recovery UI check shortens the critical path while preserving the selected coverage."
@@ -26142,7 +26143,24 @@
           "data_plan": "Use authenticated hosted job timing and the matching synthetic verification artifacts.",
           "cleanup": "Resolve the finding only after the actual protected push meets the coverage and timing conditions. Preserve any unsuccessful or incomparable observation with its next action."
         }
-      }
+      },
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45765544396-1",
+          "source_commit": "ff6c880b289b18e3e58d667dcb5b76c7f12fe053",
+          "report_sha256": "5e60e24adfaf5d22ac6cba72c4cd00d2d238ca2fe89c4907de2d7e3518452bc4"
+        },
+        {
+          "run_id": "windows-change-45838575346-1",
+          "source_commit": "21b7195fe3c2cf954a161e7c66c826e2f0cd329d",
+          "report_sha256": "f528e67db3e8eb269ff8012cc47d85f888a8d4914bd3e5349c09f1560e4165f9"
+        },
+        {
+          "run_id": "windows-change-45852539879-1",
+          "source_commit": "e593f4f37d942ddd0171edb8b255395d80062851",
+          "report_sha256": "eb1449368185f07dacf3d4cebe06ef8f1974b0e69d03640aa2bd7644203ac534"
+        }
+      ]
     },
     {
       "id": "M0-146",
