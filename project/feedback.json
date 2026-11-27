@@ -8313,6 +8313,251 @@
       "deferral_reason": null
     },
     {
+      "id": "herdr-completion-collection-depends-on-host-and-response-wording",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Observed on ff6c880b289b18e3e58d667dcb5b76c7f12fe053. archives/observations/repo-hygiene-20261125/coordinator-checkpoints/resume-t113-20261126T0228Z/rule-effects-main-ff6c880b.json (SHA-256 10c6688525ca8763b09a223b721970b87a0ff84e914100475a684b1826a7a764). Matched original implementation and terminal handoff at archives/observations/repo-hygiene-20261125/coordinator-checkpoints/resume-t113-20261126T0228Z/herdr-diagnostic-return-t14b/verified.json (SHA-256 8ecfb5e3c80484c2d83ef383bfaf8b92e0ab85239cbbe7aa4866c415b19d14ff).",
+      "observation": "An owner-started coordination space accumulated 81 tabs, of which 77 had completed work. The checkout-local collector later omitted a completed implementation return because it lacked its task token, even though the registered CLI turn, exact source and retained diagnostics identified it. The working collector is under ignored .reports and cannot be recovered from a new Git checkout alone.",
+      "task_ids": [
+        "M0-162"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The private coordinator collector was missing from the checkout and treated a task token in final prose as return identity.",
+        "correction": "Register owned work through project:herdr and bind the original to its matching owner, assignment, source, process and completed turn. Archive independently by lane and let the verified one-shot runner exit its own tab.",
+        "prevention": "Exercise a fresh checkout through the public entry, collect an exact response without the task token and check source-bound independent review separately."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "herdr-live-retirement-is-not-bound-to-the-completed-turn",
+      "status": "addressed",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-162.json#/events/1 on c879713b9799e8450418d2e36efe25e225d28ac6. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-162-c879713b/original-assistant-response.jsonl, SHA-256 9b97fa79e595bb174503e4127a176565efb2be8c7dabcd51863305c9ef7ae5e6.",
+      "observation": "The independent replay through scripts/herdr.py collect started a second turn immediately after the last terminal.get reply. The collector sent terminal.kill by address, interrupted the second turn and marked the first turn retired. Starting the second turn before that read instead preserved the terminal. The original first response was archived in both cases.",
+      "task_ids": [
+        "M0-162"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "An address-only terminal kill could apply to a new turn that began after the final state read.",
+        "correction": "Archive reusable assignments without issuing a terminal operation. A dedicated one-shot exits its own verified process after persisting the original and completion events.",
+        "prevention": "Replay a later turn immediately after the final native state read and require the live terminal and both turns to survive with no kill sent."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "herdr-retirement-retry-attributes-a-later-finished-turn-to-the-original",
+      "status": "addressed",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-162.json#/events/1 on c879713b9799e8450418d2e36efe25e225d28ac6. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-162-c879713b/original-assistant-response.jsonl, SHA-256 9b97fa79e595bb174503e4127a176565efb2be8c7dabcd51863305c9ef7ae5e6.",
+      "observation": "The independent replay interrupted collection after journaling retiring but before issuing kill, then finished a second turn at the same terminal address. Restart supplied the archived first turn identity as if it were observed, removed the second turn's finished terminal and marked the first turn retired. The control which interrupted after a successful first-turn kill recovered the existing original and did not send a second kill.",
+      "task_ids": [
+        "M0-162"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Recovery supplied an archived turn as if it were current native evidence for the same address.",
+        "correction": "Recover the archive by exact assignment identity and verify a one-shot exit from the matching native process and complete desktop observation.",
+        "prevention": "Interrupt collection around the archive boundary and replay a different finished turn at the same address. Verify that retries preserve the later turn and recover the original archive."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "herdr-one-shot-waits-forever-after-competing-collection",
+      "status": "addressed",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-162.json#/events/3 on cf7e0805ee0430e6aa7bfcc06b6120b10aa09172. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-162-cf7e0805/original-assistant-response.jsonl, SHA-256 8338db299cc24a687c2d5fb9831ecee59f56e404b8ee22d5a82a4fb234972f15.",
+      "observation": "An independent replay through run-owned completed the same registered one-shot without competition and with a competing independent collector. Under assignment lock competition the runner received assignment_busy and paused indefinitely. Repeated reads then recovered the verified archive, but the original runner never checked again and held its tab open.",
+      "task_ids": [
+        "M0-162"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The runner treated a temporary assignment lock as an inspection failure even after an independent collector committed the matching return.",
+        "correction": "Retry completion on temporary contention and accept a competing archive only when its execution, response and completion all match the captured return.",
+        "prevention": "Exercise independent collection during run-owned and compare the exit and archive with the uncontended control. Replay an interrupted collector and damaged archive as separate cases."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "herdr-incomplete-desktop-observation-misreports-tab-closure",
+      "status": "addressed",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-162.json#/events/3 on cf7e0805ee0430e6aa7bfcc06b6120b10aa09172. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-162-cf7e0805/original-assistant-response.jsonl, SHA-256 8338db299cc24a687c2d5fb9831ecee59f56e404b8ee22d5a82a4fb234972f15.",
+      "observation": "An independent collect replay held the successful Core exit constant while varying desktop observations. An incomplete tab, pane and terminal record still led to one_shot_tab_closed even though the original tab could not be excluded. An explicitly present original space with an empty tabs list instead lost the space evidence and yielded only one_shot_exited.",
+      "task_ids": [
+        "M0-162"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Flattening desktop snapshots lost explicitly empty spaces and let incomplete identities appear absent.",
+        "correction": "Validate tab, pane and terminal identities in the original space and preserve a complete empty space as evidence of absence.",
+        "prevention": "Keep the verified process exit fixed in public collect while varying incomplete rows, missing spaces, exact presence and a complete empty original space."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "herdr-deep-invalid-runner-output-bypasses-inspection-hold",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Observed on a627f12b3a746473b09fd12933ee4cfe1b4f49bd through scripts/herdr.py run-owned with a synthetic child. The checkout-local original observations are indexed at .reports/observations/M0-162-lifecycle-follow-through/cf7e0805-follow-through/simulated-adjacent/runner-output-baseline-a627f12b-confirmed.json, SHA-256 a38154d2fe56a2702fa03d45b250fd0aea5b457dffb1baff7fb468f3d38f4c52.",
+      "observation": "Deeply nested newline-terminated child output raised an unhandled RecursionError in run-owned and unwound the owned process before its inspection hold, without a verified archive. Missing newline, malformed JSON, non-object JSON and invalid UTF-8 reached the hold in the same probe.",
+      "task_ids": [
+        "M0-162"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The child JSON decoder could raise RecursionError outside the owned inspection path.",
+        "correction": "Handle excessively nested child output as an invalid one-shot event and preserve the owned terminal for inspection.",
+        "prevention": "Exercise valid output and deeply nested, truncated, malformed, non-object and invalid UTF-8 input at run-owned. Verify the rejected inputs cannot archive or exit successfully."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "herdr-invalid-execution-record-stops-independent-collection",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Observed on a627f12b3a746473b09fd12933ee4cfe1b4f49bd through scripts/herdr.py collect. The checkout-local original observations are indexed at .reports/observations/M0-162-lifecycle-follow-through/cf7e0805-follow-through/simulated-adjacent/collect-execution-baseline-a627f12b.json, SHA-256 f536adf05fe5367821189e9dee851f6ea75c726778ce6af3cea79865de24cd54.",
+      "observation": "A deeply nested private one-shot execution record within the normal size limit raised an unhandled RecursionError during batch collect. The invalid lane stopped the independent eligible lane from archiving. The invalid record remained unchanged.",
+      "task_ids": [
+        "M0-162"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "A private execution record could raise a parser recursion error that unwound the collection batch.",
+        "correction": "Confine invalid execution data to its owning lane and continue collecting independent assignments.",
+        "prevention": "Collect a damaged execution record alongside a healthy lane. Verify the healthy archive and the unchanged damaged bytes."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "herdr-one-shot-loses-observed-start-under-assignment-contention",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent public-entry replay on ff769c5a608bad0669d3931bda88b6cd53f2e49a recorded at contracts/reviews/task-decisions/M0-162.json#/events/5. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-162-ff769c5a/original-assistant-response.jsonl, SHA-256 243ccd5d1e4c5d33d5213a831a3dd50a309c372787814aa4231ddbbbbea1dac5.",
+      "observation": "The independent public run-owned replay held the assignment lock when the runner received its genuine thread.started event. The first execution save failed, the runner entered its inspection hold, and public collect after lock release still reported one_shot_start_unobserved. The already registered runner never retried the captured identity.",
+      "task_ids": [
+        "M0-162"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The first execution save treated contention as a permanent failure after the child had emitted its genuine start.",
+        "correction": "Keep the captured execution in the same owned runner and retry saving while the lock is busy. Accept an already saved identical identity and hold conflicting identities.",
+        "prevention": "Run the public owned entry with independent contention during start and verify the exact identity after release. Retain conflict and duplicate-runner controls."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "herdr-one-shot-loses-captured-start-after-lock-budget",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent public-entry replay on d777f43b81fb116ceccad05a6836eee63259902d recorded at contracts/reviews/task-decisions/M0-162.json#/events/7. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-162-d777f43b/original-assistant-response.jsonl, SHA-256 83f407765fbebe12665a77bc99ac9028007cf9c364866b80653f8f208bd1a015.",
+      "observation": "With a real Linux assignment lock held beyond the ten-second start-save budget, the owned runner had already captured its start identity but remained in its inspection wait after release. Public collect returned one_shot_start_unobserved. The synthetic replay used simulated Core, child and task state.",
+      "task_ids": [
+        "M0-162"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Exhausting the initial start-save retry budget stranded the execution identity held by the live runner.",
+        "correction": "Keep the fast retry budget and resume the same captured start at a paced interval for continued lock contention.",
+        "prevention": "Hold a Linux assignment lock beyond the initial budget, then verify that the same runner saves the captured execution. Retain the rejected-source replay and the native late-release observation."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "herdr-one-shot-cannot-verify-competing-archive-after-lock-budget",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent public-entry replay on d777f43b81fb116ceccad05a6836eee63259902d recorded at contracts/reviews/task-decisions/M0-162.json#/events/7. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-162-d777f43b/original-assistant-response.jsonl, SHA-256 83f407765fbebe12665a77bc99ac9028007cf9c364866b80653f8f208bd1a015.",
+      "observation": "With a real Linux assignment lock held beyond the ten-second completion budget, public collect verified the original response and completion event after release and reported archived / one_shot_awaiting_exit. The already finished runner remained in its inspection wait. A separate earlier native positive control completed and exited with shorter contention.",
+      "task_ids": [
+        "M0-162"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Exhausting the initial completion retry budget stranded an already finished runner even when its original and completion were archived.",
+        "correction": "Resume the same owned completion at a paced interval and verify an existing competing pair against the captured execution before exiting.",
+        "prevention": "Exercise a real Linux lock with a collector-first replay after the budget and verify the exact pair. Retain the separate native late-release, self-archive and repeat collection control."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "herdr-native-test-assumes-unix-socket-capability",
+      "status": "addressed",
+      "severity": "major",
+      "source": "First Windows PR 142 attempt in archives/observations/repo-hygiene-20261125/pr142-native-original-45841715488/manifest.json (SHA-256 d2697819124f8fa2dd91e044abd19c060326ed94ff96cd07a704641151b24db5).",
+      "observation": "The Windows Python producer for PR 142 reached socket.AF_UNIX in the restarted-core handshake control and raised AttributeError on the hosted interpreter. The task has separate evidence on a live Linux desktop.",
+      "task_ids": [
+        "M0-168"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45841715488-1",
+          "source_commit": "bc37367abf26f5bf97e3d15558ead399065c7212",
+          "report_sha256": "8c50ac9561b6320a11957b0085492253fde911bb6b681299b9680555c378fcc5"
+        }
+      ],
+      "resolution": {
+        "cause": "The restarted-Core fixture modeled the endpoint but accessed the hosted interpreter's real socket.AF_UNIX attribute before the handshake. That attribute was absent on the first Windows producer.",
+        "correction": "Model the Linux prerequisites explicitly in the portable handshake control. Keep managed Herdr entry points gated to Linux, report unsupported_core_transport for an unavailable socket family or constructor, and stop a watch on that hold.",
+        "prevention": "PR 142 run 45937389013 passed the simulated handshake control on both platforms and the unsupported-host entry control on Windows. The real Linux socket identity and simulated missing-capability collector controls passed on Linux and skipped on Windows. The protected recheck remains with the coordinator."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "herdr-exact-return-windows-original-mismatch",
+      "status": "addressed",
+      "severity": "major",
+      "source": "First Windows PR 142 attempt in archives/observations/repo-hygiene-20261125/pr142-native-original-45841715488/manifest.json (SHA-256 d2697819124f8fa2dd91e044abd19c060326ed94ff96cd07a704641151b24db5).",
+      "observation": "The Windows producer raised original_changed on the ordinary same-turn steering return fixture. All three wrong-subject or incomplete review heading cases returned original_changed before the expected review_verdict_mismatch. The failing log does not identify which bytes differed.",
+      "task_ids": [
+        "M0-168"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45841715488-1",
+          "source_commit": "bc37367abf26f5bf97e3d15558ead399065c7212",
+          "report_sha256": "8c50ac9561b6320a11957b0085492253fde911bb6b681299b9680555c378fcc5"
+        }
+      ],
+      "resolution": {
+        "cause": "The first Windows traceback reached the file version guard after the binary read. CPython 3.12.10 exposes change time as descriptor ctime and creation time as pathname ctime on Windows. The original log did not capture individual stat fields. CPython source and the controlled replay establish the comparison defect.",
+        "correction": "Compare pathname and descriptor identity, size, modification time and creation time on Windows. Compare descriptor change time across the read and preserve the exact response and completion bytes without newline translation.",
+        "prevention": "PR 142 run 45937389013 passed exact same-turn return and review-subject controls with LF and CRLF on both platforms. The controlled timestamp replay rejects a descriptor change or pathname replacement, and the independent collector replay detected an archived line-ending change. The protected recheck remains with the coordinator."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "windows-cold-repair-script-pending-after-document-commit",
       "status": "open",
       "severity": "major",
