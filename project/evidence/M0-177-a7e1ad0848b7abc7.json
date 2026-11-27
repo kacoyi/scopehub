@@ -1,0 +1,120 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-177",
+  "task_definition_sha256": "777ce67c32c4c45f108330825ae20f8d4d20da493a2c400fea1dbb18e426688e",
+  "run_id": "windows-change-45983202750-1",
+  "recorded_at": "2026-11-27T10:53:51.003012+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "b5bb09380511d8217c9b93e98842a079fa67d105f052359714b94e0d79dfee56",
+    "file_count": 641,
+    "git_head": "56b2a811d03d1e0c43a08432b93cb51edc536b59",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "a7e1ad0848b7abc78dcba9c9f40fc98a62f72ea592dc9c30e35737237aca3557",
+  "environment": {
+    "system": "Windows",
+    "release": "2025Server",
+    "machine": "AMD64",
+    "python": "3.12.10",
+    "python_executable": "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (6b2d39dcc 2026-11-17 x86_64-pc-windows-msvc)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "1e7455feed7aad8349fec5b0a516d05bd9d89599c4cf5d7387ebe9a3c3ed44e1"
+    },
+    {
+      "id": "generated-contracts",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "scripts/generate_contracts.py",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "015cd14b9360a750dd870979c7cb6d2c3e30700611a1f97328c8b7ebe5d86d69"
+    },
+    {
+      "id": "workspace-timeframe",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "fe96e31d24f9feb3edf8cb0d85a072fdff46e8095d7572fb2bb1f9929318b81e"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "6910511631b208ae5165c0ddce12b9b1985a4d4d1562e220cf74cd7044c85f0e"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "0d635f941ad6570271cd988ae636df1ca6e5c0ea74311fc709b864399e33c4ee"
+    }
+  ],
+  "project_definition_sha256": "c92210d3d2e4bb8f9797e8daeea8594c1522dd0cd2036c40bf58035d8d376773",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "068bae17930c44064031cae7668101f35f427cf81e413ade72837944fa6fd405",
+    "1c262bd921231cfb5e162726c3e0c89fa5ccd16ceae1b51694a9c74501c01b73",
+    "36f6b886cab205df665e1f0f40d3e6f1d52dfd4611e3092e0f3c7fba127a2640",
+    "578a28fe4e9c5f9425fc8fec59fd0227b2aba3e6696297314fec612a9586adc7",
+    "b0fa49a85a2f71242ae3d062e66688f2d3527041843333004817874d7b8e51f2",
+    "c37937736730ea58f469c5dd4d07d53980b50af020d413688b2b55f0e10f5b09",
+    "e15f28818661ae61078637dee70c9f919c5c3b7cb0ca5a2e14a5ba0fa754e7d1"
+  ],
+  "ci": {
+    "provider": "github-actions",
+    "repository": "kacoyi/scopehub",
+    "run_id": "45983202750",
+    "run_attempt": "1",
+    "event": "pull_request",
+    "head_sha": "1110192f3ff86d82ae925540a1955df134e30852",
+    "checkout_sha": "56b2a811d03d1e0c43a08432b93cb51edc536b59",
+    "run_url": "https://github.com/kacoyi/scopehub/actions/runs/45983202750"
+  }
+}
