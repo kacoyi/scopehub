@@ -247,6 +247,15 @@
       },
       "supersedes": "d667afddf4f7c68ea8a2c455310c2bf4323b15ef4688ce5253b4fdd869c6252e",
       "evidence_sha256": "6dea72ef5954cf6f0e48b0f64920309dba196c57dcc07a3172302daa4ec77555"
+    },
+    {
+      "kind": "request",
+      "source_commit": "5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "scope": "Confirm that the previously approved M0-145 timing behavior and acceptance assertions survive the Windows test-fixture repair on this source.",
+      "supersedes": "143cd2205f727b86209bacc4b4aef42abb972b3381edb3210fed008abab98d87",
+      "requested_at": "2026-11-27T04:25:42.081529+00:00",
+      "request_id": "c594e8a4c30698c811044b3665d43947724d0ae23d408ce500599c3cfd6a324e",
+      "evidence_sha256": "a4bd6c8e640f3f0c0dd4b4b377ee0d695789f7972ee3777c5b392a529c488e54"
     }
   ]
 }

@@ -436,6 +436,15 @@
       },
       "supersedes": "38b3c704e1fd1ab117181e80c5c3946ea88992bb7391a6236b6cf72737dca33e",
       "evidence_sha256": "dd7e7245956d9df99f57bf2deec9a148fd09c683b436d1de9c927597786cc51b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "scope": "Verify the two temporary Git fixture repairs against the retained Windows executions and confirm the timing-reader contract and failure diagnostics are preserved.",
+      "supersedes": "3d3b9b91047566681736eab7d01f3b40b456a310edce5c676e32c672ce889565",
+      "requested_at": "2026-11-27T04:25:45.207829+00:00",
+      "request_id": "aeb166d0203edd6c15d88b4f598162ba61cb09f6f7b9fac5d3461f30aa2872ac",
+      "evidence_sha256": "29c830fe95bd2eca1e9590b9354fc2214f94bbdfe31e1fbf0c790b0c3e071266"
     }
   ]
 }
