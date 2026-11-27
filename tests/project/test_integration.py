@@ -32,7 +32,8 @@ def step(name, *, status='completed', conclusion='success'):
     return {'name': name, 'status': status, 'conclusion': conclusion}
 
 
-CHECKOUT_STEP = step('Run actions/checkout@' + '1' * 40)
+CHECKOUT_ACTION = 'actions/checkout@' + '1' * 40
+CHECKOUT_STEP = step(f'Run {CHECKOUT_ACTION}')
 
 
 def observations():
@@ -62,7 +63,7 @@ def observations():
 
 def checkout_log(pr, commit, git='/usr/bin/git'):
     return '\n'.join(f'2026-11-21T16:42:53.0000000Z {message}' for message in (
-        '##[group]Run actions/checkout@' + '1' * 40,
+        f'##[group]Run {CHECKOUT_ACTION}',
         '##[endgroup]',
         '##[group]Checking out the ref',
         f'[command]{git} checkout --progress --force refs/remotes/pull/{pr}/merge',
@@ -70,6 +71,11 @@ def checkout_log(pr, commit, git='/usr/bin/git'):
         f'[command]{git} log -1 --format=%H',
         commit,
     ))
+
+
+def attempt_job(job, run, job_id):
+    return dict(job, id=job_id, run_id=run['id'], run_attempt=run['run_attempt'], head_sha=run['head_sha'],
+                run_url=f"https://api.github.com/repos/fixture/project/actions/runs/{run['id']}")
 
 
 class IntegrationAssessmentTests(unittest.TestCase):
@@ -80,6 +86,8 @@ class IntegrationAssessmentTests(unittest.TestCase):
         with self.assertRaisesRegex(ProjectError, 'checkout log'):
             integration.checked_pull_request(StringIO(checkout_log(3, commit).replace(
                 '##[group]Checking out the ref', '##[group]Run pnpm check')))
+        with self.assertRaisesRegex(ProjectError, 'different pinned action'):
+            integration.checked_pull_request(StringIO(checkout_log(3, commit)), 'Run actions/checkout@' + '2' * 40)
 
     def test_log_download_handles_other_encodings_and_reports_missing_evidence(self):
         commit = '7' * 40
@@ -190,7 +198,7 @@ class IntegrationFixture(ProjectFixture):
         super().setUp()
         workflow = self.root / timing.WORKFLOW
         workflow.parent.mkdir(parents=True)
-        workflow.write_text('jobs:\n  verify: {}\n', encoding='utf-8')
+        workflow.write_bytes(json_bytes({'jobs': {'verify': {'steps': [{'uses': CHECKOUT_ACTION}]}}}))
 
     def git(self, *args):
         return subprocess.run(['git', '-c', 'user.name=Test Fixture', '-c', 'user.email=fixture@example.invalid',
@@ -319,7 +327,7 @@ class IntegrationHistoryTests(IntegrationFixture):
         tested = self.merge_observation(base, head)
         run = {'id': 100, 'run_attempt': attempt, 'status': 'completed', 'conclusion': 'success', 'head_sha': head,
                'head_branch': 'task', 'event': 'pull_request', 'path': integration.WORKFLOW}
-        jobs = [dict(job, id=index, head_sha=head) for index, job in enumerate(args['jobs'], 1000)]
+        jobs = [attempt_job(job, run, index) for index, job in enumerate(args['jobs'], 1000)]
         if records:
             for job in jobs:
                 job['steps'] = [CHECKOUT_STEP, step('Verify records changes')]
@@ -609,17 +617,15 @@ class IntegrationHistoryTests(IntegrationFixture):
         self.assertEqual('records', result['workflow']['expected_profile'])
         self.assertIn(f'Unresolved major feedback: {PUSH_BUDGET}', result['blockers'])
 
-    def observe_harness(self, base, head, ubuntu_steps, windows_steps, *, tested=None, producer_jobs=()):
+    def observe_harness(self, base, head, ubuntu_steps, windows_steps, *, tested=None, producer_jobs=(),
+                        checkout_refs=None):
         fixture = observations()
         pr = dict(fixture['pr'], baseRefOid=base, headRefOid=head)
         run = {'id': 100, 'run_attempt': 2, 'head_sha': head, 'status': 'completed', 'conclusion': 'success',
                'path': '.github/workflows/verify.yml', 'event': 'pull_request'}
-        jobs = [dict(job, id=job_id, head_sha=head, steps=[CHECKOUT_STEP, *steps])
-                for job_id, (job, steps) in enumerate(zip(fixture['jobs'], [ubuntu_steps, windows_steps]), 1000)]
-        if producer_jobs:
-            jobs = [dict(job, id=job_id, run_id=100, run_attempt=2, head_sha=head,
-                         run_url='https://api.github.com/repos/fixture/project/actions/runs/100')
-                    for job_id, job in enumerate([*jobs, *producer_jobs], 1000)]
+        protected = [dict(job, steps=[CHECKOUT_STEP, *steps])
+                     for job, steps in zip(fixture['jobs'], [ubuntu_steps, windows_steps])]
+        jobs = [attempt_job(job, run, job_id) for job_id, job in enumerate([*protected, *producer_jobs], 1000)]
         if tested is None:
             tested = self.merge_observation(base, head)
         api_responses = iter([json.dumps([{'jobs': jobs}]), json.dumps(tested)])
@@ -629,16 +635,24 @@ class IntegrationHistoryTests(IntegrationFixture):
             return original(argv, root) if argv[0] == 'git' else next(api_responses)
 
         with (patch.object(integration, 'command', side_effect=command),
-              patch.object(integration, 'job_checkout', return_value=(1, tested['sha']))):
+              patch.object(integration, 'job_checkout', side_effect=lambda root, repo, job_id, action:
+                           (checkout_refs or {}).get(job_id, (1, tested['sha'])))):
             return integration.verified_pr_run(self.root, 'fixture/project', pr, [run], False, [UBUNTU, WINDOWS])
 
     def declare_windows_producers(self, marker, lanes):
+        checkout = {'uses': CHECKOUT_ACTION}
         producers = {f'windows_{lane}': {'name': timing.WINDOWS_PRODUCERS[lane], 'runs-on': 'windows-latest',
-                                        'strategy': {'matrix': {'lane': [lane]}}} for lane in lanes}
-        workflow = {'jobs': {'verify': {}, **producers,
-                             'windows_change': {'needs': list(producers), 'steps': [{'name': marker}]}}}
+                                        'strategy': {'matrix': {'lane': [lane]}}, 'steps': [checkout]} for lane in lanes}
+        workflow = {'jobs': {'verify': {'steps': [checkout]}, **producers,
+                             'windows_change': {'needs': list(producers), 'steps': [checkout, {'name': marker}]}}}
         (self.root / timing.WORKFLOW).write_bytes(json_bytes(workflow))
         return workflow
+
+    def producer_jobs(self, lanes, profile='full'):
+        return [dict(name=timing.WINDOWS_PRODUCERS[lane], status='completed', conclusion='success',
+                     steps=[CHECKOUT_STEP, step(f'Verify the Windows {lane} lane' if profile == 'full' else
+                                               f'Verify {profile} changes' if lane == 'core'
+                                               else 'Select the Windows lane work')]) for lane in lanes]
 
     def test_current_pr_requires_the_committed_workspace_producer_layout(self):
         records = self.root / 'README.md'
@@ -648,13 +662,7 @@ class IntegrationHistoryTests(IntegrationFixture):
         head = self.commit()
         guard = step(timing.WINDOWS_WORKSPACE_MARKER)
 
-        def jobs(profile):
-            return [dict(name=timing.WINDOWS_PRODUCERS[lane], status='completed', conclusion='success',
-                         steps=[step(f'Verify the Windows {lane} lane' if profile == 'full' else
-                                     f'Verify {profile} changes' if lane == 'core' else 'Select the Windows lane work')])
-                    for lane in timing.WINDOWS_WORKSPACE_LANES]
-
-        full_jobs = jobs('full')
+        full_jobs = self.producer_jobs(timing.WINDOWS_WORKSPACE_LANES)
         result, _ = self.observe_harness(base, head, [step(UBUNTU_FULL)], [step(WINDOWS_FULL), guard],
                                          producer_jobs=full_jobs)
         self.assertEqual('passed', result['status'], result['reason'])
@@ -672,7 +680,7 @@ class IntegrationHistoryTests(IntegrationFixture):
 
         records.write_text('Updated fixture summary.\n', encoding='utf-8')
         scoped_head = self.commit()
-        scoped_jobs = jobs('records')
+        scoped_jobs = self.producer_jobs(timing.WINDOWS_WORKSPACE_LANES, 'records')
         scoped = step('Verify records changes')
         result, _ = self.observe_harness(head, scoped_head, [scoped], [scoped, guard], producer_jobs=scoped_jobs)
         self.assertEqual('passed', result['status'], result['reason'])
@@ -682,6 +690,58 @@ class IntegrationHistoryTests(IntegrationFixture):
                                          producer_jobs=[*scoped_jobs[:-1], wrongly_executed])
         self.assertEqual('blocked', result['status'])
         self.assertIn('committed Windows producer layout', result['reason'])
+
+    def test_split_producers_require_their_checked_source(self):
+        base = self.commit()
+        marker = timing.WINDOWS_RECOVERY_MARKER
+        self.declare_windows_producers(marker, timing.WINDOWS_RECOVERY_LANES)
+        head = self.commit()
+        tested = self.merge_observation(base, head)
+        jobs = self.producer_jobs(timing.WINDOWS_RECOVERY_LANES)
+        browser_id = 1003
+        browser_step = jobs[1]['steps'][1]
+        mismatched = dict(jobs[1], steps=[step('Run actions/checkout@' + '2' * 40), browser_step])
+        skipped = dict(jobs[1], steps=[dict(CHECKOUT_STEP, conclusion='skipped'), browser_step])
+
+        def observe(browser, refs=None):
+            result, _ = self.observe_harness(base, head, [step(UBUNTU_FULL)], [step(WINDOWS_FULL), step(marker)],
+                                             tested=tested, producer_jobs=[jobs[0], browser, *jobs[2:]],
+                                             checkout_refs=refs)
+            return result
+
+        control = observe(jobs[1])
+        self.assertEqual('passed', control['status'], control['reason'])
+        self.assertEqual(6, len(control['required_checkouts']))
+        self.assertEqual({'name': timing.WINDOWS_PRODUCERS['browser'], 'job_id': browser_id,
+                          'pull_request': 1, 'commit': tested['sha'], 'step': CHECKOUT_STEP['name']},
+                         control['required_checkouts'][3])
+        for browser, refs, reason in (
+            (skipped, None, 'has no successful pinned checkout'),
+            (mismatched, None, 'used a different pinned checkout'),
+            (jobs[1], {browser_id: (2, tested['sha'])}, 'checked different pull requests or merge commits'),
+            (jobs[1], {browser_id: (1, head)}, 'checked different pull requests or merge commits'),
+        ):
+            result = observe(browser, refs)
+            self.assertEqual('blocked', result['status'])
+            self.assertIn(reason, result['reason'])
+
+    def test_unsplit_workflow_requires_its_declared_jobs_and_harness(self):
+        base = self.commit()
+        (self.root / 'implementation.py').write_text('value = 2\n', encoding='utf-8')
+        head = self.commit()
+        marker = step(timing.WINDOWS_RECOVERY_MARKER)
+        jobs = self.producer_jobs(timing.WINDOWS_RECOVERY_LANES)
+        for producers, guards, status in (
+            ([], [], 'passed'),
+            (jobs, [marker], 'blocked'),
+            ([jobs[0], dict(jobs[1], conclusion='failure'), *jobs[2:]], [marker], 'blocked'),
+            ([], [marker], 'blocked'),
+        ):
+            result, _ = self.observe_harness(base, head, [step(UBUNTU_FULL)], [step(WINDOWS_FULL), *guards],
+                                             producer_jobs=producers)
+            self.assertEqual(status, result['status'], result['reason'])
+            if status == 'blocked':
+                self.assertIn('committed Windows producer layout', result['reason'])
 
     def test_windows_layout_comes_from_the_tested_merge_tree(self):
         workflow = self.root / timing.WORKFLOW
@@ -703,28 +763,34 @@ class IntegrationHistoryTests(IntegrationFixture):
         incomplete_merge = self.merge_observation(base, head, tree_revision=incomplete)
         wrong_lane_merge = self.merge_observation(base, head, tree_revision=wrong_lane)
         not_local = dict(older_merge, sha='7' * 40)
+        altered_parent = dict(tested_merge, parents=[{'sha': workspace}, {'sha': head}])
         for controls, lanes, marker, status, reason in (
             (older_merge, timing.WINDOWS_RECOVERY_LANES, timing.WINDOWS_RECOVERY_MARKER, 'passed', ''),
             (not_local, timing.WINDOWS_RECOVERY_LANES, timing.WINDOWS_RECOVERY_MARKER, 'passed', ''),
             (tested_merge, timing.WINDOWS_WORKSPACE_LANES, timing.WINDOWS_WORKSPACE_MARKER, 'passed', ''),
             (tested_merge, timing.WINDOWS_RECOVERY_LANES, timing.WINDOWS_RECOVERY_MARKER, 'blocked',
              'lacks the committed Windows producer layout'),
-            (dict(tested_merge, tree={'sha': '8' * 40}), timing.WINDOWS_RECOVERY_LANES,
-             timing.WINDOWS_RECOVERY_MARKER, 'blocked', 'could not be verified from the tested merge tree'),
-            (dict(tested_merge, tree={'sha': head}), timing.WINDOWS_RECOVERY_LANES,
-             timing.WINDOWS_RECOVERY_MARKER, 'blocked', 'could not be verified from the tested merge tree'),
+            (dict(tested_merge, tree=older_merge['tree']), timing.WINDOWS_RECOVERY_LANES,
+             timing.WINDOWS_RECOVERY_MARKER, 'blocked', 'conflict with the local commit object'),
+            (altered_parent, timing.WINDOWS_WORKSPACE_LANES,
+             timing.WINDOWS_WORKSPACE_MARKER, 'blocked', 'conflict with the local commit object'),
+            (dict(not_local, tree={'sha': '8' * 40}), timing.WINDOWS_RECOVERY_LANES,
+             timing.WINDOWS_RECOVERY_MARKER, 'blocked', 'commit and tree could not be verified locally'),
+            (dict(not_local, tree={'sha': head}), timing.WINDOWS_RECOVERY_LANES,
+             timing.WINDOWS_RECOVERY_MARKER, 'blocked', 'commit and tree could not be verified locally'),
             (incomplete_merge, timing.WINDOWS_WORKSPACE_LANES, timing.WINDOWS_WORKSPACE_MARKER, 'blocked',
              'could not be verified from the tested merge tree'),
             (wrong_lane_merge, timing.WINDOWS_WORKSPACE_LANES, timing.WINDOWS_WORKSPACE_MARKER, 'blocked',
              'could not be verified from the tested merge tree'),
         ):
             with self.subTest(tree=controls['tree'], marker=marker, expected=status):
-                producers = [dict(name=timing.WINDOWS_PRODUCERS[lane], status='completed', conclusion='success',
-                                  steps=[step(f'Verify the Windows {lane} lane')]) for lane in lanes]
                 result, _ = self.observe_harness(base, head, [step(UBUNTU_FULL)], [step(WINDOWS_FULL), step(marker)],
-                                                 tested=controls, producer_jobs=producers)
+                                                 tested=controls, producer_jobs=self.producer_jobs(lanes))
                 self.assertEqual(status, result['status'], result['reason'])
                 self.assertIn(reason, result['reason'])
+                if status == 'passed':
+                    self.assertEqual('hosted_commit_with_local_tree' if controls is not_local else 'local_commit',
+                                     result['tested_tree']['authority'])
 
     def test_narrow_profiles_allow_matching_or_platform_full_harnesses(self):
         locale = self.root / 'apps/desktop/ui/src/i18n/locales/zh-Hans/core.json'
@@ -801,24 +867,28 @@ class IntegrationHistoryTests(IntegrationFixture):
         self.assertEqual('records', integration.committed_scope(self.root, base, head)['profile'])
 
         records_step = [step('Verify records changes')]
-        for tested, reason in [
-            (different, 'differs from the local PR head tree'),
-            ({key: value for key, value in matching.items() if key != 'tree'}, 'merge tree was unavailable'),
-            (dict(matching, tree={'sha': 'invalid'}), 'merge tree was unavailable'),
-        ]:
-            with self.subTest(tree=tested.get('tree')):
-                result, jobs = self.observe_harness(base, head, records_step, records_step, tested=tested)
-                self.assertEqual('blocked', result['status'])
-                self.assertEqual('full', result['expected_profile'])
-                self.assertIn(reason, result['expected_profile_reason'])
-                self.assertEqual(['records', 'records'], [job['verification_profile'] for job in jobs])
-                full, _ = self.observe_harness(base, head, [step(UBUNTU_FULL)], [step(WINDOWS_FULL)], tested=tested)
-                self.assertEqual('passed' if tested == different else 'blocked', full['status'])
-                if tested != different:
-                    self.assertIn('could not be verified from the tested merge tree', full['reason'])
-                self.assertEqual('full', full['expected_profile'])
+        result, jobs = self.observe_harness(base, head, records_step, records_step, tested=different)
+        self.assertEqual('blocked', result['status'])
+        self.assertEqual('full', result['expected_profile'])
+        self.assertIn('differs from the local PR head tree', result['expected_profile_reason'])
+        self.assertEqual(['records', 'records'], [job['verification_profile'] for job in jobs])
+        full, _ = self.observe_harness(base, head, [step(UBUNTU_FULL)], [step(WINDOWS_FULL)], tested=different)
+        self.assertEqual('passed', full['status'], full['reason'])
 
-        profile, reason = integration.expected_verification_profile(self.root, base, '0' * len(head), matching)
+        no_reported_tree = {key: value for key, value in matching.items() if key != 'tree'}
+        local, _ = self.observe_harness(base, head, records_step, records_step, tested=no_reported_tree)
+        self.assertEqual('passed', local['status'], local['reason'])
+        self.assertEqual('records', local['expected_profile'])
+        self.assertEqual(dict(matching['tree'], authority='local_commit'), local['tested_tree'])
+        for tested, reason in [
+            (dict(no_reported_tree, sha='7' * 40), 'commit and tree could not be verified locally'),
+            (dict(matching, tree={'sha': 'invalid'}), 'reports an invalid Git tree'),
+        ]:
+            result, _ = self.observe_harness(base, head, [step(UBUNTU_FULL)], [step(WINDOWS_FULL)], tested=tested)
+            self.assertEqual('blocked', result['status'])
+            self.assertIn(reason, result['reason'])
+
+        profile, reason = integration.expected_verification_profile(self.root, base, '0' * len(head), matching['tree']['sha'])
         self.assertEqual('full', profile)
         self.assertIn('local PR head tree could not be verified', reason)
 
@@ -862,8 +932,9 @@ class IntegrationHistoryTests(IntegrationFixture):
             for run_id, attempt, parent in [(99, 1, base), (100, 2, base), (101, 1, base), (102, 1, 'f' * 40)]:
                 _, merge_sha = checked[run_id * 10]
                 if f'/runs/{run_id}/attempts/{attempt}/jobs?' in argv[-1]:
-                    ubuntu = dict(ubuntu_job, head_sha=head, id=run_id * 10)
-                    windows = dict(windows_job, head_sha=head, id=run_id * 10 + 1)
+                    attempt_run = dict(run, id=run_id, run_attempt=attempt)
+                    ubuntu = attempt_job(ubuntu_job, attempt_run, run_id * 10)
+                    windows = attempt_job(windows_job, attempt_run, run_id * 10 + 1)
                     if run_id != 99:
                         windows['steps'] = windows_steps if run_id == 100 else [CHECKOUT_STEP]
                     return json.dumps([{'jobs': [ubuntu, windows]}])
@@ -874,7 +945,7 @@ class IntegrationHistoryTests(IntegrationFixture):
             return json.dumps(args['protection'])
 
         original = integration.command
-        checkout = patch.object(integration, 'job_checkout', side_effect=lambda root, repo, job_id: checked[job_id])
+        checkout = patch.object(integration, 'job_checkout', side_effect=lambda root, repo, job_id, action: checked[job_id])
         self.addCleanup(checkout.stop)
         checkout.start()
         with (patch.object(integration, 'github_identity', return_value='fixture/project'),

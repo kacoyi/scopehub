@@ -503,15 +503,20 @@ def verify_execution(raw, progress, count, verdict, durations=()):
         raise ValueError(error)
 
 
-def verify_callback_record(raw, manifest):
-    payload = {field: manifest[field] for field in (*CALLBACK_FIELDS, 'owners')}
-    expected = sha256(callback_bytes(payload)).hexdigest().encode('ascii')
+def callback_record_digests(raw):
+    """Return callback payload digests bound to this original process log."""
     records = []
     for record in CALLBACK_RECORD.finditer(raw):
         boundary = int(record[1])
         if boundary <= record.start() and sha256(raw[:boundary]).hexdigest().encode('ascii') == record[2]:
             records.append(record[3])
-    if records != [expected]:
+    return records
+
+
+def verify_callback_record(raw, manifest):
+    payload = {field: manifest[field] for field in (*CALLBACK_FIELDS, 'owners')}
+    expected = sha256(callback_bytes(payload)).hexdigest().encode('ascii')
+    if callback_record_digests(raw) != [expected]:
         raise ValueError('Original unittest callback record differs from the case manifest or transcript.')
 
 

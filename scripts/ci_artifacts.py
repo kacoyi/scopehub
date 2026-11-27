@@ -13,10 +13,11 @@ import tempfile
 if __package__:
     from . import windows_python
     from .check import (ALL_WINDOWS_LANES, BROWSER_RESULTS_DIGEST, INTERRUPTED_BEFORE_START, PRIVATE_CHECK_LOGS,
-                        PYTHON_MANIFEST_INTERRUPTED, WINDOWS_LANES, WINDOWS_LANES_RUN_PREFIX, WINDOWS_PYTHON_INTERRUPTION,
+                        PYTHON_MANIFEST_INTERRUPTED, WINDOWS_LANES, WINDOWS_LANES_RUN_PREFIX,
                         WINDOWS_WORKSPACE_LANE, WINDOWS_WORKSPACE_RESULT_CHECKS,
                         check_failed, check_timeout, ci_provenance, redacted_check_log, select_checks,
-                        stops_after_check, windows_lane_checks, windows_lanes_run_id)
+                        stops_after_check, windows_lane_checks, windows_lanes_run_id, windows_producer_interruption,
+                        windows_producer_interruptions)
     from .project import (ProjectError, digest, file_digest, json_bytes, load_project,
                           project_definition_hash, read_json, source_identity, task_definition_hash, validate_model, windows_x64)
     from .review_tree import CommittedPath
@@ -32,10 +33,11 @@ if __package__:
 else:
     import windows_python
     from check import (ALL_WINDOWS_LANES, BROWSER_RESULTS_DIGEST, INTERRUPTED_BEFORE_START, PRIVATE_CHECK_LOGS,
-                       PYTHON_MANIFEST_INTERRUPTED, WINDOWS_LANES, WINDOWS_LANES_RUN_PREFIX, WINDOWS_PYTHON_INTERRUPTION,
+                       PYTHON_MANIFEST_INTERRUPTED, WINDOWS_LANES, WINDOWS_LANES_RUN_PREFIX,
                        WINDOWS_WORKSPACE_LANE, WINDOWS_WORKSPACE_RESULT_CHECKS,
                        check_failed, check_timeout, ci_provenance, redacted_check_log, select_checks,
-                       stops_after_check, windows_lane_checks, windows_lanes_run_id)
+                       stops_after_check, windows_lane_checks, windows_lanes_run_id, windows_producer_interruption,
+                       windows_producer_interruptions)
     from project import (ProjectError, digest, file_digest, json_bytes, load_project,
                          project_definition_hash, read_json, source_identity, task_definition_hash, validate_model, windows_x64)
     from review_tree import CommittedPath
@@ -458,17 +460,22 @@ def python_parts(reports, report, lanes, destination=None, *, callback_records=N
         if has_log:
             validate_python_process_clock(record, report)
         raw = bound_bytes(checked_path(reports, log), record['log_sha256']) if has_log else b''
+        manifest_path = optional_path(reports, manifest)
         contents = manifest_value = None
         if 'manifest_sha256' in record:
             if not has_log:
                 raise PublicationError('Windows Python case manifest has no process log.')
-            contents = bound_bytes(checked_path(reports, manifest), record['manifest_sha256'])
+            if manifest_path is None:
+                raise PublicationError(f'Missing Windows Python case manifest: {manifest}.')
+            contents = bound_bytes(manifest_path, record['manifest_sha256'])
             try:
                 manifest_value = evidence_json(contents)
                 windows_python.verify_original(record, raw, manifest_value, lane, callback_records=callback_records,
                                                cutoff=cutoff)
             except (TypeError, ValueError, KeyError) as error:
                 raise PublicationError(str(error)) from error
+        elif manifest_path is not None or windows_python.callback_record_digests(raw):
+            raise PublicationError(f'Missing Windows Python case manifest binding: {lane}.')
         if report['status'] == 'passed' and not passed:
             raise PublicationError('A successful Windows report contains a failed Python part.')
         if destination is not None:
@@ -522,14 +529,11 @@ def validate_combined_python(root, project, reports, report, rows, assignments, 
                 root, project, reports, report, rows, lane, assignments[lane],
                 python_producer_report_path(run, lane), record[PRODUCER_REPORT_DIGEST],
                 destination, part=record, recovery_overlap=recovery_overlap)
-            marker = WINDOWS_PYTHON_INTERRUPTION[lane]
-            if marker in producer.get('limitations', ()):
-                interruptions.add(marker)
-    if interruptions != set(WINDOWS_PYTHON_INTERRUPTION.values()).intersection(report.get('limitations', ())):
-        raise PublicationError('The Windows aggregate interruption differs from its Python producer reports.')
+            interruptions.update(windows_producer_interruptions(producer))
     check, _ = combined_python(project, report, parts, cutoff=cutoff)
     if rows[windows_python.CHECK] != check:
         raise PublicationError('The Windows Python check differs from its original part results.')
+    return interruptions
 
 
 def validate_windows_run_id(report):
@@ -568,7 +572,8 @@ def source_producer_bindings(source):
     parts = properties.get('windows_python', {}).get('additionalProperties', {}).get('properties', {})
     harness = definitions.get('HarnessReport', {}).get('properties', {})
     checks = harness.get('checks', {}).get('items', {}).get('properties', {})
-    return WINDOWS_PRODUCERS in properties, PRODUCER_REPORT_DIGEST in parts, BROWSER_RESULTS_DIGEST in checks
+    producer_lanes = properties.get(WINDOWS_PRODUCERS, {}).get('propertyNames', {}).get('enum', ())
+    return frozenset(producer_lanes), PRODUCER_REPORT_DIGEST in parts, BROWSER_RESULTS_DIGEST in checks
 
 
 def committed_windows_python(source):
@@ -728,9 +733,8 @@ def windows_assignments(source, selected, *, event, split, recovery_checks):
     ) for lane in (ALL_WINDOWS_LANES if transfers else WINDOWS_LANES)}
 
 
-def ordinary_producer_lanes(assignments, split, retain):
-    lanes = ('browser', WINDOWS_WORKSPACE_LANE) if split else ('browser', 'recovery', WINDOWS_WORKSPACE_LANE)
-    return {lane for lane in lanes if retain and assignments.get(lane)}
+def ordinary_producer_lanes(assignments, split, retained):
+    return {lane for lane in retained if assignments.get(lane) and not (split and lane in windows_python.LANES)}
 
 
 def validate_windows_aggregate(root, project, reports, report, source, source_commit, destination=None,
@@ -740,7 +744,7 @@ def validate_windows_aggregate(root, project, reports, report, source, source_co
     committed = CommittedPath.at(root, source_commit)
     split = (windows_python.enabled(project, ci, selected)
              and source_uses_windows_python_parts(committed))
-    retain, part_reports, workspace_results = source_producer_bindings(committed)
+    retained_lanes, part_reports, workspace_results = source_producer_bindings(committed)
     runner = committed_windows_python(committed) if split else None
     recovery_checks = runner_recovery_checks(runner)
     assignments = windows_assignments(committed, selected, event=ci['event'], split=split, recovery_checks=recovery_checks)
@@ -759,27 +763,30 @@ def validate_windows_aggregate(root, project, reports, report, source, source_co
     actual_selected = [rows[key] for key in selected if project['checks'][key]['status'] == 'implemented']
     lane_failed = (lane_result != 'success' if lane_result is not None
                    else 'At least one Windows lane job did not succeed.' in report.get('limitations', ()))
-    interrupted = any(marker in report.get('limitations', ()) for marker in WINDOWS_PYTHON_INTERRUPTION.values())
-    failed = lane_failed or interrupted or any(check_failed(row) for row in actual_selected)
+    reported_interruptions = windows_producer_interruptions(report)
+    failed = lane_failed or reported_interruptions or any(check_failed(row) for row in actual_selected)
     blocked = unverified or not native_ok or any(row['status'] == 'blocked' for row in actual_selected)
     verdict = 'failed' if failed else 'blocked' if blocked else 'passed'
     if report['status'] != verdict or report.get('integration_gates') != expected_gates:
         raise PublicationError('The Windows aggregate verdict differs from its selected check results.')
+    original_interruptions = set()
     if split:
-        validate_combined_python(root, project, reports, report, rows, assignments, runner, part_reports, destination,
-                                 recovery_overlap=recovery_overlap)
+        original_interruptions.update(validate_combined_python(
+            root, project, reports, report, rows, assignments, runner, part_reports, destination,
+            recovery_overlap=recovery_overlap))
     else:
-        if interrupted:
-            raise PublicationError('A Windows aggregate interruption requires a split Python producer.')
         python_parts(reports, report, ())
 
     original_reports = report.get(WINDOWS_PRODUCERS, {})
-    if set(original_reports) != ordinary_producer_lanes(assignments, split, retain):
+    if set(original_reports) != ordinary_producer_lanes(assignments, split, retained_lanes):
         raise PublicationError('Missing or unexpected original Windows ordinary producer report.')
     run = f"runs/{report['run_id']}"
     for lane in original_reports:
-        validate_original_producer(root, project, reports, report, rows, lane, assignments[lane],
-                                   windows_producer_report_path(run, lane), original_reports[lane], destination)
+        producer = validate_original_producer(root, project, reports, report, rows, lane, assignments[lane],
+                                             windows_producer_report_path(run, lane), original_reports[lane], destination)
+        original_interruptions.update(windows_producer_interruptions(producer))
+    if original_interruptions != reported_interruptions:
+        raise PublicationError('The Windows aggregate interruption differs from its original producer reports.')
     validate_workspace_results(reports, run, report['checks'], required=workspace_results, destination=destination)
 
 
@@ -998,6 +1005,8 @@ def producer_stopped(row):
 def validate_producer_outcomes(report, selected, lane, *, recovery_overlap=False):
     """An executed producer may omit only a suffix after a stop in that producer."""
     part = report.get('windows_python', {}).get(lane)
+    marker = windows_producer_interruption(lane, selected, python_part=part is not None)
+    terminal_stop = marker in windows_producer_interruptions(report)
     parallel_stop = (recovery_overlap and lane == 'recovery' and part
                      and part.get('reason') != PYTHON_MANIFEST_INTERRUPTED and producer_stopped(part))
     stopped = False
@@ -1013,7 +1022,7 @@ def validate_producer_outcomes(report, selected, lane, *, recovery_overlap=False
         elif stopped:
             raise PublicationError(f'Windows {lane} has a result for {key} after its producer stopped.')
         elif row.get('reason_code') == INTERRUPTED_BEFORE_START:
-            if not (recovery_overlap and lane == 'recovery' and part and not parallel_stop
+            if not ((terminal_stop or recovery_overlap and lane == 'recovery' and part) and not parallel_stop
                     and row['status'] == 'blocked' and not PROCESS_FIELDS.intersection(row)):
                 raise PublicationError(f'Windows {lane} has an invalid interruption before {key} started.')
             stopped = True
@@ -1027,9 +1036,10 @@ def validate_lane_verdict(project, report, selected, lane, profile):
     statuses = {'failed' if check_failed(row) else row['status'] for row in report['checks'] if row['id'] in selected
                 and (profile in SCOPED_PROFILES or project['checks'][row['id']]['status'] == 'implemented')}
     parts = report.get('windows_python', {})
-    interrupted = set(WINDOWS_PYTHON_INTERRUPTION.values()).intersection(report.get('limitations', ()))
-    if interrupted and (lane not in parts or interrupted != {WINDOWS_PYTHON_INTERRUPTION.get(lane)}):
-        raise PublicationError('A Windows Python interruption requires its matching split producer.')
+    interrupted = windows_producer_interruptions(report)
+    marker = windows_producer_interruption(lane, selected, python_part=lane in parts)
+    if interrupted and interrupted != {marker}:
+        raise PublicationError('A Windows producer interruption requires its matching producer.')
     if (not report['source_unchanged'] or not report['project_unchanged']
             or interrupted or any(part['status'] != 'passed' for part in parts.values())):
         statuses.add('failed')
@@ -1073,8 +1083,8 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
     committed = CommittedPath.at(root, checkout)
     partitioned = (not profile and windows_python.enabled(project, ci, selected)
                    and source_uses_windows_python_parts(committed))
-    retain, retain_part_producers, workspace_results = (
-        source_producer_bindings(committed) if not profile else (False, False, False))
+    retained_lanes, retain_part_producers, workspace_results = (
+        source_producer_bindings(committed) if not profile else (frozenset(), False, False))
     runner = committed_windows_python(committed) if partitioned else None
     cutoff = runner_partition_cutoff(runner) if partitioned else None
     assignments = windows_assignments(committed, selected, event=ci['event'], split=partitioned,
@@ -1084,7 +1094,7 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
     expected_names = {prefix + lane for lane in names}
     if not downloads.is_dir() or {path.name for path in downloads.iterdir()} != expected_names:
         raise PublicationError('Missing or unexpected Windows lane artifacts. Rerun all jobs for this attempt.')
-    retained_lanes = ordinary_producer_lanes(assignments, partitioned, retain)
+    retained_lanes = ordinary_producer_lanes(assignments, partitioned, retained_lanes)
     started = []
     caches = {}
     producer_parts = {}
@@ -1110,14 +1120,13 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
                     raise PublicationError(f'Windows {lane} lane has another report identity or Python executable.')
                 started.append(datetime.fromisoformat(report['generated_at']).timestamp() - report['timing']['elapsed_seconds'])
                 rows.update((row['id'], row) for row in report['checks'] if lane == 'core' or row['id'] in lane_selection)
+                if lane != 'core':
+                    core.setdefault('limitations', []).extend(sorted(windows_producer_interruptions(report)))
                 if lane in retained_lanes:
                     write_artifact(reports / windows_producer_report_path(f'runs/{run_id}', lane), contents)
                     producer_reports[lane] = digest(contents)
                 if partitioned and lane in windows_python.LANES:
                     (record, raw, manifest), = python_parts(staged, report, (lane,), cutoff=cutoff)
-                    marker = WINDOWS_PYTHON_INTERRUPTION[lane]
-                    if marker in report.get('limitations', ()):
-                        core.setdefault('limitations', []).append(marker)
                     if retain_part_producers:
                         write_artifact(reports / python_producer_report_path(f'runs/{run_id}', lane), contents)
                         record = {**record, PRODUCER_REPORT_DIGEST: digest(contents)}

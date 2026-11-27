@@ -27077,7 +27077,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Replay and repair both independent 3f5485af decisions at the public source qualification, producer and publication boundaries. Integrate protected navigation source 4d17dff0 and hand the exact clean candidate with retained observations to the coordinator for independent review. Only an ordinary full warm Windows PR with five producer clocks, final publisher time, all 35 selections, original attachments and ordered Python outcomes can qualify the five-job layout against the 900-second objective.",
+      "next_action": "Have the coordinator obtain both independent decisions on the exact clean repair using the retained public controls in .reports/audit-20261127/m0-146-3f5485af-repair/handoff.json. Then retain an ordinary full warm Windows PR with all five producer clocks, final publisher time, all 35 selections, original attachments and ordered Python outcomes before qualifying the five-job layout against the 900-second objective.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -27566,6 +27566,7 @@
             "scripts/integration.py",
             "contracts/schemas/project.schema.json",
             "tests/project/test_delivery.py",
+          "tests/project/test_integration.py",
             "tests/project/test_storage.py",
             "tests/project/test_verification_scheduling.py",
             ".github/workflows/verify.yml"
@@ -27614,7 +27615,9 @@
             "Run the Windows lane fixture with the same review-base environment as the hosted lane step. Keep actual Git parent and source validation, feedback preflight, public producer and aggregate commands, receipt imports and original interruption and callback assertions.",
             "Move the contiguous review acceptance, storage, and timing modules to the Python producer by starting the recovery suffix at verification scheduling. Accept the two earlier cutoffs only as declared by their tested source. Exercise changed case ownership, matching and rejected publication, interrupted originals and the coexisting native revision publisher.",
             "Use the additional workspace producer on full Windows PRs and retain its source-bound original report. Reassign the existing checks across two independent browser runners and give the ordered storage and later Python modules to the light recovery runner. Keep the four-producer protected push, serial Python on push, cache seeding, and earlier source declarations importable.",
-            "Verify the producer declarations from the tested merge tree. Keep both Python producer verdicts coherent when interrupted during finalization and use the existing reports for workspace result digests. Preserve the narrower attachment evidence supported by authentic historical sources."
+            "Verify the producer declarations from the tested merge tree. Keep both Python producer verdicts coherent when interrupted during finalization and use the existing reports for workspace result digests. Preserve the narrower attachment evidence supported by authentic historical sources.",
+          "Qualify the complete declared producer set and pinned checkout for each source-producing job from the verified tested merge tree. Verify the local commit and tree against the hosted record, and retain historical tree-backed qualification when the commit object is unavailable.",
+          "Use one terminal report rule across hosted Windows producers that own workspace or Python outcomes, including scoped and protected paths. Preserve completed rows and bound attachments, freeze the verdict after both report copies, retry one sealed manifest digest read, and reject publication when generated case evidence cannot be verified."
           ],
           "data_plan": "Use synthetic fixtures, read-only hosted originals and matching check logs. Preserve actual job durations, original identifiers and coverage for comparison. Archived 2.0 and legacy 2.1 evidence depends on authenticated retrieval for attempt lineage within canonical paths. Legacy merged output supports identifiable printed events under the historical runner format. The stream cannot prove unprinted discovery members or recover ambiguous callbacks. Diagnostic resolution checks the pinned report bytes, identities and attachment digests and returns the recorded check outcome. This path can reopen an ambiguous legacy original with all its bound attachments and grants no per-case receipt. The record command revalidates the supplied report and originals before returning either a new or existing receipt. The two genuine teardown executions with identical merged output and opposite outer callbacks establish that historical per-case recovery is mathematically impossible for those bytes. A newly submitted manifest or a chosen prefix cannot supply the missing ownership. Qualification relies on the supported historical runner's visible standard writes. Exact high-resolution durations, unprinted details and overridden or obscured runner writes require independently bound evidence.",
           "cleanup": "Remove temporary profiling from the delivery path, archive the focused comparison and retain any unresolved timing investigation with its next observable action."

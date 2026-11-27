@@ -37,6 +37,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PR_FIELDS = ('number,url,state,isDraft,headRefOid,headRefName,baseRefOid,baseRefName,'
              'mergeable,mergeStateStatus,reviewDecision')
 REVISION = r'(?:[0-9a-f]{40}|[0-9a-f]{64})'
+PINNED_CHECKOUT = r'actions/checkout@[0-9a-f]{40}'
 FULL_HARNESS_STEPS = {
     'verify (ubuntu-latest)': 'Run pnpm check',
     'verify (windows-latest)': 'Run uv run python scripts/check.py --require-windows',
@@ -59,11 +60,13 @@ MAIN_PUSH_BUDGET_BINDING = {
 }
 
 
-def checked_pull_request(log):
+def checked_pull_request(log, checkout_step=None):
     """Read the ref and actual HEAD printed by the pinned checkout step on Linux or Windows."""
     messages = (line.rstrip('\r\n').partition(' ')[2] for line in log)
     for message in messages:
-        if re.fullmatch(r'##\[group\]Run actions/checkout@[0-9a-f]{40}', message):
+        if re.fullmatch(rf'##\[group\]Run {PINNED_CHECKOUT}', message):
+            if checkout_step is not None and message != f'##[group]{checkout_step}':
+                raise ProjectError('The checkout log uses a different pinned action than the job record.')
             break
     number = None
     for message in messages:
@@ -79,7 +82,7 @@ def checked_pull_request(log):
     raise ProjectError('The checkout log does not identify the checked pull request and merge commit.')
 
 
-def job_checkout(root, repository, job_id):
+def job_checkout(root, repository, job_id, checkout_step=None):
     # A job log can be large and contain arbitrary text from later checks.
     # Keep its bytes off the terminal and read only the checkout prefix as UTF-8.
     with tempfile.TemporaryFile(mode='w+', encoding='utf-8', errors='replace') as log:
@@ -90,7 +93,7 @@ def job_checkout(root, repository, job_id):
             detail = result.stderr.decode('utf-8', errors='replace').strip()
             raise ProjectError(f'Cannot read checkout evidence for GitHub job {job_id}: {detail}')
         log.seek(0)
-        return checked_pull_request(log)
+        return checked_pull_request(log, checkout_step)
 
 
 def required_checkouts(root, repository, jobs, contexts):
@@ -100,11 +103,13 @@ def required_checkouts(root, repository, jobs, contexts):
         if len(matches) != 1:
             raise ProjectError(f'Expected one required job named {name}.')
         job = matches[0]
-        if not any(step.get('conclusion') == 'success' and
-                   re.fullmatch(r'Run actions/checkout@[0-9a-f]{40}', step['name']) for step in job['steps']):
+        checkout = [step for step in job.get('steps', ()) if re.fullmatch(rf'Run {PINNED_CHECKOUT}', step['name'])]
+        if (len(checkout) != 1 or checkout[0].get('status') != 'completed'
+                or checkout[0].get('conclusion') != 'success'):
             raise ProjectError(f'Required job {name} has no successful pinned checkout.')
-        number, commit = job_checkout(root, repository, job['id'])
-        observed.append({'name': name, 'job_id': job['id'], 'pull_request': number, 'commit': commit})
+        step = checkout[0]['name']
+        number, commit = job_checkout(root, repository, job['id'], step)
+        observed.append({'name': name, 'job_id': job['id'], 'pull_request': number, 'commit': commit, 'step': step})
     if not observed or len({item['job_id'] for item in observed}) != len(observed):
         raise ProjectError('Expected distinct required jobs for the pull request checkout.')
     if len({(item['pull_request'], item['commit']) for item in observed}) != 1:
@@ -127,21 +132,45 @@ def job_verification_profile(job):
     return None
 
 
-def tested_merge_tree(tested):
-    tree = tested.get('tree')
-    sha = tree.get('sha') if isinstance(tree, dict) else None
-    return sha if isinstance(sha, str) and re.fullmatch(REVISION, sha) else None
-
-
-def expected_verification_profile(root, base, head, tested):
-    """Use the head comparison only when it represents the checked merge tree."""
-    merge_tree = tested_merge_tree(tested)
-    if merge_tree is None:
-        return 'full', 'The checked merge tree was unavailable.'
+def verified_merge_source(root, commit, tested):
+    if tested['sha'] != commit or not re.fullmatch(REVISION, commit):
+        raise ProjectError('The observed merge commit differs from the checkout log.')
+    parents = [parent['sha'] for parent in tested['parents']]
+    record = tested.get('tree')
+    reported_tree = record.get('sha') if isinstance(record, dict) else None
+    if 'tree' in tested and (not isinstance(reported_tree, str) or not re.fullmatch(REVISION, reported_tree)):
+        raise ProjectError('The tested merge reports an invalid Git tree.')
     try:
-        head_tree = command(['git', '--no-replace-objects', 'rev-parse', '--verify', '--end-of-options',
-                             f'{head}^{{tree}}'], root)
-    except (ProjectError, OSError, subprocess.SubprocessError, UnicodeError):
+        kind = git(root, 'cat-file', '--batch-check=%(objecttype)', input=f'{commit}\n'.encode('ascii')).strip()
+        if kind == b'commit':
+            # Read the commit object directly so grafts, shallow parents and refs cannot change its lineage.
+            headers = git(root, 'cat-file', 'commit', commit).partition(b'\n\n')[0].splitlines()
+            tree, = (line[5:].decode('ascii') for line in headers if line.startswith(b'tree '))
+            local_parents = [line[7:].decode('ascii') for line in headers if line.startswith(b'parent ')]
+            authority = 'local_commit'
+        elif kind == f'{commit} missing'.encode('ascii'):
+            # An authenticated historical merge may have been collected locally. Its tree must still be verifiable.
+            tree = reported_tree
+            authority = 'hosted_commit_with_local_tree'
+        else:
+            raise ValueError('Expected a Git commit object or an absent object.')
+    except (ScopeError, OSError, subprocess.SubprocessError, ValueError) as error:
+        raise ProjectError('The tested merge commit and tree could not be verified locally.') from error
+    if kind == b'commit' and ((reported_tree is not None and tree != reported_tree) or parents != local_parents):
+        raise ProjectError('The hosted tested merge tree or parents conflict with the local commit object.')
+    try:
+        if tree is None or git(root, 'cat-file', '-t', tree).strip() != b'tree':
+            raise ScopeError('Expected a Git tree.')
+    except (ScopeError, OSError, subprocess.SubprocessError) as error:
+        raise ProjectError('The tested merge commit and tree could not be verified locally.') from error
+    return parents, tree, authority
+
+
+def expected_verification_profile(root, base, head, merge_tree):
+    """Use the head comparison only when it represents the checked merge tree."""
+    try:
+        head_tree = git(root, 'rev-parse', '--verify', '--end-of-options', f'{head}^{{tree}}').strip().decode('ascii')
+    except (ScopeError, OSError, subprocess.SubprocessError, UnicodeError):
         return 'full', 'The local PR head tree could not be verified.'
     if not re.fullmatch(REVISION, head_tree):
         return 'full', 'The local PR head tree could not be verified.'
@@ -151,47 +180,63 @@ def expected_verification_profile(root, base, head, tested):
     return scope['profile'], scope.get('reason')
 
 
-def committed_windows_producer_marker(root, tested):
-    # The checked commit may be absent locally. An identical Git tree still binds every workflow byte.
-    tree = tested_merge_tree(tested)
+def declared_checkout(job):
+    action, = (step.get('uses') for step in job['steps']
+               if str(step.get('uses', '')).startswith('actions/checkout@'))
+    if not re.fullmatch(PINNED_CHECKOUT, action):
+        raise ValueError('Expected a pinned checkout action.')
+    return f'Run {action}'
+
+
+def committed_producers(root, tree):
     try:
-        if tree is None or git(root, 'cat-file', '-t', tree).strip() != b'tree':
-            raise ValueError('Expected a Git tree.')
         jobs = yaml.safe_load(git(root, 'cat-file', 'blob', f'{tree}:{WORKFLOW}'))['jobs']
-        if not isinstance(jobs.get('verify'), dict):
-            raise ValueError('Expected the protected verification job.')
-        if 'windows_change' not in jobs:
-            if any(f'windows_{lane}' in jobs for lane in timing.WINDOWS_WORKSPACE_LANES):
-                raise ValueError('Expected a publisher for the Windows producers.')
-            return None
-        publisher = jobs['windows_change']
-        marker, = (step.get('name') for step in publisher['steps']
-                   if step.get('name') in WINDOWS_PRODUCER_LAYOUTS)
-        lanes = {f'windows_{lane}': lane for lane in WINDOWS_PRODUCER_LAYOUTS[marker]}
-        needs = publisher['needs']
-        if not isinstance(needs, list) or len(needs) != len(lanes) or set(needs) != lanes.keys():
-            raise ValueError('The publisher dependencies disagree with the Windows producer layout.')
+        verify = jobs['verify']
+        publisher = jobs.get('windows_change', verify)
+        marker = None
+        if 'windows_change' in jobs:
+            marker, = (step.get('name') for step in publisher['steps']
+                       if step.get('name') in WINDOWS_PRODUCER_LAYOUTS)
+        lanes = {f'windows_{lane}': lane for lane in WINDOWS_PRODUCER_LAYOUTS.get(marker, ())}
+        lane_ids = {job_id for job_id in jobs if job_id.startswith('windows_') and job_id != 'windows_change'}
+        if lane_ids != lanes.keys():
+            raise ValueError('The workflow declarations disagree with the Windows producer layout.')
+        if marker:
+            needs = publisher['needs']
+            if not isinstance(needs, list) or len(needs) != len(lanes) or set(needs) != lanes.keys():
+                raise ValueError('The publisher dependencies disagree with the Windows producer layout.')
+        checkouts = {'verify (ubuntu-latest)': declared_checkout(verify),
+                     'verify (windows-latest)': declared_checkout(publisher)}
         for job_id, lane in lanes.items():
             producer = jobs[job_id]
+            name = timing.WINDOWS_PRODUCERS[lane]
             if (producer['strategy']['matrix']['lane'] != [lane] or producer['runs-on'] != 'windows-latest'
-                    or producer['name'] not in ('Windows change checks (${{ matrix.lane }})',
-                                                timing.WINDOWS_PRODUCERS[lane])):
+                    or producer['name'] not in ('Windows change checks (${{ matrix.lane }})', name)):
                 raise ValueError('The Windows producer declaration disagrees with its expected lane.')
+            checkouts[name] = declared_checkout(producer)
+        # Historical workflows can report skipped administrative jobs outside the PR verification matrix.
+        inactive = {job['name'] for job_id, job in jobs.items()
+                    if job_id not in {'verify', 'windows_change', *lanes} and 'if' in job
+                    and 'name' in job and '${{' not in job['name']}
     except (ScopeError, OSError, subprocess.SubprocessError, yaml.YAMLError, RecursionError,
             AttributeError, KeyError, TypeError, ValueError) as error:
         raise ProjectError('The Windows producer layout could not be verified from the tested merge tree.') from error
-    return marker
+    return marker, checkouts, inactive
 
 
-def verified_windows_producers(run, repository, jobs, profile, marker):
+def verified_windows_producers(run, repository, jobs, marker):
+    windows, = (row for row in jobs if row.get('name') == 'verify (windows-latest)')
+    guards = [step for step in windows.get('steps', ()) if step.get('name') in timing.WINDOWS_MARKERS]
     result = timing.hosted_timing({**run, 'repository': {'full_name': repository}}, jobs)
     workflow = result['workflow']
-    if not (workflow.get('windows_split') and workflow['matrix_complete'] and workflow['identity_complete']):
+    if not (workflow['matrix_complete'] and workflow['identity_complete']):
         return False
-    windows, = (row for row in jobs if row.get('name') == 'verify (windows-latest)')
-    if not any(step.get('name') == marker and step.get('status') == 'completed'
-               and step.get('conclusion') == 'success' for step in windows.get('steps', [])):
+    if marker is None:
+        return not guards and not workflow.get('windows_split')
+    if (not workflow.get('windows_split') or len(guards) != 1 or guards[0]['name'] != marker
+            or guards[0].get('status') != 'completed' or guards[0].get('conclusion') != 'success'):
         return False
+    profile = windows['verification_profile']
     for lane in WINDOWS_PRODUCER_LAYOUTS[marker]:
         job, = (row for row in jobs if row.get('name') == timing.WINDOWS_PRODUCERS[lane])
         if job['conclusion'] != 'success':
@@ -204,6 +249,27 @@ def verified_windows_producers(run, repository, jobs, profile, marker):
         if expected not in successful or (profile != 'full' and lane != 'core' and harness in successful):
             return False
     return True
+
+
+def qualified_producer_checkouts(root, repository, jobs, run, tree, observed):
+    marker, declared, inactive = committed_producers(root, tree)
+    active = [job['name'] for job in jobs if not (
+        job['name'] in inactive and job.get('status') == 'completed' and job.get('conclusion') == 'skipped')]
+    protected = {row['name'] for row in observed}
+    if (sorted(active) != sorted(declared) or not protected <= declared.keys()
+            or not all(required_job_succeeded(jobs, name, run['head_sha']) for name in declared)
+            or not verified_windows_producers(run, repository, jobs, marker)):
+        raise ProjectError('The run lacks the committed Windows producer layout.')
+    remaining = [name for name in declared if name not in protected]
+    if remaining:
+        observed = [*observed, *required_checkouts(root, repository, jobs, remaining)]
+    if (len({row['job_id'] for row in observed}) != len(declared)
+            or len({(row['pull_request'], row['commit']) for row in observed}) != 1):
+        raise ProjectError('Required jobs checked different pull requests or merge commits.')
+    for row in observed:
+        if row['step'] != declared[row['name']]:
+            raise ProjectError(f"Required job {row['name']} used a different pinned checkout than the tested workflow.")
+    return observed
 
 
 def verified_pr_run(root, repository, pr, runs, dirty, contexts):
@@ -228,9 +294,11 @@ def verified_pr_run(root, repository, pr, runs, dirty, contexts):
             reason = f"Verification exists for this head, but no checked run matches PR #{pr['number']}."
             continue
         tested = json.loads(command(['gh', 'api', f'repos/{repository}/git/commits/{commit}'], root))
-        if tested['sha'] != commit:
-            raise ProjectError('The observed merge commit differs from the checkout log.')
-        parents = [parent['sha'] for parent in tested['parents']]
+        try:
+            parents, tree, authority = verified_merge_source(root, commit, tested)
+        except ProjectError as error:
+            result.update(status='blocked', reason=f"Run {run['id']}: {error}")
+            return result, jobs
         if len(parents) != 2 or parents[1] != run['head_sha']:
             result.update(status='blocked', reason=f"Run {run['id']} checked a merge that does not match its declared head.")
             return result, jobs
@@ -238,8 +306,9 @@ def verified_pr_run(root, repository, pr, runs, dirty, contexts):
             reason = f"Run {run['id']} checked PR #{number} at a different base."
             continue
         result['checkout'] = {'pull_request': number, 'commit': commit, 'base': base, 'head': head}
+        result['tested_tree'] = {'sha': tree, 'authority': authority}
         result['required_checkouts'] = observed
-        expected, scope_reason = expected_verification_profile(root, base, head, tested)
+        expected, scope_reason = expected_verification_profile(root, base, head, tree)
         result['expected_profile'] = expected
         result['expected_profile_reason'] = scope_reason
         checked_ids = {item['job_id'] for item in observed}
@@ -253,14 +322,10 @@ def verified_pr_run(root, repository, pr, runs, dirty, contexts):
                           f"Required jobs with insufficient coverage: {', '.join(insufficient)}.")
         if result['status'] == 'passed':
             try:
-                marker = committed_windows_producer_marker(root, tested)
+                result['required_checkouts'] = qualified_producer_checkouts(root, repository, jobs, run, tree, observed)
             except ProjectError as error:
                 result.update(status='blocked', reason=f"Run {run['id']}: {error}")
                 return result, jobs
-            windows = next((job for job in jobs if job['name'] == 'verify (windows-latest)'), None)
-            if marker and (not windows or not verified_windows_producers(
-                    run, repository, jobs, windows.get('verification_profile'), marker)):
-                result.update(status='blocked', reason=f"Run {run['id']} lacks the committed Windows producer layout.")
         return result, jobs
     return {'status': 'blocked', 'reason': reason, 'run': None}, []
 

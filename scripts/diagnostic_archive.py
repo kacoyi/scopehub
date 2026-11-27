@@ -245,7 +245,8 @@ def _checked_windows_python(directory, report):
         manifest = name + '.json'
         if part['status'] == 'passed' and not {'log', 'log_sha256', 'manifest_sha256'} <= part.keys():
             raise DiagnosticArchiveError(f'Missing passing Windows Python diagnostic evidence: {lane}')
-        if {'log', 'log_sha256', 'manifest_sha256'}.intersection(part):
+        has_log = bool({'log', 'log_sha256', 'manifest_sha256'}.intersection(part))
+        if has_log:
             if part.get('log') != f".reports/runs/{report['run_id']}/{log}":
                 raise DiagnosticArchiveError(f'Missing or misplaced Windows Python diagnostic log: {lane}')
             _verify_file(directory, log, part.get('log_sha256'))
@@ -253,6 +254,14 @@ def _checked_windows_python(directory, report):
         if 'manifest_sha256' in part:
             _verify_file(directory, manifest, part['manifest_sha256'])
             verified.append(manifest)
+        else:
+            try:
+                _path(directory, manifest)
+                missing_binding = True
+            except FileNotFoundError:
+                missing_binding = has_log and _has_python_callback_record(_path(directory, log))
+            if missing_binding:
+                raise DiagnosticArchiveError(f'Missing Windows Python case manifest binding: {lane}.')
         if 'producer_report_sha256' in part:
             producer = name + '.producer.json'
             _verify_file(directory, producer, part['producer_report_sha256'])
@@ -260,9 +269,17 @@ def _checked_windows_python(directory, report):
     return verified
 
 
+def _has_python_callback_record(log):
+    if __package__:
+        from .windows_python import callback_record_digests
+    else:
+        from windows_python import callback_record_digests
+    return bool(callback_record_digests(log.read_bytes()))
+
+
 def _checked_windows_producers(directory, report):
     records = report.get('windows_producers', {})
-    if not isinstance(records, dict) or records.keys() - {'browser', 'recovery', 'workspace'}:
+    if not isinstance(records, dict) or records.keys() - {'browser', 'python', 'recovery', 'workspace'}:
         raise DiagnosticArchiveError('Invalid Windows diagnostic producer identities')
     verified = []
     for lane, sha256 in records.items():

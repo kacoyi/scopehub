@@ -1644,7 +1644,7 @@
         "windows_producers": {
           "type": "object",
           "minProperties": 1,
-          "propertyNames": {"enum": ["browser", "recovery", "workspace"]},
+          "propertyNames": {"enum": ["browser", "python", "recovery", "workspace"]},
           "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
         },
         "windows_python": {

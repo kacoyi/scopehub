@@ -88,6 +88,12 @@ WINDOWS_PYTHON_INTERRUPTION = {
     'python': 'The Windows Python lane was interrupted.',
     'recovery': RECOVERY_LANE_INTERRUPTED,
 }
+WINDOWS_PRODUCER_INTERRUPTION = {
+    **WINDOWS_PYTHON_INTERRUPTION,
+    'core': 'The Windows core lane was interrupted.',
+    'browser': 'The Windows browser lane was interrupted.',
+    'workspace': 'The Windows workspace lane was interrupted.',
+}
 BUILD_CHECKS = {'typescript-contracts', 'ui-build', 'rust-format', 'rust-contracts-workers',
                 'rust-lints', 'windows-native-build'}
 WINDOWS_BROWSER_CHECKS = {'market-workflow', 'chart-history', 'ubuntu-preview',
@@ -292,6 +298,11 @@ def check_failed(result):
     return result['status'] == 'failed' or result.get('reason_code') == INTERRUPTED_BEFORE_START
 
 
+def interrupted_before_start(check):
+    return {'id': check['id'], 'status': 'blocked', 'command': check_command(check),
+            'reason_code': INTERRUPTED_BEFORE_START, 'reason': 'Interrupted before this check was started.'}
+
+
 def windows_lane_checks(selected, lane, *, python_split=False, recovery_checks=frozenset(), ownership=None,
                         pr_transfers=None):
     if ownership is None:
@@ -315,6 +326,15 @@ def windows_lane_checks(selected, lane, *, python_split=False, recovery_checks=f
 
 def windows_lanes_run_id(ci):
     return f"{WINDOWS_LANES_RUN_PREFIX}{ci['run_id']}-{ci['run_attempt']}"
+
+
+def windows_producer_interruption(lane, selected, *, python_part=False):
+    owns_results = python_part or selected.intersection(WINDOWS_WORKSPACE_RESULT_CHECKS | {'python-contracts-workers'})
+    return WINDOWS_PRODUCER_INTERRUPTION.get(lane) if owns_results else None
+
+
+def windows_producer_interruptions(report):
+    return set(WINDOWS_PRODUCER_INTERRUPTION.values()).intersection(report.get('limitations', ()))
 
 
 def build_window(catalog, selected, environment, index):
@@ -420,10 +440,7 @@ def run_overlapped(checks, env, run_dir, *, system, timed_first=False, stop_requ
                 if stop_requested is None:
                     raise KeyboardInterrupt
                 if unstarted is not None:
-                    results[unstarted['id']] = {
-                        'id': unstarted['id'], 'status': 'blocked', 'command': check_command(unstarted),
-                        'reason_code': INTERRUPTED_BEFORE_START, 'reason': 'Interrupted before this check was started.',
-                    }
+                    results[unstarted['id']] = interrupted_before_start(unstarted)
     finally:
         CHECK_CONSOLE.reset(token)
     return results
@@ -490,13 +507,61 @@ def publish_report(run_dir, report):
     # Complete both disk publications before attempting final notification.
     with defer_finalization_sigint() as interrupted_publication:
         original = run_dir / 'test-report.tmp'
-        original.write_text(contents, encoding='utf-8')
-        original.replace(run_dir / 'test-report.json')
         latest = REPORTS / f"{report['run_id']}.tmp"
+        original.write_text(contents, encoding='utf-8')
         latest.write_text(contents, encoding='utf-8')
+        original.replace(run_dir / 'test-report.json')
         latest.replace(REPORTS / 'test-report.json')
     if interrupted_publication():
         CHECK_CONSOLE.get().interrupted = True
+
+
+def publish_producer_report(run_dir, report, stop_requested, interruption):
+    def record_interruption():
+        report['limitations'].append(interruption)
+        report.update(status='failed', product_complete=False)
+
+    stopped = stop_requested()
+    if stopped:
+        record_interruption()
+    published = False
+    try:
+        publish_report(run_dir, report)
+        published = True
+        # A stop during either publication requires matching interrupted
+        # reports. After this point, signals only mute output.
+        if stop_requested(finish=True) and not stopped:
+            record_interruption()
+            publish_report(run_dir, report)
+    except OSError as error:
+        # Do not leave an original that claims a finalized verdict. A previous
+        # run's latest is untouched if the first publication never completed.
+        if published:
+            (REPORTS / 'test-report.json').unlink(missing_ok=True)
+        (run_dir / 'test-report.json').unlink(missing_ok=True)
+        raise OSError(f'Incomplete Windows producer report publication for {run_dir.name}: {error}') from error
+
+
+def retain_python_manifest(runner, manifest, record):
+    try:
+        if not manifest.is_file():
+            if record['status'] != 'passed':
+                return
+            raise ValueError('Windows Python part completed without its case manifest.')
+        if 'log_sha256' not in record:
+            raise ValueError('Windows Python case manifest has no original process log.')
+        # execute() has already closed and digested the complete original log.
+        runner.seal_manifest(manifest, record['log_sha256'])
+        try:
+            record['manifest_sha256'] = file_digest(manifest)
+        except OSError:
+            # A read failure leaves the sealed original available for one retry.
+            record['manifest_sha256'] = file_digest(manifest)
+    except (OSError, ValueError) as error:
+        if record.get('reason_code') not in STOP_REASONS:
+            record.update(status='failed', reason_code='missing_acceptance_evidence')
+        reason = f'Could not retain Windows Python case evidence: {error}'
+        record['reason'] = f"{record['reason']} {reason}" if 'reason' in record else reason
 
 
 def run_verification(producer_signals):
@@ -573,15 +638,20 @@ def run_verification(producer_signals):
     python_parts = {}
     producer_reports = {}
     part_failed = False
-    part_interruption = None
-    part_stop_requested = None
     imported_interruptions = []
     lane = args.ci_windows_lane
+    python_part = python_split and lane in windows_python.LANES
+    producer_lane = lane
+    if (ci and ci['event'] in {'pull_request', 'push'} and os.environ.get('GITHUB_JOB') == 'windows_core'
+            and platform.system() == 'Windows' and args.profile and not args.ci_windows_aggregate):
+        # Scoped Windows checks publish the core report directly.
+        producer_lane = 'core'
+    producer_interruption = windows_producer_interruption(producer_lane, selected, python_part=python_part)
+    producer_stop_requested = (producer_signals.enter_context(cooperative_stop_requests(CHECK_CONSOLE.get()))
+                               if producer_interruption else None)
     recovery_window = []
     part_check = None
-    if python_split and lane in windows_python.LANES:
-        part_interruption = WINDOWS_PYTHON_INTERRUPTION[lane]
-        part_stop_requested = producer_signals.enter_context(cooperative_stop_requests(CHECK_CONSOLE.get()))
+    if python_part:
         part_check = {**project['checks'][windows_python.CHECK], 'id': windows_python.part_id(lane),
                       'command': windows_python.command(sys.executable, lane)}
         if lane == 'recovery' and windows_python.RECOVERY_PR_CHECKS:
@@ -603,8 +673,7 @@ def run_verification(producer_signals):
         results = imported['checks']
         python_parts = imported.get('windows_python', {})
         producer_reports = imported.get('windows_producers', {})
-        imported_interruptions = [marker for marker in WINDOWS_PYTHON_INTERRUPTION.values()
-                                  if marker in imported.get('limitations', ())]
+        imported_interruptions = sorted(windows_producer_interruptions(imported))
         started = time.monotonic() - elapsed
         catalog = []
     else:
@@ -619,7 +688,7 @@ def run_verification(producer_signals):
         if not stopped and recovery_window and check['id'] == recovery_window[0]['id']:
             concurrent_results = run_overlapped([part_check, *recovery_window], env, run_dir,
                                                 system=environment['system'], timed_first=True,
-                                                stop_requested=part_stop_requested)
+                                                stop_requested=producer_stop_requested)
             stopped = concurrent_results[part_check['id']].get('reason_code') in STOP_REASONS
         if check['id'] not in concurrent_results and (check['id'] not in selected or stopped):
             results.append({'id': check['id'], 'status': 'blocked', 'command': command,
@@ -632,6 +701,9 @@ def run_verification(producer_signals):
         elif check['platforms'] == 'windows-x64' and not windows_x64(environment):
             results.append({'id': check['id'], 'status': 'blocked', 'command': command,
                             'reason_code': 'unsupported_platform', 'reason': 'Requires native Windows x64.'})
+        elif (producer_stop_requested and producer_stop_requested() and check['id'] not in concurrent_results):
+            results.append(interrupted_before_start(check))
+            stopped = True
         else:
             if overlap and check['id'] == 'python-contracts-workers':
                 window = build_window(catalog, selected, environment, index)
@@ -644,7 +716,8 @@ def run_verification(producer_signals):
                         row['id'] == 'rust-contracts-workers' and row['status'] == 'passed' and row.get('exit_code') == 0
                         for row in results):
                     check_env = {**env, 'SCOPEHUB_REUSE_OPERATIONS_BUILD': '1'}
-                result = execute(check['id'], command, check_env, run_dir, check_timeout(check, environment['system']))
+                result = execute(check['id'], command, check_env, run_dir, check_timeout(check, environment['system']),
+                                 cancel=producer_stop_requested)
             if lane and check['id'] in WINDOWS_WORKSPACE_RESULT_CHECKS and 'log' in result:
                 result[BROWSER_RESULTS_DIGEST] = None
                 try:
@@ -676,27 +749,19 @@ def run_verification(producer_signals):
             if record is None:
                 timeout = check_timeout(part_check, environment['system'])
                 part_start = datetime.now(timezone.utc).isoformat()
-                record = execute(label, part_command, env, run_dir, timeout, cancel=part_stop_requested)
+                record = execute(label, part_command, env, run_dir, timeout, cancel=producer_stop_requested)
                 if 'duration_seconds' in record:
                     record['started_at'] = part_start
             manifest = run_dir / f'{label}.json'
-            interrupted_before_seal = part_stop_requested()
-            if manifest.is_file() and 'log_sha256' in record:
-                try:
-                    # execute() has already closed and digested the complete original log.
-                    windows_python.seal_manifest(manifest, record['log_sha256'])
-                    record['manifest_sha256'] = file_digest(manifest)
-                except (OSError, ValueError) as error:
-                    if record.get('reason_code') not in STOP_REASONS:
-                        record.update(status='failed', reason_code='missing_acceptance_evidence', reason=str(error))
-            elif record['status'] == 'passed':
-                record.update(status='failed', reason_code='missing_acceptance_evidence',
-                              reason='Windows Python part completed without its case manifest.')
+            interrupted_before_seal = producer_stop_requested()
+            retain_python_manifest(windows_python, manifest, record)
             # An isolated producer owns the part through sealing. The
             # historical overlap records a late stop at the producer level.
-            if (not recovery_window and not interrupted_before_seal and part_stop_requested()
+            if (not recovery_window and not interrupted_before_seal and producer_stop_requested()
                     and record.get('reason_code') not in STOP_REASONS):
-                record.update(status='failed', reason_code='interrupted', reason=PYTHON_MANIFEST_INTERRUPTED)
+                reason = record.get('reason')
+                record.update(status='failed', reason_code='interrupted',
+                              reason=f'{PYTHON_MANIFEST_INTERRUPTED} {reason}' if reason else PYTHON_MANIFEST_INTERRUPTED)
         python_parts[lane] = record
         part_failed = record['status'] != 'passed'
     final_source = source_identity(ROOT)
@@ -787,19 +852,9 @@ def run_verification(producer_signals):
         ).stdout.splitlines()
     console = CHECK_CONSOLE.get()
 
-    def record_producer_interruption():
-        if part_interruption in report['limitations']:
-            return False
-        report['limitations'].append(part_interruption)
-        report.update(status='failed', product_complete=False)
-        return True
-
-    if part_stop_requested and part_stop_requested():
-        record_producer_interruption()
-    publish_report(run_dir, report)
-    # Freeze the decision after both publications. Later signals can still
-    # unblock notification, but cannot change the recorded producer verdict.
-    if part_stop_requested and part_stop_requested(finish=True) and record_producer_interruption():
+    if producer_stop_requested:
+        publish_producer_report(run_dir, report, producer_stop_requested, producer_interruption)
+    else:
         publish_report(run_dir, report)
     print_check({'report': (run_dir / 'test-report.json').relative_to(ROOT).as_posix(),
                  'status': report['status'], 'source_unchanged': source_unchanged,
@@ -811,7 +866,7 @@ def run_verification(producer_signals):
         recovery_command = f'pnpm project:recover --task {args.task} --save' if args.task else RECOVERY_COMMAND
         print_check({'recovery_command': recovery_command,
                      'failed_report': (run_dir / 'test-report.json').relative_to(ROOT).as_posix()})
-    raise SystemExit(exit_code or int(part_stop_requested is None and console.interrupted))
+    raise SystemExit(exit_code or int(producer_stop_requested is None and console.interrupted))
 
 
 if __name__ == '__main__':
