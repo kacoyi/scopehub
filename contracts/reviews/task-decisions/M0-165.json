@@ -117,6 +117,15 @@
       },
       "supersedes": "4ee1aedefc66e5510288938dd93f863837d3c5283e5ceb9f939587a4eb947cf3",
       "evidence_sha256": "09e27b2618ae643423639d4fb274f1a1102890422da88b4886b442ef7e057ccf"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d7078506c69145952f7fe65cbc92b8ce3441f505",
+      "scope": "Review the exact indicator ownership and architecture inventory on the new protected maintenance-navigation baseline. Check the combined test_development module and its two original parents, the producer/consumer public entries and the distinction between trusted Python and Rust declarative paths.",
+      "supersedes": "faeeb1dc3ccfc289be458011c55da6503d32216c0af6bc78f31cf96fc0124ae8",
+      "requested_at": "2026-11-27T09:39:48.305552+00:00",
+      "request_id": "fcea32d8ee29405a9ef6828afdff6fdb08327ba3763093aebf31cadd89f44f75",
+      "evidence_sha256": "99d7637e3efbe01eea39c036edcc5e2d6a26bec12563c66373754fbb601fbc76"
     }
   ]
 }
