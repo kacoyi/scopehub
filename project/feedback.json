@@ -8785,6 +8785,38 @@
       "deferral_reason": null
     },
     {
+      "id": "windows-publication-accepts-linux-report",
+      "source": "Independent M0-139 changes-requested decision on fd02515180726e0b843e590b62d0aeef404aed48, contracts/reviews/task-decisions/M0-139.json#/events/25. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-139-fd025151/original-assistant-response.jsonl (SHA-256 281f1f603d7eb47717aa318a3bee177f8a64cf2b75592057b9bfff3931f1539f). Independent M0-146 changes-requested decision on fd02515180726e0b843e590b62d0aeef404aed48, contracts/reviews/task-decisions/M0-146.json#/events/25. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-146-fd025151/original-assistant-response.jsonl (SHA-256 5b7148dc576d3017a0d99cd5ec0a4f8ab888996a15ae1fd7a463877d1bdc82aa).",
+      "observation": "Both independent reviews of fd025151 staged all 57 files of the unchanged Linux artifact from PR 123 run 45839731781 attempt 1 in the full Windows aggregate job environment. The genuine Windows aggregate retained 64 files and its failed verdict. Report-controlled routing diverted the Linux original to generic validation. Regress the authoritative job and platform at publication and authenticated artifact import, including the unchanged Linux artifact in its valid Linux job and Windows originals at supported historical boundaries.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-earlier-failure-omits-original-producer-result",
+      "source": "Independent M0-146 changes-requested decision on fd02515180726e0b843e590b62d0aeef404aed48, contracts/reviews/task-decisions/M0-146.json#/events/25. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-146-fd025151/original-assistant-response.jsonl (SHA-256 5b7148dc576d3017a0d99cd5ec0a4f8ab888996a15ae1fd7a463877d1bdc82aa).",
+      "observation": "The independent M0-146 review of fd025151 replaced the first selected browser check, the passed market-workflow result (95.750 seconds), with a genuine earlier_failure omission from a different interrupted report. The lane and historical aggregate validators accepted the omission and lost the original log even though the following nine browser checks passed. Regress the stopping condition and causal order in the actual producer, including retained originals and real interrupted recovery results, at publication, import and receipt reopen.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
       "id": "windows-cancelled-indicator-scratch-survives-completion",
       "status": "addressed",
       "severity": "major",
