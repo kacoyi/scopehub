@@ -126,6 +126,26 @@
       "requested_at": "2026-11-27T09:39:48.305552+00:00",
       "request_id": "fcea32d8ee29405a9ef6828afdff6fdb08327ba3763093aebf31cadd89f44f75",
       "evidence_sha256": "99d7637e3efbe01eea39c036edcc5e2d6a26bec12563c66373754fbb601fbc76"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d7078506c69145952f7fe65cbc92b8ce3441f505",
+      "verdict": "approved",
+      "decision": "APPROVE M0-165 d7078506c69145952f7fe65cbc92b8ce3441f505",
+      "scope": "APPROVE M0-165 d7078506c69145952f7fe65cbc92b8ce3441f505",
+      "observation": "Restoring the archived planned status made the architecture check reject the worker’s import of the trusted evaluator, while a separate planned entry with a declared dependency and no consumer passed.",
+      "reviewer": "Independent Astra Standard (t1gx)",
+      "original_sha256": "8740f6635d585d623d1e4a314fbbbc9c539a4cefb54e168427a0bab8b1466b99",
+      "response_id": "b9649fc854992d0c58c6582c266b2858872bf504f7b69685ea6209682fba7ecd",
+      "response_sha256": "479b074c4567678dfbe1f05bd6cf5f6f591cba9d298140d98553b0ba2c5f757e",
+      "legacy_response_sha256": "88d168643370cc0df269934f6db780888476e639402a6492ca43f35fe207dc04",
+      "observation_body_sha256": "4c83080affc6c511b897965befb96c9344d3656027f9dde7730ec3051989a285",
+      "event": {
+        "id": "msg_0b9314bef8a64391016b0950a972a087d0b85cf20451c412b4",
+        "timestamp": "2026-11-27T09:43:23.236Z"
+      },
+      "supersedes": "fcea32d8ee29405a9ef6828afdff6fdb08327ba3763093aebf31cadd89f44f75",
+      "evidence_sha256": "10111f5ca08b737a41f73c147d0ad833e2fa62ac55a5217689d7c9dcf79c049c"
     }
   ]
 }
