@@ -552,6 +552,15 @@
       },
       "supersedes": "a538dfee0a9ab83a874f065cb041986b38ce97f265ac26615bc4dd97f94f7ac0",
       "evidence_sha256": "9818fe79851eb82d951f76bff0f39c7de482643306518697424986d3fb7bab2d"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ce6c2b3e3f8ba091378a7161fc77bf18cb20053d",
+      "scope": "Requalify the affected publisher for genuine executed failure and revision provenance across all three supported source-declared cutoffs on ce6c2b3e.",
+      "supersedes": "b124036a7d45eac80ed1d1191efcf3fa7cf2157ee13a3776848d156c951e5146",
+      "requested_at": "2026-11-27T08:01:57.863990+00:00",
+      "request_id": "d4aefaedf3c40c4ef28e85b9623e78878c737278e90d1f54b0979e4c3aab0b78",
+      "evidence_sha256": "438b2567b247acd69f0f9337a3d234df364b7a7eba3bbedc5acf2f1a8e57f222"
     }
   ]
 }

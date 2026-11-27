@@ -552,6 +552,15 @@
       },
       "supersedes": "9c96db1990052235268ef4708551292ee059c102ba12112f314fb6a107371aa5",
       "evidence_sha256": "939215547689df33f686cc32d39db03e04f0408afa394a639e47bffba1c1258a"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ce6c2b3e3f8ba091378a7161fc77bf18cb20053d",
+      "scope": "Independently review the ordered repartition on ce6c2b3e against the actual four Windows first-attempt clocks, full test discovery, source-declared partition and producer setup.",
+      "supersedes": "85ceaafe55631d8a72f54743a0d3197c7fe9df8c1ca307616135d0860c31c817",
+      "requested_at": "2026-11-27T08:01:57.221828+00:00",
+      "request_id": "e75f0f982ba2f5e799bf60f54045fd3d9be927211626f75903106b96e7d0d264",
+      "evidence_sha256": "f30fdcef005c297a9ae8e8de4eb77bf54ef2051b9188751ec049331c0849eec7"
     }
   ]
 }
