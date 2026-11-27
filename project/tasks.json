@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-176",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -29147,7 +29147,7 @@
       "id": "M0-176",
       "title": "Qualify the native workspace bridge before parallel browser consumers use it",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-149"
       ],
@@ -29175,7 +29175,16 @@
         "indicator-declarative-preview",
         "indicator-workflow"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-176-d0231e81166f1e4b.json",
+          "sha256": "2c3eebdf296e13f4df719a485297385c7a7261b63a38a54e6df87ac432fec23d"
+        },
+        {
+          "path": "project/evidence/M0-176-cafb944f03d03538.json",
+          "sha256": "dc5b462471fc97211ba8178dbb958de56cfc33803307f210ea673420d373d0cc"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "windows-change-45962154175-1",
@@ -29188,9 +29197,9 @@
           "report_sha256": "115a5e6e5ec0a74dbb1e39252c331ca3e33d86b6a40b2f98d24c9a0df6963be3"
         }
       ],
-      "next_action": "Obtain a new independent decision on the revised clean source and retained local controls for selected CSV, full workspace, rejected build, filtered indicators and pre-server cleanup. After approval, the coordinator retains the first applicable native Windows workspace result for both consumers and separately verifies the integrated result before closing.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Independent approval of ca0d16eb5aa8d5f05d9e0b8f369c297c2a959c09 applies to the unchanged implementation on fcdc4f462f8912dbfa4587cacc921b8fb0672272. The retained Linux controls covered real Cargo rejection, explicit native-target selection with a stale default artifact present, overlapping consumers of one staged image, both indicator filters with build rejection armed, and native child and directory cleanup on port acquisition and server startup failures. Guarded run 45971267739 attempt 1 passed the five task checks and environment on both Linux and Windows. Each full workspace run prepared one bridge and passed both native CSV journeys through their awaited cleanup paths. The two filtered indicator suites passed 17 and three cases respectively without bridge preparation. The guarded originals are bound by archives/observations/repo-hygiene-20261125/task-dispatch-m0-176-45971267739/manifest.json (SHA-256 8cb4bc802cc4b94a1c7707834f9bb47b093325ee9a303a398370497ecd7db43c). Ordinary PR 150 run 45971216845 attempt 1 separately confirmed both CSV journeys on Linux and Windows at merge preview 0d444941b5b5082486c0607223179a22cae77a3c with matching execution inputs. The ordinary Windows workspace failed in the note-deletion case owned by M0-177. Its original failure is bound by archives/observations/repo-hygiene-20261125/pr150-native-original-45971216845/manifest.json (SHA-256 5f9118902b0a50be1978fd5c3231b750aa9cbbb52a540f495b113a817d92e6a1). The original linker handle owner and relink trigger remain unknown. The guarded receipts qualify the bridge correction. Protected integration remains pending and requires its own passing ordinary verification and authorization. The coordinator owns integration and the first post-merge recheck.",
       "plan": {
         "outcome": "Preserve the original Windows failure and passing overlap. Prepare one run-owned native executable from the selected Cargo output when either CSV consumer is selected. Preserve both real browser journeys, independent indicator check outcomes, rejected build diagnostics and synthetic process and directory cleanup before server startup.",
         "change_types": [
