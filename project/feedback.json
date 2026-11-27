@@ -8054,6 +8054,22 @@
         "prevention": "Read the original protocol-variant-identity finding at 47f0bd0fed34bc63d60bb4f8b3e311c677c41336 in ordinary and read-only modes and verify the full returned record and exact source commit. Keep the old success, intermediate error and corrected success as controls."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "handoff-reduces-engineering-objective-to-timing-follow-up",
+      "status": "open",
+      "severity": "minor",
+      "source": "Owner clarification on November 27 and the standard project:context --phase handoff output on protected 7bc0df5f6252a03d53519c27e19efca20a4d45b1 and PR 134 at 1b42eec2b3c9be56fee9a9329c3960095b145e4f.",
+      "observation": "The focused row supplies a coordinator, status and timing assignment on both sources. The PR also exposes the existing acceptance conditions. Neither row delivers the intent from the referenced owner terms. The owner asked to recover the second goal as sustained engineering quality across product development and iteration and to account for capabilities already delivered.",
+      "task_ids": [
+        "M0-172"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

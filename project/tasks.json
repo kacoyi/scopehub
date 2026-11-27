@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-172",
   "tasks": [
     {
       "id": "M0-001",
@@ -26863,6 +26863,106 @@
           ],
           "data_plan": "Development records only. Keep task originals private and preserve existing product data and permissions.",
           "cleanup": "Use the supported repository entry for the corrected behavior. Retire superseded local workarounds after matched verification and preserve originals required for audit."
+        }
+      }
+    },
+    {
+      "id": "M0-172",
+      "milestone": "M0",
+      "title": "Give the next development AI the engineering objective and evidence at handoff",
+      "status": "active",
+      "depends_on": [
+        "M0-161"
+      ],
+      "scope": [
+        "scripts/development.py",
+        "project/delivery.json",
+        "tests/project/test_development.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0030"
+      ],
+      "acceptance": [
+        "From the normal maintenance handoff, a fresh development AI can state the purpose of sustained high-quality implementation and iteration, identify an already accepted engineering capability and the evidence for it, and distinguish the next outstanding decision from the overall objective. The initial observation and results remain attributable to their own sources.",
+        "Use the existing checkout sources and delivery path. The concise overview continues to route a user to the applicable action. The underlying engineering decision and accepted history remain recoverable, and completion of both workstreams retains the existing stop."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Use the maintained public handoff and original accepted task records to deliver the owner goal and the immediate evidence needed by the next AI. Verify with an ordinary fresh read.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The receiving development AI gets enough precise context at the point of handoff to explain the engineering objective and act on its current state.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+          "project/delivery.json",
+          "project/development.json",
+          "scripts/development.py",
+          "tests/project/test_development.py"
+        ],
+        "hypotheses": [
+          "Both the protected handoff and the proposed navigation repair give the timing follow-up without projecting the existing authoritative overall purpose. This favors interpreting the next check as the whole outcome."
+        ],
+        "risks": [
+          {
+            "failure": "Duplicated summaries could drift from the owner decision or represent an accepted example or a pending native or calendar observation as proof of long-term engineering quality.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Restore the preceding handoff projection and current next action if it obscures source ownership, scope or the established stop.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/development.py",
+            "project/delivery.json",
+            "tests/project/test_development.py"
+          ],
+          "rules": [
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/1"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/engagement"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/evolution"
+            }
+          ],
+          "non_goals": [
+            "New product work, a reporting system, repeated status broadcasts, changes to the historical owner decision, or a guarantee of future engineering quality."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Authoritative owner terms, accepted historical task definitions and review evidence, supported startup and handoff routes, and the two-outcome stop."
+          ],
+          "change": [
+            "Carry the actual objective into the existing handoff and make relevant completed evidence and the immediate open work findable at the decision point."
+          ],
+          "data_plan": "Development control records only. The public entry uses checkout sources; private transcripts and product data remain on their existing paths.",
+          "cleanup": "Use the same existing source and command. Check the ordinary and read-only routes and remove unnecessary duplicate instructions introduced by this change."
         }
       }
     }
