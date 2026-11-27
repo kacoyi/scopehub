@@ -8280,67 +8280,6 @@
       "deferral_reason": null
     },
     {
-      "id": "windows-reviewed-save-preview-expired-before-save-admission",
-      "status": "addressed",
-      "severity": "major",
-      "source": "First native observation archives/observations/repo-hygiene-20261125/pr142-producer-45848342284-core/observation.json (SHA-256 c5da835cbfa551fb0824261aaf0e945aeaf45bd3c623406c32643ca75467ac84). The completed first-attempt aggregate at archives/observations/repo-hygiene-20261125/pr142-native-original-45848342284/manifest.json (SHA-256 9380f89374b29740b331c1081708ce3302132bdae52f401b31b00252f8fa211a) retains the same Rust log.",
-      "observation": "Windows PR 142 core job 140007775200 (first attempt 45848342284) ran 31 desktop bridge tests. The reviewed-save cancellation fixture obtained the CSV selection; its initial public PREVIEW_LOCAL_IMPORT returned retryable TIMEOUT at bridge_tests.rs:2418, before any save admission or cancellation. The remaining 30 tests passed, including the reviewed-save recovery case. Startup stage, cause of the delay and the downstream save outcome were not observed.",
-      "task_ids": [
-        "M0-170"
-      ],
-      "regression_checks": [
-        "project-state",
-        "rust-contracts-workers",
-        "local-folder-import"
-      ],
-      "diagnostic_reports": [
-        {
-          "run_id": "windows-change-45848342284-1",
-          "source_commit": "10024108d06f2d6adaf095b1ccb1a9d1bd531b82",
-          "report_sha256": "23dbf3f6ac858b6cd0c8becceed7cc2812b3cf5f5b1a7221b7d0404ff523426e"
-        },
-        {
-          "run_id": "windows-change-45848342284-1",
-          "source_commit": "10024108d06f2d6adaf095b1ccb1a9d1bd531b82",
-          "report_sha256": "d2522517d478284ed0ff105716383b337d40b8b114f84db18b0ce319b999b281"
-        }
-      ],
-      "resolution": {
-        "cause": "The original first public preview expired after selection and before the reviewed save was submitted. The original worker exchange stage, interpreter ownership, cleanup and cause of the timeout remain unknown. The original fixture's one-thread blocking pool is a possible Windows pipe scheduling factor.",
-        "correction": "Run the real public preview with the ordinary blocking pool and reserve a separate one-thread runtime for the save's controlled reread. Use the same synthetic CSV in the interrupted preview control and require a completed public review for save authorization.",
-        "prevention": "Guarded run 45930637026 passed all required checks on native Windows and Linux. The public bridge controls assert a completed preview, rejection of a save after a controlled preview interruption, cancellation after proven save admission, and an ordinary subsequent load with not_saved and no profile directory. The protected integration recheck remains with the coordinator."
-      },
-      "deferral_reason": null
-    },
-    {
-      "id": "windows-handoff-calibration-expires-before-file-comparison",
-      "status": "addressed",
-      "severity": "major",
-      "source": "First native observation archives/observations/repo-hygiene-20261125/pr123-native-original-45933801256/manifest.json (SHA-256 1c7999a4d37d4976091603fa5272d322c77bed4270fbf00c33aa4c7e9a8c294e).",
-      "observation": "The first ordinary PR 123 Windows browser job 140292229420 failed while preparing the test-owned file matrix in the private launcher handoff case. The case took 15362 ms. The workspace suite recorded 97 passed, one failed and two skipped. The bounded subprocess diagnostic identified expiration before the subsequent file comparisons. Its last internal stage and the reason for its elapsed time are unknown. The earlier M0-147 first protected case passed in 8646 ms including its other work.",
-      "task_ids": [
-        "M0-171"
-      ],
-      "regression_checks": [
-        "project-state",
-        "python-contracts-workers",
-        "workspace-timeframe"
-      ],
-      "diagnostic_reports": [
-        {
-          "run_id": "windows-change-45933801256-1",
-          "source_commit": "4c6907e67c50eadfa95308b46594f92722e2490b",
-          "report_sha256": "2b4e4c9dce03a68efcfe32ed9dd49a0efdb48287a8f9a9195f55c689d4cb0657"
-        }
-      ],
-      "resolution": {
-        "cause": "The bounded subprocess expired during test-owned leaf ACL matrix preparation, before the 24 native witness comparisons. The historical last internal stage and cause of the elapsed time remain unknown.",
-        "correction": "Compile the existing C# fixture helper once in Windows workspace setup and load the run-owned assembly in the leaf preparation subprocess. Keep the existing subprocess deadline, comparison outcomes and owned-file cleanup. Record setup compilation and the script, helper and matrix milestones.",
-        "prevention": "Guarded run 45941768345 passed environment and all M0-171 checks on Linux and Windows. The workspace suites exercised bounded preparation and cleanup, interruption before native witness comparison, actual deadline expiry and the ordinary private launcher. The ordinary PR 146 Windows workspace producer also passed with observed compilation and matrix timings. The earlier failed report and passing controls are retained."
-      },
-      "deferral_reason": null
-    },
-    {
       "id": "frozen-reopen-stale-access-status",
       "source": "The built desktop UI red regression at archives/runs/20261125T035923.329201Z-a36ab18a/test-report.json.",
       "severity": "minor",
@@ -9056,6 +8995,39 @@
       "deferral_reason": null
     },
     {
+      "id": "windows-reviewed-save-preview-expired-before-save-admission",
+      "status": "addressed",
+      "severity": "major",
+      "source": "First native observation archives/observations/repo-hygiene-20261125/pr142-producer-45848342284-core/observation.json (SHA-256 c5da835cbfa551fb0824261aaf0e945aeaf45bd3c623406c32643ca75467ac84). The completed first-attempt aggregate at archives/observations/repo-hygiene-20261125/pr142-native-original-45848342284/manifest.json (SHA-256 9380f89374b29740b331c1081708ce3302132bdae52f401b31b00252f8fa211a) retains the same Rust log.",
+      "observation": "Windows PR 142 core job 140007775200 (first attempt 45848342284) ran 31 desktop bridge tests. The reviewed-save cancellation fixture obtained the CSV selection; its initial public PREVIEW_LOCAL_IMPORT returned retryable TIMEOUT at bridge_tests.rs:2418, before any save admission or cancellation. The remaining 30 tests passed, including the reviewed-save recovery case. Startup stage, cause of the delay and the downstream save outcome were not observed.",
+      "task_ids": [
+        "M0-170"
+      ],
+      "regression_checks": [
+        "project-state",
+        "rust-contracts-workers",
+        "local-folder-import"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45848342284-1",
+          "source_commit": "10024108d06f2d6adaf095b1ccb1a9d1bd531b82",
+          "report_sha256": "23dbf3f6ac858b6cd0c8becceed7cc2812b3cf5f5b1a7221b7d0404ff523426e"
+        },
+        {
+          "run_id": "windows-change-45848342284-1",
+          "source_commit": "10024108d06f2d6adaf095b1ccb1a9d1bd531b82",
+          "report_sha256": "d2522517d478284ed0ff105716383b337d40b8b114f84db18b0ce319b999b281"
+        }
+      ],
+      "resolution": {
+        "cause": "The original first public preview expired after selection and before the reviewed save was submitted. The original worker exchange stage, interpreter ownership, cleanup and cause of the timeout remain unknown. The original fixture's one-thread blocking pool is a possible Windows pipe scheduling factor.",
+        "correction": "Run the real public preview with the ordinary blocking pool and reserve a separate one-thread runtime for the save's controlled reread. Use the same synthetic CSV in the interrupted preview control and require a completed public review for save authorization.",
+        "prevention": "Guarded run 45930637026 passed all required checks on native Windows and Linux. The public bridge controls assert a completed preview, rejection of a save after a controlled preview interruption, cancellation after proven save admission, and an ordinary subsequent load with not_saved and no profile directory. The protected integration recheck remains with the coordinator."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "herdr-completion-collection-depends-on-host-and-response-wording",
       "status": "addressed",
       "severity": "major",
@@ -9357,6 +9329,125 @@
       "deferral_reason": null
     },
     {
+      "id": "ordinary-next-action-selects-unrelated-feature-during-maintenance",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Observed on ff6c880b289b18e3e58d667dcb5b76c7f12fe053. archives/observations/repo-hygiene-20261125/coordinator-checkpoints/resume-t113-20261126T0228Z/rule-effects-main-ff6c880b.json (SHA-256 10c6688525ca8763b09a223b721970b87a0ff84e914100475a684b1826a7a764).",
+      "observation": "On ff6c880b the ordinary public overview reported two open maintenance workstreams but selected the planned M2-003 renderer as its next command. Following the separate handoff command recovered both accepted mandates and their stop terms.",
+      "task_ids": [
+        "M0-161"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The overview selected its fallback before considering the engagement and exposed the maintenance handoff only in a separate summary.",
+        "correction": "When there is no active task or higher-priority action, route the first command to the verified maintenance handoff ahead of the planned product fallback. Keep the product focus visible and show each open workstream's owner, acceptance and next action in the handoff.",
+        "prevention": "Follow the emitted commands in ordinary and read-only startup with the protected planned focus. Check open, partial, ended and absent engagements, missing focus, active work and higher-priority findings or matching failures."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "maintenance-next-action-hides-unassigned-major-feedback",
+      "status": "addressed",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-161.json#/events/1 retained on a5111629c6a2a1be69ff063b00d873e637696d01 for 727b4fb34ba87a731a159123e39f9531ba9ffb7c. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-161-727b4fb3/original-assistant-response.jsonl, SHA-256 e49daf361b45b1117381d732477d3b7b6252ca9a99924932f2daf601ef00cbf5.",
+      "observation": "With the protected task ledger focused on planned M2-003 and an open major finding linked only to completed M0-158, ordinary and read-only startup showed the unassigned finding in the backlog but routed the first action to engagement handoff. This occurred with both workstreams open and with both accepted. The ended handoff instructed the coordinator to stop assigning work and the finding was absent from also_urgent. The same candidate routed to the finding when the engagement was absent or the finding was critical.",
+      "task_ids": [
+        "M0-161"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The major finding route required an unfinished owner while the engagement handoff preceded the assignment queue, hiding an unassigned major finding linked only to completed work.",
+        "correction": "Offer the canonical record for the highest-priority unassigned major finding ahead of the engagement handoff and keep the finding visible when an existing urgent route takes precedence.",
+        "prevention": "Start both CLI modes with a validated ledger and a major finding linked only to completed work. Follow the first action in open, partially accepted, ended and absent engagement states and check owned and unassigned critical precedence."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "feedback-lookup-directs-assignment-after-maintenance-ends",
+      "status": "addressed",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-161.json#/events/3 retained on ca19ce1489ce807106120651b5c85a4a2ad0c221 for 17a0365fbc1462e6154806c18020b654dbbc39ef. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-161-17a0365f/original-assistant-response.jsonl, SHA-256 fc5918f012832f1c3aca7a1e03c86f6c2360320aa7aa289acce87ef20035c538.",
+      "observation": "With both workstreams accepted and an unassigned major finding, the first overview command opened the canonical record. Its follow-through instructed the coordinator to link the finding to an unfinished corrective task and verify its checks, while the separate handoff instructed the coordinator to stop assigning work. Both ordinary and read-only navigation showed the conflict.",
+      "task_ids": [
+        "M0-161"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The canonical feedback destination emitted assignment instructions for every open finding independently of the verified engagement state in the selected source.",
+        "correction": "Keep the feedback record inspectable. When the selected source has an ended engagement, show its stop instruction and requirement for fresh owner authorization for later feature work. Retain assignment guidance for open or absent engagements.",
+        "prevention": "Execute the complete feedback destination and maintenance handoff in ordinary and read-only modes. Compare their stop and authorization terms under synthetic full acceptance, and exercise partial acceptance, absent policy and source-bound lookup against a different live engagement state."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "unassigned-feedback-priority-depends-on-ledger-order",
+      "status": "addressed",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-161.json#/events/3 retained on ca19ce1489ce807106120651b5c85a4a2ad0c221 for 17a0365fbc1462e6154806c18020b654dbbc39ef. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-161-17a0365f/original-assistant-response.jsonl, SHA-256 fc5918f012832f1c3aca7a1e03c86f6c2360320aa7aa289acce87ef20035c538.",
+      "observation": "With the protected ledger focused on planned M2-003, no engagement and open minor then major findings linked only to completed M0-158, record validation passed and both overview modes put the minor finding first, leaving the major in also_urgent. Restoring the open engagement made the major finding first in both modes.",
+      "task_ids": [
+        "M0-161"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The overview used the assignment queue as a membership set, then scanned open findings in ledger order for the ordinary fallback.",
+        "correction": "Use the existing severity-ordered assignment queue for pending feedback and keep critical findings on the existing urgent route.",
+        "prevention": "Exercise minor-first and major-first insertion order with no engagement in both CLI modes. Follow the selected command to the major finding and retain open engagement and critical precedence controls."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "feedback-lookup-requires-policy-from-newer-history",
+      "status": "addressed",
+      "severity": "minor",
+      "source": "Compared 17a0365fbc1462e6154806c18020b654dbbc39ef and f438d57376cbf300f7ea511892da54f5f6544726 on the historical tree 47f0bd0fed34bc63d60bb4f8b3e311c677c41336. Originals in .reports/m0-161-public-navigation/pre-maintenance-source-baseline.json (SHA-256 84f59591c1c368cdf3f7f01497f964cffd4d36bd1603034a173be79bc1f1f5ab) and .reports/m0-161-public-navigation/pre-maintenance-source-rejected-f438d573.json (SHA-256 e2801655b2ac9cc0b2c589a0b705dfc0808d25ea20c99a9f3dab3236410814f2).",
+      "observation": "The temporary candidate failed to open the original protocol-variant-identity record through the exact-source CLI. The selected historical delivery record predates scaffold maintenance configuration. The same command on the earlier implementation returned the finding and historical commit.",
+      "task_ids": [
+        "M0-161"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The intermediate feedback lookup required a scaffold maintenance policy in the selected historical tree even though the policy did not yet exist there.",
+        "correction": "Treat an absent maintenance policy or engagement as absent for exact-source feedback lookup. Continue validating engagement evidence when present in the selected tree.",
+        "prevention": "Read the original protocol-variant-identity finding at 47f0bd0fed34bc63d60bb4f8b3e311c677c41336 in ordinary and read-only modes and verify the full returned record and exact source commit. Keep the old success, intermediate error and corrected success as controls."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "handoff-reduces-engineering-objective-to-timing-follow-up",
+      "status": "addressed",
+      "severity": "minor",
+      "source": "Owner clarification on November 27 and the standard project:context --phase handoff output on protected 7bc0df5f6252a03d53519c27e19efca20a4d45b1 and PR 134 at 1b42eec2b3c9be56fee9a9329c3960095b145e4f.",
+      "observation": "The focused row supplies a coordinator, status and timing assignment on both sources. The PR also exposes the existing acceptance conditions. Neither row delivers the intent from the referenced owner terms. The owner asked to recover the second goal as sustained engineering quality across product development and iteration and to account for capabilities already delivered.",
+      "task_ids": [
+        "M0-172"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The focused handoff projected workstream ownership, state and the current timing action, while the sustained engineering objective was present only in the referenced owner terms.",
+        "correction": "Project the authoritative objective and acceptance through the ordinary and read-only handoff. Surface M0-163 with historical evidence, the first-test rule and the open timing decision with separate criteria for Windows execution and wall time. Preserve urgent routing and the owner stop.",
+        "prevention": "Independent reviewer t1cq recovered the objective from the public handoff on cf795dd4. The first ordinary PR 134 run 45941621830 passed both required checks and all six named public navigation controls on Linux and Windows. The coordinator retains protected integration and actual due periodic follow-through as separate observations."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "native-market-interruption-missing-owned-worker",
       "source": "Ordinary PR125 run 45686305388 attempt 1. archives/observations/repo-hygiene-20261125/pr125-native-original-45686305388/manifest.json SHA-256 2a82afed0d53dc3e5cdb7ec70beb5e52583e2ba0fdaa55e7fe7201139c3ff534. Exact Windows original under archives/runs/windows-change-45686305388-1/test-report.json. Browser results SHA-256 c37991db3b4d7d039e28f159b4b012cc01fb3e38fb1bfbda041aeb9ca0ad8938. First ordinary PR143 run 45933813398 attempt 1, browser producer job 140292266673. The original is archives/observations/repo-hygiene-20261125/pr143-producer-45933813398-browser/original.zip, SHA-256 d16875258eaa1daaa3c11cd214ccfbd8feb352f74c8f9d660eec8c4ad0048d44. Resolve the second diagnostic with the extracted producer ZIP as archive root. Case log SHA-256 2bdefac6f9398e30c00d81a829a18471f1eed48de944890ab11ee7494714a339, browser results SHA-256 baab2cc99c96d40f3697b3230435babdc9db7b687598683ca879f53f4fccf9c8.",
       "observation": "The first native Windows chart interruption case reached the helper and saw zero owned synthetic worker leaves. Its browser attestation records one accepted stream, the confirmed partial, the final closed bar and ordinary completion with no reconnecting or resumed frame. The native grouped delivery companion and workspace timeframe passed. The same-run Linux interruption and workspace timeframe checks passed. This report does not determine which worker instance or process timing caused the miss. The first ordinary PR143 Windows browser producer exercised the same original interruption path. The helper reported zero owned synthetic market interpreters after one accepted stream and the confirmed sequence 1 partial. The same stream delivered the sequence 2 closed bar and completed with no reconnecting or resumed frame. The adjacent grouped delivery case observed both recovery states in one read, and workspace timeframe passed. The cause of the missing witness remains unknown.",
@@ -9550,6 +9641,34 @@
         "cause": "The deadline fixture used an unnecessary closure to return an already computed boot witness option, which Clippy rejected on both platforms.",
         "correction": "Use Option::and for the already computed boot witness option and include rust-lints in the task's required checks.",
         "prevention": "The first-attempt ordinary PR run 45931554585 and guarded run 45931566969 both passed rust-lints on Linux and Windows. The earlier guarded receipts remain bound to the selection that omitted rust-lints."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-calibration-expires-before-file-comparison",
+      "status": "addressed",
+      "severity": "major",
+      "source": "First native observation archives/observations/repo-hygiene-20261125/pr123-native-original-45933801256/manifest.json (SHA-256 1c7999a4d37d4976091603fa5272d322c77bed4270fbf00c33aa4c7e9a8c294e).",
+      "observation": "The first ordinary PR 123 Windows browser job 140292229420 failed while preparing the test-owned file matrix in the private launcher handoff case. The case took 15362 ms. The workspace suite recorded 97 passed, one failed and two skipped. The bounded subprocess diagnostic identified expiration before the subsequent file comparisons. Its last internal stage and the reason for its elapsed time are unknown. The earlier M0-147 first protected case passed in 8646 ms including its other work.",
+      "task_ids": [
+        "M0-171"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45933801256-1",
+          "source_commit": "4c6907e67c50eadfa95308b46594f92722e2490b",
+          "report_sha256": "2b4e4c9dce03a68efcfe32ed9dd49a0efdb48287a8f9a9195f55c689d4cb0657"
+        }
+      ],
+      "resolution": {
+        "cause": "The bounded subprocess expired during test-owned leaf ACL matrix preparation, before the 24 native witness comparisons. The historical last internal stage and cause of the elapsed time remain unknown.",
+        "correction": "Compile the existing C# fixture helper once in Windows workspace setup and load the run-owned assembly in the leaf preparation subprocess. Keep the existing subprocess deadline, comparison outcomes and owned-file cleanup. Record setup compilation and the script, helper and matrix milestones.",
+        "prevention": "Guarded run 45941768345 passed environment and all M0-171 checks on Linux and Windows. The workspace suites exercised bounded preparation and cleanup, interruption before native witness comparison, actual deadline expiry and the ordinary private launcher. The ordinary PR 146 Windows workspace producer also passed with observed compilation and matrix timings. The earlier failed report and passing controls are retained."
       },
       "deferral_reason": null
     },

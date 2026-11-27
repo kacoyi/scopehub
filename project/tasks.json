@@ -25713,6 +25713,890 @@
       ]
     },
     {
+      "id": "M2-033",
+      "title": "Refresh access after a frozen chart is denied during reopen",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M2-002",
+        "M2-032"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/workspace-source.ts",
+        "tests/ui/desktop-workspace.spec.mjs",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0016"
+      ],
+      "acceptance": [
+        "When the startup snapshot still allows a saved CSV and the first chart read reports that it is unavailable, read the current workspace before showing the source and shared selection. A revoked source shows the existing revoked status and its shared selection becomes unavailable.",
+        "A transient worker failure retains the current source identity and the chart retry control. Neither case writes the workspace or falls back to another source."
+      ],
+      "checks": [
+        "generated-contracts",
+        "ui-build",
+        "market-workflow",
+        "desktop-workspace-transport"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-033-beb0fce3a2b7e3ad.json",
+          "sha256": "a4ed4718897f33bd537d9f6d3322ef08d9213f55a26e670634316f1614120b61"
+        },
+        {
+          "path": "project/evidence/M2-033-c655f8084743b1a5.json",
+          "sha256": "35acd6a88844f256893110fd746d30220edbb2e7812903df360416426864dbac"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T035923.329201Z-a36ab18a",
+          "source_commit": "d89a332aaa206491d06316e97200a50fd252d920",
+          "report_sha256": "825d77ecf88a7a321b8062499038f752e11cce41cd8f2e327f44852dbeb9eae2"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The built UI initially retained the generic unavailable status after a denial, while the transient control kept retry. The corrected desktop transport check read the latest source and shared selection after SNAPSHOT_UNAVAILABLE, displayed revocation, and retained retry for WORKER_EXITED. All ten Chromium desktop transport cases passed with the generated-contract, UI-build and market workflow checks. Native Windows and packaged acceptance remain separate.",
+      "plan": {
+        "outcome": "The user sees a current access state when a saved frozen CSV becomes unreadable between startup and the first chart read.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/workspace-source.ts",
+          "apps/desktop/ui/src/published-revision-access.ts",
+          "tests/ui/desktop-workspace.spec.mjs"
+        ],
+        "hypotheses": [
+          "The first failed chart read precedes the periodic access watcher. Rechecking the workspace snapshot on access denial can distinguish withdrawal from an ordinary worker error."
+        ],
+        "risks": [
+          {
+            "failure": "A retained snapshot shows stale access or a transient worker failure is mistaken for a grant withdrawal.",
+            "checks": [
+              "desktop-workspace-transport",
+              "market-workflow"
+            ]
+          }
+        ],
+        "rollback": "Revert the UI recheck. Source records, authority and persisted revisions need no recovery.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/workspace-source.ts",
+            "apps/desktop/ui/src/use-local-workspace.ts",
+            "tests/ui/desktop-workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence"
+            },
+            {
+              "path": "contracts/decisions/0016-profile-layout-and-source-restore.json",
+              "pointer": "/consequences"
+            }
+          ],
+          "non_goals": [
+            "Change the Rust registry, wire schema, source selection or workbench renderer."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "The saved revision and existing grant checks, source recovery ownership and retry for transient failures."
+          ],
+          "change": [
+            "Refresh authoritative source and selection state after denied initial frozen reads."
+          ],
+          "data_plan": "Use a synthetic saved revision and only local IPC substitutes. Do not write persistent state.",
+          "cleanup": "Ignore aborted chart reads and keep ordinary access verification for charts that have opened."
+        }
+      }
+    },
+    {
+      "id": "M2-034",
+      "title": "Retain and bound frozen access refresh after independent review",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M2-033"
+      ],
+      "scope": [
+        "apps/desktop",
+        "crates/application",
+        "crates/persistence",
+        "tests/ui",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0016"
+      ],
+      "acceptance": [
+        "A denied initial frozen read queues a single authoritative snapshot while another operation owns the workspace lane. Hide its stale shared selection and preserve source write recovery.",
+        "Bound a denied-read refresh and discard a late native snapshot. Manual retry can still obtain current access.",
+        "Hide a missing live revision while retaining a recovery path. Only confirmed revocation becomes permanent for the session."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "desktop-workspace-transport",
+        "state-migrations",
+        "rust-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-034-03b4ea9e42cc5bda.json",
+          "sha256": "365a5b206ba1c14cd14763ad9b4b3b688984baa468da20373e2dd36ddae9ebbc"
+        },
+        {
+          "path": "project/evidence/M2-034-45be04c6933b1b80.json",
+          "sha256": "e67a399aa8843f289e1efe49176178ed2f45d6dfa1610c395ade84911f5e5bee"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T043224.802985Z-a835f859",
+          "source_commit": "185f90dff6008e7c54e3088f799253e24c602d12",
+          "report_sha256": "643938f819c14c07be74fc60d110743d95d32945ae4217be0363a7be35d8576f"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "All thirteen Chromium desktop transport cases and the selected market, persistence and Rust checks passed. The held layout control concealed the stale selection and refreshed once. The clock test released a silent native reply after its deadline and ignored its late snapshot. A live frozen source became temporarily unavailable, reopened once authorized again, then remained hidden after confirmed withdrawal. The Rust registry independently distinguished an authorized, absent, and revoked synthetic revision. Actual Windows and release acceptance remain separate.",
+      "plan": {
+        "outcome": "Restore and monitor a published chart without retaining stale selection or freezing the workspace.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "apps/desktop/ui/src/published-revision-access.ts",
+          "apps/desktop/ui/src/workspace-source.ts"
+        ],
+        "hypotheses": [
+          "Readback must be queued by affected revision and bounded at the native delivery boundary. The registry already has the records needed to distinguish an absent revision from a revocation."
+        ],
+        "risks": [
+          {
+            "failure": "A busy request, stopped reply or a transient missing source loses recovery or hides a permission change.",
+            "checks": [
+              "desktop-workspace-transport",
+              "state-migrations",
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert this software change. Storage format and record contents remain unchanged.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "desktop",
+            "application",
+            "persistence"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/use-local-workspace.ts",
+            "crates/application/src/lib.rs",
+            "crates/persistence/src/lib.rs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence"
+            }
+          ],
+          "non_goals": [
+            "Packaged Windows or physical-device acceptance."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Exactly-once source mutations, assigned recovery ownership, desktop role checks and published records."
+          ],
+          "change": [
+            "Queue and bound read-only authorization refresh, and preserve support for a temporary missing revision."
+          ],
+          "data_plan": "Use synthetic frozen records, controlled IPC and a disposable Rust profile.",
+          "cleanup": "Discard late reads and cancel queued work when the host unmounts."
+        }
+      }
+    },
+    {
+      "id": "M2-035",
+      "title": "Fence and recover frozen chart access through open, refresh and clear",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M2-034"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "tests/ui",
+        "tests/ubuntu-preview",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0016"
+      ],
+      "acceptance": [
+        "Source-only revocation and redaction of an unchanged selection fence in-flight CSV replies and cached drawer data.",
+        "Denied foreground CSV and folder reads withhold evidence immediately, and only verified access can restore temporary absence.",
+        "Folder read and status waits release after timeout or cancellation and ignore late results.",
+        "An authorized user can clear a redacted selection after retryable snapshot admission, retaining the workspace revision and undo state."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "desktop-workspace-transport",
+        "local-import-ui",
+        "local-folder-refresh-preview",
+        "local-folder-import",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-035-4d46948abb80689a.json",
+          "sha256": "0902fabfad6a737b40258a4a904702fa0c668f106a102a5ff6d028cb403d28cc"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T050030.893328Z-8519eb03",
+          "source_commit": "9cad03564df53e2f36b8cc4969258a32a8090260",
+          "report_sha256": "ed7011eeea4600b13c8107606a4618e5e1fe7192afb7fa1de6bc507e7c27858e"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The clean source passed local build, market, publication, Chromium desktop transport and real workspace checks. The regressions fence late CSV replies on source revocation and selection redaction, hide denied folder evidence during status readback, recover a timed-out read, and clear a redacted selection after HTTP 429 through the original authorization and selection comparison. Native WebView2 and packaged acceptance remain separate.",
+      "plan": {
+        "outcome": "Frozen CSV and folder charts obey current profile access, and authorized shared selection clear remains available.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/published-revision-access.ts",
+          "apps/desktop/ui/src/local-revision-dialog.tsx",
+          "apps/desktop/ui/src/local-import-editor.tsx",
+          "apps/desktop/ui/src/use-local-workspace.ts"
+        ],
+        "hypotheses": [
+          "Source-only revocation and redaction of an unchanged selection fence in-flight CSV replies and cached drawer data.",
+          "Denied foreground CSV and folder reads withhold evidence immediately, and only verified access can restore temporary absence.",
+          "Folder read and status waits release after timeout or cancellation and ignore late results.",
+          "An authorized user can clear a redacted selection after retryable snapshot admission, retaining the workspace revision and undo state."
+        ],
+        "risks": [
+          {
+            "failure": "A late CSV reply displays withdrawn evidence after source-only revocation or redaction of the same shared selection.",
+            "checks": [
+              "desktop-workspace-transport",
+              "local-import-ui",
+              "local-folder-refresh-preview",
+              "local-folder-import",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A denied foreground folder read leaves cached chart and provenance visible until a status reply.",
+            "checks": [
+              "desktop-workspace-transport",
+              "local-import-ui",
+              "local-folder-refresh-preview",
+              "local-folder-import",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A silent native folder status reply indefinitely blocks retry.",
+            "checks": [
+              "desktop-workspace-transport",
+              "local-import-ui",
+              "local-folder-refresh-preview",
+              "local-folder-import",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "Hosted Chromium captured a retryable snapshot admission failure leaving the authorized shared-selection clear disabled.",
+            "checks": [
+              "desktop-workspace-transport",
+              "local-import-ui",
+              "local-folder-refresh-preview",
+              "local-folder-import",
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Revert the UI correction. Workspace records and grants use the existing protocol.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/published-revision-access.ts",
+            "apps/desktop/ui/src/local-revision-dialog.tsx",
+            "apps/desktop/ui/src/local-import-editor.tsx",
+            "apps/desktop/ui/src/use-local-workspace.ts"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence"
+            }
+          ],
+          "non_goals": [
+            "Physical Windows acceptance, release, or changes to unrelated authorization."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing authorization, provenance and historical evidence."
+          ],
+          "change": [
+            "Source-only revocation and redaction of an unchanged selection fence in-flight CSV replies and cached drawer data.",
+            "Denied foreground CSV and folder reads withhold evidence immediately, and only verified access can restore temporary absence.",
+            "Folder read and status waits release after timeout or cancellation and ignore late results.",
+            "An authorized user can clear a redacted selection after retryable snapshot admission, retaining the workspace revision and undo state."
+          ],
+          "data_plan": "Use only synthetic profiles, fixtures and identifiers.",
+          "cleanup": "Discard superseded in-flight work while retaining recovery artifacts."
+        }
+      }
+    },
+    {
+      "id": "M2-039",
+      "title": "Reconcile the first saved chart on focus and recover temporarily hidden folder revisions",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M2-035"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/workspace-source.ts",
+        "apps/desktop/ui/src/frozen-evidence.tsx",
+        "apps/desktop/ui/src/indicator-acceptance.tsx",
+        "apps/desktop/ui/src/indicator-preview.tsx",
+        "apps/desktop/ui/src/local-preview-chart.tsx",
+        "apps/desktop/ui/src/published-revision-access.ts",
+        "apps/desktop/ui/src/use-local-workspace.ts",
+        "apps/desktop/ui/src/workspace-http-reply.ts",
+        "apps/desktop/ui/src/local-revision-dialog.tsx",
+        "apps/desktop/src-tauri/src/workspace.rs",
+        "tests/ui/desktop-workspace.spec.mjs",
+        "tests/ui/local-import.spec.mjs",
+        "contracts/reviews",
+        "project/evidence",
+        "project/tasks.json",
+        "project/feedback.json",
+        "apps/desktop/ui/src/private-records.tsx",
+        "apps/desktop/ui/src/folder-refresh-review.tsx",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "apps/desktop/ui/src/local-import-editor.tsx",
+        "apps/desktop/ui/src/local-import-transport.ts",
+        "apps/desktop/ui/src/private-record-transport.ts",
+        "apps/desktop/ui/src/i18n/locales/zh-Hans/data.json",
+        "tests/ui/ai-workflow-fixture.mjs",
+        "tests/ui/workspace-writer-gate.mjs",
+        "tests/ui/workspace-source.spec.mjs",
+        "project/checks.json",
+        "tests/ui/published-revision-controls.mjs",
+        "tests/ui/published-revision-access-windows.config.mjs",
+        "tests/ui/published-revision-access-windows.fixture.mjs",
+        "tests/ui/published-revision-access-windows.spec.mjs",
+        "tests/ui/published-revision-launch-deadline.test.mjs",
+        "scripts/ci_artifacts.py",
+        "tests/project/test_ci_artifacts.py"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Use two participating synthetic workspace windows and the ordinary first saved-chart reopen. B is visibly confirmed at close 106, and late data from source A with close 44 cannot display when focus has started checking the newer source, including when A returns before the workspace snapshot.",
+        "A focus reload confirming the same saved source still opens its authenticated bars. Available, revoked, unavailable and source-free states preserve their existing authorization and provenance behavior.",
+        "The workspace must hold its first chart until the latest focus generation is confirmed, including focus before the first snapshot or during an earlier confirmation. One admitted read and one coalesced trailing read preserve the existing reply deadline.",
+        "The workspace retains the latest focus through source writes and recovery readbacks. A committed source action settles once, while a trailing snapshot confirms what may be displayed.",
+        "After temporary absence a successful folder list refresh rechecks only withheld listed revisions. A verified available revision can reopen with its known bars and source; unavailable and explicitly revoked ones stay hidden, and late replies cannot reopen the closed dialog.",
+        "A supported folder stage can complete after the single-revision read window. A user can stop waiting for a missing or slow reply without repeating staging. Rejected, cancelled and late replies cannot present an unverified comparison.",
+        "A private background read rejected before admission can recover the same authenticated read within the existing admission budget. Refused snapshots never count as verified source state. Source and private record mutations keep their exact commit counts.",
+        "For manually selected published CSV and folder revisions, delay delivery of a real native comparison across focus. Nothing from that comparison is displayed until the latest focus has an authoritative access confirmation. A real peer withdrawal prevents publication details from appearing even temporarily.",
+        "Observe the ordinary un-intercepted private peer correction and refocus journey separately from the deliberately contended read, retaining exact correction, deletion and version facts.",
+        "Restore the second conflict choice, one bar withdrawal and one source withdrawal after same-stage authorization is confirmed, keeping the private comparison out of the DOM during rechecks. A revision or stage change, cancellation of staging, or durable revocation discards the old decisions and prepared authority. Edit and reconfirm binds the visible choices to the exact native digest and one explicit publication.",
+        "The test-owned Rust status gate holds and releases only a designated request, including when an unrelated same-revision status finishes first. Recover the proof snapshot after a genuine pre-admission refusal, propagate other failures, and retain ordinary explicit recovery and exact durable selection and rendering checks.",
+        "Inspect original rows through the ordinary published CSV and folder charts. Hide private chart and row content immediately after SNAPSHOT_UNAVAILABLE and discard late replies. An explicit retry restores only a revision confirmed available by its source status. A confirmed withdrawal stays hidden on later retry, and access checks leave the saved selection and its undo unchanged.",
+        "With Revision ID blank, refresh the published CSV and folder libraries after a source-row interruption. Only temporarily withheld revisions on the current page receive the matching status reads. A verified revision becomes discoverable without opening its chart. Missing and revoked revisions stay hidden across refresh and dialog reopen. Verify the selected revision, its original rows and bars on explicit open, and preserve workspace selection and undo.",
+        "For a real published CSV and a real published folder, hold a status lookup for the same ID in the other library across close, reopen and repeated refresh of the correct library. Complete the old lookup and observe the still-open page recover its entry after its own status read without another refresh or overlapping status dispatch. The obsolete lookup does not grant or withdraw access in the owning library.",
+        "On explicit retry for a published folder and a published CSV without a workspace, show temporary unavailability when status is missing and withhold content until status confirms access. Show permission denial only for confirmed withdrawal and retain a generic failure for an unconfirmed read. Verify recovered bars and source rows, keep revoked data hidden on later retries, and preserve the changed-workspace guard.",
+        "Require the compiled Windows fixture to prepare one disposable private profile and use the same supported path for seeding and the desktop. Retain the first successful or typed rejected availability reply before asserting access. Confirm the endpoint and its owned WebView2 listener within one 60-second deadline from native spawn, then enter the public journey.",
+        "Require the hosted staging entry to accept a passing native revision check only on a host supported by its catalog entry and with both the log-bound observation and matching executable. Preserve genuine blocked and unselected results, retain verified diagnostics from a failed check, and remove incomplete files from the upload directory when a write fails.",
+        "The browser HTTP decoder accepts an unambiguous success, preserves an ordinary typed denial, and rejects an invalid reply without restoring CSV or folder eligibility. On the public revision entry, confirm valid reopen and keep a withheld revision ineligible after one invalid status read. Only a genuine pre-admission refusal retains its retry behavior."
+      ],
+      "checks": [
+        "project-state",
+        "ui-build",
+        "market-workflow",
+        "desktop-workspace-transport",
+        "local-import-ui",
+        "local-folder-refresh-preview",
+        "state-migrations",
+        "workspace-timeframe",
+        "model-connection-workflow",
+        "python-contracts-workers",
+        "published-revision-launch-deadline",
+        "windows-published-revision-access",
+        "rust-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-039-eaa0902ef1ea965e.json",
+          "sha256": "fb4345db27bf793accfd0d67401a044be089c0305a0dc51c347691e17756de4a"
+        },
+        {
+          "path": "project/evidence/M2-039-5ed8b51da0d9bdbe.json",
+          "sha256": "8160dbb420574d8925b09a9f12be2168b0ed539cd696ce384203b6074c421b76"
+        },
+        {
+          "path": "project/evidence/M2-039-fed6cc1bb3eb031d.json",
+          "sha256": "9721513f9cd66e68a8804fc956d1a7888f0299f25495bd81b07a1a859ba98e9b"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The scoped approvals for f636dcdd382340e453dd29b91cfff01c2413929f qualify the identical execution inputs at 3d97a77a08fb53925edd89f4a4ac5becf74a505c. Guarded run 45935930896 passed all thirteen required checks and environment on hosted Windows. Its Linux report passed all twelve supported task checks and environment with zero failed checks, and was blocked only because windows-published-revision-access requires native Windows x64. Ordinary PR 97 run 45935806747 passed the first saved-chart reopen and native snapshot classification cases in both platforms' desktop transport logs at matching execution inputs. The original hosted Windows observation binds the compiled executable, owned WebView2 runtime and first native revision status to the guarded source, then verifies the public CSV and folder discovery, row and bar recovery, and confirmed withdrawal. The earlier receipts and diagnostic observations retain their original scopes. Physical Windows and installer qualification remain separate and pending. Protected integration remains pending for the coordinator, including fresh review of the composed source and its ordinary and guarded verification.",
+      "plan": {
+        "outcome": "Reconcile first chart restore and CSV and folder revision discovery against current access. The public dialog recovers eligible entries after a matching serialized status read and explains temporary unavailability separately from confirmed withdrawal.",
+        "change_types": [
+          "ui",
+          "tooling"
+        ],
+        "context": [
+          "apps/desktop/ui/src/workspace-source.ts",
+          "apps/desktop/ui/src/local-preview-chart.tsx",
+          "apps/desktop/ui/src/published-revision-access.ts",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "apps/desktop/ui/src/workspace-http-reply.ts",
+          "apps/desktop/ui/src/local-revision-dialog.tsx",
+          "tests/ui/desktop-workspace.spec.mjs",
+          "tests/ui/local-import.spec.mjs",
+          "archives/runs/20261125T180605.452785Z-ff5c1439/test-report.json",
+          "archives/observations/repo-hygiene-20261125/pr97-native-original-45671281695/manifest.json",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "archives/observations/repo-hygiene-20261125/m2-039-native-read-holder-45692413910/observations.json",
+          "archives/observations/repo-hygiene-20261125/m2-039-dispatch-45710583418-linux",
+          "archives/observations/repo-hygiene-20261125/m2-039-ordinary-45710479288-linux",
+          "archives/observations/repo-hygiene-20261125/independent-final-m2-035-a66c84af/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m2-039-83303f35/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m2-034-359e3323/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m2-035-359e3323/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m2-039-359e3323/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m2-039-a1866052/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m2-039-09514768/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m2-039-030661a9/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m2-034-aeb1763f/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m2-035-aeb1763f/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m2-039-aeb1763f/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m2-035-21cf8471/original-assistant-response.jsonl",
+          "apps/desktop/src-tauri/src/workspace.rs",
+          "archives/observations/repo-hygiene-20261125/task-dispatch-m2-039-45828181845/manifest.json",
+          "archives/observations/repo-hygiene-20261125/task-dispatch-m2-039-45849581750/manifest.json",
+          "contracts/schemas/protocol.schema.json",
+          "apps/desktop/ui/ubuntu-workspace.mjs",
+          "crates/persistence/src/bin/workspace_bridge.rs",
+          ".reports/runs/20261126T041510.475356Z-783b4a68/test-report.json",
+          ".reports/m2-039-native-access-gap/coverage.json",
+        ".reports/m2-039-withdrawal-status/red/local-folder-refresh-preview/browser-results.json",
+        "tests/ui/published-revision-controls.mjs",
+          "tests/ui/published-revision-access-windows.config.mjs",
+          "tests/ui/published-revision-access-windows.fixture.mjs",
+          "tests/ui/published-revision-access-windows.spec.mjs",
+          "tests/ui/published-revision-launch-deadline.test.mjs",
+          "scripts/ci_artifacts.py",
+          "tests/project/test_ci_artifacts.py"
+        ],
+        "hypotheses": [
+          "The focus observer starts only after the initial chart read settles. A first read must be fenced until a focus-initiated snapshot confirms the selected source.",
+          "Source-save and recovery guards can discard focus events even though the normal snapshot lane already has a single trailing slot.",
+          "The folder list filters globally withheld revisions without rechecking them after a successful refresh.",
+          "An overlapping focus snapshot can cause an unrelated private detail read to be refused, and the native test may count a refused snapshot as an admitted state observation. Examine these entrypoints independently.",
+          "The observer fault route can claim a focus snapshot before the missing detail reaches the browser. Prove which request owns the shared fallback deadline and which requests belong to the independent workspace lane.",
+          "The shared source-row inspection handler makes an ambiguous missing reply terminal. Fence the old read and let the existing kind-specific status path determine whether the current grant can be used.",
+          "The access owner retains withheld IDs across dialog mounts, but the dialog only sends a ready folder page for status reconciliation. Inspect the discovery, explicit ID, chart, original-row and focus callers before deciding where the provider dispatch and temporary-only policy belong.",
+          "The request map is keyed by unqualified revision ID, so a CSV caller can join a folder lookup and vice versa. Check whether an obsolete waiting page can occupy the serial reader after the real page is replaced, and ensure supersession is checked before admitting its deferred work.",
+          "Explicit open chooses an error code from the workspace and library kind after discarding the verified status result. The native CSV status envelope already represents availability, temporary absence and withdrawal. The folder summary read already separates a matching result, SNAPSHOT_UNAVAILABLE and registry PERMISSION_DENIED. Transport failure and supersession must never be interpreted as confirmed withdrawal.",
+          "Fresh polling timeouts for endpoint discovery and listener ownership permit a launch after the original deadline. Compare both observations against the same monotonic deadline and verify a response that completes after it.",
+          "The staging entry treats a passing check's files as optional and can leave a truncated observation after a write error. Use the check result and log to distinguish required evidence from available failure diagnostics, and test interrupted writes at the upload boundary.",
+          "The staging entry uses the reported host to decide whether to look for native attachments. Check the catalog's host requirement for a passing result before staging and make both attachments mandatory for every eligible pass.",
+          "The independent first-reopen proof can accept an expected selection carried alongside a terminal error. Compare bridge and proof against valid, ordinarily rejected and contradictory envelopes at the direct read boundary.",
+          "The first guarded Windows run reached the webview and refused a native status read despite a successful seed. Compare the exact seeding and runtime preparation entrypoints and qualify use of the existing isolated profile contract before the public journey.",
+          "The browser HTTP decoder can return a result without ruling out a simultaneous error. Validate the outcomes at the shared boundary using the existing protocol error definitions. The M2-034 and M2-039 scoped approvals on aeb1763f confirm the independent first-reopen proof; its additional snapshot assertions serve the observed selection and its timing.",
+          "The native snapshot reader confuses a retryable SQLite BUSY returned after admission with lock contention before admission. Compare the two through the same public startup and reuse the native admission detail already used for indicator status."
+        ],
+        "risks": [
+          {
+            "failure": "An old chart overtakes a newer snapshot, or same-source confirmation and normal startup stall.",
+            "checks": [
+              "desktop-workspace-transport",
+              "market-workflow",
+              "ui-build",
+              "state-migrations"
+            ]
+          },
+          {
+            "failure": "Focus before the initial reply or during a prior confirmation is lost, or repeated focus starts overlapping reads and lets stale bars enter ready.",
+            "checks": [
+              "desktop-workspace-transport",
+              "market-workflow",
+              "ui-build"
+            ]
+          },
+          {
+            "failure": "A source write or recovery readback loses focus, permits an obsolete chart or changes accepted mutation and cancellation behavior.",
+            "checks": [
+              "desktop-workspace-transport",
+              "local-import-ui",
+              "ui-build"
+            ]
+          },
+          {
+            "failure": "A list reply or stale access reply bypasses the profile's availability or durable revocation.",
+            "checks": [
+              "local-import-ui",
+              "local-folder-refresh-preview",
+              "ui-build"
+            ]
+          },
+          {
+            "failure": "The native folder stage can still be pending or can return an error while an unrelated UI assertion checks only for a rendered table. A missing or rejected response must not look successful.",
+            "checks": [
+              "local-folder-refresh-preview"
+            ]
+          },
+          {
+            "failure": "A focus snapshot can occupy the shared native read admission when a private detail is required after a peer correction, leaving the panel stale or falsely clearing private content.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A numbered focus snapshot or independent post-readback proof treats a rejected response as verified state, losing the intended A and B controls.",
+            "checks": [
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "Applying the single-revision read window to a multi-file stage rejects valid work within the native 64-file contract. Use the genuine 64-file control and deliberately delay browser delivery beyond 15 seconds.",
+            "checks": [
+              "local-folder-refresh-preview",
+              "ui-build"
+            ]
+          },
+          {
+            "failure": "A valid stage reply crosses refocus and discloses comparison filenames or fingerprints while an authoritative access check is pending. Prove repeated focus, authorized late delivery and real peer withdrawal before the reply for both revision kinds.",
+            "checks": [
+              "local-folder-refresh-preview",
+              "ui-build"
+            ]
+          },
+          {
+            "failure": "The forced private read refusal obscures regressions in the ordinary un-intercepted peer correction journey. The historical 429 was observed around focus, and its issuance order was not recorded.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "Focus hides the comparison by unmounting the owner of review decisions while preserving an unrelated prepared digest. Exercise the same authorized stage, repeated focus, revision and candidate supersession, cancellation, durable denial and a single explicit publication with readback.",
+            "checks": [
+              "local-folder-refresh-preview",
+              "ui-build"
+            ]
+          },
+          {
+            "failure": "An unrelated UI status can claim the test gate, leaving the designated read rejected while the snapshot proof treats the wrong holder as admitted. Prove request identity, interleaving, pre-admission and terminal failures, bounded timeout cleanup, and ordinary and contended explicit recovery without additional writes or stale rendering.",
+            "checks": [
+              "desktop-workspace-transport",
+              "model-connection-workflow"
+            ]
+          },
+          {
+            "failure": "The browser fixture holds or denies a workspace focus confirmation under the note fallback label, or depends on elapsed time spent by an unrelated request. Force both owners to overlap, prove a separately admitted fallback and one trailing workspace confirmation, and preserve terminal denial, bounded recovery, late delivery and exactly one deletion.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "A public CSV or folder source-row reply marks temporary absence as terminal revocation, or a stale row, status or list reply restores private chart data before the source confirms access. Exercise immediate hiding, later status-confirmed recovery and durable denial through ordinary inspection and retry.",
+            "checks": [
+              "local-import-ui",
+              "local-folder-refresh-preview"
+            ]
+          },
+          {
+            "failure": "A successful list page returns a recoverable CSV revision that stays hidden because only the explicit ID form or the folder list asks for status. The earlier tests prefilled IDs and could pass while discovery stayed broken. Assert exact provider, identity and counts from blank-ID refresh and reopen, including withheld, revoked and unrelated revisions, and keep selection and undo independent.",
+            "checks": [
+              "local-import-ui",
+              "local-folder-refresh-preview",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A pending status from the other library consumes the current page's opportunity to verify a real revision, lets its response change the wrong publication's state, or makes the recheck overlap native status dispatch. Hold the lookup across close, reopen and repeated refresh in both orders. Assert automatic correct-provider read admission, current-page recovery and no content read until explicit open.",
+            "checks": [
+              "local-folder-refresh-preview"
+            ]
+          },
+          {
+            "failure": "An explicit retry mistakes temporary absence for a confirmed permission denial or reveals prior chart, source or row content while status is unresolved. Check the visible message and content for unavailable, newly authorized and withdrawn folder and CSV revisions, including CSV in the supported no-workspace mode.",
+            "checks": [
+              "local-folder-refresh-preview"
+            ]
+          },
+          {
+            "failure": "A controlled delivery fault or a renderer-only check can obscure native admission and actual registry outcomes. Compare native request identities and replies for interrupted rows, withheld and restored access, and genuine withdrawal across dialog close and reopen.",
+            "checks": [
+              "windows-published-revision-access"
+            ]
+          },
+          {
+            "failure": "The probe assumes one live status and stops on the first provider after withdrawing its sole publication. Use the same public withdrawal assertion in the built browser UI and native WebView2. Verify the confirmation and empty library separately, then prove both provider journeys reach denial after reopening.",
+            "checks": [
+              "local-folder-refresh-preview",
+              "windows-published-revision-access"
+            ]
+          },
+          {
+            "failure": "An elevated hosted process loses environment-only WebView2 overrides and never exposes the debugging endpoint. Feed browser arguments through the isolated native build configuration, check the owned process and ephemeral loopback endpoint within the original deadline, and retain its launch observation and replayable executable even when the public journey cannot start.",
+            "checks": [
+              "windows-published-revision-access",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A late listener owner or an in-flight observation can renew the launch deadline and admit the public journey. Use the controlled clock at the fixture entry to distinguish a timely owner, late owner, absent endpoint and foreign listener. Confirm cleanup and leave native qualification to the actual Windows check.",
+            "checks": [
+              "published-revision-launch-deadline",
+              "windows-published-revision-access"
+            ]
+          },
+          {
+            "failure": "A passing native check stages without both bound files, or an interrupted write leaves a corrupt upload file. Exercise the staging entry with the successful marker and matching bytes, missing or mismatched counterparts, an ENOSPC short write and failed-run diagnostic retention.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The staging entry accepts a native revision pass from an unsupported host or rejects a genuine unsupported or unselected result. Compare Windows AMD64, Windows ARM64 and Linux x64 using ordinary passed and blocked rows, and preserve partial Windows failure diagnostics.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A proof snapshot can omit its result before the first focus comparison even when the peer showed close 106. Preserve the original response status, code, identity and already-observed peer state, and independently verify legitimate completion and a rejected or missing envelope.",
+            "checks": [
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "A successful proof envelope carries both a verified selection and an error, or an ordinary rejected read is retried outside the legitimate pre-admission case. Replay valid, rejected and contradictory envelopes through the first-reopen proof and verify call counts.",
+            "checks": [
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "The seed bridge and native desktop may prepare or select different private profile paths or owners. Verify the documented isolated setup in both processes, preserve storage access checks and retain a staged refusal without attributing an unobserved cause.",
+            "checks": [
+              "windows-published-revision-access",
+              "published-revision-launch-deadline",
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "A mixed or otherwise invalid browser reply restores a withheld publication or enters the retry lane. Check the shared decoder for unambiguous success, ordinary typed denial and invalid output. Confirm the public library keeps a revision ineligible after one invalid read, and retain valid CSV and folder reopen and genuine retry controls on the same source.",
+            "checks": [
+              "desktop-workspace-transport",
+              "local-folder-refresh-preview",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A native workspace snapshot retries an admitted storage BUSY or stops after a proven refusal. Hold the real native writer slot to verify the refusal detail. At public startup count the invocations for explicit refusal, admitted BUSY and valid completion, then verify reopening after the terminal error.",
+            "checks": [
+              "desktop-workspace-transport",
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the native bridge and UI snapshot changes together and retain the independent red and green observations. Existing stored revisions and schemas need no migration.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "desktop"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/workspace-source.ts",
+          "apps/desktop/ui/src/local-preview-chart.tsx",
+            "apps/desktop/ui/src/published-revision-access.ts",
+            "apps/desktop/ui/src/use-local-workspace.ts",
+            "apps/desktop/src-tauri/src/workspace.rs",
+            "apps/desktop/ui/src/workspace-http-reply.ts",
+            "apps/desktop/ui/src/local-revision-dialog.tsx",
+            "apps/desktop/ui/src/local-import-editor.tsx",
+            "apps/desktop/ui/src/folder-refresh-review.tsx",
+            "tests/ui/ai-workflow-fixture.mjs",
+            "tests/ui/workspace-writer-gate.mjs",
+            "tests/ui/desktop-workspace.spec.mjs",
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ui/local-import.spec.mjs",
+            "tests/ui/published-revision-controls.mjs",
+            "tests/ui/published-revision-access-windows.spec.mjs",
+            "tests/ui/published-revision-access-windows.fixture.mjs",
+            "scripts/ci_artifacts.py"
+          ],
+          "rules": [
+            {
+              "path": "project/checks.json",
+              "pointer": "/checks"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence"
+            },
+            {
+              "path": "contracts/storage-v1.json",
+              "pointer": "/local_import_publication"
+            },
+            {
+              "path": "contracts/workbench-v1.json",
+              "pointer": "/workspace_entry/restore"
+            },
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/WorkspaceFault11"
+            }
+          ],
+          "non_goals": [
+            "Changes to the SQLite single-writer path, protocol, release or separate frozen shared-bar read timeout.",
+            "Runtime test switches, product permission changes and operator physical qualification."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing Rust operation registry, independent revision IDs, authenticated chart data and profile grants.",
+            "The CSV status envelope distinguishes availability and explicit revocation. A folder's exact summary reply confirms availability and its registry permission denial confirms revocation. A source-row error retains its existing treatment.",
+            "Keep valid browser results and ordinary typed errors, the pre-admission retry budget, the independent proof's stronger selection and source assertions, and native storage and Windows qualification criteria."
+          ],
+          "change": [
+            "Fence the displayed source until the latest focus is confirmed across startup, ordinary snapshot and source-write readback. Verify withheld folder revisions returned by the current list.",
+            "Preserve the native folder staging capacity and worker deadlines, let a user stop waiting, and discard late replies. Reuse bounded pre-admission retry for private background reads and count only admitted snapshots as state proofs.",
+            "Withhold the staged comparison until its latest focus generation has a confirmed revision access read. Keep the UI's natural private correction journey independent from the deliberately contended read.",
+            "Keep unpublished choices with their staged review and retain the prepared digest only for those decisions. Visibility rechecks hide the comparison without discarding authorized choices.",
+            "Correlate the test-only status gate with the designated Rust request. Keep durable selection and readback semantics separate from proof admission and fixture diagnostics.",
+            "Withhold a revision on an ambiguous source-row error and reopen its visibility only after confirmed access from its status operation. Preserve durable revocation, access decisions, the selection and its undo.",
+            "A dialog-only branch could repair CSV refresh but would leave provider dispatch and temporary-only eligibility in individual callers. Route status verification and current-page rechecks through the existing profile access owner. The dialog supplies the page identity and stops scheduling obsolete page reads. An admitted status can settle with the profile subject to the owner's existing revocation and supersession fences.",
+            "Directly refactor the profile access owner to track state and requests by publication kind and revision ID on a shared serial status lane. Check the current page lifetime before dispatching queued work and let an issued read settle against its own profile state. Return the observed access outcome to the dialog, preserving the changed-workspace guard. Extending the split paths would require parallel scheduling and failure classification in the dialog and watcher. A full replacement would discard unrelated focus, selection and chart guards while the existing native replies can express the observed outcomes.",
+            "Qualify the Windows interaction through the compiled application with local synthetic publications. Capture native admission separately from controlled row interruption and late reply delivery.",
+            "Configure the test binary's WebView2 debugging through the native environment options. Prepare a disposable private profile through the supported storage entry and give the seed bridge and native test overlay the same ordinary absolute path. Collect the allocated endpoint, owned process facts and first typed storage reply, and stage only bounded synthetic observations and the matching fixture executable.",
+            "Share the original native startup deadline between endpoint discovery and listener ownership. Bind a passing native check to the catalog host, digest-bound observation and matching executable. Preserve genuine omitted results and verified artifacts available from an unsuccessful check, and clean up incomplete staged files.",
+            "Decode browser HTTP success and error as exclusive outcomes in their shared entry. Report invalid output before availability or retry can consume it.",
+            "Extend the existing native admission detail to workspace snapshots at the writer lock and consume it in the shared native snapshot exchange. The completed storage error keeps its original fields, and the retry budget, browser HTTP handling and stored data retain their existing behavior."
+          ],
+          "data_plan": "Only synthetic profiles, chart values and source rows in the local scoped checks.",
+          "cleanup": "Release delayed test replies, close both owned windows and bridges, remove test profiles, and retain original red and green evidence."
+        }
+      },
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T180605.452785Z-ff5c1439",
+          "source_commit": "1a7cec7c3043bb3a061b81dd89a58d84487b25d4",
+          "report_sha256": "ec13514b46a70cbec55dac1f91936a0689e1742e8dd9616ac48d49ed517cb6c3"
+        },
+        {
+          "run_id": "20261125T180528.899232Z-5b935db9",
+          "source_commit": "265703a505f9bba6161d3cd9378f0639b79d8d20",
+          "report_sha256": "a168cedfd2a8772d89eab3fe9c982881445074ee638a0cfbfa72e84a6b08d5d2"
+        },
+        {
+          "run_id": "windows-change-45671281695-1",
+          "source_commit": "265703a505f9bba6161d3cd9378f0639b79d8d20",
+          "report_sha256": "c6947b6ce7f6e55a8cf84975b0254b473e152592315493dd06f2090bd5783e9f"
+        },
+        {
+          "run_id": "20261125T201234.860341Z-bd5fbdf1",
+          "source_commit": "b19c3dfd0d858f28cd532daf699c09fe7936fb79",
+          "report_sha256": "2dd69813fe0ef21881ef3f649c89cad3d5eb06eca4b217d6ed7cfd42e674f133"
+        },
+        {
+          "run_id": "20261125T201214.312321Z-a6291ef7",
+          "source_commit": "b19c3dfd0d858f28cd532daf699c09fe7936fb79",
+          "report_sha256": "6f9657e07bab71b55b5c8f91b5ec844ec449b5df13c4fddee2048383013c2ed9"
+        },
+        {
+          "run_id": "windows-change-45692309700-1",
+          "source_commit": "6a097e2e65900cc1d8e7afb5340189d4a09ea221",
+          "report_sha256": "5bcff0e3f345072560b5a0c3e3bd9a71536fd73c078763545f12e7768010f7ac"
+        },
+        {
+          "run_id": "20261125T221034.872882Z-387c0f0c",
+          "source_commit": "eae2188a610bfb81fdeaf856fbd6e87ca692c6e2",
+          "report_sha256": "638d18e1a7bc190e5707d16db44a6449f9ba00d4fe28c2d06e5db3263a63c795"
+        },
+        {
+          "run_id": "20261125T220930.388882Z-6cb98800",
+          "source_commit": "e3023767eed6ddce2b75a6deb5b93bf02e8361ac",
+          "report_sha256": "af1545cce345c6977bce81aa808e99db601ca1ae934c0f6fea498943bb65f44c"
+        },
+        {
+          "run_id": "20261126T041510.475356Z-783b4a68",
+          "source_commit": "359e33231892432813493958b580ee25aaf94a5f",
+          "report_sha256": "50a6f67204b2254c992af9266ee45b3966d11148932d457233bc442bfb95f808"
+        },
+        {
+          "run_id": "20261126T063522.897871Z-dc6a197c",
+          "source_commit": "c20a81c462de641e82dd6358dbfea2a0c99f2a4b",
+          "report_sha256": "0910e9959c98c0c40bef3493373b6d6d92ca5b49378e2db5e3a5565448fe3db5"
+        },
+        {
+          "run_id": "20261126T132144.208214Z-e6b6c2d4",
+          "source_commit": "07424b3955546ae6ff1c8302caca024a235d1bba",
+          "report_sha256": "281f9a11fed3d407ea81479b0d20f093c4bedd1ce3db47e143c3a87c1e573583"
+        },
+        {
+          "run_id": "20261126T132212.486758Z-cbf7c751",
+          "source_commit": "07424b3955546ae6ff1c8302caca024a235d1bba",
+          "report_sha256": "a7b2db876efc08093f0c5c35b797bf555163695e194574f9424f2656cf754e59"
+        },
+        {
+          "run_id": "20261126T153128.336568Z-724640e5",
+          "source_commit": "59c203f6a2f9f076a4b773a2e73fbfeba30a98bb",
+          "report_sha256": "5ed8b51da0d9bdbe6ae3929864a9bec1ac7bd1e64e3801bd32f0cf3e7a530dd6"
+        },
+        {
+          "run_id": "20261126T153034.442149Z-aa4768ab",
+          "source_commit": "59c203f6a2f9f076a4b773a2e73fbfeba30a98bb",
+          "report_sha256": "98fe8762aa22d1294379b8c1c9f805c83ff385d38480d209405ef4d13aec20fe"
+        }
+      ]
+    },
+    {
       "id": "M0-138",
       "title": "Reap browser verification servers when their check ends",
       "milestone": "M0",
@@ -27411,1009 +28295,6 @@
       }
     },
     {
-      "id": "M0-171",
-      "title": "Recover Windows handoff fixture preparation after its subprocess deadline",
-      "milestone": "M0",
-      "status": "done",
-      "depends_on": [
-        "M0-147"
-      ],
-      "scope": [
-        "tests/ubuntu-preview",
-        "project/tasks.json",
-        "project/feedback.json",
-        "project/evidence"
-      ],
-      "decision_refs": [
-        "0004",
-        "0007"
-      ],
-      "acceptance": [
-        "Retain the failed first-attempt native test, the previously passing protected comparison and the current same-fixture control. Name the failing preparation phase and preserve any unknown inner stage.",
-        "Use the existing fixture at its normal entry to distinguish successful preparation from real expiration or interruption. Preserve its established comparison outcomes, bounded diagnostics and cleanup. Correct the verified cost or fixture isolation issue once.",
-        "Obtain independent review and retain a native Windows run of the ordinary handoff scenario on the repaired source, then verify the integrated revision."
-      ],
-      "checks": [
-        "project-state",
-        "python-contracts-workers",
-        "workspace-timeframe"
-      ],
-      "evidence": [
-        {
-          "path": "project/evidence/M0-171-e321cc9ce9f14d5a.json",
-          "sha256": "6c92ba4502f42cea3b2ae2d4a9b50962b74683d33f1a02a13e32ad23474d044b"
-        },
-        {
-          "path": "project/evidence/M0-171-16a14bd6ef14ef60.json",
-          "sha256": "400f80c1958d449d4637a062c2ce53a2434a11532568777b8de3b70f4c6cf715"
-        }
-      ],
-      "diagnostic_reports": [
-        {
-          "run_id": "windows-change-45933801256-1",
-          "source_commit": "4c6907e67c50eadfa95308b46594f92722e2490b",
-          "report_sha256": "2b4e4c9dce03a68efcfe32ed9dd49a0efdb48287a8f9a9195f55c689d4cb0657"
-        }
-      ],
-      "next_action": null,
-      "blocker": null,
-      "closure_reason": "Scoped pre-integration qualification passed. Independent approval of 6074628d8343c1e7b70dd084c53e3901ac896c04 applies to ddd83e28f7ff37366912a4f70aeae67824c61137 with its review records. Guarded PR 146 run 45941768345 passed environment and every task check on Linux and Windows. The workspace suites passed 100 Linux and 99 Windows cases with two Windows skips for POSIX signal behavior. Both passed bounded preparation and cleanup, interruption before comparison, deadline expiry and the ordinary private launcher. Ordinary PR 146 run 45939423128 passed the Windows workspace suite on preview 2c2dc471d5a9339e0278ea5de2b41bd672c31c8b. It recorded 1988 ms for setup compilation and 1818 ms for native preparation, including 14 ms to load the helper and 1544 ms for the matrix. The earlier protected pass and same-fixture Windows controls are retained with the original PR 123 failure. The historical last internal stage and cause of the elapsed time remain unknown. The ordinary aggregate retains a separate cold market-recovery failure assigned to M0-173 and PR 147. The coordinator owns reconciliation with protected main and retention of the first integrated Windows workspace result.",
-      "plan": {
-        "outcome": "Retain the failed first-attempt native test, the previously passing protected comparison and the current same-fixture control. Name the failing preparation phase and preserve any unknown inner stage. Use the existing fixture at its normal entry to distinguish successful preparation from real expiration or interruption. Preserve its established comparison outcomes, bounded diagnostics and cleanup. Correct the verified cost or fixture isolation issue once.",
-        "change_types": [
-          "tooling"
-        ],
-        "context": [
-          "tests/ubuntu-preview/workspace.setup.mjs",
-          "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
-          "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.cs",
-          "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.ps1",
-          "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
-          "tests/ubuntu-preview/workspace.spec.mjs",
-          "project/checks.json",
-          "contracts/reviews/2026-11-26-maintenance-workstreams.json"
-        ],
-        "hypotheses": [
-          "The first PR 123 attempt exhausted the leaf matrix preparation subprocess deadline before the 24 native file comparisons. The protected run and two contemporary Windows controls completed the same case. Their 8646, 7374 and 7668 ms observations and the failed 15362 ms observation cover the whole case. Startup, helper compilation, matrix work and host contention remain separate possibilities for the historical expiration."
-        ],
-        "risks": [
-          {
-            "failure": "Hiding the failed setup or accepting partial preparation would falsely pass the scenario; unbounded diagnostic retries would distort its cost.",
-            "checks": [
-              "project-state",
-              "python-contracts-workers",
-              "workspace-timeframe"
-            ]
-          }
-        ],
-        "rollback": "Restore the preceding implementation and retain the diagnosed failures and controls if the ordinary contract changes.",
-        "independent_review": true,
-        "implementation": {
-          "modules": [
-            "development-tooling"
-          ],
-          "entrypoints": [
-            "tests/ubuntu-preview/workspace.setup.mjs",
-            "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
-            "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.ps1",
-            "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
-            "tests/ubuntu-preview/workspace.spec.mjs"
-          ],
-          "rules": [
-            {
-              "path": "project/delivery.json",
-              "pointer": "/scaffold_maintenance/workflow"
-            },
-            {
-              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
-              "pointer": "/outcomes/0"
-            }
-          ],
-          "non_goals": [
-            "Keep adjustments inside development verification of disposable synthetic fixtures. Preserve production authorization, user data, established permission checks, native result meanings and existing product behavior."
-          ],
-          "open_questions": [
-            "Which preparation milestones and timings are observed by the next ordinary Windows job? The first attempt emitted no inner milestone."
-          ]
-        },
-        "evolution": {
-          "kind": "refactor",
-          "preserve": [
-            "Keep adjustments inside development verification of disposable synthetic fixtures. Preserve production authorization, user data, established permission checks, native result meanings and existing product behavior."
-          ],
-          "change": [
-            "Compile the existing C# fixture helper once in Windows workspace setup and load its run-owned assembly during ordinary leaf calibration. Record bounded phase timings and exercise an interrupted calibration before any native file comparison."
-          ],
-          "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
-          "cleanup": "Delete the assembly with the owned workspace run directory and preserve exclusive leaf fixture ownership and cleanup. Retain the original failed job and passing comparisons."
-        }
-      }
-    },
-    {
-      "id": "M2-033",
-      "title": "Refresh access after a frozen chart is denied during reopen",
-      "milestone": "M2",
-      "status": "done",
-      "depends_on": [
-        "M2-002",
-        "M2-032"
-      ],
-      "scope": [
-        "apps/desktop/ui/src/workspace-source.ts",
-        "tests/ui/desktop-workspace.spec.mjs",
-        "project/evidence"
-      ],
-      "decision_refs": [
-        "0004",
-        "0007",
-        "0016"
-      ],
-      "acceptance": [
-        "When the startup snapshot still allows a saved CSV and the first chart read reports that it is unavailable, read the current workspace before showing the source and shared selection. A revoked source shows the existing revoked status and its shared selection becomes unavailable.",
-        "A transient worker failure retains the current source identity and the chart retry control. Neither case writes the workspace or falls back to another source."
-      ],
-      "checks": [
-        "generated-contracts",
-        "ui-build",
-        "market-workflow",
-        "desktop-workspace-transport"
-      ],
-      "evidence": [
-        {
-          "path": "project/evidence/M2-033-beb0fce3a2b7e3ad.json",
-          "sha256": "a4ed4718897f33bd537d9f6d3322ef08d9213f55a26e670634316f1614120b61"
-        },
-        {
-          "path": "project/evidence/M2-033-c655f8084743b1a5.json",
-          "sha256": "35acd6a88844f256893110fd746d30220edbb2e7812903df360416426864dbac"
-        }
-      ],
-      "diagnostic_reports": [
-        {
-          "run_id": "20261125T035923.329201Z-a36ab18a",
-          "source_commit": "d89a332aaa206491d06316e97200a50fd252d920",
-          "report_sha256": "825d77ecf88a7a321b8062499038f752e11cce41cd8f2e327f44852dbeb9eae2"
-        }
-      ],
-      "next_action": null,
-      "blocker": null,
-      "closure_reason": "The built UI initially retained the generic unavailable status after a denial, while the transient control kept retry. The corrected desktop transport check read the latest source and shared selection after SNAPSHOT_UNAVAILABLE, displayed revocation, and retained retry for WORKER_EXITED. All ten Chromium desktop transport cases passed with the generated-contract, UI-build and market workflow checks. Native Windows and packaged acceptance remain separate.",
-      "plan": {
-        "outcome": "The user sees a current access state when a saved frozen CSV becomes unreadable between startup and the first chart read.",
-        "change_types": [
-          "ui"
-        ],
-        "context": [
-          "apps/desktop/ui/src/workspace-source.ts",
-          "apps/desktop/ui/src/published-revision-access.ts",
-          "tests/ui/desktop-workspace.spec.mjs"
-        ],
-        "hypotheses": [
-          "The first failed chart read precedes the periodic access watcher. Rechecking the workspace snapshot on access denial can distinguish withdrawal from an ordinary worker error."
-        ],
-        "risks": [
-          {
-            "failure": "A retained snapshot shows stale access or a transient worker failure is mistaken for a grant withdrawal.",
-            "checks": [
-              "desktop-workspace-transport",
-              "market-workflow"
-            ]
-          }
-        ],
-        "rollback": "Revert the UI recheck. Source records, authority and persisted revisions need no recovery.",
-        "implementation": {
-          "modules": [
-            "ui"
-          ],
-          "entrypoints": [
-            "apps/desktop/ui/src/workspace-source.ts",
-            "apps/desktop/ui/src/use-local-workspace.ts",
-            "tests/ui/desktop-workspace.spec.mjs"
-          ],
-          "rules": [
-            {
-              "path": "engineering-contract-v1.json",
-              "pointer": "/persistence"
-            },
-            {
-              "path": "contracts/decisions/0016-profile-layout-and-source-restore.json",
-              "pointer": "/consequences"
-            }
-          ],
-          "non_goals": [
-            "Change the Rust registry, wire schema, source selection or workbench renderer."
-          ],
-          "open_questions": []
-        },
-        "evolution": {
-          "kind": "additive",
-          "preserve": [
-            "The saved revision and existing grant checks, source recovery ownership and retry for transient failures."
-          ],
-          "change": [
-            "Refresh authoritative source and selection state after denied initial frozen reads."
-          ],
-          "data_plan": "Use a synthetic saved revision and only local IPC substitutes. Do not write persistent state.",
-          "cleanup": "Ignore aborted chart reads and keep ordinary access verification for charts that have opened."
-        }
-      }
-    },
-    {
-      "id": "M2-034",
-      "title": "Retain and bound frozen access refresh after independent review",
-      "milestone": "M2",
-      "status": "done",
-      "depends_on": [
-        "M2-033"
-      ],
-      "scope": [
-        "apps/desktop",
-        "crates/application",
-        "crates/persistence",
-        "tests/ui",
-        "project/evidence"
-      ],
-      "decision_refs": [
-        "0004",
-        "0007",
-        "0016"
-      ],
-      "acceptance": [
-        "A denied initial frozen read queues a single authoritative snapshot while another operation owns the workspace lane. Hide its stale shared selection and preserve source write recovery.",
-        "Bound a denied-read refresh and discard a late native snapshot. Manual retry can still obtain current access.",
-        "Hide a missing live revision while retaining a recovery path. Only confirmed revocation becomes permanent for the session."
-      ],
-      "checks": [
-        "ui-build",
-        "market-workflow",
-        "desktop-workspace-transport",
-        "state-migrations",
-        "rust-contracts-workers"
-      ],
-      "evidence": [
-        {
-          "path": "project/evidence/M2-034-03b4ea9e42cc5bda.json",
-          "sha256": "365a5b206ba1c14cd14763ad9b4b3b688984baa468da20373e2dd36ddae9ebbc"
-        },
-        {
-          "path": "project/evidence/M2-034-45be04c6933b1b80.json",
-          "sha256": "e67a399aa8843f289e1efe49176178ed2f45d6dfa1610c395ade84911f5e5bee"
-        }
-      ],
-      "diagnostic_reports": [
-        {
-          "run_id": "20261125T043224.802985Z-a835f859",
-          "source_commit": "185f90dff6008e7c54e3088f799253e24c602d12",
-          "report_sha256": "643938f819c14c07be74fc60d110743d95d32945ae4217be0363a7be35d8576f"
-        }
-      ],
-      "next_action": null,
-      "blocker": null,
-      "closure_reason": "All thirteen Chromium desktop transport cases and the selected market, persistence and Rust checks passed. The held layout control concealed the stale selection and refreshed once. The clock test released a silent native reply after its deadline and ignored its late snapshot. A live frozen source became temporarily unavailable, reopened once authorized again, then remained hidden after confirmed withdrawal. The Rust registry independently distinguished an authorized, absent, and revoked synthetic revision. Actual Windows and release acceptance remain separate.",
-      "plan": {
-        "outcome": "Restore and monitor a published chart without retaining stale selection or freezing the workspace.",
-        "change_types": [
-          "ui"
-        ],
-        "context": [
-          "apps/desktop/ui/src/use-local-workspace.ts",
-          "apps/desktop/ui/src/published-revision-access.ts",
-          "apps/desktop/ui/src/workspace-source.ts"
-        ],
-        "hypotheses": [
-          "Readback must be queued by affected revision and bounded at the native delivery boundary. The registry already has the records needed to distinguish an absent revision from a revocation."
-        ],
-        "risks": [
-          {
-            "failure": "A busy request, stopped reply or a transient missing source loses recovery or hides a permission change.",
-            "checks": [
-              "desktop-workspace-transport",
-              "state-migrations",
-              "rust-contracts-workers"
-            ]
-          }
-        ],
-        "rollback": "Revert this software change. Storage format and record contents remain unchanged.",
-        "implementation": {
-          "modules": [
-            "ui",
-            "desktop",
-            "application",
-            "persistence"
-          ],
-          "entrypoints": [
-            "apps/desktop/ui/src/use-local-workspace.ts",
-            "crates/application/src/lib.rs",
-            "crates/persistence/src/lib.rs"
-          ],
-          "rules": [
-            {
-              "path": "engineering-contract-v1.json",
-              "pointer": "/persistence"
-            }
-          ],
-          "non_goals": [
-            "Packaged Windows or physical-device acceptance."
-          ],
-          "open_questions": []
-        },
-        "evolution": {
-          "kind": "additive",
-          "preserve": [
-            "Exactly-once source mutations, assigned recovery ownership, desktop role checks and published records."
-          ],
-          "change": [
-            "Queue and bound read-only authorization refresh, and preserve support for a temporary missing revision."
-          ],
-          "data_plan": "Use synthetic frozen records, controlled IPC and a disposable Rust profile.",
-          "cleanup": "Discard late reads and cancel queued work when the host unmounts."
-        }
-      }
-    },
-    {
-      "id": "M2-035",
-      "title": "Fence and recover frozen chart access through open, refresh and clear",
-      "milestone": "M2",
-      "status": "done",
-      "depends_on": [
-        "M2-034"
-      ],
-      "scope": [
-        "apps/desktop/ui",
-        "tests/ui",
-        "tests/ubuntu-preview",
-        "project/evidence"
-      ],
-      "decision_refs": [
-        "0004",
-        "0007",
-        "0016"
-      ],
-      "acceptance": [
-        "Source-only revocation and redaction of an unchanged selection fence in-flight CSV replies and cached drawer data.",
-        "Denied foreground CSV and folder reads withhold evidence immediately, and only verified access can restore temporary absence.",
-        "Folder read and status waits release after timeout or cancellation and ignore late results.",
-        "An authorized user can clear a redacted selection after retryable snapshot admission, retaining the workspace revision and undo state."
-      ],
-      "checks": [
-        "ui-build",
-        "market-workflow",
-        "desktop-workspace-transport",
-        "local-import-ui",
-        "local-folder-refresh-preview",
-        "local-folder-import",
-        "workspace-timeframe"
-      ],
-      "evidence": [
-        {
-          "path": "project/evidence/M2-035-4d46948abb80689a.json",
-          "sha256": "0902fabfad6a737b40258a4a904702fa0c668f106a102a5ff6d028cb403d28cc"
-        }
-      ],
-      "diagnostic_reports": [
-        {
-          "run_id": "20261125T050030.893328Z-8519eb03",
-          "source_commit": "9cad03564df53e2f36b8cc4969258a32a8090260",
-          "report_sha256": "ed7011eeea4600b13c8107606a4618e5e1fe7192afb7fa1de6bc507e7c27858e"
-        }
-      ],
-      "next_action": null,
-      "blocker": null,
-      "closure_reason": "The clean source passed local build, market, publication, Chromium desktop transport and real workspace checks. The regressions fence late CSV replies on source revocation and selection redaction, hide denied folder evidence during status readback, recover a timed-out read, and clear a redacted selection after HTTP 429 through the original authorization and selection comparison. Native WebView2 and packaged acceptance remain separate.",
-      "plan": {
-        "outcome": "Frozen CSV and folder charts obey current profile access, and authorized shared selection clear remains available.",
-        "change_types": [
-          "ui"
-        ],
-        "context": [
-          "apps/desktop/ui/src/published-revision-access.ts",
-          "apps/desktop/ui/src/local-revision-dialog.tsx",
-          "apps/desktop/ui/src/local-import-editor.tsx",
-          "apps/desktop/ui/src/use-local-workspace.ts"
-        ],
-        "hypotheses": [
-          "Source-only revocation and redaction of an unchanged selection fence in-flight CSV replies and cached drawer data.",
-          "Denied foreground CSV and folder reads withhold evidence immediately, and only verified access can restore temporary absence.",
-          "Folder read and status waits release after timeout or cancellation and ignore late results.",
-          "An authorized user can clear a redacted selection after retryable snapshot admission, retaining the workspace revision and undo state."
-        ],
-        "risks": [
-          {
-            "failure": "A late CSV reply displays withdrawn evidence after source-only revocation or redaction of the same shared selection.",
-            "checks": [
-              "desktop-workspace-transport",
-              "local-import-ui",
-              "local-folder-refresh-preview",
-              "local-folder-import",
-              "workspace-timeframe"
-            ]
-          },
-          {
-            "failure": "A denied foreground folder read leaves cached chart and provenance visible until a status reply.",
-            "checks": [
-              "desktop-workspace-transport",
-              "local-import-ui",
-              "local-folder-refresh-preview",
-              "local-folder-import",
-              "workspace-timeframe"
-            ]
-          },
-          {
-            "failure": "A silent native folder status reply indefinitely blocks retry.",
-            "checks": [
-              "desktop-workspace-transport",
-              "local-import-ui",
-              "local-folder-refresh-preview",
-              "local-folder-import",
-              "workspace-timeframe"
-            ]
-          },
-          {
-            "failure": "Hosted Chromium captured a retryable snapshot admission failure leaving the authorized shared-selection clear disabled.",
-            "checks": [
-              "desktop-workspace-transport",
-              "local-import-ui",
-              "local-folder-refresh-preview",
-              "local-folder-import",
-              "workspace-timeframe"
-            ]
-          }
-        ],
-        "rollback": "Revert the UI correction. Workspace records and grants use the existing protocol.",
-        "implementation": {
-          "modules": [
-            "ui"
-          ],
-          "entrypoints": [
-            "apps/desktop/ui/src/published-revision-access.ts",
-            "apps/desktop/ui/src/local-revision-dialog.tsx",
-            "apps/desktop/ui/src/local-import-editor.tsx",
-            "apps/desktop/ui/src/use-local-workspace.ts"
-          ],
-          "rules": [
-            {
-              "path": "engineering-contract-v1.json",
-              "pointer": "/persistence"
-            }
-          ],
-          "non_goals": [
-            "Physical Windows acceptance, release, or changes to unrelated authorization."
-          ],
-          "open_questions": []
-        },
-        "evolution": {
-          "kind": "additive",
-          "preserve": [
-            "Existing authorization, provenance and historical evidence."
-          ],
-          "change": [
-            "Source-only revocation and redaction of an unchanged selection fence in-flight CSV replies and cached drawer data.",
-            "Denied foreground CSV and folder reads withhold evidence immediately, and only verified access can restore temporary absence.",
-            "Folder read and status waits release after timeout or cancellation and ignore late results.",
-            "An authorized user can clear a redacted selection after retryable snapshot admission, retaining the workspace revision and undo state."
-          ],
-          "data_plan": "Use only synthetic profiles, fixtures and identifiers.",
-          "cleanup": "Discard superseded in-flight work while retaining recovery artifacts."
-        }
-      }
-    },
-    {
-      "id": "M2-039",
-      "title": "Reconcile the first saved chart on focus and recover temporarily hidden folder revisions",
-      "milestone": "M2",
-      "status": "done",
-      "depends_on": [
-        "M2-035"
-      ],
-      "scope": [
-        "apps/desktop/ui/src/workspace-source.ts",
-        "apps/desktop/ui/src/frozen-evidence.tsx",
-        "apps/desktop/ui/src/indicator-acceptance.tsx",
-        "apps/desktop/ui/src/indicator-preview.tsx",
-        "apps/desktop/ui/src/local-preview-chart.tsx",
-        "apps/desktop/ui/src/published-revision-access.ts",
-        "apps/desktop/ui/src/use-local-workspace.ts",
-        "apps/desktop/ui/src/workspace-http-reply.ts",
-        "apps/desktop/ui/src/local-revision-dialog.tsx",
-        "apps/desktop/src-tauri/src/workspace.rs",
-        "tests/ui/desktop-workspace.spec.mjs",
-        "tests/ui/local-import.spec.mjs",
-        "contracts/reviews",
-        "project/evidence",
-        "project/tasks.json",
-        "project/feedback.json",
-        "apps/desktop/ui/src/private-records.tsx",
-        "apps/desktop/ui/src/folder-refresh-review.tsx",
-        "tests/ubuntu-preview/workspace.spec.mjs",
-        "apps/desktop/ui/src/local-import-editor.tsx",
-        "apps/desktop/ui/src/local-import-transport.ts",
-        "apps/desktop/ui/src/private-record-transport.ts",
-        "apps/desktop/ui/src/i18n/locales/zh-Hans/data.json",
-        "tests/ui/ai-workflow-fixture.mjs",
-        "tests/ui/workspace-writer-gate.mjs",
-        "tests/ui/workspace-source.spec.mjs",
-        "project/checks.json",
-        "tests/ui/published-revision-controls.mjs",
-        "tests/ui/published-revision-access-windows.config.mjs",
-        "tests/ui/published-revision-access-windows.fixture.mjs",
-        "tests/ui/published-revision-access-windows.spec.mjs",
-        "tests/ui/published-revision-launch-deadline.test.mjs",
-        "scripts/ci_artifacts.py",
-        "tests/project/test_ci_artifacts.py"
-      ],
-      "decision_refs": [
-        "0004",
-        "0007"
-      ],
-      "acceptance": [
-        "Use two participating synthetic workspace windows and the ordinary first saved-chart reopen. B is visibly confirmed at close 106, and late data from source A with close 44 cannot display when focus has started checking the newer source, including when A returns before the workspace snapshot.",
-        "A focus reload confirming the same saved source still opens its authenticated bars. Available, revoked, unavailable and source-free states preserve their existing authorization and provenance behavior.",
-        "The workspace must hold its first chart until the latest focus generation is confirmed, including focus before the first snapshot or during an earlier confirmation. One admitted read and one coalesced trailing read preserve the existing reply deadline.",
-        "The workspace retains the latest focus through source writes and recovery readbacks. A committed source action settles once, while a trailing snapshot confirms what may be displayed.",
-        "After temporary absence a successful folder list refresh rechecks only withheld listed revisions. A verified available revision can reopen with its known bars and source; unavailable and explicitly revoked ones stay hidden, and late replies cannot reopen the closed dialog.",
-        "A supported folder stage can complete after the single-revision read window. A user can stop waiting for a missing or slow reply without repeating staging. Rejected, cancelled and late replies cannot present an unverified comparison.",
-        "A private background read rejected before admission can recover the same authenticated read within the existing admission budget. Refused snapshots never count as verified source state. Source and private record mutations keep their exact commit counts.",
-        "For manually selected published CSV and folder revisions, delay delivery of a real native comparison across focus. Nothing from that comparison is displayed until the latest focus has an authoritative access confirmation. A real peer withdrawal prevents publication details from appearing even temporarily.",
-        "Observe the ordinary un-intercepted private peer correction and refocus journey separately from the deliberately contended read, retaining exact correction, deletion and version facts.",
-        "Restore the second conflict choice, one bar withdrawal and one source withdrawal after same-stage authorization is confirmed, keeping the private comparison out of the DOM during rechecks. A revision or stage change, cancellation of staging, or durable revocation discards the old decisions and prepared authority. Edit and reconfirm binds the visible choices to the exact native digest and one explicit publication.",
-        "The test-owned Rust status gate holds and releases only a designated request, including when an unrelated same-revision status finishes first. Recover the proof snapshot after a genuine pre-admission refusal, propagate other failures, and retain ordinary explicit recovery and exact durable selection and rendering checks.",
-        "Inspect original rows through the ordinary published CSV and folder charts. Hide private chart and row content immediately after SNAPSHOT_UNAVAILABLE and discard late replies. An explicit retry restores only a revision confirmed available by its source status. A confirmed withdrawal stays hidden on later retry, and access checks leave the saved selection and its undo unchanged.",
-        "With Revision ID blank, refresh the published CSV and folder libraries after a source-row interruption. Only temporarily withheld revisions on the current page receive the matching status reads. A verified revision becomes discoverable without opening its chart. Missing and revoked revisions stay hidden across refresh and dialog reopen. Verify the selected revision, its original rows and bars on explicit open, and preserve workspace selection and undo.",
-        "For a real published CSV and a real published folder, hold a status lookup for the same ID in the other library across close, reopen and repeated refresh of the correct library. Complete the old lookup and observe the still-open page recover its entry after its own status read without another refresh or overlapping status dispatch. The obsolete lookup does not grant or withdraw access in the owning library.",
-        "On explicit retry for a published folder and a published CSV without a workspace, show temporary unavailability when status is missing and withhold content until status confirms access. Show permission denial only for confirmed withdrawal and retain a generic failure for an unconfirmed read. Verify recovered bars and source rows, keep revoked data hidden on later retries, and preserve the changed-workspace guard.",
-        "Require the compiled Windows fixture to prepare one disposable private profile and use the same supported path for seeding and the desktop. Retain the first successful or typed rejected availability reply before asserting access. Confirm the endpoint and its owned WebView2 listener within one 60-second deadline from native spawn, then enter the public journey.",
-        "Require the hosted staging entry to accept a passing native revision check only on a host supported by its catalog entry and with both the log-bound observation and matching executable. Preserve genuine blocked and unselected results, retain verified diagnostics from a failed check, and remove incomplete files from the upload directory when a write fails.",
-        "The browser HTTP decoder accepts an unambiguous success, preserves an ordinary typed denial, and rejects an invalid reply without restoring CSV or folder eligibility. On the public revision entry, confirm valid reopen and keep a withheld revision ineligible after one invalid status read. Only a genuine pre-admission refusal retains its retry behavior."
-      ],
-      "checks": [
-        "project-state",
-        "ui-build",
-        "market-workflow",
-        "desktop-workspace-transport",
-        "local-import-ui",
-        "local-folder-refresh-preview",
-        "state-migrations",
-        "workspace-timeframe",
-        "model-connection-workflow",
-        "python-contracts-workers",
-        "published-revision-launch-deadline",
-        "windows-published-revision-access",
-        "rust-contracts-workers"
-      ],
-      "evidence": [
-        {
-          "path": "project/evidence/M2-039-eaa0902ef1ea965e.json",
-          "sha256": "fb4345db27bf793accfd0d67401a044be089c0305a0dc51c347691e17756de4a"
-        },
-        {
-          "path": "project/evidence/M2-039-5ed8b51da0d9bdbe.json",
-          "sha256": "8160dbb420574d8925b09a9f12be2168b0ed539cd696ce384203b6074c421b76"
-        },
-        {
-          "path": "project/evidence/M2-039-fed6cc1bb3eb031d.json",
-          "sha256": "9721513f9cd66e68a8804fc956d1a7888f0299f25495bd81b07a1a859ba98e9b"
-        }
-      ],
-      "next_action": null,
-      "blocker": null,
-      "closure_reason": "The scoped approvals for f636dcdd382340e453dd29b91cfff01c2413929f qualify the identical execution inputs at 3d97a77a08fb53925edd89f4a4ac5becf74a505c. Guarded run 45935930896 passed all thirteen required checks and environment on hosted Windows. Its Linux report passed all twelve supported task checks and environment with zero failed checks, and was blocked only because windows-published-revision-access requires native Windows x64. Ordinary PR 97 run 45935806747 passed the first saved-chart reopen and native snapshot classification cases in both platforms' desktop transport logs at matching execution inputs. The original hosted Windows observation binds the compiled executable, owned WebView2 runtime and first native revision status to the guarded source, then verifies the public CSV and folder discovery, row and bar recovery, and confirmed withdrawal. The earlier receipts and diagnostic observations retain their original scopes. Physical Windows and installer qualification remain separate and pending. Protected integration remains pending for the coordinator, including fresh review of the composed source and its ordinary and guarded verification.",
-      "plan": {
-        "outcome": "Reconcile first chart restore and CSV and folder revision discovery against current access. The public dialog recovers eligible entries after a matching serialized status read and explains temporary unavailability separately from confirmed withdrawal.",
-        "change_types": [
-          "ui",
-          "tooling"
-        ],
-        "context": [
-          "apps/desktop/ui/src/workspace-source.ts",
-          "apps/desktop/ui/src/local-preview-chart.tsx",
-          "apps/desktop/ui/src/published-revision-access.ts",
-          "apps/desktop/ui/src/use-local-workspace.ts",
-          "apps/desktop/ui/src/workspace-http-reply.ts",
-          "apps/desktop/ui/src/local-revision-dialog.tsx",
-          "tests/ui/desktop-workspace.spec.mjs",
-          "tests/ui/local-import.spec.mjs",
-          "archives/runs/20261125T180605.452785Z-ff5c1439/test-report.json",
-          "archives/observations/repo-hygiene-20261125/pr97-native-original-45671281695/manifest.json",
-          "tests/ubuntu-preview/workspace.spec.mjs",
-          "archives/observations/repo-hygiene-20261125/m2-039-native-read-holder-45692413910/observations.json",
-          "archives/observations/repo-hygiene-20261125/m2-039-dispatch-45710583418-linux",
-          "archives/observations/repo-hygiene-20261125/m2-039-ordinary-45710479288-linux",
-          "archives/observations/repo-hygiene-20261125/independent-final-m2-035-a66c84af/final-response.txt",
-          "archives/observations/repo-hygiene-20261125/independent-final-m2-039-83303f35/final-response.txt",
-          "archives/observations/repo-hygiene-20261125/independent-final-m2-034-359e3323/final-response.txt",
-          "archives/observations/repo-hygiene-20261125/independent-final-m2-035-359e3323/final-response.txt",
-          "archives/observations/repo-hygiene-20261125/independent-final-m2-039-359e3323/final-response.txt",
-          "archives/observations/repo-hygiene-20261125/independent-final-m2-039-a1866052/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/independent-final-m2-039-09514768/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/independent-final-m2-039-030661a9/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/independent-final-m2-034-aeb1763f/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/independent-final-m2-035-aeb1763f/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/independent-final-m2-039-aeb1763f/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/independent-final-m2-035-21cf8471/original-assistant-response.jsonl",
-          "apps/desktop/src-tauri/src/workspace.rs",
-          "archives/observations/repo-hygiene-20261125/task-dispatch-m2-039-45828181845/manifest.json",
-          "archives/observations/repo-hygiene-20261125/task-dispatch-m2-039-45849581750/manifest.json",
-          "contracts/schemas/protocol.schema.json",
-          "apps/desktop/ui/ubuntu-workspace.mjs",
-          "crates/persistence/src/bin/workspace_bridge.rs",
-          ".reports/runs/20261126T041510.475356Z-783b4a68/test-report.json",
-          ".reports/m2-039-native-access-gap/coverage.json",
-        ".reports/m2-039-withdrawal-status/red/local-folder-refresh-preview/browser-results.json",
-        "tests/ui/published-revision-controls.mjs",
-          "tests/ui/published-revision-access-windows.config.mjs",
-          "tests/ui/published-revision-access-windows.fixture.mjs",
-          "tests/ui/published-revision-access-windows.spec.mjs",
-          "tests/ui/published-revision-launch-deadline.test.mjs",
-          "scripts/ci_artifacts.py",
-          "tests/project/test_ci_artifacts.py"
-        ],
-        "hypotheses": [
-          "The focus observer starts only after the initial chart read settles. A first read must be fenced until a focus-initiated snapshot confirms the selected source.",
-          "Source-save and recovery guards can discard focus events even though the normal snapshot lane already has a single trailing slot.",
-          "The folder list filters globally withheld revisions without rechecking them after a successful refresh.",
-          "An overlapping focus snapshot can cause an unrelated private detail read to be refused, and the native test may count a refused snapshot as an admitted state observation. Examine these entrypoints independently.",
-          "The observer fault route can claim a focus snapshot before the missing detail reaches the browser. Prove which request owns the shared fallback deadline and which requests belong to the independent workspace lane.",
-          "The shared source-row inspection handler makes an ambiguous missing reply terminal. Fence the old read and let the existing kind-specific status path determine whether the current grant can be used.",
-          "The access owner retains withheld IDs across dialog mounts, but the dialog only sends a ready folder page for status reconciliation. Inspect the discovery, explicit ID, chart, original-row and focus callers before deciding where the provider dispatch and temporary-only policy belong.",
-          "The request map is keyed by unqualified revision ID, so a CSV caller can join a folder lookup and vice versa. Check whether an obsolete waiting page can occupy the serial reader after the real page is replaced, and ensure supersession is checked before admitting its deferred work.",
-          "Explicit open chooses an error code from the workspace and library kind after discarding the verified status result. The native CSV status envelope already represents availability, temporary absence and withdrawal. The folder summary read already separates a matching result, SNAPSHOT_UNAVAILABLE and registry PERMISSION_DENIED. Transport failure and supersession must never be interpreted as confirmed withdrawal.",
-          "Fresh polling timeouts for endpoint discovery and listener ownership permit a launch after the original deadline. Compare both observations against the same monotonic deadline and verify a response that completes after it.",
-          "The staging entry treats a passing check's files as optional and can leave a truncated observation after a write error. Use the check result and log to distinguish required evidence from available failure diagnostics, and test interrupted writes at the upload boundary.",
-          "The staging entry uses the reported host to decide whether to look for native attachments. Check the catalog's host requirement for a passing result before staging and make both attachments mandatory for every eligible pass.",
-          "The independent first-reopen proof can accept an expected selection carried alongside a terminal error. Compare bridge and proof against valid, ordinarily rejected and contradictory envelopes at the direct read boundary.",
-          "The first guarded Windows run reached the webview and refused a native status read despite a successful seed. Compare the exact seeding and runtime preparation entrypoints and qualify use of the existing isolated profile contract before the public journey.",
-          "The browser HTTP decoder can return a result without ruling out a simultaneous error. Validate the outcomes at the shared boundary using the existing protocol error definitions. The M2-034 and M2-039 scoped approvals on aeb1763f confirm the independent first-reopen proof; its additional snapshot assertions serve the observed selection and its timing.",
-          "The native snapshot reader confuses a retryable SQLite BUSY returned after admission with lock contention before admission. Compare the two through the same public startup and reuse the native admission detail already used for indicator status."
-        ],
-        "risks": [
-          {
-            "failure": "An old chart overtakes a newer snapshot, or same-source confirmation and normal startup stall.",
-            "checks": [
-              "desktop-workspace-transport",
-              "market-workflow",
-              "ui-build",
-              "state-migrations"
-            ]
-          },
-          {
-            "failure": "Focus before the initial reply or during a prior confirmation is lost, or repeated focus starts overlapping reads and lets stale bars enter ready.",
-            "checks": [
-              "desktop-workspace-transport",
-              "market-workflow",
-              "ui-build"
-            ]
-          },
-          {
-            "failure": "A source write or recovery readback loses focus, permits an obsolete chart or changes accepted mutation and cancellation behavior.",
-            "checks": [
-              "desktop-workspace-transport",
-              "local-import-ui",
-              "ui-build"
-            ]
-          },
-          {
-            "failure": "A list reply or stale access reply bypasses the profile's availability or durable revocation.",
-            "checks": [
-              "local-import-ui",
-              "local-folder-refresh-preview",
-              "ui-build"
-            ]
-          },
-          {
-            "failure": "The native folder stage can still be pending or can return an error while an unrelated UI assertion checks only for a rendered table. A missing or rejected response must not look successful.",
-            "checks": [
-              "local-folder-refresh-preview"
-            ]
-          },
-          {
-            "failure": "A focus snapshot can occupy the shared native read admission when a private detail is required after a peer correction, leaving the panel stale or falsely clearing private content.",
-            "checks": [
-              "workspace-timeframe"
-            ]
-          },
-          {
-            "failure": "A numbered focus snapshot or independent post-readback proof treats a rejected response as verified state, losing the intended A and B controls.",
-            "checks": [
-              "desktop-workspace-transport"
-            ]
-          },
-          {
-            "failure": "Applying the single-revision read window to a multi-file stage rejects valid work within the native 64-file contract. Use the genuine 64-file control and deliberately delay browser delivery beyond 15 seconds.",
-            "checks": [
-              "local-folder-refresh-preview",
-              "ui-build"
-            ]
-          },
-          {
-            "failure": "A valid stage reply crosses refocus and discloses comparison filenames or fingerprints while an authoritative access check is pending. Prove repeated focus, authorized late delivery and real peer withdrawal before the reply for both revision kinds.",
-            "checks": [
-              "local-folder-refresh-preview",
-              "ui-build"
-            ]
-          },
-          {
-            "failure": "The forced private read refusal obscures regressions in the ordinary un-intercepted peer correction journey. The historical 429 was observed around focus, and its issuance order was not recorded.",
-            "checks": [
-              "workspace-timeframe"
-            ]
-          },
-          {
-            "failure": "Focus hides the comparison by unmounting the owner of review decisions while preserving an unrelated prepared digest. Exercise the same authorized stage, repeated focus, revision and candidate supersession, cancellation, durable denial and a single explicit publication with readback.",
-            "checks": [
-              "local-folder-refresh-preview",
-              "ui-build"
-            ]
-          },
-          {
-            "failure": "An unrelated UI status can claim the test gate, leaving the designated read rejected while the snapshot proof treats the wrong holder as admitted. Prove request identity, interleaving, pre-admission and terminal failures, bounded timeout cleanup, and ordinary and contended explicit recovery without additional writes or stale rendering.",
-            "checks": [
-              "desktop-workspace-transport",
-              "model-connection-workflow"
-            ]
-          },
-          {
-            "failure": "The browser fixture holds or denies a workspace focus confirmation under the note fallback label, or depends on elapsed time spent by an unrelated request. Force both owners to overlap, prove a separately admitted fallback and one trailing workspace confirmation, and preserve terminal denial, bounded recovery, late delivery and exactly one deletion.",
-            "checks": [
-              "workspace-timeframe",
-              "desktop-workspace-transport"
-            ]
-          },
-          {
-            "failure": "A public CSV or folder source-row reply marks temporary absence as terminal revocation, or a stale row, status or list reply restores private chart data before the source confirms access. Exercise immediate hiding, later status-confirmed recovery and durable denial through ordinary inspection and retry.",
-            "checks": [
-              "local-import-ui",
-              "local-folder-refresh-preview"
-            ]
-          },
-          {
-            "failure": "A successful list page returns a recoverable CSV revision that stays hidden because only the explicit ID form or the folder list asks for status. The earlier tests prefilled IDs and could pass while discovery stayed broken. Assert exact provider, identity and counts from blank-ID refresh and reopen, including withheld, revoked and unrelated revisions, and keep selection and undo independent.",
-            "checks": [
-              "local-import-ui",
-              "local-folder-refresh-preview",
-              "workspace-timeframe"
-            ]
-          },
-          {
-            "failure": "A pending status from the other library consumes the current page's opportunity to verify a real revision, lets its response change the wrong publication's state, or makes the recheck overlap native status dispatch. Hold the lookup across close, reopen and repeated refresh in both orders. Assert automatic correct-provider read admission, current-page recovery and no content read until explicit open.",
-            "checks": [
-              "local-folder-refresh-preview"
-            ]
-          },
-          {
-            "failure": "An explicit retry mistakes temporary absence for a confirmed permission denial or reveals prior chart, source or row content while status is unresolved. Check the visible message and content for unavailable, newly authorized and withdrawn folder and CSV revisions, including CSV in the supported no-workspace mode.",
-            "checks": [
-              "local-folder-refresh-preview"
-            ]
-          },
-          {
-            "failure": "A controlled delivery fault or a renderer-only check can obscure native admission and actual registry outcomes. Compare native request identities and replies for interrupted rows, withheld and restored access, and genuine withdrawal across dialog close and reopen.",
-            "checks": [
-              "windows-published-revision-access"
-            ]
-          },
-          {
-            "failure": "The probe assumes one live status and stops on the first provider after withdrawing its sole publication. Use the same public withdrawal assertion in the built browser UI and native WebView2. Verify the confirmation and empty library separately, then prove both provider journeys reach denial after reopening.",
-            "checks": [
-              "local-folder-refresh-preview",
-              "windows-published-revision-access"
-            ]
-          },
-          {
-            "failure": "An elevated hosted process loses environment-only WebView2 overrides and never exposes the debugging endpoint. Feed browser arguments through the isolated native build configuration, check the owned process and ephemeral loopback endpoint within the original deadline, and retain its launch observation and replayable executable even when the public journey cannot start.",
-            "checks": [
-              "windows-published-revision-access",
-              "python-contracts-workers"
-            ]
-          },
-          {
-            "failure": "A late listener owner or an in-flight observation can renew the launch deadline and admit the public journey. Use the controlled clock at the fixture entry to distinguish a timely owner, late owner, absent endpoint and foreign listener. Confirm cleanup and leave native qualification to the actual Windows check.",
-            "checks": [
-              "published-revision-launch-deadline",
-              "windows-published-revision-access"
-            ]
-          },
-          {
-            "failure": "A passing native check stages without both bound files, or an interrupted write leaves a corrupt upload file. Exercise the staging entry with the successful marker and matching bytes, missing or mismatched counterparts, an ENOSPC short write and failed-run diagnostic retention.",
-            "checks": [
-              "python-contracts-workers"
-            ]
-          },
-          {
-            "failure": "The staging entry accepts a native revision pass from an unsupported host or rejects a genuine unsupported or unselected result. Compare Windows AMD64, Windows ARM64 and Linux x64 using ordinary passed and blocked rows, and preserve partial Windows failure diagnostics.",
-            "checks": [
-              "python-contracts-workers"
-            ]
-          },
-          {
-            "failure": "A proof snapshot can omit its result before the first focus comparison even when the peer showed close 106. Preserve the original response status, code, identity and already-observed peer state, and independently verify legitimate completion and a rejected or missing envelope.",
-            "checks": [
-              "desktop-workspace-transport"
-            ]
-          },
-          {
-            "failure": "A successful proof envelope carries both a verified selection and an error, or an ordinary rejected read is retried outside the legitimate pre-admission case. Replay valid, rejected and contradictory envelopes through the first-reopen proof and verify call counts.",
-            "checks": [
-              "desktop-workspace-transport"
-            ]
-          },
-          {
-            "failure": "The seed bridge and native desktop may prepare or select different private profile paths or owners. Verify the documented isolated setup in both processes, preserve storage access checks and retain a staged refusal without attributing an unobserved cause.",
-            "checks": [
-              "windows-published-revision-access",
-              "published-revision-launch-deadline",
-              "desktop-workspace-transport"
-            ]
-          },
-          {
-            "failure": "A mixed or otherwise invalid browser reply restores a withheld publication or enters the retry lane. Check the shared decoder for unambiguous success, ordinary typed denial and invalid output. Confirm the public library keeps a revision ineligible after one invalid read, and retain valid CSV and folder reopen and genuine retry controls on the same source.",
-            "checks": [
-              "desktop-workspace-transport",
-              "local-folder-refresh-preview",
-              "workspace-timeframe"
-            ]
-          },
-          {
-            "failure": "A native workspace snapshot retries an admitted storage BUSY or stops after a proven refusal. Hold the real native writer slot to verify the refusal detail. At public startup count the invocations for explicit refusal, admitted BUSY and valid completion, then verify reopening after the terminal error.",
-            "checks": [
-              "desktop-workspace-transport",
-              "rust-contracts-workers"
-            ]
-          }
-        ],
-        "rollback": "Revert the native bridge and UI snapshot changes together and retain the independent red and green observations. Existing stored revisions and schemas need no migration.",
-        "implementation": {
-          "modules": [
-            "ui",
-            "desktop"
-          ],
-          "entrypoints": [
-            "apps/desktop/ui/src/workspace-source.ts",
-          "apps/desktop/ui/src/local-preview-chart.tsx",
-            "apps/desktop/ui/src/published-revision-access.ts",
-            "apps/desktop/ui/src/use-local-workspace.ts",
-            "apps/desktop/src-tauri/src/workspace.rs",
-            "apps/desktop/ui/src/workspace-http-reply.ts",
-            "apps/desktop/ui/src/local-revision-dialog.tsx",
-            "apps/desktop/ui/src/local-import-editor.tsx",
-            "apps/desktop/ui/src/folder-refresh-review.tsx",
-            "tests/ui/ai-workflow-fixture.mjs",
-            "tests/ui/workspace-writer-gate.mjs",
-            "tests/ui/desktop-workspace.spec.mjs",
-            "tests/ubuntu-preview/workspace.spec.mjs",
-            "tests/ui/local-import.spec.mjs",
-            "tests/ui/published-revision-controls.mjs",
-            "tests/ui/published-revision-access-windows.spec.mjs",
-            "tests/ui/published-revision-access-windows.fixture.mjs",
-            "scripts/ci_artifacts.py"
-          ],
-          "rules": [
-            {
-              "path": "project/checks.json",
-              "pointer": "/checks"
-            },
-            {
-              "path": "engineering-contract-v1.json",
-              "pointer": "/persistence"
-            },
-            {
-              "path": "contracts/storage-v1.json",
-              "pointer": "/local_import_publication"
-            },
-            {
-              "path": "contracts/workbench-v1.json",
-              "pointer": "/workspace_entry/restore"
-            },
-            {
-              "path": "contracts/schemas/protocol.schema.json",
-              "pointer": "/$defs/WorkspaceFault11"
-            }
-          ],
-          "non_goals": [
-            "Changes to the SQLite single-writer path, protocol, release or separate frozen shared-bar read timeout.",
-            "Runtime test switches, product permission changes and operator physical qualification."
-          ],
-          "open_questions": []
-        },
-        "evolution": {
-          "kind": "additive",
-          "preserve": [
-            "Existing Rust operation registry, independent revision IDs, authenticated chart data and profile grants.",
-            "The CSV status envelope distinguishes availability and explicit revocation. A folder's exact summary reply confirms availability and its registry permission denial confirms revocation. A source-row error retains its existing treatment.",
-            "Keep valid browser results and ordinary typed errors, the pre-admission retry budget, the independent proof's stronger selection and source assertions, and native storage and Windows qualification criteria."
-          ],
-          "change": [
-            "Fence the displayed source until the latest focus is confirmed across startup, ordinary snapshot and source-write readback. Verify withheld folder revisions returned by the current list.",
-            "Preserve the native folder staging capacity and worker deadlines, let a user stop waiting, and discard late replies. Reuse bounded pre-admission retry for private background reads and count only admitted snapshots as state proofs.",
-            "Withhold the staged comparison until its latest focus generation has a confirmed revision access read. Keep the UI's natural private correction journey independent from the deliberately contended read.",
-            "Keep unpublished choices with their staged review and retain the prepared digest only for those decisions. Visibility rechecks hide the comparison without discarding authorized choices.",
-            "Correlate the test-only status gate with the designated Rust request. Keep durable selection and readback semantics separate from proof admission and fixture diagnostics.",
-            "Withhold a revision on an ambiguous source-row error and reopen its visibility only after confirmed access from its status operation. Preserve durable revocation, access decisions, the selection and its undo.",
-            "A dialog-only branch could repair CSV refresh but would leave provider dispatch and temporary-only eligibility in individual callers. Route status verification and current-page rechecks through the existing profile access owner. The dialog supplies the page identity and stops scheduling obsolete page reads. An admitted status can settle with the profile subject to the owner's existing revocation and supersession fences.",
-            "Directly refactor the profile access owner to track state and requests by publication kind and revision ID on a shared serial status lane. Check the current page lifetime before dispatching queued work and let an issued read settle against its own profile state. Return the observed access outcome to the dialog, preserving the changed-workspace guard. Extending the split paths would require parallel scheduling and failure classification in the dialog and watcher. A full replacement would discard unrelated focus, selection and chart guards while the existing native replies can express the observed outcomes.",
-            "Qualify the Windows interaction through the compiled application with local synthetic publications. Capture native admission separately from controlled row interruption and late reply delivery.",
-            "Configure the test binary's WebView2 debugging through the native environment options. Prepare a disposable private profile through the supported storage entry and give the seed bridge and native test overlay the same ordinary absolute path. Collect the allocated endpoint, owned process facts and first typed storage reply, and stage only bounded synthetic observations and the matching fixture executable.",
-            "Share the original native startup deadline between endpoint discovery and listener ownership. Bind a passing native check to the catalog host, digest-bound observation and matching executable. Preserve genuine omitted results and verified artifacts available from an unsuccessful check, and clean up incomplete staged files.",
-            "Decode browser HTTP success and error as exclusive outcomes in their shared entry. Report invalid output before availability or retry can consume it.",
-            "Extend the existing native admission detail to workspace snapshots at the writer lock and consume it in the shared native snapshot exchange. The completed storage error keeps its original fields, and the retry budget, browser HTTP handling and stored data retain their existing behavior."
-          ],
-          "data_plan": "Only synthetic profiles, chart values and source rows in the local scoped checks.",
-          "cleanup": "Release delayed test replies, close both owned windows and bridges, remove test profiles, and retain original red and green evidence."
-        }
-      },
-      "diagnostic_reports": [
-        {
-          "run_id": "20261125T180605.452785Z-ff5c1439",
-          "source_commit": "1a7cec7c3043bb3a061b81dd89a58d84487b25d4",
-          "report_sha256": "ec13514b46a70cbec55dac1f91936a0689e1742e8dd9616ac48d49ed517cb6c3"
-        },
-        {
-          "run_id": "20261125T180528.899232Z-5b935db9",
-          "source_commit": "265703a505f9bba6161d3cd9378f0639b79d8d20",
-          "report_sha256": "a168cedfd2a8772d89eab3fe9c982881445074ee638a0cfbfa72e84a6b08d5d2"
-        },
-        {
-          "run_id": "windows-change-45671281695-1",
-          "source_commit": "265703a505f9bba6161d3cd9378f0639b79d8d20",
-          "report_sha256": "c6947b6ce7f6e55a8cf84975b0254b473e152592315493dd06f2090bd5783e9f"
-        },
-        {
-          "run_id": "20261125T201234.860341Z-bd5fbdf1",
-          "source_commit": "b19c3dfd0d858f28cd532daf699c09fe7936fb79",
-          "report_sha256": "2dd69813fe0ef21881ef3f649c89cad3d5eb06eca4b217d6ed7cfd42e674f133"
-        },
-        {
-          "run_id": "20261125T201214.312321Z-a6291ef7",
-          "source_commit": "b19c3dfd0d858f28cd532daf699c09fe7936fb79",
-          "report_sha256": "6f9657e07bab71b55b5c8f91b5ec844ec449b5df13c4fddee2048383013c2ed9"
-        },
-        {
-          "run_id": "windows-change-45692309700-1",
-          "source_commit": "6a097e2e65900cc1d8e7afb5340189d4a09ea221",
-          "report_sha256": "5bcff0e3f345072560b5a0c3e3bd9a71536fd73c078763545f12e7768010f7ac"
-        },
-        {
-          "run_id": "20261125T221034.872882Z-387c0f0c",
-          "source_commit": "eae2188a610bfb81fdeaf856fbd6e87ca692c6e2",
-          "report_sha256": "638d18e1a7bc190e5707d16db44a6449f9ba00d4fe28c2d06e5db3263a63c795"
-        },
-        {
-          "run_id": "20261125T220930.388882Z-6cb98800",
-          "source_commit": "e3023767eed6ddce2b75a6deb5b93bf02e8361ac",
-          "report_sha256": "af1545cce345c6977bce81aa808e99db601ca1ae934c0f6fea498943bb65f44c"
-        },
-        {
-          "run_id": "20261126T041510.475356Z-783b4a68",
-          "source_commit": "359e33231892432813493958b580ee25aaf94a5f",
-          "report_sha256": "50a6f67204b2254c992af9266ee45b3966d11148932d457233bc442bfb95f808"
-        },
-        {
-          "run_id": "20261126T063522.897871Z-dc6a197c",
-          "source_commit": "c20a81c462de641e82dd6358dbfea2a0c99f2a4b",
-          "report_sha256": "0910e9959c98c0c40bef3493373b6d6d92ca5b49378e2db5e3a5565448fe3db5"
-        },
-        {
-          "run_id": "20261126T132144.208214Z-e6b6c2d4",
-          "source_commit": "07424b3955546ae6ff1c8302caca024a235d1bba",
-          "report_sha256": "281f9a11fed3d407ea81479b0d20f093c4bedd1ce3db47e143c3a87c1e573583"
-        },
-        {
-          "run_id": "20261126T132212.486758Z-cbf7c751",
-          "source_commit": "07424b3955546ae6ff1c8302caca024a235d1bba",
-          "report_sha256": "a7b2db876efc08093f0c5c35b797bf555163695e194574f9424f2656cf754e59"
-        },
-        {
-          "run_id": "20261126T153128.336568Z-724640e5",
-          "source_commit": "59c203f6a2f9f076a4b773a2e73fbfeba30a98bb",
-          "report_sha256": "5ed8b51da0d9bdbe6ae3929864a9bec1ac7bd1e64e3801bd32f0cf3e7a530dd6"
-        },
-        {
-          "run_id": "20261126T153034.442149Z-aa4768ab",
-          "source_commit": "59c203f6a2f9f076a4b773a2e73fbfeba30a98bb",
-          "report_sha256": "98fe8762aa22d1294379b8c1c9f805c83ff385d38480d209405ef4d13aec20fe"
-        }
-      ]
-    },
-    {
       "id": "M0-162",
       "milestone": "M0",
       "title": "Recover and retire completed owned Herdr assignments from a fresh checkout",
@@ -28826,6 +28707,244 @@
           ],
           "data_plan": "Only synthetic fixtures are in use. Preserve the public operation and storage contracts.",
           "cleanup": "Remove any duplicated temporary observation path after confirming the adopted narrow handling. Retain the diagnostic originals and regression cases."
+        }
+      }
+    },
+    {
+      "id": "M0-161",
+      "milestone": "M0",
+      "title": "Route the coordinator to the accepted maintenance engagement from ordinary startup",
+      "status": "done",
+      "depends_on": [
+        "M0-158"
+      ],
+      "scope": [
+        "scripts/development.py",
+        "scripts/project.py",
+        "tests/project/test_development.py",
+        "tests/project/test_delivery.py",
+        "project/evidence",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0030"
+      ],
+      "acceptance": [
+        "On a clean checkout with the two currently open workstreams and an unrelated planned product focus, following the ordinary overview next action recovers their owners, acceptance and next actions without private evidence or conversation memory.",
+        "Preserve higher-priority actionable failures and legitimate ongoing work. An ordinary product checkout without an engagement keeps its existing navigation. One accepted workstream leaves the other actionable, and the ended engagement communicates its stop and permits a later separately authorized product session.",
+        "Exercise default and read-only public CLI navigation, executed continuation commands, missing focus, and relevant routine or urgent controls. Exact-source feedback lookup supports historical records predating scaffold maintenance. Keep the overview concise; preserve the product focus as context.",
+        "With a valid startup ledger and no higher-priority action, the first overview action opens an unassigned major finding linked only to completed work with an open, ended or absent engagement. With no engagement, precedence over an unassigned minor finding is independent of ledger insertion order. The complete feedback destination and handoff preserve the owner stop after both workstreams are accepted while the finding remains inspectable. Later feature work still requires separate owner authorization."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-161-6be0d4e058e4d35a.json",
+          "sha256": "79409043d1f6f8d5c5b4b1573b340a2aa36e48c23400e0cf9881e7fbb0a30ca7"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The independent review approved e69bd4ca85a59130afe6e276391275ec9d9efbc1 after both earlier rejections. The matching Linux task report passed and the retained ordinary and read-only CLI controls followed the first action to its destination, exercised urgent precedence and the owner stop, and recovered historical feedback. Synthetic full acceptance exercised the stop behavior. The repository-cleanup and ongoing-maintenance workstreams remain open. Protected integration remains with the coordinator.",
+      "plan": {
+        "outcome": "A fresh coordinator taking the first displayed action follows the present mandate.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+          "contracts/reviews/task-decisions/M0-161.json",
+          "project/delivery.json",
+          "project/development.json",
+          "scripts/development.py",
+        "scripts/project.py",
+        "tests/project/test_development.py",
+        "tests/project/test_delivery.py"
+        ],
+        "hypotheses": [
+          "The overview computes its first action before considering the engagement. A detached summary presents the correct authority but leaves the fallback action on the unrelated product plan.",
+        "The engagement takes priority over pending assignment, while the major feedback route before the engagement only considers findings linked to active work. This can hide the finding from the first command even when the overview counts it.",
+        "The feedback destination supplies assignment instructions independently of the verified engagement state. The ordinary fallback also discards the severity order already used by unassigned feedback lookup."
+        ],
+        "risks": [
+          {
+          "failure": "A global priority change could hide real critical failures, actual task work, or later authorized product work. A package-managed continuation could break read-only use. Reading the engagement for a historical finding could incorrectly require a policy that did not exist at its source.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+          "failure": "A major finding awaiting assignment can lose its route to engagement handoff or to an earlier minor row when no engagement exists. Following the emitted record command could also instruct a coordinator to assign work after the engagement has ended. Execute the complete destination in both CLI modes and compare open, partially accepted, ended and absent engagements, both insertion orders, and urgent controls.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Restore the prior command-selection implementation and retain explicit engagement handoff and the failing public entry for diagnosis.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/development.py",
+            "scripts/project.py",
+            "tests/project/test_development.py",
+            "tests/project/test_delivery.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/engagement"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/engagement"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/collaboration"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            }
+          ],
+          "non_goals": [
+            "Change product runtime behavior, expand owner authorization, or publish private evidence."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The registered product focus, targeted task contexts, urgent diagnostics, source-bound accepted closures, command quoting and no-engagement behavior."
+          ],
+          "change": [
+            "Route the autonomous coordinator to its applicable next action using existing engagement state and navigation.",
+          "Use the existing unassigned feedback order for navigation and show the same verified owner stop in the feedback destination and handoff. Preserve direct inspection of the finding."
+          ],
+          "data_plan": "Development records only. Keep task originals private and preserve existing product data and permissions.",
+          "cleanup": "Use the supported repository entry for the corrected behavior. Retire superseded local workarounds after matched verification and preserve originals required for audit."
+        }
+      }
+    },
+    {
+      "id": "M0-172",
+      "milestone": "M0",
+      "title": "Give the next development AI the engineering objective and evidence at handoff",
+      "status": "done",
+      "depends_on": [
+        "M0-161"
+      ],
+      "scope": [
+        "scripts/development.py",
+        "scripts/project.py",
+        "project/delivery.json",
+        "tests/project/test_development.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0030"
+      ],
+      "acceptance": [
+        "From the normal maintenance handoff, a fresh development AI can state the purpose of sustained high-quality implementation and iteration, identify an already accepted engineering capability and the evidence for it, and distinguish the next outstanding decision from the overall objective. The initial observation and results remain attributable to their own sources.",
+        "Use the existing checkout sources and delivery path. The concise overview continues to route a user to the applicable action. The underlying engineering decision and accepted history remain recoverable, and completion of both workstreams retains the existing stop."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-172-cda8949b4b590c45.json",
+          "sha256": "5554f766859851184d02b2454388c48faf447b5500d269fcd28b337b7f449833"
+        },
+        {
+          "path": "project/evidence/M0-172-b26b6d22823bb30d.json",
+          "sha256": "d3fa4f49b038885ecb7f2f6c1993a6c49c37710006387efdb506c7c767f0769a"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Scoped pre-integration qualification of the engineering-quality handoff. On cf795dd4694a6c54db70ec9f336d9ee373f201c2, independent reviewer t1cq used ordinary read-only startup and handoff and directly recovered the sustained engineering objective, the accepted M0-163 example, and the distinct open timing decision for run 45838575346. The first-test rule and receipts were available through follow-up lookups. The exact M0-133 timing decision requires the retained PR 145 history. Independent reviewer t1cs approved the M0-161 routing composition, including the ordinary and read-only urgent route and the stop after both workstreams are accepted. First ordinary PR 134 run 45941621830 passed both required checks and all six named public navigation controls on Linux and Windows on preview 9b948290de688a22c3eb8be1d961e12a2d2db572, whose tree matched submitted head a8e9118ec3c97c70b6cd9ae0a79976f1a20fe3fa. The Linux aggregate reported omissions outside this task. Both engagement workstreams remain open. Protected integration acceptance and actual due periodic follow-through remain pending.",
+      "plan": {
+        "outcome": "The receiving development AI gets enough precise context at the point of handoff to explain the engineering objective and act on its current state.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+          "project/delivery.json",
+          "project/development.json",
+          "scripts/development.py",
+          "scripts/project.py",
+          "tests/project/test_development.py"
+        ],
+        "hypotheses": [
+          "Both the protected handoff and the proposed navigation repair give the timing follow-up without projecting the existing authoritative overall purpose. This favors interpreting the next check as the whole outcome."
+        ],
+        "risks": [
+          {
+            "failure": "Duplicated summaries could drift from the owner decision or represent an accepted example or a pending native or calendar observation as proof of long-term engineering quality.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Restore the preceding handoff projection and current next action if it obscures source ownership, scope or the established stop.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/development.py",
+            "scripts/project.py",
+            "project/delivery.json",
+            "tests/project/test_development.py"
+          ],
+          "rules": [
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/1"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/engagement"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/evolution"
+            }
+          ],
+          "non_goals": [
+            "New product work, a reporting system, repeated status broadcasts, changes to the historical owner decision, or a guarantee of future engineering quality."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Authoritative owner terms, accepted historical task definitions and review evidence, supported startup and handoff routes, and the two-outcome stop."
+          ],
+          "change": [
+            "Carry the actual objective into the existing handoff and make relevant completed evidence and the immediate open work findable at the decision point."
+          ],
+          "data_plan": "Development control records only. The public entry uses checkout sources; private transcripts and product data remain on their existing paths.",
+          "cleanup": "Use the same existing source and command. Check the ordinary and read-only routes and remove unnecessary duplicate instructions introduced by this change."
         }
       }
     },
@@ -29259,6 +29378,125 @@
           ],
           "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
           "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
+        }
+      }
+    },
+    {
+      "id": "M0-171",
+      "title": "Recover Windows handoff fixture preparation after its subprocess deadline",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-147"
+      ],
+      "scope": [
+        "tests/ubuntu-preview",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain the failed first-attempt native test, the previously passing protected comparison and the current same-fixture control. Name the failing preparation phase and preserve any unknown inner stage.",
+        "Use the existing fixture at its normal entry to distinguish successful preparation from real expiration or interruption. Preserve its established comparison outcomes, bounded diagnostics and cleanup. Correct the verified cost or fixture isolation issue once.",
+        "Obtain independent review and retain a native Windows run of the ordinary handoff scenario on the repaired source, then verify the integrated revision."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-171-e321cc9ce9f14d5a.json",
+          "sha256": "6c92ba4502f42cea3b2ae2d4a9b50962b74683d33f1a02a13e32ad23474d044b"
+        },
+        {
+          "path": "project/evidence/M0-171-16a14bd6ef14ef60.json",
+          "sha256": "400f80c1958d449d4637a062c2ce53a2434a11532568777b8de3b70f4c6cf715"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45933801256-1",
+          "source_commit": "4c6907e67c50eadfa95308b46594f92722e2490b",
+          "report_sha256": "2b4e4c9dce03a68efcfe32ed9dd49a0efdb48287a8f9a9195f55c689d4cb0657"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Scoped pre-integration qualification passed. Independent approval of 6074628d8343c1e7b70dd084c53e3901ac896c04 applies to ddd83e28f7ff37366912a4f70aeae67824c61137 with its review records. Guarded PR 146 run 45941768345 passed environment and every task check on Linux and Windows. The workspace suites passed 100 Linux and 99 Windows cases with two Windows skips for POSIX signal behavior. Both passed bounded preparation and cleanup, interruption before comparison, deadline expiry and the ordinary private launcher. Ordinary PR 146 run 45939423128 passed the Windows workspace suite on preview 2c2dc471d5a9339e0278ea5de2b41bd672c31c8b. It recorded 1988 ms for setup compilation and 1818 ms for native preparation, including 14 ms to load the helper and 1544 ms for the matrix. The earlier protected pass and same-fixture Windows controls are retained with the original PR 123 failure. The historical last internal stage and cause of the elapsed time remain unknown. The ordinary aggregate retains a separate cold market-recovery failure assigned to M0-173 and PR 147. The coordinator owns reconciliation with protected main and retention of the first integrated Windows workspace result.",
+      "plan": {
+        "outcome": "Retain the failed first-attempt native test, the previously passing protected comparison and the current same-fixture control. Name the failing preparation phase and preserve any unknown inner stage. Use the existing fixture at its normal entry to distinguish successful preparation from real expiration or interruption. Preserve its established comparison outcomes, bounded diagnostics and cleanup. Correct the verified cost or fixture isolation issue once.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.setup.mjs",
+          "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+          "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.cs",
+          "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.ps1",
+          "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "project/checks.json",
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json"
+        ],
+        "hypotheses": [
+          "The first PR 123 attempt exhausted the leaf matrix preparation subprocess deadline before the 24 native file comparisons. The protected run and two contemporary Windows controls completed the same case. Their 8646, 7374 and 7668 ms observations and the failed 15362 ms observation cover the whole case. Startup, helper compilation, matrix work and host contention remain separate possibilities for the historical expiration."
+        ],
+        "risks": [
+          {
+            "failure": "Hiding the failed setup or accepting partial preparation would falsely pass the scenario; unbounded diagnostic retries would distort its cost.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Restore the preceding implementation and retain the diagnosed failures and controls if the ordinary contract changes.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.setup.mjs",
+            "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+            "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.ps1",
+            "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/0"
+            }
+          ],
+          "non_goals": [
+            "Keep adjustments inside development verification of disposable synthetic fixtures. Preserve production authorization, user data, established permission checks, native result meanings and existing product behavior."
+          ],
+          "open_questions": [
+            "Which preparation milestones and timings are observed by the next ordinary Windows job? The first attempt emitted no inner milestone."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Keep adjustments inside development verification of disposable synthetic fixtures. Preserve production authorization, user data, established permission checks, native result meanings and existing product behavior."
+          ],
+          "change": [
+            "Compile the existing C# fixture helper once in Windows workspace setup and load its run-owned assembly during ordinary leaf calibration. Record bounded phase timings and exercise an interrupted calibration before any native file comparison."
+          ],
+          "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
+          "cleanup": "Delete the assembly with the owned workspace run directory and preserve exclusive leaf fixture ownership and cleanup. Retain the original failed job and passing comparisons."
         }
       }
     },
