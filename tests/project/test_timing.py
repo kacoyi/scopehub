@@ -590,6 +590,29 @@ class HostedTimingTests(unittest.TestCase):
         self.assertTrue(timing.valid_clock(overflow))
         check([overflow], (None, 695, 10), True)
 
+    def test_split_runner_work_uses_only_feasible_producer_finishes(self):
+        run = hosted_run()
+        jobs = self.split_windows_jobs()
+        python = jobs[3]
+        official = timing.hosted_timing(run, jobs)
+        report = split_harness_report(675)
+        report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(official))), 'checkout_sha': 'a' * 40}
+        sample = timing.report_sample(report)
+
+        for finish, runner, workflow_runner in (('12:09', 1687, 2187), ('12:08', None, None)):
+            with self.subTest(finish=finish):
+                alternate = dict(python, completed_at=f'2026-11-20T00:{finish}Z')
+                grouped = timing.hosted_timing(run, [alternate, *jobs])
+                individual = timing.hosted_timing(run, [*jobs[:3], alternate, jobs[-1]])
+                windows, = [row for row in grouped['jobs'] if row['platform'] == 'Windows']
+                self.assertEqual((765, runner, 695),
+                                 tuple(windows['seconds'][field] for field in ('total', 'runner', 'harness_step')))
+                self.assertEqual(workflow_runner, grouped['workflow']['runner_work_seconds'])
+                for clocks in ([grouped], [official, individual], [individual, official]):
+                    windows, = timing.timing_view([sample], hosted=clocks)['samples']
+                    self.assertEqual((765, runner, 695),
+                                     tuple(windows['seconds'][field] for field in ('total', 'runner', 'harness_step')))
+
     def test_recent_collection_only_credits_received_qualified_platform_report(self):
         run = hosted_run()
         jobs = self.split_windows_jobs()
@@ -628,6 +651,121 @@ class HostedTimingTests(unittest.TestCase):
                     collected = view['recent_collection']['collected_samples']
                     receipt = timing.platform_report_receipt(full, timing.report_input_sha256(full))
                     self.assertEqual([receipt] if eligible else [], collected)
+
+    def test_recent_reads_independent_jobs_without_a_current_compact_report(self):
+        run = hosted_run()
+        clock = timing.hosted_timing(run, self.split_windows_jobs())
+        report = split_harness_report(675)
+        report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(clock))), 'checkout_sha': 'a' * 40}
+        windows = timing.report_sample(report)
+        linux = split_linux_sample(windows)
+        for history, acquired, available in (
+            ([], [], True), ([linux, windows], [], True), ([], [linux, windows], True), ([], [], False),
+        ):
+            with (self.subTest(history=bool(history), acquired=bool(acquired), jobs_available=available),
+                  tempfile.TemporaryDirectory() as folder):
+                path = Path(folder) / 'weekly.json'
+                args = ['timing.py', '--recent', '1', '--github-actions', '--save', str(path)]
+                if history:
+                    prior = path.with_name('prior.json')
+                    timing.save_review_archive(prior, {'kind': timing.ARCHIVE_KIND, 'samples': history, 'hosted': []})
+                    args.extend(('--report', str(prior)))
+                output = StringIO()
+                with (patch.object(sys, 'argv', args), redirect_stdout(output),
+                      patch.object(timing, 'local_paths', return_value=[]),
+                      patch.object(timing, 'timing_directories', return_value=()),
+                      patch.object(timing, 'hosted_repository', return_value='fixture/scopehub'),
+                      patch.object(timing, 'collection_source', return_value='c' * 40),
+                      patch.object(timing, 'recent_runs', return_value=[run]),
+                      patch.object(timing, 'download_timing', return_value=acquired),
+                      patch.object(timing, 'inspect_jobs', return_value=clock,
+                                   side_effect=None if available else timing.TimingError('Job listing unavailable.')) as jobs):
+                    timing.main()
+                jobs.assert_called_once_with(run, 'fixture/scopehub')
+                reopened = StringIO()
+                with patch.object(sys, 'argv', ['timing.py', '--report', str(path)]), redirect_stdout(reopened):
+                    timing.main()
+                for contents in (output.getvalue(), reopened.getvalue()):
+                    result = json.loads(contents)
+                    collection = result['recent_collection']
+                    self.assertEqual([] if acquired else ['11'], collection['missing_compact_run_ids'])
+                    self.assertEqual(2 if acquired else 0, len(collection['collected_samples']))
+                    if available:
+                        observed, = result['hosted']
+                        windows_job, = [row for row in observed['jobs'] if row['platform'] == 'Windows']
+                        self.assertEqual((765, 1687, 695), tuple(
+                            windows_job['seconds'][field] for field in ('total', 'runner', 'harness_step')))
+                    else:
+                        self.assertEqual([], result['hosted'])
+                        self.assertTrue(any(issue.get('source') == 'attempt_jobs'
+                                            and issue['error'] == 'Job listing unavailable.'
+                                            for issue in result['input_issues']))
+
+    def test_cold_reopen_selects_the_latest_collection_in_either_order(self):
+        run = hosted_run()
+        clock = timing.hosted_timing(run, self.split_windows_jobs())
+        report = split_harness_report(675)
+        report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(clock))), 'checkout_sha': 'a' * 40}
+        compact = timing.report_sample(report)
+        receipt = timing.platform_report_receipt(compact, timing.report_input_sha256(compact))
+        first = '2026-11-27T09:17:38+00:00'
+        last = '2026-11-27T09:17:40+00:00'
+        genuine = {'collected_at': first, 'capture_source': 'c' * 40, 'limit_per_event': 12,
+                   'completed_runs_considered': 1, 'unsuccessful_runs': 0, 'runs_with_compact': 1,
+                   'runs_without_compact': 0, 'missing_compact_run_ids': [],
+                   'collected_samples': [receipt], 'cold_bootstrap': False}
+        missing = {**genuine, 'collected_at': last, 'runs_with_compact': 0, 'runs_without_compact': 1,
+                   'missing_compact_run_ids': ['11'], 'collected_samples': [], 'cold_bootstrap': True}
+
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+
+            def save(name, collection, *, samples=(compact,)):
+                path = root / name
+                timing.save_review_archive(path, {'kind': timing.ARCHIVE_KIND, 'samples': list(samples),
+                                                   'hosted': [clock], 'recent_collection': collection})
+                return path
+
+            def reopen(*paths, save_to=None):
+                argv = ['timing.py', *(arg for path in paths for arg in ('--report', str(path)))]
+                if save_to:
+                    argv += ['--save', str(save_to)]
+                with patch.object(sys, 'argv', argv), redirect_stdout(StringIO()) as stdout:
+                    timing.main()
+                return json.loads(stdout.getvalue())
+
+            old = save('old.json', genuine)
+            new = save('new.json', missing)
+            empty = save('empty.json', missing, samples=())
+            tied = save('tied.json', dict(missing, collected_at=first))
+            undated = save('undated.json', dict(missing, collected_at=None))
+            alternate_offset = save('offset.json', dict(genuine, collected_at='2026-11-27T10:17:38+01:00'))
+            combined = root / 'combined.json'
+            self.assertEqual([receipt], reopen(old, old)['recent_collection']['collected_samples'])
+            for ordered in ((old, alternate_offset), (alternate_offset, old)):
+                self.assertEqual(genuine, reopen(*ordered)['recent_collection'])
+            for inputs, when, uncertain in [
+                ((old, new), last, False), ((alternate_offset, new), last, False),
+                ((old, tied), first, True), ((old, undated), None, True),
+            ]:
+                for ordered in (inputs, inputs[::-1]):
+                    with self.subTest(ordered=[path.name for path in ordered]):
+                        view = reopen(*ordered)
+                        collection = view['recent_collection']
+                        self.assertEqual((when, [], uncertain), (
+                            collection['collected_at'], collection['collected_samples'],
+                            collection.get('collection_order_uncertain', False),
+                        ))
+                        objective, = view['objective_reviews']
+                        self.assertEqual(765, objective['recent_median_seconds'])
+                        self.assertFalse(collection.get('cold_bootstrap', False))
+                        summary = timing.review_summary(view)
+                        self.assertIn('current collection uncertain' if uncertain else 'No compact reports were acquired', summary)
+                        self.assertIn('recent median 765s', summary)
+            selected = reopen(old, tied, save_to=combined)['recent_collection']
+            self.assertEqual(selected, reopen(combined)['recent_collection'])
+            self.assertEqual(last, reopen(combined, new)['recent_collection']['collected_at'])
+            self.assertTrue(reopen(empty)['recent_collection']['cold_bootstrap'])
 
     def test_recent_collection_requires_original_layout_and_publishing_qualification(self):
         run = hosted_run()

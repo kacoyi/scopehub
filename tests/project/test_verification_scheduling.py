@@ -718,6 +718,7 @@ class WindowsLaneTests(ProjectFixture):
             (dict(report, selection=dict(report['selection'], checks=['python-contracts-workers'])), 'selection'),
             (dict(report, checks=list(reversed(report['checks']))), 'different check result catalog or order'),
             (dict(report, environment=dict(report['environment'], system='Linux')), 'platform'),
+            (dict(report, status='failed'), 'summary differs from its selected check results'),
         ):
             with self.subTest(error=error):
                 for path in (original, per_run):

@@ -134,7 +134,7 @@ def windows_published_scope(selected, profile, lanes, catalog, *, assignment=WIN
     return bool(expected) and len(selected) == len(expected) and set(selected) == expected
 
 
-def windows_result_issue(rows, selected, catalog):
+def windows_result_issue(rows, selected, catalog, *, recovery_interruptions=()):
     """Check the ordered results common to a native report and its timing projection."""
     checks = catalog['checks']
     if [row['id'] for row in rows] != [check['id'] for check in checks]:
@@ -154,10 +154,11 @@ def windows_result_issue(rows, selected, catalog):
                      and type(measured) in (int, float) and 0 <= measured <= timedelta.max.total_seconds())
         elif state == 'blocked':
             valid = ((reason in {'earlier_failure', 'executable_unavailable'} and omitted)
-                     or (reason == 'observation_unavailable' and code == 77))
+                     or (reason == 'observation_unavailable' and code == 77)
+                     or (reason == 'interrupted_before_start' and key in recovery_interruptions and omitted))
         else:
             valid = (state == 'failed' and (type(code) is int and code != 0 or reason in {
-                'timeout', 'interrupted', 'cleanup_failed', 'missing_acceptance_evidence',
+                'timeout', 'interrupted', 'launch_error', 'cleanup_failed', 'missing_acceptance_evidence',
             }))
         if not valid:
             return f'an unexpected result for {key}'

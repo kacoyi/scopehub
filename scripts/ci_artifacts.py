@@ -22,7 +22,7 @@ if __package__:
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, release_artifacts, validate_notice,
     )
-    from .verification_report import report_observation_issue
+    from .verification_report import report_observation_issue, windows_publisher_status_issue
     from .verification_scope import (
         SCOPED_PROFILES, WINDOWS_LANES, ci_base, ci_event_checkout, require_ancestor,
         windows_lane_checks, windows_lane_report_matches, windows_lanes_run_id, windows_published_scope,
@@ -41,7 +41,7 @@ else:
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, release_artifacts, validate_notice,
     )
-    from verification_report import report_observation_issue
+    from verification_report import report_observation_issue, windows_publisher_status_issue
     from verification_scope import (
         SCOPED_PROFILES, WINDOWS_LANES, ci_base, ci_event_checkout, require_ancestor,
         windows_lane_checks, windows_lane_report_matches, windows_lanes_run_id, windows_published_scope,
@@ -425,11 +425,9 @@ def validate_windows_lane(project, report, source, ci, selected, lane, profile):
         raise PublicationError(f'Windows {lane} lane has {issue}.')
     if issue := windows_result_issue(report['checks'], selected, project['catalog']):
         raise PublicationError(f'Windows {lane} lane has {issue}.')
-    if profile in SCOPED_PROFILES:
-        statuses = {row['status'] for row in report['checks'] if row['id'] in selected}
-        expected = 'failed' if 'failed' in statuses else 'passed' if statuses == {'passed'} else 'blocked'
-        if report['status'] != expected:
-            raise PublicationError(f'Windows {lane} lane summary differs from its selected check results.')
+    if profile != 'full' and windows_publisher_status_issue(
+            report['status'], report['checks'], selected, project['catalog'], scoped=profile in SCOPED_PROFILES):
+        raise PublicationError(f'Windows {lane} lane summary differs from its selected check results.')
 
 
 def matching_lane_timing(incoming, report):

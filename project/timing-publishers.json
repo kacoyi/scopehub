@@ -384,7 +384,8 @@
       "split_recovery_checks": [
         "desktop-localization",
         "market-workflow"
-      ]
+      ],
+      "split_recovery_interruptions": true
     },
     "5648ea33cf0947f371e8dce58d1526b5c3997755bb66a2d48170b5cd5671992b": {
       "sources": [
@@ -397,6 +398,16 @@
       ],
       "split_recovery_checks": [
         "market-workflow"
+      ]
+    },
+    "442265a1b0d513a1e6ab69a10664f1626b2d0885f9b750ea71e7fa3180a36e0e": {
+      "sources": [
+        "4d17dff0d0c82df10a05a7339fda219a0a3d2bf8"
+      ],
+      "assignment": "lanes-1",
+      "run_observations": "session-and-external-clients",
+      "catalogs": [
+        "6aea6efed8165bd008535f415cb7aec35b8d5fb8510849d9d1610874885cb480"
       ]
     }
   }

@@ -6,6 +6,11 @@ import re
 
 WINDOWS_PYTHON_CHECK = 'python-contracts-workers'
 WINDOWS_PYTHON_PART_LANES = ('python', 'recovery')
+WINDOWS_LANE_FAILED = 'At least one Windows lane job did not succeed.'
+WINDOWS_RECOVERY_INTERRUPTED = 'The Windows recovery lane was interrupted.'
+WINDOWS_PYTHON_PROCESS_REASONS = {
+    'timeout', 'interrupted', 'launch_error', 'cleanup_failed', 'missing_acceptance_evidence',
+}
 SESSION_CHECKS = {
     'configured-model-session': ('configured_models', 'text'),
     'configured-voice-session': ('configured_models', 'voice'),
@@ -90,7 +95,23 @@ def archived_windows_python_lanes(profile):
     return (lane,) if lane in WINDOWS_PYTHON_PART_LANES else ()
 
 
-def archived_windows_python_issue(report, lanes, retained_producers):
+def windows_publisher_status_issue(status, checks, selected, catalog, *, scoped=False, auxiliary_failure=False):
+    """Compare a report verdict with the checks and any independently scheduled work."""
+    if status is None:
+        return None
+    selected = set(selected)
+    applicable = {row['id'] for row in catalog['checks'] if row['id'] in selected
+                  and (scoped or row['status'] == 'implemented')}
+    outcomes = {'failed' if row.get('reason_code') == 'interrupted_before_start' else row['status']
+                for row in checks if row['id'] in applicable}
+    expected = ('failed' if 'failed' in outcomes or auxiliary_failure is True else
+                'blocked' if 'blocked' in outcomes else 'passed')
+    if status != expected and not (status == 'failed' and auxiliary_failure is None):
+        return 'a publisher status that contradicts its check results and Python parts or lane outcomes'
+    return None
+
+
+def archived_windows_python_issue(report, lanes, retained_producers, catalog):
     """Check source-qualified report metadata before the compact timing projection drops it."""
     parts = report.get('windows_python', {})
     producers = report.get('windows_producers', {})
@@ -108,11 +129,17 @@ def archived_windows_python_issue(report, lanes, retained_producers):
         return 'Windows Python parts that differ from the publishing lane'
 
     intervals = []
-    for lane, part in parts.items():
+    for lane in lanes:
+        part = parts[lane]
         label = f'windows-python-{lane}'
         command = [report['environment']['python_executable'], 'scripts/windows_python.py', lane]
         if (not isinstance(part, dict) or part.get('id') != label or part.get('command') != command
                 or part.get('status') not in ('passed', 'failed', 'blocked')
+                or part.keys() - {'id', 'command', 'status', 'reason_code', 'reason', 'exit_code', 'log',
+                                  'log_sha256', 'started_at', 'duration_seconds', 'manifest_sha256',
+                                  'producer_report_sha256'}
+                or any(not isinstance(part[key], str) or not part[key] for key in ('reason', 'reason_code')
+                       if key in part)
                 or ('producer_report_sha256' in part) != full
                 or any(not digest(part[key]) for key in ('producer_report_sha256', 'manifest_sha256', 'log_sha256')
                        if key in part)):
@@ -138,18 +165,30 @@ def archived_windows_python_issue(report, lanes, retained_producers):
             except (TypeError, ValueError, KeyError, OverflowError):
                 return 'an invalid Windows Python process interval'
             intervals.append((start, end))
-        elif (reason not in ('earlier_failure', 'executable_unavailable')
+            if part['status'] == 'blocked' or (reason is not None and reason not in WINDOWS_PYTHON_PROCESS_REASONS):
+                return 'an invalid Windows Python process outcome'
+        elif ((part['status'], reason) not in {('failed', 'earlier_failure'), ('blocked', 'executable_unavailable')}
               or {'started_at', 'duration_seconds', 'exit_code', 'log_sha256', 'manifest_sha256'} & part.keys()):
             return 'unavailable Windows Python process evidence'
         if passed and (code != 0 or reason is not None or 'manifest_sha256' not in part):
             return 'an incomplete passing Windows Python part'
-        if not passed and (report['status'] == 'passed' or (code == 0 and not reason)):
+        if not passed and ('log' in part and code in (None, 0) and reason is None):
             return 'a Windows Python part failure without a corresponding report result'
 
     if full and lanes:
-        elapsed = (max(end for _, end in intervals) - min(start for start, _ in intervals)).total_seconds() if intervals else 0
+        elapsed = round((max(end for _, end in intervals) -
+                         min(start for start, _ in intervals)).total_seconds(), 3) if intervals else 0
+        failed_part = next((parts[lane] for lane in lanes if parts[lane]['status'] != 'passed'), None)
+        check = next(row for row in catalog['checks'] if row['id'] == WINDOWS_PYTHON_CHECK)
+        timeout = check.get('windows_timeout_seconds', check['timeout_seconds'])
+        if failed_part is not None:
+            verdict = ('failed', failed_part.get('exit_code', 1), failed_part.get('reason_code'))
+        elif elapsed > timeout:
+            verdict = ('failed', None, 'timeout')
+        else:
+            verdict = ('passed', 0, None)
         combined = [row for row in report['checks'] if row['id'] == WINDOWS_PYTHON_CHECK]
-        if (len(combined) != 1 or combined[0].get('duration_seconds') != round(elapsed, 3)
-                or (combined[0]['status'] == 'passed' and any(part['status'] != 'passed' for part in parts.values()))):
+        if (len(combined) != 1 or combined[0].get('duration_seconds') != elapsed
+                or tuple(combined[0].get(key) for key in ('status', 'exit_code', 'reason_code')) != verdict):
             return 'a Windows Python aggregate measurement that differs from its parts'
     return None

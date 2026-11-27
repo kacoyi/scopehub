@@ -47,6 +47,13 @@ class ArchivedSplitPublisherTests(unittest.TestCase):
             self.assertFalse(sample['coverage_complete'])
             self.assertFalse(timing.native_report_issue(sample, None, []))
             self.assertTrue(timing.native_report_issue(dict(sample, selected=['python-contracts-workers']), None, []))
+            with self.assertRaisesRegex(timing.TimingError, 'publisher status.*its check results and Python parts'):
+                timing.input_report_sample(dict(report, status='failed'))
+            failed = deepcopy(report)
+            failed['status'] = 'failed'
+            failed['windows_python']['python'].update(status='failed', exit_code=1)
+            failed_sample = timing.input_report_sample(failed)
+            self.assertFalse(timing.native_report_issue(failed_sample, None, []))
             with self.assertRaisesRegex(timing.TimingError, 'differ from the publishing lane'):
                 timing.input_report_sample(dict(report, windows_python={}))
             for key, value, error in (
@@ -66,6 +73,58 @@ class ArchivedSplitPublisherTests(unittest.TestCase):
             with self.assertRaisesRegex(timing.TimingError, 'invalid native harness metadata'):
                 timing.input_report_sample(report)
             self.assertTrue(timing.native_report_issue(sample, None, []))
+
+    def test_split_aggregate_status_is_derived_from_parts_and_historical_timeout(self):
+        catalog = deepcopy(fixtures.SPLIT_CATALOG)
+        check = next(row for row in catalog['checks'] if row['id'] == 'python-contracts-workers')
+        check.update(command=['{python}', '-m', 'unittest', 'discover', '-s', 'tests', '-t', '.',
+                              '-p', 'test_*.py', '-v', '--durations', '0'],
+                     timeout_seconds=10, windows_timeout_seconds=70)
+        fixtures.use_catalog(self, catalog)
+        report = fixtures.split_harness_report(100)
+        report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
+                        'event': 'pull_request', 'head_sha': 'b' * 40, 'checkout_sha': 'a' * 40}
+        fixtures.native_raw_fixture(self, report, catalog)
+        report.update(report_version='2.1', windows_producers={'browser': '1' * 64}, windows_python={})
+        for lane, started in (('python', '00:11:05'), ('recovery', '00:11:20')):
+            part = f'windows-python-{lane}'
+            report['windows_python'][lane] = {
+                'id': part, 'status': 'passed', 'exit_code': 0, 'duration_seconds': 50,
+                'started_at': f'2026-11-20T{started}Z',
+                'command': [report['environment']['python_executable'], 'scripts/windows_python.py', lane],
+                'log': f".reports/runs/{report['run_id']}/{part}.log", 'log_sha256': '3' * 64,
+                'manifest_sha256': '4' * 64, 'producer_report_sha256': '5' * 64,
+            }
+        combined = next(row for row in report['checks'] if row['id'] == check['id'])
+        combined['duration_seconds'] = 65
+        publisher = {'catalogs': {timing.publishing_catalog_digest(catalog)},
+                     'split_recovery_checks': [], 'run_observations': timing.RUN_OBSERVATION_CHECKS}
+        with patch.object(timing, 'committed_windows_publisher', return_value=publisher):
+            self.assertEqual('passed', timing.input_report_sample(report)['report_status'])
+            report['status'] = 'failed'
+            combined.update(status='failed', exit_code=1)
+            with self.assertRaisesRegex(timing.TimingError, 'aggregate measurement.*differs from its parts'):
+                timing.input_report_sample(report)
+            report['windows_python']['recovery'].update(status='failed', exit_code=1)
+            self.assertEqual('failed', timing.input_report_sample(report)['report_status'])
+            report['windows_python']['recovery'].update(status='passed', exit_code=0, duration_seconds=60)
+            combined.update(exit_code=None, reason_code='timeout', duration_seconds=75)
+            self.assertEqual('failed', timing.input_report_sample(report)['report_status'])
+            combined['exit_code'] = 1
+            with self.assertRaisesRegex(timing.TimingError, 'aggregate measurement.*differs from its parts'):
+                timing.input_report_sample(report)
+            part = report['windows_python']['recovery']
+            part.update(status='failed', exit_code=None, reason_code='launch_error')
+            part.pop('manifest_sha256')
+            combined.update(exit_code=None, reason_code='launch_error')
+            launching = timing.input_report_sample(report)
+            self.assertFalse(timing.native_report_issue(launching, None, []))
+            for field in ('started_at', 'duration_seconds', 'exit_code', 'log', 'log_sha256'):
+                part.pop(field)
+            part.update(status='blocked', reason_code='executable_unavailable')
+            combined.update(exit_code=1, reason_code='executable_unavailable', duration_seconds=50)
+            unavailable = timing.input_report_sample(report)
+            self.assertFalse(timing.native_report_issue(unavailable, None, []))
 
 
 class PublicPublisherObservationTests(unittest.TestCase):
@@ -141,6 +200,16 @@ class PublicPublisherObservationTests(unittest.TestCase):
             if row['id'] == 'environment' else row for row in contradicted['checks']
         ], seconds=dict(contradicted['seconds'], check_work=102))
         self.assert_view(self.weekly(self.directory / 'genuinely-blocked.json', blocked), {}, [])
+
+    def test_unsplit_raw_reports_reject_split_publisher_fields(self):
+        original = deepcopy(self.windows_report)
+        original['timing'] = {'elapsed_seconds': 240}
+        fixtures.native_raw_fixture(self, original, fixtures.OLD_FULL_CATALOG)
+        self.assertEqual('passed', timing.input_report_sample(original)['report_status'])
+        for key, value in (('windows_producers', {'browser': 'a' * 64}),
+                           ('windows_python', {})):
+            with self.subTest(field=key), self.assertRaisesRegex(timing.TimingError, 'unexpected Windows'):
+                timing.input_report_sample(dict(original, **{key: value}))
 
     def test_weekly_reopen_reconciles_equivalent_instants_and_preserves_exact_receipts(self):
         self.windows['recorded_at'] = '2026-11-20T00:02:00.683387+00:00'

@@ -26,8 +26,9 @@ if __package__:
     )
     from .verification_report import (
         RUN_OBSERVATION_CHECKS, RUN_OBSERVATION_POLICIES, passed_observation_checks,
-        WINDOWS_PYTHON_CHECK, archived_windows_python_issue, archived_windows_python_lanes,
-        publishing_observation_checks, report_observation_issue,
+        WINDOWS_LANE_FAILED, WINDOWS_PYTHON_CHECK, WINDOWS_RECOVERY_INTERRUPTED,
+        archived_windows_python_issue, archived_windows_python_lanes,
+        publishing_observation_checks, report_observation_issue, windows_publisher_status_issue,
     )
     from .verification_scope import (
         LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit,
@@ -46,8 +47,9 @@ else:
     )
     from verification_report import (
         RUN_OBSERVATION_CHECKS, RUN_OBSERVATION_POLICIES, passed_observation_checks,
-        WINDOWS_PYTHON_CHECK, archived_windows_python_issue, archived_windows_python_lanes,
-        publishing_observation_checks, report_observation_issue,
+        WINDOWS_LANE_FAILED, WINDOWS_PYTHON_CHECK, WINDOWS_RECOVERY_INTERRUPTED,
+        archived_windows_python_issue, archived_windows_python_lanes,
+        publishing_observation_checks, report_observation_issue, windows_publisher_status_issue,
     )
     from verification_scope import (
         LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit,
@@ -454,13 +456,16 @@ def input_report_sample(report):
         if (timestamp(report.get('generated_at')) is None
                 or duration(report.get('timing', {}).get('elapsed_seconds')) is None):
             raise TimingError('Invalid native harness report timing.')
-        if split_assignment is not None:
-            retained = {'browser'} if profile == 'full' and split_assignment['browser'].intersection(
-                selection['checks']) else set()
-            if issue := archived_windows_python_issue(report, parts, retained):
+        if publisher and publisher.get('split_recovery_checks') is not None:
+            bindings = ('browser',) if split_assignment is not None else ('browser', 'recovery')
+            retained = {lane for lane in bindings if profile == 'full'
+                        and assignment[lane].intersection(selection['checks'])}
+            if issue := archived_windows_python_issue(report, parts, retained, catalog):
                 raise TimingError(f'Timing report has {issue}.')
         elif 'windows_python' in report:
             raise TimingError('Timing report has unexpected Windows Python part evidence.')
+        elif 'windows_producers' in report:
+            raise TimingError('Timing report has unexpected Windows producer report bindings.')
         for row in report['checks']:
             reason = row.get('reason_code')
             if reason is not None and not short_label(reason):
@@ -470,10 +475,24 @@ def input_report_sample(report):
                 raise TimingError('Invalid native harness result measurement.')
             if row['status'] == 'blocked' and reason in {
                 'not_selected', 'not_implemented', 'retired', 'earlier_failure', 'executable_unavailable',
+                'interrupted_before_start',
             } and {'exit_code', 'log', 'log_sha256'} & row.keys():
                 raise TimingError('Unexpected execution fields in a blocked native harness result.')
         definition = (publishing_definition(ROOT, revision)
                       if expected_source is not None and assignment is not None else None)
+        if definition is not None:
+            selected = selection['checks']
+            split_run = windows_lane_report_matches(ci, report['run_id'], report['environment'])
+            lane_failed = profile == 'full' and split_run and WINDOWS_LANE_FAILED in report.get('limitations', ())
+            interrupted = WINDOWS_RECOVERY_INTERRUPTED in report.get('limitations', ())
+            if interrupted and ('recovery' not in parts or not publisher.get('split_recovery_interruptions')):
+                raise TimingError('Timing report has an interruption outside its recovery publishing lane.')
+            part_failed = any(report['windows_python'][lane]['status'] != 'passed' for lane in parts)
+            scoped = profile in SCOPED_PROFILES
+            auxiliary_failure = lane_failed or interrupted or part_failed
+            if issue := windows_publisher_status_issue(report['status'], report['checks'], selected, catalog,
+                                                       scoped=scoped, auxiliary_failure=auxiliary_failure):
+                raise TimingError(f'Timing report has {issue}.')
     sample = report_sample(report)
     if native and (definition is None or any(report[key] != value for key, value in definition.items())):
         # Retained compacts cannot recover fields lost by projection. An
@@ -711,6 +730,26 @@ def split_execution_bounds(parent, sources, active):
     return interval_bounds(executions)
 
 
+def split_runner_bounds(parent, sources):
+    # Condition every producer duration on the same aggregate start. Each
+    # producer runs independently once that deadline is fixed.
+    pairs = [job_boundary_choices(source, ('start', 'end')) for source in sources.values()]
+    parents = job_boundary_choices(parent, ('start', 'end'))
+    if not parents or not all(pairs):
+        return None
+    lanes_by_deadline = {
+        deadline: [interval_bounds((start, end) for start, end in lane if end <= deadline) for lane in pairs]
+        for deadline in {start for start, _ in parents}
+    }
+    totals = []
+    for start, end in parents:
+        parent_duration = interval_bounds(((start, end),))
+        bounds = sum_intervals([parent_duration, *lanes_by_deadline[start]])
+        if bounds is not None:
+            totals.append(bounds)
+    return (min(low for low, _ in totals), max(high for _, high in totals)) if totals else None
+
+
 def split_stage_intervals(parent, members, scoped):
     parent = job_endpoint_choices(parent.job) | (parent.order_bounds or {})
     unplaced = unplaced_phases(parent)
@@ -767,13 +806,12 @@ def split_stage_intervals(parent, members, scoped):
             (end, start) for start, choices in viable.items() for end in extrema(choices, max)
         )
         if not viable:
-            blocked.update(('queue', 'harness_step'))
+            blocked.update(('queue', 'harness_step', 'runner'))
     if parent.get('harness_end') and all(sources[lane].get('harness_start') for lane in active):
         stages['harness_step'] = split_execution_bounds(parent, sources, active)
         if stages['harness_step'] is None:
             blocked.add('harness_step')
-    stages['runner'] = sum_intervals([interval_bounds(job_boundary_choices(source, ('start', 'end')))
-                                      for source in (parent, *sources.values())])
+    stages['runner'] = split_runner_bounds(parent, sources)
     return stages, blocked
 
 
@@ -1365,6 +1403,7 @@ class JobClockEvidence(NamedTuple):
     disputed: tuple
     endpoint_disputes: frozenset = frozenset()
     order_bounds: dict | None = None
+    runner_bounds: tuple | None = None
 
 
 class JobClaims(NamedTuple):
@@ -1696,9 +1735,10 @@ def project_listed_clocks(run):
     elif not workflow['windows_recovery_producer']:
         workflow.pop('windows_recovery_producer', None)
     parents = [job for job in run['jobs'] if job['platform'] == 'Windows']
-    if split_windows_clock(clock) and len(parents) == 1:
+    fact = None
+    if split_windows_clock(clock):
         fact = protected_job(evidence, attempt, 'Windows', workflow.get('windows_profile'), [])
-        if fact and fact.job:
+        if fact and fact.job and len(parents) == 1:
             parents[0]['seconds'].update(fact.job['seconds'])
     if attempt not in evidence.complete:
         return
@@ -1708,7 +1748,9 @@ def project_listed_clocks(run):
     if all(totals):
         workflow['total_elapsed_seconds'] = interval_seconds(extrema(totals, max))
     runners = [interval_bounds(job_boundary_choices(job_endpoint_choices(job), JOB_INTERVALS['runner']))
-               for job in (*protected, *siblings)]
+               for job in (*protected, *siblings) if fact is None or job['platform'] != 'Windows']
+    if fact is not None:
+        runners.append(fact.runner_bounds)
     workflow['runner_work_seconds'] = interval_seconds(sum_intervals(runners))
 
 
@@ -1761,7 +1803,8 @@ def project_windows_stages(evidence, attempt, run, fact, profile, issues):
                               'fields': [stage for stage in (*ATTEMPT_SECONDS, *SPLIT_SECONDS) if stage in disputed],
                               'error': 'Conflicting Windows aggregate stage inputs.'})
     disputes = tuple(field for field in (*fact.disputed, *sorted(disputed)) if field not in blocked)
-    return JobClockEvidence({**fact.job, 'seconds': seconds}, disputes, fact.endpoint_disputes)
+    return JobClockEvidence({**fact.job, 'seconds': seconds}, disputes, fact.endpoint_disputes,
+                            runner_bounds=derived['runner'] if seconds['runner'] is not None else None)
 
 
 def protected_profile_matches(run, platform, profile):
@@ -2098,7 +2141,8 @@ def windows_publishing_registry():
     return {
         digest: {'catalogs': program['catalogs'], 'assignment': assignments[program['assignment']],
                  'run_observations': RUN_OBSERVATION_POLICIES[program['run_observations']],
-                 'split_recovery_checks': program.get('split_recovery_checks')}
+                 'split_recovery_checks': program.get('split_recovery_checks'),
+                 'split_recovery_interruptions': program.get('split_recovery_interruptions', False)}
         for digest, program in registry['programs'].items()
     }
 
@@ -2321,8 +2365,21 @@ def native_report_issue(sample, run, issues):
                                                     assignment=split_assignment or assignment)
         if (sample['selected'] == sorted(selected) and (not producer or matching_producer)
                 and scope_matches):
-            result_issue = (windows_result_issue(sample['checks'], selected, catalog)
+            # Compacts omit part outcomes and the aggregate's independent lane
+            # verdict. A recorded failure can depend on that omitted evidence.
+            auxiliary_failure = None if (
+                split_assignment is not None and archived_windows_python_lanes(profile)
+                or profile == 'full' and split_identity
+            ) else False
+            recovery_interruptions = (split_assignment['recovery'] if split_assignment is not None
+                                      and publisher.get('split_recovery_interruptions') else ())
+            result_issue = (windows_result_issue(sample['checks'], selected, catalog,
+                                                 recovery_interruptions=recovery_interruptions)
                             or windows_full_summary_issue(sample, selected, catalog, platform))
+            if not result_issue:
+                result_issue = windows_publisher_status_issue(
+                    sample.get('report_status'), sample['checks'], selected, catalog,
+                    scoped=profile in SCOPED_PROFILES, auxiliary_failure=auxiliary_failure)
             if not result_issue:
                 work, work_complete = report_check_work(sample['checks'])
                 if sample['seconds']['check_work'] != work or sample.get('check_work_complete') is not work_complete:
@@ -3754,7 +3811,7 @@ def update_timing_capture(path, repository, run, identity, samples, hosted):
                 if ci_key(row['ci'] or {}) == identity and row['platform'] in evidence.missing
             ]
         except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
-            issues.append({'run_id': run_id, 'error': f'Could not retrieve compact reports: {error}'})
+            issues.append({'run_id': run_id, 'source': 'compact_reports', 'error': input_error(error)})
     missing_failure_clock = run['conclusion'] != 'success' and not any(
         row['conclusion'] == run['conclusion'] and not row.get('authenticated_failure') for row in evidence.clocks
     )
@@ -3765,7 +3822,7 @@ def update_timing_capture(path, repository, run, identity, samples, hosted):
             if valid_clock(row) and ci_key(row) == identity:
                 new_clocks.append(row)
         except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
-            issues.append({'run_id': run_id, 'error': f'Could not retrieve attempt jobs: {error}'})
+            issues.append({'run_id': run_id, 'source': 'attempt_jobs', 'error': input_error(error)})
     captured = capture_observations(
         identity, [*evidence.samples, *new_samples], [*evidence.clocks, *new_clocks], issues, conclusion=run['conclusion'],
     )
@@ -3927,7 +3984,7 @@ def platform_report_receipts(samples):
 
 def qualified_collected_reports(samples, collection):
     """Use only exact acquired inputs still admitted by the ordinary timing review."""
-    if not collection or not commit_id(collection.get('capture_source')):
+    if not collection or collection.get('collection_order_uncertain') or not commit_id(collection.get('capture_source')):
         return []
     received = collection.get('collected_samples', [])
     if not isinstance(received, list) or len(received) > 192:
@@ -3943,6 +4000,29 @@ def qualified_collected_reports(samples, collection):
     return [matches[key] for key in sorted(matches)]
 
 
+def reconcile_collection_order(previous, observed):
+    """Select by observed chronology, with unresolved ordering preserved across saves."""
+    if not observed:
+        return previous
+    if not previous or previous == observed:
+        return observed
+    before = timestamp(previous.get('collected_at'))
+    after = timestamp(observed.get('collected_at'))
+    if before is not None and after is not None:
+        if before != after:
+            return previous if before > after else observed
+        if {**previous, 'collected_at': observed.get('collected_at')} == observed:
+            return {**previous, 'collected_at': encode_timestamp(before)}
+    # A later capture resolves an equal-time disagreement. Undated evidence
+    # leaves the latest collection uncertain until a new observation is made.
+    return {'collected_at': encode_timestamp(before) if before == after else None,
+            'capture_source': None, 'collection_order_uncertain': True, 'collected_samples': []}
+
+
+def qualified_hosted_history(view):
+    return any(row['event'] in NORMAL_EVENTS and row['sample_count'] for row in view['objective_reviews'])
+
+
 def inspect_recent(repository, limit, samples, workflows, issues):
     source = collection_source(ROOT)
     runs = recent_runs(repository, limit)
@@ -3951,23 +4031,28 @@ def inspect_recent(repository, limit, samples, workflows, issues):
     collected_samples = []
     for run in runs:
         run_id, attempt = str(run['id']), str(run['run_attempt'])
+        compact = []
         try:
-            previous_issues = len(issues)
             compact = download_timing(repository, run_id, attempt, issues=issues)
             (with_compact if compact else without_compact).append(run_id)
-            has_report = any((sample.get('ci') or {}).get('run_id') == run_id for sample in samples)
             samples.extend(compact)
-            if compact or has_report or len(issues) != previous_issues:
-                clock = inspect_jobs(run, repository)
-                workflows.append(clock)
-                identity = actions_attempt_identity(repository, run)
-                acquired = [sample for sample in compact if ci_key(sample['ci']) == identity]
-                if acquired:
-                    # Qualify the original acquisition using only this collection's job evidence.
-                    current = timing_view(acquired, hosted=[clock])
-                    collected_samples.extend(platform_report_receipts(current['samples']))
         except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
-            issues.append({'run_id': run_id, 'error': str(error)})
+            issues.append({'run_id': run_id, 'error': f'Could not retrieve compact reports: {error}'})
+        try:
+            clock = inspect_jobs(run, repository)
+            workflows.append(clock)
+        except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
+            issues.append({'run_id': run_id, 'error': f'Could not retrieve attempt jobs: {error}'})
+            continue
+        try:
+            identity = actions_attempt_identity(repository, run)
+            acquired = [sample for sample in compact if ci_key(sample['ci']) == identity]
+            if acquired:
+                # Qualify the original acquisition using only this collection's job evidence.
+                current = timing_view(acquired, hosted=[clock])
+                collected_samples.extend(platform_report_receipts(current['samples']))
+        except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
+            issues.append({'run_id': run_id, 'source': 'timing_qualification', 'error': input_error(error)})
     return {'collected_at': datetime.now(timezone.utc).isoformat(),
             'capture_source': source if source and collection_source(ROOT) == source else None,
             'limit_per_event': limit, 'completed_runs_considered': len(runs),
@@ -3993,12 +4078,16 @@ def review_summary(view):
         lines.append(f"- Repository review due {review['next_review_by']}.")
     recent = view.get('recent_collection')
     if recent:
-        lines.append(f"- Examined {recent['completed_runs_considered']} completed runs; "
-                     f"{recent['runs_with_compact']} with compact records, "
-                     f"{recent['runs_without_compact']} without them. "
-                     f"{recent['unsuccessful_runs']} had unsuccessful workflow outcomes.")
-        if recent['cold_bootstrap']:
-            lines.append('- Compact history is unavailable. Allow normal PR and main verification to accumulate samples.')
+        if recent.get('collection_order_uncertain'):
+            lines.append('- Saved captures leave the current collection uncertain.')
+        elif 'completed_runs_considered' in recent:
+            lines.append(f"- Examined {recent['completed_runs_considered']} completed runs; "
+                         f"{recent['runs_with_compact']} with compact records, "
+                         f"{recent['runs_without_compact']} without them. "
+                         f"{recent['unsuccessful_runs']} had unsuccessful workflow outcomes.")
+            if not recent['runs_with_compact'] and qualified_hosted_history(view):
+                lines.append('- No compact reports were acquired in this collection. '
+                             'Retained reports support qualified hosted elapsed measurements.')
     objectives = view['objective_reviews']
     if not objectives:
         lines.append('- No qualified elapsed samples. Allow comparable coverage to accumulate and inspect unavailable data.')
@@ -4172,7 +4261,7 @@ def main():
                         explicit_input_failed |= args.report is not None
                     samples.extend(archive_samples)
                     workflows.extend(archive_hosted)
-                    recent = data.get('recent_collection') or recent
+                    recent = reconcile_collection_order(recent, data.get('recent_collection'))
                 elif data.get('kind') == SAMPLE_KIND:
                     if not valid_sample(data):
                         raise TimingError('Invalid timing sample.')
@@ -4227,9 +4316,14 @@ def main():
         view = timing_view(samples, hosted=workflows, issues=list(issues))
         if recent is not None:
             recent = {**recent, 'collected_samples': qualified_collected_reports(view['samples'], recent)}
+        # Keep original collection facts on save. History can change when the
+        # archive is reopened with other reports and Actions jobs.
+        displayed_collection = recent
+        if recent and recent.get('cold_bootstrap') and qualified_hosted_history(view):
+            displayed_collection = {**recent, 'cold_bootstrap': False}
         tasks = {task['id']: task for task in read_json(ROOT / 'project/tasks.json')['tasks']}
         feedback = read_json(ROOT / 'project/feedback.json')['items']
-        view.update(weekly_review=weekly_review(), recent_collection=recent,
+        view.update(weekly_review=weekly_review(), recent_collection=displayed_collection,
                     budget_follow_up=budget_follow_up(view, feedback, tasks))
         archive_identity = None
         if args.save:

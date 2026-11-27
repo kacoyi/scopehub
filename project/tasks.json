@@ -27474,7 +27474,10 @@
         "project/timing-publishers.json",
         "scripts/verification_report.py",
         "scripts/verification_scope.py",
-        "tests/project/test_timing_publisher_observations.py"
+        "tests/project/test_timing_publisher_observations.py",
+        "contracts/decisions/0038-reconcile-qualified-timing-evidence.json",
+        "scripts/ci_artifacts.py",
+        "tests/project/test_verification_scheduling.py"
       ],
       "decision_refs": [
         "0004",
@@ -27485,7 +27488,8 @@
         "0034",
         "0035",
         "0036",
-        "0037"
+        "0037",
+        "0038"
       ],
       "acceptance": [
         "Retain the original independent rejection. Through the ordinary timing and budget-review entries, observe the browser-job and checkout conflicts both before and after twelve later captures rotate the original attempt out of the recent window.",
@@ -27495,7 +27499,8 @@
         "Public and weekly timing preserve an aggregate for equivalent feasible endpoint assignments and withhold only affected metrics when the exact duration can change. Cover sub-microsecond distinctions, equivalent offsets, rotation, cold read and a separately reserved producer.",
         "Retain execution when observed steps and feasible ordering establish identical endpoints despite missing unrelated job starts. Keep runner sums unknown when a required job interval is unavailable. Exercise both originals and rejected ordering or incomplete endpoint controls.",
         "A missing aggregate or producer job boundary can erase a measured execution interval or authorize an infeasible order. Check known or absent starts and ends, contradictory order, reordered and duplicate facts, cold reopen and rotated captures. Keep unknown queue and runner values where exact endpoints are absent.",
-        "Reject an infeasible Windows scheduling cut when an observed aggregate step completion precedes a prerequisite finish, even if job and step starts are absent. Retain the demonstrated 1242-second and 827-second controls and independent clocks."
+        "Reject an infeasible Windows scheduling cut when an observed aggregate step completion precedes a prerequisite finish, even if job and step starts are absent. Retain the demonstrated 1242-second and 827-second controls and independent clocks.",
+        "Replay the applicable e6f12373 findings and genuine originals at the ordinary, standard-library weekly and cold entrypoints. Carry exact local source and outcomes to the retained handoff while hosted, native and scheduled evidence remains with the coordinator."
       ],
       "checks": [
         "project-state",
@@ -27503,7 +27508,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Reconcile the source-bound e6f12373 review findings in the shared timing reader. Verify the retained controls on the exact local candidate. The coordinator owns independent review dispatch, hosted and native qualification, and the November 28 scheduled observation at 16:17 UTC.",
+      "next_action": "Use .reports/m0-155-e6f12373-reconciliation/handoff.json for exact-source review and local regression evidence. The coordinator owns independent review dispatch, hosted and native qualification, and the November 28 scheduled observation at 16:17 UTC.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -27548,7 +27553,8 @@
           "A single normalized representation of independent job and step facts with separately evaluated evidence eligibility can eliminate order-dependent partial fixes while retaining supported clocks and the existing archive format.",
           "Apply shared invariants to original facts before projection. Verify stable metrics and report attribution independently on the real producer pairs and cold readers.",
           "An unobserved scheduling boundary constrains feasibility through observed job and step clocks without itself becoming a measured endpoint.",
-          "Replaying retained PR 145 and contemporary publisher inputs on the protected baseline can distinguish qualified reports, contradictory sources and missing coverage while keeping independent Actions clocks."
+          "Replaying retained PR 145 and contemporary publisher inputs on the protected baseline can distinguish qualified reports, contradictory sources and missing coverage while keeping independent Actions clocks.",
+          "Applying source verdicts, prerequisite feasibility and collection order before output projection can preserve the genuine cases while rejecting the seven e6f12373 findings across all three reader entries."
         ],
         "risks": [
           {
@@ -27871,7 +27877,10 @@
             "tests/project/test_timing_job_roles.py",
             "scripts/maintenance.py",
             "scripts/verification_report.py",
-            "scripts/verification_scope.py"
+            "scripts/verification_scope.py",
+            "tests/project/test_timing_publisher_observations.py",
+            "scripts/ci_artifacts.py",
+            "tests/project/test_verification_scheduling.py"
           ],
           "rules": [
             {
@@ -27892,6 +27901,10 @@
             },
             {
               "path": "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json",
+              "pointer": "/decision"
+            },
+            {
+              "path": "contracts/decisions/0038-reconcile-qualified-timing-evidence.json",
               "pointer": "/decision"
             }
           ],
@@ -27920,7 +27933,8 @@
             "Capture step facts before name selection and bind number-only fragments only within the established job. Use joined eligibility for both listed and reopened phase projections.",
             "Use the prerequisite scheduling cut to constrain verification steps without substituting an inferred instant into queue or runner metrics.",
             "Retain job-scoped successful Actions setup and completion step witnesses in the existing observation shape for prerequisite ordering.",
-            "Qualify the observed historical split and unsplit publisher closures at the timing reader, and exercise the composed unsplit publisher with preserved workspace evidence."
+            "Qualify the observed historical split and unsplit publisher closures at the timing reader, and exercise the composed unsplit publisher with preserved workspace evidence.",
+            "Derive timing admission from the source publisher and feasible endpoints. Reduce saved collection metadata by observed chronology and keep current receipts distinct from qualified historical measurements."
           ],
           "data_plan": "Read existing saved reviews and retained per-attempt captures. Cover missing, conflicting and intact historical data. Retain compatible V1 evidence, including individually supported legacy intervals. Recompute derived layout where the original assertions survive. Use retained report timestamps and job boundaries to withdraw incompatible old attributions and preserve original bytes.",
           "cleanup": "Use the retained originals by digest and qualify the preserved and changed scopes on the same composed source. Keep the established decisions bound to their own revisions. Request independent review only for material overlap and leave the actual scheduled observation and hosted qualification to the coordinator."
@@ -27959,7 +27973,8 @@
         "0034",
         "0035",
         "0036",
-        "0037"
+        "0037",
+        "0038"
       ],
       "acceptance": [
         "Run the ordinary weekly timing CLI in the supported system Python environment with the archived full Windows selection, unavailable preview and a source-equivalent historical substitute. Confirm it writes the weekly summary and current comparison with the original clocks.",
@@ -27970,7 +27985,8 @@
         "Exclude independently disproved Linux and Windows checkouts before cross-platform conflict detection. The real paired valid Windows receipt and independent Actions clocks survive an invalid Linux counterpart in ordinary and cold weekly reads. Genuine expired previews continue to qualify.",
         "Check reachable shallow boundary parent claims even when graph enumeration is unavailable. Withhold unproven checkout qualification when the bounded search cannot establish it. Keep genuine Windows receipts and separate Actions clocks with both input orders and both proof controls.",
         "A rejected report can enter checkout conflict reduction and withdraw a genuine receipt on another platform. Check genuine paired receipts beside late digestless or incomplete reports in both orders and cold reopen, with a valid legacy control.",
-        "Reject a raw report whose present source facts contradict its checkout claim before cross-platform conflict reduction. On the PR 96 public replay, preserve both original receipt identities and separately observed Windows clocks. Retain legacy records that genuinely omit optional source fields."
+        "Reject a raw report whose present source facts contradict its checkout claim before cross-platform conflict reduction. On the PR 96 public replay, preserve both original receipt identities and separately observed Windows clocks. Retain legacy records that genuinely omit optional source fields.",
+        "Replay the applicable e6f12373 findings and genuine originals at the ordinary, standard-library weekly and cold entrypoints. Carry exact local source and outcomes to the retained handoff while hosted, native and scheduled evidence remains with the coordinator."
       ],
       "checks": [
         "project-state",
@@ -27989,7 +28005,7 @@
         }
       ],
       "evidence": [],
-      "next_action": "Reconcile the source-bound e6f12373 review findings in the shared timing reader. Verify the retained controls on the exact local candidate. The coordinator owns independent review dispatch, hosted and native qualification, and the November 28 scheduled observation at 16:17 UTC.",
+      "next_action": "Use .reports/m0-155-e6f12373-reconciliation/handoff.json for exact-source review and local regression evidence. The coordinator owns independent review dispatch, hosted and native qualification, and the November 28 scheduled observation at 16:17 UTC.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -28201,6 +28217,10 @@
             {
               "path": "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json",
               "pointer": "/decision"
+            },
+            {
+              "path": "contracts/decisions/0038-reconcile-qualified-timing-evidence.json",
+              "pointer": "/decision"
             }
           ],
           "non_goals": [
@@ -28269,7 +28289,8 @@
         "0033",
         "0034",
         "0036",
-        "0037"
+        "0037",
+        "0038"
       ],
       "checks": [
         "project-state",
@@ -28283,9 +28304,10 @@
         "Apply portable observation ownership, passing status and integration summary admission to Linux and Windows before compaction. With real paired raw inputs, retain independent Actions clocks and accept equivalent recording offsets at full source precision.",
         "Before conflict reduction, reject proved out-of-job report instants on both platforms. Keep the final-second positive, paired receipts, and independent Actions clocks across input order and reopen.",
         "Bind observation ownership to the historical publisher before raw compaction. Verify PR 96 genuine raw and compact pairs, modified report admission and the genuine pair beside the modified input.",
-        "Incomplete or digestless reports can bypass a publishing-job contradiction and enter attempt reduction. Check genuine and modified reports with one or both job boundaries, digest, coverage and status variations on ordinary, weekly and reopened reads."
+        "Incomplete or digestless reports can bypass a publishing-job contradiction and enter attempt reduction. Check genuine and modified reports with one or both job boundaries, digest, coverage and status variations on ordinary, weekly and reopened reads.",
+        "Replay the applicable e6f12373 findings and genuine originals at the ordinary, standard-library weekly and cold entrypoints. Carry exact local source and outcomes to the retained handoff while hosted, native and scheduled evidence remains with the coordinator."
       ],
-      "next_action": "Reconcile the source-bound e6f12373 review findings in the shared timing reader. Verify the retained controls on the exact local candidate. The coordinator owns independent review dispatch, hosted and native qualification, and the November 28 scheduled observation at 16:17 UTC.",
+      "next_action": "Use .reports/m0-155-e6f12373-reconciliation/handoff.json for exact-source review and local regression evidence. The coordinator owns independent review dispatch, hosted and native qualification, and the November 28 scheduled observation at 16:17 UTC.",
       "blocker": null,
       "evidence": [],
       "closure_reason": null,
@@ -28636,6 +28658,10 @@
             },
             {
               "path": "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json",
+              "pointer": "/decision"
+            },
+            {
+              "path": "contracts/decisions/0038-reconcile-qualified-timing-evidence.json",
               "pointer": "/decision"
             }
           ],
