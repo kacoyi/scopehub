@@ -256,6 +256,26 @@
       "requested_at": "2026-11-27T04:25:39.726965+00:00",
       "request_id": "9c4b9f9836bf394559193cce2a7bfc86627dfcbbce80c6c59f7e8e20533922fa",
       "evidence_sha256": "66c9c59b9504771c5e0730c9452630e0667cefb172622f2633add771536ceab6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-130 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "scope": "APPROVE M0-130 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "observation": "The fixture repair still deletes the same four Git objects, and the mixed-platform test still requires exactly one Windows receipt, a 360-second Windows clock, and an unknown Linux sample clock in both input orders.",
+      "reviewer": "Independent Astra Standard (t1ct)",
+      "original_sha256": "77da0dc9981d506f6caf62253edb7c67d7b252a3804e73c50fb6d38b40342685",
+      "response_id": "87df001841c2b08095f56818df8ac472938767f9fb29a68947fd797c906165cb",
+      "response_sha256": "816a77cc4dec83cf83bf598cfd4367149c0219a573ff63ac1269480be7e24246",
+      "legacy_response_sha256": "2e04fdffbbd94708aab2bc017eafc65e8cf9821cc0e50d9111864b9f6bcea58c",
+      "observation_body_sha256": "1545841755bea005e0a75424b8a0dc5d765e84ec9ff86147cde50a47973e7ff6",
+      "event": {
+        "id": "msg_0c3b6f4189262e3d016b090745e5ec87d0a4a00fbe5660d263",
+        "timestamp": "2026-11-27T04:30:09.517Z"
+      },
+      "supersedes": "9c4b9f9836bf394559193cce2a7bfc86627dfcbbce80c6c59f7e8e20533922fa",
+      "evidence_sha256": "a089cae6b0bb8cd212158060f1ae89fac4ea7824679a993b8d3ff6203b1e1b72"
     }
   ]
 }

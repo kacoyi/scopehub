@@ -256,6 +256,26 @@
       "requested_at": "2026-11-27T04:25:40.506094+00:00",
       "request_id": "fa97b3bd9cadb7ba910bd709dc8de83538604d9c0d9cf137d16eec880603b69c",
       "evidence_sha256": "6b35b776fb3384b558abd43f0f9049158df96397b13d9f9384789d25622621d2"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-131 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "scope": "APPROVE M0-131 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "observation": "In the retained observation for run 45838575346, the reader kept the 1242-second Windows harness sample when the aggregate job start was missing, excluded it when setup preceded a prerequisite’s completion, and retained the 1291-second Windows wall clock in both cases.",
+      "reviewer": "Independent Astra Standard (t1cv)",
+      "original_sha256": "4bd5b8eb1a08a83ed50aae3f8927e03043a8ef80fd3d58e836c4d10016e750f9",
+      "response_id": "70424acedb89667ba0488d17b1e13d101943d7a3c0dd4908904809d0a69d2e7e",
+      "response_sha256": "712263d19b5181219f4316a45ebc644cdf91bd975647a1c993a1fb1557d89874",
+      "legacy_response_sha256": "4cec21d3e77bcd53e9f1176d255a56c12ea219b0c1eeef430218f6a88a6a4d4d",
+      "observation_body_sha256": "2fca1e98227f6838ced12a902876cf65632f476ed9866bcbe7f5c433fdca7817",
+      "event": {
+        "id": "msg_01b5357887878cdb016b0907400c9c87d0b6b04a531472dadb",
+        "timestamp": "2026-11-27T04:30:03.203Z"
+      },
+      "supersedes": "fa97b3bd9cadb7ba910bd709dc8de83538604d9c0d9cf137d16eec880603b69c",
+      "evidence_sha256": "a8d2c1c9805348a04c27c0f44f445eb24008834113840576bf1b468296be549f"
     }
   ]
 }

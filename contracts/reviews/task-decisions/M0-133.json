@@ -256,6 +256,26 @@
       "requested_at": "2026-11-27T04:25:41.307694+00:00",
       "request_id": "e1d5058699f00f2b7a3dbb766e6cd371e4ef0818be3f9c8028404745cacd2c2f",
       "evidence_sha256": "7577b61c413fa3f0c6f61808533735e59cf92a7b58619d1730b41c4c6bfe855b"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-133 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "scope": "APPROVE M0-133 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "observation": "For run 45838575346, the retained replay showed that ordinary review and cold reopening both excluded the 1242-second Windows execution sample when setup finished before its prerequisite, and both preserved the 1291-second wall time.",
+      "reviewer": "Independent Astra Standard (t1cw)",
+      "original_sha256": "4104347eb46ece10f5aa74d04d41c732926a24b3f094cf4aadb4f4fc016ecb1b",
+      "response_id": "469c386f3c2d3cbba964bfcb41719460d88225554059544b65cc10d6665ad869",
+      "response_sha256": "4090c27aa4da19044ac03275a3521fe605a224a98168b8fccef50ecc70f4df38",
+      "legacy_response_sha256": "b163bbb59e2953a79a873e3bb00d739e4e260ec56237111fd19d0ca494708ba4",
+      "observation_body_sha256": "d78af8644d665bcc73f16e2e54aedc321c354982e696e7bce4f62f44a200c41a",
+      "event": {
+        "id": "msg_0eacde262985b517016b090744ed4087d0951018675089d576",
+        "timestamp": "2026-11-27T04:30:07.503Z"
+      },
+      "supersedes": "e1d5058699f00f2b7a3dbb766e6cd371e4ef0818be3f9c8028404745cacd2c2f",
+      "evidence_sha256": "fb345996d317c3181b959bf4dfaac2d65db4384d15ed97b16a38ed84a2dce17c"
     }
   ]
 }

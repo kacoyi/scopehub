@@ -436,6 +436,26 @@
       "requested_at": "2026-11-27T04:25:43.654389+00:00",
       "request_id": "a36d56adb4a3cc7c2ac55d4ed75f0846b64cda6e5c3d23b0684aed8321e4aca3",
       "evidence_sha256": "b2a125aa28a74c7bc937568852ed5416ae66c3d81e6a0d7158516f690bcd5056"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-150 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "scope": "APPROVE M0-150 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "observation": "Both retained PR 96 cold reads report an 827-second Windows verification interval, and the candidate changes only how the two timing tests delete four temporary Git commit objects.",
+      "reviewer": "Independent Astra Standard (t1cz)",
+      "original_sha256": "99da9d0c53688edd8573b3f47c266de671390d67d2178470131735db06e4834c",
+      "response_id": "65e921e8a9da2b040ed97b489ac5a24f52409f3b2a30f36d9f1b9b4e79090273",
+      "response_sha256": "80beecbd5e4dc57c16b544387e203a3bb3cb53d88cab5e4681c4f865aaba0b61",
+      "legacy_response_sha256": "43261561f86b39f9c5e058fbcb84846f50a8c6332d08ce6361bd882b662d879b",
+      "observation_body_sha256": "d6f8b7c8ad4d7a9390877c937110744f671e57411746e1bb3b783167b0260f78",
+      "event": {
+        "id": "msg_0588a9e9d809c089016b090742d81487d0b46fb8807cb984d7",
+        "timestamp": "2026-11-27T04:30:09.916Z"
+      },
+      "supersedes": "a36d56adb4a3cc7c2ac55d4ed75f0846b64cda6e5c3d23b0684aed8321e4aca3",
+      "evidence_sha256": "9474618231f06c4c0bfec70114881c0a126320c545e7ff0e19111a870231957f"
     }
   ]
 }

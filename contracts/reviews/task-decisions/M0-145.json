@@ -256,6 +256,26 @@
       "requested_at": "2026-11-27T04:25:42.081529+00:00",
       "request_id": "c594e8a4c30698c811044b3665d43947724d0ae23d408ce500599c3cfd6a324e",
       "evidence_sha256": "a4bd6c8e640f3f0c0dd4b4b377ee0d695789f7972ee3777c5b392a529c488e54"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-145 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "scope": "APPROVE M0-145 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "observation": "In the retained replay of run 45546767887, the Windows artifact earned one Windows receipt and cleared the weekly pending flag, while the same report bytes from the Ubuntu artifact earned zero receipts and left the flag pending; both cases retained the 804-second Windows wall time and 2467 runner-seconds.",
+      "reviewer": "Independent Astra Standard (t1cx)",
+      "original_sha256": "e6cadbb30bf6bb05f619bf0c44e26db7f356e2d1f216f981ac2405e345eabdf7",
+      "response_id": "93f7b15afac03ac8d10d9765e30a84d02b1ac796288168fb1e9881bf48058469",
+      "response_sha256": "d310ac3fe7d8640d223932efe2bd44244ac0f3b0e917d4bb178ca39472e9d116",
+      "legacy_response_sha256": "0a57178668401563b296f4163ec54c8db6fb6d0d1602da41c6427691fc9786bf",
+      "observation_body_sha256": "ee36ba6c1c4db5cf22e323450ed6bed602b69c3bf05929994a967fe8c9ea3ffe",
+      "event": {
+        "id": "msg_053a36712ba077d4016b09073dbc4487d09da44917ade31d73",
+        "timestamp": "2026-11-27T04:30:00.576Z"
+      },
+      "supersedes": "c594e8a4c30698c811044b3665d43947724d0ae23d408ce500599c3cfd6a324e",
+      "evidence_sha256": "f009fdb9532325877b9eed6da2bd518f9375653534a696f90ae6afbc5a75b999"
     }
   ]
 }

@@ -445,6 +445,26 @@
       "requested_at": "2026-11-27T04:25:45.207829+00:00",
       "request_id": "aeb166d0203edd6c15d88b4f598162ba61cb09f6f7b9fac5d3461f30aa2872ac",
       "evidence_sha256": "29c830fe95bd2eca1e9590b9354fc2214f94bbdfe31e1fbf0c790b0c3e071266"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-156 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "scope": "APPROVE M0-156 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "observation": "The isolated Windows guest reproduced both WinError 5 failures on the old fixture and passed the same two tests with fixture bytes identical to the reviewed commit.",
+      "reviewer": "Independent Astra Standard (t1cr)",
+      "original_sha256": "d93f54f9ab3d489f22a3824318c5a2912a466d7ee33719bcbd4e1f9435eb44a1",
+      "response_id": "3d2549896545b4b94a57f737c770d79612d500c6022ee299d62d63c6c68164d3",
+      "response_sha256": "f36d6b6005d8f81d0437d06950b275f7ae0a8a41d2034358405e2bf814c089bc",
+      "legacy_response_sha256": "61081c704c9aeedfd73ae7d541a817ae0a17af92c9663fb125f17c919e046940",
+      "observation_body_sha256": "729ffd321ba28deb90acee9fcd1f38a188eeee7b5709365872f9e1cec388bf53",
+      "event": {
+        "id": "msg_05e364bd45d8335b016b0906a8576487d0ac25b85ba2dcda90",
+        "timestamp": "2026-11-27T04:27:41.473Z"
+      },
+      "supersedes": "aeb166d0203edd6c15d88b4f598162ba61cb09f6f7b9fac5d3461f30aa2872ac",
+      "evidence_sha256": "2edd832c5ee3da1a47b4fd3f28b50892eca794db03c4b99b07aad376317d3fb0"
     }
   ]
 }

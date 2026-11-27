@@ -256,6 +256,26 @@
       "requested_at": "2026-11-27T04:25:42.849268+00:00",
       "request_id": "e96898021635ca832c1e65a67aa1280798390b766db2e6e52cedebec7b0bb840",
       "evidence_sha256": "975b0fc924295732efd99affb7fc4271727118f2a515af9129cff0b29387149a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-148 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "scope": "APPROVE M0-148 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "observation": "For run 45838575346, the retained archive contains a Windows receipt for all 35 selected checks, while the control with only the Windows execution-input digest changed retains only the Linux receipt.",
+      "reviewer": "Independent Astra Standard (t1cy)",
+      "original_sha256": "144c12de8fba1b21a70633aecdf0fdd25fb3697fbbd67f83b62824c88f262a77",
+      "response_id": "76bb38f798b00a583a4a74fea010bb0fd31509802fbcb7398f8dcad7784fa55c",
+      "response_sha256": "990e85a6b7290c71b18c9c8dbe69ba357ce4ecdb4a931c070fb59da29e078356",
+      "legacy_response_sha256": "98600a1bc9c1bff96a0c33357ac6e58f73b44d122923149003cabc602dc9b710",
+      "observation_body_sha256": "bfaf02882efbdbd80c3f0d824a76f707550bdc46a8e0e975efac13c3b3906327",
+      "event": {
+        "id": "msg_08652b0f6493698d016b09073e698c87d0a3c4e806013576f0",
+        "timestamp": "2026-11-27T04:30:02.752Z"
+      },
+      "supersedes": "e96898021635ca832c1e65a67aa1280798390b766db2e6e52cedebec7b0bb840",
+      "evidence_sha256": "d95d96f781fbd6834aa33fa5441b64fed8018a882136a4595d8a4fa84a6ea1ad"
     }
   ]
 }

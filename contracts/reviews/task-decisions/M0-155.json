@@ -416,6 +416,26 @@
       "requested_at": "2026-11-27T04:25:44.429404+00:00",
       "request_id": "4b154cc95aa929c93c3d22e48efe05df2b482342cca0c6b5964edf3f02086128",
       "evidence_sha256": "dee8baf2edd2299859e525d26503d6ad74919d94fcee8039573bdfe896837b83"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-155 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "scope": "APPROVE M0-155 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "observation": "The fixture repair clears the read-only attribute before the same four Git object deletions and preserves every timing assertion.",
+      "reviewer": "Independent Astra Standard (t1d0)",
+      "original_sha256": "01bbf5b4329917ee42d4918c88a9de7d06c8315be52b8f882b362ee0e84d73e5",
+      "response_id": "b3f29a8d591d69d8dedc32dc5098daa05a9329c4dd371b3decc20b1d515d34b0",
+      "response_sha256": "0788a0387a3670ba94e9be60de26b88f455b467d984821687d3976575fdc3073",
+      "legacy_response_sha256": "b74bea8c1f8cfb472685201a15c1d292209a3644d3192dad309a44ac8fede52a",
+      "observation_body_sha256": "562b40bdbf2872ed3869872cf5c3a3e51155d1c5fe0748631896552c88afbc17",
+      "event": {
+        "id": "msg_014f0630c1dc930a016b090742ca1487d0897629cfb0a7ccf6",
+        "timestamp": "2026-11-27T04:30:06.928Z"
+      },
+      "supersedes": "4b154cc95aa929c93c3d22e48efe05df2b482342cca0c6b5964edf3f02086128",
+      "evidence_sha256": "a8b8e27f63e0c53f418e1a622c037b1271951be30d53524614e864a832f81a02"
     }
   ]
 }
