@@ -1,0 +1,106 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M2-034",
+  "task_definition_sha256": "9bc146960d64a89ffcc12a910912f1ef3f8f36b0b5db8a03606ef696bb0a3130",
+  "run_id": "20261125T043618.866854Z-01d34923",
+  "recorded_at": "2026-11-25T04:39:03.453903+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "3c3538b7b636c76bac81945b193c34076015bb1e84d9b584cba05ae4f7aff5b6",
+    "file_count": 598,
+    "git_head": "185f90dff6008e7c54e3088f799253e24c602d12",
+    "working_tree_dirty": true,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "03b4ea9e42cc5bdaaeabef690c02ef823a4b0d71bac43e6b1e5e120827bdb9a1",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/audit-desktop-recovery/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "6342c07cf8170a0284d494ad0c7cfa13a8d3f0274da6ea92631753399d3db2b9"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "3afa1875c6cd053793800dde36de9475d50466f0dd6a7d8183cf359a67f3e57c"
+    },
+    {
+      "id": "desktop-workspace-transport",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/desktop-workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "8004e43a282b4026c376c41f2c0466244d6979d90ac98960dd225a5e77b73190"
+    },
+    {
+      "id": "state-migrations",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-persistence"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2226bf6f527a50f9c2a6100d474cc073e59a1f8e82934999cd71914768793022"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-desktop-recovery/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "607db157347933e7360428fb772606b17e479552687716075cb15d96e46bedf1"
+    }
+  ],
+  "project_definition_sha256": "0426a0dfc08cec8f04646a8d266c286c19aeeeed398f98f5dcbd5c8c46935f94",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "83a63c9dfe026502ddc770fdf541d60b6b75f8197140c0bd68bed00ee583270b"
+  ]
+}

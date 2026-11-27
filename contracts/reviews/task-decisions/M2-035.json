@@ -1,0 +1,488 @@
+{
+  "version": 3,
+  "task_id": "M2-035",
+  "events": [
+    {
+      "kind": "decision",
+      "source_commit": "e39b8972840f6d854d40e9adfe3c84bd22c6df62",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-035 e39b8972840f6d854d40e9adfe3c84bd22c6df62",
+      "scope": "CHANGES_REQUESTED M2-035 e39b8972840f6d854d40e9adfe3c84bd22c6df62",
+      "observation": "Both regression tests survived the merge, but a delayed first reopen can still display the previous chart after another workspace window selects a new source.",
+      "reviewer": "Independent Astra Standard (t10c)",
+      "original_sha256": "ea7d13706fd2714186c4944c4b083b2c0538585a89be514db0c932a17d3e6bcb",
+      "response_id": "d7bc1e84e0d7163dab18a2961f87f58b87c3a954859e31b35bb532efa239253c",
+      "response_sha256": "8c15254541cadf413cc625088d3e8df66a6a3d02525581edb5fec531554a31cc",
+      "legacy_response_sha256": "cc501a023815a7bb924c98ce18293c3d4f58d5d63a86007fcaddc3f66f07ffd6",
+      "observation_body_sha256": "b407a1ea2a9dd73d53b7068388424d2b3ad5a16625081a0ee9c98b87c19435ce",
+      "event": {
+        "id": "msg_02395960ec1524e8016b070d75193487d0a749c2e68ecf4c0d",
+        "timestamp": "2026-11-25T16:32:18.426Z"
+      },
+      "supersedes": null,
+      "evidence_sha256": "0b93d9821b9f2ebd2fc18323e86276a856912178c0eaad08cf60b7e10ba127d7"
+    },
+    {
+      "kind": "request",
+      "source_commit": "29e5caeedfe37bc557bb71e3901b20efa3821f9e",
+      "scope": "Recheck the historical chart access rejection after the saved-source, initial and trailing focus corrections. Verify revocation, first reopen, same-source access, restore and clear through the supported desktop and folder workflows on the current combined code.",
+      "supersedes": "d7bc1e84e0d7163dab18a2961f87f58b87c3a954859e31b35bb532efa239253c",
+      "requested_at": "2026-11-25T21:18:10.383087+00:00",
+      "request_id": "cd3060cc986174deea8ef5db432241e59438f6697a6ed79e26f89c3cbaea8fb1",
+      "evidence_sha256": "20bade48a77be64adf606346e6606913bfac853443dbbda6c8ac5ef048a1ded5"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "29e5caeedfe37bc557bb71e3901b20efa3821f9e",
+      "verdict": "approved",
+      "decision": "APPROVE M2-035 29e5caeedfe37bc557bb71e3901b20efa3821f9e",
+      "scope": "APPROVE M2-035 29e5caeedfe37bc557bb71e3901b20efa3821f9e",
+      "observation": "I exercised the candidate’s React code and observed close 44 when source A was confirmed, only close 106 when source B was confirmed, and one successful clear of a redacted selection after a retryable snapshot refusal.",
+      "reviewer": "Independent Astra Standard (t10c)",
+      "original_sha256": "79a3bce9fef667a1f3afb044b29c43107efd1f2d56a42e485f4ffb3f5d35be7a",
+      "response_id": "3f045cbbaa92cf4b7e0e272532baad8d6ba7a3a3cc80b8e6d55d866d7717fafb",
+      "response_sha256": "66e30acf61040f5f0d03f73f9715c818a714cf9793bb1e2d63a395277a9598ed",
+      "legacy_response_sha256": "d3ecb71c03e6aa26baf09dbff2de5402bacc8dec49dbd8f8637edec236762253",
+      "observation_body_sha256": "e33b62c8511c6dc9c8ce0de1b96a1ff1b8441feeb8e15c2d0e2afe2ba593b010",
+      "event": {
+        "id": "msg_02395960ec1524e8016b07550130e487d093647ba202b399bc",
+        "timestamp": "2026-11-25T21:37:24.481Z"
+      },
+      "supersedes": "cd3060cc986174deea8ef5db432241e59438f6697a6ed79e26f89c3cbaea8fb1",
+      "evidence_sha256": "dfd1a8332ab24ab73f963720050145217148a024fffd1e998576ff1afe488ac1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26",
+      "scope": "Recheck frozen CSV and folder access through open, refresh, clear and retry. Verify the access and revision fences, rejection of stale data and retained undo against the changed ownership controls on the combined source.",
+      "supersedes": "3f045cbbaa92cf4b7e0e272532baad8d6ba7a3a3cc80b8e6d55d866d7717fafb",
+      "requested_at": "2026-11-26T02:45:05.981627+00:00",
+      "request_id": "4a915978c154d442649a887670cf68638ee99b5691a74b77f4a0d9471929ce77",
+      "evidence_sha256": "921379bc53778e5316f9f30073c3871943151ca574bc5767e4ef5265f7d1f4ca"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-035 a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26",
+      "scope": "CHANGES_REQUESTED M2-035 a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26",
+      "observation": "After a source-row read returned `SNAPSHOT_UNAVAILABLE`, both CSV and folder retries issued zero status reads and kept the revision hidden for the rest of the session.",
+      "reviewer": "Independent Astra Standard (t11n)",
+      "original_sha256": "2ebb6aa7e8c1de622a4e9217844418e674d80263940bedaf80fe6d2f08af6924",
+      "response_id": "76e1e91374ac836779495e27d5cda73a9e989ee1038b3418ade84f0cc2924e28",
+      "response_sha256": "ecbec00a0331c9227853ab4ff571528c094c4609486e018b9d6e050cfb22bc19",
+      "legacy_response_sha256": "b22afd5cfb7227a8cfbd53f840251d00b0a3ccb03b4528b3e9c37fa4a026af2f",
+      "observation_body_sha256": "0b3a2b321ec30f6314b4aaac243f20628245f5d8245ccdebccc2af478df8b497",
+      "event": {
+        "id": "msg_0296850e7527c18a016b07a27995c887d2b08da48e74a997d8",
+        "timestamp": "2026-11-26T03:07:52.731Z"
+      },
+      "supersedes": "4a915978c154d442649a887670cf68638ee99b5691a74b77f4a0d9471929ce77",
+      "evidence_sha256": "cec3dce1923e78628144e9c37761c2c7fdf2095b042b460836bfb93e86fd14c0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "83303f3546ddb5385d4c6e5c768e7737705628e5",
+      "scope": "Reproduce the original SNAPSHOT_UNAVAILABLE behavior from raw rows for both CSV and folder publications. Distinguish temporary unavailability from confirmed permission loss at retry. Test stale, reordered and late results, contents remaining hidden until fresh authorization, and a recovered source row and chart via the public interface.",
+      "supersedes": "76e1e91374ac836779495e27d5cda73a9e989ee1038b3418ade84f0cc2924e28",
+      "requested_at": "2026-11-26T03:38:00.913515+00:00",
+      "request_id": "160f3eaa3f1b1ef366a44fcadbe36539d43baebc313af41e77acd62dc357cb62",
+      "evidence_sha256": "710db302c49e41bc2a596c6c9c6aad58850e187cce5b23699ed3d14af2467389"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "83303f3546ddb5385d4c6e5c768e7737705628e5",
+      "verdict": "approved",
+      "decision": "APPROVE M2-035 83303f3546ddb5385d4c6e5c768e7737705628e5",
+      "scope": "APPROVE M2-035 83303f3546ddb5385d4c6e5c768e7737705628e5",
+      "observation": "For both CSV and folder publications, retry issued one status read, fresh authorization restored the chart and a newly read source row, and confirmed revocation kept both hidden even after older replies arrived.",
+      "reviewer": "Independent Astra Standard (t12b)",
+      "original_sha256": "72806af74af6522804b4a6dbe09ab05a52afe2d6e9ac76b005024b76d4bc6991",
+      "response_id": "901b95b7b8ea5936321bbe5ef83d2c432e01a6edf2250b1524c262c441a74cbc",
+      "response_sha256": "df0721562c314a0042b1649b4fccf51b5d7dda30dc5a3567a690deb28eec49f1",
+      "legacy_response_sha256": "0b507029da9c55ca582c7a1910b659cbcf655dcd558f5f6bfc7a7ba4461931af",
+      "observation_body_sha256": "abc4a8e18bada84f55e50a8ba92c3fb490cc7c924afa9a743138bb92a1ca3ee0",
+      "event": {
+        "id": "msg_039047cfa751477c016b07adf5d96487d2aa1f9e5aeebaf103",
+        "timestamp": "2026-11-26T03:56:50.348Z"
+      },
+      "supersedes": "160f3eaa3f1b1ef366a44fcadbe36539d43baebc313af41e77acd62dc357cb62",
+      "evidence_sha256": "f8ab7ddf0eda0c69d77daa870b85724a5b23f09333c68e128059bcb8c8cdd9c0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "359e33231892432813493958b580ee25aaf94a5f",
+      "scope": "Reproduce the original SNAPSHOT_UNAVAILABLE behavior from raw rows for both CSV and folder publications. Distinguish temporary unavailability from confirmed permission loss at retry. Test stale, reordered and late results, contents remaining hidden until fresh authorization, and a recovered source row and chart via the public interface.",
+      "supersedes": "901b95b7b8ea5936321bbe5ef83d2c432e01a6edf2250b1524c262c441a74cbc",
+      "requested_at": "2026-11-26T04:21:36.251359+00:00",
+      "request_id": "ed387df6f11e11c3c6bd9c6fc6a8126b2099518f97da52bbabd8bdc3f075061b",
+      "evidence_sha256": "b7acdd19f64c0730adcffd16147f2654b5eceb2dcb53101c7bd720d810a05ee0"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "359e33231892432813493958b580ee25aaf94a5f",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-035 359e33231892432813493958b580ee25aaf94a5f",
+      "scope": "CHANGES_REQUESTED M2-035 359e33231892432813493958b580ee25aaf94a5f",
+      "observation": "An explicit-ID retry displayed the same permission-denied alert for a temporarily unavailable revision and a confirmed revocation, both for folder publications and for CSV publications opened without a workspace.",
+      "reviewer": "Independent Astra Standard (t12z)",
+      "original_sha256": "550092325820651fe8d209023f89340bbf84f487fded230cc35aad6ebf3791ca",
+      "response_id": "faf133029eec902d79e5a4395bc9d478953ce92f998d01b39d0b9d968bfc1051",
+      "response_sha256": "96fbb27af1fccd1669090f545633f7e80cd55d83765fede384a0df5c92b0677e",
+      "legacy_response_sha256": "c83cec75b1f1c324befd6ad134f92c4a52d98a87fee1dba0c4c6415d99a21085",
+      "observation_body_sha256": "eae892bd9bb7b70e0afd24b8211d550de7a14c5fbb3eada61260ab0157c56439",
+      "event": {
+        "id": "msg_09256049432a9608016b07b9067bd487d1a252a34c3bc41844",
+        "timestamp": "2026-11-26T04:44:03.744Z"
+      },
+      "supersedes": "ed387df6f11e11c3c6bd9c6fc6a8126b2099518f97da52bbabd8bdc3f075061b",
+      "evidence_sha256": "3f44330e68f6a220203825d18e36c63796f0e2c957d9fd3325c9ec3803c306b0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e59f853673d76e4c71983834f40784dbf64e262d",
+      "scope": "Reproduce the original SNAPSHOT_UNAVAILABLE behavior from raw rows for both CSV and folder publications. Distinguish temporary unavailability from confirmed permission loss at retry. Test stale, reordered and late results, contents remaining hidden until fresh authorization, and a recovered source row and chart via the public interface. Recheck the original decision on 359e3323.",
+      "supersedes": "faf133029eec902d79e5a4395bc9d478953ce92f998d01b39d0b9d968bfc1051",
+      "requested_at": "2026-11-26T05:11:27.416485+00:00",
+      "request_id": "8bf8af61d8a18f33133cf17530f9fc4bfaa08231c97f7ebfab15bd76c823d7d5",
+      "evidence_sha256": "8882bef87ad8774d0598fae4626f0587a79b846b563c27aca58c14f9c202fc86"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e59f853673d76e4c71983834f40784dbf64e262d",
+      "verdict": "approved",
+      "decision": "APPROVE M2-035 e59f853673d76e4c71983834f40784dbf64e262d",
+      "scope": "APPROVE M2-035 e59f853673d76e4c71983834f40784dbf64e262d",
+      "observation": "For both CSV and folder publications, an explicit-ID retry showed distinct alerts for temporary unavailability, timeout, and confirmed revocation, and fresh authorization restored the chart and a newly read source row.",
+      "reviewer": "Independent Astra Standard (t13g)",
+      "original_sha256": "48d295f081355e9868b39cf2a13e473f5e7bb673be84751f4bf76c8dbe34c416",
+      "response_id": "6387da8938c538ca67cde7665fb5c792f0ec76767e222cc84db4f1c1147ef3a2",
+      "response_sha256": "4b0124478c0674b04022fc345aabb030b410399e25ca02f6684c72dca472fa2c",
+      "legacy_response_sha256": "64403a7e49ce3daef927f72b377f27587f7f9b81f7d4a74d97b977c1bd9bba52",
+      "observation_body_sha256": "c82c1d77f3b7c2d2d36c9205c0b3ae211283ea3dfaca5e19f080213d2d7de642",
+      "event": {
+        "id": "msg_01516dfade991add016b07c19f740487d2aac87c349a0a50ae",
+        "timestamp": "2026-11-26T05:20:44.017Z"
+      },
+      "supersedes": "8bf8af61d8a18f33133cf17530f9fc4bfaa08231c97f7ebfab15bd76c823d7d5",
+      "evidence_sha256": "49ae4c8024a77e23ad4d00007d27b7eb77d16af14e7e1f73433d16793987b1ad"
+    },
+    {
+      "kind": "request",
+      "source_commit": "76fe9dd86e2838ac31463efd8e2a84ac432009e3",
+      "scope": "Review source-row interruption, stale or withheld data, late status, timeout, confirmed withdrawal and reauthorization on CSV and folder publications after the protected merge. Exercise the ordinary public interaction and assess the actual reach of the separate Windows harness and prior source evidence.",
+      "supersedes": "6387da8938c538ca67cde7665fb5c792f0ec76767e222cc84db4f1c1147ef3a2",
+      "requested_at": "2026-11-26T05:30:41.253206+00:00",
+      "request_id": "b17f70c2a600483a285b05e03fbc3fa9b8fcf8497b93d61b086ee54370dc4d2e",
+      "evidence_sha256": "5d189c28e3944fed2726258f19cfa2e4c4bf9ca726b688c3a8cabe638b1d416b"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "76fe9dd86e2838ac31463efd8e2a84ac432009e3",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-035 76fe9dd86e2838ac31463efd8e2a84ac432009e3",
+      "scope": "CHANGES_REQUESTED M2-035 76fe9dd86e2838ac31463efd8e2a84ac432009e3",
+      "observation": "After I removed the only publication through the candidate’s dialog, both the CSV and folder views rendered two status messages, while the Windows probe’s withdrawal assertion requires a single match.",
+      "reviewer": "Independent Astra Standard (t13t)",
+      "original_sha256": "44804428b2ba62a107bcad8521ed20e6ddb371e7bd027ed8ea6fec61160d29e3",
+      "response_id": "5c751e8cd6c8dc8a682270a54661dae7cc3a8b5393f079e73fc00e64cc3721ab",
+      "response_sha256": "23117c76ad920172e5a83341dea01fc2e2bcfc811efad98ee29c0b391c01418f",
+      "legacy_response_sha256": "d0175949d7a7564dfeab7ac264230444e45bfd805a684b08cfd85e8429767b28",
+      "observation_body_sha256": "d96f7bd2c4a8b4ec1007f41f076c352ab9c80baa59a09ff3a99bbb9050eb3d9c",
+      "event": {
+        "id": "msg_00980f4d9ed15a03016b07c5d6a2cc87d19b12bb1aaa7aeade",
+        "timestamp": "2026-11-26T05:38:45.064Z"
+      },
+      "supersedes": "b17f70c2a600483a285b05e03fbc3fa9b8fcf8497b93d61b086ee54370dc4d2e",
+      "evidence_sha256": "ebfd64f582321b9a01d75ba2d887d88adbc92c77fa79f93168e7f0f096ac6473"
+    },
+    {
+      "kind": "request",
+      "source_commit": "f30e5235cf9270116b6f1e37e1425898f1822d7b",
+      "scope": "Verify temporary loss, denied status, recovery and late responses for CSV and folder revisions through their ordinary public paths. Check both simultaneous withdrawal notices, close/reopen, and a denial without a further chart read. Challenge the supplementary CSV cases on this source.",
+      "supersedes": "5c751e8cd6c8dc8a682270a54661dae7cc3a8b5393f079e73fc00e64cc3721ab",
+      "requested_at": "2026-11-26T06:06:32.765006+00:00",
+      "request_id": "76b90077c3e81f02a08e58c19533e1bfd76906026e19afde688ea1056971cc94",
+      "evidence_sha256": "c880b76bb4f6832a7e2738b2b77dac756ce5126c238521275b7fe3604723dacb"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "f30e5235cf9270116b6f1e37e1425898f1822d7b",
+      "verdict": "approved",
+      "decision": "APPROVE M2-035 f30e5235cf9270116b6f1e37e1425898f1822d7b",
+      "scope": "APPROVE M2-035 f30e5235cf9270116b6f1e37e1425898f1822d7b",
+      "observation": "For both CSV and folder revisions, fresh authorization restored the chart and a newly read source row, and reopening a withdrawn revision by ID showed a permission denial with zero additional chart reads.",
+      "reviewer": "Independent Astra Standard (t145)",
+      "original_sha256": "892fcf5526c0524cbcc25d2dc29888f22b900e6db1636596ee67fea5462050d7",
+      "response_id": "6e3256b8b6b3ab64bba840ed29d821de50833bfaa2a04debd4f645a0ef8bc37f",
+      "response_sha256": "f8936656f85aecfa244fbd43e883e74cfa51ce68d6949b26df5e6132625c7118",
+      "legacy_response_sha256": "21d9ff149850703c88560b0c97ca6d92ffe1d15ad32889b3df0f9cece848ee8f",
+      "observation_body_sha256": "cc2ce7e3dab4c17259216fd1ca6227290463f0ea63788d2d17619671318eec52",
+      "event": {
+        "id": "msg_09882cbc637fb227016b07d18a33f887d2b01e031d613c53dd",
+        "timestamp": "2026-11-26T06:28:47.671Z"
+      },
+      "supersedes": "76b90077c3e81f02a08e58c19533e1bfd76906026e19afde688ea1056971cc94",
+      "evidence_sha256": "f9b34d940d6b5ef43c5c9756ab290c4a7c0f0ee2fcb87984cc1e2514a9939cb8"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a1866052ec539edaf7925c3fd426c0f66b21b91c",
+      "scope": "Review the native journal boundary for temporary loss, confirmed withdrawal and close/reopen through the existing public CSV and folder paths. Challenge missing or late evidence before admission, and distinguish the verified compiled Linux controls from Windows evidence.",
+      "supersedes": "6e3256b8b6b3ab64bba840ed29d821de50833bfaa2a04debd4f645a0ef8bc37f",
+      "requested_at": "2026-11-26T07:48:59.254726+00:00",
+      "request_id": "96ffd6be66dc9b3ef6f2240b9d3b26c871261d66779c965f742bd6a5d17eb2d9",
+      "evidence_sha256": "b8628fda0885941edce5fa166aac2bb84b155ca3b96ea1f48ec57f1079aa4def"
+    },
+    {
+      "kind": "request",
+      "source_commit": "09514768174b878432665898058eb9c4d7fca038",
+      "scope": "Review the native journal boundary for temporary loss, confirmed withdrawal and close/reopen through the existing public CSV and folder paths. Challenge missing or late evidence before admission, and distinguish the verified compiled Linux controls from Windows evidence.",
+      "supersedes": "96ffd6be66dc9b3ef6f2240b9d3b26c871261d66779c965f742bd6a5d17eb2d9",
+      "requested_at": "2026-11-26T12:44:43.657195+00:00",
+      "request_id": "e927f14959f6344b5a2a63a6c1629edc8df2234c8199a8eeabcddc5d195a5510",
+      "evidence_sha256": "2f23695ce8f042f6de5fa5d4ba5fc7099ed9e10e250967c8d03314c30af9e3f7"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b39a02e2130ed16f9ccbef223839752aa7ad9ffd",
+      "scope": "Review the native journal boundary for temporary loss, confirmed withdrawal and close/reopen through the existing public CSV and folder paths. Challenge missing or late evidence before admission, and distinguish the verified compiled Linux controls from Windows evidence.",
+      "supersedes": "e927f14959f6344b5a2a63a6c1629edc8df2234c8199a8eeabcddc5d195a5510",
+      "requested_at": "2026-11-26T12:58:53.184244+00:00",
+      "request_id": "c363cc7ea021eb50009d108a647be72fcc845401c033e8fe1d559c4a8cbfe0bd",
+      "evidence_sha256": "7ad7d8af2a5182e297cba4c30a63d90049b134ff80d166709191fbd8adcedac2"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b39a02e2130ed16f9ccbef223839752aa7ad9ffd",
+      "verdict": "approved",
+      "decision": "APPROVE M2-035 b39a02e2130ed16f9ccbef223839752aa7ad9ffd",
+      "scope": "APPROVE M2-035 b39a02e2130ed16f9ccbef223839752aa7ad9ffd",
+      "observation": "For both CSV and folder revisions, my replay kept a timed-out availability reply from restoring access, and the retained Linux browser runs showed zero additional chart reads when a withdrawn revision was reopened by ID.",
+      "reviewer": "Independent Astra Standard (t16j)",
+      "original_sha256": "0303aafd2429cfd760377060880e6888de6a92d87f5df3ad06c9d77735d6b3ad",
+      "response_id": "4506a963008929094284e002bbcbb2d495e8fb3b6fbe94accc1376ac662b6d32",
+      "response_sha256": "d63ef7dd7b27c6acadd633254edef5a432c5bbaa74aade972b0e3c30e6e3c51e",
+      "legacy_response_sha256": "17f7869bbbbc78d4ef77f2f4f330ef0a05b10876502402522a2ebe8c50d64b78",
+      "observation_body_sha256": "550484d45788956d8924a856e7f6abf7a1968a3e8497003761f54e137735e9aa",
+      "event": {
+        "id": "msg_005854bb89f0363e016b082f4015b487d18f3e13468da2b4dd",
+        "timestamp": "2026-11-26T13:08:32.599Z"
+      },
+      "supersedes": "c363cc7ea021eb50009d108a647be72fcc845401c033e8fe1d559c4a8cbfe0bd",
+      "evidence_sha256": "2751eccc704077d8dad9a11caf942149077af1e669103b37b73bf62b55761ba9"
+    },
+    {
+      "kind": "request",
+      "source_commit": "01026c1b3545c940f8d3d960eb64b603e1324b33",
+      "scope": "Review the combined workspace startup/recovery test after integrating PR 127. On this commit, verify the preserved temporary-loss, confirmed withdrawal and reopen behavior and that the new private handoff comparison is scoped to its own case. Reuse the source-bound b39a02e2 decision, original controls and observed native boundary; concentrate on the shared test file and test lifecycle changes.",
+      "supersedes": "4506a963008929094284e002bbcbb2d495e8fb3b6fbe94accc1376ac662b6d32",
+      "requested_at": "2026-11-26T13:09:51.707807+00:00",
+      "request_id": "0d44310a01747a837147169cb15c619a24e2d2d9535f57045004e90bef440db7",
+      "evidence_sha256": "172b113410c224149908efbef5ed85307100cdd774ee0f89e11590e3f02e9645"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "01026c1b3545c940f8d3d960eb64b603e1324b33",
+      "verdict": "approved",
+      "decision": "APPROVE M2-035 01026c1b3545c940f8d3d960eb64b603e1324b33",
+      "scope": "APPROVE M2-035 01026c1b3545c940f8d3d960eb64b603e1324b33",
+      "observation": "The merged workspace spec calls the new Windows ACL comparison only inside the private launcher handoff test, and the retained CSV and folder traces each show zero additional chart reads when a withdrawn revision was reopened by ID.",
+      "reviewer": "Independent Astra Standard (t16t)",
+      "original_sha256": "81c07472dcd2513e7a7159b9b369778d86bd458edc42d68241f99fedcb9479fa",
+      "response_id": "7eb9286670918b01cf141364d15c0c5455ca97f34cfcf5b603e3ed47146ca833",
+      "response_sha256": "d1431c10c5101ad5fe2f16b95800adfe789f9d3460ef0c84212a061a83461f2c",
+      "legacy_response_sha256": "1bb07316807b0aac017777e152c083ed20a10b9cac5f3cf50d21adf881d660f1",
+      "observation_body_sha256": "8b2436d322c5e596046ff4e808466db1bca785d8b9f49893f5714f980c49873c",
+      "event": {
+        "id": "msg_05dd06ce3fb063f4016b08306c312c87d2b6c5649bc6c5f79c",
+        "timestamp": "2026-11-26T13:13:33.395Z"
+      },
+      "supersedes": "0d44310a01747a837147169cb15c619a24e2d2d9535f57045004e90bef440db7",
+      "evidence_sha256": "126284ef9ede3384703bd8c9556dd947ff39455c63bc7d8e370f34eaa30151c6"
+    },
+    {
+      "kind": "request",
+      "source_commit": "030661a9862276017321f94b621bd70e99561020",
+      "scope": "Review shared test and transport behavior for replacement, focus, temporary unavailability and reopen. Check that the new retry does not silently retry an admitted or malformed reply or weaken the CSV and folder boundaries. Use previously approved source and genuine current controls.",
+      "supersedes": "7eb9286670918b01cf141364d15c0c5455ca97f34cfcf5b603e3ed47146ca833",
+      "requested_at": "2026-11-26T13:58:54.246054+00:00",
+      "request_id": "44c1ca86b95fd80a797d0acff83ab9660f96c453a8813b460b7989e7566a1bfc",
+      "evidence_sha256": "a7914e1135a00026dcf994c36b070e632600aadcc7e1fd2a1f8bf79c6cd4a9e0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "aeb1763f21237fd897877ef9bba08219223f7615",
+      "scope": "Review shared test and transport behavior for replacement, focus, temporary unavailability and reopen. Check that the new retry does not silently retry an admitted or malformed reply or weaken the CSV and folder boundaries. Use previously approved source and genuine current controls.",
+      "supersedes": "44c1ca86b95fd80a797d0acff83ab9660f96c453a8813b460b7989e7566a1bfc",
+      "requested_at": "2026-11-26T14:22:07.721103+00:00",
+      "request_id": "5edb53a5a3579e9b7162b067fdc20e9b5704ff022f46f2342db641d4430c8c99",
+      "evidence_sha256": "36c635b1fd1a82855edc697e2d75bc14017f35d8227621d3f312360bf781a933"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "aeb1763f21237fd897877ef9bba08219223f7615",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-035 aeb1763f21237fd897877ef9bba08219223f7615",
+      "scope": "CHANGES_REQUESTED M2-035 aeb1763f21237fd897877ef9bba08219223f7615",
+      "observation": "In my replay, one HTTP 200 response carrying both `available: true` and `PERMISSION_DENIED` changed `canDisplay('csv', id)` from `false` to `true` for a temporarily withheld revision.",
+      "reviewer": "Independent Astra Standard (t18r)",
+      "original_sha256": "4eb6b71f0879e61c110a63f336d3a316b0470bb4650900a95e41f3463934d57b",
+      "response_id": "314fe3ff75861e558fa0f595004b9f22f1c11c57f01c869d3aff16d40f06aa0c",
+      "response_sha256": "d3529c14fac80d61cfded264ef471ee8b6192216d0fe8e5d797ee8880a0e8953",
+      "legacy_response_sha256": "a20f9dcde2c6b872cf6d1b88b766ea8dfb787ad0ff4a1e40d2a97a32d7f85f8a",
+      "observation_body_sha256": "01dc1914d228e771d4078d45f100aa2b2f70d5904e2c1693bdcf30cfc0319512",
+      "event": {
+        "id": "msg_05abab237ccfa86c016b0844fbe06c87d29175ab5b90e186f4",
+        "timestamp": "2026-11-26T14:41:17.887Z"
+      },
+      "supersedes": "5edb53a5a3579e9b7162b067fdc20e9b5704ff022f46f2342db641d4430c8c99",
+      "evidence_sha256": "d836cdc3d8db2ba29cd490485d3249162b8d89834fcc2b7fcda72de6b9e1f268"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e04c951d90ee2c99b6e039b2caf8f753d21727de",
+      "scope": "Review shared test and transport behavior for replacement, focus, temporary unavailability and reopen. Check that the new retry does not silently retry an admitted or malformed reply or weaken the CSV and folder boundaries. Use previously approved source and genuine current controls.",
+      "supersedes": "314fe3ff75861e558fa0f595004b9f22f1c11c57f01c869d3aff16d40f06aa0c",
+      "requested_at": "2026-11-26T15:05:48.156035+00:00",
+      "request_id": "3ff104f970ca712f0bbcba542c228541add6a9228fcd8b0965c5ad3dea6c2885",
+      "evidence_sha256": "762b960accb74ff10a9acb317852231dab7f18d386539b096edc2b1e04c26ee4"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e04c951d90ee2c99b6e039b2caf8f753d21727de",
+      "verdict": "approved",
+      "decision": "APPROVE M2-035 e04c951d90ee2c99b6e039b2caf8f753d21727de",
+      "scope": "APPROVE M2-035 e04c951d90ee2c99b6e039b2caf8f753d21727de",
+      "observation": "In my local replay, the HTTP 403 denial and the HTTP 200 reply containing both result and error each left the withheld CSV ineligible for display after exactly one status read and zero chart reads.",
+      "reviewer": "Independent Astra Standard (t191)",
+      "original_sha256": "9bd2f0f19fcafc58851cc8da1a30c9bc719280c9e04ffa9c8ede93570086a59b",
+      "response_id": "fc6c672c842ee89af6c23ff3448c4f38bd073cf765ff6d0b5aba1a2b64470bb3",
+      "response_sha256": "74b7da3c859fa104ea83be7d78f83fd0c436dfa33a1d30a06d2dc92fca36270b",
+      "legacy_response_sha256": "aea43463dcbab9fec4c14f2595baf90632eb6006bd4e6f921110db99d894edc4",
+      "observation_body_sha256": "2933eb25892c18fc7a4abbc02b4f00a374080b97900d42e73a727c6c358590bf",
+      "event": {
+        "id": "msg_04e98eee2e96eaca016b084b95081887d28ae6b3c70e7d40fc",
+        "timestamp": "2026-11-26T15:09:23.425Z"
+      },
+      "supersedes": "3ff104f970ca712f0bbcba542c228541add6a9228fcd8b0965c5ad3dea6c2885",
+      "evidence_sha256": "fee4ab19a5473d9846d0cc4aaafb8e6b03958ee88021ba693bdd6528f5fb7343"
+    },
+    {
+      "kind": "request",
+      "source_commit": "3d34bec7f9dbbffb88f65af8cd0b8689b13373aa",
+      "scope": "Review shared test and transport behavior for replacement, focus, temporary unavailability and reopen. Check that the new retry does not silently retry an admitted or malformed reply or weaken the CSV and folder boundaries. Use previously approved source and genuine current controls.",
+      "supersedes": "fc6c672c842ee89af6c23ff3448c4f38bd073cf765ff6d0b5aba1a2b64470bb3",
+      "requested_at": "2026-11-26T15:13:32.518515+00:00",
+      "request_id": "1a5c3c15b5c00197000dc6be2cddd45e3bddb6d27b4ad95783a85f3e60b460cf",
+      "evidence_sha256": "afbc6e09ae8f62c1ddaa94179316a90ff76007e542dfc88e046ccf335d3c3f08"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "3d34bec7f9dbbffb88f65af8cd0b8689b13373aa",
+      "verdict": "approved",
+      "decision": "APPROVE M2-035 3d34bec7f9dbbffb88f65af8cd0b8689b13373aa",
+      "scope": "APPROVE M2-035 3d34bec7f9dbbffb88f65af8cd0b8689b13373aa",
+      "observation": "In my read-only replay, only the typed HTTP 429 BUSY refusal triggered a second snapshot read, while HTTP 200 BUSY, permission denial, a contradictory reply, and a missing envelope each stopped after one read.",
+      "reviewer": "Independent Astra Standard (t19f)",
+      "original_sha256": "b2bc48ff1770ef2e24b3836e524f5e86f25f0c272b18a0b2ffbc6c32e224ebf0",
+      "response_id": "a9be0fa687ddb30da06b2eadfdb6bb673a46b0ee1cb29851dac219992fef6b59",
+      "response_sha256": "b9d78e783524546f1a5e59f9bc53f65b1a4ab034a1a37693309f2041ac8f382e",
+      "legacy_response_sha256": "b7f3a77f7e4d329e4531e32f2c23ccf3fab9bff71e8bc4f21a5ad6c13cd59a0a",
+      "observation_body_sha256": "dd2d8f7d4f4d4892504dc0dc99e792f7b166dbbf7e571ce69f9cec3dad3c8e64",
+      "event": {
+        "id": "msg_0fa8d177c812ab24016b084e6dff7c87d1b8c9f38d89f3b7c7",
+        "timestamp": "2026-11-26T15:21:34.093Z"
+      },
+      "supersedes": "1a5c3c15b5c00197000dc6be2cddd45e3bddb6d27b4ad95783a85f3e60b460cf",
+      "evidence_sha256": "54a8e386c1b5d4e56bc2cac62912fb0978fbe5eff24329b412e43bebc9e033ef"
+    },
+    {
+      "kind": "request",
+      "source_commit": "21cf84718d8d82d2cb3a54347c7552e8691946c3",
+      "scope": "Review shared test and transport behavior for replacement, focus, temporary unavailability and reopen. Check that the new retry does not silently retry an admitted or malformed reply or weaken the CSV and folder boundaries. Use previously approved source and genuine current controls.",
+      "supersedes": "a9be0fa687ddb30da06b2eadfdb6bb673a46b0ee1cb29851dac219992fef6b59",
+      "requested_at": "2026-11-27T03:05:01.061353+00:00",
+      "request_id": "4322573a97fe1027a79d1caae9583939a5ff147e565cf268879ee5f397476012",
+      "evidence_sha256": "db7b2fc29684dfb0bdc73bf1a5539db7de6e9afde6c47227dac626164c4fe71d"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "21cf84718d8d82d2cb3a54347c7552e8691946c3",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-035 21cf84718d8d82d2cb3a54347c7552e8691946c3",
+      "scope": "CHANGES_REQUESTED M2-035 21cf84718d8d82d2cb3a54347c7552e8691946c3",
+      "observation": "When I replayed the archived BUSY error from an admitted Windows SQLite write through the candidate’s native snapshot reader, it issued a second snapshot request and returned that request’s success.",
+      "reviewer": "Independent Astra Standard (t1bh)",
+      "original_sha256": "994ae25d39d9084eb6b48edca1e25472528f0cd450654faff5dba0c5f3ff321f",
+      "response_id": "667410462eb804b8d060ad8cbbc0c14a2573fa86cc4f9f0aaedfb4a8ba696277",
+      "response_sha256": "9b47747f7135367cc3c13579bf20f34849b7b149f4b6520d44565e3c29cc0cac",
+      "legacy_response_sha256": "f0b232db954a0f85d4d2b9d806ad70bba63de11ed8ec1bb6cb053075e0949ce4",
+      "observation_body_sha256": "a69ba0faacecbb5722e8657106768c9cefc4d6c8305048e6aa8f0bb046f84789",
+      "event": {
+        "id": "msg_0de328d821289cb0016b08f45ae09c87d08cda150e69da8e3a",
+        "timestamp": "2026-11-27T03:09:42.865Z"
+      },
+      "supersedes": "4322573a97fe1027a79d1caae9583939a5ff147e565cf268879ee5f397476012",
+      "evidence_sha256": "505f319d34537fb2571a7683638b0374b14d95e8c86de1b8d9e3e637aad97cf8"
+    },
+    {
+      "kind": "request",
+      "source_commit": "f636dcdd382340e453dd29b91cfff01c2413929f",
+      "scope": "Re-evaluate your earlier finding that an admitted native SQLite BUSY was retried by the snapshot reader. Decide from the corrected public startup and the writer admission marker, with the actual request count and visible terminal result.",
+      "supersedes": "667410462eb804b8d060ad8cbbc0c14a2573fa86cc4f9f0aaedfb4a8ba696277",
+      "requested_at": "2026-11-27T03:34:31.982066+00:00",
+      "request_id": "98d7342858bf523dd251f298ec8f08ad3da31fe28de5b7f5cb0f2ea36fd5a02d",
+      "evidence_sha256": "f1212946517e02e65e9c7ebac41c72ed48677fb4055e254e51de2c87766a9496"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "f636dcdd382340e453dd29b91cfff01c2413929f",
+      "verdict": "approved",
+      "decision": "APPROVE M2-035 f636dcdd382340e453dd29b91cfff01c2413929f",
+      "scope": "APPROVE M2-035 f636dcdd382340e453dd29b91cfff01c2413929f",
+      "observation": "When the public startup received the retained admitted SQLite BUSY error, it made one snapshot request and displayed “The local workspace is busy.”",
+      "reviewer": "Independent Astra Standard (t1bw)",
+      "original_sha256": "2867df562001c50d0577485950ee9ded2d11a01bfdf9b90179ea438ca8e08d29",
+      "response_id": "33234c5c22fd86b43fcc319ce04feeac6f30bf0d211deeec59f2564778f6d490",
+      "response_sha256": "eebc6d530abb3cbc59bceb10b8d91efc701fb18d72850daf475a4dc091cb78e0",
+      "legacy_response_sha256": "c8f59f68c5c2af576851f977afdee1768c02ccbc9916c6f7abbd525ebe67d968",
+      "observation_body_sha256": "7c996a358ac0b9fa25ae7b40a8fada575ebc201e8d03bf5f6d6d6a8afc44abc7",
+      "event": {
+        "id": "msg_01c1c0995452f7f4016b08fa9c162c87d096d2179d297dd2c7",
+        "timestamp": "2026-11-27T03:36:10.418Z"
+      },
+      "supersedes": "98d7342858bf523dd251f298ec8f08ad3da31fe28de5b7f5cb0f2ea36fd5a02d",
+      "evidence_sha256": "710508ec87c37e7c4266bd3bdd050bb14791b25198aca901f26c46502357385f"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ff7f9403dc57e4a945796d56aa07ec6aaabbba33",
+      "scope": "Requalify frozen access fencing, retained authorized clear and recovery on the combined shared browser test.",
+      "supersedes": "33234c5c22fd86b43fcc319ce04feeac6f30bf0d211deeec59f2564778f6d490",
+      "requested_at": "2026-11-27T07:13:36.329190+00:00",
+      "request_id": "c8c90b6b5d45382fe07b4f17a4dcb6cde76c852e120359d8e36f779f28dfacd2",
+      "evidence_sha256": "6df4e0f41365b542ba92bf4c8c2707d6fa1a2f64bc62be238a098200cf46aebd"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ff7f9403dc57e4a945796d56aa07ec6aaabbba33",
+      "verdict": "approved",
+      "decision": "APPROVE M2-035 ff7f9403dc57e4a945796d56aa07ec6aaabbba33",
+      "scope": "APPROVE M2-035 ff7f9403dc57e4a945796d56aa07ec6aaabbba33",
+      "observation": "After the shared selection was redacted during a CSV read, the late reply displayed neither the chart nor its provenance, and the authorized clear sent one request with expected selection revision 2.",
+      "reviewer": "Independent Astra Standard (t1f4)",
+      "original_sha256": "2a4496f0afe022d254f6383a6e93e0713ce376d26e73a7993fed0705c79f145f",
+      "response_id": "3272583942198ef7dbae2b8a1e7ddff247c9d70ebd297ce4c66b100df44e5ee9",
+      "response_sha256": "fa7b3726f237cb904c00cdc957808d4e9273fa5a800ded3e385856b0477977be",
+      "legacy_response_sha256": "175863055f5ca80812a214a7d287864210199826748c669565e5a031d59cbbef",
+      "observation_body_sha256": "c0975ef87f9901a61ab4a2e71a09d12786703d7741cc86fc13019c2a720f8a14",
+      "event": {
+        "id": "msg_05c579948e787d7f016b093000f06c87d0944593d34cd70aae",
+        "timestamp": "2026-11-27T07:24:03.123Z"
+      },
+      "supersedes": "c8c90b6b5d45382fe07b4f17a4dcb6cde76c852e120359d8e36f779f28dfacd2",
+      "evidence_sha256": "fd9a69dd4ca9f6bbfc747cd53dd8eb3a4f5b1ca35df7608e1504f13cc4d70b98"
+    }
+  ]
+}

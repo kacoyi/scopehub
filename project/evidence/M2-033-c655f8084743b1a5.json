@@ -1,0 +1,90 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M2-033",
+  "task_definition_sha256": "415a8e970fb331f673d34348fec0f260f6bbfa2cad0012c4fafc8696b6abccf8",
+  "run_id": "20261125T045603.615049Z-f5ee482d",
+  "recorded_at": "2026-11-25T04:57:28.213385+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "cb04827b26b490557f9bde891a2d0bcb33426be918846c8397dc4b0a8ad932be",
+    "file_count": 597,
+    "git_head": "2524629e71f4dae35e0c5ee0294d5a954cc6eda1",
+    "working_tree_dirty": true,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "c655f8084743b1a58f5325e60586146d3b41aff68d42e1181ed6edac212cf924",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/audit-desktop-recovery/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "generated-contracts",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-desktop-recovery/.venv/bin/python",
+        "scripts/generate_contracts.py",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "eb8ab813a7d8651316783d4969a57713b55822fc094647b6a95ad56c513d690f"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "60fcb016c30d1f2d0a1f4054d02cd2dd19a82dc78d52dbc7fe99a1d4b1cd76c4"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "57216589e104f49dfa2f8b58020c1e5cee557d7860549febe80a2b263da295ec"
+    },
+    {
+      "id": "desktop-workspace-transport",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/desktop-workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "8b9426975f4db87400ecfc75b939953e5383515898ac566beb96361d4a17656b"
+    }
+  ],
+  "project_definition_sha256": "97d5be8e119a2ef59fcc20d078cdc397df27bd1d7e8ad14ae894311f2660430a",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

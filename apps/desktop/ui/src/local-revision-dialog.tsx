@@ -1,3 +1,4 @@
+import { withReplyDeadline } from './reply-deadline';
 import { useEffect, useId, useRef, useState } from 'react';
 import type { ListLocalFolderRevisionsOutput, ListLocalImportRevisionsOutput, ReadLocalFolderRevisionOutput } from '../../../../contracts/generated/protocol';
 import { formatNumber, message, plural, t } from './i18n';
@@ -7,7 +8,7 @@ import {
 } from './local-import-transport';
 import { formatSourceBarValue, FrozenFolderChart, FrozenLocalChart } from './local-preview-chart';
 import { openAuthenticatedFrozenChart, UnavailableSharedSelection, type FrozenChartResult } from './frozen-evidence';
-import { displayAccessDenied, useWatchPublishedRevision, type PublishedRevisionAccess } from './published-revision-access';
+import { displayAccessDenied, useWatchPublishedRevision, type PublishedRevisionAccess, type PublishedRevisionKind, type PublishedRevisionStatus } from './published-revision-access';
 import { type LocalWorkspace, WorkspaceSourceError } from './use-local-workspace';
 
 export function RevisionAccessActions({ disabled, folder = false, onRevoke }: { disabled: boolean; folder?: boolean; onRevoke: () => void }) {
@@ -42,6 +43,16 @@ function failureMessage(error: unknown, fallback: string) {
   return localImportErrorMessage(error) ?? message(fallback);
 }
 
+type AccessFailure = Exclude<PublishedRevisionStatus, 'available'>;
+
+function accessFailure(status: AccessFailure) {
+  switch (status) {
+    case 'unavailable': return message('This frozen chart is unavailable in the current profile.');
+    case 'revoked': return message('This profile does not have permission to display this revision.');
+    case 'unconfirmed': return message('Unable to verify access to this published revision. Try opening it again.');
+  }
+}
+
 type LibraryPage =
   | { status: 'unconfigured' | 'error' }
   | { status: 'ready'; result: {
@@ -49,8 +60,7 @@ type LibraryPage =
     next_after_revision_id: string | null;
   } };
 
-type RevisionKind = 'csv' | 'folder';
-type LibrarySelection = { kind: RevisionKind; cursors: Array<string | null> };
+type LibrarySelection = { kind: PublishedRevisionKind; cursors: Array<string | null> };
 type OpenedRevision =
   | { kind: 'csv'; result: FrozenChartResult }
   | { kind: 'folder'; result: ReadLocalFolderRevisionOutput };
@@ -77,7 +87,7 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
   const library = listing?.selection === selection ? listing.page : { status: 'loading' } as const;
   const [draft, setDraft] = useState('');
   const [frozen, setFrozen] = useState<OpenedRevision>();
-  const [opening, setOpening] = useState<{ id: string; kind: RevisionKind }>();
+  const [opening, setOpening] = useState<{ id: string; kind: PublishedRevisionKind; checkingAccess: boolean }>();
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<ReturnType<typeof failureMessage>>();
   const [notice, setNotice] = useState<ReturnType<typeof message>>();
@@ -85,19 +95,19 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
   const validId = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(revisionId);
   const watchedId = opening?.id ?? frozen?.result.revision.revision_id;
   const watchedKind = opening?.kind ?? frozen?.kind;
-  const lostAccess = watchedId !== undefined && revisionAccess.revoked.has(watchedId);
-  const visibleFrozen = lostAccess ? undefined : frozen;
+  const lostAccess = watchedId !== undefined && watchedKind !== undefined
+    && revisionAccess.withheldStatus(watchedKind, watchedId) === 'revoked';
+  const visibleFrozen = frozen && revisionAccess.canDisplay(frozen.kind, frozen.result.revision.revision_id) ? frozen : undefined;
   const visibleRevisions = library.status === 'ready'
-    ? library.result.revisions.filter(entry => !revisionAccess.revoked.has(entry.revision_id)) : [];
-  useWatchPublishedRevision(lostAccess ? undefined : watchedId,
-    watchedKind === 'folder' ? revisionAccess.verifyFolder : revisionAccess.verify,
+    ? library.result.revisions.filter(entry => revisionAccess.canDisplay(kind, entry.revision_id)) : [];
+  useWatchPublishedRevision(lostAccess ? undefined : watchedId, watchedKind ?? 'csv', revisionAccess.verify,
     watchedKind === 'folder' ? undefined : workspace, 'checked-by-reader');
 
   useEffect(() => {
-    if (!lostAccess) return;
+    if (!lostAccess || opening?.checkingAccess) return;
     setFrozen(undefined);
-    setFailure(message('This frozen chart is unavailable in the current profile.'));
-  }, [lostAccess]);
+    setFailure(previous => previous ?? accessFailure('unavailable'));
+  }, [lostAccess, opening?.checkingAccess]);
   const listLoading = nativeLocalImport && library.status === 'loading';
   const workspacePending = Boolean(workspace?.pending);
   const working = busy || listLoading || workspacePending;
@@ -113,9 +123,9 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
       const input = { version: 1 as const, after_revision_id: selection.cursors.at(-1) ?? null, limit: PAGE_SIZE };
       let page: LibraryPage;
       try {
-        const result = selection.kind === 'folder'
-          ? await listLocalFolderRevisions(input, crypto.randomUUID())
-          : await listLocalImportRevisions({ ...input, include_bar_summary: true }, crypto.randomUUID());
+        const result = await withReplyDeadline(15_000, async () => selection.kind === 'folder'
+          ? listLocalFolderRevisions(input, crypto.randomUUID())
+          : listLocalImportRevisions({ ...input, include_bar_summary: true }, crypto.randomUUID()), lifetime.current?.signal);
         page = { status: 'ready', result };
       } catch (error) {
         page = { status: errorCode(error) === 'PROVIDER_NOT_CONFIGURED' ? 'unconfigured' : 'error' };
@@ -124,6 +134,14 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
     });
     return () => { superseded = true; };
   }, [listLoading, selection, workspacePending]);
+
+  const { recheckListed } = revisionAccess;
+  useEffect(() => {
+    if (library.status !== 'ready') return;
+    const page = new AbortController();
+    void recheckListed(kind, library.result.revisions.map(entry => entry.revision_id), page.signal);
+    return () => page.abort();
+  }, [kind, library, recheckListed]);
 
   useEffect(() => {
     const node = dialog.current;
@@ -156,6 +174,8 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
 
   async function request(work: () => Promise<void>, fallback: string) {
     if (active.current || listLoading || workspacePending) return;
+    const signal = lifetime.current?.signal;
+    if (!signal || signal.aborted) return;
     active.current = true;
     setBusy(true);
     setFailure(undefined);
@@ -164,29 +184,48 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
       await work();
     } catch (error) {
       const nextFailure = failureMessage(error, fallback);
-      setFailure(() => nextFailure);
+      if (!signal.aborted) setFailure(() => nextFailure);
     } finally {
       active.current = false;
-      setBusy(false);
+      if (!signal.aborted) setBusy(false);
     }
   }
 
   async function open(id: string, fromLibrary = false) {
     const signal = lifetime.current?.signal;
     if (active.current || !signal || signal.aborted) return;
-    const chartSignal = workspace && kind === 'csv' ? signal : undefined;
     setFrozen(undefined);
     await request(async () => {
-      setOpening({ id, kind });
-      const denied = { code: workspace && kind === 'csv' ? 'SNAPSHOT_UNAVAILABLE' : 'PERMISSION_DENIED' };
+      const checkingAccess = !revisionAccess.canDisplay(kind, id);
+      setOpening({ id, kind, checkingAccess });
+      let reading: (() => boolean) | undefined;
+      const showAccessFailure = (status: AccessFailure) => {
+        if (fromLibrary) libraryTitle.current?.focus();
+        setFailure(() => accessFailure(status));
+      };
       try {
-        if (!revisionAccess.canDisplay(id)) throw denied;
+        if (checkingAccess) {
+          const status = await revisionAccess.verify(kind, id, { signal });
+          signal.throwIfAborted();
+          const current = revisionAccess.withheldStatus(kind, id);
+          const failure = status === 'available' ? current : status;
+          if (failure) {
+            showAccessFailure(current === 'revoked' ? current : failure);
+            return;
+          }
+          setOpening({ id, kind, checkingAccess: false });
+        }
+        reading = revisionAccess.beginRead(kind, id);
         const opened: OpenedRevision = kind === 'folder'
-          ? { kind, result: await readLocalFolderRevision({ version: 1, revision_id: id }, crypto.randomUUID()) }
-          : { kind, result: workspace ? await openAuthenticatedFrozenChart(id, crypto.randomUUID(), chartSignal)
-            : await readLocalImportRevision({ version: 1, revision_id: id }, crypto.randomUUID()) };
-        if (chartSignal?.aborted) return;
-        if (!revisionAccess.canDisplay(id)) throw denied;
+          ? { kind, result: await readLocalFolderRevision({ version: 1, revision_id: id }, crypto.randomUUID(), signal) }
+          : { kind, result: workspace ? await openAuthenticatedFrozenChart(id, crypto.randomUUID(), signal)
+            : await readLocalImportRevision({ version: 1, revision_id: id }, crypto.randomUUID(), signal) };
+        if (signal.aborted) return;
+        if (!reading()) {
+          const revoked = revisionAccess.withheldStatus(kind, id) === 'revoked';
+          showAccessFailure(revoked && !(workspace && kind === 'csv') ? 'revoked' : 'unavailable');
+          return;
+        }
         const { result } = opened;
         if (result.revision.revision_id !== id || result.bars.length !== result.revision.bar_count
           || (opened.kind === 'folder' && opened.result.files.length !== opened.result.revision.source_count)) {
@@ -194,16 +233,18 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
         }
         setFrozen(opened);
       } catch (error) {
-        if (chartSignal?.aborted) return;
+        if (signal.aborted) return;
         if (displayAccessDenied(error)) {
           if (fromLibrary) libraryTitle.current?.focus();
-          removeFromLibrary(id);
-          revisionAccess.revoke(id);
-          workspace?.reload();
+          if (reading?.()) {
+            revisionAccess.withhold(kind, id);
+            void revisionAccess.verify(kind, id, { signal });
+            if (kind === 'csv') workspace?.refreshPublishedAccess(id);
+          }
         }
         throw error;
       } finally {
-        if (!chartSignal?.aborted) setOpening(undefined);
+        if (!signal.aborted) setOpening(undefined);
       }
     }, 'Unable to open the frozen chart.');
   }
@@ -221,7 +262,7 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
       setFrozen(undefined);
       removeFromLibrary(revision_id);
       setNotice(message('Access removed for this published revision.'));
-      revisionAccess.revoke(revision_id);
+      revisionAccess.revoke(visibleFrozen.kind, revision_id);
       workspace?.reload();
     }, 'Unable to remove access to this revision.');
   }

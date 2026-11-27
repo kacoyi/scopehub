@@ -92,7 +92,7 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
   const state = workspace.snapshot;
   const canDisplay = access?.canDisplay;
   const verify = access?.verify;
-  const revoked = access?.revoked.has(snapshot.dataset_id);
+  const revoked = access?.withheldStatus('csv', snapshot.dataset_id) === 'revoked';
 
   useLayoutEffect(() => {
     setLayers([]);
@@ -102,7 +102,7 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
     const abort = new AbortController();
     const signal = AbortSignal.any([abort.signal, AbortSignal.timeout(15_000)]);
     void readLayers(snapshot, signal).then(({ layers: restored, undo: hint }) => {
-      if (signal.aborted || canDisplay && !canDisplay(snapshot.dataset_id)) return;
+      if (signal.aborted || canDisplay && !canDisplay('csv', snapshot.dataset_id)) return;
       setLayers(restored);
       setUndo(hint);
       showAccepted(restored.flatMap(({ document }) => document && matchesChart(document.snapshot, snapshot)
@@ -116,7 +116,7 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
     }).catch(error => {
       if (abort.signal.aborted) return;
       if (displayAccessDenied(error)) {
-        void verify?.(snapshot.dataset_id);
+        void verify?.('csv', snapshot.dataset_id);
       }
       setMessage(previous => previous ?? { text: uiMessage('Accepted indicator output could not be restored.'), failed: true });
     });
@@ -137,7 +137,7 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
     setMessage(undefined);
     try { await action(AbortSignal.timeout(15_000)); }
     catch (error) {
-      if (displayAccessDenied(error)) void verify?.(snapshot.dataset_id);
+      if (displayAccessDenied(error)) void verify?.('csv', snapshot.dataset_id);
       setMessage({ text: uiMessage('The indicator change could not be completed. Refresh the workspace and try again.'), failed: true });
     } finally { setPending(false); }
   }
