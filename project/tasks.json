@@ -27077,7 +27077,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Independently review the exact repair for both decisions on 17cbf7c7, then retain a first ordinary full warm Windows PR with all five producer clocks, final publisher time, all 35 selections, the original attachments and ordered Python case outcomes. Keep the 900-second timing finding open pending a successful comparable measurement. The coordinator owns publication and protected integration.",
+      "next_action": "Replay and repair both independent 3f5485af decisions at the public source qualification, producer and publication boundaries. Integrate protected navigation source 4d17dff0 and hand the exact clean candidate with retained observations to the coordinator for independent review. Only an ordinary full warm Windows PR with five producer clocks, final publisher time, all 35 selections, original attachments and ordered Python outcomes can qualify the five-job layout against the 900-second objective.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -27173,6 +27173,7 @@
           "tooling"
         ],
         "context": [
+          "Both actual 3f5485af changes-requested responses, their digest-verified originals, and the coordinator decision index are retained in .reports/audit-20261127/m0-146-3f5485af-repair/originals. M0-146 owns the five registered regressions with project-state and python-contracts-workers without reopening completed M0-139.",
           "The exact M0-139 and M0-146 changes-requested decisions on 17cbf7c7, authenticated successful 45965137241 and failed workspace 45933801256 inputs are retained in .reports/audit-20261127/m0-146-17cbf7c7-repair/originals (manifest SHA-256 2caf29aa00a021f348ee3fbce0fd85bed043829e9006acdfd68fe9c830864ad2). M0-146 owns their joint repair without altering completed M0-139.",
           "Five-run original Windows producer comparison: archives/observations/repo-hygiene-20261125/pr123-warm-comparison-45965137241/lanes.json (SHA-256 6206f9265667be23e48c2c07db5bad6e26cba3b052f4eff980ab07a8641b8645). Checkout-local original copies, first-attempt job clocks, per-case and per-check data, producer and publisher evidence and both actual task receipts are indexed by .reports/audit-20261127/m0-146-windows-path/originals-sha256.json (SHA-256 1196fed139939e5b4097030bb11dcbbc34638bccba396febda2f639b3565eb8f).",
           "Independent M0-139 changes-requested decision on fd02515180726e0b843e590b62d0aeef404aed48, contracts/reviews/task-decisions/M0-139.json#/events/25. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-139-fd025151/original-assistant-response.jsonl (SHA-256 281f1f603d7eb47717aa318a3bee177f8a64cf2b75592057b9bfff3931f1539f).",
@@ -27230,6 +27231,7 @@
           "PR130 original archives/runs/windows-change-45958460881-1/test-report.json recorded a separate unsplit Windows Python timeout at 1200.047 seconds. Both market interruption and all six workspace controls passed on both platforms. The original comparison is retained at .reports/audit-20261127/m0-146-windows-partition-balance/originals/pr130-ordinary-45958460881.json (SHA-256 600effb468cd45ad8718f1dc46b0376255f3ebaabdc628b1de9922a503937452)."
         ],
         "hypotheses": [
+          "One terminal publication rule for workspace and Python producers can preserve the same executed rows, reports and generated manifests across normal, failed and interrupted exits. Compare the maintenance surface with lane-specific finalization and keep the supported historical workflow and existing selection and timing budgets.",
           "A dedicated PR workspace runner can absorb the long native workspace and desktop checks while letting both Python parts use a light toolchain runner. Compare work placement, startup reuse and more on-runner workers against five isolated producers with observed setup and publication costs.",
           "The Python producer finished last before aggregation on all three ordinary warm PRs. Individual test durations and process traces can separate repeated fixture or immutable repository reads from native runtime variation.",
           "The three Windows runs timed the same 103 delivery cases at 285.171, 198.020 and 254.251 seconds. On the matched local fixture, accepted history and check reduced Git starts from 31 to 29 and 20 to 18, respectively, by sharing the proven cutover predecessor. Full checkout check reduced project schema opens from 444 to one. All paired exit codes and output bytes agree for positive, rejected and missing-checkpoint cases. Recovery had measured spare time, but splitting Python would need new report accounting for failures and interruptions. The candidate removes repeated reads while retaining the original four producers.",
@@ -27246,6 +27248,18 @@
           "A contiguous transfer of whole discovery modules to the shorter Python job may reduce the measured recovery critical path. Four native samples expose variable host costs; compare the alternatives, original ordering, older partition boundaries and all producer intervals before choosing. Treat modeled gains as estimates pending the next full native observation."
         ],
         "risks": [
+          {
+            "failure": "Integration can accept a reported tree that conflicts with the known tested commit, split producer records under a single-job workflow, or a skipped checkout. Replay matched and conflicting controls against the declared historical workflow, including the verified tree-only route when the local commit is unavailable.",
+            "checks": ["project-state", "python-contracts-workers"]
+          },
+          {
+            "failure": "Workspace interruption after the last result can discard both reports at final source validation or return failure with passing reports during either publication write. Verify normal, failed and interrupted exits, identical persisted reports and complete executed rows through the public producer.",
+            "checks": ["project-state", "python-contracts-workers"]
+          },
+          {
+            "failure": "A one-shot manifest read error after a failed Python partition can discard already generated ordered evidence. Verify preservation after recovery, and reject incomplete publication when a generated manifest cannot be bound and reopened.",
+            "checks": ["project-state", "python-contracts-workers"]
+          },
           {
             "failure": "Integration can report passed by substituting the four-producer head declaration for an unavailable five-producer tested merge workflow. Replay the genuine historical attempt against the correct source and reject a missing producer or an unavailable tested declaration without equivalence proof.",
             "checks": ["project-state", "python-contracts-workers"]

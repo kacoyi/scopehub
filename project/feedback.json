@@ -10297,6 +10297,86 @@
       "regression_checks": ["project-state", "python-contracts-workers"],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-integration-tested-commit-tree-conflict",
+      "source": "Independent M0-139 changes-requested decision on 3f5485af1e44cf9e85ed60bd024d182755a47f72, the latest event in contracts/reviews/task-decisions/M0-139.json. Original archives/observations/repo-hygiene-20261125/independent-final-m0-139-3f5485af/original-assistant-response.jsonl (SHA-256 264ea9573a5e289a02de94c021d12f9be00ab94db6fa8f018a824bda33cfa193).",
+      "observation": "The public integration replay for tested merge 770b2481 blocked three Windows producers with the actual tree 55a3d6e1 and passed them when only the API tree changed to bdff87e4. Qualify the reported tree against the available tested commit and preserve the verified tree-only historical route when the commit object is missing.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-integration-unsplit-workflow-accepts-split-results",
+      "source": "Independent M0-139 changes-requested decision on 3f5485af1e44cf9e85ed60bd024d182755a47f72, the latest event in contracts/reviews/task-decisions/M0-139.json. Original archives/observations/repo-hygiene-20261125/independent-final-m0-139-3f5485af/original-assistant-response.jsonl (SHA-256 264ea9573a5e289a02de94c021d12f9be00ab94db6fa8f018a824bda33cfa193).",
+      "observation": "The public integration replay for historical source b3475fa7 passed the single verify job control and also passed after substituting split Windows jobs and aggregation. Setting the substituted browser job to failure still passed. Apply declared topology and genuine checkout qualification to the supported unsplit route as well.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-integration-producer-checkout-can-be-skipped",
+      "source": "Independent M0-139 changes-requested decision on 3f5485af1e44cf9e85ed60bd024d182755a47f72, the latest event in contracts/reviews/task-decisions/M0-139.json. Original archives/observations/repo-hygiene-20261125/independent-final-m0-139-3f5485af/original-assistant-response.jsonl (SHA-256 264ea9573a5e289a02de94c021d12f9be00ab94db6fa8f018a824bda33cfa193).",
+      "observation": "Native Windows run 45965137241 qualified through the public integration command with all original jobs. Changing only the browser producer pinned checkout conclusion to skipped still qualified. The adjacent wrong head_sha control blocked. Require the successful declared checkout and its tested-source evidence for all source producers.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-workspace-terminal-interruption-publication-disagrees",
+      "source": "Independent M0-146 changes-requested decision on 3f5485af1e44cf9e85ed60bd024d182755a47f72, the latest event in contracts/reviews/task-decisions/M0-146.json. Original archives/observations/repo-hygiene-20261125/independent-final-m0-146-3f5485af/original-assistant-response.jsonl (SHA-256 f0243522ddfb59ffe232a731d9b4041fed7254abd4ba710c9ad511d78fe9389b).",
+      "observation": "The normal workspace public replay exited 0 with two passing reports. SIGINT during final source validation raised KeyboardInterrupt and lost both reports. SIGINT during either publication write exited 1 and left two passing reports accepted by publication and diagnostic reopen. Retain the four executed results and reconcile exit and both report copies through a shared producer terminal rule.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-failed-publication-drops-generated-manifest",
+      "source": "Independent M0-146 changes-requested decision on 3f5485af1e44cf9e85ed60bd024d182755a47f72, the latest event in contracts/reviews/task-decisions/M0-146.json. Original archives/observations/repo-hygiene-20261125/independent-final-m0-146-3f5485af/original-assistant-response.jsonl (SHA-256 f0243522ddfb59ffe232a731d9b4041fed7254abd4ba710c9ad511d78fe9389b).",
+      "observation": "A real failed recovery partition retained 310 cases, one error and one skip. A single OSError at the first digest read after sealing caused the failed report to publish only the log, even though the original 535678-byte manifest later verified. Preserve the recoverable manifest or reject incomplete publication; retain passed, failed and interrupted controls.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
