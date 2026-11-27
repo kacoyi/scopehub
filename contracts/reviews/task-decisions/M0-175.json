@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-175",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "2d2e9522570a635dbe72ab7d555ff7d0c2e19a53",
+      "scope": "Review how the two observed cancellations distinguish a bounded terminal response from actual later disposal of the same owned scratch path and independent adjacent work.",
+      "supersedes": null,
+      "requested_at": "2026-11-27T06:26:22.335294+00:00",
+      "request_id": "57b83c3fe5367736dffaff0ec05ec943b32bf9ab37b6a3d6472756d8a73347a0",
+      "evidence_sha256": "1b9786e0f213f2a258d4c021e6a69a29506c9574981055eedf774cb814b80eb1"
+    }
+  ]
+}
