@@ -10,6 +10,26 @@
       "requested_at": "2026-11-27T08:40:07.725251+00:00",
       "request_id": "1bfbea2d83552ac89d9436afe4984ef202c3fc4104f5e7d852e46c41022528c4",
       "evidence_sha256": "2de3a4b0dccdf3df61ca9235d18beddddabad4b64f4e900a386227acb9e95c56"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c494a94b013a655a6034ee73c13f2612b449c581",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-176 c494a94b013a655a6034ee73c13f2612b449c581",
+      "scope": "CHANGES_REQUESTED M0-176 c494a94b013a655a6034ee73c13f2612b449c581",
+      "observation": "Playwright listed 17 tests for `indicator-declarative-preview` and three for `indicator-workflow`, and neither selection included a CSV bridge consumer.",
+      "reviewer": "Independent Astra Standard (t1fp)",
+      "original_sha256": "9d0aa481cdf5b4a692f99a6a94fb608db362c2f1c7415ceefc6ee4054806fec2",
+      "response_id": "a98edd3cd7ac5d92baf0eaba5ac4f0d9ec9e3b06930f019b91286a4837ee609e",
+      "response_sha256": "766c262469b671000a3d028a4c112c244f89328cf7e87edd2168bfc1f3ad1e0c",
+      "legacy_response_sha256": "b305887a96c678f523bf688c96ffb5ec49fb13e282f4741ddaebce77ebed178c",
+      "observation_body_sha256": "818cb2ca97d475acb88a2c6191c21b55a90605e6eaea3e250ab58baa864010aa",
+      "event": {
+        "id": "msg_0ab75cae54d59ef5016b094397a0c487d0a8c063c05ad910fd",
+        "timestamp": "2026-11-27T08:47:44.546Z"
+      },
+      "supersedes": "1bfbea2d83552ac89d9436afe4984ef202c3fc4104f5e7d852e46c41022528c4",
+      "evidence_sha256": "a2cb23192f3520c9eecef9489439ad1b6b555cdceee3f0058a8090c204c9180b"
     }
   ]
 }
