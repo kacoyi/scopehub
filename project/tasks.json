@@ -26098,6 +26098,7 @@
         "apps/desktop/ui/src/use-local-workspace.ts",
         "apps/desktop/ui/src/workspace-http-reply.ts",
         "apps/desktop/ui/src/local-revision-dialog.tsx",
+        "apps/desktop/src-tauri/src/workspace.rs",
         "tests/ui/desktop-workspace.spec.mjs",
         "tests/ui/local-import.spec.mjs",
         "contracts/reviews",
@@ -26159,7 +26160,8 @@
         "model-connection-workflow",
         "python-contracts-workers",
         "published-revision-launch-deadline",
-        "windows-published-revision-access"
+        "windows-published-revision-access",
+        "rust-contracts-workers"
       ],
       "evidence": [
         {
@@ -26171,7 +26173,7 @@
           "sha256": "8160dbb420574d8925b09a9f12be2168b0ed539cd696ce384203b6074c421b76"
         }
       ],
-      "next_action": "Obtain renewed independent M2-034, M2-035 and M2-039 decisions on the composed source. The coordinator owns PR 97 publication and guarded verification of that exact source. Retain the first guarded Windows pass and Linux platform block at their original head. Repeat the Windows x64 WebView2 first status reads and public revision journey on the composed source and retain the matching executable. Keep physical and packaged Windows qualification separate.",
+      "next_action": "The coordinator obtains scoped decisions on native snapshot admission and its affected startup, focus, selection clear and readback flows. Use the M2-034 and M2-039 approvals and their original frozen-chart and first-reopen observations for the prior source. The coordinator owns PR 97 publication and guarded verification of the exact correction, including the Windows published-revision journey and matching executable. Keep physical and packaged Windows qualification separate.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26206,6 +26208,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m2-034-aeb1763f/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m2-035-aeb1763f/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m2-039-aeb1763f/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m2-035-21cf8471/original-assistant-response.jsonl",
+          "apps/desktop/src-tauri/src/workspace.rs",
           "archives/observations/repo-hygiene-20261125/task-dispatch-m2-039-45828181845/manifest.json",
           "archives/observations/repo-hygiene-20261125/task-dispatch-m2-039-45849581750/manifest.json",
           "contracts/schemas/protocol.schema.json",
@@ -26237,7 +26241,8 @@
           "The staging entry uses the reported host to decide whether to look for native attachments. Check the catalog's host requirement for a passing result before staging and make both attachments mandatory for every eligible pass.",
           "The independent first-reopen proof can accept an expected selection carried alongside a terminal error. Compare bridge and proof against valid, ordinarily rejected and contradictory envelopes at the direct read boundary.",
           "The first guarded Windows run reached the webview and refused a native status read despite a successful seed. Compare the exact seeding and runtime preparation entrypoints and qualify use of the existing isolated profile contract before the public journey.",
-          "The browser HTTP decoder can return a result without ruling out a simultaneous error. Validate the outcomes at the shared boundary using the existing protocol error definitions. The M2-034 and M2-039 scoped approvals on aeb1763f confirm the independent first-reopen proof; its additional snapshot assertions serve the observed selection and its timing."
+          "The browser HTTP decoder can return a result without ruling out a simultaneous error. Validate the outcomes at the shared boundary using the existing protocol error definitions. The M2-034 and M2-039 scoped approvals on aeb1763f confirm the independent first-reopen proof; its additional snapshot assertions serve the observed selection and its timing.",
+          "The native snapshot reader confuses a retryable SQLite BUSY returned after admission with lock contention before admission. Compare the two through the same public startup and reuse the native admission detail already used for indicator status."
         ],
         "risks": [
           {
@@ -26425,18 +26430,27 @@
               "local-folder-refresh-preview",
               "workspace-timeframe"
             ]
+          },
+          {
+            "failure": "A native workspace snapshot retries an admitted storage BUSY or stops after a proven refusal. Hold the real native writer slot to verify the refusal detail. At public startup count the invocations for explicit refusal, admitted BUSY and valid completion, then verify reopening after the terminal error.",
+            "checks": [
+              "desktop-workspace-transport",
+              "rust-contracts-workers"
+            ]
           }
         ],
-        "rollback": "Revert the UI change while retaining the independent red and green observations. Existing stored revisions and schemas need no migration.",
+        "rollback": "Revert the native bridge and UI snapshot changes together and retain the independent red and green observations. Existing stored revisions and schemas need no migration.",
         "implementation": {
           "modules": [
-            "ui"
+            "ui",
+            "desktop"
           ],
           "entrypoints": [
             "apps/desktop/ui/src/workspace-source.ts",
           "apps/desktop/ui/src/local-preview-chart.tsx",
             "apps/desktop/ui/src/published-revision-access.ts",
             "apps/desktop/ui/src/use-local-workspace.ts",
+            "apps/desktop/src-tauri/src/workspace.rs",
             "apps/desktop/ui/src/workspace-http-reply.ts",
             "apps/desktop/ui/src/local-revision-dialog.tsx",
             "apps/desktop/ui/src/local-import-editor.tsx",
@@ -26498,7 +26512,8 @@
             "Qualify the Windows interaction through the compiled application with local synthetic publications. Capture native admission separately from controlled row interruption and late reply delivery.",
             "Configure the test binary's WebView2 debugging through the native environment options. Prepare a disposable private profile through the supported storage entry and give the seed bridge and native test overlay the same ordinary absolute path. Collect the allocated endpoint, owned process facts and first typed storage reply, and stage only bounded synthetic observations and the matching fixture executable.",
             "Share the original native startup deadline between endpoint discovery and listener ownership. Bind a passing native check to the catalog host, digest-bound observation and matching executable. Preserve genuine omitted results and verified artifacts available from an unsuccessful check, and clean up incomplete staged files.",
-            "Decode browser HTTP success and error as exclusive outcomes in their shared entry. Report invalid output before availability or retry can consume it."
+            "Decode browser HTTP success and error as exclusive outcomes in their shared entry. Report invalid output before availability or retry can consume it.",
+            "Extend the existing native admission detail to workspace snapshots at the writer lock and consume it in the shared native snapshot exchange. The completed storage error keeps its original fields, and the retry budget, browser HTTP handling and stored data retain their existing behavior."
           ],
           "data_plan": "Only synthetic profiles, chart values and source rows in the local scoped checks.",
           "cleanup": "Release delayed test replies, close both owned windows and bridges, remove test profiles, and retain original red and green evidence."

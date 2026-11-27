@@ -675,7 +675,7 @@
     {
       "id": "desktop-workspace-transport",
       "status": "implemented",
-      "purpose": "Exercise the built desktop UI with substituted Tauri IPC for default startup, authorized timeframe and undo, rejection, and a delayed source invoke. Verify source recovery through the actual Rust registry and storage, including a still-pending write and late acknowledgement. Exercise the shared browser reply decoder with valid success, typed failure, invalid output and a genuine pre-admission refusal.",
+      "purpose": "Exercise the built desktop UI with substituted Tauri IPC for default startup, authorized timeframe and undo, rejection, and a delayed source invoke. At native startup, count snapshot calls for valid completion, a marked writer refusal and a completed storage BUSY. Verify source recovery through the actual Rust registry and storage, including a still-pending write and late acknowledgement. Exercise the shared browser reply decoder with valid success, typed failure, invalid output and a genuine pre-admission refusal.",
       "platforms": "all",
       "command": [
         "pnpm",

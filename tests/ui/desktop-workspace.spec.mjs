@@ -16,6 +16,9 @@ const workspaceId = 'main';
 const operationId = 'ce7fd52d-7a62-441f-897f-098098e6fe82';
 const chart = { kind: 'chart', object_id: 'main-chart' };
 const undo = { operation_id: operationId, committed_workspace_revision: 1 };
+const admittedStorageBusy = {
+  code: 'BUSY', retryable: true, message: 'The market worker is busy.', details: {},
+};
 
 function revisionStatus(dispatch, revisionId, requestId = randomUUID()) {
   return dispatch({ type: 'frozen_chart_status', request_id: requestId, revision_id: revisionId });
@@ -27,6 +30,13 @@ function snapshotOutcome({ status, body }) {
     hasResult: Object.hasOwn(body ?? {}, 'result'), hasError: Object.hasOwn(body ?? {}, 'error'),
     selection: body?.result?.selection_revision ?? null, source: body?.result?.source ?? null,
   };
+}
+
+function nativeSnapshotReply(response) {
+  const { body } = response;
+  if (!preAdmissionBusy(response)) return body;
+  // This fixture uses HTTP to drive substituted native IPC.
+  return { ...body, error: { ...body.error, details: { workspace_admission: 'refused' } } };
 }
 
 async function readProofSnapshot(dispatchResponse, observe) {
@@ -381,10 +391,11 @@ test('an outstanding native source invoke needs revision proof and a late reply 
       time_ms: Date.parse('2026-02-03T00:00:00Z'), trading_day: '2026-02-03', open: 73, high: 75, low: 72, close: 74,
       volume: 13, is_closed: true,
     });
-    await withWorkspaceTransport(profile, async ({ dispatch, holdRevisionStatus }) => {
+    await withWorkspaceTransport(profile, async ({ dispatch, dispatchResponse, holdRevisionStatus }) => {
       const snapshots = [];
       const snapshot = async stage => {
-        const reply = await dispatch({ type: 'snapshot' });
+        const response = await dispatchResponse({ type: 'snapshot' });
+        const reply = stage === 'native' ? nativeSnapshotReply(response) : response.body;
         snapshots.push({ stage, ok: reply.ok, code: reply.error?.code, selection_revision: reply.result?.selection_revision });
         return reply;
       };
@@ -890,6 +901,47 @@ for (const change of ['revoked source without selection', 'redacted selection wi
   });
 }
 
+for (const [name, firstError, expectedAttempts] of [
+  ['valid reply', null, 1],
+  ['explicit writer refusal', {
+    ...admittedStorageBusy, details: { workspace_admission: 'refused' },
+  }, 2],
+  ['completed storage error', admittedStorageBusy, 1],
+]) {
+  test(`native snapshot startup distinguishes ${name}`, async ({ page }, testInfo) => {
+    const attempts = [];
+    const snapshot = ready('5m', 7);
+    const busy = page.getByText('The local workspace is busy.', { exact: true });
+    const readyTimeframe = page.getByRole('button', { name: '5m', exact: true, pressed: true });
+    const calls = await nativeTransport(page, { optedIn: true }, args => {
+      expect(args).toEqual({ operation: null, payload: { type: 'snapshot' } });
+      const reply = attempts.length === 0 && firstError ? { error: firstError } : { result: snapshot };
+      attempts.push({ args, reply });
+      return reply;
+    });
+    let startup;
+    let reopened;
+    try {
+      await page.goto('/');
+      await expect(busy.or(readyTimeframe)).toBeVisible();
+      startup = { busy: await busy.isVisible(), ready: await readyTimeframe.isVisible(), calls: calls.length };
+      const terminalBusy = firstError !== null && expectedAttempts === 1;
+      expect(startup).toEqual({ busy: terminalBusy, ready: !terminalBusy, calls: expectedAttempts });
+      if (terminalBusy) {
+        await page.reload();
+        await expect(readyTimeframe).toBeVisible();
+        await expect(busy).toHaveCount(0);
+        expect(calls).toHaveLength(expectedAttempts + 1);
+        reopened = { ready: true, calls: calls.length };
+      }
+    } finally {
+      await testInfo.attach('native-snapshot-startup', {
+        body: JSON.stringify({ name, startup, reopened, attempts }, null, 2), contentType: 'application/json',
+      });
+    }
+  });
+}
+
 test('a retryable admission rejection cannot disable authorized selection clear', async ({ page }) => {
   const id = randomUUID();
   const base = { ...restoreSnapshot(id), source: null, chart_evidence: { unavailable: true } };
@@ -897,7 +949,7 @@ test('a retryable admission rejection cannot disable authorized selection clear'
   let cleared;
   await nativeTransport(page, { optedIn: true }, ({ payload }) => {
     if (payload.type === 'snapshot') {
-      if (++reads === 1) return { error: { code: 'BUSY', retryable: true } };
+      if (++reads === 1) return { error: { code: 'BUSY', retryable: true, details: { workspace_admission: 'refused' } } };
       return { result: base };
     }
     expect(payload).toMatchObject({ operation: 'workspace.selectEvidence', expected_selection_revision: 2, target: null });
@@ -1073,8 +1125,12 @@ for (const order of ['before the focus snapshot', 'after the replacement is visi
         let held = false;
         let focusRequested = false;
         const expectedClose = peerChangesSource ? 106 : 44;
-        const ordinary = ({ operation, payload }) => operation === 'market.listLocalImportRevisions'
-          ? { result: { version: 1, revisions: [], next_after_revision_id: null } } : dispatch(payload);
+        const ordinary = async ({ operation, payload }) => {
+          if (operation === 'market.listLocalImportRevisions') {
+            return { result: { version: 1, revisions: [], next_after_revision_id: null } };
+          }
+          return payload.type === 'snapshot' ? nativeSnapshotReply(await dispatchResponse(payload)) : dispatch(payload);
+        };
         await nativeTransport(page, { optedIn: true, observeFrozenRevision: a }, async args => {
           const { payload } = args;
           if (payload.type === 'snapshot') {
@@ -1088,7 +1144,7 @@ for (const order of ['before the focus snapshot', 'after the replacement is visi
               await focusSnapshot.promise;
               history.push({ releasedSnapshot: number });
             }
-            return response.body;
+            return nativeSnapshotReply(response);
           }
           if (payload.type === 'frozen_chart' && payload.revision_id === a && !held) {
             held = true;
@@ -1223,8 +1279,12 @@ for (const scenario of [
         const firstChart = Promise.withResolvers();
         const snapshots = [];
         const trace = [];
-        const ordinary = ({ operation, payload }) => operation === 'market.listLocalImportRevisions'
-          ? { result: { version: 1, revisions: [], next_after_revision_id: null } } : dispatch(payload);
+        const ordinary = async ({ operation, payload }) => {
+          if (operation === 'market.listLocalImportRevisions') {
+            return { result: { version: 1, revisions: [], next_after_revision_id: null } };
+          }
+          return payload.type === 'snapshot' ? nativeSnapshotReply(await dispatchResponse(payload)) : dispatch(payload);
+        };
         let snapshotCalls = 0;
         let chartHeld = false;
         let focusRefused = false;
@@ -1394,7 +1454,8 @@ for (const scenario of [
           if (name === 'market.listLocalImportRevisions') {
             return { result: { version: 1, revisions: [], next_after_revision_id: null } };
           }
-          const reply = await dispatch(payload);
+          const reply = payload.type === 'snapshot'
+            ? nativeSnapshotReply(await dispatchResponse(payload)) : await dispatch(payload);
           const snapshot = windowName === 'first' && payload.type === 'snapshot';
           const number = snapshot && reply.ok === true ? ++reads : undefined;
           if (snapshot && number === undefined) trace.push({ snapshotRejected: reply.error?.code });
@@ -1589,9 +1650,7 @@ test('native indicator status retries only a proven writer refusal', async ({ br
         payload: { type: 'workspace_source', request_id: randomUUID(),
           expected_selection_revision: 0, source: { kind: 'none' } },
       });
-      expect(contention).toEqual({ error: {
-        code: 'BUSY', retryable: true, message: 'The market worker is busy.', details: {},
-      } });
+      expect(contention).toEqual({ error: admittedStorageBusy });
       storageBusy = contention.error;
     } finally {
       lock.close();

@@ -183,6 +183,7 @@ impl WorkspaceBridge {
         operation: Option<&str>,
         payload: Value,
     ) -> Result<Value, Error> {
+        let snapshot = operation.is_none() && payload == json!({"type": "snapshot"});
         let chart_status = operation.is_none() && payload["type"] == "frozen_chart_status";
         let indicator_status = operation.is_none() && payload["type"] == "indicator_preview_status";
         if !self.workspace_enabled && !chart_status {
@@ -191,7 +192,7 @@ impl WorkspaceBridge {
         let lane = self.admit().map_err(|mut error| {
             // A BUSY from the registry or SQLite after the lock was acquired
             // must not carry this transport-only admission detail.
-            if indicator_status && error.code == ErrorCode::BUSY {
+            if (snapshot || indicator_status) && error.code == ErrorCode::BUSY {
                 error
                     .details
                     .insert("workspace_admission".into(), json!("refused"));
@@ -199,7 +200,7 @@ impl WorkspaceBridge {
             error
         })?;
         let request = match operation {
-            None if payload == json!({"type": "snapshot"}) => Request::Snapshot,
+            None if snapshot => Request::Snapshot,
             None if payload["type"] == "workspace_source"
                 && payload.to_string().len() <= MAX_REQUEST_BYTES =>
             {
@@ -1054,7 +1055,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn native_indicator_status_identifies_only_writer_admission_refusal() {
+    async fn native_snapshot_and_indicator_status_identify_writer_admission_refusal() {
         let profile = std::env::temp_dir().join(format!("scopehub-indicator-{}", Uuid::new_v4()));
         let bridge = WorkspaceBridge::local(Some(&profile), true);
         let status = json!({
@@ -1062,30 +1063,40 @@ mod tests {
             "request_id": Uuid::new_v4().to_string(),
             "task_id": Uuid::new_v4().to_string(),
         });
+        let snapshot = json!({"type": "snapshot"});
+        let malformed_snapshot = json!({"type": "snapshot", "profile_root": "/caller"});
 
         let holder = bridge.admit().unwrap();
-        let refusal = bridge.dispatch(None, status.clone()).await.unwrap_err();
-        let snapshot = bridge
-            .dispatch(None, json!({"type": "snapshot"}))
+        let status_refusal = bridge.dispatch(None, status.clone()).await.unwrap_err();
+        let snapshot_refusal = bridge.dispatch(None, snapshot.clone()).await.unwrap_err();
+        let malformed_snapshot_contention = bridge
+            .dispatch(None, malformed_snapshot.clone())
             .await
             .unwrap_err();
         drop(holder);
 
+        let restored = bridge.dispatch(None, snapshot).await.unwrap();
+        let invalid_snapshot = bridge.dispatch(None, malformed_snapshot).await.unwrap_err();
         let missing = bridge.dispatch(None, status.clone()).await.unwrap_err();
-        let mut malformed = status;
-        malformed.as_object_mut().unwrap().remove("task_id");
-        let invalid = bridge.dispatch(None, malformed).await.unwrap_err();
+        let mut malformed_status = status;
+        malformed_status.as_object_mut().unwrap().remove("task_id");
+        let invalid_status = bridge.dispatch(None, malformed_status).await.unwrap_err();
         bridge.shutdown().await;
         std::fs::remove_dir_all(profile).unwrap();
 
         let mut expected = failure(ErrorCode::BUSY);
-        assert_eq!(snapshot, expected);
+        assert_eq!(malformed_snapshot_contention, expected);
         expected
             .details
             .insert("workspace_admission".into(), json!("refused"));
-        assert_eq!(refusal, expected);
+        assert_eq!(snapshot_refusal, expected);
+        assert_eq!(status_refusal, expected);
+        assert_eq!(restored["workspace"]["id"], WORKSPACE_ID);
+        assert_eq!(restored["workspace"]["revision"], 0);
+        assert_eq!(restored["selection_revision"], 0);
+        assert_eq!(invalid_snapshot, failure(ErrorCode::INVALIDARGUMENT));
         assert_eq!(missing, failure(ErrorCode::STALECONTEXT));
-        assert_eq!(invalid, failure(ErrorCode::INVALIDARGUMENT));
+        assert_eq!(invalid_status, failure(ErrorCode::INVALIDARGUMENT));
     }
 
     #[tokio::test]

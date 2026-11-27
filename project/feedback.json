@@ -8865,6 +8865,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "native-snapshot-retries-admitted-storage-busy",
+      "source": "Independent Astra Standard t1bh requested changes on 21cf84718d8d82d2cb3a54347c7552e8691946c3. Decision: contracts/reviews/task-decisions/M2-035.json#/events/29. Original: archives/observations/repo-hygiene-20261125/independent-final-m2-035-21cf8471/original-assistant-response.jsonl (SHA-256 994ae25d39d9084eb6b48edca1e25472528f0cd450654faff5dba0c5f3ff321f).",
+      "observation": "The archived Windows writer probe was refused before admission and a separate admitted SQLite write failed with the same retryable BUSY fields. In an independent replay through the native snapshot reader, either reply triggered a second snapshot request and the reader returned its success. A valid native snapshot returned once, and missing and malformed snapshots failed once. The Windows observation was a write, while the snapshot retry was observed in the separate candidate replay.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "desktop-workspace-transport",
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

@@ -138,7 +138,7 @@ function retryableBusy(error: unknown) {
     && 'retryable' in error && error.retryable === true;
 }
 
-function nativeStatusAdmissionRefused(error: unknown) {
+function nativeWorkspaceAdmissionRefused(error: unknown) {
   if (!error || typeof error !== 'object' || !('details' in error)) return false;
   const details = error.details;
   return details !== null && typeof details === 'object' && 'workspace_admission' in details
@@ -149,12 +149,13 @@ async function exchange<T>(body: LocalRequest, signal: AbortSignal, onAdmissionB
   const operation = body.type === 'request' ? 'operation' in body ? body.operation : body.intent.operation : null;
   if (nativeWorkspace || nativeModel && operation === 'ai.textConnection' || desktop && body.type === 'frozen_chart_status') {
     signal.throwIfAborted();
+    const requiresAdmissionProof = body.type === 'snapshot' || body.type === 'indicator_preview_status';
     const value = await invoke<T>('execute_operation', { operation, payload: body }).catch(error => {
-      // Indicator status requires a lock denial. SQLite may report BUSY
-      // after the task read has been admitted. The source transaction keeps
-      // its existing retry rule because BUSY there cannot follow commit.
+      // Snapshot and indicator status reads can return SQLite BUSY after
+      // admission, so only an explicit lock refusal permits a retry.
+      // A source transaction cannot return BUSY after commit.
       if (onAdmissionBusy && retryableBusy(error)
-          && (body.type !== 'indicator_preview_status' || nativeStatusAdmissionRefused(error))) onAdmissionBusy();
+          && (!requiresAdmissionProof || nativeWorkspaceAdmissionRefused(error))) onAdmissionBusy();
       throw error;
     });
     signal.throwIfAborted();
