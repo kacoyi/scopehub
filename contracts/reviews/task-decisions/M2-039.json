@@ -590,6 +590,26 @@
       "requested_at": "2026-11-27T04:58:26.623459+00:00",
       "request_id": "ebca812cc5b1d5984b2f4eeebaadf1eb044c54eff534c6b13bf05c13ef814286",
       "evidence_sha256": "cefeaa87ee2cc1cb7f0d2a24a8df438562bb970a8ff279320a8ed79b7f02e199"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "4460e72f0652b454572252d90a15ebe8e817bca7",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 4460e72f0652b454572252d90a15ebe8e817bca7",
+      "scope": "APPROVE M2-039 4460e72f0652b454572252d90a15ebe8e817bca7",
+      "observation": "The local report for e8789cfe records one native stage with 64 valid files and a comparison rendered after 15,100 ms of controlled delivery, while the guarded Windows and Linux logs for run 45935930896 each record a passing 15-CSV case with 13 conflicting inputs.",
+      "reviewer": "Independent Astra Standard (t1d9)",
+      "original_sha256": "0433e4d191852ff72acf017cb9097d6d568579efc4f1a10d6c3c400c46cfef8f",
+      "response_id": "e7ae275bdf32f27b761d8575377d42cdd148661b88e9b36832ae22830da6e0e5",
+      "response_sha256": "705346c5ae364f146a4ad9d28ff6fdcc83a1f7a5cba009455c15ff6785edf2f8",
+      "legacy_response_sha256": "745c186a85ca6d5b1dd6c4863526e6771b44ecf1d87ae7e374ef1ea2af7857db",
+      "observation_body_sha256": "6cc735d7c95d83b64f56312cf5bbc7a9271413ca7caddaf4531de2dcfc1ac7f9",
+      "event": {
+        "id": "msg_0db81acd805c35c2016b090e7388a487d0840631798adc10f4",
+        "timestamp": "2026-11-27T05:00:55.329Z"
+      },
+      "supersedes": "ebca812cc5b1d5984b2f4eeebaadf1eb044c54eff534c6b13bf05c13ef814286",
+      "evidence_sha256": "5d7d29dab2ed4c1d0c53a58f17147d42c5a46e5f1bf32b529430e82fed7e787f"
     }
   ]
 }
