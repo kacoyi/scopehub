@@ -88,6 +88,15 @@
       },
       "supersedes": "e5e59d4e136951c9008e8b6a802fb514e6dfa2dda8bc3668268c7d33cf0e8495",
       "evidence_sha256": "13ffda217c449f7e13e17d7b22aa37fe058c2aee75c38ccbcda8276c20faedf7"
+    },
+    {
+      "kind": "request",
+      "source_commit": "2cac22b85efa33304594d339246284038408b7ee",
+      "scope": "Independently review the measured retirement-fixture reuse, preserved clean per-case state and failure/skip classification, and source-accurate original protected timeout on the new integrated navigation baseline.",
+      "supersedes": "62ac3865142a48e38d678bde8fdb88e7a4382ac3f5532587a3ff96dee67256e4",
+      "requested_at": "2026-11-27T09:30:53.372819+00:00",
+      "request_id": "6084a6fe6da948c8a8a8727225f369034b9dab4881912c7c366351713dc1cf15",
+      "evidence_sha256": "2096676a0412205eab60b58dbdbf57edad51fc9542594d182cefdd005173b6fc"
     }
   ]
 }
