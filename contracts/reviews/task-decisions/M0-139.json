@@ -465,6 +465,15 @@
       },
       "supersedes": "891985b8d1efcd04fcf4aa56e8892f04bdd40172b7e4cccc00de064e191eb2cf",
       "evidence_sha256": "2e12261b642b323e0981731c50979d815f4e89f736a95857201dd2225e267f8f"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b1541b819e0116f7c844684a2d9390940a55fd6f",
+      "scope": "Reconcile the previous t1dd changes_requested decision against the corrected producer and publisher handling of executed failures in the shared Windows evidence path.",
+      "supersedes": "36533f49045ed0402b009c44a3e1c85030c318f3fffc64d4ff91b78f78d087a6",
+      "requested_at": "2026-11-27T05:37:26.735998+00:00",
+      "request_id": "e2f3f56b5b3634d6780044e8a8ed0524db826d6ba5f29dfecc1b62598dcdec91",
+      "evidence_sha256": "66a2c4662ae3e3559ce9e217592ad9b00c95a1fb439409e2ebfe417d04869581"
     }
   ]
 }

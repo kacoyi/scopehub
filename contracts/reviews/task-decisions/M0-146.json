@@ -465,6 +465,15 @@
       },
       "supersedes": "f501fb5ddf4a251be691648421d17914a1be94b473c04a09eb0dc48b8deb1189",
       "evidence_sha256": "9e617f429b4a71b07a568c6cae933de57c3cb7c791e663d5299a0f188edf4166"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b1541b819e0116f7c844684a2d9390940a55fd6f",
+      "scope": "Reconcile the previous t1df changes_requested decision at the recovery scheduler interruption immediately before desktop localization.",
+      "supersedes": "840e9ce099174fa67b8da928c2edb33c0ae5b93adc2bb739932264ccc068d6ad",
+      "requested_at": "2026-11-27T05:37:27.350655+00:00",
+      "request_id": "83e2803a55bfb361698016f16c29c22a7b49b771de3ad61bd04cbd12fe97a05e",
+      "evidence_sha256": "ba6aed0b8a39a2e2201fad05fad108a3f9da3123550e75f8c66e9ff179c3f395"
     }
   ]
 }
