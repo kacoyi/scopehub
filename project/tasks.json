@@ -27746,7 +27746,7 @@
           "report_sha256": "c57aa800844bea9590b755bec466727728fb6036b9bcacca4e9ae24a9d676b7a"
         }
       ],
-      "next_action": "Read the two original failures and paired green controls. Compare the normal request/response boundary in the existing workspace test. Fix the first supported distinction, then verify the named journeys with their original deadlines and without replaying an uncertain mutation.",
+      "next_action": "Review the clean fixture changes and the retained local ordinary and refused workspace observations independently. Verify the affected journeys on the native and integrated revisions.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -27756,12 +27756,15 @@
         ],
         "context": [
           "tests/ubuntu-preview/workspace.spec.mjs",
-          "tests/ubuntu-preview/workspace_indicator_gate.mjs",
+          "tests/ubuntu-preview/workspace_snapshot_gate.mjs",
+          "apps/desktop/ui/src/private-record-transport.ts",
+          "apps/desktop/ui/src/private-records.tsx",
           "project/checks.json",
           "contracts/reviews/2026-11-26-maintenance-workstreams.json"
         ],
         "hypotheses": [
-          "Private review preparation observed an explicit BUSY. The indicator test dereferenced an absent result without retaining its reply. Determine whether existing admission and observation handling can serve each discrepancy. The original Linux response and the owner of the Windows occupied slot remain unknown."
+          "The Windows browser displayed the typed BUSY and kept the draft with Review save available. The two-window fixture assumed its first submission would be admitted. Exercise the existing explicit Review save action once more only after a verified HTTP 429 retryable BUSY with no result.",
+          "The Linux fixture discarded the HTTP status and body outside result. Retain the observed preparation outcome before requiring a correlated committed reply with a task ID. The historical Linux response and the identity of the occupied Windows slot remain unknown."
         ],
         "risks": [
           {
@@ -27777,12 +27780,11 @@
         "independent_review": true,
         "implementation": {
           "modules": [
-            "development-tooling",
-            "ui"
+            "development-tooling"
           ],
           "entrypoints": [
             "tests/ubuntu-preview/workspace.spec.mjs",
-            "tests/ubuntu-preview/workspace_indicator_gate.mjs"
+            "tests/ubuntu-preview/workspace_snapshot_gate.mjs"
           ],
           "rules": [
             {
@@ -27798,7 +27800,7 @@
             "Unrelated failure classes, generic retry infrastructure, new product operations, real user data or final release acceptance."
           ],
           "open_questions": [
-            "Which response is available before the second indicator run, and does the normal private review entry already expose recovery after a definite pre-admission refusal?"
+            "What occupied admission in the original Windows run, and what HTTP response did the original Linux submission receive? The retained originals cannot establish either."
           ]
         },
         "evolution": {
@@ -27807,7 +27809,8 @@
             "Ordinary two-window isolation, the frozen synthetic source, stored indicator output, cancellation, existing deadlines and established mutation authorization."
           ],
           "change": [
-            "Use the existing consumer and fixture paths to preserve a verifiable response and reach or reject the correct assertions."
+            "Have the browser fixture exercise the available draft action after a definite admission refusal within the original observation budget.",
+            "Have the direct frozen preview fixture record HTTP and protocol evidence before asserting a task identity, with one submission per request."
           ],
           "data_plan": "Only synthetic fixtures are in use. Preserve the public operation and storage contracts.",
           "cleanup": "Remove any duplicated temporary observation path after confirming the adopted narrow handling. Retain the diagnostic originals and regression cases."
