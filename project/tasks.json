@@ -27503,7 +27503,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Use .reports/m0-155-protected-770b2481/handoff.json for exact-source review of material timing and publisher integration. The coordinator owns hosted and native qualification and the November 28 scheduled observation at 16:17 UTC.",
+      "next_action": "Reconcile the source-bound e6f12373 review findings in the shared timing reader. Verify the retained controls on the exact local candidate. The coordinator owns independent review dispatch, hosted and native qualification, and the November 28 scheduled observation at 16:17 UTC.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -27532,7 +27532,10 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-155-4c4865fa/original-assistant-response.jsonl",
           "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-155-b6cd4be5/original-assistant-response.jsonl",
-          "project/timing-publishers.json"
+          "project/timing-publishers.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-e6f12373/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-155-e6f12373/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-e6f12373/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "Recent preload and historical linked reads can see different retained evidence when a conflict removes the platform index entry or an attempt is older than the routine window.",
@@ -27805,6 +27808,55 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "Reject contradictory raw and compact status before attempt reduction. Pair the genuine failed browser and passing Python sources with inverted status in both orders and preserve independent Actions clocks.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Admit fields using the historical publisher contract before projection. Exercise genuine 2.0, added windows_producers and windows_python, genuine 2.1, and partial historical evidence.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Apply prerequisite order to job endpoints before reducing runner duration. Check one and two feasible predecessors and preserve the independent 1291-second wall and 1242-second execution clocks.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Collect current original jobs for eligible observations even without artifacts or preloaded history, preserve independent clocks through cold reopen, and keep receipt and freshness controls explicit.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Derive admissible shard outcomes from actual parts and the historical cap before raw projection. Preserve a genuine passing aggregate and legitimate failure or partial data under the recorded rules.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Read the two genuine archives in both orders through the cold CLI. Select freshness and receipts by proved chronology or explicit uncertainty and preserve metrics in each order.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Verify distinct current-download and qualified-history states in ordinary weekly output and saved reopen, including absent history, saved history with a current miss, one current artifact and both current artifacts.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain all source captures, saved reviews and original classifications if a change loses a valid clock or expands the ordinary read without a bound.",
@@ -27937,7 +27989,7 @@
         }
       ],
       "evidence": [],
-      "next_action": "Use .reports/m0-156-windows-receipt-fixtures/implementation-handoff.json for scoped independent review of the portable Git fixture and matching verification. The coordinator owns the timing group's review follow-through, hosted and native qualification, and the November 28 actual observation.",
+      "next_action": "Reconcile the source-bound e6f12373 review findings in the shared timing reader. Verify the retained controls on the exact local candidate. The coordinator owns independent review dispatch, hosted and native qualification, and the November 28 scheduled observation at 16:17 UTC.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -27967,7 +28019,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-de7e2376/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-4c4865fa/original-assistant-response.jsonl",
           "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-b6cd4be5/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-b6cd4be5/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-e6f12373/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "The substitute Git fingerprint is computable with the standard library; importing the full project entry brings an unrelated parser into the weekly job.",
@@ -28100,6 +28153,20 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "Read the two genuine archives in both orders through the cold CLI. Select freshness and receipts by proved chronology or explicit uncertainty and preserve metrics in each order.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Verify distinct current-download and qualified-history states in ordinary weekly output and saved reopen, including absent history, saved history with a current miss, one current artifact and both current artifacts.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain the recorded evidence and archived identities; revert an extraction that changes the validated execution inputs or weekly runtime requirements.",
@@ -28218,7 +28285,7 @@
         "Bind observation ownership to the historical publisher before raw compaction. Verify PR 96 genuine raw and compact pairs, modified report admission and the genuine pair beside the modified input.",
         "Incomplete or digestless reports can bypass a publishing-job contradiction and enter attempt reduction. Check genuine and modified reports with one or both job boundaries, digest, coverage and status variations on ordinary, weekly and reopened reads."
       ],
-      "next_action": "Use the common local handoff in .reports/m0-155-post-4c4865fa/handoff.json for exact-source independent review and matching verification. The coordinator owns the five held requests, hosted and native qualification, and the November 28 actual observation.",
+      "next_action": "Reconcile the source-bound e6f12373 review findings in the shared timing reader. Verify the retained controls on the exact local candidate. The coordinator owns independent review dispatch, hosted and native qualification, and the November 28 scheduled observation at 16:17 UTC.",
       "blocker": null,
       "evidence": [],
       "closure_reason": null,
@@ -28248,7 +28315,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-150-318f54c8/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-150-de7e2376/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-150-4c4865fa/original-assistant-response.jsonl",
-          "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json"
+          "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-e6f12373/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "The earlier and later sources had the same four Windows producer jobs and aggregate catalog. The browser and recovery assignments changed while the reader used one current mapping for both.",
@@ -28516,6 +28584,20 @@
           },
           {
             "failure": "Incomplete or digestless reports can bypass a publishing-job contradiction and enter attempt reduction. Check genuine and modified reports with one or both job boundaries, digest, coverage and status variations on ordinary, weekly and reopened reads.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Reject contradictory raw and compact status before attempt reduction. Pair the genuine failed browser and passing Python sources with inverted status in both orders and preserve independent Actions clocks.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Admit fields using the historical publisher contract before projection. Exercise genuine 2.0, added windows_producers and windows_python, genuine 2.1, and partial historical evidence.",
             "checks": [
               "project-state",
               "python-contracts-workers"

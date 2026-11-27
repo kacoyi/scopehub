@@ -11673,6 +11673,122 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "timing-publisher-status-overrides-owned-checks",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent Astra Standard (t1gc) at e6f12373277d8aa05a734a1a1c9648f0cf489577. Source-bound decision recorded at 1001178385c88bbb513d3d0fabd770f6ae6893d8. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-150-e6f12373/original-assistant-response.jsonl (SHA-256 dfae8fa9fdad491f4a95c0c0a6f99780b0cbf558349f97b6ad8157984c8094a6).",
+      "observation": "For PR 123 run 45933801256, changing only the raw or compact browser publisher status to passed admitted 678 runner-seconds and overrode the genuine failed workspace-timeframe result in either order. Conversely, changing the passing Python publisher of run 45965137241 to failed still admitted it.",
+      "task_ids": [
+        "M0-150",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "unsplit-timing-report-admits-foreign-producer-binding",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent Astra Standard (t1gc) at e6f12373277d8aa05a734a1a1c9648f0cf489577. Source-bound decision recorded at 1001178385c88bbb513d3d0fabd770f6ae6893d8. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-150-e6f12373/original-assistant-response.jsonl (SHA-256 dfae8fa9fdad491f4a95c0c0a6f99780b0cbf558349f97b6ad8157984c8094a6).",
+      "observation": "The PR 143 unsplit 2.0 Windows report retained 874 browser runner-seconds without a diagnostic after a PR 123 windows_producers binding was added, although its own historical reader forbids that field. An injected windows_python field was refused.",
+      "task_ids": [
+        "M0-150",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-runner-total-omits-feasible-prerequisite-order",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent Astra Standard (t1gb) at e6f12373277d8aa05a734a1a1c9648f0cf489577. Source-bound decision recorded at 1001178385c88bbb513d3d0fabd770f6ae6893d8. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-155-e6f12373/original-assistant-response.jsonl (SHA-256 b563c698cb6a1f404cf08287843409ad0a25f7865c87fc6f740a6cc705c3c601).",
+      "observation": "For protected push 45838575346, adding a Python completion at 14:44:45Z withdrew all 3260 Windows runner-seconds in ordinary, offline weekly and cold reads. The aggregate started at 14:44:29Z, so only the original completion at 14:44:27Z was feasible. A competing 14:44:28Z completion is feasible and correctly leaves the total unknown.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "weekly-timing-skips-jobs-without-current-artifact",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent Astra Standard (t1gb) at e6f12373277d8aa05a734a1a1c9648f0cf489577. Source-bound decision recorded at 1001178385c88bbb513d3d0fabd770f6ae6893d8. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-155-e6f12373/original-assistant-response.jsonl (SHA-256 b563c698cb6a1f404cf08287843409ad0a25f7865c87fc6f740a6cc705c3c601).",
+      "observation": "For PR 96, with neither a current artifact nor saved history, the weekly reader made zero job queries and lost independent Actions clocks. The original jobs establish 876 Windows wall seconds, 2584 runner-seconds and 827 execution seconds. Either missing-artifact case warrants zero current receipts, and the full artifact control warrants two.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-python-shard-aggregate-status-contradicts-parts",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent Astra Standard (t1gb) at e6f12373277d8aa05a734a1a1c9648f0cf489577. Source-bound decision recorded at 1001178385c88bbb513d3d0fabd770f6ae6893d8. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-155-e6f12373/original-assistant-response.jsonl (SHA-256 b563c698cb6a1f404cf08287843409ad0a25f7865c87fc6f740a6cc705c3c601).",
+      "observation": "The PR 123 split 2.1 publisher accepted a changed Python aggregate failure with exit code 1 in ordinary, weekly and cold reads although both parts passed and total time was 810.532 seconds against a 1200-second cap.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-saved-receipts-depend-on-input-order",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent Astra Standard (t1gd) at e6f12373277d8aa05a734a1a1c9648f0cf489577. Source-bound decision recorded at 1001178385c88bbb513d3d0fabd770f6ae6893d8. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-156-e6f12373/original-assistant-response.jsonl (SHA-256 641a69075a2f88dcc5c9a04b3e235428f684bea8a112458fbd74f934a3f89eb7).",
+      "observation": "For the same two saved PR 96 archives, placing the older 09:17:38 UTC capture last restored two superseded receipts and regressed collected_at. Placing the 09:17:40 UTC missing-download capture last kept zero receipts. Both orders retained independent Windows clocks.",
+      "task_ids": [
+        "M0-156",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "weekly-timing-confuses-missing-download-with-missing-history",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent Astra Standard (t1gd) at e6f12373277d8aa05a734a1a1c9648f0cf489577. Source-bound decision recorded at 1001178385c88bbb513d3d0fabd770f6ae6893d8. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-156-e6f12373/original-assistant-response.jsonl (SHA-256 641a69075a2f88dcc5c9a04b3e235428f684bea8a112458fbd74f934a3f89eb7).",
+      "observation": "With a missing current PR 96 download, weekly output set cold_bootstrap both with and without qualified saved history. The saved case declared history unavailable while displaying Linux 770-second and Windows 876-second historical medians.",
+      "task_ids": [
+        "M0-156",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
