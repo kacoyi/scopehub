@@ -88,6 +88,15 @@
       },
       "supersedes": "f0cb03a4f38310f3a12f2dfda81b7fb43810ff145d7eb2cab19dae002a4ebc3e",
       "evidence_sha256": "9213fc1f2968eac0c90d5bd7e26c9b830a643418c42b85ee439b933e9efd2e57"
+    },
+    {
+      "kind": "request",
+      "source_commit": "fbc2808262a2bd9d43ba2d21a9debebf68976b57",
+      "scope": "Independently review the trusted Python evaluator and Rust declarative ownership in the integrated project/development.json. Verify the actual public worker entry and module owners, a restored erroneous planned status versus a legitimately unreferenced planned module, the protected evolution guidance, and preservation of accepted historical evidence. Inspect only the existing architecture inventory and consumer scope. Earlier hosted Python clock values are historical observations. Native candidate and protected rechecks remain separate.",
+      "supersedes": "c524828e10aa9f05a5d6688dbaef204b8b0c015e24342c75c776ff6034039176",
+      "requested_at": "2026-11-27T09:14:20.304919+00:00",
+      "request_id": "4ee1aedefc66e5510288938dd93f863837d3c5283e5ceb9f939587a4eb947cf3",
+      "evidence_sha256": "689a24cbf57c74d74453f2d38642a9dd17dd5f6859e3cb5caaaeb1bd1ced1cd6"
     }
   ]
 }
