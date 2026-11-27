@@ -494,6 +494,15 @@
       },
       "supersedes": "1e016e4a1aa50e0ffa0c0988c7e08cab3b41557c9e9677ddb056a5ee4f055560",
       "evidence_sha256": "ca3d88070695f55cdedb98d9b2d4d65642291861bb8c4d979f3c8ff877919c6c"
+    },
+    {
+      "kind": "request",
+      "source_commit": "21cf84718d8d82d2cb3a54347c7552e8691946c3",
+      "scope": "Review the first-reopen independent proof read after the second window showed close 106. Verify accepted and rejected response status, identity, selection revision and timeout, retaining the unknown historical envelope.",
+      "supersedes": "8ec031b25cd771cc43e1bfbedef622302a27fd49376f755a1756e4ac429f8439",
+      "requested_at": "2026-11-27T03:04:58.502315+00:00",
+      "request_id": "086bcfa401247cd4f21a507fb103db158a2e23706df337781c2e3426d925478e",
+      "evidence_sha256": "5929396028f732cea5da1f02d56d5b68bed2c2423f8a5209f2ede23a932cde2b"
     }
   ]
 }
