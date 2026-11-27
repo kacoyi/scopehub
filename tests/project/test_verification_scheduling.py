@@ -1517,6 +1517,8 @@ class WindowsLaneTests(ProjectFixture):
         self.assertEqual(receipt, self.record_report(report_path, artifact=published))
 
     def test_partitioned_python_keeps_catalog_and_publishes_ordered_raw_evidence(self):
+        repository = Path(__file__).resolve().parents[2]
+        self.assertTrue(ci_artifacts.source_uses_windows_aggregate(repository))
         self.partition_fixture()
         with patch.object(harness, 'execute', wraps=harness.execute) as execute:
             lanes = self.produce()
