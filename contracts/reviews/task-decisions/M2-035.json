@@ -425,6 +425,15 @@
       },
       "supersedes": "4322573a97fe1027a79d1caae9583939a5ff147e565cf268879ee5f397476012",
       "evidence_sha256": "505f319d34537fb2571a7683638b0374b14d95e8c86de1b8d9e3e637aad97cf8"
+    },
+    {
+      "kind": "request",
+      "source_commit": "f636dcdd382340e453dd29b91cfff01c2413929f",
+      "scope": "Re-evaluate your earlier finding that an admitted native SQLite BUSY was retried by the snapshot reader. Decide from the corrected public startup and the writer admission marker, with the actual request count and visible terminal result.",
+      "supersedes": "667410462eb804b8d060ad8cbbc0c14a2573fa86cc4f9f0aaedfb4a8ba696277",
+      "requested_at": "2026-11-27T03:34:31.982066+00:00",
+      "request_id": "98d7342858bf523dd251f298ec8f08ad3da31fe28de5b7f5cb0f2ea36fd5a02d",
+      "evidence_sha256": "f1212946517e02e65e9c7ebac41c72ed48677fb4055e254e51de2c87766a9496"
     }
   ]
 }

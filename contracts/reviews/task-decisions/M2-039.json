@@ -523,6 +523,15 @@
       },
       "supersedes": "086bcfa401247cd4f21a507fb103db158a2e23706df337781c2e3426d925478e",
       "evidence_sha256": "309785375ad1b50c54c49094328fcc1ff1151c7a50b81bfe21c8107ad98586c5"
+    },
+    {
+      "kind": "request",
+      "source_commit": "f636dcdd382340e453dd29b91cfff01c2413929f",
+      "scope": "Check the corrected native snapshot caller on startup, first focus and readback against the previously approved reopened chart and selection. Decide whether the delta preserves the previously observed HTTP first-reopen proof and committed selection.",
+      "supersedes": "66b96dea6fe4a9e804d01f3029d44b17c60dbb014ee6766296e8deb0ce874ad1",
+      "requested_at": "2026-11-27T03:34:34.268421+00:00",
+      "request_id": "95a4f129e44e57652413b0482d31e8a9e110eede0de88520e28b1caeff34eb37",
+      "evidence_sha256": "18c87395a940f3d7ece46fa5b581e477c1d7bf1396a5f8c0b685c7e7c4053b48"
     }
   ]
 }

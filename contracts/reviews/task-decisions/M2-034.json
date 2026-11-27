@@ -405,6 +405,15 @@
       },
       "supersedes": "b5164fdf254801ffbd5b2a06d47dfab4b016f3d5d4f243ba3d35d4497976f900",
       "evidence_sha256": "b9619295d02d89eef7d18a9b18ac38c16bf24503b66040b7876f8ca8b4a61a27"
+    },
+    {
+      "kind": "request",
+      "source_commit": "f636dcdd382340e453dd29b91cfff01c2413929f",
+      "scope": "Check whether changing the native snapshot admission rule alters the previously approved frozen-access refresh and clear path. Compare this delta with your retained approval and the existing public observations for that path.",
+      "supersedes": "cf519a918e722fa41e8501eaddb06eb10358ed7c945eb2b5d0a47ac9a8d6cdd7",
+      "requested_at": "2026-11-27T03:34:33.049893+00:00",
+      "request_id": "ecac464db2e845648fc3f50508b3bd6ce83a253acef64c6f6141a78721f79420",
+      "evidence_sha256": "7bccc84a8238923e63b8c5c8d8e592145323511bd9431195b24d141559aa45c7"
     }
   ]
 }
