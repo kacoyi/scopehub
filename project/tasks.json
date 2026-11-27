@@ -29405,6 +29405,7 @@
       "acceptance": [
         "Bind the first Windows failure and the same-preview Linux control to the original browser journals, storage marker, approval and ordinary observable outcome. Record what remained unknown in the first failure.",
         "Reconcile the existing operation and fixture contract for a missing approval reply. Use synthetic committed, unresolved and refusal controls with actual transport and stored marker identity. Check the documented recovery action for the existing result without repeating a deletion or exposing deleted note content.",
+        "At the ordinary verification entries, observe the five-second missing-notice result with approval headers received and the body still pending. Require the complete matching receipt and notice for success, and verify both owned synthetic profiles are removed when result attachment rejects.",
         "Independently review the smallest evidenced repair or contract-aligned verification correction, preserve adjacent normal and observer-abort behavior and obtain ordinary native and protected observations."
       ],
       "checks": [
@@ -29426,7 +29427,7 @@
           "report_sha256": "ba89eebe0283ebbb75d909017c5552a45fb55d1dcb7c07f48c78cae6cf51302b"
         }
       ],
-      "next_action": "Independently review the retained first-attempt timeline and the Linux browser controls on the clean candidate. Obtain a matching ordinary Windows observation and protected verification before resolving the original finding or completing the task.",
+      "next_action": "Correct the two independently confirmed fixture defects and retain normal and rejected controls on a clean local candidate. Obtain independent review, a matching ordinary Windows observation and protected verification before resolving the original finding or completing the task.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -29442,7 +29443,8 @@
           "contracts/reviews/2026-11-26-maintenance-workstreams.json"
         ],
         "hypotheses": [
-          "The first Windows journal observes one approval without a correlated response before the initiating assertion fails. The stored marker establishes commit by teardown, while the observer still reads revision 4 within the assertion window. A controlled browser delivery interruption exercises the existing recovery path without attributing the original failure."
+          "The first Windows journal observes one approval without a correlated response before the initiating assertion fails. The stored marker establishes commit by teardown, while the observer still reads revision 4 within the assertion window. A controlled browser delivery interruption exercises the existing recovery path without attributing the original failure.",
+          "Sequential receipt parsing delays reporting an already failed notice assertion while the body remains pending. Sequential attachment and teardown prevent both closes when attachment rejects. Exercise each distinction at its ordinary fixture entry."
         ],
         "risks": [
           {
@@ -29452,6 +29454,18 @@
               "workspace-timeframe",
               "market-workflow",
               "ui-build"
+            ]
+          },
+          {
+            "failure": "Pending receipt parsing can hold the notice failure past five seconds, or early notice success can accept an incomplete or mismatched receipt. Observe notice and complete receipt concurrently and settle or observe remaining work after failure.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A rejected result attachment or profile close can skip disposal of owned synthetic data or hide the original failure. Exercise the attachment refusal and both profile disposals at the recovery fixture teardown entry.",
+            "checks": [
+              "workspace-timeframe"
             ]
           }
         ],
@@ -29494,7 +29508,8 @@
             "Use disposable local synthetic profiles. Preserve owner confirmation, current time budgets, private data handling, recovery semantics and historical task definitions. Keep the independent CSV bridge preparation outcome with M0-176."
           ],
           "change": [
-            "Observe approval delivery and the initiating notice within their original windows. Retain the initiator drawer state beside the observer and durable marker. In the existing consent case, distinguish a locally committed approval whose reply is interrupted from an explicit stale refusal, and verify that the same approval recovers the original receipt without another deletion."
+            "Observe approval delivery and the initiating notice within their original windows. Retain the initiator drawer state beside the observer and durable marker. In the existing consent case, distinguish a locally committed approval whose reply is interrupted from an explicit stale refusal, and verify that the same approval recovers the original receipt without another deletion.",
+            "Keep receipt parsing and the notice assertion independent. Release both owned profile directories even if attaching the recovery observation fails."
           ],
           "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
           "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
