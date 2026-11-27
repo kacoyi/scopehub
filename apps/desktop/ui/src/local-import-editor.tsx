@@ -48,6 +48,12 @@ type ImportAction = 'preview' | 'save' | 'load' | 'publish' | 'read' | 'revoke' 
   | 'prepare-folder' | 'publish-folder' | 'read-folder' | 'revoke-folder';
 type Pending = { action: ImportAction; cancelled: boolean; cancel: () => Promise<void> };
 type PreparedFolder = { review: PrepareLocalFolderPublicationOutput; key: string; attempted: boolean };
+type StagedFolderRefresh = {
+  result: PreviewLocalFolderRefreshOutput;
+  requestId: string;
+  focusGeneration: number | undefined;
+  prepared?: PreparedFolder | undefined;
+};
 type Progress = { action: ImportAction; phase: 'running' | 'cancelling' | 'cancelled' };
 type Locator = Pick<PreviewRow, 'line_start' | 'line_end'>;
 type Failure = { message: LocalImportMessage; sha256?: string; headerUnavailable?: boolean; locator?: Locator };
@@ -59,7 +65,7 @@ const actionText = {
   load: { running: 'Checking for a reviewed mapping…', label: 'load', cancelled: 'Load cancelled.', failure: 'Unable to load a reviewed mapping.' },
   publish: { running: 'Checking the complete CSV and publishing…', label: 'publication', cancelled: 'Publication cancelled.', failure: 'Unable to publish this CSV file.' },
   read: { running: 'Opening frozen chart…', label: 'chart', cancelled: 'Chart opening cancelled.', failure: 'Unable to open the frozen chart.' },
-  refresh: { running: 'Checking complete files in the selected folder…', label: 'folder refresh', cancelled: 'Folder refresh cancelled.', failure: 'Unable to stage the folder refresh.' },
+  refresh: { running: 'Checking complete files in the selected folder…', label: 'folder refresh', cancelled: 'Stopped waiting for the folder refresh.', failure: 'Unable to stage the folder refresh.' },
   revoke: { running: 'Removing access to the revision…', label: 'removal', cancelled: 'Removal cancelled.', failure: 'Unable to remove access to this revision.' },
   'prepare-folder': { running: 'Preparing the reviewed folder…', label: 'folder review', cancelled: 'Folder review cancelled.', failure: 'Unable to prepare the folder publication.' },
   'publish-folder': { running: 'Checking current files and publishing the folder…', label: 'folder publication', cancelled: 'Folder publication cancelled.', failure: 'Unable to confirm the folder publication.' },
@@ -298,8 +304,8 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
   const [approved, setApproved] = useState<ApprovedMapping>();
   const [publishedRecord, setPublished] = useState<PublishedLocalImportRevision>();
   const [frozenChart, setFrozen] = useState<FrozenChartResult>();
-  const [folderRefresh, setFolderRefresh] = useState<PreviewLocalFolderRefreshOutput>();
-  const [preparedFolder, setPreparedFolder] = useState<PreparedFolder>();
+  const [stagedRefresh, setFolderRefresh] = useState<StagedFolderRefresh>();
+  const [standaloneFocus, setStandaloneFocus] = useState(0);
   const [publishedFolderRecord, setPublishedFolder] = useState<PublishedLocalFolderRevision>();
   const [frozenFolderRecord, setFrozenFolder] = useState<ReadLocalFolderRevisionOutput>();
   const [loadedSourceHash, setLoadedSourceHash] = useState<string>();
@@ -316,30 +322,71 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
   const alive = useRef(true);
   const revision = useRef(0);
   const publishedId = publishedRecord?.revision_id;
-  const lostAccess = publishedId !== undefined && revisionAccess.revoked.has(publishedId);
+  const lostAccess = publishedId !== undefined && revisionAccess.withheldStatus('csv', publishedId) === 'revoked';
   const revokedSourceHash = lostAccess ? publishedRecord?.source_sha256 : undefined;
-  const published = lostAccess ? undefined : publishedRecord;
-  const frozen = frozenChart && !revisionAccess.revoked.has(frozenChart.revision.revision_id) ? frozenChart : undefined;
+  const published = publishedId && revisionAccess.canDisplay('csv', publishedId) ? publishedRecord : undefined;
+  const frozen = frozenChart && revisionAccess.canDisplay('csv', frozenChart.revision.revision_id) ? frozenChart : undefined;
   const publishedFolderId = publishedFolderRecord?.revision_id;
-  const folderAccessLost = publishedFolderId !== undefined && revisionAccess.revoked.has(publishedFolderId);
-  const publishedFolder = folderAccessLost ? undefined : publishedFolderRecord;
-  const frozenFolder = folderAccessLost ? undefined : frozenFolderRecord;
+  const folderAccessLost = publishedFolderId !== undefined && revisionAccess.withheldStatus('folder', publishedFolderId) === 'revoked';
+  const publishedFolder = publishedFolderId && revisionAccess.canDisplay('folder', publishedFolderId) ? publishedFolderRecord : undefined;
+  const frozenFolder = frozenFolderRecord && revisionAccess.canDisplay('folder', frozenFolderRecord.revision.revision_id) ? frozenFolderRecord : undefined;
+  const folderRefresh = stagedRefresh?.result;
+  const focusGeneration = workspace?.focus.generation ?? standaloneFocus;
+  const focusPending = workspace?.focus.pending ?? false;
+  const workspaceHandlesFocus = workspace !== undefined;
   const refreshRevisionId = folderRefresh?.folder_base?.revision_id ?? folderRefresh?.base?.revision_id;
-  const refreshRevoked = refreshRevisionId !== undefined && revisionAccess.revoked.has(refreshRevisionId);
-  useWatchPublishedRevision(published?.revision_id, revisionAccess.verify, workspace);
-  useWatchPublishedRevision(publishedFolder?.revision_id, revisionAccess.verifyFolder, undefined);
+  const refreshKind = folderRefresh?.folder_base ? 'folder' : 'csv';
+  const refreshRevoked = refreshRevisionId !== undefined && revisionAccess.withheldStatus(refreshKind, refreshRevisionId) === 'revoked';
+  const refreshMissing = refreshRevisionId !== undefined && revisionAccess.withheldStatus(refreshKind, refreshRevisionId) === 'unavailable';
+  const refreshNeedsConfirmation = stagedRefresh !== undefined && stagedRefresh.focusGeneration !== focusGeneration;
+  const refreshVisible = !focusPending && !refreshNeedsConfirmation && refreshRevisionId !== undefined
+    && revisionAccess.canDisplay(refreshKind, refreshRevisionId);
+  const { verify } = revisionAccess;
+  useWatchPublishedRevision(lostAccess ? undefined : publishedId, 'csv', verify, workspace);
+  useWatchPublishedRevision(folderAccessLost ? undefined : publishedFolderId, 'folder', verify, undefined);
   useWatchPublishedRevision(
-    refreshRevoked || refreshRevisionId === published?.revision_id || refreshRevisionId === publishedFolder?.revision_id ? undefined : refreshRevisionId,
-    folderRefresh?.folder_base ? revisionAccess.verifyFolder : revisionAccess.verify,
-    folderRefresh?.folder_base ? undefined : workspace,
+    refreshRevoked || (refreshNeedsConfirmation && !refreshMissing)
+      || refreshRevisionId === (refreshKind === 'folder' ? publishedFolderId : publishedId) ? undefined : refreshRevisionId,
+    refreshKind, verify, refreshKind === 'folder' ? undefined : workspace,
   );
+
+  useLayoutEffect(() => {
+    if (workspaceHandlesFocus) return;
+    const refocus = () => {
+      if (document.visibilityState === 'visible') setStandaloneFocus(generation => generation + 1);
+    };
+    window.addEventListener('focus', refocus);
+    document.addEventListener('visibilitychange', refocus);
+    return () => {
+      window.removeEventListener('focus', refocus);
+      document.removeEventListener('visibilitychange', refocus);
+    };
+  }, [workspaceHandlesFocus]);
+
+  useEffect(() => {
+    if (!refreshNeedsConfirmation || !refreshRevisionId || focusPending || refreshRevoked || refreshMissing) return;
+    const controller = new AbortController();
+    void verify(refreshKind, refreshRevisionId, { signal: controller.signal, fresh: true }).then(status => {
+      if (controller.signal.aborted) return;
+      if (status === 'available') {
+        setPublicationFailure(undefined);
+        setFolderRefresh(current => current && current.result === folderRefresh ? { ...current, focusGeneration } : current);
+      } else if (status === 'unconfirmed') {
+        setPublicationFailure({ message: message('The folder preview could not be verified for this revision.') });
+      }
+    });
+    return () => controller.abort();
+  }, [focusGeneration, focusPending, folderRefresh, refreshMissing, refreshNeedsConfirmation, refreshRevisionId, refreshRevoked,
+    refreshKind, verify]);
 
   useLayoutEffect(() => {
     if (refreshRevoked) {
       setFolderRefresh(undefined);
-      setPreparedFolder(undefined);
+      if (refreshNeedsConfirmation) {
+        setPublicationFailure({ message: message('Access removed for this published revision.') });
+      }
     }
-  }, [refreshRevoked]);
+  }, [refreshNeedsConfirmation, refreshRevoked]);
 
   useLayoutEffect(() => {
     if (!folderAccessLost) return;
@@ -453,7 +500,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     }
   }
 
-  async function runRequest<T>(action: ImportAction, invoke: (id: string) => Promise<T>, accept: (value: T) => void,
+  async function runRequest<T>(action: ImportAction, invoke: (id: string) => Promise<T>, accept: (value: T, id: string) => void,
     cancelRequest = cancelPreview) {
     if (active.current || picker.current) return;
     const id = crypto.randomUUID();
@@ -473,10 +520,11 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       const reply = await invoke(id);
       cancelled = request.cancelled && !commits;
       // A successful write reply confirms a durable commit even after a cancel request.
-      if (active.current === request && !cancelled) accept(reply);
+      if (active.current === request && !cancelled) accept(reply, id);
     } catch (error) {
       const code = importErrorCode(error);
       cancelled = code === 'CANCELLED' || (request.cancelled && !commits);
+      if (active.current === request && action === 'publish-folder' && code === 'CANCELLED') setFolderRefresh(undefined);
       if (active.current === request && !cancelled) {
         const failure = describeImportFailure(error, actionText[action].failure, action);
         if (action === 'preview') {
@@ -484,9 +532,9 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
         } else if (publicationAction) {
           if (action === 'publish' && (code === 'SNAPSHOT_UNAVAILABLE' || code === 'STALE_CONTEXT')) setApproved(undefined);
           if (action === 'read' && code === 'SNAPSHOT_UNAVAILABLE') setFrozen(undefined);
-          if ((action === 'prepare-folder' || action === 'publish-folder') && (code === 'STALE_CONTEXT' || code === 'SNAPSHOT_UNAVAILABLE')) {
+          if ((action === 'prepare-folder' || action === 'publish-folder')
+            && (code === 'STALE_CONTEXT' || code === 'SNAPSHOT_UNAVAILABLE' || code === 'PERMISSION_DENIED')) {
             setFolderRefresh(undefined);
-            setPreparedFolder(undefined);
           }
           setPublicationFailure(failure);
         } else {
@@ -518,7 +566,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       ...(!raw && sourceHash ? { expected_sha256: sourceHash } : {}),
     };
     await runRequest('preview', id => previewImport(input, id), output => {
-      if (published && output.sha256 === published.source_sha256 && !revisionAccess.canDisplay(published.revision_id)) return;
+      if (published && output.sha256 === published.source_sha256 && !revisionAccess.canDisplay('csv', published.revision_id)) return;
       setLoadedSourceHash(undefined);
       if (savedDraft && savedDraft.sha256 !== output.sha256) setApproved(undefined);
       setInspection({ output, draft, mapping, rowLimit, raw });
@@ -571,10 +619,11 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       version: 1, folder_id: catalog.folder_id, file_id: file.file_id,
       expected_sha256: publishable.sha256, review_revision: publishable.record.review_revision,
     }, id), reply => {
-      if (!revisionAccess.canDisplay(reply.revision.revision_id)) {
+      if (!revisionAccess.canDisplay('csv', reply.revision.revision_id)) {
         setPublicationNotice(message('Access removed for this published revision.'));
         return;
       }
+      if (!publishedFolderId && publishedId !== reply.revision.revision_id) setFolderRefresh(undefined);
       setPublished(reply.revision);
       if (frozen?.revision.revision_id !== reply.revision.revision_id) setFrozen(undefined);
     });
@@ -582,41 +631,56 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
 
   async function stageFolderRefresh(revisionId: string) {
     if (active.current || picker.current) return;
+    const focusAtStage = focusPending ? undefined : focusGeneration;
     setFolderRefresh(undefined);
-    setPreparedFolder(undefined);
     await runRequest('refresh', id => previewLocalFolderRefresh({
       version: 1, folder_id: catalog.folder_id, revision_id: revisionId,
-    }, id), reply => {
-      if (!revisionAccess.canDisplay(revisionId)) return;
+    }, id), (reply, requestId) => {
+      const kind = reply.folder_base ? 'folder' : 'csv';
+      if (!revisionAccess.canDisplay(kind, revisionId)) {
+        const accessMessage = revisionAccess.withheldStatus(kind, revisionId) === 'revoked'
+          ? message('Access removed for this published revision.')
+          : message('This frozen revision is unavailable in the current profile.');
+        setPublicationFailure({ message: accessMessage });
+        return;
+      }
       if ((reply.folder_base?.revision_id ?? reply.base?.revision_id) !== revisionId) {
         setPublicationFailure({ message: message('The folder preview could not be verified for this revision.') });
         return;
       }
-      setFolderRefresh(reply);
+      setFolderRefresh({ result: reply, requestId, focusGeneration: focusAtStage });
     });
   }
 
   async function prepareFolder(choices: FolderPublicationChoices) {
     const reviewId = folderRefresh?.review_id;
-    if (!reviewId || !folderRefresh?.publication_allowed || !refreshRevisionId) return;
+    if (!refreshVisible || !reviewId || !folderRefresh?.publication_allowed || !refreshRevisionId || stagedRefresh?.prepared) return;
     await runRequest('prepare-folder', id => prepareLocalFolderPublication({
       version: 1, folder_id: catalog.folder_id, review_id: reviewId, ...choices,
     }, id), review => {
-      if (!revisionAccess.canDisplay(refreshRevisionId)) return;
-      if (review.review_id !== reviewId || review.parent_revision_id !== refreshRevisionId) {
+      if (!revisionAccess.canDisplay(refreshKind, refreshRevisionId)) return;
+      if (review.review_id !== reviewId || review.parent_revision_id !== refreshRevisionId || !/^[a-f0-9]{64}$/.test(review.candidate_sha256)) {
         setPublicationFailure({ message: message('The reviewed publication reply could not be verified.') });
         return;
       }
-      setPreparedFolder({ review, key: crypto.randomUUID(), attempted: false });
+      const prepared = { review, key: crypto.randomUUID(), attempted: false };
+      setFolderRefresh(current => current && current.result === folderRefresh ? { ...current, prepared } : current);
     });
   }
 
+  function editFolderChoices() {
+    if (!refreshVisible || active.current) return;
+    setFolderRefresh(current => current && current.result === folderRefresh ? { ...current, prepared: undefined } : current);
+  }
+
   async function publishFolder() {
-    if (!preparedFolder || !folderRefresh || active.current || picker.current) return;
-    const { review, key } = preparedFolder;
+    const prepared = stagedRefresh?.prepared;
+    if (!refreshVisible || !prepared || !folderRefresh || active.current || picker.current) return;
+    const { review, key } = prepared;
     const parent = folderRefresh.folder_base?.revision_id ?? null;
     const anchor = folderRefresh.folder_base?.base_revision_id ?? folderRefresh.base?.revision_id;
-    setPreparedFolder({ ...preparedFolder, attempted: true });
+    setFolderRefresh(current => current && current.prepared === prepared
+      ? { ...current, prepared: { ...prepared, attempted: true } } : current);
     await runRequest('publish-folder', id => publishLocalFolderRefresh({
       version: 1, folder_id: catalog.folder_id, review_id: review.review_id,
       candidate_sha256: review.candidate_sha256, idempotency_key: key,
@@ -627,9 +691,8 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
         setPublicationFailure({ message: message('The folder publication receipt could not be verified.') });
         return;
       }
-      setPreparedFolder(undefined);
       setFolderRefresh(undefined);
-      if (!revisionAccess.canDisplay(revision.revision_id)) {
+      if (!revisionAccess.canDisplay('folder', revision.revision_id)) {
         setPublicationNotice(message('Access removed for this published folder revision.'));
         return;
       }
@@ -642,15 +705,20 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
   async function openFrozenFolder() {
     if (!publishedFolder) return;
     const revisionId = publishedFolder.revision_id;
+    const reading = revisionAccess.beginRead('folder', revisionId);
+    const controller = new AbortController();
     await runRequest('read-folder', async id => {
       try {
-        return await readLocalFolderRevision({ version: 1, revision_id: revisionId }, id);
+        return await readLocalFolderRevision({ version: 1, revision_id: revisionId }, id, controller.signal);
       } catch (error) {
-        if (displayAccessDenied(error)) revisionAccess.revoke(revisionId);
+        if (!controller.signal.aborted && reading() && displayAccessDenied(error)) {
+          revisionAccess.withhold('folder', revisionId);
+          void verify('folder', revisionId);
+        }
         throw error;
       }
     }, reply => {
-      if (!revisionAccess.canDisplay(revisionId)) return;
+      if (!reading()) return;
       if (reply.revision.revision_id !== revisionId || reply.bars.length !== publishedFolder.bar_count
         || reply.files.length !== publishedFolder.source_count) {
         setPublicationFailure({ message: message('The frozen folder revision could not be verified.') });
@@ -658,7 +726,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       }
       setFrozen(undefined);
       setFrozenFolder(reply);
-    });
+    }, async () => { controller.abort(); });
   }
 
   async function revokeFrozenFolder() {
@@ -670,24 +738,29 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
         setPublicationFailure({ message: message('The folder access removal reply could not be verified.') });
         return;
       }
-      revisionAccess.revoke(publishedFolder.revision_id);
+      revisionAccess.revoke('folder', publishedFolder.revision_id);
     });
   }
 
   async function openFrozenChart() {
     if (!published) return;
     const revisionId = published.revision_id;
-    const controller = workspace ? new AbortController() : undefined;
+    const reading = revisionAccess.beginRead('csv', revisionId);
+    const controller = new AbortController();
     await runRequest('read', async id => {
       try {
-        return controller ? await openAuthenticatedFrozenChart(revisionId, id, controller.signal)
-          : await readLocalImportRevision({ version: 1, revision_id: revisionId }, id);
+        return workspace ? await openAuthenticatedFrozenChart(revisionId, id, controller.signal)
+          : await readLocalImportRevision({ version: 1, revision_id: revisionId }, id, controller.signal);
       } catch (error) {
-        if (!controller?.signal.aborted && displayAccessDenied(error)) revisionAccess.revoke(revisionId);
+        if (!controller.signal.aborted && reading() && displayAccessDenied(error)) {
+          revisionAccess.withhold('csv', revisionId);
+          void verify('csv', revisionId);
+          workspace?.refreshPublishedAccess(revisionId);
+        }
         throw error;
       }
     }, reply => {
-      if (!revisionAccess.canDisplay(revisionId)) return;
+      if (!reading()) return;
       if (reply.revision.revision_id !== published.revision_id || reply.revision.source_sha256 !== published.source_sha256
         || reply.revision.mapping_sha256 !== published.mapping_sha256 || reply.bars.length !== published.bar_count) {
         setPublicationFailure({ message: message('The frozen chart reply could not be verified.') });
@@ -695,7 +768,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       }
       setFrozenFolder(undefined);
       setFrozen(reply);
-    }, controller ? async () => { controller.abort(); } : undefined);
+    }, async () => { controller.abort(); });
   }
 
   async function revokeFrozenChart() {
@@ -707,7 +780,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
         setPublicationFailure({ message: message('The access removal reply could not be verified.') });
         return;
       }
-      revisionAccess.revoke(published.revision_id);
+      revisionAccess.revoke('csv', published.revision_id);
       setPublicationNotice(message('Access removed for this published revision.'));
       workspace?.reload();
     });
@@ -716,8 +789,15 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
   function cancel() {
     const request = active.current;
     if (!request) return;
-    setProgress({ action: request.action, phase: 'cancelling' });
     cancelPending(request);
+    if (request.action === 'refresh') {
+      // Staging is read-only. Stop waiting even when the native reply is lost.
+      // Native admission still owns an in-flight operation until it drains.
+      active.current = undefined;
+      setProgress({ action: request.action, phase: 'cancelled' });
+    } else {
+      setProgress({ action: request.action, phase: 'cancelling' });
+    }
   }
 
   const progressText = opening ? t('Waiting for folder selection…') : progress?.phase === 'running' ? t(actionText[progress.action].running)
@@ -733,6 +813,8 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     {failure && <ImportAlert failure={failure} />}
     {mappingFailure && <ImportAlert failure={mappingFailure} />}
     {publicationFailure && <ImportAlert failure={publicationFailure} />}
+    {refreshMissing && refreshNeedsConfirmation
+      && <ImportAlert failure={{ message: message('This frozen revision is unavailable in the current profile.') }} />}
     <div className="local-import-grid">
       <div className="local-import-controls">
         <fieldset className="local-import-card" disabled={busy}>
@@ -836,22 +918,26 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       <div className="local-import-results">
         {progressText && <div className="local-import-card local-import-progress">
           <p role="status">{progressText}</p>
-          {progress && !['revoke', 'read-folder', 'revoke-folder', 'prepare-folder'].includes(progress.action)
+          {progress && !['revoke', 'revoke-folder', 'prepare-folder'].includes(progress.action)
             && (progress.action !== 'read' || workspace) && progress.phase !== 'cancelled' &&
             <button type="button" className="secondary-button" disabled={progress.phase === 'cancelling'} onClick={cancel}>{t('Cancel {action}', { action: t(actionText[progress.action].label) })}</button>}
         </div>}
         {mappingNotice && <div className="local-import-card" role="status">{t(mappingNotice)}</div>}
         {publicationNotice && <div className="local-import-card" role="status">{t(publicationNotice)}</div>}
+        {refreshNeedsConfirmation && !refreshMissing && !refreshRevoked && !publicationFailure
+          && <p role="status">{t('Checking access to the compared revision…')}</p>}
         <FolderRefreshReview
-          revisionId={publishedFolder?.revision_id ?? published?.revision_id}
+          revisionId={publishedFolderId ?? publishedId}
           busy={busy}
-          result={refreshRevoked ? undefined : folderRefresh}
+          staged={stagedRefresh}
+          visible={refreshVisible}
+          onRevisionChange={() => setFolderRefresh(undefined)}
           onPreview={revisionId => void stageFolderRefresh(revisionId)}
-          prepared={preparedFolder?.review}
-          attempted={preparedFolder?.attempted ?? false}
+          prepared={stagedRefresh?.prepared?.review}
+          attempted={stagedRefresh?.prepared?.attempted ?? false}
           onPrepare={choices => void prepareFolder(choices)}
           onPublish={() => void publishFolder()}
-          onEdit={() => setPreparedFolder(undefined)}
+          onEdit={editFolderChoices}
         />
         {publishedFolder && <section className="local-import-card" aria-label={t('Published local folder')}>
           <h2>{t('Published local folder')}</h2>
