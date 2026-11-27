@@ -15,7 +15,8 @@ import unittest
 CHECK = 'python-contracts-workers'
 LANES = ('python', 'recovery')
 LEGACY_CUTOFF = 'tests.project.test_verification_scope'
-CUTOFF = 'tests.project.test_review_acceptance'
+REVIEW_ACCEPTANCE_CUTOFF = 'tests.project.test_review_acceptance'
+CUTOFF = 'tests.project.test_verification_scheduling'
 # The publisher reads the transfer from the tested commit.
 RECOVERY_PR_CHECKS = {'market-workflow', 'desktop-localization'}
 COMMAND = ['{python}', '-m', 'unittest', 'discover', '-s', 'tests', '-t', '.',

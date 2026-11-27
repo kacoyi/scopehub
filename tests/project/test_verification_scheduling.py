@@ -629,7 +629,7 @@ class WindowsLaneTests(ProjectFixture):
         return reports
 
     def partition_fixture(self, discovery=None, *, scoped_catalog=False, receipt_scope=False, legacy_runner=False,
-                          legacy_market_workflow=False, cutoff_case=False):
+                          legacy_market_workflow=False, cutoff=None, cutoff_cases=False):
         catalog_path = self.root / 'project/checks.json'
         catalog = read_json(catalog_path)
         python_check = next(row for row in catalog['checks'] if row['id'] == windows_python.CHECK)
@@ -678,14 +678,18 @@ class WindowsLaneTests(ProjectFixture):
             shutil.copyfile(runner_source, runner)
         if legacy_market_workflow:
             source = runner.read_text(encoding='utf-8')
-            source = source.replace("RECOVERY_PR_CHECKS = {'market-workflow', 'desktop-localization'}\n", '', 1).replace(
-                f'CUTOFF = {windows_python.CUTOFF!r}\n', f'CUTOFF = {windows_python.LEGACY_CUTOFF!r}\n', 1)
+            source = source.replace("RECOVERY_PR_CHECKS = {'market-workflow', 'desktop-localization'}\n", '', 1)
             runner.write_text(source, encoding='utf-8')
+            cutoff = windows_python.LEGACY_CUTOFF
             self.enterContext(patch.object(windows_python, 'RECOVERY_PR_CHECKS', set()))
             schema_path = self.root / 'contracts/schemas/project.schema.json'
             schema = read_json(schema_path)
             schema['$defs']['HostedHarnessReport']['properties'].pop('windows_producers', None)
             schema_path.write_bytes(json_bytes(schema))
+        if cutoff is not None:
+            source = runner.read_text(encoding='utf-8')
+            source = source.replace(f'\nCUTOFF = {windows_python.CUTOFF!r}\n', f'\nCUTOFF = {cutoff!r}\n', 1)
+            runner.write_text(source, encoding='utf-8')
         for package in ('tests', 'tests/project'):
             (self.root / package / '__init__.py').write_bytes(b'')
         (self.root / 'tests/project/test_first.py').write_text(
@@ -703,13 +707,17 @@ class WindowsLaneTests(ProjectFixture):
             '        time.sleep(0.015)\n'
             '        self.assertNotIn("SCOPEHUB_BAD_PYTHON", os.environ, "rejected actual suffix fixture")\n',
             encoding='utf-8')
-        if cutoff_case:
-            (self.root / 'tests/project/test_review_acceptance.py').write_text(dedent('''\
+        if cutoff_cases:
+            (self.root / 'tests/project/test_review_acceptance.py').write_text(
+                'import unittest\n'
+                'class ReviewAcceptance(unittest.TestCase):\n'
+                '    def test_review_acceptance(self): pass\n', encoding='utf-8')
+            (self.root / 'tests/project/test_verification_scheduling.py').write_text(dedent('''\
                 import os, time, unittest
                 from pathlib import Path
 
                 class Scheduling(unittest.TestCase):
-                    def test_moved_as_a_module(self):
+                    def test_recovery_overlap(self):
                         if os.environ.get('SCOPEHUB_FIXTURE_REQUIRE_OVERLAP') == '1':
                             run = Path(os.environ['SCOPEHUB_RUN_DIR'])
                             deadline = time.monotonic() + 8
@@ -1521,7 +1529,8 @@ class WindowsLaneTests(ProjectFixture):
     def test_partitioned_python_keeps_catalog_and_publishes_ordered_raw_evidence(self):
         repository = Path(__file__).resolve().parents[2]
         self.assertTrue(ci_artifacts.source_uses_windows_aggregate(repository))
-        self.partition_fixture()
+        cutoff = windows_python.REVIEW_ACCEPTANCE_CUTOFF
+        self.partition_fixture(cutoff=cutoff, cutoff_cases=True)
         with patch.object(harness, 'execute', wraps=harness.execute) as execute:
             lanes = self.produce()
         self.assertEqual([], lanes['python']['selection']['checks'])
@@ -1536,13 +1545,17 @@ class WindowsLaneTests(ProjectFixture):
         row = next(check for check in report['checks'] if check['id'] == windows_python.CHECK)
         raw = (self.root / row['log']).read_text(encoding='utf-8')
         self.assertLess(raw.index('test_prefix ('), raw.index('test_skipped ('))
-        self.assertLess(raw.index('test_skipped ('), raw.index('test_suffix ('))
-        self.assertIn('Ran 3 tests', raw)
+        self.assertLess(raw.index('test_skipped ('), raw.index('test_review_acceptance ('))
+        self.assertLess(raw.index('test_review_acceptance ('), raw.index('test_recovery_overlap ('))
+        self.assertLess(raw.index('test_recovery_overlap ('), raw.index('test_suffix ('))
+        self.assertIn('Ran 5 tests', raw)
         self.assertIn('OK (skipped=1)', raw)
-        parts = ci_artifacts.python_parts(self.reports, report, windows_python.LANES)
+        parts = ci_artifacts.python_parts(self.reports, report, windows_python.LANES, cutoff=cutoff)
+        self.assertNotIn(b'test_review_acceptance (', parts[0][1])
+        self.assertIn(b'test_review_acceptance (', parts[1][1])
         record, part_raw, manifest = parts[0]
         parts[0] = ({**record, 'started_at': '2000-01-01T00:00:00+00:00'}, part_raw, manifest)
-        late, _ = ci_artifacts.combined_python(harness.load_project(self.root), report, parts)
+        late, _ = ci_artifacts.combined_python(harness.load_project(self.root), report, parts, cutoff=cutoff)
         self.assertEqual(('failed', 'timeout', None), (late['status'], late['reason_code'], late['exit_code']))
         serial = subprocess.run([sys.executable, *windows_python.COMMAND[1:]], cwd=self.root,
                                 capture_output=True, text=True, encoding='utf-8', check=True)
@@ -1960,7 +1973,7 @@ class WindowsLaneTests(ProjectFixture):
                                           ''')]))
         catalog['required_change_checks'].append(localization)
         catalog_path.write_bytes(json_bytes(catalog))
-        self.partition_fixture(receipt_scope=True, legacy_market_workflow=legacy, cutoff_case=True)
+        self.partition_fixture(receipt_scope=True, legacy_market_workflow=legacy, cutoff_cases=True)
 
         project_checks = harness.select_checks(harness.load_project(self.root))
         for lane in harness.WINDOWS_LANES:
@@ -1989,13 +2002,20 @@ class WindowsLaneTests(ProjectFixture):
         self.assertEqual([owner], [lane for lane, producer in lanes.items()
                                   if localization in producer['selection']['checks']])
         self.assertEqual(1, sum(call.args[0] == localization for call in execute.call_args_list))
-        case_owners = []
+        case_owners = {}
         for lane in windows_python.LANES:
             run = lanes[lane]['run_id']
             artifact = self.downloads / f'verification-windows-2-{lane}'
             cases = read_json(artifact / f'runs/{run}/windows-python-{lane}.json')['cases']
-            case_owners.extend(lane for case in cases if case[0].endswith('.test_moved_as_a_module'))
-        self.assertEqual(['python' if legacy else 'recovery'], case_owners)
+            for case in cases:
+                identity = case[0]
+                self.assertNotIn(identity, case_owners)
+                case_owners[identity] = lane
+        self.assertEqual('python', case_owners['tests.project.test_review_acceptance.ReviewAcceptance.test_review_acceptance'])
+        self.assertEqual(
+            'python' if legacy else 'recovery',
+            case_owners['tests.project.test_verification_scheduling.Scheduling.test_recovery_overlap'],
+        )
         code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
         self.assertEqual((0, 'passed'), (code, report['status']))
         self.assertEqual(set(report['selection']['checks']), project_checks)
@@ -2936,7 +2956,7 @@ class WindowsLaneTests(ProjectFixture):
                         path.write_bytes(json_bytes(aggregate))
 
     def test_partitioned_producer_sigint_retains_closed_log_manifest_and_reports(self):
-        self.partition_fixture()
+        self.partition_fixture(cutoff_cases=True)
         label = windows_python.part_id('python')
         finish_digest, write_bytes = harness.file_digest, Path.write_bytes
         self.addCleanup(signal.signal, signal.SIGINT, signal.signal(signal.SIGINT, signal.default_int_handler))
@@ -2971,7 +2991,9 @@ class WindowsLaneTests(ProjectFixture):
                                      (part['status'], part['reason_code'], part['exit_code']))
                     raw = self.root / part['log']
                     manifest = raw.with_suffix('.json')
-                    self.assertIn(b'OK (skipped=1)', raw.read_bytes())
+                    original = raw.read_bytes()
+                    self.assertIn(b'test_review_acceptance (', original)
+                    self.assertIn(b'OK (skipped=1)', original)
                     self.assertEqual(part['log_sha256'], finish_digest(raw))
                     self.assertEqual(part['log_sha256'], read_json(manifest)['final_log_sha256'])
                     self.assertEqual(part['manifest_sha256'], finish_digest(manifest))

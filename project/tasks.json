@@ -27077,7 +27077,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Use the four comparable Windows PR observations to balance the ordered Python partitions or remove a larger verified cost. On run 45958135087, the recovery job used 988 seconds and the Python job used 613 seconds. Preserve native, historical and interrupted publication. Recheck the complete 35-check warm PR against the 900-second objective and retain any residual overrun.",
+      "next_action": "Independently review the combined publisher and ordered Python cutoff, then qualify the exact candidate on the next ordinary full warm Windows PR. Compare all four producer clocks and the publisher through completion against 900 seconds, retain all 35 selections including seven planned omissions, and keep the timing finding open until a comparable run passes.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -27155,6 +27155,11 @@
           "run_id": "windows-change-45958135087-1",
           "source_commit": "1c0ef4218d2719981d1d1e39743676ae7041e557",
           "report_sha256": "ba47a4e924cb8f6df0623eda24da0d37d06ddf8932ff245bac06d6b82dfd95ad"
+        },
+        {
+          "run_id": "windows-change-45958460881-1",
+          "source_commit": "4cd37974b53d681230ce2332481c0a0d3c22e5f6",
+          "report_sha256": "89fddcafae133a5bbcdfbf7956b267fea2fc63cdef72749256650899ed50cf54"
         }
       ],
       "plan": {
@@ -27214,7 +27219,8 @@
           "M0-153 PR131 committed retirement baseline 53720cd8f069b07082f473667c401f2b5b5fa175 shortened Git setup in the six-case Windows crossover, with its complete process effectively flat. It applies to retirement initialization, not the publisher workload, and is not carried into this candidate.",
           "The t1bt host full suite on ef52b9cde1af951d5f6969fee03b96e92494c8a9 failed the descriptor-limit test and the same-source isolated test passed. Original evidence is in .reports/audit-20261127/m0-146-warm-recovery/originals/t1bt/. Its relation to the earlier Linux empty collection remains unknown.",
           "Authenticated PR123 warm attempt one, run 45939870623: original step clocks are retained in .reports/audit-20261127/m0-146-browser-scheduling/originals/pr123-windows-clocks-45939870623.json (SHA-256 1ded3dfb067327ac9c980f9308642bc1324e130d8c27fc0a4419abf9bae55c63).",
-          "Run 45958135087 on tested commit 1c0ef4218d2719981d1d1e39743676ae7041e557 retained 28 passes and seven planned omissions among all 35 selections. Compare the first-attempt job clocks and original per-module callbacks for four ordinary warm Windows runs at archives/observations/repo-hygiene-20261125/pr123-warm-comparison-45958135087/comparison.json (SHA-256 dea84657a62006c1be54228b35709811ae3bd84db39f450c78c9398d29b4148d)."
+          "Run 45958135087 on tested commit 1c0ef4218d2719981d1d1e39743676ae7041e557 retained 28 passes and seven planned omissions among all 35 selections. Compare the first-attempt job clocks and original per-module callbacks for four ordinary warm Windows runs at archives/observations/repo-hygiene-20261125/pr123-warm-comparison-45958135087/comparison.json (SHA-256 dea84657a62006c1be54228b35709811ae3bd84db39f450c78c9398d29b4148d).",
+          "PR130 original archives/runs/windows-change-45958460881-1/test-report.json recorded a separate unsplit Windows Python timeout at 1200.047 seconds. Both market interruption and all six workspace controls passed on both platforms. The original comparison is retained at .reports/audit-20261127/m0-146-windows-partition-balance/originals/pr130-ordinary-45958460881.json (SHA-256 600effb468cd45ad8718f1dc46b0376255f3ebaabdc628b1de9922a503937452)."
         ],
         "hypotheses": [
           "The Python producer finished last before aggregation on all three ordinary warm PRs. Individual test durations and process traces can separate repeated fixture or immutable repository reads from native runtime variation.",
@@ -27567,7 +27573,8 @@
             "Use the hosted job and authenticated artifact platform to choose the validation boundary. Verify selected omissions in the originating lane using the harness stop rules, with original producer rows and source-specific scheduling for aggregate import and reopen.",
             "Reuse the exact committed Git tree for the workflow, schema, runner and ownership reads within a single Windows validation. Keep complete current-attempt publication, use actual prior-attempt producer originals for identity controls, and exercise cache-value permutations in the matching and aggregation functions with complete and missing-cache cases through the public pipeline.",
             "In ordinary full Windows PRs using the standard Python partitions, run desktop localization last in the serial recovery browser work. Read that assignment from the tested source at publication, collection and receipt reopen, including the previous market-workflow-only assignment. Keep the desktop-localization command and log in the original aggregate catalog position.",
-            "Run the Windows lane fixture with the same review-base environment as the hosted lane step. Keep actual Git parent and source validation, feedback preflight, public producer and aggregate commands, receipt imports and original interruption and callback assertions."
+            "Run the Windows lane fixture with the same review-base environment as the hosted lane step. Keep actual Git parent and source validation, feedback preflight, public producer and aggregate commands, receipt imports and original interruption and callback assertions.",
+            "Move the contiguous review acceptance, storage, and timing modules to the Python producer by starting the recovery suffix at verification scheduling. Accept the two earlier cutoffs only as declared by their tested source. Exercise changed case ownership, matching and rejected publication, interrupted originals and the coexisting native revision publisher."
           ],
           "data_plan": "Use synthetic fixtures, read-only hosted originals and matching check logs. Preserve actual job durations, original identifiers and coverage for comparison. Archived 2.0 and legacy 2.1 evidence depends on authenticated retrieval for attempt lineage within canonical paths. Legacy merged output supports identifiable printed events under the historical runner format. The stream cannot prove unprinted discovery members or recover ambiguous callbacks. Diagnostic resolution checks the pinned report bytes, identities and attachment digests and returns the recorded check outcome. This path can reopen an ambiguous legacy original with all its bound attachments and grants no per-case receipt. The record command revalidates the supplied report and originals before returning either a new or existing receipt. The two genuine teardown executions with identical merged output and opposite outer callbacks establish that historical per-case recovery is mathematically impossible for those bytes. A newly submitted manifest or a chosen prefix cannot supply the missing ownership. Qualification relies on the supported historical runner's visible standard writes. Exact high-resolution durations, unprinted details and overridden or obscured runner writes require independently bound evidence.",
           "cleanup": "Remove temporary profiling from the delivery path, archive the focused comparison and retain any unresolved timing investigation with its next observable action."
