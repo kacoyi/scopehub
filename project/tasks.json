@@ -27077,7 +27077,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Have the coordinator obtain both independent decisions on the exact clean repair using the retained public controls in .reports/audit-20261127/m0-146-f5ba8771-repair/handoff.json. Then retain an ordinary full warm Windows PR with all five producer clocks, final publisher time, all 35 selections, original attachments and ordered Python outcomes before qualifying the five-job layout against the 900-second objective.",
+      "next_action": "Reproduce asset ownership and historical admission through ordinary integration and measure the smallest supported Windows Python cost correction. Hand the clean source and retained controls to the coordinator for both independent decisions. The coordinator retains the new ordinary full warm Windows PR with five producer clocks, final publisher time, all 35 selections, original attachments and ordered outcomes, and owns guarded and protected hosted evidence.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -27165,6 +27165,21 @@
           "run_id": "windows-change-45965137241-1",
           "source_commit": "4a591cae9868346a8967b3a262592e04fe24fc29",
           "report_sha256": "8da04e107746894f2e1fa3108756cc9247dabb852194568cc57f14c78d798d94"
+        },
+        {
+          "source_commit": "035752be3a673ed25cea5f805e4421a7e0ed7dab",
+          "run_id": "windows-change-45976655959-1",
+          "report_sha256": "8367f95e640d8f4ba79fde931548f6781823c3d2384bad56f41b6e6e6fb6ae88"
+        },
+        {
+          "run_id": "windows-change-45980506038-1",
+          "source_commit": "15582b714015cc344b9c816e030cc9ff5039ff8d",
+          "report_sha256": "2c11260708df559875fe24cda2225fc2f03faa779706bdc361deb5b2b4f46b9f"
+        },
+        {
+          "run_id": "20261127T103857.971092Z-584f876c",
+          "source_commit": "e9ff23ddcf7a2d862337d64104f7a2e5583c5825",
+          "report_sha256": "78e1f1fac3a23917be2c1f592910a2446f1179de6ef0c932e8d9b419d3de21f1"
         }
       ],
       "plan": {
@@ -27229,7 +27244,8 @@
           "The t1bt host full suite on ef52b9cde1af951d5f6969fee03b96e92494c8a9 failed the descriptor-limit test and the same-source isolated test passed. Original evidence is in .reports/audit-20261127/m0-146-warm-recovery/originals/t1bt/. Its relation to the earlier Linux empty collection remains unknown.",
           "Authenticated PR123 warm attempt one, run 45939870623: original step clocks are retained in .reports/audit-20261127/m0-146-browser-scheduling/originals/pr123-windows-clocks-45939870623.json (SHA-256 1ded3dfb067327ac9c980f9308642bc1324e130d8c27fc0a4419abf9bae55c63).",
           "Run 45958135087 on tested commit 1c0ef4218d2719981d1d1e39743676ae7041e557 retained 28 passes and seven planned omissions among all 35 selections. Compare the first-attempt job clocks and original per-module callbacks for four ordinary warm Windows runs at archives/observations/repo-hygiene-20261125/pr123-warm-comparison-45958135087/comparison.json (SHA-256 dea84657a62006c1be54228b35709811ae3bd84db39f450c78c9398d29b4148d).",
-          "PR130 original archives/runs/windows-change-45958460881-1/test-report.json recorded a separate unsplit Windows Python timeout at 1200.047 seconds. Both market interruption and all six workspace controls passed on both platforms. The original comparison is retained at .reports/audit-20261127/m0-146-windows-partition-balance/originals/pr130-ordinary-45958460881.json (SHA-256 600effb468cd45ad8718f1dc46b0376255f3ebaabdc628b1de9922a503937452)."
+          "PR130 original archives/runs/windows-change-45958460881-1/test-report.json recorded a separate unsplit Windows Python timeout at 1200.047 seconds. Both market interruption and all six workspace controls passed on both platforms. The original comparison is retained at .reports/audit-20261127/m0-146-windows-partition-balance/originals/pr130-ordinary-45958460881.json (SHA-256 600effb468cd45ad8718f1dc46b0376255f3ebaabdc628b1de9922a503937452).",
+          "The independent decisions on 215952297bc76e1b5459a2a94bb24d3637a78cb8 cover separate scopes. M0-146 approved the observed work allocation and report delivery controls with the 900-second objective open. M0-139 requested changes to asset ownership and historical direct delivery admission. Retain both complete original responses, the delivery intake and the authenticated PR147 and PR138 timeout indexes."
         ],
         "hypotheses": [
           "One terminal publication rule for workspace and Python producers can preserve the same executed rows, reports and generated manifests across normal, failed and interrupted exits. Compare the maintenance surface with lane-specific finalization and keep the supported historical workflow and existing selection and timing budgets.",
@@ -27246,48 +27262,79 @@
           "The first corrected warm PR shifts the critical path to recovery. Publisher self-verification and repeated Git fixture setup account for measurable recovery test work. Compare the real public pass, refusal and interruption outcomes before retaining a smaller fixture.",
           "On PR123 run 45939870623, browser finished at 877 seconds, recovery at 834 and publishing at 922. Desktop localization took 28.922 seconds on browser and passed all 16 cases. Recovery ran 266.328 seconds of serial browser checks alongside 622.031 seconds of Python verification. Transfer desktop localization after those browser checks. With other observed clocks fixed, the end moves to about 893 seconds.",
           "The first ordinary warm run after the localization transfer and interruption repair, 45949560212, passed its 28 applicable checks and retained seven planned omissions. Its 1054-second span is 154 seconds over budget and 132 seconds above the previous run. Recovery finished last. Its Python process took 821.938 seconds and the separate Python process took 425.344 seconds. The verification-scheduling module spent 404.169, 269.854 and 381.690 observed case seconds across the three sources. Compare moving contiguous Python modules against these three producer profiles and measure the unrelated explicit feedback-history comparison repeated by the Windows lane fixture.",
-          "A contiguous transfer of whole discovery modules to the shorter Python job may reduce the measured recovery critical path. Four native samples expose variable host costs; compare the alternatives, original ordering, older partition boundaries and all producer intervals before choosing. Treat modeled gains as estimates pending the next full native observation."
+          "A contiguous transfer of whole discovery modules to the shorter Python job may reduce the measured recovery critical path. Four native samples expose variable host costs; compare the alternatives, original ordering, older partition boundaries and all producer intervals before choosing. Treat modeled gains as estimates pending the next full native observation.",
+          "Committed workflow declarations and authenticated artifact and owning-job evidence can qualify both direct and staged delivery. Use the genuine PR112 siblings and distinguish a same-name downloadable report from optional timing output. Compare observed recurring fixture cost or coverage-preserving placement without treating a final printed test as causal."
         ],
         "risks": [
           {
             "failure": "Windows integration reports readiness when a required producer upload, publisher download or final report upload is skipped, or an explicit job branch conflicts with its run. Exercise the tested-workflow matching completed and qualified failed four- and five-producer controls, independent skipped and branch mutations, and optional timing publication.",
-            "checks": ["project-state", "python-contracts-workers"]
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           },
           {
             "failure": "A real process-group SIGINT at the final source Git subprocess escapes before writing both producer reports. Exercise the last metadata and source reads through both report writes on Python and workspace producers, preserving completed ordered events and binding the terminal verdict and original artifacts through publication and cold reopen.",
-            "checks": ["project-state", "python-contracts-workers"]
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           },
           {
             "failure": "The scoped localization producer publishes without its generated Playwright attachment. Exercise qualified successful and failed scoped and ordinary workspace cases with the original attachment, and reject inconsistent or missing evidence at the owning publication boundary.",
-            "checks": ["project-state", "python-contracts-workers"]
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           },
           {
             "failure": "Integration can accept a reported tree that conflicts with the known tested commit, split producer records under a single-job workflow, or a skipped checkout. Replay matched and conflicting controls against the declared historical workflow, including the verified tree-only route when the local commit is unavailable.",
-            "checks": ["project-state", "python-contracts-workers"]
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           },
           {
             "failure": "Workspace interruption after the last result can discard both reports at final source validation or return failure with passing reports during either publication write. Verify normal, failed and interrupted exits, identical persisted reports and complete executed rows through the public producer.",
-            "checks": ["project-state", "python-contracts-workers"]
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           },
           {
             "failure": "A one-shot manifest read error after a failed Python partition can discard already generated ordered evidence. Verify preservation after recovery, and reject incomplete publication when a generated manifest cannot be bound and reopened.",
-            "checks": ["project-state", "python-contracts-workers"]
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           },
           {
             "failure": "Integration can report passed by substituting the four-producer head declaration for an unavailable five-producer tested merge workflow. Replay the genuine historical attempt against the correct source and reject a missing producer or an unavailable tested declaration without equivalence proof.",
-            "checks": ["project-state", "python-contracts-workers"]
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           },
           {
             "failure": "SIGINT after ordered Python execution can discard both reports or leave two passing copies with a failing exit. Exercise positive publication and interrupts at source validation and both publication writes. Preserve existing isolated and overlapped manifest-sealing outcomes, and compare the original case evidence with the unmodified control.",
-            "checks": ["project-state", "python-contracts-workers"]
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           },
           {
             "failure": "A passed or failed workspace row loses its indispensable Playwright output between producer execution, collection and public reopen. Verify producer digests and both public rejection boundaries using actual successful and failed workspace attachments, with the historical evidence scope kept visible.",
-            "checks": ["project-state", "python-contracts-workers"]
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           },
           {
             "failure": "An inactive workspace artifact may be accepted, a required fifth producer or attachment omitted, or the fifth job may alter protected pushes and historical imports.",
-            "checks": ["project-state", "python-contracts-workers"]
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           },
           {
             "failure": "Both Windows artifact boundaries accepted the executed workspace-timeframe failure after removal of its log binding and silently lost the original log and Playwright results. Replay the authentic failed and passed reports at both boundaries and reject a copy that removes the failed process evidence while preserving its status.",
@@ -27479,7 +27526,7 @@
             ]
           },
           {
-            "failure": "The legacy structured 2.1 producer and aggregate publisher accepted a passing manifest after a passing test and a skipped test exchanged outcomes, with names, order, totals and both original logs unchanged. It also accepted an equal-count substitution of the unexecuted non-ASCII name test_\u672a\u6267\u884c. A genuine interpreter-exit unittest footer after the primary footer made a valid legacy part fail. The preceding completeness regression removed an execution and changed the totals. Its validation compared names without their verdicts, waived display checks for non-ASCII names, and used the final footer, leaving these differences undetected. Regress the owning publisher, ordinary receipt import and reopened evidence against genuine samples with the same names and counts.",
+            "failure": "The legacy structured 2.1 producer and aggregate publisher accepted a passing manifest after a passing test and a skipped test exchanged outcomes, with names, order, totals and both original logs unchanged. It also accepted an equal-count substitution of the unexecuted non-ASCII name test_未执行. A genuine interpreter-exit unittest footer after the primary footer made a valid legacy part fail. The preceding completeness regression removed an execution and changed the totals. Its validation compared names without their verdicts, waived display checks for non-ASCII names, and used the final footer, leaving these differences undetected. Regress the owning publisher, ordinary receipt import and reopened evidence against genuine samples with the same names and counts.",
             "checks": [
               "project-state",
               "python-contracts-workers"
@@ -27561,6 +27608,26 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "The ordinary integration entry qualified a final report uploaded under the optional timing name in both the four- and five-producer workflow controls. The wrong-path controls blocked. Substituting the genuine PR112 Python job log for the same-attempt browser job also qualified, even though it recorded verification-windows-1-python with artifact ID 15018258325 instead of the browser's ID 15019311423. The integration regression must bind the expected downloadable asset, owning run and producer job to the workflow committed at the tested source, with genuine and substituted PR112 originals and final-name and sibling-log controls under both topologies.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The ordinary integration entry rejected the pinned direct .reports/ upload on the supported source of PR run 44459224190 because the report preparation and staging steps were required unconditionally. The prior control and later staged workflow at c2761f685f7408f8f887474a6f18ac6e0e1117d9 admitted their supported delivery. Qualify the format from the tested committed workflow and exercise the original direct Windows artifact, the later staged format and their mismatched delivery controls while preserving the accepted M0-139 task and receipt.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "PR147 and the ordinary and guarded PR138 timeouts can be treated as successful case inventories or attributed to the final printed test. Keep all three authenticated failures, compare the completed policy controls on both platforms, retain serial and partitioned case order and report platform limits.",
+            "checks": [
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain the original reports, revert a change that loses coverage or increases measured cost, and keep the open budget finding assigned until a qualifying observation is available.",
@@ -27579,7 +27646,7 @@
             "scripts/integration.py",
             "contracts/schemas/project.schema.json",
             "tests/project/test_delivery.py",
-          "tests/project/test_integration.py",
+            "tests/project/test_integration.py",
             "tests/project/test_storage.py",
             "tests/project/test_verification_scheduling.py",
             ".github/workflows/verify.yml"
@@ -27609,7 +27676,8 @@
           "kind": "refactor",
           "preserve": [
             "The original 35 selected checks, individual Python test outcomes, accurate native artifact imports and failures, and the complete M0-143 status behavior.",
-            "The full production storage eligibility and revalidation path, Linux fixture case IDs and original Windows clock and schema boundaries."
+            "The full production storage eligibility and revalidation path, Linux fixture case IDs and original Windows clock and schema boundaries.",
+            "Keep the accepted M0-139 task and receipts, 57 existing workflow control outcomes, 992 ordered Python outcomes, and the original browser and localization attachment bytes, interruption results and cleanup."
           ],
           "change": [
             "Read the project schema once per project load and reuse only the fixed legacy predecessor after proving ancestry. Reinitialize after hosted recovery.",
@@ -27629,8 +27697,8 @@
             "Move the contiguous review acceptance, storage, and timing modules to the Python producer by starting the recovery suffix at verification scheduling. Accept the two earlier cutoffs only as declared by their tested source. Exercise changed case ownership, matching and rejected publication, interrupted originals and the coexisting native revision publisher.",
             "Use the additional workspace producer on full Windows PRs and retain its source-bound original report. Reassign the existing checks across two independent browser runners and give the ordered storage and later Python modules to the light recovery runner. Keep the four-producer protected push, serial Python on push, cache seeding, and earlier source declarations importable.",
             "Verify the producer declarations from the tested merge tree. Keep both Python producer verdicts coherent when interrupted during finalization and use the existing reports for workspace result digests. Preserve the narrower attachment evidence supported by authentic historical sources.",
-          "Qualify the complete declared producer set and pinned checkout for each source-producing job from the verified tested merge tree. Verify the local commit and tree against the hosted record, and retain historical tree-backed qualification when the commit object is unavailable.",
-          "Use one terminal report rule across hosted Windows producers that own workspace or Python outcomes, including scoped and protected paths. Preserve completed rows and bound attachments, freeze the verdict after both report copies, retry one sealed manifest digest read, and reject publication when generated case evidence cannot be verified."
+            "Qualify the complete declared producer set and pinned checkout for each source-producing job from the verified tested merge tree. Verify the local commit and tree against the hosted record, and retain historical tree-backed qualification when the commit object is unavailable.",
+            "Use one terminal report rule across hosted Windows producers that own workspace or Python outcomes, including scoped and protected paths. Preserve completed rows and bound attachments, freeze the verdict after both report copies, retry one sealed manifest digest read, and reject publication when generated case evidence cannot be verified."
           ],
           "data_plan": "Use synthetic fixtures, read-only hosted originals and matching check logs. Preserve actual job durations, original identifiers and coverage for comparison. Archived 2.0 and legacy 2.1 evidence depends on authenticated retrieval for attempt lineage within canonical paths. Legacy merged output supports identifiable printed events under the historical runner format. The stream cannot prove unprinted discovery members or recover ambiguous callbacks. Diagnostic resolution checks the pinned report bytes, identities and attachment digests and returns the recorded check outcome. This path can reopen an ambiguous legacy original with all its bound attachments and grants no per-case receipt. The record command revalidates the supplied report and originals before returning either a new or existing receipt. The two genuine teardown executions with identical merged output and opposite outer callbacks establish that historical per-case recovery is mathematically impossible for those bytes. A newly submitted manifest or a chosen prefix cannot supply the missing ownership. Qualification relies on the supported historical runner's visible standard writes. Exact high-resolution durations, unprinted details and overridden or obscured runner writes require independently bound evidence.",
           "cleanup": "Remove temporary profiling from the delivery path, archive the focused comparison and retain any unresolved timing investigation with its next observable action."
