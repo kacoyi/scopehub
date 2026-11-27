@@ -143,13 +143,13 @@ def load_maintenance_engagement(root, engagement):
         archive_limit = authority['resume']['unavailable_private_archive']
         required_terms.append(archive_limit)
         for outcome in outcomes.values():
-            required_terms.append(outcome['owner'])
+            required_terms.extend((outcome['owner'], outcome['intent']))
             acceptance = outcome['acceptance']
             if not isinstance(acceptance, list) or not acceptance:
                 raise ValueError('An engagement workstream needs acceptance criteria')
             required_terms.extend(acceptance)
         if not all(isinstance(term, str) and term.strip() for term in required_terms):
-            raise ValueError('Engagement authority needs owners, acceptance and stop terms')
+            raise ValueError('Engagement authority needs owners, intent, acceptance and stop terms')
         if (len(outcomes) != len(authority['outcomes']) or not isinstance(complete_when, list)
                 or len(complete_when) != len(workstreams) or set(complete_when) != set(workstreams)
                 or outcomes.keys() != workstreams.keys()):
@@ -159,7 +159,7 @@ def load_maintenance_engagement(root, engagement):
 
     rows = []
     for key, outcome in outcomes.items():
-        row = {'id': key, 'owner': outcome['owner']}
+        row = {field: outcome[field] for field in ('id', 'intent', 'owner', 'acceptance')}
         record = workstreams[key]
         closure = record.get('closure')
         if closure is None:
@@ -556,19 +556,36 @@ def project_navigation(*arguments, read_only=False, source_commit=None):
     return shlex.join(('pnpm', 'project:' + arguments[0], *arguments[1:]))
 
 
-def engagement_handoff(engagement, *, read_only=False, source_commit=None):
+def engagement_handoff(engagement, tasks, *, read_only=False, source_commit=None):
+    def navigation(*arguments):
+        return project_navigation(*arguments, read_only=read_only, source_commit=source_commit)
+
     def source_command(reference):
-        return project_navigation('source', reference['path'], reference['pointer'],
-                                  read_only=read_only, source_commit=source_commit)
+        return navigation('source', reference['path'], reference['pointer'])
+
+    workstreams = []
+    for row in engagement['workstreams']:
+        handoff = row.copy()
+        if 'closure' in row:
+            handoff['closure_command'] = source_command(row['closure'])
+        elif row['id'] == 'ongoing-maintenance':
+            handoff['first_test_command'] = navigation('source', 'engineering-contract-v1.json',
+                                                       '/implementation_policy/first_test')
+            handoff['review_status_command'] = navigation('status')
+            example = tasks.get('M0-163')
+            if example and example['status'] == 'done':
+                handoff['accepted_example'] = {
+                    'outcome': example['plan']['outcome'],
+                    'command': navigation('context', example['id']),
+                    'evidence_scope': 'Historical task receipts for the verified implementation.',
+                }
+        workstreams.append(handoff)
 
     return {
         **engagement,
         'owner_source_basis': 'Owner terms and historical intake observations.',
         'owner_source_command': source_command(engagement['authority']),
-        'workstreams': [
-            {**row, **({'closure_command': source_command(row['closure'])} if 'closure' in row else {})}
-            for row in engagement['workstreams']
-        ],
+        'workstreams': workstreams,
     }
 
 
@@ -619,7 +636,8 @@ def project_overview(state, *, read_only=False):
     active = set(state['active_task_ids'])
     ready = set(state['ready_task_ids'])
     completed = set(state['completed_task_ids'])
-    unassigned = set(state['feedback_needing_assignment'])
+    assignment_ids = state['feedback_needing_assignment']
+    unassigned = set(assignment_ids)
 
     def finding_action(finding):
         identity = finding['id']
@@ -649,29 +667,42 @@ def project_overview(state, *, read_only=False):
         if report := original.get('report'):
             failure.update(id=original['check_id'], command=navigation('diagnostic', 'identify', report))
     missing = action(first) if first and first['state'] in {'evidence_missing', 'evidence_invalid', 'intake_needed'} else None
-    needs_assignment = next((finding_action(finding) for finding in opened if finding['id'] in unassigned), None)
-    next_action = (critical or failure or missing or owned or (action(first) if first else None)
-                   or needs_assignment or {'owner': 'development AI', 'command': context})
-    other_urgent = next((candidate for candidate in (critical, failure, missing, owned)
+    opened_by_id = {finding['id']: finding for finding in opened}
+    # Critical findings already use the urgent route above. Keep the remaining queue in severity order.
+    pending = next((opened_by_id[key] for key in assignment_ids
+                    if opened_by_id[key]['severity'] != 'critical'), None)
+    needs_assignment = finding_action(pending) if pending else None
+    unassigned_major = needs_assignment if pending and pending['severity'] == 'major' else None
+    engagement = state.get('maintenance_engagement')
+    engagement_summary = {}
+    engagement_action = None
+    if engagement:
+        handoff = (navigation('context', '--phase', 'handoff') if focus else
+                   navigation('source', 'project/delivery.json', '/scaffold_maintenance/engagement'))
+        engagement_summary = {'engagement': {
+            'status': engagement['status'],
+            'open_count': engagement['open_count'],
+            'workstreams': [{key: row[key] for key in ('id', 'status')} for row in engagement['workstreams']],
+            'handoff_command': handoff,
+        }}
+        if not focus:
+            ref = engagement['authority']
+            engagement_summary['engagement']['owner_source_command'] = navigation('source', ref['path'], ref['pointer'])
+        if not active:
+            engagement_action = {'id': 'maintenance-engagement', 'state': engagement['status'],
+                                 'owner': 'development AI', 'command': handoff,
+                                 'trigger': (engagement['stop_when']['on_completion'] if engagement['status'] == 'ended'
+                                             else 'Open maintenance engagement')}
+    next_action = (critical or failure or missing or owned or (unassigned_major if engagement_action else None)
+                   or engagement_action or (action(first) if first else None) or needs_assignment
+                   or {'owner': 'development AI', 'command': context})
+    other_urgent = next((candidate for candidate in (critical, failure, missing, owned, unassigned_major)
                          if candidate and candidate != next_action), None)
     calendar = next((review for review in reviews if review['review_due']
                      and review['state'] not in {'evidence_missing', 'evidence_invalid'}), None)
     maintenance_action = first if first and first['id'] != next_action.get('id') else calendar
     additional = (action(maintenance_action) if maintenance_action
                   and maintenance_action['id'] != next_action.get('id') else None)
-    engagement = state.get('maintenance_engagement')
-    engagement_summary = {}
-    if engagement:
-        engagement_summary = {'engagement': {
-            'status': engagement['status'],
-            'open_count': engagement['open_count'],
-            'workstreams': [{key: row[key] for key in ('id', 'status')} for row in engagement['workstreams']],
-            'handoff_command': navigation('context', '--phase', 'handoff') if focus else
-                navigation('source', 'project/delivery.json', '/scaffold_maintenance/engagement'),
-        }}
-        if not focus:
-            ref = engagement['authority']
-            engagement_summary['engagement']['owner_source_command'] = navigation('source', ref['path'], ref['pointer'])
     return {
         'purpose': state.get('purpose'),
         'focus': {key: focus[key] for key in ('id', 'title', 'status')} if focus else None,
