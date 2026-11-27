@@ -436,6 +436,15 @@
       },
       "supersedes": "0cc41629101bba8c9fb124e8d5e2953f41e05d1191cd78abdd523d2a434b04da",
       "evidence_sha256": "7c7c1f810fd105a2e15fde4a8c11b0122b181e746ae9b52cd97c4564bf1ab8d4"
+    },
+    {
+      "kind": "request",
+      "source_commit": "115a410bcaebde3f9d782862701d86e957a75be9",
+      "scope": "Full warm Windows PR scheduling and cost, both Python parts, the localization handoff to recovery, the 35-check aggregate, and the same publication and receipt validation for the changed PR assignment.",
+      "supersedes": "51debf900a3ca9e2ecfa55d0d935572d3cb0f0b81d0142dda84a9b25ea41f91c",
+      "requested_at": "2026-11-27T05:19:25.761491+00:00",
+      "request_id": "f501fb5ddf4a251be691648421d17914a1be94b473c04a09eb0dc48b8deb1189",
+      "evidence_sha256": "228c5af8b02d617b8abfe103c06429e4a67dde464739b566646fec4dd7053f27"
     }
   ]
 }

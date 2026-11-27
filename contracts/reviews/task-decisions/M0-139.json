@@ -436,6 +436,15 @@
       },
       "supersedes": "b6b8ad5d23c7a9629db123382ffefb0bf82e42cf6a12c9b6c89d666d89c061a3",
       "evidence_sha256": "aa804280f1554e5d0253c615cebe95de1bdee8651594a0543e35795c189644ef"
+    },
+    {
+      "kind": "request",
+      "source_commit": "115a410bcaebde3f9d782862701d86e957a75be9",
+      "scope": "Shared Windows producer and publisher evidence validation, including original row ownership, stop outcomes, canonical logs and receipt reopen for the protected-push fix and historical evidence.",
+      "supersedes": "b167fd6c3da8fbe38ccbd2fa2871ff5a484822f9a446062837e619f0f05f6efe",
+      "requested_at": "2026-11-27T05:19:25.144743+00:00",
+      "request_id": "891985b8d1efcd04fcf4aa56e8892f04bdd40172b7e4cccc00de064e191eb2cf",
+      "evidence_sha256": "7ce3f430079c016a06d288dceeba17474f6f576ebd65c773b8263026a886c950"
     }
   ]
 }
