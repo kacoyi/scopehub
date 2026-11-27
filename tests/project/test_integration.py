@@ -20,6 +20,8 @@ from tests.project.fixtures import task_by_id
 
 UBUNTU = 'verify (ubuntu-latest)'
 WINDOWS = 'verify (windows-latest)'
+UBUNTU_ARTIFACT = 'verification-ubuntu-latest'
+WINDOWS_ARTIFACT = 'verification-windows-latest'
 UBUNTU_FULL = 'Run pnpm check'
 WINDOWS_FULL = 'Run uv run python scripts/check.py --require-windows'
 PR_BUDGET = 'verification-overrun-without-timely-remediation'
@@ -92,7 +94,7 @@ def observations():
             'base_current': True, 'workflow': {'status': 'passed', 'reason': 'Observed success.',
                                              'run': {'id': 1, 'run_attempt': 2}},
             'jobs': [{'name': name, 'status': 'completed', 'conclusion': 'success', 'head_sha': 'a' * 40,
-                      'steps': [CHECKOUT_STEP, step(harness), *(publication_steps() if name == WINDOWS else ())]}
+                      'steps': [CHECKOUT_STEP, step(harness), *publication_steps()]}
                      for name, harness in [(UBUNTU, UBUNTU_FULL), (WINDOWS, WINDOWS_FULL)]],
             'policy': policy, 'protection': protection,
             'scope': {'completed_task_ids': ['M0-001'], 'blockers': []}, 'observations_stable': True}
@@ -110,6 +112,19 @@ def checkout_log(pr, commit, git='/usr/bin/git'):
     ))
 
 
+def upload_log(action, name, size, artifact_id, stamp, url, sha256, *, archived=False):
+    messages = [f'##[group]{action}', 'with:', f'  name: {name}', '##[endgroup]']
+    if sha256 is not None:
+        subject = 'artifact zip' if archived else 'artifact'
+        messages.append(f'SHA256 digest of uploaded {subject} is {sha256}')
+    messages.extend([
+        f'Artifact {name} has been successfully uploaded! Final size is {size} bytes. Artifact ID is {artifact_id}',
+        f'Artifact download URL: {url}',
+    ])
+    timestamp = stamp.removesuffix('Z') + '.9198332Z'
+    return ''.join(f'\n{timestamp} {message}' for message in messages)
+
+
 def attempt_job(job, run, job_id):
     steps = [dict(item, started_at=UPLOAD_SECOND, completed_at=UPLOAD_SECOND)
              if item['name'] == f'Run {UPLOAD_ACTION}' else item for item in job['steps']]
@@ -124,8 +139,10 @@ def publication_evidence(run, jobs):
     for job in jobs:
         job_id = job['id']
         uploads[job_id] = ()
-        if job['name'] == WINDOWS:
-            name = 'verification-windows-latest'
+        if job['name'] == UBUNTU:
+            name = UBUNTU_ARTIFACT
+        elif job['name'] == WINDOWS:
+            name = WINDOWS_ARTIFACT
         elif job['name'] in lanes:
             name = f"verification-windows-{run['run_attempt']}-{lanes[job['name']]}"
         else:
@@ -134,10 +151,11 @@ def publication_evidence(run, jobs):
         host_url = f"https://github.com/fixture/project/actions/runs/{run['id']}/artifacts/{artifact_id}"
         api_url = f'https://api.github.com/repos/fixture/project/actions/artifacts/{artifact_id}/zip'
         size = 200
+        sha256 = f'{artifact_id:064x}'
         artifacts.append({'name': name, 'id': artifact_id, 'expired': False, 'size_in_bytes': size,
                           'workflow_run': {'id': run['id'], 'head_sha': run['head_sha']},
-                          'archive_download_url': api_url})
-        uploads[job_id] = ((f'Run {UPLOAD_ACTION}', name, size, artifact_id, UPLOAD_SECOND, host_url),)
+                          'archive_download_url': api_url, 'digest': f'sha256:{sha256}'})
+        uploads[job_id] = ((f'Run {UPLOAD_ACTION}', name, size, artifact_id, UPLOAD_SECOND, host_url, sha256),)
     return artifacts, uploads
 
 
@@ -154,22 +172,20 @@ class IntegrationAssessmentTests(unittest.TestCase):
 
     def test_log_download_handles_other_encodings_and_reports_missing_evidence(self):
         commit = '7' * 40
+        upload = (f'Run {UPLOAD_ACTION}', WINDOWS_ARTIFACT, 200, 12, UPLOAD_SECOND,
+                  'https://github.com/fixture/project/actions/runs/1/artifacts/12')
 
         def download(argv, **options):
             self.assertEqual('repos/fixture/project/actions/jobs/10/logs', argv[-1])
-            lines = [f'##[group]Run {UPLOAD_ACTION}', 'with:', '  name: verification-windows-latest',
-                     '##[endgroup]',
-                     'Artifact verification-windows-latest has been successfully uploaded! Final size is 200 bytes. '
-                     'Artifact ID is 12',
-                     'Artifact download URL: https://github.com/fixture/project/actions/runs/1/artifacts/12']
-            reports = ''.join(f'\n2026-11-21T16:42:55.9198332Z {line}' for line in lines)
             options['stdout'].buffer.write(b'\xff\r\n' + (checkout_log(3, commit) + reports).encode())
             return subprocess.CompletedProcess(argv, 0, stderr=b'')
 
-        with patch.object(subprocess, 'run', side_effect=download):
-            claims = ((f'Run {UPLOAD_ACTION}', 'verification-windows-latest', 200, 12, UPLOAD_SECOND,
-                       'https://github.com/fixture/project/actions/runs/1/artifacts/12'),)
-            self.assertEqual((3, commit, claims), integration.job_checkout('.', 'fixture/project', 10))
+        for archived, sha256 in ((True, 'a' * 64), (False, 'b' * 64), (False, None)):
+            with self.subTest(archived=archived, sha256=sha256):
+                reports = upload_log(*upload, sha256, archived=archived)
+                with patch.object(subprocess, 'run', side_effect=download):
+                    self.assertEqual((3, commit, ((*upload, sha256),)),
+                                     integration.job_checkout('.', 'fixture/project', 10))
         with patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess([], 1, stderr=b'HTTP 404')):
             with self.assertRaisesRegex(ProjectError, 'job 10: HTTP 404'):
                 integration.job_checkout('.', 'fixture/project', 10)
@@ -695,7 +711,7 @@ class IntegrationHistoryTests(IntegrationFixture):
         self.assertIn(f'Unresolved major feedback: {PUSH_BUDGET}', result['blockers'])
 
     def observe_harness(self, base, head, ubuntu_steps, windows_steps, *, tested=None, producer_jobs=(),
-                        checkout_refs=None, windows_publication=None, artifact_control=None):
+                        checkout_refs=None, ubuntu_publication=None, windows_publication=None, artifact_control=None):
         fixture = observations()
         pr = dict(fixture['pr'], baseRefOid=base, headRefOid=head)
         run = {'id': 100, 'run_attempt': 2, 'head_sha': head, 'status': 'completed', 'conclusion': 'success',
@@ -704,8 +720,11 @@ class IntegrationHistoryTests(IntegrationFixture):
             profile = integration.job_verification_profile({'name': WINDOWS, 'steps': windows_steps})
             windows_publication = publication_steps(
                 aggregated=any(item['name'] in timing.WINDOWS_MARKERS for item in windows_steps), profile=profile)
+        if ubuntu_publication is None:
+            ubuntu_publication = publication_steps()
         protected = [dict(job, steps=[CHECKOUT_STEP, *steps])
-                     for job, steps in zip(fixture['jobs'], (ubuntu_steps, [*windows_steps, *windows_publication]))]
+                     for job, steps in zip(fixture['jobs'], ([*ubuntu_steps, *ubuntu_publication],
+                                                            [*windows_steps, *windows_publication]))]
         jobs = [attempt_job(job, run, job_id) for job_id, job in enumerate([*protected, *producer_jobs], 1000)]
         artifacts, uploads = publication_evidence(run, jobs)
         if artifact_control:
@@ -731,7 +750,8 @@ class IntegrationHistoryTests(IntegrationFixture):
                                             CHECKOUT, PREPARE, {'name': f'Verify the Windows {lane} lane'},
                                             *publication(integration.LANE_ARTIFACT),
                                         ]} for lane in lanes}
-        workflow = {'jobs': {'verify': {'steps': [CHECKOUT]}, **producers, 'windows_change': {
+        verify = {'steps': [CHECKOUT, PREPARE, {'name': UBUNTU_FULL}, *publication(integration.LANE_ARTIFACT)]}
+        workflow = {'jobs': {'verify': verify, **producers, 'windows_change': {
             'needs': list(producers),
             'steps': [CHECKOUT, PREPARE, *DOWNLOADS, {'name': WINDOWS_FULL},
                       *publication('verification-windows-latest'), {'name': marker}],
@@ -803,8 +823,11 @@ class IntegrationHistoryTests(IntegrationFixture):
             with self.subTest(marker=marker):
                 passing = observe()
                 self.assertEqual('passed', passing['status'])
-                self.assertEqual(len(lanes) + 1, len(passing['required_artifacts']))
-                self.assertEqual('verification-windows-latest', passing['required_artifacts'][0]['name'])
+                self.assertEqual(len(lanes) + 2, len(passing['required_artifacts']))
+                self.assertEqual(WINDOWS_ARTIFACT, passing['required_artifacts'][0]['name'])
+                ubuntu_report = passing['required_artifacts'][-1]
+                self.assertEqual((UBUNTU_ARTIFACT, 1000, f'{11000:064x}'),
+                                 (ubuntu_report['name'], ubuntu_report['job_id'], ubuntu_report['sha256']))
                 self.assertEqual('passed', observe(publication=publisher[:-1])['status'])
                 for optional_result in ('skipped', 'failure'):
                     self.assertEqual('passed', observe(publication=[
@@ -845,15 +868,15 @@ class IntegrationHistoryTests(IntegrationFixture):
                 for bad in ({'expired': True}, {'archive_download_url': 'https://example.invalid/zip'},
                             {'workflow_run': {'id': 99, 'head_sha': head}}):
                     with self.subTest(artifact=bad):
-                        result = observe(artifact_control=lambda assets, uploads: assets[0].update(bad))
+                        result = observe(artifact_control=lambda assets, uploads: assets[1].update(bad))
                         self.assertEqual('blocked', result['status'])
                         self.assertIn('lacks the expected downloadable evidence artifact', result['reason'])
-                result = observe(artifact_control=lambda assets, uploads: assets[0].update(size_in_bytes=999))
+                result = observe(artifact_control=lambda assets, uploads: assets[1].update(size_in_bytes=999))
                 self.assertIn('did not publish the downloadable evidence artifact', result['reason'])
 
                 def change_timestamp(assets, uploads):
                     (claim,) = uploads[1001]
-                    uploads[1001] = ((*claim[:4], '2026-11-21T16:41:55Z', claim[-1]),)
+                    uploads[1001] = ((*claim[:4], '2026-11-21T16:41:55Z', *claim[5:]),)
 
                 result = observe(artifact_control=change_timestamp)
                 self.assertEqual('blocked', result['status'])
@@ -957,7 +980,7 @@ class IntegrationHistoryTests(IntegrationFixture):
             historical = self.commit()
             upload = dict(step(f'Run {UPLOAD_ACTION}'), number=4)
             result, _ = self.observe_harness(base, historical, [step(UBUNTU_FULL)], [step(WINDOWS_FULL)],
-                                             windows_publication=[upload])
+                                             ubuntu_publication=[upload], windows_publication=[upload])
             self.assertEqual(expectation, result['status'], result['reason'])
 
     def test_windows_layout_comes_from_the_tested_merge_tree(self):
@@ -1134,10 +1157,12 @@ class IntegrationHistoryTests(IntegrationFixture):
         checked = {990: (1, '6' * 40), 1000: (1, '7' * 40), 1010: (2, '8' * 40), 1020: (1, '9' * 40)}
         checked.update({job + 1: source for job, source in checked.items()})
         ubuntu_job, windows_job = args['jobs']
+        ubuntu_steps = attempt_job(ubuntu_job, run, 1000)['steps']
         windows_steps = attempt_job(windows_job, run, 1001)['steps']
         head_parent = {99: head, 100: head, 101: head, 102: head}
         queries = []
-        artifacts, uploads = publication_evidence(run, [attempt_job(windows_job, run, 1001)])
+        artifacts, uploads = publication_evidence(run, [attempt_job(ubuntu_job, run, 1000),
+                                                         attempt_job(windows_job, run, 1001)])
 
         def command(argv, root):
             queries.append(argv)
@@ -1155,6 +1180,8 @@ class IntegrationHistoryTests(IntegrationFixture):
                     attempt_run = dict(run, id=run_id, run_attempt=attempt)
                     ubuntu = attempt_job(ubuntu_job, attempt_run, run_id * 10)
                     windows = attempt_job(windows_job, attempt_run, run_id * 10 + 1)
+                    if run_id == 100:
+                        ubuntu['steps'] = ubuntu_steps
                     if run_id != 99:
                         windows['steps'] = windows_steps if run_id == 100 else [CHECKOUT_STEP]
                     return json.dumps([{'jobs': [ubuntu, windows]}])
@@ -1165,10 +1192,21 @@ class IntegrationHistoryTests(IntegrationFixture):
             return json.dumps(args['protection'])
 
         original = integration.command
-        checkout = patch.object(integration, 'job_checkout', side_effect=lambda root, repo, job_id, action:
-                                (*checked[job_id], uploads.get(job_id, ())))
-        self.addCleanup(checkout.stop)
-        checkout.start()
+        launch = subprocess.run
+
+        def download(argv, **options):
+            if argv[0] != 'gh':
+                return launch(argv, **options)
+            job_id = int(argv[-1].split('/')[-2])
+            self.assertEqual(f'repos/fixture/project/actions/jobs/{job_id}/logs', argv[-1])
+            log = checkout_log(*checked[job_id])
+            log += ''.join(upload_log(*claim) for claim in uploads.get(job_id, ()))
+            options['stdout'].buffer.write(log.encode())
+            return subprocess.CompletedProcess(argv, 0, stderr=b'')
+
+        mock_download = patch.object(subprocess, 'run', side_effect=download)
+        self.addCleanup(mock_download.stop)
+        mock_download.start()
         with (patch.object(integration, 'github_identity', return_value='fixture/project'),
               patch.object(integration, 'command', side_effect=command),
               patch.object(integration, 'committed_scope', wraps=integration.committed_scope) as classify):
@@ -1188,6 +1226,74 @@ class IntegrationHistoryTests(IntegrationFixture):
         self.assertEqual(2, sum(argv[:3] == ['gh', 'pr', 'view'] for argv in queries))
         self.assertEqual(head, result['source']['git_head'])
         self.assertFalse(source_identity(self.root)['working_tree_dirty'])
+
+        solid_assets = deepcopy(artifacts)
+        solid_uploads = dict(uploads)
+        solid_ubuntu_steps = list(ubuntu_steps)
+        required_upload = next(item for item in solid_ubuntu_steps if item['name'] == f'Run {UPLOAD_ACTION}')
+        run_only = list(runs)
+        runs[:] = [run]
+        original_inspect = integration.inspect
+        for control, platform, expected, detail in (
+            ('genuine report', UBUNTU_ARTIFACT, 0, None),
+            ('optional timing absent', UBUNTU_ARTIFACT, 0, None),
+            ('legacy digests absent', UBUNTU_ARTIFACT, 0, None),
+            ('log digest absent', WINDOWS_ARTIFACT, 0, None),
+            ('inventory digest absent', UBUNTU_ARTIFACT, 0, None),
+            ('report absent', UBUNTU_ARTIFACT, 1, 'lacks the expected downloadable evidence artifact'),
+            ('report upload skipped', UBUNTU_ARTIFACT, 1, 'evidence step'),
+            ('same-attempt Windows log', UBUNTU_ARTIFACT, 1, 'did not publish the downloadable evidence artifact'),
+            ('sibling digest', WINDOWS_ARTIFACT, 1, 'digest'),
+            ('sibling digest', UBUNTU_ARTIFACT, 1, 'digest'),
+        ):
+            with self.subTest(control=control, platform=platform):
+                artifacts[:] = deepcopy(solid_assets)
+                uploads.clear()
+                uploads.update(solid_uploads)
+                ubuntu_steps[:] = solid_ubuntu_steps
+                asset, = (item for item in artifacts if item['name'] == platform)
+                job_id = 1000 if platform == UBUNTU_ARTIFACT else 1001
+                expected_digest = asset['digest'].removeprefix('sha256:')
+                if control == 'optional timing absent':
+                    ubuntu_steps.pop()
+                elif control == 'report absent':
+                    artifacts.remove(asset)
+                elif control == 'report upload skipped':
+                    ubuntu_steps[ubuntu_steps.index(required_upload)] = dict(required_upload, conclusion='skipped')
+                elif control == 'same-attempt Windows log':
+                    uploads[1000] = uploads[1001]
+                elif control == 'sibling digest':
+                    sibling, = (item for item in artifacts if item['name'] != platform)
+                    asset['digest'] = sibling['digest']
+                if control in {'legacy digests absent', 'log digest absent'}:
+                    (claim,) = uploads[job_id]
+                    uploads[job_id] = ((*claim[:-1], None),)
+                if control in {'legacy digests absent', 'inventory digest absent'}:
+                    del asset['digest']
+                output = StringIO()
+                with (patch.object(integration, 'github_identity', return_value='fixture/project'),
+                      patch.object(integration, 'command', side_effect=command),
+                      patch.object(integration, 'inspect', side_effect=lambda *, pr_number:
+                                   original_inspect(self.root, pr_number)),
+                      patch.object(sys, 'argv', ['integration.py', '--pr', '1']),
+                      redirect_stdout(output), self.assertRaises(SystemExit) as stopped):
+                    integration.main()
+                observed = json.loads(output.getvalue())
+                self.assertEqual(expected, stopped.exception.code, observed['blockers'])
+                self.assertEqual(expected == 0, observed['technical_ready'])
+                if expected == 0:
+                    report, = (item for item in observed['workflow']['required_artifacts'] if item['name'] == platform)
+                    self.assertEqual(job_id, report['job_id'])
+                    self.assertEqual(None if control == 'legacy digests absent' else expected_digest,
+                                     report.get('sha256'))
+                else:
+                    self.assertIn(detail, observed['workflow']['reason'])
+        runs[:] = run_only
+        artifacts[:] = solid_assets
+        uploads.clear()
+        uploads.update(solid_uploads)
+        ubuntu_steps[:] = solid_ubuntu_steps
+
         with (patch.object(integration, 'github_identity', return_value='fixture/project'),
               patch.object(integration, 'command', side_effect=command)):
             runs[:] = [run]

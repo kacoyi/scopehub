@@ -37,14 +37,17 @@ ROOT = Path(__file__).resolve().parents[1]
 PR_FIELDS = ('number,url,state,isDraft,headRefOid,headRefName,baseRefOid,baseRefName,'
              'mergeable,mergeStateStatus,reviewDecision')
 REVISION = r'(?:[0-9a-f]{40}|[0-9a-f]{64})'
+SHA256 = r'[0-9a-f]{64}'
 PINNED_CHECKOUT = r'actions/checkout@[0-9a-f]{40}'
 PINNED_UPLOAD = r'actions/upload-artifact@[0-9a-f]{40}'
+UBUNTU_JOB = 'verify (ubuntu-latest)'
+WINDOWS_PUBLISHER = 'verify (windows-latest)'
 FULL_HARNESS_STEPS = {
-    'verify (ubuntu-latest)': 'Run pnpm check',
-    'verify (windows-latest)': 'Run uv run python scripts/check.py --require-windows',
+    UBUNTU_JOB: 'Run pnpm check',
+    WINDOWS_PUBLISHER: 'Run uv run python scripts/check.py --require-windows',
 }
 SCOPED_HARNESS_STEPS = {f'Verify {profile} changes': profile for profile in SCOPED_PROFILES}
-WINDOWS_PUBLISHER = 'verify (windows-latest)'
+UBUNTU_ARTIFACT = 'verification-ubuntu-latest'
 WINDOWS_ARTIFACT = 'verification-windows-latest'
 MATRIX_ARTIFACT = 'verification-${{ matrix.os }}'
 LANE_ARTIFACT = (
@@ -104,16 +107,19 @@ def job_checkout(root, repository, job_id, checkout_step=None):
 
 
 def job_uploads(log):
-    action = name = uploaded = None
+    action = name = uploaded = sha256 = None
     for line in log:
         stamp, _, message = line.rstrip('\r\n').partition(' ')
         if message.startswith('##[group]Run '):
             header = message.removeprefix('##[group]')
             action = header if re.fullmatch(rf'Run {PINNED_UPLOAD}', header) else None
-            name = uploaded = None
+            name = uploaded = sha256 = None
         elif action:
             if message.startswith('  name: '):
                 name = message.removeprefix('  name: ')
+            elif match := re.fullmatch(r'SHA256 digest of uploaded artifact(?: zip)? is(?: (.*))?', message):
+                # Both pinned uploader formats print the ZIP digest before the upload receipt.
+                sha256 = (match[1] or '') if sha256 is None else ''
             elif match := re.fullmatch(
                 r'Artifact (.+) has been successfully uploaded! Final size is ([1-9][0-9]*) bytes\. '
                 r'Artifact ID is ([1-9][0-9]*)', message,
@@ -123,8 +129,8 @@ def job_uploads(log):
                     # The attempt's step clocks are recorded to whole seconds.
                     uploaded = (name, int(match[2]), int(match[3]), stamp[:19] + 'Z')
             elif uploaded and message.startswith('Artifact download URL: '):
-                yield (action, *uploaded, message.removeprefix('Artifact download URL: '))
-                uploaded = None
+                yield (action, *uploaded, message.removeprefix('Artifact download URL: '), sha256)
+                uploaded = sha256 = None
 
 
 def required_checkouts(root, repository, jobs, contexts):
@@ -237,7 +243,7 @@ def committed_producers(root, tree):
             needs = publisher['needs']
             if not isinstance(needs, list) or len(needs) != len(lanes) or set(needs) != lanes.keys():
                 raise ValueError('The publisher dependencies disagree with the Windows producer layout.')
-        declarations = {'verify (ubuntu-latest)': verify, WINDOWS_PUBLISHER: publisher}
+        declarations = {UBUNTU_JOB: verify, WINDOWS_PUBLISHER: publisher}
         for job_id, lane in lanes.items():
             producer = jobs[job_id]
             name = timing.WINDOWS_PRODUCERS[lane]
@@ -352,33 +358,45 @@ def require_upload_owner(repository, run, job, name, step, artifacts, uploads):
             or owner.get('head_sha') != run['head_sha'] or asset.get('archive_download_url') != archive_url):
         raise ProjectError(f'The run lacks the expected downloadable evidence artifact {name}.')
     started, completed = step.get('started_at'), step.get('completed_at')
-    claims = [stamp for action, artifact, byte_count, claim_id, stamp, url in uploads[job['id']]
+    claims = [(stamp, sha256) for action, artifact, byte_count, claim_id, stamp, url, sha256 in uploads[job['id']]
               if (action, artifact, byte_count, claim_id, url) == (step['name'], name, size, asset_id, hosted_url)]
     if (len(claims) != 1 or not isinstance(started, str) or not isinstance(completed, str)
-            or not started <= claims[0] <= completed):
+            or not started <= claims[0][0] <= completed):
         raise ProjectError(f"Required job {job['name']} did not publish the downloadable evidence artifact {name}.")
-    return {'name': name, 'id': asset_id, 'job_id': job['id'], 'archive_download_url': archive_url}
+    _, uploaded_sha = claims[0]
+    api_digest = asset.get('digest')
+    if api_digest is not None and (not isinstance(api_digest, str) or not re.fullmatch(rf'sha256:{SHA256}', api_digest)):
+        raise ProjectError(f'The downloadable evidence artifact {name} has an invalid SHA-256 digest.')
+    listed_sha = api_digest.removeprefix('sha256:') if api_digest is not None else None
+    if uploaded_sha is not None and not re.fullmatch(SHA256, uploaded_sha):
+        raise ProjectError(f"Required job {job['name']} reported an invalid SHA-256 digest for {name}.")
+    if uploaded_sha is not None and listed_sha is not None and uploaded_sha != listed_sha:
+        raise ProjectError(f"The SHA-256 digest for {name} conflicts with the upload by required job {job['name']}.")
+    owned = {'name': name, 'id': asset_id, 'job_id': job['id'], 'archive_download_url': archive_url}
+    if sha256 := uploaded_sha or listed_sha:
+        owned['sha256'] = sha256
+    return owned
 
 
-def require_windows_publication(root, repository, run, jobs, declared, marker, uploads):
+def require_report_publications(root, repository, run, jobs, declared, marker, uploads):
     by_name = {job['name']: job for job in jobs}
     profile = by_name[WINDOWS_PUBLISHER]['verification_profile']
-    publishers = [(WINDOWS_PUBLISHER, None)]
+    publishers = [(WINDOWS_PUBLISHER, WINDOWS_ARTIFACT, WINDOWS_ARTIFACT if marker else MATRIX_ARTIFACT)]
     if marker:
         lanes = WINDOWS_PRODUCER_LAYOUTS[marker] if profile == 'full' else ('core',)
-        publishers.extend((timing.WINDOWS_PRODUCERS[lane], lane) for lane in lanes)
+        publishers.extend((timing.WINDOWS_PRODUCERS[lane], f"verification-windows-{run['run_attempt']}-{lane}",
+                           LANE_ARTIFACT) for lane in lanes)
+    publishers.append((UBUNTU_JOB, UBUNTU_ARTIFACT, LANE_ARTIFACT if marker else MATRIX_ARTIFACT))
     expected = []
-    for job_name, lane in publishers:
+    for job_name, artifact, declared_name in publishers:
         checkout, steps = declared[job_name]
-        artifact = f"verification-windows-{run['run_attempt']}-{lane}" if lane else WINDOWS_ARTIFACT
-        declared_name = LANE_ARTIFACT if lane else WINDOWS_ARTIFACT if marker else MATRIX_ARTIFACT
         try:
             staged = marker or any(step.get('id') in {'reports', 'artifacts'} for step in steps)
             path = '${{ steps.artifacts.outputs.path }}' if staged else '.reports/'
             required = []
             if staged:
                 required.extend(declared_publication_step(steps, key) for key in ('reports', 'artifacts'))
-            if marker and lane is None:
+            if marker and job_name == WINDOWS_PUBLISHER:
                 field, value = ('pattern', 'verification-windows-${{ github.run_attempt }}-*') if profile == 'full' else (
                     'name', 'verification-windows-${{ github.run_attempt }}-core')
                 required.append(declared_artifact_step(steps, 'download', **{field: value}))
@@ -413,7 +431,7 @@ def qualified_producer_checkouts(root, repository, jobs, run, tree, observed, up
     for row in observed:
         if row['step'] != declared[row['name']][0]:
             raise ProjectError(f"Required job {row['name']} used a different pinned checkout than the tested workflow.")
-    required_artifacts = require_windows_publication(root, repository, run, jobs, declared, marker, uploads)
+    required_artifacts = require_report_publications(root, repository, run, jobs, declared, marker, uploads)
     return observed, required_artifacts
 
 
