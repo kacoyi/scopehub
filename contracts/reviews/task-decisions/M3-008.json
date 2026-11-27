@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M3-008",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "d412069b5baa15a9f5a03fb512eea911e82ba886",
+      "scope": "Independently assess the returned calculated values against the actual immutable frozen dataset and revision on the ordinary consumer. Exercise matched and swapped writer outputs, independent ID and revision variations including missing bound provenance as supported, and terminal cleanup at the existing UI/API.",
+      "supersedes": null,
+      "requested_at": "2026-11-27T09:36:44.521885+00:00",
+      "request_id": "5de68324f1eec0394613fe1eab674e63b3a7b7cc35df77a6ef8847e8e99f0e8a",
+      "evidence_sha256": "1b49f2181f4e25bdfa282008d0af7d6749eeae5a8fd3b5d65141b5b988b73d56"
+    }
+  ]
+}

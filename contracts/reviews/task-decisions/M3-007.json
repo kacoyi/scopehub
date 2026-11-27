@@ -146,6 +146,15 @@
       },
       "supersedes": "08595217073fdda30f97cc46c2391ad9e720cfe040671bebe59199d11d4ef180",
       "evidence_sha256": "16539ec78c6cda66a13b699f962bb5b3e61a644b6d8dddee9166158581189fcb"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d412069b5baa15a9f5a03fb512eea911e82ba886",
+      "scope": "Independently check the integrated lost-status preview recovery through the normal UI and real local writer. Verify one admitted task, one bounded status re-read, stable normal and gapped results, cancellation, and original cleanup across matching and mismatched source observations.",
+      "supersedes": "9ad104929806c7c933d148c01ce68f2c2413eb00dfed3e0ed219f1309b3e90f9",
+      "requested_at": "2026-11-27T09:36:43.731803+00:00",
+      "request_id": "bd47b0f6fceaeb6213270401fa4f1ccf7319dad793ade8f2d3420cd99a951c3e",
+      "evidence_sha256": "297f9e07c06ca2a650343f9c4e6a723672d5303e89dd7cd6df90ac5df9eb1872"
     }
   ]
 }
