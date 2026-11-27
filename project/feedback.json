@@ -10414,8 +10414,8 @@
       "id": "windows-timing-fixtures-cannot-remove-read-only-loose-commits",
       "status": "open",
       "severity": "major",
-      "source": "PR 145 ordinary attempt 45936405663/1 submitted 47d68773e3e0bcb5a0a8b53682d9d25487e15dcc and tested 1bd2d33708a299e76428d4b84d6cd71f179af81a. Original cross-platform artifacts are indexed by archives/observations/repo-hygiene-20261125/pr145-native-original-45936405663/manifest.json (SHA-256 9346a56d25b09f36a1dfc27065d5c0ab72713c9d07b3e28ea4aca750485edafa). The Windows diagnostic resolves at archives/runs/windows-change-45936405663-1/test-report.json.",
-      "observation": "Windows python-contracts-workers failed in test_unresolved_linux_checkout_leaves_genuine_windows_receipt and test_weekly_receipts_require_a_commit_or_genuinely_missing_checkout. Both raised PermissionError [WinError 5] when unlinking loose commit files in their respective temporary Git repositories, before either reached the timing decision. The same Python suite passed on Linux (917 tests, four skipped).",
+      "source": "PR 145 ordinary attempt 45936405663/1 submitted 47d68773e3e0bcb5a0a8b53682d9d25487e15dcc and tested 1bd2d33708a299e76428d4b84d6cd71f179af81a. Original cross-platform artifacts are indexed by archives/observations/repo-hygiene-20261125/pr145-native-original-45936405663/manifest.json (SHA-256 9346a56d25b09f36a1dfc27065d5c0ab72713c9d07b3e28ea4aca750485edafa). The Windows diagnostic resolves at archives/runs/windows-change-45936405663-1/test-report.json. Guarded task attempt 45936670628/1 tested 47d68773e3e0bcb5a0a8b53682d9d25487e15dcc; archives/observations/repo-hygiene-20261125/task-dispatch-m0-155-45936670628/manifest.json (SHA-256 a25bfe9fdd88c49e0b2af12d0d0939bbcdf20e6285c0293064a079f01a96c462) indexes the original reports and logs. Its Windows diagnostic resolves at archives/runs/20261127T035357.370084Z-0338d768/test-report.json.",
+      "observation": "Windows python-contracts-workers failed in test_unresolved_linux_checkout_leaves_genuine_windows_receipt and test_weekly_receipts_require_a_commit_or_genuinely_missing_checkout. Both raised PermissionError [WinError 5] when unlinking loose commit files in their respective temporary Git repositories, before either reached the timing decision. The same Python suite passed on Linux (917 tests, four skipped). The guarded Windows run logged ERROR for both cases, then reached the 1200.015-second full Python deadline before the final unittest summary or tracebacks. Guarded Linux passed both cases. The cause of the guarded process timeout remains unknown.",
       "task_ids": [
         "M0-156"
       ],
@@ -10428,6 +10428,11 @@
           "run_id": "windows-change-45936405663-1",
           "source_commit": "1bd2d33708a299e76428d4b84d6cd71f179af81a",
           "report_sha256": "b8f0f05c0b312105c1a82574e2e600bba6e3b4e33d8e6646c038a1ba3eb32590"
+        },
+        {
+          "run_id": "20261127T035357.370084Z-0338d768",
+          "source_commit": "47d68773e3e0bcb5a0a8b53682d9d25487e15dcc",
+          "report_sha256": "511ec5c254777781470b2b2258209ade6bbdc4da9e63b4e21102eb9c93531974"
         }
       ],
       "resolution": null,
