@@ -8993,6 +8993,39 @@
         "prevention": "The Rust marker check and guarded startup and selection-clear cases cover actual refusal versus completed storage error. Ordinary Ubuntu and Windows desktop transport each passed the three startup classifications. The historical Windows diagnostic was a write."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-reviewed-save-preview-expired-before-save-admission",
+      "status": "addressed",
+      "severity": "major",
+      "source": "First native observation archives/observations/repo-hygiene-20261125/pr142-producer-45848342284-core/observation.json (SHA-256 c5da835cbfa551fb0824261aaf0e945aeaf45bd3c623406c32643ca75467ac84). The completed first-attempt aggregate at archives/observations/repo-hygiene-20261125/pr142-native-original-45848342284/manifest.json (SHA-256 9380f89374b29740b331c1081708ce3302132bdae52f401b31b00252f8fa211a) retains the same Rust log.",
+      "observation": "Windows PR 142 core job 140007775200 (first attempt 45848342284) ran 31 desktop bridge tests. The reviewed-save cancellation fixture obtained the CSV selection; its initial public PREVIEW_LOCAL_IMPORT returned retryable TIMEOUT at bridge_tests.rs:2418, before any save admission or cancellation. The remaining 30 tests passed, including the reviewed-save recovery case. Startup stage, cause of the delay and the downstream save outcome were not observed.",
+      "task_ids": [
+        "M0-170"
+      ],
+      "regression_checks": [
+        "project-state",
+        "rust-contracts-workers",
+        "local-folder-import"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45848342284-1",
+          "source_commit": "10024108d06f2d6adaf095b1ccb1a9d1bd531b82",
+          "report_sha256": "23dbf3f6ac858b6cd0c8becceed7cc2812b3cf5f5b1a7221b7d0404ff523426e"
+        },
+        {
+          "run_id": "windows-change-45848342284-1",
+          "source_commit": "10024108d06f2d6adaf095b1ccb1a9d1bd531b82",
+          "report_sha256": "d2522517d478284ed0ff105716383b337d40b8b114f84db18b0ce319b999b281"
+        }
+      ],
+      "resolution": {
+        "cause": "The original first public preview expired after selection and before the reviewed save was submitted. The original worker exchange stage, interpreter ownership, cleanup and cause of the timeout remain unknown. The original fixture's one-thread blocking pool is a possible Windows pipe scheduling factor.",
+        "correction": "Run the real public preview with the ordinary blocking pool and reserve a separate one-thread runtime for the save's controlled reread. Use the same synthetic CSV in the interrupted preview control and require a completed public review for save authorization.",
+        "prevention": "Guarded run 45930637026 passed all required checks on native Windows and Linux. The public bridge controls assert a completed preview, rejection of a save after a controlled preview interruption, cancellation after proven save admission, and an ordinary subsequent load with not_saved and no profile directory. The protected integration recheck remains with the coordinator."
+      },
+      "deferral_reason": null
     }
   ]
 }
