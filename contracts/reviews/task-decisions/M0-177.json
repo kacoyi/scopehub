@@ -88,6 +88,15 @@
       },
       "supersedes": "918b92a994864bb47cdbf993b8231bdf25bbfccd5b48bbbf90ed491e323677d7",
       "evidence_sha256": "d14c6e927783833e8a0b2094305f5c81dde3b2e9270e79b13fb2f800ed0ad286"
+    },
+    {
+      "kind": "request",
+      "source_commit": "23ea59440819f3ce7c5b31901819c94a68c8deb2",
+      "scope": "Independently qualify the normal deletion confirmation against the complete committed-result and receipt contracts and the authorized operation, including explicit recovery.",
+      "supersedes": "af5348d4065a5d11c4303bcc118020a78c1417d42f0bee610d8bf812da1a2a04",
+      "requested_at": "2026-11-27T10:27:52.160977+00:00",
+      "request_id": "c26fd494e7a5afab60953d3042fac7aa26fac63535c10aa959bb530db4f81759",
+      "evidence_sha256": "f0c24978de4ac358e54ac389d59c1bfd3e29db5c2ac3d2255095cfeb39aeb662"
     }
   ]
 }
