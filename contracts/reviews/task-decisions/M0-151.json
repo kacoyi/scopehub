@@ -50,6 +50,15 @@
       },
       "supersedes": "3b4ab6e1b65345ba6408d5be84c560e3e8dc4e8260e4299a19ac06211daea08c",
       "evidence_sha256": "3a24bd3869acffa39b15095aa135e7e5167fe3ba632dafa7ffbe79d49598dff7"
+    },
+    {
+      "kind": "request",
+      "source_commit": "3292bcd9bb6d125108453595c266af199ed77ae4",
+      "scope": "Review the existing owned synthetic worker interruption and recovery repair as composed on protected main 7bc0df5f. Bind the exact PR 143 Windows recurrence, the previous qualified M0-151 implementation and the narrowly changed PR 144 save-preview test to the reviewed source.",
+      "supersedes": "eb0041c3e73dca49bd7e7622d3d35b9eea4a5d4fcf88580a84b6910ce5bc0d87",
+      "requested_at": "2026-11-27T03:59:09.450143+00:00",
+      "request_id": "c183725d7a1ce867409ad2b60cdb7673f4dde19d76df78616b3e14fdf4234a2a",
+      "evidence_sha256": "f689a1a22878d84df78894b87ed6c8879e25fec2004814a1beeec45bbfba1501"
     }
   ]
 }
