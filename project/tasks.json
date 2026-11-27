@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-159",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -29147,7 +29147,7 @@
       "id": "M0-159",
       "title": "Qualify the handoff for the first protected Windows Python observation",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-142"
       ],
@@ -29191,11 +29191,19 @@
         {
           "path": "project/evidence/M0-159-710f9c23bae852f2.json",
           "sha256": "7fdaeff773d502f3263669160328c74342e0e23e07a44247cc72da795c9f68f8"
+        },
+        {
+          "path": "project/evidence/M0-159-83c55a44362e5aa1.json",
+          "sha256": "d6172d0500d2eb48b75e74644f5f5b76c5b1e431d867e499ad2f2737c00b4dcc"
+        },
+        {
+          "path": "project/evidence/M0-159-8503f3a73d05649b.json",
+          "sha256": "228b7d780e21cc6f2efb3a0c79e2248f6cf3ddbed9cf3588630d0e5352bb7eff"
         }
       ],
-      "next_action": "The integration coordinator checks the preserved independent decision against the reconciled source and obtains a new decision from the independent reviewer if required. Use the checkout-local evidence in .reports/audit-20261125/m0-159-protected-observation/reconciled-770b2481/handoff.json. The coordinator owns publication, fresh ordinary Windows PR checks and separate protected adoption. After adoption, the M0-153 repair owner registers the planned observer M0-160, obtains current independent review and ordinary and guarded native evidence, and commits the verified handoff on the observer. The integration coordinator then owns M0-160 and the first actual protected main push containing the M0-153 repair. Keep the original deadline finding open until that exact event passes.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The independent approval of 94609e1ecaafdc0c77ad4bd3a3db4bf1abf407ef applies to reconciled source 8a9c92744dfa04673b5fac798539992aa0cfa04a. Ordinary PR 138 run 45972325368 attempt 1 tested same-tree merge preview 715e673bfc8e4a218f82f42abe903a114dbf7ea7. Both required checks and all fourteen named integration and serial observation controls passed on Linux and Windows. The serial suite ran 937 cases in 217.632 seconds on Linux and 1169.170 seconds on Windows. The Linux report retains its overall blocked status for the Windows-only native build. The controls preserve rejection of missing or incomplete evidence, premature closure and self-adoption. Prior false decisions and failed observations remain retained. The integration coordinator owns publication and separate protected adoption. The M0-153 correction and M0-160 observer require that adoption. Closure of the original protected Python deadline finding requires the verified first protected main push containing M0-153.",
       "plan": {
         "outcome": "An independently accepted Python process repair has a defensible path to its first protected push and a discoverable owner for the outcome.",
         "change_types": [

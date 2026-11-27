@@ -9527,7 +9527,7 @@
     },
     {
       "id": "protected-handoff-for-python-process-deadline",
-      "status": "open",
+      "status": "addressed",
       "severity": "major",
       "source": "archives/observations/repo-hygiene-20261125/m0-159-protected-handoff-intake/observations.json (SHA-256 650f6772d64fce5c463905a28279ffdae103e0334b2930d098ae5d04213c0735).",
       "observation": "The protected integration assessment for PR 131 reported the unfinished M0-153 repair and the unresolved Windows Python process deadline. Its first actual protected push cannot run until integration. The existing protected handoffs name other findings, even after ordinary and guarded Windows runs produced terminal serial inventories.",
@@ -9538,12 +9538,16 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The protected integration rules had no handoff for the outstanding Python process deadline and its first protected push.",
+        "correction": "Define a separately adopted policy that binds the reviewed repair and its native evidence to a planned observer and the first protected main push. The integration coordinator owns separate policy adoption and the protected observation after repair integration.",
+        "prevention": "PR 138 run 45972325368 attempt 1 passed both required checks on Linux and Windows. The integration controls reject self-adoption, unqualified evidence and closure before a verified first protected observation, and exercise the missing, failed and successful outcomes."
+      },
       "deferral_reason": null
     },
     {
       "id": "protected-python-observation-loses-base-task-ledger",
-      "status": "open",
+      "status": "addressed",
       "severity": "major",
       "source": "archives/observations/repo-hygiene-20261125/independent-final-m0-159-ff71dc66/original-assistant-response.jsonl (SHA-256 f36de017e36a06c4be70df990c52409d3a35e497c5c910afd8413b7aa63ad88d).",
       "observation": "The public delivery_scope decision on ff71dc66409852b24121590b88aa512cada2e3e4 against its first parent d81357d4f299d676ea4c35d12885836bdb1aae40 raised AttributeError before reaching the Python follow-up. With all three protected rules active, the timing loop replaces the prior task ledger with the prior recurring finding. A missing finding aborts the call. An existing finding hides the completed repair from the observation path.",
@@ -9553,12 +9557,16 @@
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The recurring timing rule reused the prior-task ledger variable for its own feedback record.",
+        "correction": "Keep the protected base task ledger available for Python follow-through across all recurring timing rule outcomes.",
+        "prevention": "The retained public integration replay exercises both prior timing feedback states. The first ordinary PR 138 run passed the Python check on Linux and Windows, including first-push failure recording and closure after verified success."
+      },
       "deferral_reason": null
     },
     {
       "id": "protected-python-observation-substitutes-reviewed-inventory",
-      "status": "open",
+      "status": "addressed",
       "severity": "major",
       "source": "contracts/reviews/task-decisions/M0-159.json#/events/4. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-159-5a542187/original-assistant-response.jsonl, SHA-256 51926b3d40a69aa4969eae244dab01b7054823902c0f9f9eb83f3b701c678ac7.",
       "observation": "The public pre-merge decision selected a guarded receipt and ordered inventory. On the reviewed source, the same retained protected push returned inventory_mismatch with the selected reordered inventory and passed after a second receipt with a matching inventory was added.",
@@ -9568,12 +9576,16 @@
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Post-integration observation could choose a different qualifying receipt from the one selected before integration.",
+        "correction": "Bind the selected guarded receipt and ordered inventory to the committed observer handoff and recover that binding from the first protected commit.",
+        "prevention": "The first ordinary PR 138 run passed the committed-handoff and inventory-substitution controls on Linux and Windows. The original false pass remains retained."
+      },
       "deferral_reason": null
     },
     {
       "id": "protected-python-observation-counts-ineligible-diagnostics",
-      "status": "open",
+      "status": "addressed",
       "severity": "major",
       "source": "contracts/reviews/task-decisions/M0-159.json#/events/4. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-159-5a542187/original-assistant-response.jsonl, SHA-256 51926b3d40a69aa4969eae244dab01b7054823902c0f9f9eb83f3b701c678ac7.",
       "observation": "On the reviewed source, the public observation changed from passed to missing when the same protected push supplied its original Windows and Linux reports together. The same decision changed from failed with timeout to missing when the original Windows aggregate and Python producer job reports were listed together.",
@@ -9583,12 +9595,16 @@
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The observation reducer treated nominations as competing results before establishing their execution context and producer relationship.",
+        "correction": "Verify each nomination's context, compare eligible Windows producer and aggregate check identities, and preserve actionable producer failure when the aggregate is missing.",
+        "prevention": "The retained public integration replay covers the unrelated Linux nomination and the Windows producer timeout. The first ordinary PR 138 run passed the serial evidence and failure follow-through controls on Linux and Windows."
+      },
       "deferral_reason": null
     },
     {
       "id": "protected-python-observation-drops-unreadable-diagnostics",
-      "status": "open",
+      "status": "addressed",
       "severity": "major",
       "source": "contracts/reviews/task-decisions/M0-159.json#/events/6. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-159-10104031/original-assistant-response.jsonl, SHA-256 256f6c5fb291e33055614d0bb9cfc6542fb6a031909451ad4faade688a18c071.",
       "observation": "On 1010403186cc9004da907cbdf90774b4ad271a20, the public delivery_scope replay of protected push 45747974114 reported a missing observation for two digest-verified Windows originals with conflicting ordered Python outcomes. Reopening with one original unreadable returned passed and removed the closure blocker with the same diagnostic references, receipt and hosted jobs.",
@@ -9598,7 +9614,11 @@
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Unreadable nominated originals were discarded before agreement was checked, allowing a remaining passing result to hide a conflict.",
+        "correction": "Keep unreadable and ambiguous nominations unresolved until verified content classifies them. Preserve verified failure and require resolved, agreeing evidence for closure.",
+        "prevention": "The retained public integration replay holds closure across interruption, reopening, restored conflicts and reversed nomination order. The first ordinary PR 138 run passed the incomplete-evidence and premature-closure controls on Linux and Windows. The original false closure remains retained."
+      },
       "deferral_reason": null
     }
   ]
