@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { indicatorPreviewStatusSchema } from './indicator-preview-status-schema.mjs';
 import { ubuntuPreview } from './ubuntu-preview.mjs';
 import { ubuntuWorkspace } from './ubuntu-workspace.mjs';
 
@@ -9,7 +10,7 @@ export default defineConfig(({ command, mode, isPreview }) => {
   const history = serving && (mode === 'ubuntu-preview' || workspace);
   const testPreview = process.env.SCOPEHUB_TEST_PREVIEW === '1';
   return {
-    plugins: [react(), ...(history ? [ubuntuPreview()] : []), ...(workspace ? [ubuntuWorkspace()] : [])],
+    plugins: [react(), indicatorPreviewStatusSchema(), ...(history ? [ubuntuPreview()] : []), ...(workspace ? [ubuntuWorkspace()] : [])],
     define: {
       'import.meta.env.SCOPEHUB_UBUNTU_PREVIEW': history,
       'import.meta.env.SCOPEHUB_UBUNTU_WORKSPACE': workspace,

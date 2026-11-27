@@ -1,0 +1,180 @@
+{
+  "version": 3,
+  "task_id": "M3-007",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "c1cefee5537c5ef4b80dd1ce7a6f28eaaaa69540",
+      "scope": "Exercise an offline sample indicator through the actual chart, native admission and UI. Compare one lost logical status delivery, ordinary ready results and terminal, cancelled or unavailable inputs. Check task identity, calculation, visible outcome, bounds and cleanup. Challenge an independently chosen neighboring input and verify what the original calendar failure establishes.",
+      "supersedes": null,
+      "requested_at": "2026-11-26T06:14:21.549917+00:00",
+      "request_id": "5c5b010ba79ded36557dedee9d9482c0aabbb85145c5f7778b6e00d7dca4bbdc",
+      "evidence_sha256": "e5614561c24ee9c2e56ab2f3af7a05decf942de839f05c03f3336b9a6d7b64e8"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c1cefee5537c5ef4b80dd1ce7a6f28eaaaa69540",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M3-007 c1cefee5537c5ef4b80dd1ce7a6f28eaaaa69540",
+      "scope": "CHANGES_REQUESTED M3-007 c1cefee5537c5ef4b80dd1ce7a6f28eaaaa69540",
+      "observation": "In my component replay, cancelling the preview while its recovery read was pending sent two distinct cancellation requests for the same admitted task.",
+      "reviewer": "Independent Astra Standard (t14g)",
+      "original_sha256": "65db0068c6a2b014f3e610fb98a35e32d611713a0945758510a905f76580d8ee",
+      "response_id": "b501ae7c5cada5665e507f47ae86af76ff4c04ab476e30506ebea13e74b623bf",
+      "response_sha256": "0b4a403b82e55d1c57444bb1bf32cd1fc52c33718514334aa15e313077dbc018",
+      "legacy_response_sha256": "4337dc7244b3986dac7e65b1aa289fcbde85d2cdff4220d286b94ef3b993b010",
+      "observation_body_sha256": "50ac46f5bcb81b5cc26c6a66e872749bdaf47ade6f750e14e95c55e03dd5c891",
+      "event": {
+        "id": "msg_08144eec3f9c5b47016b07d8172aac87d1945444484547bb94",
+        "timestamp": "2026-11-26T06:56:44.587Z"
+      },
+      "supersedes": "5c5b010ba79ded36557dedee9d9482c0aabbb85145c5f7778b6e00d7dca4bbdc",
+      "evidence_sha256": "216f904d985a1d8beae5c7aca1342fd7d66f4c337a5138a567d68ebd192a77d6"
+    },
+    {
+      "kind": "request",
+      "source_commit": "87d0b846aad69fb84afe371b65814856ec7a118f",
+      "scope": "Exercise an offline sample indicator through the actual chart, native admission and UI. Compare one lost logical status delivery, ordinary ready results and terminal, cancelled or unavailable inputs. Check task identity, calculation, visible outcome, bounds and cleanup. Challenge an independently chosen neighboring input and verify what the original calendar failure establishes. Recheck the original decision on c1cefee5.",
+      "supersedes": "b501ae7c5cada5665e507f47ae86af76ff4c04ab476e30506ebea13e74b623bf",
+      "requested_at": "2026-11-26T07:47:12.275276+00:00",
+      "request_id": "c2b44f90f73746270af7a4700f6bbb701e3328abfe67af907cca4bd182620e3c",
+      "evidence_sha256": "19b013dfab9ee99ac7ac3efa09b06dd76d5daffdd565c0d808eaa403939f908a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "87d0b846aad69fb84afe371b65814856ec7a118f",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M3-007 87d0b846aad69fb84afe371b65814856ec7a118f",
+      "scope": "CHANGES_REQUESTED M3-007 87d0b846aad69fb84afe371b65814856ec7a118f",
+      "observation": "After one lost status delivery, the chart displayed 3500.5 when I changed only the recovered ready event’s name from `indicator.preview_ready` to `task.terminal`.",
+      "reviewer": "Independent Astra Standard (t158)",
+      "original_sha256": "141daf24715f091209b60978d25a3f31ed6db0769c48f8086337553e2433399c",
+      "response_id": "99e095b219762f567d6e0ec3ed3221cea5701c17745d6ebd4b1a538b7982d360",
+      "response_sha256": "aabbc138e6ab588edd7e4634778d0ccfa76e162a09bae74ba63cd085559d5160",
+      "legacy_response_sha256": "ba33d40f71c317abe90c3b422566310068d9cdd27fad85b907efeaf05d5cfb14",
+      "observation_body_sha256": "7cf8b34cfe1b3b60069b830844a7b6648b5fe9e155653ba1bfc3471bf4462a2f",
+      "event": {
+        "id": "msg_067969c531592916016b082777d1ec87d2b5ed8fe75788ad2c",
+        "timestamp": "2026-11-26T12:35:26.289Z"
+      },
+      "supersedes": "c2b44f90f73746270af7a4700f6bbb701e3328abfe67af907cca4bd182620e3c",
+      "evidence_sha256": "977749cb0d5093762b64c0bf5559d9e88c8df0020b79d77e5f1a6f83652edfee"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a2edf1f7b0ece2d67249e816a73b29587fee32e3",
+      "scope": "Use the compiled offline sample chart and the Rust writer to review one lost logical indicator status, both status/terminal event-name mismatches, and genuine ready, cancellation and unavailable results. Check the numerical result, UI state, request identity, existing deadline and cleanup after the previous independent rejection.",
+      "supersedes": "99e095b219762f567d6e0ec3ed3221cea5701c17745d6ebd4b1a538b7982d360",
+      "requested_at": "2026-11-26T12:46:53.706142+00:00",
+      "request_id": "8f7da71c0d2867db5804a7b25874450fc1835710c6023bb1335b59db76fe5828",
+      "evidence_sha256": "7c63b3da6950f40895e64356910d176e23d370c0f008c219087c5004649a21cc"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a2edf1f7b0ece2d67249e816a73b29587fee32e3",
+      "verdict": "approved",
+      "decision": "APPROVE M3-007 a2edf1f7b0ece2d67249e816a73b29587fee32e3",
+      "scope": "APPROVE M3-007 a2edf1f7b0ece2d67249e816a73b29587fee32e3",
+      "observation": "After one lost status delivery, the compiled preview displayed 3500.5 for the genuine Rust ready reply and rejected both event-name mismatches with one cleanup request each.",
+      "reviewer": "Independent Astra Standard (t160)",
+      "original_sha256": "a47f263a8a582fd230f99d3cfba6b7b87100c854ccabcc8dfa5ea3c358a6f745",
+      "response_id": "6cdf024ffafe57efdbeecaf3903859ba36e4994e512e1f2a89ad84966db7e745",
+      "response_sha256": "20d7349e79fa07378e109ce29f37c085770bba2e790eddb1d4af76b3cf540653",
+      "legacy_response_sha256": "2945b6f652a43fdb771b0693068ee1c2d7eedc96fb03977fb4af3987a202fcea",
+      "observation_body_sha256": "e6a0320c571482c1aa39667bf97fd742251e95defb156323830c9139fa1939fe",
+      "event": {
+        "id": "msg_02f9caa521fa55ba016b082b9fccac87d18e2f26636ddcb413",
+        "timestamp": "2026-11-26T12:53:02.728Z"
+      },
+      "supersedes": "8f7da71c0d2867db5804a7b25874450fc1835710c6023bb1335b59db76fe5828",
+      "evidence_sha256": "152f04ee589655f6fd6212d8804b48dbfcd1b699dc89b50af6cf8e50816cf196"
+    },
+    {
+      "kind": "request",
+      "source_commit": "3b506adedc41a015abf490f91d3714c7e1516ac2",
+      "scope": "Independently review the resolved M3-007 integration against protected ff6c880b. Compare the genuine former approval and preserved product/test files, verify the merged task and feedback rows, and confirm that the chart recovery and rejection still refer to the same source. The guarded native dispatch requires this resolved review.",
+      "supersedes": "6cdf024ffafe57efdbeecaf3903859ba36e4994e512e1f2a89ad84966db7e745",
+      "requested_at": "2026-11-26T12:54:29.360806+00:00",
+      "request_id": "08cf621368656ac993e62122bc39105c42b7a983d1ef3e15bfe4ee7e99ebfd88",
+      "evidence_sha256": "7c44d2ad16c57c119c12fac4a254e5df71ffee0ab2deb9d370d10a40bd034b54"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "3b506adedc41a015abf490f91d3714c7e1516ac2",
+      "verdict": "approved",
+      "decision": "APPROVE M3-007 3b506adedc41a015abf490f91d3714c7e1516ac2",
+      "scope": "APPROVE M3-007 3b506adedc41a015abf490f91d3714c7e1516ac2",
+      "observation": "After one lost status delivery, my replay of the merged preview component displayed 3500.5 for the recorded ready reply and rejected both event-name mismatches with one cleanup request each.",
+      "reviewer": "Independent Astra Standard (t166)",
+      "original_sha256": "933ef8d6a3c91aba5c937cb7066ddf274ed1286fcf30426443ac42c332ee79d5",
+      "response_id": "2f8cb76e55b8e5f8d71cef4834deb9bc3f2e40f773110b264032c03706b43a7e",
+      "response_sha256": "e0bcf5e2e5db9832f617b37a6a91abe265097ebca3ef667ec325f2f317d6e4ab",
+      "legacy_response_sha256": "287adfb53def55a254d976b11e9afa148dc06444a7b45614ba34eaec4b15fc4b",
+      "observation_body_sha256": "82f9cf54f517b754dca0d7706444e84aea0ec0e316592cfecb64714f265387c9",
+      "event": {
+        "id": "msg_09ea2d4141869106016b082cfd283887d28a7a7a3fd18b8e78",
+        "timestamp": "2026-11-26T12:58:50.849Z"
+      },
+      "supersedes": "08cf621368656ac993e62122bc39105c42b7a983d1ef3e15bfe4ee7e99ebfd88",
+      "evidence_sha256": "9fb45ffd26ad18c7e8cecfeda5373d2dbda05ed7ec075dba8534f36e87ba9878"
+    },
+    {
+      "kind": "request",
+      "source_commit": "0c3e56b4c808427b89751ff6fdee49b91741e3e9",
+      "scope": "Review the actual source overlap in the existing offline sample indicator and workspace journeys. Independently bind single lost status delivery to one reread of the admitted task, the period-two value 3500.5 and preserved chart/source identity. Recheck normal and rejected, cancellation and fixed frozen crop cases on the protected combination, with the previous seven-check Windows/Linux receipt and the first failed ordinary observations at their own sources. Decide on the merged behavior and preserved historical scope. The Windows and protected observations on this exact combination remain pending.",
+      "supersedes": "2f8cb76e55b8e5f8d71cef4834deb9bc3f2e40f773110b264032c03706b43a7e",
+      "requested_at": "2026-11-27T09:16:45.583539+00:00",
+      "request_id": "08595217073fdda30f97cc46c2391ad9e720cfe040671bebe59199d11d4ef180",
+      "evidence_sha256": "91b7c91317bd0778eecaf92e869dd44cb8cc710c3d3280218092d2bc5ca451fc"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "0c3e56b4c808427b89751ff6fdee49b91741e3e9",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M3-007 0c3e56b4c808427b89751ff6fdee49b91741e3e9",
+      "scope": "CHANGES_REQUESTED M3-007 0c3e56b4c808427b89751ff6fdee49b91741e3e9",
+      "observation": "After one lost status delivery, the gapped sample preview displayed 3500.5 when I replayed its admitted task’s ready response with the normal sample’s archived artifact; the same response with its own artifact displayed Unknown.",
+      "reviewer": "Independent Astra Standard (t1g9)",
+      "original_sha256": "84daf687a6cc95e6af4bfc40f1d96d55d3550ab0b732ad64bf11efd8ec69b8d9",
+      "response_id": "9ad104929806c7c933d148c01ce68f2c2413eb00dfed3e0ed219f1309b3e90f9",
+      "response_sha256": "05f27d16f1b4f9e274d81e3995f18ea0b2f0522c034a18c4dd97414b9f4ba9b7",
+      "legacy_response_sha256": "e96eef314f38fd8dda79df6e297e5f0ffd5b512415ecd1c3cc8ee668734fe6e8",
+      "observation_body_sha256": "d234777b59742d2ad781044e94ed5feeca55b4e8f38b65637756027ecfaad2b7",
+      "event": {
+        "id": "msg_03c6a995f493b7bf016b094c0f797487d0a200c05b4e1aa29c",
+        "timestamp": "2026-11-27T09:23:47.154Z"
+      },
+      "supersedes": "08595217073fdda30f97cc46c2391ad9e720cfe040671bebe59199d11d4ef180",
+      "evidence_sha256": "16539ec78c6cda66a13b699f962bb5b3e61a644b6d8dddee9166158581189fcb"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d412069b5baa15a9f5a03fb512eea911e82ba886",
+      "scope": "Independently check the integrated lost-status preview recovery through the normal UI and real local writer. Verify one admitted task, one bounded status re-read, stable normal and gapped results, cancellation, and original cleanup across matching and mismatched source observations.",
+      "supersedes": "9ad104929806c7c933d148c01ce68f2c2413eb00dfed3e0ed219f1309b3e90f9",
+      "requested_at": "2026-11-27T09:36:43.731803+00:00",
+      "request_id": "bd47b0f6fceaeb6213270401fa4f1ccf7319dad793ade8f2d3420cd99a951c3e",
+      "evidence_sha256": "297f9e07c06ca2a650343f9c4e6a723672d5303e89dd7cd6df90ac5df9eb1872"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d412069b5baa15a9f5a03fb512eea911e82ba886",
+      "verdict": "approved",
+      "decision": "APPROVE M3-007 d412069b5baa15a9f5a03fb512eea911e82ba886",
+      "scope": "APPROVE M3-007 d412069b5baa15a9f5a03fb512eea911e82ba886",
+      "observation": "After one lost status delivery, the candidate component displayed 3500.5 for the normal sample and Unknown for the gapped sample, rejected both reciprocal artifact swaps, and issued exactly one cleanup request for each original task.",
+      "reviewer": "Independent Astra Standard (t1gq)",
+      "original_sha256": "5d4a723560c2f3054bd3c1b08d772cdb8734c31631153d27ce9ccc224388a893",
+      "response_id": "10efeeab2220962d04267ab37c83e6bae1bf38e969e171aecaee4e3b7939dea4",
+      "response_sha256": "6cf0ada9e1190a625330e54044141b721156a99742ba8bfb8751d239cc7b10a0",
+      "legacy_response_sha256": "389369db4572ebf4c3852f9cebc627dfdde56e221d8e0e92e45f3fb5edc5ebd2",
+      "observation_body_sha256": "96d56eba951459ec68a5184f2b88231418fc5ae46b6835d97feed657711465e5",
+      "event": {
+        "id": "msg_0330b1b0b320c02d016b09505f1c9c87d0b290dc298d540b77",
+        "timestamp": "2026-11-27T09:42:12.064Z"
+      },
+      "supersedes": "bd47b0f6fceaeb6213270401fa4f1ccf7319dad793ade8f2d3420cd99a951c3e",
+      "evidence_sha256": "858442d7ef0e62a13b3f62ac2ba921985cae710a68eeb06321ba843181bc4ddd"
+    }
+  ]
+}

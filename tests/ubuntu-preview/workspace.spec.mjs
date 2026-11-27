@@ -23,6 +23,7 @@ import { assertWindowsLeafAclMatrix, assertUnsuitableWindowsHandoffsRejected, as
 import { handoffProbeCases } from './workspace_test_handoff_probe_cases.mjs';
 import { claimProfile, withProfilePoolAclControl } from './workspace_profile_pool.mjs';
 import { observeIndicatorGate } from './workspace_indicator_gate.mjs';
+import { observeIndicatorRequests, readIndicatorJournal } from './workspace_indicator_probe.mjs';
 import { captureServiceOutput, observeServiceStartup, startupMessage } from './workspace_service_readiness.mjs';
 import { observeSnapshotGate } from './workspace_snapshot_gate.mjs';
 
@@ -42,10 +43,12 @@ const snapshot = { type: 'snapshot' };
 const admissionProbe = { type: 'snapshot', request_id: 1 };
 const snapshotGateModule = new URL('./workspace_snapshot_gate.mjs', import.meta.url).href;
 const indicatorGateModule = new URL('./workspace_indicator_gate.mjs', import.meta.url).href;
+const indicatorProbeModule = new URL('./workspace_indicator_probe.mjs', import.meta.url).href;
 const activeCacheSlots = new Set();
 const firstHistoryDisconnectHoldMs = 5_500;
 const service = `
-  const [entry, mode, port, cacheDir, faultEnabled, snapshotWriter, traceStartup, indicatorCarrier] = process.argv.slice(1);
+  const [entry, mode, port, cacheDir, faultEnabled, writerPath, traceStartup,
+    snapshotGateEnabled, indicatorCarrier, indicatorProbeOptions] = process.argv.slice(1);
   const shutdown = Promise.withResolvers();
   let closing = !process.connected;
   let interrupted;
@@ -109,9 +112,16 @@ const service = `
       });
     },
   }] : [];
-  const snapshotGate = snapshotWriter
-    ? (await import('${snapshotGateModule}')).installSnapshotGate('${endpoint}', snapshotWriter)
+  const indicatorProbe = indicatorProbeOptions
+    ? (await import('${indicatorProbeModule}')).installIndicatorProbe('${endpoint}', writerPath, JSON.parse(indicatorProbeOptions))
     : undefined;
+  if (indicatorProbe) process.on('message', message => {
+    if (message === 'release-indicator-admission') indicatorProbe.releaseAdmission();
+  });
+  const snapshotGate = snapshotGateEnabled
+    ? (await import('${snapshotGateModule}')).installSnapshotGate('${endpoint}', writerPath)
+    : undefined;
+  if (indicatorProbe) plugins.push(indicatorProbe.plugin);
   const indicatorGate = indicatorCarrier
     ? (await import('${indicatorGateModule}')).installIndicatorGate(indicatorCarrier, process.env.SCOPEHUB_WORKSPACE_PROFILE_ROOT)
     : undefined;
@@ -142,6 +152,7 @@ const service = `
   } finally {
     cutHistory();
     snapshotGate?.close();
+    indicatorProbe?.close();
     try {
       indicatorGate?.closing();
       await server?.close();
@@ -891,8 +902,9 @@ test('indicator-preview restores all 256 accepted layer references through the U
 });
 
 test('indicator-preview uses the bound sample calendar through the normal chart', async ({ browser }, testInfo) => {
-  const profile = await makeProfile();
+  const journal = testInfo.outputPath('sample-indicator-calendar.native.jsonl');
   const port = await freePort();
+  const profile = await makeProfile();
   const afterClosure = 1704243600000;
   const lastExpected = 1704200940000;
   const croppedHistory = sampleHistoryCall();
@@ -900,7 +912,8 @@ test('indicator-preview uses the bound sample calendar through the normal chart'
   Object.assign(croppedHistory.payload, { from_ms: dayStart, to_ms: Date.UTC(2024, 0, 4) });
   const gappedRevision = 'scopehub-synthetic-v1:20241013:gapped';
   const gappedHistory = { ...croppedHistory, payload: { ...croppedHistory.payload, expected_revision: gappedRevision } };
-  const observation = [];
+  const observation = { previews: [], obsolete: [], cleanup: {} };
+  let requests;
   try {
     await inService(port, profile, 'ubuntu-workspace', async server => {
       const injected = await post(server, {
@@ -933,23 +946,54 @@ test('indicator-preview uses the bound sample calendar through the normal chart'
         const indicatorSwitch = plot.getByText('Indicators', { exact: true });
         await indicatorSwitch.click({ timeout: 8_000 });
         const indicator = plot.getByRole('region', { name: 'Indicator preview' });
-        let previewCommand;
-        const run = async () => {
+        const ready = indicator.getByText(/Preview layers/);
+        const failure = indicator.getByRole('alert');
+        const cancelled = indicator.getByText('Indicator preview cancelled.', { exact: true });
+        const outcome = ready.or(failure).or(cancelled);
+        const chartState = async () => ({
+          connection: await page.locator('.connection').allTextContents(),
+          history: await plot.locator('.history').evaluateAll(nodes => nodes.map(({ dataset }) => ({
+            instrument: dataset.instrument, timeframe: dataset.timeframe, bars: dataset.bars,
+          }))),
+        });
+        requests = observeIndicatorRequests(page, endpoint);
+        const run = async revision => {
           await indicator.getByLabel('First visible bar').selectOption(String(afterClosure));
           await indicator.getByLabel('Last visible bar').selectOption(String(afterClosure));
-          const ready = page.waitForResponse(async response =>
-            new URL(response.url()).pathname === endpoint
-            && response.request().postDataJSON()?.type === 'indicator_preview_status'
-            && (await response.json()).result?.status === 'ready');
-          const submitted = page.waitForRequest(request => new URL(request.url()).pathname === endpoint
-            && request.postDataJSON()?.intent?.operation === 'indicator.runPreview');
+          await expect(outcome).toHaveCount(0);
+          const attempt = { revision, firstRequest: requests.attempts.length, chartBefore: await chartState() };
+          observation.previews.push(attempt);
+          const startedAt = performance.now();
           await indicator.getByRole('button', { name: 'Run preview' }).click();
-          previewCommand = (await submitted).postDataJSON();
-          const terminal = (await (await ready).json()).result;
-          await expect(indicator.getByText(/Preview layers/)).toBeVisible();
-          return terminal;
+          // A failure during draft creation or submission can finish without any status request.
+          await expect(outcome.first()).toBeVisible({ timeout: testInfo.timeout });
+          attempt.elapsed_ms = Math.round(performance.now() - startedAt);
+          if (await failure.isVisible()) attempt.terminal = { state: 'failed', message: await failure.innerText() };
+          else if (await cancelled.isVisible()) attempt.terminal = { state: 'cancelled', message: await cancelled.innerText() };
+          else attempt.terminal = { state: 'ready' };
+          attempt.chartAfter = await chartState();
+          expect(attempt.terminal, `${revision} sample indicator preview`).toEqual({ state: 'ready' });
+          expect(attempt.chartAfter).toEqual(attempt.chartBefore);
+
+          const completed = operation => requests.attempts.slice(attempt.firstRequest).find(entry =>
+            entry.operation === operation && entry.reply?.result?.outcome?.state === 'committed');
+          const readyReply = () => requests.attempts.slice(attempt.firstRequest).find(entry =>
+            entry.reply?.result?.status === 'ready');
+          await expect.poll(() => [
+            completed('indicator.createDraft')?.http, completed('indicator.runPreview')?.http, readyReply()?.http,
+          ]).toEqual([200, 200, 200]);
+          const response = readyReply();
+          const terminal = response.reply.result;
+          const draft = completed('indicator.createDraft');
+          const submitted = completed('indicator.runPreview');
+          expect(submitted.payload.intent.arguments.draft_id).toBe(draft.reply.result.outcome.result.draft_id);
+          expect(submitted.reply.result).toMatchObject({ request_id: submitted.request_id,
+            outcome: { result: { task_id: terminal.task_id } } });
+          expect(response.task_id).toBe(terminal.task_id);
+          attempt.terminal.task_id = terminal.task_id;
+          return { terminal, previewCommand: submitted.payload };
         };
-        const normal = await run();
+        const { terminal: normal, previewCommand } = await run('normal');
         expect(normal.event.artifact.result.series[0].points).toEqual([{ time_ms: afterClosure, value: 3500.5 }]);
         expect(normal.warmup_from_ms).toBe(lastExpected);
         expect(normal.source_snapshot.from_ms).toBe(dayStart);
@@ -959,7 +1003,6 @@ test('indicator-preview uses the bound sample calendar through the normal chart'
         await expect(indicator.getByText(/expected market buckets are missing/)).toHaveCount(0);
         await indicator.getByText('Preview provenance and values').click();
         await expect(indicator.getByRole('table', { name: 'Indicator preview values' })).toContainText('3500.5');
-        observation.push(normal);
         expect(Object.keys(previewCommand.intent.arguments).sort()).toEqual(['draft_id', 'parameters', 'snapshot']);
         const forged = structuredClone(previewCommand);
         forged.request_id = randomUUID();
@@ -967,10 +1010,11 @@ test('indicator-preview uses the bound sample calendar through the normal chart'
         forged.scope.idempotency_key = randomUUID();
         forged.scope.target.snapshot.content_hash = 'f'.repeat(64);
         forged.intent.arguments.snapshot.content_hash = 'f'.repeat(64);
-        const denied = await (await post(server, forged)).json();
-        expect(denied.result?.outcome).toMatchObject({ state: 'failed', error: { code: 'SNAPSHOT_UNAVAILABLE' } });
+        const denied = await post(server, forged);
+        const forgedReply = await denied.json();
+        observation.forged = { request_id: forged.request_id, http: denied.status, reply: forgedReply };
+        expect(forgedReply.result?.outcome).toMatchObject({ state: 'failed', error: { code: 'SNAPSHOT_UNAVAILABLE' } });
         await expect(indicator.getByRole('table', { name: 'Indicator preview values' })).toContainText('3500.5');
-
 
         await control(page, 'Data sources').click();
         await sampleStep(page, server, testInfo, 'read gapped January 3 sample',
@@ -983,28 +1027,254 @@ test('indicator-preview uses the bound sample calendar through the normal chart'
         }
         // Jan 3 has the same observed bars; switching the revision removes the
         // old result even though the chart looks identical in this UTC slice.
-        await expect(indicator.getByText(/Preview layers/)).toHaveCount(0);
-        const gapped = await run();
+        await expect(ready).toHaveCount(0);
+        const { terminal: gapped } = await run('gapped');
         expect(gapped.source_snapshot.dataset_revision).toMatch(/:gapped$/);
         expect(gapped.calendar_hash).toBe(normal.calendar_hash);
         expect(gapped.event.snapshot.content_hash).not.toBe(normal.event.snapshot.content_hash);
         expect(gapped.event.artifact.result.series[0].points).toEqual([{ time_ms: afterClosure, value: null }]);
         await expect(indicator.getByText(/expected market buckets are missing/)).toBeVisible();
         await expect(indicator.getByText(/no verified session schedule/)).toHaveCount(0);
-        observation.push(gapped);
-
         await control(page, 'Data sources').click();
         await sources.getByRole('button', { name: 'Leave sample' }).click();
         await expect(plot.getByRole('region', { name: 'Indicator preview' })).toHaveCount(0);
-        await expect.poll(async () => (await (await post(server, {
-          type: 'indicator_preview_status', request_id: randomUUID(), task_id: gapped.task_id,
-        })).json()).error?.code).toBe('STALE_CONTEXT');
+        await expect.poll(async () => {
+          const request = { type: 'indicator_preview_status', request_id: randomUUID(), task_id: gapped.task_id };
+          const response = await post(server, request);
+          const reply = await response.json();
+          observation.obsolete.push({ request, http: response.status, reply });
+          return reply.error?.code;
+        }).toBe('STALE_CONTEXT');
+        const cancelledTaskIds = () => requests.attempts.filter(entry => entry.operation === 'task.cancel'
+          && entry.http === 200 && entry.reply?.result?.outcome?.status === 'completed').map(entry => entry.reply.result.task_id);
+        await expect.poll(cancelledTaskIds).toEqual([normal.task_id, gapped.task_id]);
       }, [endpoint, '/__scopehub/operation'], { traceSample: true });
-    }, { historyTrace: true, historyFault: true });
-    await testInfo.attach('sample-indicator-calendar', { body: JSON.stringify(observation), contentType: 'application/json' });
+    }, { historyTrace: true, historyFault: true, indicatorProbe: { journal, mode: 'observe' } });
+  } finally {
+    try {
+      await profile.close();
+      observation.cleanup.profile_removed = await stat(profile.root).then(() => false, error => {
+        if (error.code === 'ENOENT') return true;
+        throw error;
+      });
+      observation.cleanup.listener_released = await portAvailable(port);
+      expect(observation.cleanup).toEqual({ profile_removed: true, listener_released: true });
+    } finally {
+      await requests?.settle();
+      await testInfo.attach('sample-indicator-calendar', {
+        body: JSON.stringify({ ...observation, attempts: requests?.attempts ?? [] }), contentType: 'application/json',
+      });
+      const native = await readFile(journal).catch(error => {
+        if (error.code === 'ENOENT') return undefined;
+        throw error;
+      });
+      if (native) await testInfo.attach('sample-indicator-calendar native journal', {
+        body: native, contentType: 'application/x-ndjson',
+      });
+    }
+  }
+});
+
+test('offline sample indicator binds recovered result provenance to the frozen chart', async ({ browser }, testInfo) => {
+  const cases = [
+    { source: 'normal', substitution: 'own' },
+    { source: 'gapped', substitution: 'own' },
+    { source: 'gapped', substitution: 'cross-source' },
+    { source: 'gapped', substitution: 'dataset_revision' },
+    { source: 'gapped', substitution: 'dataset_id' },
+    { source: 'normal', substitution: 'cross-source' },
+  ];
+  const journal = testInfo.outputPath('sample-indicator-provenance.native.jsonl');
+  const port = await freePort();
+  const profile = await makeProfile();
+  const trials = [];
+  const donorBySource = new Map();
+  const day = Date.UTC(2024, 0, 3);
+  const time = Date.UTC(2024, 0, 3, 1);
+  let observer;
+  let servicePid;
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      servicePid = server.pid;
+      await inFreshBrowser(browser, server, async page => {
+        await sampleStep(page, server, testInfo, 'open sample for provenance controls', () => sampleButton(page).click());
+        const sources = page.getByRole('complementary', { name: 'Data sources' });
+        const showSources = () => control(page, 'Data sources').click();
+        const hideSources = () => sources.getByRole('button', { name: 'Close panel' }).click();
+        const sourceHistory = source => {
+          const call = sampleHistoryCall();
+          return { ...call, payload: { ...call.payload, from_ms: day, to_ms: Date.UTC(2024, 0, 4),
+            expected_revision: `scopehub-synthetic-v1:20241013:${source}` } };
+        };
+        await showSources();
+        const dated = await sampleStep(page, server, testInfo, 'freeze the January 3 normal chart',
+          () => sources.getByLabel('Sample date (UTC)').fill('2024-01-03'),
+          { catalog: false, historyCall: sourceHistory('normal'), bars: 20 });
+        let selectedSource = 'normal';
+        let frozen = (await dated.existingResponse().json()).result.snapshot;
+        await hideSources();
+        const plot = page.getByRole('region', { name: 'Price chart' });
+        const history = plot.locator(`.history[data-instrument="${future}"][data-timeframe="1m"]`);
+        const preview = plot.getByRole('region', { name: 'Indicator preview' });
+        const run = preview.getByRole('button', { name: 'Run preview' });
+        const period = preview.getByLabel('Rolling period');
+        const reset = async () => {
+          await period.fill('3');
+          await period.fill('2');
+        };
+        const ready = preview.getByText(/Preview layers/);
+        const failure = preview.getByRole('alert');
+        const values = preview.getByRole('table', { name: 'Indicator preview values' });
+        const chartState = async () => ({
+          connection: await page.locator('.connection').innerText(),
+          history: await history.evaluate(node => ({ ...node.dataset })),
+          canvas_visible: await history.locator('canvas').first().isVisible(),
+          history_status: await plot.locator('.history-status').innerText(),
+        });
+        observer = observeIndicatorRequests(page, endpoint);
+        for (const { source, substitution } of cases) {
+          if (source !== selectedSource) {
+            await showSources();
+            const selected = await sampleStep(page, server, testInfo, `freeze the January 3 ${source} chart`,
+              () => sources.getByLabel('Sample revision').selectOption(source),
+              { catalog: false, historyCall: sourceHistory(source), bars: 20 });
+            frozen = (await selected.existingResponse().json()).result.snapshot;
+            selectedSource = source;
+            await hideSources();
+          }
+          if (await plot.locator('.chart-indicators').getAttribute('open') === null) {
+            await plot.getByText('Indicators', { exact: true }).click();
+          }
+          const first = observer.attempts.length;
+          const trial = { source, substitution, frozen, chart_before: await chartState() };
+          trials.push(trial);
+          await preview.getByLabel('First visible bar').selectOption(String(time));
+          await preview.getByLabel('Last visible bar').selectOption(String(time));
+          await expect(ready.or(failure)).toHaveCount(0);
+          await run.click();
+          await expect(ready.or(failure)).toBeVisible({ timeout: 17_000 });
+          await observer.settle();
+          const visible = await ready.isVisible();
+          trial.observed = visible ? 'ready' : 'failed';
+          const attempts = () => observer.attempts.slice(first);
+          const statuses = attempts().filter(row => row.operation === 'indicator_preview_status');
+          const request = statuses.at(-1);
+          const delivered = request?.reply?.result;
+          const taskId = request?.task_id;
+          trial.task_id = taskId;
+          const native = (await readIndicatorJournal(journal)).filter(row => row.task_id === taskId);
+          const stopped = native.filter(row => row.stage === 'status-lost');
+          const lostIds = [...new Set(stopped.map(row => row.request_id))];
+          expect(lostIds).toHaveLength(1);
+          expect(stopped.every(row => row.headers_sent === false)).toBe(true);
+          expect(statuses.filter(row => row.reply?.result?.status !== 'running').map(row => row.request_id))
+            .toEqual([...lostIds, request.request_id]);
+          expect(statuses.find(row => row.request_id === lostIds[0])).toMatchObject({ failure: 'net::ERR_EMPTY_RESPONSE' });
+          expect(statuses.every(row => row.task_id === taskId)).toBe(true);
+          const drafts = attempts().filter(row => row.operation === 'indicator.createDraft' && row.http === 200);
+          const submissions = attempts().filter(row => row.operation === 'indicator.runPreview' && row.http === 200);
+          expect(drafts).toHaveLength(1);
+          expect(submissions).toHaveLength(1);
+          expect(submissions[0].reply.result.outcome.result.task_id).toBe(taskId);
+          expect(submissions[0].payload.intent.arguments).toMatchObject({ snapshot: frozen,
+            draft_id: drafts[0].reply.result.outcome.result.draft_id });
+          const witness = native.find(row => row.stage === 'pipe-reply' && row.request_id === request.request_id).output.result;
+          expect(witness).toMatchObject({ status: 'ready', task_id: taskId, source_snapshot: frozen, event: { task_id: taskId } });
+          const artifact = witness.event.artifact;
+          const { dataset_id, dataset_revision } = frozen;
+          expect(artifact.result.provenance).toMatchObject({ dataset_id, dataset_revision });
+          const mean = source === 'normal' ? 3500.5 : null;
+          expect(artifact.result.series.find(series => series.id === 'mean').points).toEqual([{ time_ms: time, value: mean }]);
+          const substituted = native.filter(row => row.stage === 'status-substituted');
+          if (substitution === 'own') {
+            expect(substituted).toHaveLength(0);
+            expect(delivered).toEqual(witness);
+            donorBySource.set(source, { taskId, artifact });
+          } else {
+            const donor = donorBySource.get(source === 'normal' ? 'gapped' : 'normal');
+            expect(substituted).toEqual([expect.objectContaining({ request_id: request.request_id,
+              donor_task_id: donor.taskId, body: request.reply })]);
+            const replacement = delivered.event.artifact;
+            expect(delivered).toEqual({ ...witness, event: { ...witness.event, artifact: replacement } });
+            if (substitution === 'cross-source') {
+              expect(replacement).toEqual(donor.artifact);
+              expect(replacement.result.provenance.dataset_id).not.toBe(dataset_id);
+              expect(replacement.result.provenance.dataset_revision).not.toBe(dataset_revision);
+            } else {
+              const result = { ...artifact.result, provenance: { ...artifact.result.provenance,
+                [substitution]: donor.artifact.result.provenance[substitution] } };
+              expect(result.provenance[substitution]).not.toBe(artifact.result.provenance[substitution]);
+              expect(replacement).toEqual({ ...artifact, result,
+                result_hash: createHash('sha256').update(JSON.stringify(result)).digest('hex') });
+            }
+          }
+
+          if (visible) {
+            await preview.getByText('Preview provenance and values').click();
+            trial.visible_mean = await values.getByRole('row').last().getByRole('cell').first().innerText();
+          } else {
+            trial.alert = await failure.innerText();
+            await expect(values).toHaveCount(0);
+          }
+          trial.chart_after = await chartState();
+          expect(trial.chart_after).toMatchObject({
+            canvas_visible: true, history: { bars: '20' },
+            history_status: source === 'normal' ? 'History ready' : 'Known gaps',
+          });
+          expect(trial.chart_after).toEqual(trial.chart_before);
+          await showSources();
+          await expect(sources.getByText(dataset_revision, { exact: true })).toBeVisible();
+          await hideSources();
+
+          const cancelWrites = () => readIndicatorJournal(journal).then(rows => rows.filter(row => row.task_id === taskId
+            && row.stage === 'pipe-write' && row.operation === 'task.cancel'));
+          trial.cancel_before_editor_change = (await cancelWrites()).length;
+          if (visible) {
+            expect(trial.cancel_before_editor_change).toBe(0);
+            // Release the displayed control before the next trial. This also
+            // keeps later trials observable on a source that accepts bad data.
+            await reset();
+          }
+          await expect.poll(cancelWrites).toHaveLength(1);
+          trial.cleanup = await readIndicatorAfterAdmission(server, {
+            type: 'indicator_preview_status', request_id: randomUUID(), task_id: taskId,
+          });
+          expect(trial.cleanup).toMatchObject({ http: 200, body: { ok: false, error: { code: 'STALE_CONTEXT' } } });
+          const cancelled = await cancelWrites();
+          expect(attempts().filter(row => row.operation === 'task.cancel').map(row => row.request_id))
+            .toEqual(cancelled.map(row => row.request_id));
+          expect(cancelled).toHaveLength(1);
+          expect.soft(trial.observed, `${source} with ${substitution} provenance`).toBe(substitution === 'own' ? 'ready' : 'failed');
+          if (substitution === 'own') expect.soft(trial.visible_mean).toBe(mean === null ? 'Unknown' : String(mean));
+          else expect.soft(trial.alert).toBe('The indicator preview could not be completed.');
+          if (!visible) await reset();
+        }
+      }, [endpoint, operationPath], { traceSample: true });
+    }, { historyTrace: true, indicatorProbe: { journal, mode: 'provenance', provenanceCases: cases } });
   } finally {
     await profile.close();
+    await observer?.settle();
+    const native = await readIndicatorJournal(journal);
+    const cleanup = { writer: native.find(row => row.stage === 'writer-close'),
+      service_exited: servicePid !== undefined && !alive(servicePid), port_released: await portAvailable(port),
+      profile_removed: await stat(profile.root).then(() => false, error => {
+        if (error.code === 'ENOENT') return true;
+        throw error;
+      }),
+    };
+    await testInfo.attach('Sample indicator provenance browser journal', {
+      body: JSON.stringify({ trials, attempts: observer?.attempts, cleanup }), contentType: 'application/json',
+    });
+    if (native.length) await testInfo.attach('Sample indicator provenance native journal', {
+      path: journal, contentType: 'application/x-ndjson',
+    });
+    expect(cleanup).toMatchObject({ writer: { exit: 0, signal: null },
+      service_exited: true, port_released: true, profile_removed: true });
+    expect(alive(cleanup.writer.pid)).toBe(false);
   }
+  const finalCancels = (await readIndicatorJournal(journal))
+    .filter(row => row.stage === 'pipe-write' && row.operation === 'task.cancel');
+  expect(finalCancels.map(row => row.task_id)).toEqual(trials.map(trial => trial.task_id));
 });
 
 test('workspace delivers pre-admission BUSY after a complete indicator draft request', async () => {
@@ -1094,6 +1364,317 @@ test('workspace delivers pre-admission BUSY after a complete indicator draft req
     await profile.close();
   }
 });
+
+for (const [label, mode, losses, terminal, refuse, failureText = 'The indicator preview could not be completed.'] of [
+  ['delivers a held ready reply', 'hold-ready', 0, 'ready'],
+  ['recovers one lost logical delivery', 'lose-once', 1, 'ready'],
+  ['survives a true pre-admission refusal during recovery', 'lose-once', 1, 'ready', true],
+  ['stops after a second lost logical delivery', 'lose-twice', 2, 'failed'],
+  ['stops on a definitive cancelled status', 'cancelled', 1, 'cancelled'],
+  ['preserves a definitive terminal error', 'failed', 1, 'failed', false,
+    'The indicator exceeded its limits. Try a smaller interval.'],
+  ['stops at the original polling deadline', 'deadline', 1, 'failed'],
+  ['cancels once while a recovery read is in flight', 'user-cancel', 1, 'cancelled'],
+  ['rejects an unknown recovery status despite a ready artifact', 'unknown-status', 1, 'failed'],
+  ['rejects a recovery terminal event for another task', 'wrong-terminal-task', 1, 'failed'],
+  ['rejects a recovery ready event for another task', 'wrong-ready-task', 1, 'failed'],
+  ['rejects an unknown outcome for the recovered task', 'unknown-terminal-outcome', 1, 'failed'],
+  ['rejects a recovered ready result with a terminal event name', 'wrong-ready-event', 1, 'failed'],
+  ['rejects a recovered terminal result with a ready event name', 'wrong-terminal-event', 1, 'failed'],
+  ['rejects a recovered ready event with the wrong protocol version', 'wrong-ready-version', 1, 'failed'],
+  ['rejects a recovered terminal event with the wrong message type', 'wrong-terminal-type', 1, 'failed'],
+  ['rejects a malformed recovered terminal error', 'malformed-terminal-error', 1, 'failed'],
+  ['rejects a recovered running result carrying a ready event', 'running-with-event', 1, 'failed'],
+  ['cancels once when an admission reply arrives after user cancel', 'late-admission', 0, 'cancelled'],
+]) {
+  test(`offline sample indicator ${label}`, async ({ browser }, testInfo) => {
+    const journal = testInfo.outputPath('sample-indicator-native.jsonl');
+    const port = await freePort();
+    const profile = await makeProfile();
+    const evidence = { mode, terminal, refuse };
+    let observer;
+    let servicePid;
+    try {
+      await inService(port, profile, 'ubuntu-workspace', async server => {
+        servicePid = server.pid;
+        await inFreshBrowser(browser, server, async page => {
+          const exchange = await sampleStep(page, server, testInfo, 'sample status delivery', () => sampleButton(page).click());
+          const selected = (await exchange.existingResponse().json()).result;
+          evidence.snapshot = selected.snapshot;
+          const plot = page.getByRole('region', { name: 'Price chart' });
+          const chart = page.locator(`.history[data-instrument="${future}"][data-timeframe="1m"]`);
+          await plot.getByText('Indicators', { exact: true }).click();
+          const preview = plot.getByRole('region', { name: 'Indicator preview' });
+          const time = Date.UTC(2024, 0, 3, 1);
+          const previous = Date.UTC(2024, 0, 2, 13, 9);
+          await preview.getByLabel('First visible bar').selectOption(String(time));
+          await preview.getByLabel('Last visible bar').selectOption(String(time));
+          await expect(preview.getByLabel('Rolling period')).toHaveValue('2');
+          observer = observeIndicatorRequests(page, endpoint);
+          const run = preview.getByRole('button', { name: 'Run preview' });
+          const layers = preview.getByText(/Preview layers/);
+          const alert = preview.getByRole('alert');
+          const cancelled = preview.getByText('Indicator preview cancelled.', { exact: true });
+          if (refuse) await runWithSampleStatusRefusal(server, run, observer, journal);
+          else await run.click();
+
+          if (mode === 'user-cancel' || mode === 'late-admission') {
+            evidence.user_cancel = await cancelHeldSamplePreview({
+              mode, server, journal, observer, preview, cancelled, run,
+            });
+          }
+          await expect(layers.or(alert).or(cancelled)).toBeVisible({ timeout: 17_000 });
+          await observer.settle();
+          const previewLayers = await layers.isVisible();
+          const cancellationVisible = await cancelled.isVisible();
+          const observed = previewLayers ? 'ready' : cancellationVisible ? 'cancelled' : 'failed';
+          evidence.observed = {
+            terminal: observed, message: await alert.allTextContents(), at_ms: Date.now(),
+            preview_layers: previewLayers, cancellation_visible: cancellationVisible,
+            history_bars: await chart.getAttribute('data-bars'),
+          };
+          await expect(chart).toHaveAttribute('data-bars', '40');
+          await expect(chart.locator('canvas').first()).toBeVisible();
+          await expect(plot.getByText('History ready', { exact: true })).toBeVisible();
+
+          const native = await readIndicatorJournal(journal);
+          const dispatched = operation => native.filter(row => row.stage === 'pipe-write' && row.operation === operation);
+          const drafts = dispatched('indicator.createDraft');
+          const runs = dispatched('indicator.runPreview');
+          expect(drafts).toHaveLength(1);
+          expect(runs).toHaveLength(1);
+          const admission = native.find(row => row.stage === 'pipe-reply' && row.request_id === runs[0].request_id);
+          expect(admission?.output.result.outcome.state).toBe('committed');
+          const taskId = admission.output.result.outcome.result.task_id;
+          expect(runs[0].input.command.intent.arguments.snapshot).toEqual(selected.snapshot);
+          expect(runs[0].input.history.bars.find(bar => bar.time_ms === previous)?.close).toBe(3500.2);
+          expect(runs[0].input.history.bars.find(bar => bar.time_ms === time)?.close).toBe(3500.8);
+          const statuses = observer.attempts.filter(row => row.operation === 'indicator_preview_status');
+          expect(statuses.every(row => row.task_id === taskId)).toBe(true);
+          expect(new Set(statuses.map(row => row.request_id)).size).toBe(statuses.length);
+          const ready = native.filter(row => row.stage === 'pipe-reply'
+            && row.operation === 'indicator_preview_status' && row.output.result?.status === 'ready');
+          const witness = ready[0]?.output.result;
+          if (mode === 'late-admission') {
+            expect(statuses).toHaveLength(0);
+            expect(dispatched('indicator_preview_status')).toHaveLength(0);
+            expect(evidence.user_cancel.held.task_id).toBe(taskId);
+            expect(native.find(row => row.stage === 'admission-released')?.request_id).toBe(runs[0].request_id);
+          } else {
+            expect(witness).toMatchObject({ task_id: taskId, source_snapshot: selected.snapshot, warmup_from_ms: previous,
+              event: { task_id: taskId, snapshot: { warmup_bars: 1 } } });
+            expect(witness.event.artifact.result.series.find(series => series.id === 'mean')?.points)
+              .toEqual([{ time_ms: time, value: 3500.5 }]);
+            for (const row of ready) expect(row.output.result).toEqual(witness);
+          }
+
+          const refused = statuses.filter(row => row.http === 429);
+          if (refuse) expect(refused.length).toBeGreaterThan(0);
+          else expect(refused).toHaveLength(0);
+          for (const row of refused) {
+            expect(row.reply).toEqual(busy);
+            expect(dispatched('indicator_preview_status').some(dispatch => dispatch.request_id === row.request_id)).toBe(false);
+          }
+          const disconnected = native.filter(row => row.stage === 'status-lost');
+          const lostIds = [...new Set(disconnected.map(row => row.request_id))];
+          if (refuse) expect(statuses.indexOf(refused[0])).toBeGreaterThan(statuses.findIndex(row => row.request_id === lostIds[0]));
+          for (const id of lostIds) {
+            const failed = statuses.filter(attempt => attempt.request_id === id);
+            expect(failed).toHaveLength(1);
+            expect(failed[0].failure).toBe('net::ERR_EMPTY_RESPONSE');
+            expect(failed[0].http).toBeUndefined();
+            const deliveries = disconnected.filter(row => row.request_id === id);
+            const socketCount = deliveries.length;
+            if (id === lostIds[0]) expect(socketCount).toBe(2);
+            else expect(socketCount).toBeLessThanOrEqual(2);
+            for (const row of deliveries) expect(row.hold_ms).toBeGreaterThanOrEqual(340);
+            expect(ready.filter(row => row.request_id === id)).toHaveLength(socketCount);
+            const closed = native.filter(row => row.stage === 'http-closed' && row.request_id === id);
+            expect(closed).toHaveLength(socketCount);
+            for (const row of closed) expect(row.headers_sent).toBe(false);
+          }
+          if (mode === 'hold-ready') {
+            const releases = native.filter(row => row.stage === 'status-released');
+            expect(releases).toHaveLength(1);
+            expect(releases[0]).toMatchObject({ request_id: ready[0].request_id, headers_sent: false });
+          }
+
+          const cancels = () => readIndicatorJournal(journal).then(rows => rows.filter(row => row.stage === 'pipe-reply'
+            && row.operation === 'task.cancel'));
+          if (observed === 'ready') {
+            expect(await cancels()).toHaveLength(0);
+            await expect(preview.getByText("The source's scheduled closures add no indicator buckets.")).toBeVisible();
+            await preview.getByText('Preview provenance and values').click();
+            const values = preview.getByRole('table', { name: 'Indicator preview values' });
+            await expect(values).toContainText('3500.5');
+            evidence.observed.preview_values = await values.innerText();
+            await leaveSample(page);
+            await expect(preview).toHaveCount(0);
+          } else {
+            await expect(layers).toHaveCount(0);
+          }
+          await expect.poll(() => cancels().then(rows => rows.length)).toBeGreaterThan(0);
+          evidence.cleanup = await readIndicatorAfterAdmission(server, {
+            type: 'indicator_preview_status', request_id: randomUUID(), task_id: taskId,
+          });
+          const cleanupStatus = mode === 'late-admission' ? 'cancelled' : 'completed';
+          if (mode === 'late-admission') {
+            expect(evidence.cleanup).toMatchObject({ http: 200, body: { ok: true, result: { status: 'terminal', task_id: taskId,
+              event: { task_id: taskId, outcome: { status: 'cancelled' } } } } });
+          } else {
+            expect(evidence.cleanup).toMatchObject({ http: 200, body: { ok: false, error: { code: 'STALE_CONTEXT' } } });
+          }
+          const cleanup = await cancels();
+          const cancelAttempts = observer.attempts.filter(row => row.operation === 'task.cancel');
+          evidence.cancel_request_ids = [...new Set(cancelAttempts.map(row => row.request_id))];
+          expect.soft(evidence.cancel_request_ids, 'Browser cleanup request IDs').toEqual(cleanup.map(row => row.request_id));
+          expect.soft(evidence.cancel_request_ids, 'Exactly one cleanup of the admitted task').toHaveLength(1);
+          expect(cleanup[0]).toMatchObject({ task_id: taskId, output: { result: { task_id: taskId,
+            outcome: { status: cleanupStatus } } } });
+          expect(cleanup.every(row => row.task_id === taskId)).toBe(true);
+          expect(observer.attempts.filter(row => row.operation === 'indicator_preview_status').map(row => row.request_id))
+            .toEqual(statuses.map(row => row.request_id));
+          expect.soft(cleanup, 'Native cleanup dispatch count').toHaveLength(1);
+
+          expect.soft(observed, 'Terminal UI after the admitted status transaction').toBe(terminal);
+          expect(lostIds).toHaveLength(losses);
+          const substitutions = native.filter(row => row.stage === 'status-substituted');
+          const replaced = substitutions[0];
+          const meaningful = statuses.filter(row => row.http !== 429
+            && (row.reply?.result?.status !== 'running' || row.request_id === replaced?.request_id));
+          const last = statuses.at(-1);
+          const delivered = ['lose-twice', 'late-admission'].includes(mode) ? [] : [last.request_id];
+          expect.soft(meaningful.map(row => row.request_id), 'Logical status requests after admission').toEqual([
+            ...lostIds, ...delivered,
+          ]);
+          expect.soft(ready.filter(row => !lostIds.includes(row.request_id)).map(row => row.request_id), 'Native ready reads after delivery loss')
+            .toEqual(delivered);
+          if (terminal === 'ready') expect(last.reply).toEqual({ ok: true, result: witness });
+          if (['cancelled', 'failed', 'wrong-terminal-task', 'unknown-status', 'wrong-ready-task', 'unknown-terminal-outcome',
+            'wrong-ready-event', 'wrong-terminal-event', 'wrong-ready-version', 'wrong-terminal-type', 'running-with-event',
+            'malformed-terminal-error'].includes(mode)) {
+            expect(substitutions).toHaveLength(1);
+            const received = statuses.find(row => row.request_id === replaced.request_id);
+            verifySampleStatusSubstitution({ mode, received, taskId, witness, substitution: replaced });
+          }
+          if (terminal === 'failed') {
+            expect.soft(evidence.observed.message).toEqual([failureText]);
+          }
+          const runFinished = native.find(row => row.stage === 'http-finished' && row.request_id === runs[0].request_id);
+          if (mode !== 'late-admission') evidence.terminal_elapsed_ms = evidence.observed.at_ms - runFinished.at_ms;
+          if (mode === 'deadline' || mode === 'user-cancel') {
+            const closed = await readIndicatorJournal(journal).then(rows => rows
+              .find(row => row.stage === 'http-closed' && row.request_id === last.request_id));
+            expect(last.failure).toBe('net::ERR_ABORTED');
+            expect(closed).toMatchObject({ headers_sent: false });
+            evidence.read_closed_elapsed_ms = closed.at_ms - runFinished.at_ms;
+          }
+          if (mode === 'user-cancel') expect(last.request_id).toBe(evidence.user_cancel.held.request_id);
+          if (mode === 'deadline') {
+            expect(evidence.read_closed_elapsed_ms).toBeGreaterThanOrEqual(14_900);
+            expect(evidence.read_closed_elapsed_ms).toBeLessThan(16_000);
+          }
+        }, [endpoint, operationPath], { traceSample: true });
+      }, { historyTrace: true, snapshotGate: refuse, indicatorProbe: { journal, mode, refuse } });
+    } finally {
+      try {
+        await profile.close();
+      } finally {
+        await observer?.settle();
+        const native = await readIndicatorJournal(journal);
+        evidence.attempts = observer?.attempts;
+        evidence.cleanup_processes = {
+          writer: native.find(row => row.stage === 'writer-close'),
+          service_exited: servicePid !== undefined && !alive(servicePid), port_released: await portAvailable(port),
+          profile_removed: await stat(profile.root).then(() => false, error => error.code === 'ENOENT'),
+        };
+        await testInfo.attach('Sample indicator browser journal', { body: JSON.stringify(evidence), contentType: 'application/json' });
+        if (native.length) await testInfo.attach('Sample indicator native journal', { path: journal, contentType: 'application/x-ndjson' });
+      }
+    }
+    expect(evidence.cleanup_processes).toMatchObject({ writer: { exit: 0, signal: null },
+      service_exited: true, port_released: true, profile_removed: true });
+    expect(alive(evidence.cleanup_processes.writer.pid)).toBe(false);
+  });
+}
+
+async function cancelHeldSamplePreview({ mode, server, journal, observer, preview, cancelled, run }) {
+  const lateAdmission = mode === 'late-admission';
+  const findHeld = async () => (await readIndicatorJournal(journal)).find(row => lateAdmission
+    ? row.stage === 'admission-held' : row.stage === 'status-held' && row.until === 'user-cancel');
+  await expect.poll(findHeld, { message: 'Rust replied while the browser request remains in flight' }).toMatchObject({
+    request_id: expect.any(String), task_id: expect.any(String),
+  });
+  const held = await findHeld();
+  const browserRequest = observer.attempts.find(row => row.request_id === held.request_id);
+  expect(browserRequest).toBeDefined();
+  expect(browserRequest.http).toBeUndefined();
+  expect(browserRequest.failure).toBeUndefined();
+  const clicked_at_ms = Date.now();
+  await preview.getByRole('button', { name: 'Cancel preview' }).click();
+  await expect(cancelled).toBeVisible();
+  const click_to_cancelled_ms = Date.now() - clicked_at_ms;
+  if (lateAdmission) {
+    expect(browserRequest.http).toBeUndefined();
+    expect(browserRequest.failure).toBeUndefined();
+    expect(observer.attempts.filter(row => row.operation === 'task.cancel')).toHaveLength(0);
+    await server.releaseIndicatorAdmission();
+  }
+  await expect(run).toBeEnabled();
+  return { held, clicked_at_ms, click_to_cancelled_ms };
+}
+
+function verifySampleStatusSubstitution({ mode, received, taskId, witness, substitution }) {
+  expect(received?.reply).toEqual(substitution.body);
+  const result = received.reply.result;
+  expect(result.task_id).toBe(taskId);
+  if (mode === 'unknown-status') expect(result).toEqual({ ...witness, status: 'unavailable' });
+  else if (mode === 'running-with-event') expect(result).toEqual({ status: 'running', task_id: taskId, event: witness.event });
+  else if (mode === 'wrong-ready-task') {
+    expect(result.event.task_id).not.toBe(taskId);
+    expect(result).toEqual({ ...witness, event: { ...witness.event, task_id: result.event.task_id } });
+  } else if (mode === 'wrong-ready-event') {
+    expect(result).toEqual({ ...witness, event: { ...witness.event, event: 'task.terminal' } });
+  } else if (mode === 'wrong-ready-version') {
+    expect(result).toEqual({ ...witness, event: { ...witness.event, protocol_version: '1.0' } });
+  } else {
+    if (mode === 'wrong-terminal-task') expect(result.event.task_id).not.toBe(taskId);
+    else expect(result.event.task_id).toBe(taskId);
+    const outcome = ['failed', 'malformed-terminal-error'].includes(mode) ? { status: 'failed', error: {
+      code: 'RESOURCE_LIMIT', message: 'The indicator exceeded its limits.',
+      retryable: mode === 'malformed-terminal-error' ? 'false' : false,
+    } } : { status: mode === 'unknown-terminal-outcome' ? 'unavailable' : 'cancelled' };
+    expect(result).toEqual({ status: 'terminal', task_id: taskId, event: {
+      protocol_version: '1.1', type: mode === 'wrong-terminal-type' ? 'request' : 'event',
+      event: mode === 'wrong-terminal-event' ? 'indicator.preview_ready' : 'task.terminal',
+      stream_id: witness.event.stream_id, sequence: witness.event.sequence + 1, task_id: result.event.task_id,
+      message_id: expect.any(String), timestamp_ms: expect.any(Number), committed_effects: [], outcome,
+    } });
+  }
+}
+
+async function runWithSampleStatusRefusal(server, run, observer, journal) {
+  const holder = server.tagSnapshot();
+  let snapshotReply;
+  try {
+    await run.click();
+    // Occupy admission while the second socket already holds its genuine
+    // ready reply. The browser's first recovery request sees a real refusal.
+    await expect.poll(async () => (await readIndicatorJournal(journal))
+      .filter(row => row.stage === 'status-held').length, { intervals: [10, 20, 25] }).toBe(2);
+    snapshotReply = post(server, snapshot, holder.headers, AbortSignal.timeout(5_000));
+    void snapshotReply.catch(() => {});
+    await holder.wait('written');
+    await expect.poll(() => observer.attempts.some(row => row.operation === 'indicator_preview_status'
+      && row.http === 429 && isDeepStrictEqual(row.reply, busy))).toBe(true);
+    holder.release();
+    await holder.wait('drained');
+    expect(await responseStatus(await snapshotReply)).toBe(200);
+  } finally {
+    holder.release();
+    if (snapshotReply) await Promise.allSettled([snapshotReply.then(responseStatus)]);
+  }
+}
 
 test('indicator-preview shows zero volatility for equal closes in a full or cropped window', async ({ browser }, testInfo) => {
   await observeFrozenIndicatorPreview(browser, testInfo, [
@@ -5935,7 +6516,9 @@ async function portAvailable(port) {
   }
 }
 
-function spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault, snapshotGate, indicatorGate, entry = vite, traceStartup }) {
+function spawnService(port, profile, mode, {
+  terminalSignal, historyTrace, historyFault, snapshotGate, indicatorGate, indicatorProbe, entry = vite, traceStartup,
+}) {
   // Vite publishes its dependency cache by renaming directories. Reuse warm
   // caches across launches, but give every live server its own write path.
   let slot = 0;
@@ -5944,7 +6527,8 @@ function spawnService(port, profile, mode, { terminalSignal, historyTrace, histo
   const args = terminalSignal
     ? [viteCli, '--mode', mode, '--host', '127.0.0.1', '--port', String(port), '--strictPort']
     : ['--input-type=module', '--eval', service, entry, mode, String(port), cacheDir,
-      historyFault ? '1' : '', snapshotGate ? workspaceBridge : '', traceStartup ? '1' : '', indicatorGate ? indicatorCarrier : ''];
+      historyFault ? '1' : '', workspaceBridge, traceStartup ? '1' : '', snapshotGate ? '1' : '',
+      indicatorGate ? indicatorCarrier : '', indicatorProbe ? JSON.stringify(indicatorProbe) : ''];
   const child = spawn(process.execPath, args, {
     cwd: ui,
     env: {
@@ -5974,12 +6558,12 @@ async function reapService(child, done, onForcedKill) {
 
 async function inService(port, profile, mode, use, {
   expectHandoff = true, terminalSignal, historyTrace = false, historyFault = false,
-  snapshotGate = false, indicatorGate = false, entry, holdTimeoutMs,
+  snapshotGate = false, indicatorGate = false, indicatorProbe, entry, holdTimeoutMs,
 } = {}) {
   const url = 'http://127.0.0.1:' + port;
   const startedAt = performance.now();
   const child = spawnService(port, profile, mode, {
-    terminalSignal, historyTrace, historyFault, snapshotGate, indicatorGate, entry, traceStartup: true,
+    terminalSignal, historyTrace, historyFault, snapshotGate, indicatorGate, indicatorProbe, entry, traceStartup: true,
   });
   const carrierGate = indicatorGate ? observeIndicatorGate(child) : undefined;
   const startup = observeServiceStartup(child, { startedAt, mode, port });
@@ -6022,7 +6606,9 @@ async function inService(port, profile, mode, use, {
       ]);
     },
     ...(snapshotGate && { tagSnapshot: observeSnapshotGate(child) }),
+    ...(indicatorProbe && { releaseIndicatorAdmission: () => send('release-indicator-admission') }),
     ...(carrierGate && { carrierGate, stop: () => send('close') }),
+    ...(indicatorProbe && { releaseIndicatorAdmission: () => send('release-indicator-admission') }),
     cutHistoryResponse: () => send('cut-history'),
     disconnectOwner: writer => {
       expect(child.connected).toBe(true);

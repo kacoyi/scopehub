@@ -1,0 +1,122 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M3-008",
+  "task_definition_sha256": "03b978d8372d061dee98466e68ace95ab36ab8c00aeecbeb76fc1cce16d32f60",
+  "run_id": "20261127T094521.575049Z-be485dcd",
+  "recorded_at": "2026-11-27T09:58:32.162429+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "34d9ead1fbc5e1ffec5c2aa102bbd54c29e275e2ce9172b7a2aa800b307cc8f9",
+    "file_count": 641,
+    "git_head": "bd6ba42d4bd8e24174a8e04f81815280f8cd6d14",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "283b1f08645fc1666cd5e22d87c1a60dd6833c5b19686b429b1713fff24ade88",
+  "environment": {
+    "system": "Windows",
+    "release": "2025Server",
+    "machine": "AMD64",
+    "python": "3.12.10",
+    "python_executable": "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (6b2d39dcc 2026-11-17 x86_64-pc-windows-msvc)"
+    }
+  },
+  "checks": [
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "7b77952a8288457101e41e7894250871a4167bf2abb576ec72acdede5ba80aca"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "be9c02bc77fdd54f25fad2a16a1e271cdf95a4077b7edb7fb32360b4eaec9307"
+    },
+    {
+      "id": "indicator-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs",
+        "--grep",
+        "indicator-preview runs trusted Python once"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ddc56c0cc97497ce784ab0115167eec6cdbba3ed449bf8f0afffa9ce621ad736"
+    },
+    {
+      "id": "workspace-timeframe",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "34ac9fbc8042b60e0910a8fd3a873551074a01ef6d4e7ea35827988cf9659a6e"
+    },
+    {
+      "id": "desktop-localization",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/localization/desktop.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "4b7523c696f2581fd2e64e32772e298a3c4009cec2034f573dd69f4419126a77"
+    }
+  ],
+  "project_definition_sha256": "feac06f9bc820cf1c683186bb22359257ac73f35fddfee31a0cc0609e678eae1",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "272f14d51c9be38deae83d262b14e992c7fc30cc15ac50847dcb322a9cf845c3"
+  ],
+  "ci": {
+    "provider": "github-actions",
+    "repository": "kacoyi/scopehub",
+    "run_id": "45976117388",
+    "run_attempt": "1",
+    "event": "workflow_dispatch",
+    "head_sha": "bd6ba42d4bd8e24174a8e04f81815280f8cd6d14",
+    "checkout_sha": "bd6ba42d4bd8e24174a8e04f81815280f8cd6d14",
+    "run_url": "https://github.com/kacoyi/scopehub/actions/runs/45976117388"
+  }
+}

@@ -1,9 +1,10 @@
 import { formatNumber, message as uiMessage, plural, t, type Message } from './i18n';
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import isIndicatorPreviewStatus, { type ReadyPreviewStatus } from 'virtual:indicator-preview-status';
 import type {
   Bar, CancelTaskReply11, ConfirmationChallenge11, DeclarativeDraft11, FrozenSnapshot, IndicatorCreateDraftCommand11,
   IndicatorCreateDraftReply11, IndicatorRunPreviewCommand11, IndicatorRunPreviewReply11,
-  Metadata, MutationScope11, PreviewReady11, TaskTerminalEvent11, TrustedConfirmationDecision11,
+  Metadata, MutationScope11, TrustedConfirmationDecision11,
 } from '../../../../contracts/generated/protocol';
 import type { IndicatorChartLayer } from './chart-adapter/history';
 import { IndicatorAcceptance } from './indicator-acceptance';
@@ -11,13 +12,6 @@ import { IndicatorDiagnostics } from './indicator-diagnostics';
 import { IndicatorRegionValues } from './indicator-region-values';
 import { displayAccessDenied, type PublishedRevisionAccess } from './published-revision-access';
 import { exchangeWorkspace, IndicatorStatusDeliveryError, readIndicatorPreviewStatus, type LocalWorkspace } from './use-local-workspace';
-
-type Ready = {
-  status: 'ready'; task_id: string; event: PreviewReady11; source_snapshot: FrozenSnapshot;
-  resolved_parameters: Record<string, unknown>; warmup_from_ms: number | null; calendar_hash: string | null;
-};
-type Waiting = { status: 'running'; task_id: string };
-type Terminal = { status: 'terminal'; task_id: string; event: TaskTerminalEvent11 };
 
 type Field = 'close' | 'volume';
 const draftFor = (field: Field): DeclarativeDraft11 => ({
@@ -33,7 +27,6 @@ const draftFor = (field: Field): DeclarativeDraft11 => ({
   },
 });
 
-const validHash = (value: string) => /^[0-9a-f]{64}$/.test(value);
 const command = () => ({
   protocol_version: '1.1', type: 'request', message_id: crypto.randomUUID(),
   request_id: crypto.randomUUID(), timestamp_ms: Date.now(),
@@ -87,6 +80,14 @@ async function cancelTask(taskId: string) {
   if (reply.task_id !== taskId) throw new Error();
 }
 
+function cancelAttempt(attempt: PreviewAttempt | undefined) {
+  if (!attempt?.taskId) return;
+  // Invalidation and polling cleanup share ownership of the admitted task.
+  const taskId = attempt.taskId;
+  delete attempt.taskId;
+  void cancelTask(taskId).catch(() => {});
+}
+
 function describeError(error: unknown, mode: 'declarative' | 'python') {
   switch (code(error)) {
     case 'CANCELLED': return uiMessage('Indicator preview cancelled.');
@@ -120,10 +121,10 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
   const [first, setFirst] = useState(bars[0]?.time_ms ?? snapshot.from_ms);
   const [last, setLast] = useState(bars.at(-1)?.time_ms ?? snapshot.from_ms);
   const [running, setRunning] = useState(false);
-  const [result, setResult] = useState<Ready>();
+  const [result, setResult] = useState<ReadyPreviewStatus>();
   const [message, setMessage] = useState<{ text: Message; error?: boolean }>();
   const active = useRef<PreviewAttempt | undefined>(undefined);
-  const displayed = useRef<string | undefined>(undefined);
+  const displayed = useRef<PreviewAttempt | undefined>(undefined);
   const workspaceRevision = workspace.snapshot?.workspace.revision;
   const selectionRevision = workspace.snapshot?.selection_revision;
   const revoked = access?.withheldStatus('csv', snapshot.dataset_id) === 'revoked';
@@ -131,9 +132,9 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
   const invalidateJobs = useCallback(() => {
     const attempt = active.current;
     attempt?.poll.abort();
-    const obsolete = new Set([attempt?.taskId, displayed.current]);
+    cancelAttempt(attempt);
+    cancelAttempt(displayed.current);
     displayed.current = undefined;
-    for (const id of obsolete) if (id) void cancelTask(id).catch(() => {});
   }, []);
 
   const clearPreview = useCallback(() => {
@@ -241,18 +242,18 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
         approved = python;
       } else if (selectedFile || outcome.state !== 'committed') throw new Error();
       const signal = AbortSignal.any([attempt.poll.signal, AbortSignal.timeout(15_000)]);
-      let canRetryStatusDelivery = !sample;
+      let canRetryStatusDelivery = true;
       while (!signal.aborted) {
         await pause();
         signal.throwIfAborted();
         let admissionBusy = false;
-        let status: Ready | Waiting | Terminal;
+        let status: unknown;
         try {
           status = await readIndicatorPreviewStatus(id, signal, () => { admissionBusy = true; });
         } catch (error) {
           if (admissionBusy) continue;
           if (canRetryStatusDelivery && error instanceof IndicatorStatusDeliveryError && !signal.aborted) {
-            // The frozen preview is already admitted. Read the same task once
+            // The preview is already admitted. Read the same task once
             // more after delivery loss, without submitting another operation.
             canRetryStatusDelivery = false;
             continue;
@@ -260,35 +261,37 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
           throw error;
         }
         signal.throwIfAborted();
-        if (status.task_id !== id) throw new Error();
+        if (!isIndicatorPreviewStatus(status) || status.task_id !== id) throw new Error();
         if (status.status === 'running') continue;
+        if (status.event.task_id !== id) throw new Error();
         if (status.status === 'terminal') {
           const outcome = status.event.outcome;
           if (outcome.status === 'failed') throw outcome.error;
-          throw { code: 'CANCELLED' };
+          if (outcome.status === 'cancelled') throw { code: 'CANCELLED' };
+          throw new Error();
         }
         const event = status.event;
-        if (event.task_id !== id || event.draft_id !== draft_id || event.code_hash !== code_hash
-          || !validHash(event.params_hash) || !validHash(event.snapshot.content_hash)
-          || event.artifact.storage !== 'inline' || !validHash(event.artifact.result_hash)
-          || (snapshot.series.provider_id === 'scopehub.synthetic' && (typeof status.calendar_hash !== 'string'
-            || !validHash(status.calendar_hash)))
+        const { artifact } = event;
+        if (event.draft_id !== draft_id || event.code_hash !== code_hash || artifact.storage !== 'inline'
+          || (sample && status.calendar_hash === null)
           || status.source_snapshot.content_hash !== snapshot.content_hash
           || event.snapshot.dataset_id !== snapshot.dataset_id || event.snapshot.dataset_revision !== snapshot.dataset_revision
+          || artifact.result.provenance.dataset_id !== snapshot.dataset_id
+          || artifact.result.provenance.dataset_revision !== snapshot.dataset_revision
           || event.snapshot.as_of_ms !== snapshot.as_of_ms || event.snapshot.from_ms !== range.from_ms
           || event.snapshot.to_ms !== range.to_ms
           || (approved ? event.params_hash !== approved.parameters_hash || event.snapshot.content_hash !== approved.snapshot_hash
             || event.engine_version !== 'scopehub-trusted-python-1' || event.snapshot.warmup_bars !== 0
             : status.resolved_parameters.period !== requestedPeriod)) throw new Error();
         if (access && !access.canDisplay('csv', snapshot.dataset_id)) return;
-        displayed.current = id;
-        showResult({ range: event.snapshot, result: event.artifact.result });
+        displayed.current = attempt;
+        showResult({ range: event.snapshot, result: artifact.result });
         setResult(status);
         return;
       }
       signal.throwIfAborted();
     } catch (error) {
-      if (attempt.taskId) void cancelTask(attempt.taskId).catch(() => {});
+      cancelAttempt(attempt);
       if (attempt.poll.signal.aborted) return;
       if (displayAccessDenied(error)) void access?.verify('csv', snapshot.dataset_id);
       setMessage({ text: describeError(error, mode), error: code(error) !== 'CANCELLED' });

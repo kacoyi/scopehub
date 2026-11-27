@@ -1,0 +1,35 @@
+{
+  "version": 3,
+  "task_id": "M3-008",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "d412069b5baa15a9f5a03fb512eea911e82ba886",
+      "scope": "Independently assess the returned calculated values against the actual immutable frozen dataset and revision on the ordinary consumer. Exercise matched and swapped writer outputs, independent ID and revision variations including missing bound provenance as supported, and terminal cleanup at the existing UI/API.",
+      "supersedes": null,
+      "requested_at": "2026-11-27T09:36:44.521885+00:00",
+      "request_id": "5de68324f1eec0394613fe1eab674e63b3a7b7cc35df77a6ef8847e8e99f0e8a",
+      "evidence_sha256": "1b49f2181f4e25bdfa282008d0af7d6749eeae5a8fd3b5d65141b5b988b73d56"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d412069b5baa15a9f5a03fb512eea911e82ba886",
+      "verdict": "approved",
+      "decision": "APPROVE M3-008 d412069b5baa15a9f5a03fb512eea911e82ba886",
+      "scope": "APPROVE M3-008 d412069b5baa15a9f5a03fb512eea911e82ba886",
+      "observation": "After one lost status delivery, the candidate preview displayed 3500.5 for the normal sample and Unknown for the gapped sample, and rejected both swaps of the original writer artifacts.",
+      "reviewer": "Independent Astra Standard (t1gr)",
+      "original_sha256": "c45abdb37fb9a4e2eec6b809b28186bf8d4339e7cac3a6a7fbb641593f683a23",
+      "response_id": "5d89f8794498ac4df4c9c65748aa51c28c6cc6f8c6244291c4b3e3ee09e71229",
+      "response_sha256": "ca082e98b29cf9b9e0e296397c8a2506e214825bb84fda588c63a7496187cc27",
+      "legacy_response_sha256": "af3544d3010c78e0db71d396aeae567a06f0b46b28c43e0eb582d1221c785018",
+      "observation_body_sha256": "3dfffaa0669ff0649ffdc5d04b905e36f6d4afc13e328cd357deff62e338cbcd",
+      "event": {
+        "id": "msg_037ae27225bfdea6016b0950425bac87d0826203f61526c0d2",
+        "timestamp": "2026-11-27T09:41:42.067Z"
+      },
+      "supersedes": "5de68324f1eec0394613fe1eab674e63b3a7b7cc35df77a6ef8847e8e99f0e8a",
+      "evidence_sha256": "f7b5f8e2bdcc56d015eefa0a63d42d41d18bb5b9724a0622816e9020d20e1f1b"
+    }
+  ]
+}

@@ -29487,6 +29487,326 @@
           "cleanup": "Correct the authoritative inventory in place and avoid a parallel catalog."
         }
       }
+    },
+    {
+      "id": "M3-007",
+      "title": "Recover one lost status delivery for an admitted offline sample indicator preview",
+      "milestone": "M3",
+      "status": "done",
+      "depends_on": [
+        "M0-149"
+      ],
+      "scope": [
+        "apps/desktop/ui/indicator-preview-status-schema.mjs",
+        "apps/desktop/ui/vite.config.ts",
+        "apps/desktop/ui/src/env.d.ts",
+        "apps/desktop/ui/src/indicator-preview.tsx",
+        "apps/desktop/ui/src/use-local-workspace.ts",
+        "tests/localization/market-messages.spec.mjs",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "tests/ubuntu-preview/workspace_indicator_probe.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Through the normal offline sample chart, reconcile a single browser-observable status delivery loss by rereading the existing admitted task within the existing deadline. Verify one draft and one preview dispatch, one logical recovery, and the expected period-two value 3500.5 across the scheduled closure.",
+        "Verify a delivered ready response, genuine pre-admission refusal, a second lost logical delivery, and a definitive invalid or terminal response. Keep the chart and frozen source identity intact. Preserve the visible terminal failure and one correlated cancellation when recovery is exhausted or unavailable.",
+        "The ordinary calendar check records request, admission, dispatch, ready or failure, chart state and cleanup. It reports an observed preview failure without waiting exclusively for ready, retains the original diagnostic, and still verifies the gapped sample, forged snapshot and obsolete-task controls.",
+        "Through the compiled chart and Rust writer, cancel once while recovery is in flight or while admission is still returning the task ID. Reject an unknown result status and a terminal event whose nested task ID disagrees with the admitted task. Verify the visible outcome, original task cleanup and the existing 15-second polling deadline.",
+        "Through the offline sample chart, compare valid ready and terminal status envelopes with their reciprocal event-name conflicts after one lost delivery. Reject malformed envelopes before display, keep the chart and source identity, and clean up the original task once."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "indicator-workflow",
+        "workspace-timeframe",
+        "desktop-localization"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261126T052248.924780Z-48398047",
+          "source_commit": "f16bec4d5f673b091939aa0d73e953cb44db3b73",
+          "report_sha256": "7e05fe0c83aa505b0a038d752fd0a0dbfa3263ed55401fc78fc56ced19a47597"
+        },
+        {
+          "run_id": "20261126T055216.550792Z-283fe3a7",
+          "source_commit": "f30e5235cf9270116b6f1e37e1425898f1822d7b",
+          "report_sha256": "b72407d17d36029e7872dd0c251bae6bad76afb7c94e9bcd02eca3a5561b8858"
+        },
+        {
+          "run_id": "20261126T073858.234369Z-31cf891c",
+          "source_commit": "6a266c97fd52cd0d0a588ff3054973d7bfa5167a",
+          "report_sha256": "c0ec1dc7ccf4eda159ccb2edd29f0ae73e09e3fc44e48d46acb3331de5abe7f3"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent review approved 3b506adedc41a015abf490f91d3714c7e1516ac2. Linux and Windows each passed all seven selected checks in the first attempt of task dispatch 45824846885. The offline chart rendered the period-two value 3500.5 across the scheduled closure after one logical reread of the admitted task. The reciprocal event-name conflicts failed with one cleanup of the original task each. The calendar check records ready and failure outcomes and retains the normal, gapped, forged snapshot and obsolete-task controls. The causes of the separate f16bec4d and f30e5235 calendar timeouts remain unknown because the original indicator transactions are missing. Ordinary PR 137 run 45823962357 failed its separate protected verification. Physical Windows acceptance remains a separate gate.",
+      "evidence": [
+        {
+          "path": "project/evidence/M3-007-88e2331c7d8c9804.json",
+          "sha256": "8f724e7bb6c03fbf6142ff23b584304f2d16ad59cba57a9062e3f79201caca29"
+        },
+        {
+          "path": "project/evidence/M3-007-2d860098bc0f2871.json",
+          "sha256": "7843802f91dbdd071dbf5badb55a1e297237e73665200ae39fde5d3be01cbcda"
+        },
+        {
+          "path": "project/evidence/M3-007-a3da0515ddf03000.json",
+          "sha256": "05010069db0336362bccbfda9841010ab1c40ddbf640360956c10396765d7404"
+        },
+        {
+          "path": "project/evidence/M3-007-f13c492bcd60eda6.json",
+          "sha256": "6f300fa8cd7d29677878dce10ebc3dd3c8b8f9b49b4a60f3af75cb41f47def40"
+        },
+        {
+          "path": "project/evidence/M3-007-a51c6f16d912bba4.json",
+          "sha256": "911f21290bec436c09bb93b262c2fab508df7bd8aed47d2340daa40a8c704516"
+        }
+      ],
+      "plan": {
+        "outcome": "The offline sample chart renders an already-computed preview after a single browser-observable status delivery loss, and the calendar check exposes the actual outcome.",
+        "change_types": [
+          "ui",
+          "indicators"
+        ],
+        "context": [
+          "archives/runs/20261126T052248.924780Z-48398047/test-report.json",
+          "archives/runs/20261126T055216.550792Z-283fe3a7/test-report.json",
+          "archives/observations/repo-hygiene-20261125/sample-calendar-delivery-diagnosis-9f05a4fb/runs/current-v2/lose-ready-minimal.native.jsonl",
+          "archives/observations/repo-hygiene-20261125/sample-calendar-delivery-diagnosis-9f05a4fb/runs/current-v2/lose-ready-minimal.browser.json",
+          "archives/observations/repo-hygiene-20261125/m2-039-current-workspace-f30e5235/producer-index.json",
+          ".reports/M3-007/protected-baseline-host/index.json",
+          ".reports/M3-007/red-workspace-timeframe-repro/workspace-timeframe/index.json",
+          ".reports/m3-007-calendar-failure-witness/fault/results.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m3-007-c1cefee5/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m3-007-87d0b846/original-assistant-response.jsonl",
+          "contracts/reviews/task-decisions/M3-007.json",
+          "contracts/schemas/protocol.schema.json",
+          ".reports/M3-007/status-envelope/before/workspace-timeframe/results.json",
+          ".reports/runs/20261126T073858.234369Z-31cf891c/workspace-timeframe/results.json",
+          "apps/desktop/ui/src/indicator-preview.tsx",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/fixtures/market/series.json"
+        ],
+        "hypotheses": [
+          "The sample excludes bounded status-delivery recovery even when the existing transport classifies a missing response before headers and the same Rust task already holds a verified ready artifact.",
+          "A logical browser status request can generate multiple native reads with the same request ID when Chromium retries its connection. The test should distinguish browser transport replay from an application-issued recovery ID.",
+          "The first historical calendar run showed an alert during the first preview. The second reached the gapped chart after passing the first preview and forged snapshot checks. The original indicator transaction is unavailable for each failure.",
+          "The invalidation path and the polling catch can both cancel one admitted attempt. Recording the cancellation on that attempt can preserve cleanup when its ID arrives late.",
+          "The status discriminant, nested terminal task identity and terminal outcome require runtime validation before the UI adopts a recovered result.",
+          "The status consumer trusts its compile-time union and can adopt either branch when only its nested protocol event name is replaced with the reciprocal name. The same boundary must verify the branch envelope before interpreting any payload."
+        ],
+        "risks": [
+          {
+            "failure": "Recovery resubmits computation, exceeds the current budget, or counts a transport replay or pre-admission refusal as a new logical recovery.",
+            "checks": [
+              "workspace-timeframe",
+              "indicator-workflow"
+            ]
+          },
+          {
+            "failure": "Recovery hides terminal or invalid output, retains an obsolete preview, alters chart identity, or omits the admitted task cancellation.",
+            "checks": [
+              "workspace-timeframe",
+              "market-workflow",
+              "ui-build"
+            ]
+          },
+          {
+            "failure": "User cancellation during recovery dispatches two cancellations, a late admission leaks its task, or malformed recovery replies display a preview or adopt another task's terminal event.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "Conflicting ready or terminal event envelopes can display an artifact or a false cancellation, or a validator can reject legitimate ready and terminal replies.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Keep the source-bound original and paired witness. Revert only the sample recovery change if the same-task, failure or cleanup controls regress.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/indicator-preview-status-schema.mjs",
+            "apps/desktop/ui/src/indicator-preview.tsx",
+            "apps/desktop/ui/src/use-local-workspace.ts",
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ubuntu-preview/workspace_indicator_probe.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Changing source selection, publication authorization, native writer admission, sample calculation or the existing time budgets.",
+            "Attributing the historical failure without an original indicator transaction record."
+          ],
+          "open_questions": [
+            "Can the existing same-task recovery apply to the sample without changing definitive failure, exhausted recovery or admitted BUSY semantics?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Bounded frozen-source recovery, explicit pre-admission BUSY semantics, validated artifact identity and the original draft and run receipts."
+          ],
+          "change": [
+            "Use the existing diagnostic delivery classification for one same-task sample status read and make the calendar harness observe all terminal outcomes.",
+            "Share cancellation ownership between invalidation and polling cleanup. Validate ready status, terminal task identity and supported terminal outcomes before presenting the recovered result.",
+            "Require a structurally valid status branch and matching protocol event before interpreting the result. Keep preview-specific task and frozen input correlation."
+          ],
+          "data_plan": "Use an isolated synthetic SQLite profile and the pinned normal and gapped calendar fixtures. Keep retained records limited to synthetic inputs and responses.",
+          "cleanup": "Release controlled replies, cancel an obsolete admitted task, close owned browser contexts and services, and verify port release and profile removal."
+        }
+      }
+    },
+    {
+      "id": "M3-008",
+      "title": "Bind recovered indicator results to their frozen source",
+      "milestone": "M3",
+      "status": "done",
+      "depends_on": [
+        "M3-007"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/indicator-preview.tsx",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "tests/ubuntu-preview/workspace_indicator_probe.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Through the offline chart and existing local writer, recover after one logical status delivery loss and display the normal and gapped samples only with their own results.",
+        "With the event and snapshot of the original admitted task, reject the ready artifact from the other source in both directions. Reject independently altered dataset ID and revision claims when structurally representable. Keep the original visible chart and issue exactly one cleanup for the admitted task.",
+        "Retain source-bound originals for the public-entry positive and negative controls, both directions of cancellation timing and deadline recovery, and zero volatility on both equal-close CSV windows."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "indicator-workflow",
+        "workspace-timeframe",
+        "desktop-localization"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261127T090938.091051Z-6811b617",
+          "source_commit": "0c3e56b4c808427b89751ff6fdee49b91741e3e9",
+          "report_sha256": "0d96d171823dabd3aebc06893947edb08a9055a5015b735c6309484974bbf2dc"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The independent decisions in contracts/reviews/task-decisions/M3-008.json#/events/1 and contracts/reviews/task-decisions/M3-007.json#/events/11 approved d412069b5baa15a9f5a03fb512eea911e82ba886. Their scope carries to the unchanged implementation on bd6ba42d4bd8e24174a8e04f81815280f8cd6d14. Guarded task dispatch 45976117388 attempt 1 on that exact candidate passed all five required checks, environment and project-state on Linux and Windows. The host rerun passed the same checks. After one lost status delivery, the ordinary chart displayed 3500.5 for the normal sample and Unknown for the gapped sample. Both reciprocal artifact swaps and the isolated dataset ID and revision changes failed with the original chart intact and one cancellation of the admitted task. Cancellation during a held recovery read, cancellation before the admission reply, the original polling deadline and zero volatility in the full and cropped equal-close CSV windows all passed. The guarded artifacts are bound by archives/observations/repo-hygiene-20261125/task-dispatch-m3-008-45976117388/manifest.json (SHA-256 30de42f59a8129d182174aa5c99c8c4adbeddd7bff62b47effbcb18f99097c69). The coordinator owns ordinary PR qualification 45976102937 and first protected verification. Physical Windows acceptance and integration are separate gates.",
+      "evidence": [
+        {
+          "path": "project/evidence/M3-008-13595e0d1458b6c5.json",
+          "sha256": "a4f15e8ea9c26853467f50d191bbf7d7ee75843389fc71d02e6556a54ecc702d"
+        },
+        {
+          "path": "project/evidence/M3-008-283b1f08645fc166.json",
+          "sha256": "78bfaeacb5a8dcab407b010bfdbef718c47f9313eb539156b9ad93fdce94e43c"
+        }
+      ],
+      "plan": {
+        "outcome": "The offline sample chart only displays indicator result provenance for its own frozen dataset and revision after recovery.",
+        "change_types": [
+          "ui",
+          "indicators"
+        ],
+        "context": [
+          ".reports/M3-007/provenance/review/original-assistant-response.jsonl",
+          "contracts/reviews/task-decisions/M3-007.json#/events/9",
+        ".reports/M3-007/provenance/before-product-fix/results.json",
+          ".reports/runs/20261127T090938.091051Z-6811b617/test-report.json",
+          "apps/desktop/ui/src/indicator-preview.tsx",
+          "crates/application/src/workspace/indicators.rs",
+          "python/providers/simulated.py",
+          "tests/ubuntu-preview/workspace_indicator_probe.mjs"
+        ],
+        "hypotheses": [
+          "The ready branch validates the admitted task and snapshot but fails to correlate the inline result provenance with the frozen dataset identity and revision.",
+          "The normal and gapped sample IDs already include the revision, so a same-ID revision-only test needs a structurally valid response mutation of a writer-produced artifact."
+        ],
+        "risks": [
+          {
+            "failure": "A foreign artifact or stale dataset claim becomes visible, or rejection damages the chart or cancels the wrong task.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The correlation blocks valid previews or regresses bounded delivery recovery, cancellation, or frozen equal-close CSV values.",
+            "checks": [
+              "workspace-timeframe",
+              "indicator-workflow",
+              "market-workflow",
+              "ui-build"
+            ]
+          }
+        ],
+        "rollback": "Keep the review, browser and writer originals and both source commits. Revert the narrow ready-result change if it blocks valid results and use the paired controls to locate the erroneous correlation.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/indicator-preview.tsx",
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ubuntu-preview/workspace_indicator_probe.mjs"
+          ],
+          "rules": [
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/IndicatorProvenance"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Changing the public operation, writer admission, artifact generation, source selection, or the polling deadline."
+          ],
+          "open_questions": [
+            "Will the fixed consumer reject both real cross-source artifacts and the independent provenance faults while retaining positive and adjacent controls?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Normal and gapped source values, existing chart bindings, the one-loss recovery budget, and single task cleanup ownership."
+          ],
+          "change": [
+            "Require the inline result provenance dataset ID and revision to match the selected frozen snapshot before any preview display."
+          ],
+          "data_plan": "Use only existing synthetic samples and CSV fixtures. Replay actual writer artifacts and independently mutate provenance in the test delivery boundary.",
+          "cleanup": "Verify one cancellation of each rejected task and orderly writer, browser, listener and profile teardown."
+        }
+      }
     }
   ]
 }
