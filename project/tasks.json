@@ -28711,6 +28711,140 @@
       }
     },
     {
+      "id": "M0-175",
+      "title": "Verify terminal cancellation and subsequent owned indicator scratch cleanup after a bounded wait",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-167"
+      ],
+      "scope": [
+        "crates/worker-host"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain the first native failure in each of the two cancellation cases and the same-source Linux and protected Windows passing counterparts. Record which resource states were observed at which time and which historical outcomes are unknown.",
+        "Retain both first-attempt Windows Rust timeouts of the earlier held control and the separate passing controls. Demonstrate that the new test fails within its observation bounds when release is withheld.",
+        "Use the ordinary benign indicator cancellation interaction and a controlled pending cleanup. Distinguish its terminal outcome from verified disposal, preserve owned cleanup through the bounded wait, normal completion, absence of a cancelled artifact and isolation of the adjacent computation. Resolve the observed discrepancy at its responsible boundary with independently checkable evidence.",
+        "Obtain independent review, native Windows and Linux checks for the affected behavior and a recheck on the integrated revision. Record remaining timing and observation limits."
+      ],
+      "checks": [
+        "project-state",
+        "rust-contracts-workers",
+        "indicator-workflow"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-175-3cc980281a8b78d9.json",
+          "sha256": "9706aa2fb2582922acc102e9bcdf8717c4c17195843ab43737f55cdb37564acd"
+        },
+        {
+          "path": "project/evidence/M0-175-badbc601ee756be9.json",
+          "sha256": "dc2e37bd17e91fd89cc2f7ba1ea10259609fa30709da36720f3131cb5fdadc9e"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45946774981-1",
+          "source_commit": "f54d437f5ea159fb0aa5d806682aeae8a6653b1b",
+          "report_sha256": "a6761ffac6afb7bfe9e017f30f6609bea9fe01c3de038b6ae2196ca9d390c88c"
+        },
+        {
+          "run_id": "windows-change-45952279090-1",
+          "source_commit": "06f2e91dd0700c83acd3cc990a8d3c2987d3d711",
+          "report_sha256": "d0702ac591c0e183aba0d9bf323d1b903d6d07c3ce9c890103487facd1462203"
+        },
+        {
+          "run_id": "20261127T063216.487478Z-e993ffa5",
+          "source_commit": "53917996a926a5fdea41c7e2f58f1ba86bdc0c4f",
+          "report_sha256": "fbe1d3c9c91c97cdc4122f6c39e6b25facc8ede80f1241a6e3d976b2f46381fe"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Branch qualification is complete. Independent approval of 1f2e78aed866734f066fb64b16b14cea8a87816a applies to the unchanged implementation on 88eec308aa5abf7e1ed0126c61195cc505c4a950. Guarded PR 149 task run 45959844599 attempt 1 tested that exact clean branch commit on Linux x64 and Windows x64. Environment and all three required checks passed on each platform. The six named Rust controls covered held cleanup, discarding a correlated result before child exit, adjacent scratch and result isolation, private CLI EOF without a persistable result, independent positive values and cleanup after a missing entry witness. The three browser interactions covered a second approved task during pending cleanup, approved output restoration and region-only restoration. The guarded originals are bound by archives/observations/repo-hygiene-20261125/task-dispatch-m0-175-45959844599/manifest.json (SHA-256 4b94d54bef39ca0578d75d1ab1958aae595135de98d593e8090cbcb6eab345be). The separate Linux withheld-release mutation failed at the bounded disposal assertion before fixture recovery. Process absence was sampled for the two witnessed PIDs within the fixture windows. Later scratch state and the delay cause in the original PR 134 Windows cases remain unknown, as does the stalled stage in both earlier PR 149 Windows timeouts. The coordinator owns observation of the ordinary PR 149 merge-preview run and the separate recheck on the finally integrated protected revision. Both are pending for this handoff.",
+      "plan": {
+        "outcome": "The cancellation caller receives its documented terminal result, and task-owned scratch disposal and adjacent work are verified at the boundaries their owners actually guarantee.",
+        "change_types": [
+          "indicators"
+        ],
+        "context": [
+          "crates/worker-host/tests/trusted_indicator.rs",
+          "crates/worker-host/src/indicator.rs",
+          "crates/worker-host/src/cleanup.rs",
+          "python/worker_runtime/indicator_guard.py",
+          "project/checks.json",
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json"
+        ],
+        "hypotheses": [
+          "The two original Windows assertions sampled scratch at cancellation return after the bounded cleanup wait timed out. In the first Linux control the cancellation returned with scratch present and the reaper removed it after release. Later disposal and the reason for delay in the original Windows runs remain unknown.",
+          "Both PR 149 native Windows first attempts reached the 900-second Rust harness limit with only the held scratch control unfinished in its 17-test binary. The stalled stage is unknown. Tokio's Windows child pipes and scratch removal both use the blocking pool. A fixture that holds only the supervisor's exit after normal interpreter reclamation should isolate the pending scratch cleanup while permitting ordinary worker I/O.",
+          "The independent Astra review found that the held path discarded both witnessed IDs and omitted invocation counting. A controlled Linux run with the entry witness withheld confirmed a separate fixture teardown defect: dropping the started computation queued the reaper, but the current-thread runtime shut down without driving it. After release acknowledgement and a further two seconds, the interpreter was absent, the exited supervisor remained a zombie, and the owned scratch still existed."
+        ],
+        "risks": [
+          {
+            "failure": "A relaxed absence assertion, unconditional sleep, longer budget or unowned cleanup could hide a permanent leak, delay cancellation or remove another task’s files. A held cleanup and independent adjacent completion must distinguish the outcomes.",
+            "checks": [
+              "project-state",
+              "rust-contracts-workers",
+              "indicator-workflow"
+            ]
+          },
+          {
+            "failure": "A fixture can starve worker I/O or stop driving the reaper when entry evidence is missing. Isolate the hold to the owned cleanup, retain independent startup facts, bound release, PID queries and runtime shutdown, and exercise both the missing entry and withheld release paths before the task harness. Check both witnessed processes and one invocation after acknowledged release on the held path.",
+            "checks": [
+              "project-state",
+              "rust-contracts-workers",
+              "indicator-workflow"
+            ]
+          }
+        ],
+        "rollback": "Restore the previous behavior if cancellation, ownership or adjacent completion regresses. Preserve the original reports and leave unsupported platform observations open.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "worker-host"
+          ],
+          "entrypoints": [
+            "crates/worker-host/tests/trusted_indicator.rs",
+            "crates/worker-host/src/indicator.rs",
+            "crates/worker-host/src/cleanup.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/0"
+            }
+          ],
+          "non_goals": [
+            "Unrelated deadlines, Windows Python suite timing, changes to indicator permissions or source authorization, and new product capabilities."
+          ],
+          "open_questions": [
+            "The native logs leave the stalled stage unknown. Do the two corrected cancellation cases and the cleanup-specific control pass on the supported Windows qualification candidate?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The existing bounded cancellation response, one terminal result without a cancelled artifact, task-scoped resource ownership and adjacent computation."
+          ],
+          "change": [
+            "Observe the cancellation error at return and task-owned scratch absence separately in the two affected native cases. Verify the adjacent task's result independently and replace the blocking-pool hold with a bounded cleanup-specific control.",
+            "Preserve process and invocation evidence on the held path. After missing entry evidence, keep the fixture runtime driving the original cleanup and verify disposal of the started computation's own scratch and processes."
+          ],
+          "data_plan": "Use disposable synthetic fixture files and processes only. Existing profile data and wire formats are outside this change.",
+          "cleanup": "Retain the original Windows failures and passing controls. Observe disposal of the same task-owned path after release and verify a bounded failure when disposal is attempted while held. Bound test-fixture expiry and failed-test shutdown separately from the existing harness limit."
+        }
+      }
+    },
+    {
       "id": "M0-169",
       "title": "Qualify the running indicator deadline after real interpreter admission",
       "milestone": "M0",
