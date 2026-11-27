@@ -59,6 +59,15 @@
       },
       "supersedes": "6946b2fd8443e2bce34bbdf96298b75016086c83db100e9e23382ed5789ff8d7",
       "evidence_sha256": "836c79440a91d3290ab8d04572a0366129d694a7d6e6dbba08423059c626e7cc"
+    },
+    {
+      "kind": "request",
+      "source_commit": "38cb8777a2dba6ffbd1cec8fc14c456874cddbc2",
+      "scope": "Independently qualify the existing PR 150 CSV bridge preparation on the actual protected deletion-repair composition and the shared native workspace consumer. Verify the behavior of both prior fixes and the preservation of the accepted records.",
+      "supersedes": "810e8d0d8edc5b303553fcd99bcc297e243e3bbece4eebad42d559dba91b7beb",
+      "requested_at": "2026-11-27T11:41:54.428234+00:00",
+      "request_id": "d7c29e5dd6006be1be9e71d600bb25061b53cfe7f0b47143ea085a9932bdd92f",
+      "evidence_sha256": "bf43463c2df3debeaa5eed415a9fed8ba35ada4c9effb2ea3d0bc90f656348cf"
     }
   ]
 }
