@@ -59,6 +59,15 @@
       },
       "supersedes": "d68ba9dfb281706bb78759e7ac4a8d13f5546283a674d7baf404e6025dc470bf",
       "evidence_sha256": "878609efc14be93a8de9494a2b3e6bcdb6ee5060e73c85ed98d1a217f0424913"
+    },
+    {
+      "kind": "request",
+      "source_commit": "c845c2bf670bda28f94eda2387378e53bc1ec2bf",
+      "scope": "Independently evaluate the initiating approval receipt and real pre-admission refusal, preserving the separate post-commit no-reply case.",
+      "supersedes": "30cac65b59e435f4bd002ae1968c27244889e4babebe663b7e9576fccf811c02",
+      "requested_at": "2026-11-27T10:12:28.352140+00:00",
+      "request_id": "918b92a994864bb47cdbf993b8231bdf25bbfccd5b48bbbf90ed491e323677d7",
+      "evidence_sha256": "64331954e99772249dc38d7248de98e064fffad655cfccf5d2a81bc0950bfe83"
     }
   ]
 }
