@@ -26741,6 +26741,676 @@
       }
     },
     {
+      "id": "M0-154",
+      "title": "Qualify cold sample document readiness in the Windows closed-bar repair journey",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M1-022",
+        "M1-023"
+      ],
+      "scope": [
+        "tests/ui/sample-startup.mjs",
+        "tests/ui/chart-pixels.mjs",
+        "tests/ui/history.spec.mjs",
+        "tests/ubuntu-preview",
+        "apps/desktop/ui",
+        "project/tasks.json",
+        "project/checks.json",
+        "project/development.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain the failed protected producer, same-tree native passing control and aggregate diagnostic when available. Identify the last observed startup stage before the chart repair assertion.",
+        "Use the public sample entry to distinguish an absent or failed document, a delivered document with pending required code, and a mounted sample with verified catalog and history. Preserve the original deadline, rejection of a genuine stall and chart expectations.",
+        "Demonstrate the correction or diagnostic on real controlled navigation and in the ordinary native Windows check, with original unsuccessful and successful controls retained. Keep historical cause and Windows acceptance explicit until observed.",
+        "Reject request-bound history contradictions before displaying the sample. A valid history with a failed chart mount stays history-verified. A successful cold sample includes actual candlesticks at the fitted time positions and OHLC price landmarks of the verified history. Missing, unrelated or misplaced price marks with the original last-price line and axis label stay history-verified."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "market-recovery",
+        "ui-build",
+        "generated-contracts",
+        "market-workflow",
+        "chart-history",
+        "architecture",
+        "market-live-stream",
+        "market-quality-states"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-154-531c8c110e824c73.json",
+          "sha256": "8fdd6d6b0d89c6804a2c4826ad9e2b304bc05575e317f02c0b4337748188eef4"
+        },
+        {
+          "path": "project/evidence/M0-154-54aa0eb51119f849.json",
+          "sha256": "5188bfaecc20c46c88a346c28690b28b36435144168f342459a46ddac4b823ba"
+        },
+        {
+          "path": "project/evidence/M0-154-10729f8012c6ad43.json",
+          "sha256": "1aa7c7e38ce631d105e5bdd7f30e69ad64aabc4b21c97495a08f44c31ca8520a"
+        },
+        {
+          "path": "project/evidence/M0-154-8bf9a6ef0193add5.json",
+          "sha256": "15a80ca98b3eb1e32d257a20dca060bc21d765582e525255ab9b482abbb2c51b"
+        },
+        {
+          "path": "project/evidence/M0-154-bfb6958fa70338b3.json",
+          "sha256": "7fafedaf54305dfe2e50eddbdcc6d54ddd3f6666d83f7b40d7c33477029e5509"
+        },
+        {
+          "path": "project/evidence/M0-154-a4209b3465db38fc.json",
+          "sha256": "3e299258a947ba1a905d5c5990e4120625721080666a9446ec8651ad9b31ed1b"
+        },
+        {
+          "path": "project/evidence/M0-154-f8d8b22f62dafa0a.json",
+          "sha256": "b6a730fe7764093a9309e1bdeb7865db1bfd4164b3092fed842305a559d0bb13"
+        },
+        {
+          "path": "project/evidence/M0-154-8e61319c5013374f.json",
+          "sha256": "283aafe29547ce6d6abb77cc71f1aeb41c519725e690304c000317fed8de68d9"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The first ordinary Windows PR 136 run 45823554677 passed all 41 recovery browser cases, including the cold public repair entry, the held-document deadline and fitted candle controls. Both platform receipts cover every task check. The independent approval of 83022759 is retained in contracts/reviews/task-decisions/M0-154.json. Native originals and their evidence limits are indexed in .reports/m0-154-native-closure/handoff.json. The historical timeout's cause remains unresolved and packaged physical Windows acceptance remains separate.",
+      "plan": {
+        "outcome": "A cold closed-bar repair journey reaches its verified initial sample or explains the last observed stage at the existing navigation deadline.",
+        "change_types": [
+          "tooling",
+          "ui"
+        ],
+        "context": [
+          "contracts/schemas/protocol.schema.json",
+          "scripts/generate_market_output_validators.mjs",
+          "tests/ui/sample-startup.mjs",
+          "tests/ubuntu-preview/market-closed-bar-repair.spec.mjs",
+          "tests/ubuntu-preview/market-preview-config.mjs",
+          "apps/desktop/ui/index.html",
+          "archives/observations/repo-hygiene-20261125/m0-154-cold-sample-45709117560/observations.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-232d0902/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-e8b8de61/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-2f02d0f7/final-response.txt",
+          "contracts/market-data-v1.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-222ba13c/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-e11e24fc/final-response.txt",
+          ".reports/m0-154-candle-paint/baseline/observations.json",
+          ".reports/m0-154-candle-paint/regression-before/market-recovery/results.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-154-6cc6a82f/original-assistant-response.jsonl",
+          ".reports/m0-154-candle-geometry/baseline/market-recovery/results.json"
+        ],
+        "hypotheses": [
+          "The screenshot confirms that the startup panel rendered. A missing or slow deferred module, an unobserved document transition and host delay remain distinguishable hypotheses until there is request and lifecycle evidence.",
+          "On unchanged local Linux Chromium, the sample completed the real catalog and history. Holding the static entry left a committed document with manual reload and no DOMContentLoaded. Holding the dynamically imported entry allowed DOMContentLoaded before any verified sample. These controlled observations do not identify the source of the historical Windows failure.",
+          "The startup attachment previously checked fewer reply fields than readSampleHistory. A same-series, same-revision reply for a shifted range distinguished the two checks.",
+          "Both consumers trust the structural output type after transport decoding. A frozen snapshot can pass their shared first-page comparison even if a required field absent from comparisons is missing. Compare the same archived 40-bar success with a one-field deletion at both public consumers.",
+          "The wrapper carries accepted history metadata before the renderer mounts. A valid equivalent decimal with excessive trailing zeros reaches Intl formatting and distinguishes history admission from successful chart presentation.",
+          "The Rust operation already binds worker output to the request. A loopback response altered after the bridge can pass generated shape checks while contradicting a dataset, snapshot, stream or page relationship at the UI admission boundary.",
+          "On e4cd88ec73e13c9064d53252dc031b83db4ddcd2, suppressing candle bodies and wicks left one price-colored row of 464 pixels in the main pane and 730 pixels in the price axis. The genuine and suppressed renders received byte-identical 40-bar history and both were credited with presentation success. The genuine render had price-colored pixels across 438 rows of the main pane. The original observer also accepted a neighboring case with two same-color rectangles in place of the candles.",
+          "On cfc783280bc1d63cae4a1cdf6c74a25699af4d68 the color-order classifier retained neither the fitted time coordinates nor the OHLC price geometry. The real startup accepted a compressed series of three-pixel marks with all 40 original directions."
+        ],
+        "risks": [
+          {
+            "failure": "A document-only success could release chart assertions before the mounted sample, its correct catalog and history.",
+            "checks": [
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "An added retry, excessive logging or inflated deadline hides a genuine terminal or crosses a privacy boundary.",
+            "checks": [
+              "market-recovery",
+              "project-state"
+            ]
+          },
+          {
+            "failure": "A valid reply to a changed request or reversed startup order advances readiness. Drive the real sample boundary with the ordinary calls, a changed history start, a changed catalog limit and reversed calls, and check each last verified stage.",
+            "checks": [
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "The held-module attachment misstates elapsed time while passing the deadline check. Compare it with an independent elapsed measurement under the original ten-second navigation cutoff and reject false-zero and implausible values.",
+            "checks": [
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "A structurally invalid success reaches the chart and startup readiness, or stricter decoding rejects a supported response. Use comparable current and compatible replies, missing and malformed structures, valid replies to a different request, failed replies and reversed completion at the public entry. Assert application outcome and the last attached stage.",
+            "checks": [
+              "market-recovery",
+              "ui-build",
+              "generated-contracts",
+              "chart-history"
+            ]
+          },
+          {
+            "failure": "The observer marks sample readiness without price marks or rejects a contract-valid decimal spelling. Replay the ordinary and equivalent ticks, force a chart mount failure after valid history, and independently measure price pixels, the visible alert, and the final startup stages.",
+            "checks": [
+              "market-recovery",
+              "ui-build",
+              "architecture"
+            ]
+          },
+          {
+            "failure": "A schema-valid response to a different request or an inconsistent continuation reaches the chart. Exercise the real public history validator before claiming startup history readiness with current and supported legacy inputs, single-field contradictions and real replay preparation.",
+            "checks": [
+              "market-recovery",
+              "chart-history",
+              "market-live-stream",
+              "market-quality-states"
+            ]
+          },
+          {
+            "failure": "The startup observer credits a last-price line, axis label or unrelated same-color marks as visible history. Compare genuine candles, missing candles and unrelated ink through the public entry with the same authoritative bridge responses and verify that a paint timeout stays history-verified without a mount failure flag.",
+            "checks": [
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "Correct color order can mask misplaced bodies and wicks, or pixel quantization can reject a legitimate render. Verify fitted time and OHLC geometry through the public entry with genuine paint, missing and relocated paint, and the genuine sample at fractional device scale and a narrower viewport. Compare ordinary startup and held-document timing.",
+            "checks": [
+              "market-recovery"
+            ]
+          }
+        ],
+        "rollback": "Keep the existing valid sample and cutoff; revert a change that hides a deliberate stall or changes the expected bars.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "ui",
+            "chart-adapter"
+          ],
+          "entrypoints": [
+            "tests/ui/sample-startup.mjs",
+            "tests/ui/chart-pixels.mjs",
+            "tests/ui/history.spec.mjs",
+            "tests/ubuntu-preview/market-closed-bar-repair.spec.mjs",
+            "apps/desktop/ui/src/market.ts",
+            "apps/desktop/ui/src/market-output.ts",
+            "apps/desktop/ui/src/sample-history-validation.ts",
+            "apps/desktop/ui/index.html",
+            "apps/desktop/ui/src/price-chart.tsx",
+            "apps/desktop/ui/src/chart-adapter/history.ts",
+            "apps/desktop/ui/src/chart-adapter/price-format.ts"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/domain/history_snapshots/selection"
+            },
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/MarketHistoryPageOutput"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            },
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/domain/stream_handoff"
+            }
+          ],
+          "non_goals": [
+            "Changing market data, relaxing chart integrity checks, automatic UI reloads or raising the navigation deadline."
+          ],
+          "open_questions": [
+            "What document, required script and workspace-mount events are observable at the failed boundary without reproducing assumptions about the native host?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The explicit synthetic sample, real chart repair path, source ownership, verified bars and manual reload behavior.",
+            "Keep supported legacy market reads, chart styles and no-tick formatting, the fixed required-hash control, partial startup stages, the ten-second document deadline and independently measured elapsed time."
+          ],
+          "change": [
+            "Add only the distinction or removable startup cost that measurements through the ordinary entry support.",
+            "Attach bounded document, pending code and verified market milestones to the normal repair browser check. Retain the ten-second navigation deadline, chart contract and manual reload.",
+            "Generate shared market response validators from the operation output types registered in the canonical JSON Schema. Standalone generation reuses the locked validator without compiling a schema in Chromium or WebView. Keep semantic checks for the application's paginated reads and the startup witness's single-page expectation.",
+            "Replace the two partial UI history comparisons with one request-bound validator at the existing public client entry. Per-field patches to the old first-page check would leave replay preparation and pinned continuations on separate identity rules. Rust retains digest verification.",
+            "Retain the chart renderer and normalize the instrument's decimal tick once for price formatting. The format helper has no renderer dependency. PriceChart owns the mount and its error, while the startup check witnesses visible price marks before recording a successful cold sample.",
+            "Preserve the earlier rejection of missing candles and unrelated price ink. Verify actual painted marks against fitted time coordinates and OHLC landmarks from the admitted history. Keep the generic style color count and chart rendering, viewport, scale and stored-state behavior."
+          ],
+          "data_plan": "Use synthetic sample traffic on a loopback development server and retain bounded stage observations.",
+          "cleanup": "Release owned browser listeners and servers and preserve the native failure and same-tree passing artifacts."
+        }
+      },
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45709117560-1",
+          "source_commit": "00a6ab1ef8c02ebd15144c3e5d65fcff70771ebb",
+          "report_sha256": "495063b876f34779ecd4e844bda70c09d97720bc3caf0f900a14d1af9b23dd8a"
+        }
+      ]
+    },
+    {
+      "id": "M0-166",
+      "title": "Recover or classify the interrupted frozen preview on a cropped window",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-149"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "apps/desktop/src-tauri",
+        "tests/ubuntu-preview",
+        "tests/ui"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Bind the failed browser case, its three bounded journals and the same-tree passing control to their actual OS, scenario, phase and source. Distinguish the failing observation from a wrong numeric result or another task’s calendar preview.",
+        "Reproduce or classify the interruption through the ordinary frozen preview entry with an independently observed valid and interrupted trial. Verify full and cropped equal closes, correct request and task correlation, the existing polling and admission policy, and cleanup. Keep unresolved attribution explicit.",
+        "Correct the confirmed cause or missing diagnostic and independently review it. Qualify the changed public boundary on ordinary Windows with current originals, preserve the first failure and recheck after protected integration."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe",
+        "desktop-workspace-transport",
+        "ui-build",
+        "market-workflow"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-166-0d9980eb56dc3963.json",
+          "sha256": "c19fd78b3720b956e25635413d42285e116cb4fd4302de674ce61207bfb6ae08"
+        },
+        {
+          "path": "project/evidence/M0-166-6e1ce9fbb282ac1a.json",
+          "sha256": "f57d888dda01be09bd8a9eff416c6ccda5b36856a72937f95866e4f3818e9caa"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45823962357-1",
+          "source_commit": "9f3a91950aee9e7c81819a0d27027fa2b9cc7514",
+          "report_sha256": "078717eb8956e711ef6b2262f43f70349a0d1d0901983b395af324135ec03f8c"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Scoped pre-integration delivery verified. Independent review approved the fixture diagnostics and recovery control on 057cc2c2f0638fdd3986e3817d7956868a788b05. The first ordinary PR 139 run 45830747074 passed all six task checks on Linux and Windows Server 2025 for submitted b71bf7dce6465d05f817219a63be8e433d240352 and tested merge preview df296d1a679f2d4c3b39e415986743e5ce5552fe. The Linux aggregate was blocked outside this task. Both browser runs showed three full-window rows and one cropped row with zero terminal volatility, identical same-task ready recovery after one reset and two genuine status refusals, and one same-task cancellation with the terminal alert after two resets and one genuine refusal. The controls covered both phases of the existing 15-second status deadline, complete-upload pre-admission BUSY, and a genuine tagged snapshot refusal with a separately witnessed recovery and cleanup. The original PR 137 abort is retained with its same-tree passing control. Its exact timeout call and internal cause remain unknown. The coordinator owns the recheck on the first protected main push after integration. Physical Windows and both maintenance workstreams retain their separate acceptance gates.",
+      "plan": {
+        "outcome": "Bind the failed browser case, its three bounded journals and the same-tree passing control to their actual OS, scenario, phase and source. Distinguish the failing observation from a wrong numeric result or another task’s calendar preview. Reproduce or classify the interruption through the ordinary frozen preview entry with an independently observed valid and interrupted trial. Verify full and cropped equal closes, correct request and task correlation, the existing polling and admission policy, and cleanup. Keep unresolved attribution explicit.",
+        "change_types": [
+          "tooling",
+          "ui"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "apps/desktop/ui/src/indicator-preview.tsx",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "project/checks.json",
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json"
+        ],
+        "hypotheses": [
+          "The ordinary Windows third journal stops after the fixture intercepted a real ready status. The same-tree guarded Windows journal next records the browser reset, a genuine gated 429, a second reset and cancellation for that task. The original duration is consistent with the fixture's tagged snapshot write wait; the original HTTP and writer events are unavailable."
+        ],
+        "risks": [
+          {
+            "failure": "A longer wait, a repeated preview or an unrelated green sample task could hide the original abort or change frozen results.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "workspace-timeframe",
+              "desktop-workspace-transport",
+              "ui-build",
+              "market-workflow"
+            ]
+          }
+        ],
+        "rollback": "Restore the preceding implementation and retain the diagnosed failures and controls if the ordinary contract changes.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "ui",
+            "desktop"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "apps/desktop/ui/src/indicator-preview.tsx",
+            "apps/desktop/ui/src/use-local-workspace.ts"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/0"
+            }
+          ],
+          "non_goals": [
+            "Preserve the 15-second polling deadline, frozen full and cropped values and ordinary permissions. Omit unrelated feature work and the separate ordinary Python process deadline."
+          ],
+          "open_questions": [
+            "The original timeout call and the cause of the missing writer observation remain unconfirmed. Qualify the updated fixture in the ordinary Windows browser workflow."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Preserve the 15-second polling deadline, frozen full and cropped values and ordinary permissions. Omit unrelated feature work and the separate ordinary Python process deadline."
+          ],
+          "change": [
+            "Journal the intercepted upstream status, tagged snapshot HTTP and writer observations, and browser delivery separately. Fail the fixture explicitly if its snapshot settles before the tagged write. Exercise a real refusal while a competing snapshot holds the writer."
+          ],
+          "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
+          "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
+        }
+      }
+    },
+    {
+      "id": "M0-167",
+      "title": "Verify scratch cleanup when an admitted indicator is cancelled before child exit",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M3-005"
+      ],
+      "scope": [
+        "crates/worker-host",
+        "python/worker_runtime",
+        "python/indicators",
+        "apps/desktop/ui/ubuntu-workspace.mjs",
+        "crates/persistence/src/bin/workspace_bridge.rs",
+        "tests/ubuntu-preview"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain the first protected Windows failure, its named assertion and neighboring results. Determine what the application guarantees when returning a cancelled task and distinguish a remaining child, handle or scratch path using observations.",
+        "Exercise the ordinary trusted worker cancellation entry with an approved benign fixture. Verify one terminal cancellation, absence of a persistable result and cleanup of only its owned scratch files. Preserve normal completion, deadlines, task isolation and interruption. Retain a controlled failure that distinguishes the chosen correction.",
+        "Through the preview transport and its ordinary registry, observe a complete worker failure before the carrier exits, no artifact, and an independently approved run during the first run's cleanup. Preserve the success and cancellation lifecycles, and observe bounded carrier ownership and shutdown.",
+        "Through the ordinary preview and public registry, submit the same valid indicator success frame before exit 0, exit 1 and signal termination. Require close with exit 0 for success. For both abnormal closes require WORKER_EXITED, no artifact, no committed effects, and available adjacent admission. Preserve previously delivered terminal errors, explicit cancellation, late-frame rejection and bounded carrier cleanup.",
+        "Obtain independent review and qualifying Windows and Linux observations for the corrected responsibility, including an integrated Windows recheck. Record remaining limits and account for cleanup failures without loosening the terminal contract."
+      ],
+      "checks": [
+        "project-state",
+        "rust-contracts-workers",
+        "indicator-workflow"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-167-e7e23925f74c9c25.json",
+          "sha256": "fbe9b1dd8c863a2178cf04d938e61be9764831f5c03385c394aa309ac2f5a928"
+        },
+        {
+          "path": "project/evidence/M0-167-8075a8551f55d506.json",
+          "sha256": "e74516b8e68feb9268d3e4a317b5de1bbdcf941b436100d001e3934680726bca"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45825584085-1",
+          "source_commit": "8d088f7cba3e7d6322ee9eeb396bd2db59bfa4a2",
+          "report_sha256": "49e0b487bd0cd4501a5c5888ae2198149015b40a9cbcc78242d916ff08d4fff8"
+        },
+        {
+          "run_id": "windows-change-45825584085-1",
+          "source_commit": "8d088f7cba3e7d6322ee9eeb396bd2db59bfa4a2",
+          "report_sha256": "224cf1a54de8ed450870007188fd2b81ec999eaad48374cda7e40081e5b1f9b9"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent approval of 0ca842a35ca077d433c5b2d7930d29a7d8b1f23f applies to guarded source 3ef15d9e96e8f71c4da3f2af4b24e8c6c091fa25. Run 45840015267 passed every selected M0-167 check on Ubuntu and Windows. Its integrated preview check covered approval, restoration and controlled carrier lifecycles, including exit 0 with a held close, exit 1 and Node-observed SIGTERM. Ordinary PR 141 run 45839529927 independently passed the earlier Rust scratch failure on both platforms and the Windows sharing-denied case on the merge preview f025c01a8a868702632a2f4069bf153ac599b673. The ordinary selection omitted the task-cadence indicator-workflow. Prior local public-registry controls retain the exit comparison and the separate real delayed cleanup observation, including adjacent admission and success before release. Protected run 45825584085 returned CANCELLED before failing scratch absence at trusted_indicator.rs:340:9. Thirteen neighboring cases passed and the process assertions were unreached. The original internal cause remains unknown. The coordinator must recheck the composed protected candidate, retaining the first protected Windows result and any task-cadence results.",
+      "plan": {
+        "outcome": "Retain the first protected Windows failure, its named assertion and neighboring results. Determine what the application guarantees when returning a cancelled task and distinguish a remaining child, handle or scratch path using observations. Exercise the ordinary trusted worker cancellation entry with an approved benign fixture. Verify one terminal cancellation, absence of a persistable result and cleanup of only its owned scratch files. Preserve normal completion, deadlines, task isolation and interruption. Retain a controlled failure that distinguishes the chosen correction. Require the public preview registry to reject the same valid success frame after abnormal carrier close and preserve it after exit status 0.",
+        "change_types": [
+          "indicators"
+        ],
+        "context": [
+          "crates/worker-host/tests/trusted_indicator.rs",
+          "crates/worker-host/src/indicator.rs",
+          "crates/worker-host/src/indicator/carrier.rs",
+          "apps/desktop/ui/ubuntu-workspace.mjs",
+          "crates/persistence/src/bin/workspace_bridge.rs",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ubuntu-preview/workspace_indicator_gate.mjs",
+          "project/checks.json",
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json"
+        ],
+        "hypotheses": [
+          "The first Windows failure did not distinguish a reaper wait that exceeded the caller grace from a filesystem removal error. The test previously checked the path before checking the processes.",
+          "An injected Linux interruption of the first scratch removal reproduced the surviving directory after cancellation with both processes gone. An ordinary success and an uninjected cancellation removed their scratch directories. This establishes a silent removal failure mechanism, while attribution of the original Windows failure remains open.",
+          "The first protected producer and the linked Windows aggregate both recorded the same failed scratch assertion before the process assertions. Both PR 135 Windows reports passed the same test with identical worker and test source blobs. These observations provide no process, handle or filesystem error evidence for the original failure.",
+          "The independent review of 5623272d found that partial backoff can initiate a retry at the deadline and that synchronous scratch removal can block the current-thread caller's timer. The deadline test and the controlled slow filesystem test distinguish these from the historical Windows assertion.",
+        "The independent review of 5585d26a observed the preview transport waiting for child close before relaying a complete WORKER_EXITED frame. The carrier already owns the reaper beyond terminal publication. Exercise the public writer path with separate frame delivery, child close and scratch removal observations.",
+        "The independent review of cf1eb9da observed identical success delivery after exit 0, exit 1 and SIGTERM. The preview closes over stdout length when evaluating the exit status, and the writer only receives the resulting frame. Exercise the same valid frame through the public registry with each close outcome."
+        ],
+        "risks": [
+          {
+            "failure": "Suppressing a remove error, broad directory cleanup, or delaying the assertion indiscriminately could hide a leak or affect another task.",
+            "checks": [
+              "project-state",
+              "rust-contracts-workers",
+              "indicator-workflow"
+            ]
+          },
+          {
+            "failure": "An expired or queued retry could start another filesystem operation. Check the first attempt after budget exhaustion, a retry within budget, and the partial backoff boundary with deterministic time.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A slow deletion or carrier shutdown could delay terminal cancellation or release scratch ownership or the admission permit early. Hold deletion under test control while observing the native caller, the scratch data, the permit and the independent task.",
+            "checks": [
+              "rust-contracts-workers",
+              "indicator-workflow"
+            ]
+          },
+          {
+            "failure": "An indicator failure that waits for close can keep the registry busy or expire as TIMEOUT. An early response can leave an untracked carrier or release success early. Exercise an owned delayed close, competing admission, cancellation, invalid or partial output, and service shutdown.",
+            "checks": [
+              "rust-contracts-workers",
+              "indicator-workflow"
+            ]
+        },
+        {
+          "failure": "A valid indicator success can pass through an abnormal close, or correcting close validation can overwrite an already delivered error or explicit cancellation. Exercise the ordinary preview registry with zero, nonzero and signal termination, the same valid frame and no effects on rejection, then verify neighboring admission, late frames and bounded cleanup.",
+          "checks": [
+            "indicator-workflow"
+          ]
+          }
+        ],
+        "rollback": "Restore the preceding implementation and retain the diagnosed failures and controls if the ordinary contract changes.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "worker-host",
+            "worker-runtime",
+            "desktop",
+            "persistence"
+          ],
+          "entrypoints": [
+            "crates/worker-host/tests/trusted_indicator.rs",
+            "crates/worker-host/src/indicator.rs",
+            "crates/worker-host/src/indicator/carrier.rs",
+            "apps/desktop/ui/ubuntu-workspace.mjs",
+            "crates/persistence/src/bin/workspace_bridge.rs",
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ubuntu-preview/workspace_indicator_gate.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/0"
+            }
+          ],
+          "non_goals": [
+            "Preserve task boundaries, approved interpreter authority, resource limits and user data. Only inspect the owned synthetic workspace; avoid changes to product permissions."
+          ],
+          "open_questions": [
+            "Does qualifying Windows execution reproduce a cleanup wait or removal failure, or pass with both the physical path and processes absent?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Preserve task boundaries, approved interpreter authority, resource limits and user data. Only inspect the owned synthetic workspace; avoid changes to product permissions."
+          ],
+          "change": [
+            "Observe scratch removal after supervisor exit. Allow one initial removal and only retry transient interruptions or Windows sharing and lock failures before the same deadline used for the caller wait. Offload blocking removal with the task-owned scratch and permit, and make the terminal response observable while cleanup continues. Require confirmed cleanup before returning a successful result.",
+          "Replace the status-coupled preview reply with an ordered, private completion notification. Deliver a validated indicator failure while the carrier owns cleanup. Stage a success only after carrier close with exit status 0 and continue to publish only through an ordinary status read. Bound the preview to two live indicator carriers and wait for their close during shutdown."
+          ],
+          "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
+          "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
+        }
+      }
+    },
+    {
+      "id": "M0-170",
+      "title": "Qualify the public CSV preview preceding a cancelled reviewed save",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M1-008"
+      ],
+      "scope": [
+        "apps/desktop/src-tauri",
+        "crates/worker-host",
+        "crates/application",
+        "python/worker_runtime"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Bind the failing public preview, same-case passing controls and the separate reviewed save to their exact native source and original logs. Identify the stage that was actually reached and preserve missing observations.",
+        "Classify or correct the CSV preview timeout at the ordinary desktop entry using an isolated synthetic source, a genuinely completed preview and a bounded early stall or failed preview. Verify cancellation after admission on a successful preview preserves the unwritten profile and an ordinary subsequent operation.",
+        "Retain original and corrective evidence, qualify the changed source on native Windows, obtain independent review and recheck the integrated source."
+      ],
+      "checks": [
+        "project-state",
+        "rust-contracts-workers",
+        "local-folder-import",
+        "architecture",
+        "market-fixtures",
+        "python-contracts-workers",
+        "python-types"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-170-49321535db353478.json",
+          "sha256": "645256c4653d9718cc52608bd356950b81c3bbc7238762f774d040e6780f4df6"
+        },
+        {
+          "path": "project/evidence/M0-170-f3c8a70a8bcd1c5e.json",
+          "sha256": "66475e637116b8eb5bf7ba21800809ab99b4ffa7d35991e590694d3dd1220e87"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45848342284-1",
+          "source_commit": "10024108d06f2d6adaf095b1ccb1a9d1bd531b82",
+          "report_sha256": "23dbf3f6ac858b6cd0c8becceed7cc2812b3cf5f5b1a7221b7d0404ff523426e"
+        },
+        {
+          "run_id": "windows-change-45848342284-1",
+          "source_commit": "10024108d06f2d6adaf095b1ccb1a9d1bd531b82",
+          "report_sha256": "d2522517d478284ed0ff105716383b337d40b8b114f84db18b0ce319b999b281"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Scoped pre-integration qualification passed. Independent approval of 4954f35d27e102a79f98ea0f2379093d2d60e777 applies to guarded source 6641533e96a144636bf6a142f63668b62aa8d2b7, whose only additional file records that review. Guarded run 45930637026 passed all seven required checks on native Windows and Linux. The public bridge cases verified a completed preview, a bounded interruption that leaves the preview unable to authorize a save, and cancellation after a separate save holds admission. The following ordinary load returned not_saved and the profile directory was absent. Ordinary PR 144 run 45930612626 passed the relevant Rust cases on both platforms and omitted the task-cadence local-folder-import check. PR 142 run 45848342284 stopped after selection at the initial public preview timeout, before save admission or cancellation. The separate save recovery and passing controls are retained with their source and logs. The original worker exchange stage, cleanup, interpreter ownership and cause remain unknown. The coordinator owns the protected integration recheck and retention of the first protected result.",
+      "plan": {
+        "outcome": "Bind the failing public preview, same-case passing controls and the separate reviewed save to their exact native source and original logs. Identify the stage that was actually reached and preserve missing observations. Classify or correct the CSV preview timeout at the ordinary desktop entry using an isolated synthetic source, a genuinely completed preview and a bounded early stall or failed preview. Verify cancellation after admission on a successful preview preserves the unwritten profile and an ordinary subsequent operation.",
+        "change_types": [
+          "tooling",
+          "market-fixtures"
+        ],
+        "context": [
+          "apps/desktop/src-tauri/src/bridge_tests.rs",
+          "apps/desktop/src-tauri/src/local_import.rs",
+          "crates/worker-host/src/local_import.rs",
+          "project/checks.json",
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json"
+        ],
+        "hypotheses": [
+          "The first worker exchange expired after the source read. The original fixture restricted Windows worker pipe I/O to one blocking thread, although the save blocker had yet to start. The log does not establish the cause."
+        ],
+        "risks": [
+          {
+            "failure": "A longer timeout or a retry before the save could hide a stuck preview or allow the cancellation assertion to pass without exercising the intended save phase.",
+            "checks": [
+              "project-state",
+              "rust-contracts-workers",
+              "local-folder-import"
+            ]
+          }
+        ],
+        "rollback": "Restore the preceding implementation and retain the diagnosed failures and controls if the ordinary contract changes.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "desktop",
+            "worker-host",
+            "application",
+            "worker-runtime"
+          ],
+          "entrypoints": [
+            "apps/desktop/src-tauri/src/bridge_tests.rs",
+            "apps/desktop/src-tauri/src/local_import.rs",
+            "crates/worker-host/src/local_import.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/0"
+            }
+          ],
+          "non_goals": [
+            "Preserve production deadlines, import authorization, private profile ownership, cancellation and saved data. Use owned synthetic fixtures. Keep the Herdr portability task and indicator cleanup cases with their existing owners."
+          ],
+          "open_questions": [
+            "Which worker exchange stage expired and why was no replacement attempted? The original log did not observe worker stages, cleanup or interpreter ownership."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Preserve production deadlines, import authorization, private profile ownership, cancellation and saved data. Use owned synthetic fixtures. Keep the Herdr portability task and indicator cleanup cases with their existing owners."
+          ],
+          "change": [
+            "Use an ordinary blocking pool for the real preview and keep the one-thread pool for the deterministic save reread. Record the completed preview, admitted save and unwritten profile separately. Use the same synthetic CSV in the controlled preview interruption and check that it cannot authorize a save."
+          ],
+          "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
+          "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
+        }
+      }
+    },
+    {
       "id": "M0-161",
       "milestone": "M0",
       "title": "Route the coordinator to the accepted maintenance engagement from ordinary startup",
@@ -26876,6 +27546,7 @@
       ],
       "scope": [
         "scripts/development.py",
+        "scripts/project.py",
         "project/delivery.json",
         "tests/project/test_development.py",
         "project/tasks.json",
@@ -26896,7 +27567,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Use the maintained public handoff and original accepted task records to deliver the owner goal and the immediate evidence needed by the next AI. Verify with an ordinary fresh read.",
+      "next_action": "Independently read the ordinary maintenance handoff on the clean candidate. Follow the accepted example and first-test rule, distinguish the open timing decision from the engineering objective, and check the two-workstream stop before recording review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26909,6 +27580,7 @@
           "project/delivery.json",
           "project/development.json",
           "scripts/development.py",
+          "scripts/project.py",
           "tests/project/test_development.py"
         ],
         "hypotheses": [
@@ -26931,6 +27603,7 @@
           ],
           "entrypoints": [
             "scripts/development.py",
+            "scripts/project.py",
             "project/delivery.json",
             "tests/project/test_development.py"
           ],

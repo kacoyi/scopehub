@@ -1,8 +1,8 @@
 use std::{
-    fs, future,
+    fs, future, io,
     path::{Path, PathBuf},
     process::Stdio,
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use scopehub_domain::protocol::{ErrorCode, IndicatorCompute11};
@@ -332,12 +332,24 @@ runpy.run_path(str(Path(__file__).with_name('indicator_guard_original.py')), run
     }
 
     fn assert_reaped(&self, pid: u32, parent: u32, scratch: PathBuf) {
+        // Capture the directory state before querying the processes so those
+        // queries cannot give an outstanding deletion extra time to finish.
+        let scratch_state = fs::symlink_metadata(&scratch);
+        let interpreter_alive = process_exists(pid);
+        let supervisor_alive = process_exists(parent);
+        eprintln!(
+            "synthetic worker cleanup: interpreter_alive={interpreter_alive}, \
+             supervisor_alive={supervisor_alive}, scratch={scratch_state:?}"
+        );
         assert_ne!(
             parent,
             std::process::id(),
             "the supervisor owns the interpreter"
         );
-        assert!(!scratch.exists(), "the scratch directory must be removed");
+        assert!(
+            matches!(&scratch_state, Err(error) if error.kind() == io::ErrorKind::NotFound),
+            "the scratch directory must be removed: {scratch_state:?}"
+        );
         assert_eq!(
             fs::read_to_string(self.directory.join("entered"))
                 .unwrap()
@@ -347,8 +359,8 @@ runpy.run_path(str(Path(__file__).with_name('indicator_guard_original.py')), run
             "an interrupted run must never invoke the code again"
         );
         assert_ne!(pid, parent);
-        assert!(!process_exists(pid), "interpreter {pid} survived");
-        assert!(!process_exists(parent), "supervisor {parent} survived");
+        assert!(!interpreter_alive, "interpreter {pid} survived");
+        assert!(!supervisor_alive, "supervisor {parent} survived");
     }
 
     async fn sleeping_child(&self) -> u32 {
@@ -570,6 +582,7 @@ async fn cancellation_discards_a_correlated_result_from_a_child_that_has_not_exi
         r#"import os, pathlib
 response['message_id'] = str(uuid.uuid4())
 print(json.dumps(response), flush=True)
+pathlib.Path('pending-output').write_text('synthetic scratch data', encoding='utf-8')
 path = pathlib.Path(__file__).parents[2] / 'entered'
 path.write_text(json.dumps([os.getpid(), os.getppid(), os.getcwd()]), encoding='utf-8')
 while True:
@@ -586,9 +599,71 @@ while True:
         result = &mut operation => panic!("result escaped before worker exit: {result:?}"),
         witness = fixture.witness() => witness,
     };
+    assert_eq!(
+        fs::read_to_string(scratch.join("pending-output")).unwrap(),
+        "synthetic scratch data"
+    );
+    let started = Instant::now();
     cancel.send(()).unwrap();
-    assert_eq!(operation.await.unwrap_err().code, ErrorCode::CANCELLED);
+    let failure = operation.await.unwrap_err();
+    eprintln!(
+        "synthetic cancellation returned after {:?}",
+        started.elapsed()
+    );
+    assert_eq!(failure.code, ErrorCode::CANCELLED);
+    assert!(!failure.retryable && failure.details.is_empty());
     fixture.assert_reaped(pid, parent, scratch);
+}
+
+#[tokio::test]
+async fn cancelling_one_live_computation_preserves_adjacent_scratch_and_result() {
+    let cancelled = Fixture::observe_real_worker();
+    let adjacent = Fixture::observe_real_worker();
+    let cancelled_request = request(LOOP);
+    let adjacent_source = SOURCE.replace(
+        "    print(\"synthetic stdout\")",
+        r#"    from pathlib import Path
+    from time import sleep
+    Path('pending-output').write_text('adjacent synthetic output', encoding='utf-8')
+    while not Path('allow-result').exists():
+        sleep(0.01)"#,
+    );
+    let adjacent_request = request(&adjacent_source);
+    let (cancel, cancellation) = oneshot::channel();
+    let first = compute(&cancelled.config, &cancelled_request, async {
+        cancellation.await.unwrap();
+    });
+    let second = compute(&adjacent.config, &adjacent_request, future::pending());
+    tokio::pin!(first, second);
+
+    let ((pid, parent, scratch), (adjacent_pid, adjacent_parent, adjacent_scratch)) = tokio::select! {
+        result = &mut first => panic!("first computation ended before cancellation: {result:?}"),
+        result = &mut second => panic!("adjacent computation ended before release: {result:?}"),
+        witnesses = async { tokio::join!(cancelled.witness(), adjacent.witness()) } => witnesses,
+    };
+    assert_ne!(scratch, adjacent_scratch);
+    let pending_output = adjacent_scratch.join("pending-output");
+    timeout(Duration::from_secs(2), async {
+        while !pending_output.exists() {
+            sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .expect("the adjacent computation must write its own scratch output");
+
+    cancel.send(()).unwrap();
+    let failure = first.await.unwrap_err();
+    assert_eq!(failure.code, ErrorCode::CANCELLED);
+    cancelled.assert_reaped(pid, parent, scratch);
+    assert_eq!(
+        fs::read_to_string(pending_output).unwrap(),
+        "adjacent synthetic output"
+    );
+    fs::write(adjacent_scratch.join("allow-result"), b"").unwrap();
+
+    let reply = second.await.unwrap();
+    assert_result(&serde_json::to_value(reply).unwrap(), &adjacent_request);
+    adjacent.assert_reaped(adjacent_pid, adjacent_parent, adjacent_scratch);
 }
 
 async fn carrier(request: &IndicatorCompute11, cancel: bool) -> Value {
@@ -631,6 +706,16 @@ async fn carrier(request: &IndicatorCompute11, cancel: bool) -> Value {
 async fn private_cli_delivers_one_terminal_result_with_parent_input_open() {
     let request = request(SOURCE);
     assert_result(&carrier(&request, false).await, &request);
+}
+
+#[tokio::test]
+async fn private_cli_rejects_an_exact_source_change_after_hashing() {
+    let mut request = request(&format!("{SOURCE}\n"));
+    request.code_hash = sha(SOURCE.as_bytes());
+    let reply = carrier(&request, false).await;
+    assert_eq!(reply["error"]["code"], "INVALID_ARGUMENT");
+    assert_eq!(reply.as_object().unwrap().len(), 1);
+    assert!(reply.get("artifact").is_none());
 }
 
 #[tokio::test]

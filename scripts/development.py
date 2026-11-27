@@ -143,13 +143,13 @@ def load_maintenance_engagement(root, engagement):
         archive_limit = authority['resume']['unavailable_private_archive']
         required_terms.append(archive_limit)
         for outcome in outcomes.values():
-            required_terms.append(outcome['owner'])
+            required_terms.extend((outcome['owner'], outcome['intent']))
             acceptance = outcome['acceptance']
             if not isinstance(acceptance, list) or not acceptance:
                 raise ValueError('An engagement workstream needs acceptance criteria')
             required_terms.extend(acceptance)
         if not all(isinstance(term, str) and term.strip() for term in required_terms):
-            raise ValueError('Engagement authority needs owners, acceptance and stop terms')
+            raise ValueError('Engagement authority needs owners, intent, acceptance and stop terms')
         if (len(outcomes) != len(authority['outcomes']) or not isinstance(complete_when, list)
                 or len(complete_when) != len(workstreams) or set(complete_when) != set(workstreams)
                 or outcomes.keys() != workstreams.keys()):
@@ -159,7 +159,7 @@ def load_maintenance_engagement(root, engagement):
 
     rows = []
     for key, outcome in outcomes.items():
-        row = {'id': key, 'owner': outcome['owner'], 'acceptance': outcome['acceptance']}
+        row = {field: outcome[field] for field in ('id', 'intent', 'owner', 'acceptance')}
         record = workstreams[key]
         closure = record.get('closure')
         if closure is None:
@@ -556,19 +556,36 @@ def project_navigation(*arguments, read_only=False, source_commit=None):
     return shlex.join(('pnpm', 'project:' + arguments[0], *arguments[1:]))
 
 
-def engagement_handoff(engagement, *, read_only=False, source_commit=None):
+def engagement_handoff(engagement, tasks, *, read_only=False, source_commit=None):
+    def navigation(*arguments):
+        return project_navigation(*arguments, read_only=read_only, source_commit=source_commit)
+
     def source_command(reference):
-        return project_navigation('source', reference['path'], reference['pointer'],
-                                  read_only=read_only, source_commit=source_commit)
+        return navigation('source', reference['path'], reference['pointer'])
+
+    workstreams = []
+    for row in engagement['workstreams']:
+        handoff = row.copy()
+        if 'closure' in row:
+            handoff['closure_command'] = source_command(row['closure'])
+        elif row['id'] == 'ongoing-maintenance':
+            handoff['first_test_command'] = navigation('source', 'engineering-contract-v1.json',
+                                                       '/implementation_policy/first_test')
+            handoff['review_status_command'] = navigation('status')
+            example = tasks.get('M0-163')
+            if example and example['status'] == 'done':
+                handoff['accepted_example'] = {
+                    'outcome': example['plan']['outcome'],
+                    'command': navigation('context', example['id']),
+                    'evidence_scope': 'Historical task receipts for the verified implementation.',
+                }
+        workstreams.append(handoff)
 
     return {
         **engagement,
         'owner_source_basis': 'Owner terms and historical intake observations.',
         'owner_source_command': source_command(engagement['authority']),
-        'workstreams': [
-            {**row, **({'closure_command': source_command(row['closure'])} if 'closure' in row else {})}
-            for row in engagement['workstreams']
-        ],
+        'workstreams': workstreams,
     }
 
 

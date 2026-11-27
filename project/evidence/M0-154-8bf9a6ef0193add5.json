@@ -1,0 +1,179 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-154",
+  "task_definition_sha256": "00406ab2352f23f40ae392cddff1a247c9ed123648eadda44c793317b4a2250e",
+  "run_id": "20261126T050806.742529Z-45864ef6",
+  "recorded_at": "2026-11-26T05:14:57.063230+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "1d18498d7a724b2c9ed52b901c4493d0c5a31c5604c562174f650b1dc828182f",
+    "file_count": 617,
+    "git_head": "523db34430c3eeb2b0c9ffeefa4c462038d405c1",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "8bf9a6ef0193add54f99974d27d06b375fc86e57497f87dd86f78f80d6588b2a",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-44-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/windows-sample-document-readiness/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/windows-sample-document-readiness/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e878f0408586761ba81c67f9866d15383fc4da8b9dc1e48dc7a81ff4583e382b"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/windows-sample-document-readiness/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5b25e07b92daccbb2770ebda8e76f32575e732839223cd7eb95cfcaa30130542"
+    },
+    {
+      "id": "market-recovery",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-closed-bar-repair.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ca6200888fd26eb96830206aaf72e1d0602309c3ad146d45966122ff59676855"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f3550af07456a6de60d782ed827c3f6135fc01b2d431a943e8cfa87d279dc423"
+    },
+    {
+      "id": "generated-contracts",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/windows-sample-document-readiness/.venv/bin/python",
+        "scripts/generate_contracts.py",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a4cd4b217f199d445fd595756b6021363f7be9475c5c034565dfc1a5e458cd28"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "4f828618002bb61ca6d4467de777910dec3f7617c58e0e6fefec6c0f4f741a69"
+    },
+    {
+      "id": "chart-history",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/windows-sample-document-readiness/.venv/bin/python",
+        "scripts/check_chart_history.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "68569c87307fd8edec8f8c4b59f1ef4bc40a786a33f110161a66ee52c01a7086"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/windows-sample-document-readiness/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "21394e146442aeb8b6a2927b16e5377ec5098398d42b0b7ad4f232b27003b445"
+    },
+    {
+      "id": "market-live-stream",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-stream.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "fb2e64dbbf5686119c02c02299e5542ea3accadc6f2eb5d03f71519da25dc73e"
+    },
+    {
+      "id": "market-quality-states",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-quality.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5f1583483c60a9822d988d8a6ca1a04bfe705882869b05908d94dde6c6d19ba2"
+    }
+  ],
+  "project_definition_sha256": "46d14622fdab88024a27f7996bcfdc163746c625a058047c3607042f022c15a9",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "1fd397158c85e8a9332c956d0c5e5117694f7cf6a076f45188129f4b4127c5b3",
+    "25450cf88725bcfbedfd8375c002d6446796667a7b295a4a1ae7b03a7380bacd",
+    "2ab601c737b9daef5cf68a7ab93bd7a93c0616dd34a4d56ed16c7086cd00b05d",
+    "2f6fd43d7f6e510ad20cd9274ec84d39f25391c34201fc7ce94942ebe87467fe",
+    "4e7bd4ef285b74cee9c27021d57cd739bf3f6fc48f18a5ab6782b92024f6ba75",
+    "61c431b2c770c71edc48044033568384f91e266ab3e5fdeb971cb2e2bb98657b",
+    "d3b0585a4ecffce657c7d59f209fd1e3104a098fd1546c77c24402d502a7c634"
+  ]
+}

@@ -22,6 +22,7 @@ import { assertWindowsLeafAclMatrix, assertUnsuitableWindowsHandoffsRejected, as
   from './workspace_test_handoff_acl.mjs';
 import { handoffProbeCases } from './workspace_test_handoff_probe_cases.mjs';
 import { claimProfile, withProfilePoolAclControl } from './workspace_profile_pool.mjs';
+import { observeIndicatorGate } from './workspace_indicator_gate.mjs';
 import { captureServiceOutput, observeServiceStartup, startupMessage } from './workspace_service_readiness.mjs';
 import { observeSnapshotGate } from './workspace_snapshot_gate.mjs';
 
@@ -31,6 +32,7 @@ const ui = join(root, 'apps/desktop/ui');
 const vite = pathToFileURL(join(ui, 'node_modules/vite/dist/node/index.js')).href;
 const viteCli = join(ui, 'node_modules/vite/bin/vite.js');
 const workspaceBridge = join(root, 'target/debug', process.platform === 'win32' ? 'workspace_bridge.exe' : 'workspace_bridge');
+const indicatorCarrier = join(root, 'target/debug', process.platform === 'win32' ? 'scopehub-indicator-child.exe' : 'scopehub-indicator-child');
 const python = join(root, '.venv', ...(process.platform === 'win32' ? ['Scripts', 'python.exe'] : ['bin', 'python']));
 const workspaceId = 'synthetic-workspace';
 const endpoint = '/__scopehub/workspace';
@@ -39,10 +41,11 @@ const snapshot = { type: 'snapshot' };
 // SQLite read when the actual producer is deliberately suspended.
 const admissionProbe = { type: 'snapshot', request_id: 1 };
 const snapshotGateModule = new URL('./workspace_snapshot_gate.mjs', import.meta.url).href;
+const indicatorGateModule = new URL('./workspace_indicator_gate.mjs', import.meta.url).href;
 const activeCacheSlots = new Set();
 const firstHistoryDisconnectHoldMs = 5_500;
 const service = `
-  const [entry, mode, port, cacheDir, faultEnabled, snapshotWriter, traceStartup] = process.argv.slice(1);
+  const [entry, mode, port, cacheDir, faultEnabled, snapshotWriter, traceStartup, indicatorCarrier] = process.argv.slice(1);
   const shutdown = Promise.withResolvers();
   let closing = !process.connected;
   let interrupted;
@@ -109,6 +112,9 @@ const service = `
   const snapshotGate = snapshotWriter
     ? (await import('${snapshotGateModule}')).installSnapshotGate('${endpoint}', snapshotWriter)
     : undefined;
+  const indicatorGate = indicatorCarrier
+    ? (await import('${indicatorGateModule}')).installIndicatorGate(indicatorCarrier, process.env.SCOPEHUB_WORKSPACE_PROFILE_ROOT)
+    : undefined;
   if (snapshotGate) plugins.push(snapshotGate.plugin);
   let server;
   function reportStartup(phase, code) {
@@ -137,8 +143,10 @@ const service = `
     cutHistory();
     snapshotGate?.close();
     try {
+      indicatorGate?.closing();
       await server?.close();
     } finally {
+      indicatorGate?.close();
       if (process.connected) process.disconnect();
     }
   }
@@ -865,6 +873,12 @@ test('indicator-preview shows zero volatility for equal closes in a full or crop
   ]);
 });
 
+test('indicator-preview identifies a refused snapshot before discarding the cropped status', async ({ browser }, testInfo) => {
+  await observeFrozenIndicatorPreview(browser, testInfo, [
+    { count: 1, cut: 1, refusals: 1, contendSnapshot: true },
+  ]);
+});
+
 const indicatorStatusFaults = [
   ['an admitted BUSY', 200, () => busy, 'The workspace is busy. Try the preview again.'],
   ['a nonretryable 429', 429, () => ({ ok: false, error: { code: 'BUSY', retryable: false } }),
@@ -1090,6 +1104,11 @@ function frozenJournalEvidence(journal) {
       at_ms: attempt.at_ms, body_sha256: createHash('sha256').update(attempt.body ?? '').digest('hex'),
       http: attempt.http, reply: reply(attempt.reply), delivery: bounded(attempt.delivery),
       response_error: bounded(attempt.response_error), browserDeadline: attempt.browserDeadline,
+      route_failure: attempt.routeFailure, fixture: attempt.fixture,
+      dispose_error: bounded(attempt.disposeError),
+      intercepted_ready: attempt.interceptedReady && {
+        http: attempt.interceptedReady.http, result: result(attempt.interceptedReady.result),
+      },
       syntheticRefusalRoute: attempt.syntheticRefusalRoute, heldForDeadline: attempt.heldForDeadline,
       triedLateFulfillment: attempt.triedLateFulfillment,
       lateFulfillmentError: bounded(attempt.lateFulfillmentError), gated: attempt.gated,
@@ -1102,8 +1121,55 @@ function frozenJournalEvidence(journal) {
   };
 }
 
+function startFrozenSnapshotHold(server) {
+  const tag = server.tagSnapshot();
+  const stop = new AbortController();
+  const signal = AbortSignal.any([stop.signal, AbortSignal.timeout(5_000)]);
+  const observation = {};
+  const reply = post(server, snapshot, tag.headers, signal).then(async response => {
+    observation.http = response.status;
+    const frame = await response.json();
+    observation.ok = frame.ok === true;
+    if (frame.error) observation.error = { code: frame.error.code, retryable: frame.error.retryable };
+    return response.status;
+  }).catch(error => {
+    observation.delivery_error = error.name;
+    throw error;
+  });
+  void reply.catch(() => {});
+  return {
+    async waitForWriter() {
+      const stopWaiting = new AbortController();
+      const waiting = AbortSignal.any([stopWaiting.signal, AbortSignal.timeout(3_000)]);
+      try {
+        return await Promise.race([tag.wait('written', waiting), reply.then(http => {
+          throw new Error(`Tagged frozen indicator snapshot settled before reaching the writer (HTTP ${http}).`);
+        })]);
+      } finally {
+        stopWaiting.abort();
+      }
+    },
+    async drain(written) {
+      tag.release();
+      expect(await tag.wait('drained')).toMatchObject({ request_id: written.request_id, ok: true });
+      expect(await reply).toBe(200);
+      expect(observation.ok).toBe(true);
+      expect(await tag.wait('finished')).toMatchObject({ http: 200 });
+    },
+    evidence() {
+      return { ...observation, stages: tag.stages() };
+    },
+    async close() {
+      tag.release();
+      if (!tag.stages().written) stop.abort();
+      await Promise.allSettled([reply]);
+    },
+  };
+}
+
 async function observeFrozenIndicatorPreview(browser, testInfo, trials) {
   const profile = await makeProfile();
+  let port;
   const revision = randomUUID();
   const prices = [133.33, 120.21, 120.21].map((close, index) => {
     const time = Date.UTC(2026, 1, 3 + index);
@@ -1112,7 +1178,8 @@ async function observeFrozenIndicatorPreview(browser, testInfo, trials) {
   });
   try {
     await seedFrozenEvidence(profile, revision, prices[0].time_ms, prices[2].time_ms, prices);
-    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+    port = await freePort();
+    await inService(port, profile, 'ubuntu-workspace', async server => {
       await inFreshBrowser(browser, server, async page => {
         await control(page, 'Open published CSV').click();
         const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
@@ -1125,6 +1192,7 @@ async function observeFrozenIndicatorPreview(browser, testInfo, trials) {
         if (trials.some(trial => trial.fault?.persistent)) await page.evaluate(observeFrozenStatusDeadlines);
         let journal = new Map();
         let routeStatus;
+        let onRouteFailure;
         let startedAt;
         const elapsed = () => Math.round(performance.now() - startedAt);
         page.on('request', request => {
@@ -1146,24 +1214,40 @@ async function observeFrozenIndicatorPreview(browser, testInfo, trials) {
           const attempt = journal.get(request);
           if (attempt) attempt.delivery = request.failure()?.errorText;
         });
-        await page.route(server.url + endpoint, route => {
+        await page.route(server.url + endpoint, async route => {
           const attempt = journal.get(route.request());
-          return attempt?.operation === 'indicator_preview_status' ? routeStatus(route, attempt) : route.continue();
+          if (!onRouteFailure || attempt?.operation !== 'indicator_preview_status') return route.continue();
+          const reportFailure = onRouteFailure;
+          try {
+            await routeStatus(route, attempt);
+          } catch (error) {
+            onRouteFailure = undefined;
+            attempt.routeFailure = { phase: attempt.routePhase, at_ms: elapsed(), name: error.name, cause: error.cause?.name };
+            try { await route.abort('failed'); }
+            catch (abortError) { attempt.routeFailure.abort_error = abortError.name; }
+            reportFailure({ error, attempt });
+          }
         });
 
         let previousTask;
         for (const trial of trials) {
-          const { count, cut, fault, refusals = 0 } = trial;
+          const { count, cut, fault, refusals = 0, contendSnapshot = false } = trial;
           journal = new Map();
           startedAt = performance.now();
+          const routeFailed = Promise.withResolvers();
+          onRouteFailure = routeFailed.resolve;
           let lost = 0;
           let substituted = false;
           let simulatedAttempts = 0;
           let remaining = refusals;
           let holder;
-          let snapshotReply;
+          let written;
+          let holdingAttempt;
+          let competing;
+          let competingWritten;
           let alert;
           routeStatus = async (route, attempt) => {
+            attempt.routePhase = 'deliver-status';
             if (fault?.persistent && lost === cut) {
               attempt.syntheticRefusalRoute = true;
               if (++simulatedAttempts === 3 && fault.holdFinalReply) {
@@ -1181,17 +1265,20 @@ async function observeFrozenIndicatorPreview(browser, testInfo, trials) {
               return route.fulfill({ status: fault.http, json: fault.body() });
             }
             if (!remaining && lost >= cut && (!fault || substituted)) return route.continue();
+            attempt.routePhase = 'fetch-status';
             const response = await route.fetch({ timeout: 5_000, maxRetries: 0 });
+            let failedBeforeDisposal = false;
             try {
+              attempt.routePhase = 'read-status';
               const reply = await response.json();
               if (holder && remaining > 0) {
                 expect({ http: response.status(), reply }).toEqual({ http: 429, reply: busy });
                 attempt.gated = true;
                 if (--remaining === 0) {
-                  holder.release();
-                  await holder.wait('drained');
-                  expect(await responseStatus(await snapshotReply)).toBe(200);
+                  attempt.routePhase = 'drain-snapshot';
+                  await holder.drain(written);
                 }
+                attempt.routePhase = 'deliver-refusal';
                 return await route.fulfill({ response });
               }
               if (reply.result?.status !== 'ready') return await route.fulfill({ response });
@@ -1201,18 +1288,34 @@ async function observeFrozenIndicatorPreview(browser, testInfo, trials) {
                 substituted = true;
                 return await route.fulfill({ status: fault.http, json: replacement });
               }
-              attempt.lost = { http: response.status(), result: reply.result };
-              if (++lost === 1 && remaining > 0) {
+              attempt.interceptedReady = { http: response.status(), result: reply.result };
+              if (lost === 0 && remaining > 0) {
                 // Hold an actual snapshot reply at the portable writer pipe.
                 // The authenticated status receives the host's own refusal.
-                holder = server.tagSnapshot();
-                snapshotReply = post(server, snapshot, holder.headers, AbortSignal.timeout(5_000));
-                void snapshotReply.catch(() => {});
-                await holder.wait('written');
+                holdingAttempt = attempt;
+                if (contendSnapshot) {
+                  attempt.routePhase = 'write-competing-snapshot';
+                  competing = startFrozenSnapshotHold(server);
+                  competingWritten = await competing.waitForWriter();
+                }
+                attempt.routePhase = 'write-snapshot';
+                holder = startFrozenSnapshotHold(server);
+                written = await holder.waitForWriter();
               }
+              attempt.routePhase = 'discard-ready-status';
+              lost++;
               await route.abort('connectionreset');
+              attempt.lost = attempt.interceptedReady;
+            } catch (error) {
+              failedBeforeDisposal = true;
+              throw error;
             } finally {
-              await response.dispose();
+              if (!failedBeforeDisposal) attempt.routePhase = 'dispose-status';
+              try { await response.dispose(); }
+              catch (error) {
+                if (!failedBeforeDisposal) throw error;
+                attempt.disposeError = error.name;
+              }
             }
           };
           try {
@@ -1220,7 +1323,40 @@ async function observeFrozenIndicatorPreview(browser, testInfo, trials) {
               await panel.getByLabel('First visible bar').selectOption(String(prices[2].time_ms));
             }
             await run.click();
-            await expect(panel.getByText(/Preview layers/).or(failure)).toBeVisible({ timeout: 30_000 });
+            const verdict = await Promise.race([routeFailed.promise,
+              panel.getByText(/Preview layers/).or(failure).waitFor({ timeout: 30_000 }).then(() => ({}))]);
+            if (contendSnapshot) {
+              expect(verdict.error?.message).toBe('Tagged frozen indicator snapshot settled before reaching the writer (HTTP 429).');
+              const { attempt } = verdict;
+              const admitted = operation => expectSingleAdmittedCommand([...journal.values()].filter(row => row.operation === operation),
+                { outcome: { state: 'committed' } });
+              const draft = admitted('indicator.createDraft');
+              const submitted = admitted('indicator.runPreview');
+              expect(submitted.payload.intent.arguments.draft_id).toBe(draft.reply.result.outcome.result.draft_id);
+              const taskId = submitted.reply.result.outcome.result.task_id;
+              expect(attempt).toMatchObject({ task_id: taskId, routeFailure: { phase: 'write-snapshot' },
+                interceptedReady: { http: 200, result: { status: 'ready', task_id: taskId, event: { task_id: taskId,
+                  snapshot: { from_ms: prices[2].time_ms, to_ms: prices[2].time_ms + 1 } } } } });
+              expect(attempt.lost).toBeUndefined();
+              await expect.poll(() => attempt.delivery).toBe('net::ERR_FAILED');
+              const refused = holder.evidence();
+              expect(refused).toMatchObject({ http: 429, ok: false, error: busy.error });
+              expect(refused.stages.written).toBeUndefined();
+              await competing.drain(competingWritten);
+              await expect(panel.getByText(/Preview layers/)).toBeVisible();
+              const statuses = () => [...journal.values()].filter(row => row.operation === 'indicator_preview_status');
+              await expect.poll(() => statuses().at(-1)?.reply?.result).toEqual(attempt.interceptedReady.result);
+              const statusRows = statuses();
+              expect(statusRows.at(-1)).not.toBe(attempt);
+              expect(statusRows.every(row => row.task_id === taskId && typeof row.request_id === 'string')).toBe(true);
+              expect(new Set(statusRows.map(row => row.request_id)).size).toBe(statusRows.length);
+              await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+              const cancels = () => [...journal.values()].filter(row => row.operation === 'task.cancel');
+              await expect.poll(() => cancels().at(-1)?.reply?.ok).toBe(true);
+              expectSingleAdmittedCommand(cancels(), { task_id: taskId, outcome: { status: 'completed' } });
+              continue;
+            }
+            if (verdict.error) throw verdict.error;
             alert = await failure.isVisible() ? await failure.innerText() : null;
             expect(alert).toBe(fault?.alert ?? (cut === 2 ? 'The indicator preview could not be completed.' : null));
             await expect(run).toBeEnabled();
@@ -1264,16 +1400,17 @@ async function observeFrozenIndicatorPreview(browser, testInfo, trials) {
             await expect(table.locator('tbody tr')).toHaveCount(count);
             await expect(table.locator('tbody tr').last().getByRole('cell').last()).toHaveText('0');
           } finally {
-            try {
-              const evidence = { count, cut, refusals, fault: fault?.name, alert, elapsed_ms: elapsed(),
-                ...frozenJournalEvidence(journal) };
-              await testInfo.attach('Frozen indicator request journal', {
-                body: JSON.stringify(evidence), contentType: 'application/json',
-              });
-            } finally {
-              holder?.release();
-              if (snapshotReply) await Promise.allSettled([snapshotReply.then(responseStatus)]);
+            const elapsedMs = elapsed();
+            await Promise.all([holder?.close(), competing?.close()]);
+            if (holdingAttempt) {
+              holdingAttempt.fixture = { snapshot: holder?.evidence(), competing: competing?.evidence() };
             }
+            const evidence = { count, cut, refusals, contendSnapshot, fault: fault?.name, alert, elapsed_ms: elapsedMs,
+              ...frozenJournalEvidence(journal) };
+            await testInfo.attach('Frozen indicator request journal', {
+              body: JSON.stringify(evidence), contentType: 'application/json',
+            });
+            onRouteFailure = undefined;
           }
         }
       });
@@ -1281,6 +1418,8 @@ async function observeFrozenIndicatorPreview(browser, testInfo, trials) {
   } finally {
     await profile.close();
   }
+  await expect(stat(profile.root)).rejects.toMatchObject({ code: 'ENOENT' });
+  expect(await portAvailable(port)).toBe(true);
 }
 
 test('indicator-preview evaluates real frozen chart bytes and isolates failure and cancellation', async ({ browser }, testInfo) => {
@@ -2321,6 +2460,200 @@ test('indicator-preview probe bounds a pending snapshot observer', async ({}, te
     await testInfo.attach('indicator-observer-deadline', {
       contentType: 'application/json', body: JSON.stringify(witness),
     });
+  }
+});
+
+test('indicator-preview runs trusted Python once per approved task while earlier cleanup remains pending', async ({}, testInfo) => {
+  const profile = await makeProfile();
+  const scratch = join(profile.root, 'synthetic-indicator-scratch');
+  const before = 1704200940000;
+  const after = 1704243600000;
+  const observation = {};
+  const detached = { exit: 1, child: 0, stdin: 0, stdout: 0 };
+  const frame = () => ({ protocol_version: '1.1', type: 'request', request_id: randomUUID(),
+    message_id: randomUUID(), timestamp_ms: Date.now() });
+  const status = task_id => ({ type: 'indicator_preview_status', request_id: randomUUID(), task_id });
+  const approve = challenge_id => ({ ...frame(), operation: 'confirmation.respond', challenge_id, decision: 'approve' });
+
+  try {
+    const port = await freePort();
+    const source = await readFile(join(root, 'tests/fixtures/indicators/two-bar-mean.py'), 'utf8');
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      const { carrierGate: gate } = server;
+      const call = async body => (await readIndicatorAfterAdmission(server, body)).body;
+      const selection = await call({ type: 'workspace_source', request_id: randomUUID(),
+        source: { kind: 'sample', instrument_id: future }, expected_selection_revision: 0 });
+      expect(selection).toMatchObject({ ok: true, result: { selection_revision: 1 } });
+      const history = await fetch(server.url + operationPath, {
+        method: 'POST', headers: { Origin: server.url, 'Content-Type': 'application/json' },
+        body: JSON.stringify(sampleHistoryCall()), signal: AbortSignal.timeout(8_000),
+      });
+      expect(history.status).toBe(200);
+      const { snapshot: frozen } = (await history.json()).result;
+      const scope = target => ({ workspace_id: workspaceId, target, expected_workspace_revision: 0,
+        expected_selection_revision: 1, idempotency_key: randomUUID() });
+      async function stage() {
+        const draft = (await call({ ...frame(), task_id: null, scope: scope({ kind: 'chart', object_id: 'main-chart' }),
+          intent: { operation: 'indicator.createDraft', arguments: { language: 'python', source, params: {} } },
+        })).result.outcome;
+        expect(draft).toMatchObject({ state: 'committed' });
+        const review = (await call({ ...frame(), task_id: null,
+          scope: scope({ kind: 'chart_interval', snapshot: frozen, range: { from_ms: before, to_ms: after + 1 } }),
+          intent: { operation: 'indicator.runPreview',
+            arguments: { draft_id: draft.result.draft_id, snapshot: frozen, python_params: { divisor: 2 } } },
+        })).result.outcome;
+        expect(review).toMatchObject({ state: 'awaiting_confirmation' });
+        return review.challenge;
+      }
+      const first = await stage();
+      const firstApprovalStarted = performance.now();
+      expect((await call(approve(first.challenge_id))).result.outcome)
+        .toMatchObject({ state: 'committed', result: { task_id: first.task_id } });
+      expect(await gate.wait(0, 'started')).toEqual({ task_id: first.task_id });
+      const second = await stage();
+      await gate.command(0, 'partial');
+      await gate.wait(0, 'partial');
+      observation.partialFailure = (await call(status(first.task_id))).result;
+      expect(observation.partialFailure).toEqual({ status: 'running', task_id: first.task_id });
+      await gate.command(0, 'complete');
+      await gate.wait(0, 'frame');
+
+      // No status read delivers the complete frame before this competing
+      // approval. The same registry must already see the first failure.
+      observation.competingApproval = (await call(approve(second.challenge_id))).result.outcome;
+      expect(observation.competingApproval).toMatchObject({ state: 'committed', result: { task_id: second.task_id } });
+      observation.failureWhileOpen = (await call(status(first.task_id))).result;
+      observation.failureObservedMsAfterApproval = Math.round(performance.now() - firstApprovalStarted);
+      expect(observation.failureWhileOpen).toMatchObject({ status: 'terminal', task_id: first.task_id,
+        event: { event: 'task.terminal', outcome: { status: 'failed', error: { code: 'OUTPUT_INVALID' } }, committed_effects: [] },
+      });
+      expect(observation.failureWhileOpen.event.artifact).toBeUndefined();
+      expect(await readFile(join(scratch, 'input.json'), 'utf8')).toBe('synthetic input');
+
+      observation.zeroExit = await gate.wait(1, 'close-held');
+      expect(observation.zeroExit.exit).toBe(0);
+      const originalFrame = JSON.parse(observation.zeroExit.raw);
+      expect(originalFrame).toMatchObject({ task_id: second.task_id });
+      observation.successBeforeClose = (await call(status(second.task_id))).result;
+      expect(observation.successBeforeClose).toEqual({ status: 'running', task_id: second.task_id });
+      await gate.command(1, 'release');
+      await gate.wait(1, 'closed');
+      const ready = (await call(status(second.task_id))).result;
+      expect(ready).toMatchObject({ status: 'ready', task_id: second.task_id });
+      observation.successPoints = ready.event.artifact.result.series[0].points;
+      expect(observation.successPoints).toEqual([{ time_ms: before, value: null }, { time_ms: after, value: 3500.5 }]);
+      expect(ready.event.artifact.result_hash).toBe(originalFrame.artifact.result_hash);
+
+      const assertMatchingSuccess = (raw, taskId) => {
+        const { task_id, request_id, draft_id, ...payload } = JSON.parse(raw);
+        expect(task_id).toBe(taskId);
+        expect(request_id).not.toBe(originalFrame.request_id);
+        expect(draft_id).not.toBe(originalFrame.draft_id);
+        expect({ ...payload, task_id: originalFrame.task_id,
+          request_id: originalFrame.request_id, draft_id: originalFrame.draft_id }).toEqual(originalFrame);
+      };
+      async function assertExitFailure(run, admittedTask) {
+        // The adjacent approval must succeed before the first status read of
+        // this failed task. It exercises registry delivery independently of polling.
+        run.admittedTask = admittedTask;
+        run.terminal = (await call(status(run.taskId))).result;
+        expect.soft(run.terminal, `Abnormal carrier close for ${run.mode}`).toMatchObject({
+          status: 'terminal', task_id: run.taskId,
+          event: { event: 'task.terminal', outcome: { status: 'failed', error: { code: 'WORKER_EXITED' } }, committed_effects: [] },
+        });
+        expect.soft(run.terminal.event.artifact, `Artifact after ${run.mode}`).toBeUndefined();
+      }
+      observation.abnormalExits = [];
+      for (const [index, mode, close] of [
+        [2, 'nonzero', { exit: 1, signal: null }],
+        [3, 'signal', { exit: null, signal: 'SIGTERM' }],
+      ]) {
+        const task = await stage();
+        const approval = (await call(approve(task.challenge_id))).result.outcome;
+        expect(approval).toMatchObject({ state: 'committed', result: { task_id: task.task_id } });
+        if (observation.abnormalExits.length) await assertExitFailure(observation.abnormalExits.at(-1), approval);
+
+        const run = { mode, taskId: task.task_id, approval };
+        observation.abnormalExits.push(run);
+        expect(await gate.wait(index, 'started')).toEqual({ task_id: task.task_id });
+        await gate.command(index, 'success');
+        ({ raw: run.raw } = await gate.wait(index, 'frame'));
+        assertMatchingSuccess(run.raw, task.task_id);
+        run.beforeClose = (await call(status(task.task_id))).result;
+        expect(run.beforeClose).toEqual({ status: 'running', task_id: task.task_id });
+        await gate.command(index, 'release');
+        run.close = await gate.wait(index, 'closed');
+        expect(run.close).toEqual(close);
+      }
+
+      const cancelledTask = await stage();
+      const cancelledApproval = (await call(approve(cancelledTask.challenge_id))).result.outcome;
+      expect(cancelledApproval).toMatchObject({ state: 'committed', result: { task_id: cancelledTask.task_id } });
+      await assertExitFailure(observation.abnormalExits.at(-1), cancelledApproval);
+      expect(await gate.wait(4, 'started')).toEqual({ task_id: cancelledTask.task_id });
+      observation.cancellation = (await call({ ...frame(), operation: 'task.cancel', task_id: cancelledTask.task_id })).result;
+      expect(observation.cancellation).toMatchObject({ task_id: cancelledTask.task_id,
+        outcome: { status: 'cancelled' }, committed_effects: [],
+      });
+      await gate.wait(4, 'stdin-ended');
+      await gate.command(4, 'success');
+      observation.lateCancelledSuccess = await gate.wait(4, 'late-success');
+      assertMatchingSuccess(observation.lateCancelledSuccess.raw, cancelledTask.task_id);
+      await gate.command(0, 'success');
+      observation.lateFailedSuccess = await gate.wait(0, 'late-success');
+      assertMatchingSuccess(observation.lateFailedSuccess.raw, first.task_id);
+
+      const atCapacity = await stage();
+      expect((await call(approve(atCapacity.challenge_id))).result.outcome)
+        .toMatchObject({ state: 'committed', result: { task_id: atCapacity.task_id } });
+      observation.carrierLimit = (await call(status(atCapacity.task_id))).result;
+      expect(observation.carrierLimit).toMatchObject({ status: 'terminal', task_id: atCapacity.task_id,
+        event: { outcome: { status: 'failed', error: { code: 'BUSY' } }, committed_effects: [] },
+      });
+      expect(observation.carrierLimit.event.artifact).toBeUndefined();
+      await gate.command(-1, 'count');
+      expect(await gate.wait(-1, 'count')).toEqual({ launches: 5 });
+
+      await gate.command(4, 'release');
+      observation.cancelledCarrierHandlers = await gate.wait(4, 'closed');
+      expect(observation.cancelledCarrierHandlers).toEqual(detached);
+      const cancelled = (await call(status(cancelledTask.task_id))).result;
+      expect(cancelled).toMatchObject({ status: 'terminal', task_id: cancelledTask.task_id,
+        event: { event: 'task.terminal', outcome: { status: 'cancelled' }, committed_effects: [] } });
+      expect(cancelled.event.artifact).toBeUndefined();
+      expect((await call(status(first.task_id))).result).toEqual(observation.failureWhileOpen);
+
+      // Release a failure with an abnormal status while the server is
+      // available, then verify the previously published typed error is stable.
+      await gate.command(0, 'release');
+      observation.failedCarrierHandlers = await gate.wait(0, 'closed');
+      expect(observation.failedCarrierHandlers).toEqual(detached);
+      observation.failureAfterClose = (await call(status(first.task_id))).result;
+      expect(observation.failureAfterClose).toEqual(observation.failureWhileOpen);
+      await expect(stat(scratch)).rejects.toMatchObject({ code: 'ENOENT' });
+
+      const shutdownTask = await stage();
+      expect((await call(approve(shutdownTask.challenge_id))).result.outcome)
+        .toMatchObject({ state: 'committed', result: { task_id: shutdownTask.task_id } });
+      expect(await gate.wait(5, 'started')).toEqual({ task_id: shutdownTask.task_id });
+      await server.stop();
+      await gate.wait(-1, 'closing');
+      observation.disconnectedBeforeCleanup = await gate.disconnectsWithin(150);
+      expect(observation.disconnectedBeforeCleanup).toBe(false);
+      expect(await readFile(join(scratch, 'input.json'), 'utf8')).toBe('synthetic input');
+      await gate.command(5, 'release');
+      observation.shutdownCarrierHandlers = await gate.wait(5, 'closed');
+      expect(observation.shutdownCarrierHandlers).toEqual(detached);
+      await expect(stat(scratch)).rejects.toMatchObject({ code: 'ENOENT' });
+      observation.disconnectedAfterCleanup = await gate.disconnectsWithin(5_000);
+      expect(observation.disconnectedAfterCleanup).toBe(true);
+    }, { indicatorGate: true });
+  } finally {
+    try {
+      await testInfo.attach('trusted-indicator-carrier-lifecycle', {
+        body: JSON.stringify(observation), contentType: 'application/json',
+      });
+    } finally { await profile.close(); }
   }
 });
 
@@ -5234,7 +5567,7 @@ async function portAvailable(port) {
   }
 }
 
-function spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault, snapshotGate, entry = vite, traceStartup }) {
+function spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault, snapshotGate, indicatorGate, entry = vite, traceStartup }) {
   // Vite publishes its dependency cache by renaming directories. Reuse warm
   // caches across launches, but give every live server its own write path.
   let slot = 0;
@@ -5243,7 +5576,7 @@ function spawnService(port, profile, mode, { terminalSignal, historyTrace, histo
   const args = terminalSignal
     ? [viteCli, '--mode', mode, '--host', '127.0.0.1', '--port', String(port), '--strictPort']
     : ['--input-type=module', '--eval', service, entry, mode, String(port), cacheDir,
-      historyFault ? '1' : '', snapshotGate ? workspaceBridge : '', traceStartup ? '1' : ''];
+      historyFault ? '1' : '', snapshotGate ? workspaceBridge : '', traceStartup ? '1' : '', indicatorGate ? indicatorCarrier : ''];
   const child = spawn(process.execPath, args, {
     cwd: ui,
     env: {
@@ -5272,11 +5605,15 @@ async function reapService(child, done, onForcedKill) {
 }
 
 async function inService(port, profile, mode, use, {
-  expectHandoff = true, terminalSignal, historyTrace = false, historyFault = false, snapshotGate = false, entry, holdTimeoutMs,
+  expectHandoff = true, terminalSignal, historyTrace = false, historyFault = false,
+  snapshotGate = false, indicatorGate = false, entry, holdTimeoutMs,
 } = {}) {
   const url = 'http://127.0.0.1:' + port;
   const startedAt = performance.now();
-  const child = spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault, snapshotGate, entry, traceStartup: true });
+  const child = spawnService(port, profile, mode, {
+    terminalSignal, historyTrace, historyFault, snapshotGate, indicatorGate, entry, traceStartup: true,
+  });
+  const carrierGate = indicatorGate ? observeIndicatorGate(child) : undefined;
   const startup = observeServiceStartup(child, { startedAt, mode, port });
   const output = captureServiceOutput(child, terminalSignal ? startup.observeCliStdout : undefined);
   let startupFailure;
@@ -5317,6 +5654,7 @@ async function inService(port, profile, mode, use, {
       ]);
     },
     ...(snapshotGate && { tagSnapshot: observeSnapshotGate(child) }),
+    ...(carrierGate && { carrierGate, stop: () => send('close') }),
     cutHistoryResponse: () => send('cut-history'),
     disconnectOwner: writer => {
       expect(child.connected).toBe(true);
@@ -5346,6 +5684,7 @@ async function inService(port, profile, mode, use, {
   } finally {
     const cleanupStarted = startup.elapsed();
     try {
+      await carrierGate?.command(-1, 'release-all');
       if (terminalSignal) child.kill(terminalSignal);
       else if (child.connected) child.send('close', () => {});
       else if (disconnectedWriter && child.exitCode === null && child.signalCode === null) {
@@ -5357,9 +5696,14 @@ async function inService(port, profile, mode, use, {
       }
     } finally {
       let forcedKillRequested = null;
-      const [, signal] = await reapService(child, disconnectedExit ?? startup.closed, () => {
-        forcedKillRequested = startup.elapsed();
-      });
+      let signal;
+      try {
+        [, signal] = await reapService(child, disconnectedExit ?? startup.closed, () => {
+          forcedKillRequested = startup.elapsed();
+        });
+      } finally {
+        carrierGate?.close();
+      }
       const recentOutput = output.recent();
       if (server.capability) expect(!recentOutput.includes(server.capability)).toBe(true);
       if (startupFailure) {

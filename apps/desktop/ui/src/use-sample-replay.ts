@@ -83,7 +83,7 @@ export function useSampleReplay(history: ChartHistory | undefined) {
     update({ state: 'starting' });
     try {
       const snapshot = history.snapshot;
-      const after = await readStreamPosition(snapshot, signal);
+      const after = await readStreamPosition(history, signal);
       if (!after) {
         gap = { reason: 'coverage_unknown', affected: null, lostCount: null };
         update({ state: 'gap' });

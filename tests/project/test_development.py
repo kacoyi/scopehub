@@ -30,8 +30,10 @@ class MaintenanceHandoffTests(ProjectFixture):
         self.authority = {
             'outcomes': [
                 {'id': 'repository-cleanup', 'status': 'open', 'owner': 'Audit coordinator',
+                 'intent': 'Recover and verify the repository inventory.',
                  'acceptance': ['Recheck the integrated inventory.'], 'next_action': 'Read the initial inventory.'},
                 {'id': 'ongoing-maintenance', 'status': 'open', 'owner': 'Maintenance coordinator',
+                 'intent': 'Sustain engineering quality across implementations and revisions.',
                  'acceptance': ['Observe a due review.'], 'next_action': 'Read the initial schedule.'},
             ],
             'engagement': {
@@ -432,10 +434,28 @@ class MaintenanceHandoffTests(ProjectFixture):
         _, observation = self.accept_workstream('repository-cleanup')
         self.focus_ready_feature()
         self.save_engagement()
+        spec_path = self.root / 'engineering-contract-v1.json'
+        spec = read_json(spec_path)
+        first_test = {'principle': 'Start at the consumer that can distinguish the two outcomes.'}
+        spec['implementation_policy'] = {'first_test': first_test}
+        spec_path.write_bytes(json_bytes(spec))
+        ledger = self.ledger()
+        example = copy.deepcopy(task_by_id(ledger, 'M0-001'))
+        example['id'] = 'M0-163'
+        example['plan']['outcome'] = 'Choose a decisive check for the fixture failure.'
+        ledger['tasks'].append(example)
+        self.save_ledger(ledger)
+        receipt = archive_evidence(self.root, example['id'], self.report(example['id']))
+        example.update(status='done', evidence=[receipt], next_action=None)
+        self.save_ledger(ledger)
+
         ordinary = task_context(self.root, phase='handoff')['maintenance_engagement']
         self.assertTrue(ordinary['owner_source_command'].startswith('pnpm project:source '))
+        ordinary_maintenance = ordinary['workstreams'][1]
+        self.assertEqual('pnpm project:context M0-163', ordinary_maintenance['accepted_example']['command'])
         overview = cli(f'{entry} status --overview --read-only')
         summary = overview['maintenance']['engagement']
+        self.assertTrue(all(set(row) == {'id', 'status'} for row in summary['workstreams']))
         self.assertEqual(summary['handoff_command'], overview['next']['command'])
         handoff = cli(overview['next']['command'])
         self.assertEqual(overview['focus']['id'], handoff['task']['id'])
@@ -444,8 +464,15 @@ class MaintenanceHandoffTests(ProjectFixture):
         accepted, = (row for row in engagement['workstreams'] if row['status'] == 'accepted')
         self.assertEqual(observation, cli(accepted['closure_command'])['value'])
         active, = (row for row in engagement['workstreams'] if row['status'] == 'open')
+        self.assertEqual(self.authority['outcomes'][1]['intent'], active['intent'])
         self.assertEqual(self.authority['outcomes'][1]['acceptance'], active['acceptance'])
         self.assertEqual(self.engagement['workstreams'][active['id']]['next_action'], active['next_action'])
+        accepted_example = active['accepted_example']
+        self.assertEqual(example['plan']['outcome'], accepted_example['outcome'])
+        self.assertEqual(example, cli(accepted_example['command'])['task'])
+        self.assertEqual(first_test, cli(active['first_test_command'])['value'])
+        reviews = cli(active['review_status_command'])['periodic_reviews']
+        self.assertEqual(['branch-review'], [row['id'] for row in reviews])
 
 
 class DevelopmentTests(ProjectFixture):

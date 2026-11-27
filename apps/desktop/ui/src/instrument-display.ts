@@ -1,3 +1,4 @@
+import { priceTickFormat } from './chart-adapter/price-format';
 import { formatNumber, t } from './i18n';
 import type { Instrument } from './market';
 
@@ -29,9 +30,7 @@ export function unitLabel(unit: string, appearance?: 'lowercase') {
 }
 
 export function price(value: number, instrument: Instrument) {
-  if (instrument.price_tick == null) return formatNumber(value, { maximumSignificantDigits: 21 });
-  const digits = instrument.price_tick.split('.')[1]?.length ?? 0;
-  return formatNumber(value, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  return formatNumber(value, priceTickFormat(instrument.price_tick));
 }
 
 function decimalPrice(value: number) {

@@ -1698,7 +1698,7 @@ def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement', re
     engagement = {}
     if phase == 'handoff' and 'maintenance_engagement' in project:
         engagement['maintenance_engagement'] = engagement_handoff(
-            project['maintenance_engagement'], read_only=read_only, source_commit=source_commit,
+            project['maintenance_engagement'], project['tasks'], read_only=read_only, source_commit=source_commit,
         )
     if not detail:
         context = focused_context(project, key, phase, source_commit=source_commit)

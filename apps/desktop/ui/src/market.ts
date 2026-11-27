@@ -2,10 +2,11 @@ import { Channel, invoke } from '@tauri-apps/api/core';
 import type { InstrumentSearchInput, InstrumentSearchOutput, MarketHistoryPageInput, MarketHistoryPageOutput } from '../../../../contracts/generated/protocol';
 import { message, type Message } from './i18n';
 import { isAdmissionBusy, marketAdmissionDeadline, retryMarketAdmission } from './market-admission';
+import { isMarketOutput, type MarketOutputs } from './market-output';
+import { sampleHistoryPageMatchesRequest } from './sample-history-validation';
 
 export type { Bar, DatasetDescriptor, Instrument, MarketGetBarsOutput } from '../../../../contracts/generated/protocol';
 type Inputs = { 'instrument.search': InstrumentSearchInput; 'market.readHistoryPage': MarketHistoryPageInput };
-type Outputs = { 'instrument.search': InstrumentSearchOutput; 'market.readHistoryPage': MarketHistoryPageOutput };
 type Job = {
   operation: keyof Inputs; payload: Inputs[keyof Inputs]; signal: AbortSignal;
   resolve: (value: unknown) => void; reject: (reason: unknown) => void;
@@ -36,7 +37,7 @@ async function readOperation(
     }
     if (reply?.ok === false && operationCode(reply.error)) throw reply.error;
     if (!response.ok) throw new PreviewHttpFailure(response.status);
-    if (reply?.ok !== true || !reply.result) throw invalidMarketData();
+    if (reply?.ok !== true) throw invalidMarketData();
     return reply.result;
   }
   return invoke('execute_operation', { operation, payload });
@@ -48,7 +49,7 @@ class HistoryReader {
   private pending: Job | undefined;
   private previewReleaseUntil = 0;
 
-  read<K extends keyof Inputs>(operation: K, payload: Inputs[K], signal: AbortSignal): Promise<Outputs[K]> {
+  read<K extends keyof Inputs>(operation: K, payload: Inputs[K], signal: AbortSignal): Promise<MarketOutputs[K]> {
     return new Promise((resolve, reject) => {
       if (signal.aborted) { reject(aborted()); return; }
       this.pending?.reject(aborted());
@@ -56,7 +57,11 @@ class HistoryReader {
       signal.addEventListener('abort', cancel, { once: true });
       this.pending = {
         operation, payload, signal,
-        resolve: value => { signal.removeEventListener('abort', cancel); resolve(value as Outputs[K]); },
+        resolve: value => {
+          signal.removeEventListener('abort', cancel);
+          if (isMarketOutput(operation, value)) resolve(value);
+          else reject(invalidMarketData());
+        },
         reject: reason => { signal.removeEventListener('abort', cancel); reject(reason); },
       };
       void this.drain();
@@ -182,7 +187,9 @@ async function prepareNativeReplay(payload: MarketHistoryPageInput, signal: Abor
     };
     signal.addEventListener('abort', cancel, { once: true });
     try {
-      return await invoke<MarketHistoryPageOutput>('prepare_market_subscription', { preparationId, payload, progress });
+      const result = await invoke<unknown>('prepare_market_subscription', { preparationId, payload, progress });
+      if (!isMarketOutput('market.readHistoryPage', result)) throw invalidMarketData();
+      return result;
     } finally {
       signal.removeEventListener('abort', cancel);
       progress.onmessage = () => {};
@@ -190,7 +197,7 @@ async function prepareNativeReplay(payload: MarketHistoryPageInput, signal: Abor
   });
 }
 
-export async function readStreamPosition(snapshot: ChartHistory['snapshot'], signal: AbortSignal) {
+export async function readStreamPosition({ snapshot, dataset }: ChartHistory, signal: AbortSignal) {
   const { series, from_ms, to_ms, warmup_bars } = snapshot;
   const payload = {
     series, from_ms, to_ms, warmup_bars, snapshot, page_size: 1, include_stream_position: true,
@@ -199,11 +206,8 @@ export async function readStreamPosition(snapshot: ChartHistory['snapshot'], sig
     ? await historyReader.read('market.readHistoryPage', payload, signal)
     : await prepareNativeReplay(payload, signal);
   signal.throwIfAborted();
-  if (page?.snapshot?.content_hash !== snapshot.content_hash) throw invalidMarketData();
-  const position = page.stream_position;
-  if (position !== null && (!position?.stream_id || !position.epoch
-    || !Number.isSafeInteger(position.sequence) || position.sequence < 0)) throw invalidMarketData();
-  return position;
+  if (!sampleHistoryPageMatchesRequest(page, payload, dataset)) throw invalidMarketData();
+  return page.stream_position;
 }
 
 export async function readSampleHistory(
@@ -218,35 +222,16 @@ export async function readSampleHistory(
   const range = start === undefined ? sampleRange : { from_ms: start, to_ms: start + utcDayMs };
   const expectedRevision = instrument.id === sampleRevisionInstrument ? sampleRevisions[revision].id : undefined;
   const query = { series, ...range, warmup_bars: 0, ...(expectedRevision && { expected_revision: expectedRevision }) };
-  let page = await historyReader.read('market.readHistoryPage', query, signal);
-  if (!page) throw invalidMarketData();
+  let request: MarketHistoryPageInput = query;
+  let page = await historyReader.read('market.readHistoryPage', request, signal);
   const { snapshot, dataset, quality_state, total_bars } = page;
-  if (!snapshot?.series || !dataset || !Array.isArray(quality_state?.gaps)
-    || quality_state.gaps.some(gap => !gap || !Number.isSafeInteger(gap.from_ms)
-      || !Number.isSafeInteger(gap.to_ms) || gap.from_ms >= gap.to_ms)
-    || Object.entries(series).some(([field, value]) => snapshot.series[field as keyof typeof series] !== value)
-    || snapshot.from_ms !== query.from_ms || snapshot.to_ms !== query.to_ms || snapshot.warmup_bars !== 0
-    || dataset.instrument_id !== instrument.id || dataset.timeframe !== timeframe || dataset.provider_id !== demoProvider
-    || dataset.mode !== 'simulated' || dataset.timezone !== instrument.timezone || dataset.calendar_id !== instrument.calendar_id
-    || dataset.quantity_unit !== instrument.quantity_unit || dataset.revision !== snapshot.dataset_revision
-    || (expectedRevision !== undefined && dataset.revision !== expectedRevision)
-    || dataset.id !== snapshot.dataset_id || quality_state.as_of_ms !== snapshot.as_of_ms
-    || !Number.isSafeInteger(total_bars) || total_bars < 0 || total_bars > 100_000) throw invalidMarketData();
   const bars: ChartHistory['bars'] = [];
   for (;;) {
     if (signal.aborted) throw aborted();
-    if (!Array.isArray(page?.bars)) throw invalidMarketData();
-    const previous = bars.at(-1);
-    const first = page.bars[0];
-    if (page.offset !== bars.length || page.total_bars !== total_bars || page.snapshot?.content_hash !== snapshot.content_hash
-      || bars.length + page.bars.length > total_bars || (previous && first && first.time_ms <= previous.time_ms)) throw invalidMarketData();
+    if (!sampleHistoryPageMatchesRequest(page, request, instrument) || page.total_bars !== total_bars) throw invalidMarketData();
     for (const bar of page.bars) bars.push(bar);
-    if (page.next_cursor === null) {
-      if (bars.length !== total_bars) throw invalidMarketData();
-      return { dataset, bars, snapshot, quality_state };
-    }
-    if (!page.bars.length || bars.length >= total_bars || page.next_cursor?.next_index !== bars.length
-      || page.next_cursor.snapshot_hash !== snapshot.content_hash) throw invalidMarketData();
-    page = await historyReader.read('market.readHistoryPage', { ...query, snapshot, cursor: page.next_cursor }, signal);
+    if (page.next_cursor === null) return { dataset, bars, snapshot, quality_state };
+    request = { ...query, snapshot, cursor: page.next_cursor };
+    page = await historyReader.read('market.readHistoryPage', request, signal);
   }
 }

@@ -1,0 +1,238 @@
+{
+  "version": 3,
+  "task_id": "M0-154",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "232d0902bd5013392c5edd9ccacd7a875d655d12",
+      "scope": "Review the bounded cold sample navigation and chart diagnostics at the real repair entry. Compare the DOMContentLoaded failure and same-tree passed control with absent or delayed document, deferred module, mounted sample, catalog and history and existing chart repair expectations. Check the original deadline, truthful last stage, disposal and request bounds. Distinguish synthetic browser controls, native Windows acceptance and any unknown original cause.",
+      "supersedes": null,
+      "requested_at": "2026-11-25T22:54:00.492634+00:00",
+      "request_id": "3ad4bfce72435d6675cdc16ba6744f79a70696011146c4430e03c217f69beba7",
+      "evidence_sha256": "e54c1dd466302db96b8cf918c4858a76fd1f9ecc952239a012df23eb5c59f036"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "232d0902bd5013392c5edd9ccacd7a875d655d12",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-154 232d0902bd5013392c5edd9ccacd7a875d655d12",
+      "scope": "CHANGES_REQUESTED M0-154 232d0902bd5013392c5edd9ccacd7a875d655d12",
+      "observation": "In my replay, shifting the history request’s start time by one minute caused the request assertion to fail, but the startup attachment still reported `history-verified`.",
+      "reviewer": "Independent Astra Standard (t10n)",
+      "original_sha256": "b486ffd652a8e2c0763ed7922f23c3a43822335bdd187e107c034bd1f60ff54a",
+      "response_id": "b7dd6105ed2b5e1869e1dadf751d710a65296dd6d00acef5424de4c569282a0e",
+      "response_sha256": "be4b869fb9a53e09f3fdae160435c3643eb11edc1d339f6c3cd836afe876aa2f",
+      "legacy_response_sha256": "d69662b745ce266fbe56a659361ef1b625ef885af93f7b676b3139b4ae1212ff",
+      "observation_body_sha256": "6a019a0e7e965e9f019360f11a59b0ab9582f1094b1790c81da1f54fed060bfc",
+      "event": {
+        "id": "msg_09b99aeccf5a93e8016b076a69f32887d0a887dce4af8c3e2a",
+        "timestamp": "2026-11-25T23:08:43.889Z"
+      },
+      "supersedes": "3ad4bfce72435d6675cdc16ba6744f79a70696011146c4430e03c217f69beba7",
+      "evidence_sha256": "38ebca96eda445829c7e5561d50f771ef1a17288bef927a30e92b224d415e162"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e8b8de61a0e98283a70bcef39b4a0aa765f035e6",
+      "scope": "Verify the start-up observation at its public browser and history-request entries against the preceding independent rejection. Test genuine readiness and failed or out-of-order history, attachment ordering and cleanup. Distinguish local controls, external Windows samples and packaged physical acceptance.",
+      "supersedes": "b7dd6105ed2b5e1869e1dadf751d710a65296dd6d00acef5424de4c569282a0e",
+      "requested_at": "2026-11-26T03:02:40.567270+00:00",
+      "request_id": "c5a9f75f4ab2906fde2fbc8ae118da836db417f2bca8fdf73cc59524ccdb267e",
+      "evidence_sha256": "30901079914f44d05693319f01f24fc7e6ac487044dcf795e19d6d0f1c641ce6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e8b8de61a0e98283a70bcef39b4a0aa765f035e6",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-154 e8b8de61a0e98283a70bcef39b4a0aa765f035e6",
+      "scope": "CHANGES_REQUESTED M0-154 e8b8de61a0e98283a70bcef39b4a0aa765f035e6",
+      "observation": "When I replayed a correct history request with a retained response whose snapshot started one minute later, the application rejected it as `OUTPUT_INVALID`, but the startup attachment reported `history-verified`.",
+      "reviewer": "Independent Astra Standard (t11y)",
+      "original_sha256": "586fcd3e00857373cb024f539e9cba41bc11e138f08d0adc14dcb274fbcd42d5",
+      "response_id": "c2ca1c11fed0dfa1fbd354224fa82acde1b2bd7954b4c85c685d337733dd8c43",
+      "response_sha256": "28a8d0951a6ab7d829f88a46932c3022be291d4033e8a6dc84a02aa514d88b32",
+      "legacy_response_sha256": "3f6961f38f1818d9bf204806743c6bd64ec919f76adca86d00c93c3ddb901b45",
+      "observation_body_sha256": "2a226f890b0e73f933c1b6a089dc7e57fdcec8d4fb1cca7bd4666544a5d4e9f2",
+      "event": {
+        "id": "msg_0a096445e2a68c59016b07a7749d3c87d1bebedcfaee930522",
+        "timestamp": "2026-11-26T03:29:08.501Z"
+      },
+      "supersedes": "c5a9f75f4ab2906fde2fbc8ae118da836db417f2bca8fdf73cc59524ccdb267e",
+      "evidence_sha256": "28f29af54bc284d41ac1a94a7ed1851e3e524eb5cba6601224009e2108ee74e1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "2f02d0f7d674bf1fb83b507f1e3303f3a7edaad5",
+      "scope": "Verify the start-up observation at its public browser and history-request entries against the preceding independent rejection. Test genuine readiness and failed or out-of-order history, attachment ordering and cleanup. Distinguish local controls, external Windows samples and packaged physical acceptance.",
+      "supersedes": "c2ca1c11fed0dfa1fbd354224fa82acde1b2bd7954b4c85c685d337733dd8c43",
+      "requested_at": "2026-11-26T03:51:44.528196+00:00",
+      "request_id": "45b9477428edd3deac80a853b291c0280c7aa844e25b8ab9ea99a81dd79ee1f5",
+      "evidence_sha256": "cdd7347d5095e1a0d40219cbdebb6de3833539db7db103f3439fc1f6b6f15bd2"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "2f02d0f7d674bf1fb83b507f1e3303f3a7edaad5",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-154 2f02d0f7d674bf1fb83b507f1e3303f3a7edaad5",
+      "scope": "CHANGES_REQUESTED M0-154 2f02d0f7d674bf1fb83b507f1e3303f3a7edaad5",
+      "observation": "After I removed only `snapshot.content_hash` from the archived history reply, Chromium displayed all 40 bars and replaying its events through `openDefaultSample` produced `sample-verified`.",
+      "reviewer": "Independent Astra Standard (t12d)",
+      "original_sha256": "82ddf8ae019d485bb7bc59ee44fc2e9874e3095496a1d7d36af8b14862be37b6",
+      "response_id": "25f18c909377b012f42761502c36a36bb32c99dd46f8b4539cce6c9a2a39d98b",
+      "response_sha256": "c8d9a6a901b807fd96e981bb8e60b346d6797e389243c298641db39c9d926aa0",
+      "legacy_response_sha256": "7a6c41b89fa9289f6ebe25ffd8887a49834a6412ebdd60f957520106498ed36e",
+      "observation_body_sha256": "218ea8b6a18225e99e06df7538bce7623d644984a096a22d6fd6b5d249260c78",
+      "event": {
+        "id": "msg_02f560ca4150a851016b07af8ea06487d2b5db4efa759b890b",
+        "timestamp": "2026-11-26T04:03:42.932Z"
+      },
+      "supersedes": "45b9477428edd3deac80a853b291c0280c7aa844e25b8ab9ea99a81dd79ee1f5",
+      "evidence_sha256": "2aded9703e350773f61dc552c1a82f43c3207a6818512c7177ec00461b8912e1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "222ba13c9ac8fca4e6e9962cd8a8c79e5e73843c",
+      "scope": "Verify startup observation and actual chart rendering against the authoritative snapshot and history response contracts. Challenge the last reviewer’s absent content-hash result, a malformed or contradictory response, positive old and current inputs, and failed or out-of-order history. Observe both product and attachment outcomes, cleanup and deadline. Keep native and packaged evidence distinct.",
+      "supersedes": "25f18c909377b012f42761502c36a36bb32c99dd46f8b4539cce6c9a2a39d98b",
+      "requested_at": "2026-11-26T04:24:23.149098+00:00",
+      "request_id": "653c3314abd24df6ac18e41db9530e897d32df5b0ec27678dbd040e645d2470f",
+      "evidence_sha256": "b47f35658969132048964fa94114d22e91971f849a9ebae25e9f09e6bad29e78"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "222ba13c9ac8fca4e6e9962cd8a8c79e5e73843c",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-154 222ba13c9ac8fca4e6e9962cd8a8c79e5e73843c",
+      "scope": "CHANGES_REQUESTED M0-154 222ba13c9ac8fca4e6e9962cd8a8c79e5e73843c",
+      "observation": "In my in-memory replay, the startup attachment reported `sample-verified` while the chart displayed its rendering error and drew no candles.",
+      "reviewer": "Independent Astra Standard (t133)",
+      "original_sha256": "914d34e7fb9bdadb4ca9304c0b1ebc6ea840fb158cd3a39fae1f9c72570ac5c8",
+      "response_id": "3f2e7b36e1e1819b7ff73165bbe3b16965eaa63017b2c2bbf177abe081f5a6ad",
+      "response_sha256": "57f06f9d1ec41ff79b71cf1e21854eab29a7dd7b7cca558056f7cf58f2dee9fa",
+      "legacy_response_sha256": "d0e391cbbede106d3ce1db23cbe0e80cd551e7725f6632b046d14ebc7d892d45",
+      "observation_body_sha256": "6db487f7cd2fad7c154320c752cf8c33a58e6c50c2a575d5ebd5cac712cdcdb3",
+      "event": {
+        "id": "msg_055844c5f0e46150016b07bb0f61cc87d19adeea64e89d6031",
+        "timestamp": "2026-11-26T04:52:52.923Z"
+      },
+      "supersedes": "653c3314abd24df6ac18e41db9530e897d32df5b0ec27678dbd040e645d2470f",
+      "evidence_sha256": "75f39f6d170909ebe510c43f8079748f6df8d417d673edd4ce626bcdef4f8d8c"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e11e24fcb079430b0e13414c5d969e63108411fa",
+      "scope": "Verify startup observation and actual chart rendering against the authoritative snapshot and history response contracts. Challenge the last reviewer’s absent content-hash result, a malformed or contradictory response, positive old and current inputs, and failed or out-of-order history. Observe both product and attachment outcomes, cleanup and deadline. Keep native and packaged evidence distinct. Recheck the original decision on 222ba13c.",
+      "supersedes": "3f2e7b36e1e1819b7ff73165bbe3b16965eaa63017b2c2bbf177abe081f5a6ad",
+      "requested_at": "2026-11-26T05:16:00.146745+00:00",
+      "request_id": "e6904baa46cd636e5a2826d0c6bfb14e5aafe19e8ab9ec5d37b3cd02ea940c11",
+      "evidence_sha256": "da8f956a18f4e13c46e57e0c07af74dba62c64dee3ac675e516dece238448d24"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e11e24fcb079430b0e13414c5d969e63108411fa",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-154 e11e24fcb079430b0e13414c5d969e63108411fa",
+      "scope": "CHANGES_REQUESTED M0-154 e11e24fcb079430b0e13414c5d969e63108411fa",
+      "observation": "With candle drawing suppressed, the startup observer counted 1,194 pixels from the last-price line and axis label and reported `sample-verified`.",
+      "reviewer": "Independent Astra Standard (t141)",
+      "original_sha256": "7b10d48f04e8d0f865efe4999455181608f0cfb5f255d93f60860b113a99ffd7",
+      "response_id": "985ad89feb9dd836325744647162a0d52801aa17181bcca2688c4ea00456c433",
+      "response_sha256": "e308d2a6fa084522ac8215e731e13c6b9214dd274fa034491c9d4089db271688",
+      "legacy_response_sha256": "4939b073bda32e20dba526a77eeebacd31534a03acacee0b0d3a8dfbdec1df4c",
+      "observation_body_sha256": "f2620bfa6f3b8a57851b59538203d2dcb9414979f0dbcf74956dcc98fe402337",
+      "event": {
+        "id": "msg_037fc657fe7313eb016b07cbaafad887d2b012e958efa4ef95",
+        "timestamp": "2026-11-26T06:03:44.535Z"
+      },
+      "supersedes": "e6904baa46cd636e5a2826d0c6bfb14e5aafe19e8ab9ec5d37b3cd02ea940c11",
+      "evidence_sha256": "7a5afb98edfbfee5900b9078eb4d9c16c0b65a62d250721e47a0afc586e50918"
+    },
+    {
+      "kind": "request",
+      "source_commit": "6cc6a82f9703bc732c733f5e0d172a9473ca907b",
+      "scope": "Independently exercise the real startup presentation boundary with a correctly painted series and controls for missing candles, last-price graphics, unrelated canvas marks and invalid history. Compare accepted, incomplete and rejected outcomes, timing and normal attachments. Evaluate the actual visible claim and retained originals, including the e11e24fc review.",
+      "supersedes": "985ad89feb9dd836325744647162a0d52801aa17181bcca2688c4ea00456c433",
+      "requested_at": "2026-11-26T06:49:10.528295+00:00",
+      "request_id": "7fb718ad867f4a72e839645efebfa8f73c3a151b5eaea42de7025eceff8f002e",
+      "evidence_sha256": "8a6e9b6805e56216bd45fd5324c492818deb981daecf64186b5622d0617fb404"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "6cc6a82f9703bc732c733f5e0d172a9473ca907b",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-154 6cc6a82f9703bc732c733f5e0d172a9473ca907b",
+      "scope": "CHANGES_REQUESTED M0-154 6cc6a82f9703bc732c733f5e0d172a9473ca907b",
+      "observation": "At `/#demo`, the startup observer reported `sample-verified` after I replaced all 40 candles with three-pixel-high marks confined to the left half of the price pane.",
+      "reviewer": "Independent Astra Standard (t14z)",
+      "original_sha256": "f799265ce5a61c29d40cc8e8c95a194c5a8cf94c652351bb3cfd04f07dea1d3a",
+      "response_id": "0526cedf93d2538cd86ea558680dd0e8a7424cc0d82862c59d9994546232ad60",
+      "response_sha256": "313cd17572d98bbb78d11eaf564408236091d9000cd9743d400e37a90c222bc3",
+      "legacy_response_sha256": "cc883f5bab5391767ad229cb23511bce2f19fef22ce072405f84fe6fde7ed1c2",
+      "observation_body_sha256": "d8b8cc5f934e63a3c9f036a3bc4013f6bf2772bfcd87fd6321e3d6d6d6ae48a7",
+      "event": {
+        "id": "msg_0a51077b38cea76a016b07e2c1a06c87d29382b8e760b74a6c",
+        "timestamp": "2026-11-26T07:42:20.000Z"
+      },
+      "supersedes": "7fb718ad867f4a72e839645efebfa8f73c3a151b5eaea42de7025eceff8f002e",
+      "evidence_sha256": "5aa6456f23b9b97e5f205ca37ba3d63fe59a6e28a6c2194eadb8d5494298cd8a"
+    },
+    {
+      "kind": "request",
+      "source_commit": "83022759f4092699c08c0199cd8545c0b348a144",
+      "scope": "Review cold sample document readiness on the ordinary chart entry. Compare real candle bodies and wicks at the independently expected visible prices and times against the left-side block that previously passed. Check the normal and narrow viewport and deadline attribution.",
+      "supersedes": "0526cedf93d2538cd86ea558680dd0e8a7424cc0d82862c59d9994546232ad60",
+      "requested_at": "2026-11-26T12:46:02.652286+00:00",
+      "request_id": "0ac3985deba78705bb6ac7b08f5bb51480810125d2b6a25a061dc155528b65b2",
+      "evidence_sha256": "628ce4a1c1d067cb7b1d646d0243ce035e6727607850c006c708883a2ff6b30b"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "83022759f4092699c08c0199cd8545c0b348a144",
+      "verdict": "approved",
+      "decision": "APPROVE M0-154 83022759f4092699c08c0199cd8545c0b348a144",
+      "scope": "APPROVE M0-154 83022759f4092699c08c0199cd8545c0b348a144",
+      "observation": "The candidate accepted the genuine candle image and rejected both the previously accepted left-side block and a copy of the genuine image with one upper wick removed.",
+      "reviewer": "Independent Astra Standard (t15y)",
+      "original_sha256": "f410cc4ab5fec0a797fbb31e25e606dab1adbb1e2b8e35d908d758bef01daa4a",
+      "response_id": "11f3186b325a933c472e1608e0f31733ba989cad41ee454e462cc0797910eec5",
+      "response_sha256": "f9e1db69df4c8155f12ee8e31690a64972588f907f4cd46d86c6c03e341bf29a",
+      "legacy_response_sha256": "061459ced26279f2d8809fd0da2bd750fc94d3207e5c7fe5c9f1f131e9875268",
+      "observation_body_sha256": "6abecf6b52a82ccd9e6cc309b9980bfe9a97c11130fbdf01777a3f27f9a38bb4",
+      "event": {
+        "id": "msg_00e429b476016608016b082ad305a087d1b1f577367c91ff3d",
+        "timestamp": "2026-11-26T12:49:37.187Z"
+      },
+      "supersedes": "0ac3985deba78705bb6ac7b08f5bb51480810125d2b6a25a061dc155528b65b2",
+      "evidence_sha256": "e8781637c659eaabc337f68acad649077644de8fc546b1010449cd6f488527bd"
+    },
+    {
+      "kind": "request",
+      "source_commit": "80f3fe757f1f78be08b4fa1016060b83b00723d0",
+      "scope": "Review the completed cold chart verification on its composition with main. Check the chart price-format public entry and the protected first-test policy together in project/development.json. Check that the source and both platform receipts retain their actual scope.",
+      "supersedes": "11f3186b325a933c472e1608e0f31733ba989cad41ee454e462cc0797910eec5",
+      "requested_at": "2026-11-26T13:39:41.572119+00:00",
+      "request_id": "af427c079fab9fbaaba767cb2748ff4dff5bbe54b7d90ad3822ec565c7aa233f",
+      "evidence_sha256": "d46f7cbc94e49e3f798c139a0e1005a299d857978db20edce9ae42bf1ee26c7b"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "80f3fe757f1f78be08b4fa1016060b83b00723d0",
+      "verdict": "approved",
+      "decision": "APPROVE M0-154 80f3fe757f1f78be08b4fa1016060b83b00723d0",
+      "scope": "APPROVE M0-154 80f3fe757f1f78be08b4fa1016060b83b00723d0",
+      "observation": "The reviewed code accepted the original 40-candle image and rejected it both when one expected close moved by a single tick and when one upper wick was removed from the image.",
+      "reviewer": "Independent Astra Standard (t17m)",
+      "original_sha256": "4e2c5670d5189be3599c7d53e54844b2356c2af43f327f148aa2512023e42041",
+      "response_id": "bcd610ca09b1cdce5253c21a8943d8c212ffd038f7fd70221dcea00248340755",
+      "response_sha256": "f54986deeecf860a1d205da5e3096932748a0613f46e422284fd2a7a8a349871",
+      "legacy_response_sha256": "b1578d12719b6d4611d92d88808fe89db61bfa52e0ace0f078db5d6edf78b891",
+      "observation_body_sha256": "a8e26a258c613a0a43c3a258689e2e6375673c6795ec4b7af38129c1871cba2e",
+      "event": {
+        "id": "msg_06cd1c1570844c1a016b08377015bc87d18e8aeb0f308da904",
+        "timestamp": "2026-11-26T13:43:30.596Z"
+      },
+      "supersedes": "af427c079fab9fbaaba767cb2748ff4dff5bbe54b7d90ad3822ec565c7aa233f",
+      "evidence_sha256": "fc7efdc398f2bc440a539c3e5cdedec18d84dd7ab5a5c4673e8ea43d45c81268"
+    }
+  ]
+}
