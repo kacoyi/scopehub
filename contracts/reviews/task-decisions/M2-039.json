@@ -561,6 +561,26 @@
       "requested_at": "2026-11-27T04:45:31.664840+00:00",
       "request_id": "a6e7ff0e5cb892aa5d2464a83e490f06c11524abc9f66e99b0d8ec28b0d4e6fc",
       "evidence_sha256": "f6fda5d6134a41d18370696076900ace498fe92c4599faa238065c1bce1562b7"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ffdb95b29f21f6b2530cc74f7a77ef456ae0991b",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-039 ffdb95b29f21f6b2530cc74f7a77ef456ae0991b",
+      "scope": "CHANGES_REQUESTED M2-039 ffdb95b29f21f6b2530cc74f7a77ef456ae0991b",
+      "observation": "I found the passing 64-file trial in the retained local report for e8789cfe, while the guarded Windows and Linux logs for run 45935930896 each list 25 folder cases and omit that trial.",
+      "reviewer": "Independent Astra Standard (t1d4)",
+      "original_sha256": "fc4613d6076cb59cfaace99f8fb61c91c7e6e3754da3e0d0fc21332c8dbf63fd",
+      "response_id": "e12449c772aa92d24b0fe9387963596457ab704fc759beb3d0c7aab62722cc63",
+      "response_sha256": "5adcd45e3c3f03b00dd1fd7edf44dd5fb0a46619c62c9e46faba169f9f9a0225",
+      "legacy_response_sha256": "37c242f707f755b3be6378f6ffa5d82a37de7e531e3c64f571253fd969d6febf",
+      "observation_body_sha256": "0979eeb933b8aafc9077a88743effcde82e471a66377cc0d31b54b2a24afd0d3",
+      "event": {
+        "id": "msg_04c14f63b7a78ba8016b090bf4497c87d0acf0b845b8ca638c",
+        "timestamp": "2026-11-27T04:50:22.413Z"
+      },
+      "supersedes": "a6e7ff0e5cb892aa5d2464a83e490f06c11524abc9f66e99b0d8ec28b0d4e6fc",
+      "evidence_sha256": "f64b37565d04be6ea6044a6def8c9524f3d68d43e46a56e9f56446dd17babd6d"
     }
   ]
 }
