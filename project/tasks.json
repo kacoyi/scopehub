@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-177",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -29492,7 +29492,7 @@
       "id": "M0-177",
       "title": "Recover the verified decision-note outcome when approval delivery is interrupted",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-038",
         "M2-040"
@@ -29544,6 +29544,14 @@
         {
           "path": "project/evidence/M0-177-aaeb0482f8e9da04.json",
           "sha256": "a662675d8b92045bb517e3f184ddbe2062eecd3c1224025c509cb2703984144b"
+        },
+        {
+          "path": "project/evidence/M0-177-86159505eb2cbc9c.json",
+          "sha256": "983cb745144ee28981f54539998da36efb5467e9b3cd4a3e5f17e17e403e691c"
+        },
+        {
+          "path": "project/evidence/M0-177-a7e1ad0848b7abc7.json",
+          "sha256": "ff607d2035431181e190185eaa337d986f59af57aea995c2c96af8972ccd32f2"
         }
       ],
       "diagnostic_reports": [
@@ -29558,9 +29566,9 @@
           "report_sha256": "fe340f34a7d37d598dd354882df3d3d5efa8d86a4626d24c9b1e99d5b1fd4599"
         }
       ],
-      "next_action": "Review the clean candidate and its exact-source browser controls for canonical committed deletion, rejected replies, explicit recovery, retryable pre-admission BUSY and one durable peer deletion. The coordinator obtains an independent decision, an ordinary Windows observation and matching protected verification before resolving findings or completing the task.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Scoped pre-integration delivery verified. Independent approval on 23ea59440819f3ce7c5b31901819c94a68c8deb2 applies to the unchanged implementation submitted as 1110192f3ff86d82ae925540a1955df134e30852. Ordinary PR 151 run 45983202750 attempt 1 tested the matching merge preview 56b2a811d03d1e0c43a08432b93cb51edc536b59. All five task checks passed on Linux and Windows. The Linux aggregate remains blocked on the Windows-only native build. Its workspace suite had 116 expected and zero skipped results. Windows passed its aggregate and had 115 expected results with two POSIX-only browser termination controls skipped. Both runs retained checks omitted by the ordinary profile and seven selected planned checks. Each original browser report records nine rejected replies with explicit same-approval recovery and one durable marker per trial, a retryable pre-admission refusal with unchanged storage, five-second missing notice with both held and complete response bodies, and removal of both owned profiles after attachment rejection. Separate successful controls observed a canonical receipt, one durable peer deletion and the ordinary notice, as well as observer abort after verified commit. The original PR 150 Windows failure and its same-preview Linux positive control remain retained. The historical approval-response timing and cause and the commit timing relative to the assertion remain unknown. The protected observation required by the last acceptance item remains outstanding. The coordinator owns protected integration and the first genuine main recheck.",
       "plan": {
         "outcome": "Bind the first Windows failure and the same-preview Linux control to the original browser journals, storage marker, approval and ordinary observable outcome. Record what remained unknown in the first failure. Reconcile the existing operation and fixture contract for a missing approval reply. Use synthetic committed, unresolved and refusal controls with actual transport and stored marker identity. Check the documented recovery action for the existing result without repeating a deletion or exposing deleted note content.",
         "change_types": [
