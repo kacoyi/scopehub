@@ -26193,7 +26193,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Use .reports/audit-20261127/m0-146-boundaries/handoff.json for the exact common source and the two independent fd025151 reproductions. The coordinator owns new M0-139 and M0-146 review requests, the first comparable full warm Windows PR with all 35 selected checks within 900 seconds, and the separate protected-push qualification. Preserve the 1200-second Windows PR Python deadline.",
+      "next_action": "Compare the Windows recovery test clocks for 45933801256 and 45839731781, then measure equivalent publisher and Git fixture work locally before the coordinator qualifies the next ordinary full warm Windows PR. Preserve all 35 selected checks, the 900-second full-window objective, the 1200-second Python deadline and accepted source decisions.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -26241,6 +26241,11 @@
           "run_id": "windows-change-45841386990-1",
           "source_commit": "df70907e2ed45273a1c1a2a3c796a9c46293a749",
           "report_sha256": "ff4907892831f18aadabe6d5b1267cf770d4830b899684696ad18e3341165cc2"
+        },
+        {
+          "run_id": "windows-change-45933801256-1",
+          "source_commit": "4c6907e67c50eadfa95308b46594f92722e2490b",
+          "report_sha256": "2b4e4c9dce03a68efcfe32ed9dd49a0efdb48287a8f9a9195f55c689d4cb0657"
         }
       ],
       "plan": {
@@ -26294,7 +26299,8 @@
           "Verified PR123, PR134, PR137 and PR138 original artifacts, hosted job clocks, exact part inventories and platform reports: .reports/audit-20261126/m0-146-pr123-split/originals/index.json (SHA-256 a5ff82cbd68567b5274eb35a5a7b75a6f0c460e3f638818aeccbed118c428483).",
           "Paired policy-read process counts on seven representative unskipped tests: .reports/audit-20261126/m0-146-first-split-performance/observation.json (SHA-256 a82c15067d53d3ba65bd92329d31350482014b26921dc618812a4620d6e0435a).",
           "Exact native report bytes and local CRLF reproduction: .reports/audit-20261126/m0-146-pr123-split/byte-restoration/summary.json (SHA-256 23cc004dba9f192a00a45716b88e49d2ae847e7e9bb5e99a26ff9e6adfd2c2c1).",
-          "PR140 ordinary Windows attempt one on df70907e2ed45273a1c1a2a3c796a9c46293a749: original archives/runs/windows-change-45841386990-1/test-report.json, with Windows and Linux artifact files in archives/observations/repo-hygiene-20261125/pr140-native-original-45841386990/manifest.json (SHA-256 08a7e276c5785f3bd022cfc12c17973b751316a49ba6bc32bced51acdecd31a3)."
+          "PR140 ordinary Windows attempt one on df70907e2ed45273a1c1a2a3c796a9c46293a749: original archives/runs/windows-change-45841386990-1/test-report.json, with Windows and Linux artifact files in archives/observations/repo-hygiene-20261125/pr140-native-original-45841386990/manifest.json (SHA-256 08a7e276c5785f3bd022cfc12c17973b751316a49ba6bc32bced51acdecd31a3).",
+          "PR123 45933801256 native Windows diagnostic archives/runs/windows-change-45933801256-1/test-report.json and local original job/per-test observations in .reports/audit-20261127/m0-146-warm-recovery/originals/pr123/."
         ],
         "hypotheses": [
           "The Python producer finished last before aggregation on all three ordinary warm PRs. Individual test durations and process traces can separate repeated fixture or immutable repository reads from native runtime variation.",
@@ -26305,7 +26311,8 @@
           "The native report writer preserves platform newlines and the fixtures reserialize parsed report objects during recovery. Saving and restoring the exact staged bytes should recover the original receipt identity and byte-stable publication without weakening attempt or digest checks.",
           "PR123 finished Python at 1112 seconds, browser at 924, recovery at 693 and core at 743, with 46 seconds from the last producer through final Windows aggregation. The Linux job took 933 seconds. The observed browser path plus the aggregate alone exceeds the Windows objective. The 95.750-second market-workflow check can use the existing recovery producer, which already has the browser and compatible Cargo cache.",
           "The old Python producer spent 374.660 seconds across the contiguous review-acceptance-through-verification-scheduling modules (202 outcomes, 39 existing Windows skips). Starting the recovery part alongside the serial market checks uses the existing runner and lets the two Python part intervals overlap. A native comparison must verify the total span, resource contention, actual check and part results, and job/cache identities.",
-          "Seven unskipped public maintenance controls spent 3625 Git process starts before and 3136 after pinning immutable review inputs per comparison. Committed policy opens fell from 169 to 51. Verify that a fresh command still observes modified or rejected candidate data and that the native run retains the same verdicts."
+          "Seven unskipped public maintenance controls spent 3625 Git process starts before and 3136 after pinning immutable review inputs per comparison. Committed policy opens fell from 169 to 51. Verify that a fresh command still observes modified or rejected candidate data and that the native run retains the same verdicts.",
+          "The first corrected warm PR shifts the critical path to recovery. Publisher self-verification and repeated Git fixture setup account for measurable recovery test work. Compare the real public pass, refusal and interruption outcomes before retaining a smaller fixture."
         ],
         "risks": [
           {
@@ -26552,6 +26559,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "A smaller publisher setup loses a genuine public success, refusal, interruption or producer identity check, or claims a full-window recovery from a Linux comparison alone. Compare identical test IDs and outcomes locally and require a comparable native warm PR for the 900-second gate.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain the original reports, revert a change that loses coverage or increases measured cost, and keep the open budget finding assigned until a qualifying observation is available.",
@@ -26589,7 +26603,8 @@
           "open_questions": [
             "Does the full ordinary warm Windows PR meet the objective after the coordinator composes the independent recovery-UI assignment and the Python partition?",
             "Does the same four-producer topology restore the full Windows budget on an ordinary warm hosted PR while preserving all selected checks, unskipped cases and failed evidence?",
-            "Can a disposable Linux replay reproduce the first empty collection and identify its inventory, eligibility or revalidation reason?"
+            "Can a disposable Linux replay reproduce the first empty collection and identify its inventory, eligibility or revalidation reason?",
+            "With a 31-second aggregate tail, can repeated publisher setup yield a material portion of the 174-second recovery producer reduction required on the observed job clocks?"
           ]
         },
         "evolution": {
