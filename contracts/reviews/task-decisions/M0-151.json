@@ -79,6 +79,15 @@
       },
       "supersedes": "c183725d7a1ce867409ad2b60cdb7673f4dde19d76df78616b3e14fdf4234a2a",
       "evidence_sha256": "747e630822edcc391bd420b031932d3eb8df5342627554a04c124a4caa989cc0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a6c7aa2239de14d973a1fecd24874c7517d0de61",
+      "scope": "Review the real market interruption use cases on the combined candidate a6c7aa22 and their interaction with the worker-host changes.",
+      "supersedes": "96fb57ee6d39427cd77968396dfbd64d3101261963e9b71cc03d6838b8425d9c",
+      "requested_at": "2026-11-27T08:22:42.048922+00:00",
+      "request_id": "d2d5b7a667d8c901743e56344b1ebf095e1059acda2b4e4b090cc635724c36da",
+      "evidence_sha256": "194d4c6aae7331e67db3c025d411cefd00f9572c0d51951ffe3540aee8d37651"
     }
   ]
 }

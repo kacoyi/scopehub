@@ -88,6 +88,15 @@
       },
       "supersedes": "510f3829e78d1c861a3aba72fe427dfed7bc2741664050335d33636530eb551d",
       "evidence_sha256": "f487870c86996f7257ca2c1a6f70bf111843dee350dc5fe4c86c7bed63a8b1bb"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a6c7aa2239de14d973a1fecd24874c7517d0de61",
+      "scope": "Review cancellation and adjacent computation isolation against the combined trusted_indicator.rs and native worker on a6c7aa22.",
+      "supersedes": "c2b63662f24a2108a551e7cb33692d39156c7125a49be23cf713d71e7ca7e454",
+      "requested_at": "2026-11-27T08:22:41.270744+00:00",
+      "request_id": "4f0c05f7aec2e987a613ca09ef35886c22f0749dbba3d16afda837f5f4090bf4",
+      "evidence_sha256": "7612e81990237d9891ee791694122d922e2497e44223c142e2420abf5372fc67"
     }
   ]
 }

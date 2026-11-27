@@ -88,6 +88,15 @@
       },
       "supersedes": "5fd59b6a4d3ef8d1967b3d4c0d08286a1b60844fe55fe8cb6e23a5c2bf1264dc",
       "evidence_sha256": "990246fc28a015999bf93e0f2dd0fa012cdeb4f56e1c76846e0877279ba11181"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a6c7aa2239de14d973a1fecd24874c7517d0de61",
+      "scope": "Review the actual trusted-indicator deadline interaction after combining the market interruption and cancellation corrections on a6c7aa22.",
+      "supersedes": "2d8a5781a4b6ff0ac3d240d6abc0bd71276b7dead303bbba0baf4a6fb92d5b1c",
+      "requested_at": "2026-11-27T08:22:40.499326+00:00",
+      "request_id": "39017d6bd9858f531899dc16fd0d555eef75ba5b1b5a1592dec8d4e83b611982",
+      "evidence_sha256": "4b73b00445d10ada32f412bd6014428887b2f68a30f99513fb5858648ed98eef"
     }
   ]
 }
