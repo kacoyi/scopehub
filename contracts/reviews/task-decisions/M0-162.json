@@ -1,0 +1,209 @@
+{
+  "version": 3,
+  "task_id": "M0-162",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "c879713b9799e8450418d2e36efe25e225d28ac6",
+      "scope": "Exercise owned session return and retirement through the repository entry. Independently challenge response wording, completed-turn identity, retry after interruption, mixed active or foreign tabs, and the last outstanding session. Check originals survive close and no private material enters Git.",
+      "supersedes": null,
+      "requested_at": "2026-11-26T07:36:24.759333+00:00",
+      "request_id": "636940018c3c024d8881ffbd8fcceee558ca6493c8077ea5feeb3abf5ee1a3cf",
+      "evidence_sha256": "519e39f65b478b815fb4c89bdb0d63385491dafab8839342a4c7004e139a0fea"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c879713b9799e8450418d2e36efe25e225d28ac6",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-162 c879713b9799e8450418d2e36efe25e225d28ac6",
+      "scope": "CHANGES_REQUESTED M0-162 c879713b9799e8450418d2e36efe25e225d28ac6",
+      "observation": "In my replay through the repository collector, a simulated second turn started after the final state read, and the collector killed that turn and reported the assignment as retired.",
+      "reviewer": "Independent Astra Standard (t15n)",
+      "original_sha256": "9b97fa79e595bb174503e4127a176565efb2be8c7dabcd51863305c9ef7ae5e6",
+      "response_id": "8ee2427840f5e3af450187e19df1812d829f120f710761582f1c219cd9eddb33",
+      "response_sha256": "e07d30e5a1552c76336bffd4003284a3f6131c2c8e442312b71228ffbe12b68d",
+      "legacy_response_sha256": "7054eb838123d1ace65dd7d2c5248110dafc4d1c91c88f9946af2580205499df",
+      "observation_body_sha256": "cd2dee610f8e8c7aea4cea174f545545285a30111b974b3ccb11549eb5f23587",
+      "event": {
+        "id": "msg_04b54508e30fd27b016b082a5ad8e887d1a5dbc3cb1b649311",
+        "timestamp": "2026-11-26T12:47:39.623Z"
+      },
+      "supersedes": "636940018c3c024d8881ffbd8fcceee558ca6493c8077ea5feeb3abf5ee1a3cf",
+      "evidence_sha256": "e1aeb7e84939eaa59680826ababbf97ec7bddda36b187c3fdf2b7b7565a24df1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "cf7e0805ee0430e6aa7bfcc06b6120b10aa09172",
+      "scope": "Review native owned Herdr handoff after the two turn-retirement incidents on c879713b. Check safe handling of a reusable, changed, ambiguous or already exited session and crash recovery of the original recorded turn. Check the self-ending owned one-shot case, independent final-assignment collection and historical originals.",
+      "supersedes": "8ee2427840f5e3af450187e19df1812d829f120f710761582f1c219cd9eddb33",
+      "requested_at": "2026-11-26T13:04:16.339527+00:00",
+      "request_id": "fc44f15140087edb868292c96e3039edf9791e31e60541b93c2e53c53972ed0c",
+      "evidence_sha256": "ffa7d552ca73bc8437d1fe62d8b0d4a19da91b49fbcc65641c64ddfbe2110f1d"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "cf7e0805ee0430e6aa7bfcc06b6120b10aa09172",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-162 cf7e0805ee0430e6aa7bfcc06b6120b10aa09172",
+      "scope": "CHANGES_REQUESTED M0-162 cf7e0805ee0430e6aa7bfcc06b6120b10aa09172",
+      "observation": "In my synthetic replay, the one-shot runner stayed paused after a competing collector made the verified archive available.",
+      "reviewer": "Independent Astra Standard (t16n)",
+      "original_sha256": "8338db299cc24a687c2d5fb9831ecee59f56e404b8ee22d5a82a4fb234972f15",
+      "response_id": "1d37b9a431ee097ccc697b11c63559ed00283570da481a5807537ead3d9351d0",
+      "response_sha256": "7c67492252485f561efb11ec240a5da81b37b00312b3f97e95df5149845444e9",
+      "legacy_response_sha256": "4c93cc5931205db7b0ee92f75ced270e0f5610f09ac9d4fce0d59d8e065efeac",
+      "observation_body_sha256": "beca94309385358556cbab8584889618271434fd36cd719914f167ceec97980f",
+      "event": {
+        "id": "msg_020a4762b87d4706016b082f375af487d1a7e8bafe9d68be83",
+        "timestamp": "2026-11-26T13:08:30.415Z"
+      },
+      "supersedes": "fc44f15140087edb868292c96e3039edf9791e31e60541b93c2e53c53972ed0c",
+      "evidence_sha256": "a2046b7087afba4cb76163cf9d4926e938e38312c5a633f97514164985e11899"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ff769c5a608bad0669d3931bda88b6cd53f2e49a",
+      "scope": "Review the verified collector-contention and desktop snapshot corrections. Distinguish complete empty spaces, ambiguous records, a later turn and a conclusively closed owned one-shot. Check the bounded recovery and current public entry.",
+      "supersedes": "1d37b9a431ee097ccc697b11c63559ed00283570da481a5807537ead3d9351d0",
+      "requested_at": "2026-11-26T13:20:30.212198+00:00",
+      "request_id": "d5e3d5125eec5b8df0327fe05b8444260c46a97e33881e8a7a183fce7953130c",
+      "evidence_sha256": "25052bbca27c0198a773ee9bf83bb3847112dc0b372ce9b99ff36048d97bce23"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ff769c5a608bad0669d3931bda88b6cd53f2e49a",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-162 ff769c5a608bad0669d3931bda88b6cd53f2e49a",
+      "scope": "CHANGES_REQUESTED M0-162 ff769c5a608bad0669d3931bda88b6cd53f2e49a",
+      "observation": "In my public-entry replay, the one-shot runner paused when a collector held the assignment lock during the first execution save, and collection still returned one_shot_start_unobserved after the lock was released.",
+      "reviewer": "Independent Astra Standard (t177)",
+      "original_sha256": "243ccd5d1e4c5d33d5213a831a3dd50a309c372787814aa4231ddbbbbea1dac5",
+      "response_id": "7376e8cbd2a3710aee1fbfe9898800913066c05abd3294fcc13b6f1fbec679f0",
+      "response_sha256": "1a4575972a70f990b601a1f39cd122efeacd4945af07ca5301c0c93518a1e0b6",
+      "legacy_response_sha256": "9a907bca19aca04695e8ec551ba7335f6522d0e1e2135b3078876197b0f4200d",
+      "observation_body_sha256": "66c2730e98566f00ec30e2860886b5e73b06c92714f50c465457c99872327c10",
+      "event": {
+        "id": "msg_0983420412351503016b08330a4ce487d28a6094fcd51db2d2",
+        "timestamp": "2026-11-26T13:24:46.348Z"
+      },
+      "supersedes": "d5e3d5125eec5b8df0327fe05b8444260c46a97e33881e8a7a183fce7953130c",
+      "evidence_sha256": "160d58d345c754ab87f74d259a2fd6a95408929e5959c67c31711327773fe49a"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d777f43b81fb116ceccad05a6836eee63259902d",
+      "scope": "Review the recovered start-save and completion path for ordinary one-shot assignments. Check transient and prolonged contention, trustworthy ownership, bounded waiting, single archival of exact originals, the runner exit, and neighboring tabs.",
+      "supersedes": "7376e8cbd2a3710aee1fbfe9898800913066c05abd3294fcc13b6f1fbec679f0",
+      "requested_at": "2026-11-26T13:42:13.808301+00:00",
+      "request_id": "21f3d81b60516c4df9656e54e94a1de024d8359ebc3b66ebed1352e2edfe4218",
+      "evidence_sha256": "af466a94cec3d24ed980b430cefe81808a1c13fca23868b248ee51a54b87cd9f"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d777f43b81fb116ceccad05a6836eee63259902d",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-162 d777f43b81fb116ceccad05a6836eee63259902d",
+      "scope": "CHANGES_REQUESTED M0-162 d777f43b81fb116ceccad05a6836eee63259902d",
+      "observation": "In my public-entry replay, releasing the lock after the ten-second deadline left the runner paused even when the collector verified the exact archived return.",
+      "reviewer": "Independent Astra Standard (t17q)",
+      "original_sha256": "83f407765fbebe12665a77bc99ac9028007cf9c364866b80653f8f208bd1a015",
+      "response_id": "c5258201ef093b5ed9d99588e569bc161c9720798440d867dbb3123d94159c68",
+      "response_sha256": "50a19994966ea0b88ad327238b7275f3707d7b2c94127762bdaab9b7d1a5fbbe",
+      "legacy_response_sha256": "9847d85144557ce53f59c802e00fe26c4a46b5955c877aea4cc3cf2c92c2d08c",
+      "observation_body_sha256": "06e2559ded2e2c0ab4c974cc593b2af5e53e0dfa25d39e7dec42a10d76e0b1c8",
+      "event": {
+        "id": "msg_06c0f1383fbfde62016b08384a509887d2b249b06a31c95bd0",
+        "timestamp": "2026-11-26T13:47:13.644Z"
+      },
+      "supersedes": "21f3d81b60516c4df9656e54e94a1de024d8359ebc3b66ebed1352e2edfe4218",
+      "evidence_sha256": "dfe2d902128bcbbb9ba3e10a7cf032bd1ef4dc03d715f932a2226a88e6044f4a"
+    },
+    {
+      "kind": "request",
+      "source_commit": "0c4a1a14b90c7427c62108f57d7170dcb7d0b5aa",
+      "scope": "Review the owned initial-save and completion transitions after contention outlasts the original budget. Verify genuine recovery, exact-return identity, continued safe inspection, bounded resource use and ownership of the terminal and private archived data.",
+      "supersedes": "c5258201ef093b5ed9d99588e569bc161c9720798440d867dbb3123d94159c68",
+      "requested_at": "2026-11-26T14:10:58.215685+00:00",
+      "request_id": "e1626b76b87fa52f5f9027c3f355ca53daca140a9fe8bc5d26a4214ec93953ed",
+      "evidence_sha256": "500a73be7e1e1872433d30cb22738279d0f1164e29fa8d0d00de1cae5b95687a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "0c4a1a14b90c7427c62108f57d7170dcb7d0b5aa",
+      "verdict": "approved",
+      "decision": "APPROVE M0-162 0c4a1a14b90c7427c62108f57d7170dcb7d0b5aa",
+      "scope": "APPROVE M0-162 0c4a1a14b90c7427c62108f57d7170dcb7d0b5aa",
+      "observation": "I verified that t186 exited with code 0 after both lock waits exceeded 10.5 seconds and that both archived events matched the original rollout byte for byte.",
+      "reviewer": "Independent Astra Standard (t188)",
+      "original_sha256": "f5377a04e28ff722727cf39596cfcff114a553a0f4c588a5bf3aa11795cb64c6",
+      "response_id": "9f817107bdedc72b45b5fd154eb6ae67e00883c2250dd2af94dda07845aea4e5",
+      "response_sha256": "c10954d3ec36bff9b09dbe5b6d2e5b657597e8b8a32b36f3b2366ec698792e62",
+      "legacy_response_sha256": "ba380b7ec462ffbc0b76012bc3f814826ae4aa95c8b3080b3633c68fa93c3329",
+      "observation_body_sha256": "fb7e7879af4468716c85914265c6ae88fec04e0c87d3f2883d20a3c2b1a9dee6",
+      "event": {
+        "id": "msg_03035e5de24f4f8a016b083eca99a087d2aee63fff69111030",
+        "timestamp": "2026-11-26T14:14:52.643Z"
+      },
+      "supersedes": "e1626b76b87fa52f5f9027c3f355ca53daca140a9fe8bc5d26a4214ec93953ed",
+      "evidence_sha256": "e5a46b356f04192c31aebb304eb9ebe54cd6569e3f8f45cf954bd6c86cb5d73d"
+    },
+    {
+      "kind": "request",
+      "source_commit": "01c20758e8f3871a66da0738db0eac811380e541",
+      "scope": "Review the owned initial-save and completion transitions after contention outlasts the original budget. Verify genuine recovery, exact-return identity, continued safe inspection, bounded resource use and ownership of the terminal and private archived data.",
+      "supersedes": "9f817107bdedc72b45b5fd154eb6ae67e00883c2250dd2af94dda07845aea4e5",
+      "requested_at": "2026-11-26T14:36:19.090918+00:00",
+      "request_id": "515b6ca8d7aee3341ec737494d93df8de13bbc3e87596ef938e07dbbce9d50f5",
+      "evidence_sha256": "64f116acc514bc6cd77d9aa1a9b83c3347e51a049a00e58d411e5343c43b60c6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "01c20758e8f3871a66da0738db0eac811380e541",
+      "verdict": "approved",
+      "decision": "APPROVE M0-162 01c20758e8f3871a66da0738db0eac811380e541",
+      "scope": "APPROVE M0-162 01c20758e8f3871a66da0738db0eac811380e541",
+      "observation": "I replayed the retained Linux host evidence with the reviewed source and verified that the same runner exited successfully with its exact response and completion event after both lock waits exceeded 10.65 seconds.",
+      "reviewer": "Independent Astra Standard (t18s)",
+      "original_sha256": "06c95186579e116240394833171a462782005187735202ca0e5fc4615e6d7166",
+      "response_id": "e78a5d4688e77700ca09d85f9a3571d9ab78ba0af0a926dd90b324a1957c39ef",
+      "response_sha256": "33ba6897bd9f1651b0fda7a625416664bb05f3f6533268e7210ff54554dc5e5b",
+      "legacy_response_sha256": "88422a9db44410e3016293a3e8aa6be4fb3d3b28fc7cf7b01e5637309175e8d8",
+      "observation_body_sha256": "d4bb73845a39e8fa04a23549f718649a2c7b7419d66f86ad5f4b9ec683d23645",
+      "event": {
+        "id": "msg_0fe14aac6d6512da016b084517d28087d2ae47be4bcd98944b",
+        "timestamp": "2026-11-26T14:41:45.640Z"
+      },
+      "supersedes": "515b6ca8d7aee3341ec737494d93df8de13bbc3e87596ef938e07dbbce9d50f5",
+      "evidence_sha256": "6407decab0722ecc0bc6374d560706d207a1996f7fcffdf25948df97b8d941c2"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a216dd82fa7065cd7761d8a0f05e3343a3d90cb8",
+      "scope": "Review the preservation of the accepted M0-162 lifecycle after the M0-168 changes at their common source. Reuse the two real Linux desktop interruption observations and provenance, verify genuine and held return collection, exact original identity, supported transport capability detection and preserving neighboring tabs. Use the actual native and portable handoff originals and clean independent controls within the read-only review role.",
+      "supersedes": "e78a5d4688e77700ca09d85f9a3571d9ab78ba0af0a926dd90b324a1957c39ef",
+      "requested_at": "2026-11-26T15:16:44.905506+00:00",
+      "request_id": "cd584624ae073514e8b5a351b7168ca16a0db7a3324dcd664e7e24328c122029",
+      "evidence_sha256": "229137fcb017c1c8e0a23695030fb900447d4eeb02284bdaf4c82d0e38891035"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a216dd82fa7065cd7761d8a0f05e3343a3d90cb8",
+      "verdict": "approved",
+      "decision": "APPROVE M0-162 a216dd82fa7065cd7761d8a0f05e3343a3d90cb8",
+      "scope": "APPROVE M0-162 a216dd82fa7065cd7761d8a0f05e3343a3d90cb8",
+      "observation": "I replayed both retained Linux desktop runs with the reviewed source and verified that each recovered the exact response and completion bytes and that neither run removed a preexisting tab.",
+      "reviewer": "Independent Astra Standard (t19d)",
+      "original_sha256": "b6534e3b15ae18b76a4759deb6429cfc2c830c18eca548ae2f1a92ee98b5929f",
+      "response_id": "492ec231655744d9f49f53447114b038d0702fcc2aba4b7042db57fc948abfa9",
+      "response_sha256": "71e203395233a1ddba107bd5a364b81eb54edb1996d06af4e4f9b6d4bd606362",
+      "legacy_response_sha256": "6d73615ed3edbac57f2d7f08e9b095e33ae7b3f2cc4c1afe5849b5a97842f03f",
+      "observation_body_sha256": "cb17bc8c3412a03e0f423dab03f9f21431196513a1f6a5a38ba35c670b73314b",
+      "event": {
+        "id": "msg_0f33559de70fc215016b084e47054087d2adde177fbb6dea91",
+        "timestamp": "2026-11-26T15:20:53.912Z"
+      },
+      "supersedes": "cd584624ae073514e8b5a351b7168ca16a0db7a3324dcd664e7e24328c122029",
+      "evidence_sha256": "2a88a7f33bbf16303a9f3d77f963fb9708a6a13781f08bfb647734392931e34a"
+    }
+  ]
+}
