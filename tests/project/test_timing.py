@@ -7,6 +7,7 @@ from io import StringIO
 import json
 import os
 from pathlib import Path
+import stat
 import subprocess
 import sys
 import tempfile
@@ -1728,6 +1729,12 @@ class PRMainComparisonTests(unittest.TestCase):
         return self.git('commit-tree', tree or self.tree,
                         *(arg for parent in parents for arg in ('-p', parent)), '-m', message)
 
+    def remove_loose_commit(self, commit):
+        object_path = self.root / '.git' / 'objects' / commit[:2] / commit[2:]
+        # Windows requires clearing Git's read-only attribute before deletion.
+        object_path.chmod(stat.S_IREAD | stat.S_IWRITE)
+        object_path.unlink()
+
     def register_publisher(self, revision, catalog):
         closure = timing.windows_publishing_closure(self.root, revision)
         assignment = verification_scope.read_windows_assignment(self.root, revision)
@@ -1917,7 +1924,7 @@ def main():
         absent_base = self.commit('Unavailable base', self.base, tree=other_tree)
         shallow_parent = self.commit('Visible intermediate parent', absent_base, tree=other_tree)
         shallow_head = self.commit('Shallow topic', shallow_parent, tree=tree)
-        (self.root / '.git/objects' / absent_base[:2] / absent_base[2:]).unlink()
+        self.remove_loose_commit(absent_base)
         long_ancestor = self.commit('Ancestor beyond the original traversal limit', self.base, tree=tree)
         long_boundary = self.commit('Long shallow boundary', long_ancestor, tree=tree)
         long_head = long_boundary
@@ -1927,14 +1934,14 @@ def main():
         self.assertEqual(long_head, endpoint.decode('ascii').strip())
         with self.assertRaisesRegex(timing.ScopeError, 'exceeded the comparison limit'):
             verification_scope.git(self.root, 'rev-list', long_head, output_limit=43)
-        (self.root / '.git/objects' / long_ancestor[:2] / long_ancestor[2:]).unlink()
+        self.remove_loose_commit(long_ancestor)
         other_inputs = timing.committed_publishing_inputs(other_tree, root=self.root)
         self.assertIsNotNone(other_inputs)
         preview = self.commit('Merge preview', self.base, head, tree=tree)
         foreign = self.commit('Unrelated preview with the same inputs', self.base, self.head, tree=tree)
         unrelated_parent = self.commit('Missing parent on an unrelated branch', self.base, tree=tree)
         unrelated_boundary = self.commit('Unrelated shallow boundary', unrelated_parent, tree=tree)
-        (self.root / '.git/objects' / unrelated_parent[:2] / unrelated_parent[2:]).unlink()
+        self.remove_loose_commit(unrelated_parent)
         missing = 'f' * 40
         missing_head = 'e' * 40
         null = '0' * 40
@@ -2134,7 +2141,7 @@ def main():
             head = self.commit(f'Topic step {number}', head, tree=tree)
         preview = self.commit('Genuine workflow merge', self.base, head, tree=tree)
         (self.root / '.git/shallow').write_bytes(f'{boundary}\n'.encode('ascii'))
-        (self.root / '.git/objects' / missing_parent[:2] / missing_parent[2:]).unlink()
+        self.remove_loose_commit(missing_parent)
         catalog = timing.native_publishing_catalog
         fingerprint = timing.committed_publishing_inputs
         git = timing.git
