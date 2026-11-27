@@ -1,4 +1,5 @@
 import { execFile, spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
@@ -21,24 +22,39 @@ const confirmedBar = { ...frozenBar, close: 3501.2, volume: 120 };
 const finalBar = { ...frozenBar, close: 3501, volume: 130, is_closed: true };
 const barLegend = bar => `O ${bar.open}H ${bar.high}L ${bar.low}C ${bar.close}Volume ${bar.volume}Trading day ${bar.trading_day}${bar.is_closed ? 'Closed' : 'Partial'} bar`;
 let server;
+let witness;
 
 test.beforeAll(async ({}, info) => {
   info.setTimeout(300_000);
-  await promisify(execFile)('cargo', ['build', '--locked', '-p', 'scopehub-worker-host', '--example', 'history_bridge', '--target-dir', 'target'], { cwd: root });
+  const build = (...args) => promisify(execFile)('cargo', [
+    'build', '--locked', '-p', 'scopehub-worker-host', '--target-dir', 'target', ...args,
+  ], { cwd: root });
+  await build('--example', 'history_bridge');
+  await build('--example', 'history_bridge_interruption', '--features', 'preview-market-interruption');
+});
+test.beforeEach(async () => {
+  witness = randomUUID();
   const { createServer } = await import(pathToFileURL(entry).href);
   // Vite drops null inline overrides when it merges the project config.
   const previous = process.env.SCOPEHUB_TEST_PREVIEW;
+  const previousWitness = process.env.SCOPEHUB_TEST_MARKET_INTERRUPTION;
   try {
     process.env.SCOPEHUB_TEST_PREVIEW = '1';
+    process.env.SCOPEHUB_TEST_MARKET_INTERRUPTION = witness;
     server = await createServer({ root: ui, mode: 'ubuntu-preview', server: { port } });
   } finally {
     if (previous === undefined) delete process.env.SCOPEHUB_TEST_PREVIEW;
     else process.env.SCOPEHUB_TEST_PREVIEW = previous;
+    if (previousWitness === undefined) delete process.env.SCOPEHUB_TEST_MARKET_INTERRUPTION;
+    else process.env.SCOPEHUB_TEST_MARKET_INTERRUPTION = previousWitness;
   }
   expect(server.config.server).toMatchObject({ watch: null, hmr: false, ws: false });
   await server.listen();
 });
-test.afterAll(async () => { await server?.close(); });
+test.afterEach(async () => {
+  await server?.close();
+  server = undefined;
+});
 
 function observeRecovery(groupRecovery) {
   const fetch = window.fetch;
@@ -116,7 +132,7 @@ function observeRecovery(groupRecovery) {
 }
 
 async function interruptRealWorker(page, testInfo, groupRecovery) {
-  const driver = spawn(python, ['-I', join(root, 'tests/ubuntu-preview/interrupt_owned_worker.py'), String(process.pid)], {
+  const driver = spawn(python, ['-I', join(root, 'tests/ubuntu-preview/interrupt_owned_worker.py'), String(process.pid), witness], {
     cwd: root, stdio: ['pipe', 'pipe', 'inherit'],
   });
   const finished = once(driver, 'exit');
@@ -180,6 +196,14 @@ async function interruptRealWorker(page, testInfo, groupRecovery) {
     await openPanel(page, 'Data window');
     const row = page.getByRole('table', { name: 'Historical bars' }).locator('tbody tr').last();
     await expect(row.getByRole('cell')).toHaveText(['2024-01-04T01:09:00.000Z', '2024-01-04', '3501.6', '3502', '3500.8', '3500.8', '110', 'Partial']);
+    const catalog = await page.evaluate(async () => {
+      const response = await fetch('/__scopehub/operation', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ operation: 'instrument.search', payload: { query: '', limit: 10 } }),
+      });
+      return { status: response.status, body: await response.json() };
+    });
+    expect(catalog).toMatchObject({ status: 200, body: { ok: true } });
   } finally {
     reader.close();
     driver.stdin.end();

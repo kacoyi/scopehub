@@ -1,0 +1,644 @@
+{
+  "version": 3,
+  "task_id": "M2-039",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "da3df35cdef98572ac4a92c89cb4928a6d8f11e5",
+      "scope": "Review the final first reopen, source save and manual recovery, folder declarations, revoked and withheld access, shared deadline and test-owned status holder together with protected peer deletion recovery. Reconcile the original native failures and both accepted chart prerequisite decisions.",
+      "supersedes": null,
+      "requested_at": "2026-11-25T21:38:29.980835+00:00",
+      "request_id": "4ef367618314ec1efc9a6b2cb45d67347679b6db9a9f7df26d61deb2efe00d13",
+      "evidence_sha256": "0d40b82148f85aa55157f12bc483cecceaa37828729da2b7f3b36912589a1de1"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "da3df35cdef98572ac4a92c89cb4928a6d8f11e5",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 da3df35cdef98572ac4a92c89cb4928a6d8f11e5",
+      "scope": "APPROVE M2-039 da3df35cdef98572ac4a92c89cb4928a6d8f11e5",
+      "observation": "In my in-memory replay of the merged workspace code, four focus events during the first snapshot produced one trailing snapshot, and the workspace accepted source B without exposing the superseded source A.",
+      "reviewer": "Independent Astra Standard (t10n)",
+      "original_sha256": "ebf7c3223d7afce41ce2da7300b9c9a0b9f4b7fd4da126add3ae3e052948db72",
+      "response_id": "0429b14f4b800d4a451bf8ddfb84fce68446a07888249e7149c916ffcb3f86b8",
+      "response_sha256": "13fc2d0f1c8648dc790c72094ec6ef247fa08f58511f77e88eaf5d7c3270c4b3",
+      "legacy_response_sha256": "9c88080a9c563f2a7c58c80469864a6ef6be7bb68de79ec12bc35ce4dfde2558",
+      "observation_body_sha256": "6e9104cf08a92dabf398bba253df6283d7c122f044dedb9075e25a4dc333ebad",
+      "event": {
+        "id": "msg_09b99aeccf5a93e8016b075addb96887d08ce1a0c45f457c91",
+        "timestamp": "2026-11-25T22:02:26.171Z"
+      },
+      "supersedes": "4ef367618314ec1efc9a6b2cb45d67347679b6db9a9f7df26d61deb2efe00d13",
+      "evidence_sha256": "003c1fea888c55f9c83393d9645409f0c29d5c4e56db65c41d60258abc25cf63"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26",
+      "scope": "Recheck the three native peer-note failures, independent snapshot owners, one committed deletion, terminal refusal, expiry, late replies, reopen and one trailing focus confirmation at the real writer and browser boundaries. Compare the new focused regressions, earlier hosted failures and the clean protected merge.",
+      "supersedes": "0429b14f4b800d4a451bf8ddfb84fce68446a07888249e7149c916ffcb3f86b8",
+      "requested_at": "2026-11-26T02:45:06.890220+00:00",
+      "request_id": "cf53d1c0a5ef1624fd8144784bd5f67df9bdac7e0e32c4504c4931e00f48d9eb",
+      "evidence_sha256": "529d0b8aa215ce39365f3702be98a7796e355ce86a66e0ae40328e7d6f884067"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26",
+      "scope": "APPROVE M2-039 a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26",
+      "observation": "In all five forced-overlap browser traces from the reviewed commit, I verified one committed peer deletion, a distinct note fallback snapshot, and exactly one trailing workspace focus confirmation.",
+      "reviewer": "Independent Astra Standard (t11p)",
+      "original_sha256": "dbbf68528db15ee3790c6058901e4b4fc87c473df75f6315756a4992382433cf",
+      "response_id": "5bfd581bb374f72312d2335de22b5e1b343b8f10d2647dcb95f802bfc3045190",
+      "response_sha256": "9cba42e1b63c999992d20d2f75f1c99d487675791bb67967f50a4750c7a68fc2",
+      "legacy_response_sha256": "9c3c0e4680050b8fcdf7bf8df89e2187ae8622212e202a3db611e20b6ba2277b",
+      "observation_body_sha256": "ee43cd34566ab206f6278451dda5a086b8dd905070dcd3394da12a6b0adea1a5",
+      "event": {
+        "id": "msg_0005c9684608cefa016b07a2567e4887d2b61abf172559e27f",
+        "timestamp": "2026-11-26T03:07:18.193Z"
+      },
+      "supersedes": "cf53d1c0a5ef1624fd8144784bd5f67df9bdac7e0e32c4504c4931e00f48d9eb",
+      "evidence_sha256": "33d299bb0e07299d724df3d3f23beef3da53f2d03b234a60edb402a865afe2e2"
+    },
+    {
+      "kind": "request",
+      "source_commit": "83303f3546ddb5385d4c6e5c768e7737705628e5",
+      "scope": "Verify the current public workspace and chart recovery journeys after the independent M2-035 finding. Use the actual Chromium controls on both raw-row paths, Rust workspace selection, peer note fallback and first chart reopen. Recheck adjacent callers, original evidence and separate Windows verification.",
+      "supersedes": "5bfd581bb374f72312d2335de22b5e1b343b8f10d2647dcb95f802bfc3045190",
+      "requested_at": "2026-11-26T03:38:01.844642+00:00",
+      "request_id": "36cf783a3913642126deb3617fd6164cf738eaea806709da0d5af468d4d0cba3",
+      "evidence_sha256": "f7446f0632daa880cdff5899e56f705e7232f31205bbe7f88eec7764ee1c035f"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "83303f3546ddb5385d4c6e5c768e7737705628e5",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-039 83303f3546ddb5385d4c6e5c768e7737705628e5",
+      "scope": "CHANGES_REQUESTED M2-039 83303f3546ddb5385d4c6e5c768e7737705628e5",
+      "observation": "In my in-memory replay of the candidate React dialog, two refreshes returned the recovered CSV revision but issued zero CSV status reads and left it hidden, while the folder control issued one status read and restored its entry.",
+      "reviewer": "Independent Astra Standard (t12c)",
+      "original_sha256": "849db57a869f404be92d5b3baa0910972555e0b0fa6336af2ab57e435f91917e",
+      "response_id": "34cf82d9d5aa27eb3eeace1813158864f6adec4e317bc683146f937f9e441364",
+      "response_sha256": "0a18ebadf17b14f9ead17933b76734e75540a5c5faf5991900d72e108427a091",
+      "legacy_response_sha256": "b6aa2f3be9370f82818503a769d65dcdbdaa7066c85a473498e3ed56cc8564cf",
+      "observation_body_sha256": "cb292578903e93a4096e889671d7da10be736105935e24d05e4c6d164c094fb8",
+      "event": {
+        "id": "msg_05968ed3fa38e9d8016b07afd4b49887d2be587410dcbdae6a",
+        "timestamp": "2026-11-26T04:04:56.197Z"
+      },
+      "supersedes": "36cf783a3913642126deb3617fd6164cf738eaea806709da0d5af468d4d0cba3",
+      "evidence_sha256": "52649a4c13461561eb8c1eaaab88404b7f52b18c6e5fa7b2571694f5315e1ae7"
+    },
+    {
+      "kind": "request",
+      "source_commit": "359e33231892432813493958b580ee25aaf94a5f",
+      "scope": "Exercise CSV and folder list discovery without a prefilled revision ID, repeat refresh and close/reopen after temporary loss, and compare with the explicit-ID path. Challenge positive restoration, denied or still-pending access and late results in the public UI. Recheck original workspace selection, peer note fallback and first chart reopen, evidence and separate Windows qualification.",
+      "supersedes": "34cf82d9d5aa27eb3eeace1813158864f6adec4e317bc683146f937f9e441364",
+      "requested_at": "2026-11-26T04:21:37.156286+00:00",
+      "request_id": "b76cf2efa4c20ddb3038c01ba832ba19e68d3050e3294013cdbdd3ed9238780c",
+      "evidence_sha256": "e3da8cfd879b498c43af5337836201ac2de967dbadb6484a7e2e123007abc51a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "359e33231892432813493958b580ee25aaf94a5f",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-039 359e33231892432813493958b580ee25aaf94a5f",
+      "scope": "CHANGES_REQUESTED M2-039 359e33231892432813493958b580ee25aaf94a5f",
+      "observation": "In my React replay, reopening the correct library and refreshing twice returned the recovered revision three times but issued zero matching status reads while a lookup from the other library was pending.",
+      "reviewer": "Independent Astra Standard (t130)",
+      "original_sha256": "14167c8ad137d07f4bd149447c607a33f75f61bb7b0c1f2503581766f39797f3",
+      "response_id": "c986d9221f5d617163bc9a45785ab443443a6a06e5a121d424c22360dd3eaa2a",
+      "response_sha256": "a1d3e6f1e63490afb461ef88f960be0b71c30052f8034fed362ee0e012295e4b",
+      "legacy_response_sha256": "f1a74cb1549008a09e43f08a5c32fcbb53f7e8a5c323697dfc7d5394059c534a",
+      "observation_body_sha256": "7b13277d92d4a2ed68bc76d8ee0df30890d6451636b16aea378efbb7ef1c4cc8",
+      "event": {
+        "id": "msg_0adf81f01b2df088016b07b9f1145887d2a25d4f31c4b70cbb",
+        "timestamp": "2026-11-26T04:48:03.203Z"
+      },
+      "supersedes": "b76cf2efa4c20ddb3038c01ba832ba19e68d3050e3294013cdbdd3ed9238780c",
+      "evidence_sha256": "afb19037f3a71b4249a39687648ab6ff3cf8f96d658fa088e714f0ec37b4c236"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e59f853673d76e4c71983834f40784dbf64e262d",
+      "scope": "Exercise CSV and folder list discovery without a prefilled revision ID, repeat refresh and close/reopen after temporary loss, and compare with the explicit-ID path. Challenge positive restoration, denied or still-pending access and late results in the public UI. Recheck original workspace selection, peer note fallback and first chart reopen, evidence and separate Windows qualification. Recheck the original decision on 359e3323.",
+      "supersedes": "c986d9221f5d617163bc9a45785ab443443a6a06e5a121d424c22360dd3eaa2a",
+      "requested_at": "2026-11-26T05:11:28.355939+00:00",
+      "request_id": "d7ddfd44d2cb54ff96cfbaa786d9a14c7d664b93819852a96b96f196e89ab4ef",
+      "evidence_sha256": "ccb2e547d9c045ae2f3df63394c7198cddf2925aaebbeff517e372b0924f928b"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e59f853673d76e4c71983834f40784dbf64e262d",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 e59f853673d76e4c71983834f40784dbf64e262d",
+      "scope": "APPROVE M2-039 e59f853673d76e4c71983834f40784dbf64e262d",
+      "observation": "In my React replay, both the CSV and folder lists restored the withheld entry after exactly one matching status read when the other library’s lookup settled, without a fourth list request.",
+      "reviewer": "Independent Astra Standard (t13h)",
+      "original_sha256": "c31564bd9d31ce1f6b08f436f71938c171a8f691859d749b30a090fdf3c12f80",
+      "response_id": "16f3b0db15b719e9ad3ebf2024d557167c8c6d6f95c44b083829f2fc39489f42",
+      "response_sha256": "1f5eee5f08b273248365897e42a13e2422b0c34308fcced6468d13036556a8e4",
+      "legacy_response_sha256": "9fb80aaf5004d5b885434b20a2fcfd27a30abdbc09425560d40d603c8eaee531",
+      "observation_body_sha256": "ce4112c048fd6d381cff628d82c0644657abc5a14fe853791e2cc5e9ee081d9c",
+      "event": {
+        "id": "msg_02f9c08327a7ec77016b07c1944c5087d292adea6eb519c893",
+        "timestamp": "2026-11-26T05:20:36.210Z"
+      },
+      "supersedes": "d7ddfd44d2cb54ff96cfbaa786d9a14c7d664b93819852a96b96f196e89ab4ef",
+      "evidence_sha256": "a6c02f2aa30ef297bbaff6061ea78a97760b3dc2cb69c8a0365c528e65b10a9a"
+    },
+    {
+      "kind": "request",
+      "source_commit": "76fe9dd86e2838ac31463efd8e2a84ac432009e3",
+      "scope": "Review the three-way resolution with protected main, both public libraries and the new native Windows qualification. Challenge actual native status admission, interruption, closing and reopening, late results and confirmed withdrawal. Verify the probe identifies the compiled application, its WebView2 runtime and observed action outcomes. Distinguish its modeled inputs and any remaining native evidence.",
+      "supersedes": "16f3b0db15b719e9ad3ebf2024d557167c8c6d6f95c44b083829f2fc39489f42",
+      "requested_at": "2026-11-26T05:30:42.184957+00:00",
+      "request_id": "04e7fe96d68c5db7fcbf8c751083ad95b40762fb0cb6a1f292e9e96a3662ccfd",
+      "evidence_sha256": "f8104b94be273bd918a8e58a7cab32a74e67701edc7fcb214173fd518b4d9fb5"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "76fe9dd86e2838ac31463efd8e2a84ac432009e3",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-039 76fe9dd86e2838ac31463efd8e2a84ac432009e3",
+      "scope": "CHANGES_REQUESTED M2-039 76fe9dd86e2838ac31463efd8e2a84ac432009e3",
+      "observation": "In my in-memory replay of the candidate dialog, withdrawing the sole folder or CSV revision rendered two status messages, and the Windows probe’s withdrawal assertion matched both.",
+      "reviewer": "Independent Astra Standard (t13v)",
+      "original_sha256": "1ac7be6264519d8992c987bf59624495676ec4104aa39920d16ddb6e3fd20c3a",
+      "response_id": "b40fb0755d47c2871d52797c927dfdba289d9c180b7014a90d107aae1475d4b1",
+      "response_sha256": "47184636cdf8f40d8bf8b1ee99d95935155f527ff77f2bc2e35a28a643a69825",
+      "legacy_response_sha256": "190e2f04d675da709052907ddee50e01410ddaace9b558aa2a42dd778b1dee3f",
+      "observation_body_sha256": "eeb314f062722a67b61699dd5ff1da3a19c2684342a4488a51ba066330a65773",
+      "event": {
+        "id": "msg_0625bcde14dcef43016b07c5fbbea487d29b8292b5ee385acf",
+        "timestamp": "2026-11-26T05:39:25.314Z"
+      },
+      "supersedes": "04e7fe96d68c5db7fcbf8c751083ad95b40762fb0cb6a1f292e9e96a3662ccfd",
+      "evidence_sha256": "dbadae25234c7e3ad729b621fd3851a9998417f26bfeb56a98e302f12c8eaabf"
+    },
+    {
+      "kind": "request",
+      "source_commit": "f30e5235cf9270116b6f1e37e1425898f1822d7b",
+      "scope": "Exercise complete CSV and folder discovery, withdrawal, close/reopen and explicit denial. Assess the parity control, compiled Windows probe and exact required diagnostics. Independently distinguish the evidence for corrected behavior from unqualified native or ordinary product scenarios.",
+      "supersedes": "b40fb0755d47c2871d52797c927dfdba289d9c180b7014a90d107aae1475d4b1",
+      "requested_at": "2026-11-26T06:06:33.823690+00:00",
+      "request_id": "14296f04a0f694d4b7e77f250b2c5bb8ef81c71a3dcbba11687fbfb9048808d6",
+      "evidence_sha256": "31f8bc15262f55666bbd05f64336061a105c55bc3f783411766bd5da6257d219"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "f30e5235cf9270116b6f1e37e1425898f1822d7b",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 f30e5235cf9270116b6f1e37e1425898f1822d7b",
+      "scope": "APPROVE M2-039 f30e5235cf9270116b6f1e37e1425898f1822d7b",
+      "observation": "In my replay of the public React dialog, both libraries denied the withdrawn revision without another chart read and still opened a second revision when one remained.",
+      "reviewer": "Independent Astra Standard (t146)",
+      "original_sha256": "3843d8a1162aa1ff2698689bdb6ca25f723a3ddf12c8c326edcb06996acb67ad",
+      "response_id": "bb130c5ec9e335cfea56ea321b5ee9ce4a2afa1e4879990b45c07b840bbfaf9f",
+      "response_sha256": "eee5966fa1efdae42ea5fd57ebfc9548a92fe3aa3923dd53dfb8e6c2c5ed070d",
+      "legacy_response_sha256": "ae5073bbf7b21e2db2a9966e6002b959d6256b1bbe57600e1284654374827e34",
+      "observation_body_sha256": "f8e1668c13eb3c6abcbcd543f256be9a095844f91dd95cdf9c69fe37b60a0a1e",
+      "event": {
+        "id": "msg_02769b072c21826b016b07d12473bc87d2ba828356d850ec87",
+        "timestamp": "2026-11-26T06:27:09.239Z"
+      },
+      "supersedes": "14296f04a0f694d4b7e77f250b2c5bb8ef81c71a3dcbba11687fbfb9048808d6",
+      "evidence_sha256": "1f30a5984c5c5218477c5e4a2dc2b2e0bcdc74ed9a6674f741beacdf871e86be"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a1866052ec539edaf7925c3fd426c0f66b21b91c",
+      "scope": "Review the changed Windows fixture and hosted artifact staging together. Exercise observation and executable binding, complete and failed observations, size bounds and cleanup through existing public entries. Check test-only configuration and the original fixed deadline. A native rerun and packaged physical acceptance have separate requirements.",
+      "supersedes": "bb130c5ec9e335cfea56ea321b5ee9ce4a2afa1e4879990b45c07b840bbfaf9f",
+      "requested_at": "2026-11-26T07:49:00.203943+00:00",
+      "request_id": "1d7f31b7f7c8bf63b1203aef093c3e3b8ebf6cced7a8f3b32da30863d5d9b07f",
+      "evidence_sha256": "35a59023b6ea82eb8d98e605f08b80f6884432258be3aa41f052a3d10edfba68"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a1866052ec539edaf7925c3fd426c0f66b21b91c",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-039 a1866052ec539edaf7925c3fd426c0f66b21b91c",
+      "scope": "CHANGES_REQUESTED M2-039 a1866052ec539edaf7925c3fd426c0f66b21b91c",
+      "observation": "In a controlled-clock replay, the Windows fixture entered the public journey at 64 seconds when the endpoint became ready at 59 seconds and listener ownership was first confirmed at 64 seconds.",
+      "reviewer": "Independent Astra Standard (t157)",
+      "original_sha256": "34cb062a68b70d3e7f2c192f4acb2ce8a655bf59b81d5d8749572f90a3801a3c",
+      "response_id": "ea91747016ff3898ea1ff05b9c70c1aae8a6b1a9b479536b39154747fa34ebf5",
+      "response_sha256": "b51d540fdacd28ac14369e558aee43f27cc7922d9749689a32b5b862bf0f9d55",
+      "legacy_response_sha256": "6636b4728ccdb1a09a3592e48185921f8d13105459617d83e078f13264e8e976",
+      "observation_body_sha256": "6e5d4642d932eb8a578d413442c1bfbe61a898aec6fb9cde9f268e01fb6d7244",
+      "event": {
+        "id": "msg_0d1b4853f7780450016b0826c95fdc87d2ba340b27420a196c",
+        "timestamp": "2026-11-26T12:32:30.454Z"
+      },
+      "supersedes": "1d7f31b7f7c8bf63b1203aef093c3e3b8ebf6cced7a8f3b32da30863d5d9b07f",
+      "evidence_sha256": "07597432d84b02b63b71a466d362ece4d23547281dabc8f8b8e4aced668e7582"
+    },
+    {
+      "kind": "request",
+      "source_commit": "09514768174b878432665898058eb9c4d7fca038",
+      "scope": "Review the changed Windows fixture and hosted artifact staging together. Exercise observation and executable binding, complete and failed observations, size bounds and cleanup through existing public entries. Check test-only configuration and the original fixed deadline. A native rerun and packaged physical acceptance have separate requirements.",
+      "supersedes": "ea91747016ff3898ea1ff05b9c70c1aae8a6b1a9b479536b39154747fa34ebf5",
+      "requested_at": "2026-11-26T12:44:44.346263+00:00",
+      "request_id": "0f479fc770b795a60072386e424eeb91abba2e5eb7b67b181b01ff307157f321",
+      "evidence_sha256": "70eb01a505cffa70c6162175e4dbf75b3debbcfb641ef4d1698615093e12e842"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "09514768174b878432665898058eb9c4d7fca038",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-039 09514768174b878432665898058eb9c4d7fca038",
+      "scope": "CHANGES_REQUESTED M2-039 09514768174b878432665898058eb9c4d7fca038",
+      "observation": "In my in-memory replay, `stage_artifacts` accepted a Windows ARM64 report that marked the x64-only native check as passed and staged neither the observation nor the executable.",
+      "reviewer": "Independent Astra Standard (t15v)",
+      "original_sha256": "8714a35f154cd6bb75d3c0c56cf3a72acf9451c8e5f03d0e4eb096c6d5264ae0",
+      "response_id": "9b24cce7597470b5037cc59b14a195fb1922ef32c951d2e2563875233dae8a6d",
+      "response_sha256": "a670d3506a07d10ead23d3f8c77ac545b78444a5d9ff296e8eff276986fd4910",
+      "legacy_response_sha256": "e4d41ea7ccf83176040e401bf303737adfc01e46d8fa8a9c6d3ffbc373c3b2f9",
+      "observation_body_sha256": "f1ff99e8c8c2cf56938cb0190f1a7937612fa2f60bf6b2eaeaf85b29c237b42d",
+      "event": {
+        "id": "msg_0bc271d9d2445fb1016b082b17fb5487d19b286fa75aadf891",
+        "timestamp": "2026-11-26T12:50:52.124Z"
+      },
+      "supersedes": "0f479fc770b795a60072386e424eeb91abba2e5eb7b67b181b01ff307157f321",
+      "evidence_sha256": "f75336707f88dcb564acab850ba36f50d92aa731b12f79359a5946a111640a8f"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b39a02e2130ed16f9ccbef223839752aa7ad9ffd",
+      "scope": "Review the changed Windows fixture and hosted artifact staging together. Exercise observation and executable binding, complete and failed observations, size bounds and cleanup through existing public entries. Check test-only configuration and the original fixed deadline. A native rerun and packaged physical acceptance have separate requirements.",
+      "supersedes": "9b24cce7597470b5037cc59b14a195fb1922ef32c951d2e2563875233dae8a6d",
+      "requested_at": "2026-11-26T12:58:53.891531+00:00",
+      "request_id": "eb139a955ea2345862cf20b7a2e611f0cb9e7b4470eedd7c190445285d42b394",
+      "evidence_sha256": "faa4bc56e1a568f7d39e20183885143fca59a969be39624c6c17825eb083400c"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b39a02e2130ed16f9ccbef223839752aa7ad9ffd",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 b39a02e2130ed16f9ccbef223839752aa7ad9ffd",
+      "scope": "APPROVE M2-039 b39a02e2130ed16f9ccbef223839752aa7ad9ffd",
+      "observation": "In my local replay, the public staging entry preserved both bound artifacts for the retained Windows AMD64 passing fixture and rejected the same complete evidence when I changed the reported architecture to ARM64.",
+      "reviewer": "Independent Astra Standard (t16d)",
+      "original_sha256": "dc729457ab9aac0706239c7efad259484b6cdb637b26ac193f77b40ac7bd57a5",
+      "response_id": "7aec827f7cfc17a90d3af07161fe1b623559e38addf038d8f511d444bda7e61e",
+      "response_sha256": "525a07cd235f7fff30ef354b491ca9118a2984c21a8120fe13869db264da2619",
+      "legacy_response_sha256": "0b5bf16f6115097fbe482e61eece9a9acd092cbc2881bc817b5d8b13d9adccfb",
+      "observation_body_sha256": "e2832d4e49f9d9159bb8c49e8df736046cbca8de3771c65cbd7e72fcd2d80746",
+      "event": {
+        "id": "msg_0571b23626c49280016b082e0428d487d1a13dc23c6d41d6fe",
+        "timestamp": "2026-11-26T13:03:18.417Z"
+      },
+      "supersedes": "eb139a955ea2345862cf20b7a2e611f0cb9e7b4470eedd7c190445285d42b394",
+      "evidence_sha256": "39b85acaaa71d2d0f6d09e9697372362ba1ed74d6cb733c3048ebddcf22c7234"
+    },
+    {
+      "kind": "request",
+      "source_commit": "01026c1b3545c940f8d3d960eb64b603e1324b33",
+      "scope": "Check the actual combined reviewed revision-access harness and protected private workspace test on PR 127's main revision. Reuse your three original decisions at b39a02e2, the native pre-admission failure and qualifying Linux controls. Inspect the interaction and case selection of the resulting workspace.spec.mjs, the official scoped x64 check and artifact provenance. Identify any regression attributable to this combined source and distinguish the pending first native candidate result.",
+      "supersedes": "7aec827f7cfc17a90d3af07161fe1b623559e38addf038d8f511d444bda7e61e",
+      "requested_at": "2026-11-26T13:09:50.284980+00:00",
+      "request_id": "b2081837548683ff20d2a525eaab939a26ed66f9ba75b38472f556406f2fcfbe",
+      "evidence_sha256": "3266aaa9de4ed7766a83d7c0e5958c6ad9b4b80fa165bd8bc950a132704736b2"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "01026c1b3545c940f8d3d960eb64b603e1324b33",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 01026c1b3545c940f8d3d960eb64b603e1324b33",
+      "scope": "APPROVE M2-039 01026c1b3545c940f8d3d960eb64b603e1324b33",
+      "observation": "On Linux, Playwright collected 99 workspace cases from the combined source, including the private launcher handoff, CSV list recovery, and both refocus cases, while the scoped Windows configuration collected one native revision-access case.",
+      "reviewer": "Independent Astra Standard (t16r)",
+      "original_sha256": "a4e6ebe20d9a8113d6ea3cf8ca055d0439539032a04e7edcfc9e779bf9009173",
+      "response_id": "d53b2118199987762742ca0388cfa7b1485d12c44a997611af93519eee59cba1",
+      "response_sha256": "8fd5f16e2677dae9acaa24077f718382b6450b26e30a3c191914c35cbebe1b20",
+      "legacy_response_sha256": "1d5c303eed4d422bd0036b105c9a18236a5b1ece70766cbdbb92df80151a4052",
+      "observation_body_sha256": "db5ddd0d4e52450c63012ca767fb6e0bb92f3d906fd660bc7299b8c2c9e4d554",
+      "event": {
+        "id": "msg_0062ba1665670e3b016b08306ccfac87d2b0b7ee92e8702035",
+        "timestamp": "2026-11-26T13:13:39.567Z"
+      },
+      "supersedes": "b2081837548683ff20d2a525eaab939a26ed66f9ba75b38472f556406f2fcfbe",
+      "evidence_sha256": "351e187129857c9cb65701cc39bf5e4d4d80558f38fc1a34d7c15f17442b7213"
+    },
+    {
+      "kind": "request",
+      "source_commit": "07424b3955546ae6ff1c8302caca024a235d1bba",
+      "scope": "Qualify the exact Windows task submission after incorporation of the three genuine review decisions. Verify the ledger-only diff, source bindings, restored project validation and preserved native selection and evidence criteria.",
+      "supersedes": "d53b2118199987762742ca0388cfa7b1485d12c44a997611af93519eee59cba1",
+      "requested_at": "2026-11-26T13:15:49.372199+00:00",
+      "request_id": "23ebd4f2066a06991f6911496a33f500fd4d54c0aa78312a16a549db87ef205e",
+      "evidence_sha256": "90f5909fc8384f13e60154debc00e9fdc137501406accfbd7fd4fe30a1cd322d"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "07424b3955546ae6ff1c8302caca024a235d1bba",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 07424b3955546ae6ff1c8302caca024a235d1bba",
+      "scope": "APPROVE M2-039 07424b3955546ae6ff1c8302caca024a235d1bba",
+      "observation": "Project validation passed on the candidate, and all three appended decisions matched their archived reviewer responses by SHA-256, event ID, and observation text.",
+      "reviewer": "Independent Astra Standard (t16z)",
+      "original_sha256": "13b6c91d11dde243cd8deef6598fe9286e5940c26cb567f36e26727cc1e490f7",
+      "response_id": "e5f7ab8e8dbdcafa558a112601a846bff69af4095e94be770cc16b66a3e65ba2",
+      "response_sha256": "c0d2892d7e6b04f41846afef6401bf322e8f4b31f7aad0d795953fc997a16acb",
+      "legacy_response_sha256": "63c452bf05ebc8d0620747eb8ac3af37b5be961a08cba4326d0a8d9bc365e0a7",
+      "observation_body_sha256": "d54ca9c9d506c243b9cc15a6d096dd43daf2ed3f8d66c73baf273232a0e84b3d",
+      "event": {
+        "id": "msg_038c609f9eea9880016b08318935d487d298bebeafde32576a",
+        "timestamp": "2026-11-26T13:18:17.642Z"
+      },
+      "supersedes": "23ebd4f2066a06991f6911496a33f500fd4d54c0aa78312a16a549db87ef205e",
+      "evidence_sha256": "39bf245219e8296ba539a1942de488265d605d9ac83c4c0d7385bb7c58fe8a9f"
+    },
+    {
+      "kind": "request",
+      "source_commit": "030661a9862276017321f94b621bd70e99561020",
+      "scope": "Review the first-reopen independent proof read after the second window showed close 106. Verify accepted and rejected response status, identity, selection revision and timeout, retaining the unknown historical envelope.",
+      "supersedes": "e5f7ab8e8dbdcafa558a112601a846bff69af4095e94be770cc16b66a3e65ba2",
+      "requested_at": "2026-11-26T13:58:52.812761+00:00",
+      "request_id": "a05ba6b5aa05bc7789d397cf1ec46b4fbedf5b0014a9c49484942658187e5baa",
+      "evidence_sha256": "051a63afa4d02e4845ce85de0ca57b8790358d6d1fb7ecc5847e188ac7d8d807"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "030661a9862276017321f94b621bd70e99561020",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-039 030661a9862276017321f94b621bd70e99561020",
+      "scope": "CHANGES_REQUESTED M2-039 030661a9862276017321f94b621bd70e99561020",
+      "observation": "In an isolated replay, the independent proof accepted an HTTP 200 snapshot carrying both the expected selection and a PERMISSION_DENIED error, while the desktop test bridge rejected the same reply.",
+      "reviewer": "Independent Astra Standard (t17v)",
+      "original_sha256": "c08cfde78cb61dbea56468b19390b17db7422e6995f4c99fcea0c773e8c48bfa",
+      "response_id": "8be15388c644291c23b6f57308d9eaf2d5f909168aebc8b53144816076a7ca06",
+      "response_sha256": "32d0061e33eb092ce461910a9104e7ac9c9961b77281a010f7c921b697b1106e",
+      "legacy_response_sha256": "4d5b15898daa2278ff2a913d4862de87cadd3bb128fd00c6e9fa5651e62df453",
+      "observation_body_sha256": "1d461409978b1b4fcfe01cd3129644ea9d71bd61c58cb39258c8722d6f104c18",
+      "event": {
+        "id": "msg_00a95b9aca79bb95016b083bead45487d1b0f289572789b1ca",
+        "timestamp": "2026-11-26T14:02:39.881Z"
+      },
+      "supersedes": "a05ba6b5aa05bc7789d397cf1ec46b4fbedf5b0014a9c49484942658187e5baa",
+      "evidence_sha256": "a218e60ee3c1711465a82d6717f29fe0c5f993f9ca1544ddbb906af0a8bb8049"
+    },
+    {
+      "kind": "request",
+      "source_commit": "aeb1763f21237fd897877ef9bba08219223f7615",
+      "scope": "Review the first-reopen independent proof read after the second window showed close 106. Verify accepted and rejected response status, identity, selection revision and timeout, retaining the unknown historical envelope.",
+      "supersedes": "8be15388c644291c23b6f57308d9eaf2d5f909168aebc8b53144816076a7ca06",
+      "requested_at": "2026-11-26T14:22:06.332851+00:00",
+      "request_id": "4ba2195be3acc14048201bdee2c7919c06aba7412a5aa5f77269ea87f928f773",
+      "evidence_sha256": "4fe8ded53edd21e621dc5759106ff52b44e4780a34e8d9955969b6bb434ed8d4"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "aeb1763f21237fd897877ef9bba08219223f7615",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 aeb1763f21237fd897877ef9bba08219223f7615",
+      "scope": "APPROVE M2-039 aeb1763f21237fd897877ef9bba08219223f7615",
+      "observation": "In my replay, the independent proof accepted B at selection revision 2 and rejected the same HTTP 200 reply on the first read when it also carried a PERMISSION_DENIED error.",
+      "reviewer": "Independent Astra Standard (t18f)",
+      "original_sha256": "e59525a2dee1949d29cddd896ddbd6302e08649923ea9ecedcb33b6b479e008e",
+      "response_id": "615a1d05e8fe123aac1889e01a448684a357b53308a38c1cef9a4b4f9b226c86",
+      "response_sha256": "92cde138c89f23ef3748c966df12e61b4d5bcfa48af78c0d98a35e452c0b3c53",
+      "legacy_response_sha256": "0127021789d2e032a644cc9d9a937d2e656990462068e76b22a2b59959b48ebd",
+      "observation_body_sha256": "8e2939fc02f0940829582783c0fedeff5082f6e92447175bedacccb200555712",
+      "event": {
+        "id": "msg_0c8b31e46fe30aa9016b084383ec2887d2ad7cd5b6e5c4898c",
+        "timestamp": "2026-11-26T14:35:13.082Z"
+      },
+      "supersedes": "4ba2195be3acc14048201bdee2c7919c06aba7412a5aa5f77269ea87f928f773",
+      "evidence_sha256": "9251a3ebba661bd615159e89a28d0d52fdc2f3f60095369d0e39e3e8ad531de9"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e04c951d90ee2c99b6e039b2caf8f753d21727de",
+      "scope": "Review the first-reopen independent proof read after the second window showed close 106. Verify accepted and rejected response status, identity, selection revision and timeout, retaining the unknown historical envelope.",
+      "supersedes": "615a1d05e8fe123aac1889e01a448684a357b53308a38c1cef9a4b4f9b226c86",
+      "requested_at": "2026-11-26T15:05:46.716859+00:00",
+      "request_id": "cc4148b49f944e9ce4da713301e2dbc414b25d55a4e052ffe617e993a949d31b",
+      "evidence_sha256": "96d3796ab4122d13ae9fe5439e64f7adf16fda64f6de7a06b5b850aa10023e53"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e04c951d90ee2c99b6e039b2caf8f753d21727de",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 e04c951d90ee2c99b6e039b2caf8f753d21727de",
+      "scope": "APPROVE M2-039 e04c951d90ee2c99b6e039b2caf8f753d21727de",
+      "observation": "In my replay, the first-reopen proof accepted B at selection revision 2 and rejected the same HTTP 200 snapshot on the first read when it also carried a PERMISSION_DENIED error.",
+      "reviewer": "Independent Astra Standard (t192)",
+      "original_sha256": "e77e60257d77746bbca59dcfbf26b8f24836bcd6ef3e2b6f4aa37efe41063512",
+      "response_id": "d33eac14adede27806127bc8973225301e9ef82b0d888930fe176888d8fb0d59",
+      "response_sha256": "69289b4d9dc785204fd3e80cc4e1397b8835860dce271e3163efaa384a19cadb",
+      "legacy_response_sha256": "7f273e21c36e5ef824a7431f651559c3f9c423f068fd4cfb32ee34e473df8850",
+      "observation_body_sha256": "884c1f214aabe5da58d1fa831bf8d8645c69543f1e79a1f036352b975354b07c",
+      "event": {
+        "id": "msg_092f0d758e53865d016b084b84e39487d19fdefd82a7f4e2d6",
+        "timestamp": "2026-11-26T15:09:15.187Z"
+      },
+      "supersedes": "cc4148b49f944e9ce4da713301e2dbc414b25d55a4e052ffe617e993a949d31b",
+      "evidence_sha256": "0681e1f5c1f05bb24aa40bf484a25377ec28b1516b1554105f25c841975dac2e"
+    },
+    {
+      "kind": "request",
+      "source_commit": "3d34bec7f9dbbffb88f65af8cd0b8689b13373aa",
+      "scope": "Review the first-reopen independent proof read after the second window showed close 106. Verify accepted and rejected response status, identity, selection revision and timeout, retaining the unknown historical envelope.",
+      "supersedes": "d33eac14adede27806127bc8973225301e9ef82b0d888930fe176888d8fb0d59",
+      "requested_at": "2026-11-26T15:13:31.074107+00:00",
+      "request_id": "ac456fbd31112cc9bd9a76790ae16669047e52f64133ae563a9929f3dc71840c",
+      "evidence_sha256": "1e0f02f474dd975e51928a2f5f8b94b87771865e383f8ecaaed231c6115a1a05"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "3d34bec7f9dbbffb88f65af8cd0b8689b13373aa",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 3d34bec7f9dbbffb88f65af8cd0b8689b13373aa",
+      "scope": "APPROVE M2-039 3d34bec7f9dbbffb88f65af8cd0b8689b13373aa",
+      "observation": "My replay accepted the available B snapshot at selection revision 2 and rejected that same HTTP 200 snapshot on the first read when it also carried a PERMISSION_DENIED error.",
+      "reviewer": "Independent Astra Standard (t19h)",
+      "original_sha256": "3b16d066662de0eecb08418805c7e9b976fdf7cba66d56d4de690b6c454cf6d5",
+      "response_id": "7304d7464e95d678498ecbaf99a0b805716a263e43e93701f6569440d86c1230",
+      "response_sha256": "30d8dbb7d9c002fa1452f4b7940f1968af838d0cee6a2854992a65f2e6305554",
+      "legacy_response_sha256": "7aad6a53cfbe45efa5e48d41481855bb43b3d5c4d2fed7924a135ba0cd8623d0",
+      "observation_body_sha256": "3201c6ce2c7c2fe99906b1001d985d58d925cb7161753271ede175b3d524fc68",
+      "event": {
+        "id": "msg_05c80f131796adec016b084e63c6e887d292e6704f5b54c0c6",
+        "timestamp": "2026-11-26T15:21:29.449Z"
+      },
+      "supersedes": "ac456fbd31112cc9bd9a76790ae16669047e52f64133ae563a9929f3dc71840c",
+      "evidence_sha256": "377172e362bdc080c359b9a598dd40440575ea012943a0e9dc825479dfc35b9d"
+    },
+    {
+      "kind": "request",
+      "source_commit": "59c203f6a2f9f076a4b773a2e73fbfeba30a98bb",
+      "scope": "Independently qualify the exact PR 97 native submission after incorporation of three approved decisions. Check the decision-only delta from 3d34bec7, matched raw responses, unchanged tested implementation, previously verified portable and native workflow definitions and offline readiness for the selected task. Reuse the existing approved browser evidence. This narrow decision is for the exact tree handed to the guarded workflow.",
+      "supersedes": "7304d7464e95d678498ecbaf99a0b805716a263e43e93701f6569440d86c1230",
+      "requested_at": "2026-11-26T15:22:28.987187+00:00",
+      "request_id": "1e016e4a1aa50e0ffa0c0988c7e08cab3b41557c9e9677ddb056a5ee4f055560",
+      "evidence_sha256": "5f005411e8426d5cb07b999db1dc67e36231516df4024b643b412a2394437f9a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "59c203f6a2f9f076a4b773a2e73fbfeba30a98bb",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 59c203f6a2f9f076a4b773a2e73fbfeba30a98bb",
+      "scope": "APPROVE M2-039 59c203f6a2f9f076a4b773a2e73fbfeba30a98bb",
+      "observation": "In my offline replay, the workflow guard accepted the exact candidate and protected base, rejected the previous reviewed head, and rejected a stale base.",
+      "reviewer": "Independent Astra Standard (t19m)",
+      "original_sha256": "f1ea54ed4e5e98f7acb045592b4c5dc5587101c624875614cf9caf86afbfe518",
+      "response_id": "8ec031b25cd771cc43e1bfbedef622302a27fd49376f755a1756e4ac429f8439",
+      "response_sha256": "b25fad3aeb825ca8825ef5972f018da8daf0f85f20e2a19196423075e7f26295",
+      "legacy_response_sha256": "15729985310b8fddd4daa1e08ba27f81a6a950b56f563126e0aef9167304e6d1",
+      "observation_body_sha256": "ea18202cbedabaefc31608dfe65a2be46c8b96c9d8701f5cf2ba979e76fa7a07",
+      "event": {
+        "id": "msg_0d0076eb8e4e05f0016b084f62159487d28afb4afaa59aec2c",
+        "timestamp": "2026-11-26T15:25:37.226Z"
+      },
+      "supersedes": "1e016e4a1aa50e0ffa0c0988c7e08cab3b41557c9e9677ddb056a5ee4f055560",
+      "evidence_sha256": "ca3d88070695f55cdedb98d9b2d4d65642291861bb8c4d979f3c8ff877919c6c"
+    },
+    {
+      "kind": "request",
+      "source_commit": "21cf84718d8d82d2cb3a54347c7552e8691946c3",
+      "scope": "Review the first-reopen independent proof read after the second window showed close 106. Verify accepted and rejected response status, identity, selection revision and timeout, retaining the unknown historical envelope.",
+      "supersedes": "8ec031b25cd771cc43e1bfbedef622302a27fd49376f755a1756e4ac429f8439",
+      "requested_at": "2026-11-27T03:04:58.502315+00:00",
+      "request_id": "086bcfa401247cd4f21a507fb103db158a2e23706df337781c2e3426d925478e",
+      "evidence_sha256": "5929396028f732cea5da1f02d56d5b68bed2c2423f8a5209f2ede23a932cde2b"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "21cf84718d8d82d2cb3a54347c7552e8691946c3",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 21cf84718d8d82d2cb3a54347c7552e8691946c3",
+      "scope": "APPROVE M2-039 21cf84718d8d82d2cb3a54347c7552e8691946c3",
+      "observation": "In my replay, the first-reopen proof accepted B at selection revision 2, rejected the same HTTP 200 result when it also carried a permission error, and timed out at four seconds when valid B arrived late.",
+      "reviewer": "Independent Astra Standard (t1bj)",
+      "original_sha256": "36dfe1d439af9a6047146480b51bcc0afa27a225f0afb58b88c901284ca21868",
+      "response_id": "66b96dea6fe4a9e804d01f3029d44b17c60dbb014ee6766296e8deb0ce874ad1",
+      "response_sha256": "4d050ff77e0857468cd81592f8a90222bdc19b64680b1d5177446fb1ac43c496",
+      "legacy_response_sha256": "ab3c2ca70b76ffe59f10a090f12b071ff9b800d65a257d5aba18697b89c213ca",
+      "observation_body_sha256": "23dafbb1160dea9433e6690f51fec3b3d823737b4475f83aa1292a2c3c2d545c",
+      "event": {
+        "id": "msg_000454aa985a04ec016b08f41833b487d08b27ba24e2b7f6dc",
+        "timestamp": "2026-11-27T03:08:37.026Z"
+      },
+      "supersedes": "086bcfa401247cd4f21a507fb103db158a2e23706df337781c2e3426d925478e",
+      "evidence_sha256": "309785375ad1b50c54c49094328fcc1ff1151c7a50b81bfe21c8107ad98586c5"
+    },
+    {
+      "kind": "request",
+      "source_commit": "f636dcdd382340e453dd29b91cfff01c2413929f",
+      "scope": "Check the corrected native snapshot caller on startup, first focus and readback against the previously approved reopened chart and selection. Decide whether the delta preserves the previously observed HTTP first-reopen proof and committed selection.",
+      "supersedes": "66b96dea6fe4a9e804d01f3029d44b17c60dbb014ee6766296e8deb0ce874ad1",
+      "requested_at": "2026-11-27T03:34:34.268421+00:00",
+      "request_id": "95a4f129e44e57652413b0482d31e8a9e110eede0de88520e28b1caeff34eb37",
+      "evidence_sha256": "18c87395a940f3d7ece46fa5b581e477c1d7bf1396a5f8c0b685c7e7c4053b48"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "f636dcdd382340e453dd29b91cfff01c2413929f",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 f636dcdd382340e453dd29b91cfff01c2413929f",
+      "scope": "APPROVE M2-039 f636dcdd382340e453dd29b91cfff01c2413929f",
+      "observation": "In my replay, the native snapshot reader accepted a valid reply on the first call, retried an explicit writer refusal once, and returned the admitted storage BUSY after one call.",
+      "reviewer": "Independent Astra Standard (t1c0)",
+      "original_sha256": "7ab9445408de63a553e70fb92f7612629e4bdec6f75224ec762be93850e348ed",
+      "response_id": "d4201a4df888c6d741dece25f63ddc2bcc177cb832286d7011165fa1d5cfb7b7",
+      "response_sha256": "74695c44ebbf9a76035e117f2750c03e35caabe4b1c1de38fc4e697ba4cf9a67",
+      "legacy_response_sha256": "3cb1e2e116193b8abc5473c48dce143210b86ee8fbc192bd48037b28ed213503",
+      "observation_body_sha256": "34f208beb4ff52fa0ee068f4da415af3f57db40f91ac83305cc6d99618f3b564",
+      "event": {
+        "id": "msg_0b93395fde058200016b08fb5d0bf087d0a85909b951a36e4b",
+        "timestamp": "2026-11-27T03:39:24.338Z"
+      },
+      "supersedes": "95a4f129e44e57652413b0482d31e8a9e110eede0de88520e28b1caeff34eb37",
+      "evidence_sha256": "19e537b763479f77c66cb0a5b19e987f7541f98cc975bc5b9f69b41e3cbaff7d"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ffdb95b29f21f6b2530cc74f7a77ef456ae0991b",
+      "scope": "Independently verify the new M2-039 evidence closure and composition with protected main, including the applicability of prior M2-034/035/039 decisions. Reuse their actual originals and established controls.",
+      "supersedes": "d4201a4df888c6d741dece25f63ddc2bcc177cb832286d7011165fa1d5cfb7b7",
+      "requested_at": "2026-11-27T04:45:31.664840+00:00",
+      "request_id": "a6e7ff0e5cb892aa5d2464a83e490f06c11524abc9f66e99b0d8ec28b0d4e6fc",
+      "evidence_sha256": "f6fda5d6134a41d18370696076900ace498fe92c4599faa238065c1bce1562b7"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ffdb95b29f21f6b2530cc74f7a77ef456ae0991b",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-039 ffdb95b29f21f6b2530cc74f7a77ef456ae0991b",
+      "scope": "CHANGES_REQUESTED M2-039 ffdb95b29f21f6b2530cc74f7a77ef456ae0991b",
+      "observation": "I found the passing 64-file trial in the retained local report for e8789cfe, while the guarded Windows and Linux logs for run 45935930896 each list 25 folder cases and omit that trial.",
+      "reviewer": "Independent Astra Standard (t1d4)",
+      "original_sha256": "fc4613d6076cb59cfaace99f8fb61c91c7e6e3754da3e0d0fc21332c8dbf63fd",
+      "response_id": "e12449c772aa92d24b0fe9387963596457ab704fc759beb3d0c7aab62722cc63",
+      "response_sha256": "5adcd45e3c3f03b00dd1fd7edf44dd5fb0a46619c62c9e46faba169f9f9a0225",
+      "legacy_response_sha256": "37c242f707f755b3be6378f6ffa5d82a37de7e531e3c64f571253fd969d6febf",
+      "observation_body_sha256": "0979eeb933b8aafc9077a88743effcde82e471a66377cc0d31b54b2a24afd0d3",
+      "event": {
+        "id": "msg_04c14f63b7a78ba8016b090bf4497c87d0acf0b845b8ca638c",
+        "timestamp": "2026-11-27T04:50:22.413Z"
+      },
+      "supersedes": "a6e7ff0e5cb892aa5d2464a83e490f06c11524abc9f66e99b0d8ec28b0d4e6fc",
+      "evidence_sha256": "f64b37565d04be6ea6044a6def8c9524f3d68d43e46a56e9f56446dd17babd6d"
+    },
+    {
+      "kind": "request",
+      "source_commit": "4460e72f0652b454572252d90a15ebe8e817bca7",
+      "scope": "Verify the corrected attribution for the single previously rejected feedback closure and approve or reject the composed M2-039 evidence on its exact source.",
+      "supersedes": "e12449c772aa92d24b0fe9387963596457ab704fc759beb3d0c7aab62722cc63",
+      "requested_at": "2026-11-27T04:58:26.623459+00:00",
+      "request_id": "ebca812cc5b1d5984b2f4eeebaadf1eb044c54eff534c6b13bf05c13ef814286",
+      "evidence_sha256": "cefeaa87ee2cc1cb7f0d2a24a8df438562bb970a8ff279320a8ed79b7f02e199"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "4460e72f0652b454572252d90a15ebe8e817bca7",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 4460e72f0652b454572252d90a15ebe8e817bca7",
+      "scope": "APPROVE M2-039 4460e72f0652b454572252d90a15ebe8e817bca7",
+      "observation": "The local report for e8789cfe records one native stage with 64 valid files and a comparison rendered after 15,100 ms of controlled delivery, while the guarded Windows and Linux logs for run 45935930896 each record a passing 15-CSV case with 13 conflicting inputs.",
+      "reviewer": "Independent Astra Standard (t1d9)",
+      "original_sha256": "0433e4d191852ff72acf017cb9097d6d568579efc4f1a10d6c3c400c46cfef8f",
+      "response_id": "e7ae275bdf32f27b761d8575377d42cdd148661b88e9b36832ae22830da6e0e5",
+      "response_sha256": "705346c5ae364f146a4ad9d28ff6fdcc83a1f7a5cba009455c15ff6785edf2f8",
+      "legacy_response_sha256": "745c186a85ca6d5b1dd6c4863526e6771b44ecf1d87ae7e374ef1ea2af7857db",
+      "observation_body_sha256": "6cc735d7c95d83b64f56312cf5bbc7a9271413ca7caddaf4531de2dcfc1ac7f9",
+      "event": {
+        "id": "msg_0db81acd805c35c2016b090e7388a487d0840631798adc10f4",
+        "timestamp": "2026-11-27T05:00:55.329Z"
+      },
+      "supersedes": "ebca812cc5b1d5984b2f4eeebaadf1eb044c54eff534c6b13bf05c13ef814286",
+      "evidence_sha256": "5d7d29dab2ed4c1d0c53a58f17147d42c5a46e5f1bf32b529430e82fed7e787f"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ff7f9403dc57e4a945796d56aa07ec6aaabbba33",
+      "scope": "Check the combined frozen-chart consumer evidence at the two-parent source. Preserve source identity, first reopen and refused preview behavior when the integrated workspace preparation helper is present.",
+      "supersedes": "e7ae275bdf32f27b761d8575377d42cdd148661b88e9b36832ae22830da6e0e5",
+      "requested_at": "2026-11-27T07:13:34.834689+00:00",
+      "request_id": "6adbb3537d1b8666c540e6ff8057d652d8a049de09c0f24a298645786a84999c",
+      "evidence_sha256": "b6a82acbb32017a455b763be4a53ec285c00636d193df32350cd9b74b51940b3"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ff7f9403dc57e4a945796d56aa07ec6aaabbba33",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 ff7f9403dc57e4a945796d56aa07ec6aaabbba33",
+      "scope": "APPROVE M2-039 ff7f9403dc57e4a945796d56aa07ec6aaabbba33",
+      "observation": "In the retained Linux and Windows results for run 45952399553, the admitted frozen preview returned HTTP 200 with a matching request ID and a task ID, while the refused preview returned HTTP 429 with retryable BUSY and no task ID.",
+      "reviewer": "Independent Astra Standard (t1f1)",
+      "original_sha256": "a59f6f27086431d72de46ad5bda1d35df5ea518c7293a4cf650fa3ec2c52c179",
+      "response_id": "cd8f836a20fa09bd1b7d3f17b3251b595d2af568200511537fc2b6884e3be8ae",
+      "response_sha256": "8a0648d6a0b611c2ca1ba8590137a7dd67716ea111f2f0c02e3e45476301f107",
+      "legacy_response_sha256": "6750af17d047acbfa37403dc0406803732a511e8cc499b6c6bd03c0a89d91d2c",
+      "observation_body_sha256": "b7604940b8987e5a431f275cf50b770fb6ffdaf16724a4ebcdc1c815eeaefe3c",
+      "event": {
+        "id": "msg_0725b3163fdeb99b016b092e76eabc87d0b14f023c3289be89",
+        "timestamp": "2026-11-27T07:17:31.705Z"
+      },
+      "supersedes": "6adbb3537d1b8666c540e6ff8057d652d8a049de09c0f24a298645786a84999c",
+      "evidence_sha256": "ba2582ef140ef5cef5a5d7ceeb0e1d9f03ba35ffe4b655942265aec0b29cef77"
+    }
+  ]
+}

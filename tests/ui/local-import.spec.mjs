@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { painted } from './chart-pixels.mjs';
+import { expectEmptyRevisionLibrary, expectWithdrawnRevisionDenied, openPublishedRevisionDialog, withdrawPublishedRevision } from './published-revision-controls.mjs';
 import { control, openPanel, watchlistSymbol } from './workspace-controls.mjs';
 
 const folderId = '95ef05fd-a797-4bb7-9e63-112233440001';
@@ -1485,7 +1486,7 @@ base('stages additions, aliases, conflicts and withdrawals against a frozen loca
     await control(page, 'Cancel folder refresh').click();
     releaseRefresh.resolve();
     holdRefresh = false;
-    await expect(page.getByText('Folder refresh cancelled.', { exact: true })).toBeVisible();
+    await expect(page.getByText('Stopped waiting for the folder refresh.', { exact: true })).toBeVisible();
     await expect(changes).toHaveCount(0);
     await expect.poll(() => calls.find(call => call.command === 'cancel_local_import_preview')?.args)
       .toEqual({ requestId: refreshes()[1].args.requestId });
@@ -1532,6 +1533,444 @@ base('stages additions, aliases, conflicts and withdrawals against a frozen loca
     await rm(temporary, { recursive: true, force: true });
   }
 });
+
+for (const { kind, withdrawn } of [
+  { kind: 'CSV', withdrawn: true }, { kind: 'folder', withdrawn: true },
+  { kind: 'CSV', withdrawn: false }, { kind: 'folder', withdrawn: false },
+]) {
+  base(`fences a delayed ${kind} comparison across focus with ${withdrawn ? 'peer withdrawal' : 'trailing authorized focus'}`, {
+    tag: '@profile-folder-refresh',
+  }, async ({ page, browser, baseURL }, testInfo) => {
+    const binary = process.env.SCOPEHUB_LOCAL_IMPORT_BRIDGE;
+    base.skip(!binary, 'Set SCOPEHUB_LOCAL_IMPORT_BRIDGE to the portable Rust test example.');
+    const root = await mkdtemp(join(await realpath(tmpdir()), 'scopehub-folder-focus-'));
+    const profile = join(root, 'profile');
+    const folder = join(root, 'source');
+    const source = 'daily.csv';
+    const csv = [equity.header, ...equity.rows].map(row => row.join(',') + '\n').join('');
+    const hash = createHash('sha256').update(csv).digest('hex');
+    const stages = [];
+    const statuses = [];
+    const observed = [];
+    const folderBase = kind === 'folder';
+    let bridge;
+    let peer;
+    let peerPage;
+    let holdStatus = false;
+    const acknowledge = async (name, entries, number) => {
+      await expect.poll(() => entries.length, { message: name }).toBeGreaterThanOrEqual(number);
+      return entries[number - 1];
+    };
+    try {
+      await mkdir(profile, { mode: 0o700 });
+      await mkdir(folder, { mode: 0o700 });
+      await writeFile(join(folder, source), csv);
+      bridge = startLocalImportBridge(binary, profile, folder, { workspace: true });
+      const market = async (operation, payload) => {
+        const reply = await bridge.request('execute_operation', {
+          operation: `market.${operation}`, requestId: randomUUID(), payload: { version: 1, ...payload },
+        });
+        expect(reply.error).toBeUndefined();
+        return reply.result;
+      };
+      const { result: catalog } = await bridge.request('choose_local_csv_folder', {});
+      const selected = { folder_id: catalog.folder_id, file_id: catalog.files[0].file_id, expected_sha256: hash };
+      const mapping = { version: 1, revision: 'focus-equity', encoding: 'utf-8', delimiter: ',', record_kind: 'native_ohlcv',
+        timestamp_convention: 'bar_start', volume_semantics: 'per_bar', ...equity.settings, columns: equity.columns };
+      const preview = { ...selected, mapping, row_limit: 2 };
+      expect((await market('previewLocalImport', preview)).preview.rows[0].symbol).toBe('000731');
+      const { record } = await market('saveLocalImportMapping', preview);
+      let { revision } = await market('publishLocalImport', { ...selected, review_revision: record.review_revision });
+      if (folderBase) {
+        const staged = await market('previewLocalFolderRefresh', { folder_id: catalog.folder_id, revision_id: revision.revision_id });
+        const review = { folder_id: catalog.folder_id, review_id: staged.review_id };
+        const prepared = await market('prepareLocalFolderPublication', { ...review, conflicts: [], withdraw_bars: [], withdraw_sources: [] });
+        ({ revision } = await market('publishLocalFolderRefresh', {
+          ...review, candidate_sha256: prepared.candidate_sha256, idempotency_key: randomUUID(),
+        }));
+      }
+      const id = revision.revision_id;
+      const statusCall = args => args.payload?.revision_id === id && (folderBase
+        ? args.operation === 'market.readLocalFolderRevision' && args.payload.include_details === false
+        : args.payload.type === 'frozen_chart_status');
+      const bind = async (windowPage, invoke) => {
+        await windowPage.exposeBinding('testNativeInvoke', (_, command, args) => invoke(command, args));
+        await windowPage.addInitScript(() => {
+          window.isTauri = true;
+          window.__SCOPEHUB_DESKTOP_WORKSPACE__ = true;
+          window.__TAURI_INTERNALS__ = {
+            async invoke(command, args) {
+              const reply = await window.testNativeInvoke(command, args);
+              if (args?.operation === 'market.previewLocalFolderRefresh') {
+                window.deliveredComparisons = (window.deliveredComparisons ?? 0) + 1;
+              }
+              if (reply.error) throw reply.error;
+              return reply.result;
+            },
+          };
+        });
+        await windowPage.goto(baseURL);
+      };
+      const revoked = Promise.withResolvers();
+      let remove;
+      if (withdrawn) {
+        peer = startLocalImportBridge(binary, profile, folder, { workspace: true });
+        peerPage = await browser.newPage();
+        await bind(peerPage, async (command, args) => {
+          const reply = await peer.request(command, args);
+          if (args?.operation === (folderBase ? 'market.revokeLocalFolderRevision' : 'market.revokeLocalImportRevision')) revoked.resolve(reply);
+          return reply;
+        });
+        await control(peerPage, 'Open published CSV').last().click();
+        const dialog = peerPage.getByRole('dialog', { name: 'Open published CSV' });
+        if (folderBase) await control(dialog, 'Folder revisions').click();
+        await dialog.getByLabel('Revision ID').fill(id);
+        await control(dialog, folderBase ? 'Open frozen folder revision' : 'Open frozen chart').click();
+        await control(dialog, 'Remove frozen chart access').click();
+        remove = control(dialog, 'Remove access');
+        await expect(remove).toBeEnabled();
+      }
+
+      await bind(page, async (command, args) => {
+        const reply = await bridge.request(command, args);
+        const stage = args?.operation === 'market.previewLocalFolderRefresh';
+        if (stage || (holdStatus && args && statusCall(args))) {
+          const entries = stage ? stages : statuses;
+          const release = Promise.withResolvers();
+          entries.push({ reply, release });
+          observed.push({ phase: stage ? 'stage completed' : 'access checked', number: entries.length,
+            available: folderBase ? Boolean(reply.result?.revision) : reply.result?.available, code: reply.error?.code });
+          await release.promise;
+        }
+        return reply;
+      });
+      const focus = () => page.evaluate(() => window.dispatchEvent(new Event('focus')));
+      await control(page, 'Choose local CSV folder').last().click();
+      const review = page.getByRole('region', { name: 'Folder refresh review' });
+      await expect(review.getByLabel('Accepted revision ID')).toHaveValue('');
+      await review.getByLabel('Accepted revision ID').fill(id);
+      const stage = control(review, 'Stage folder refresh');
+      const table = review.getByRole('table', { name: 'Folder source changes' });
+      const assertHidden = async () => {
+        await expect(table).toHaveCount(0);
+        await expect(review.getByText(source, { exact: true })).toHaveCount(0);
+        await expect(review.getByText(hash, { exact: true })).toHaveCount(0);
+        expect(await page.evaluate(() => window.comparisonExposures)).toEqual([]);
+      };
+      await review.evaluate((element, expected) => {
+        window.comparisonExposures = [];
+        new MutationObserver(records => {
+          for (const record of records) {
+            for (const node of record.addedNodes) {
+              if (node.textContent.includes(expected.source) || node.textContent.includes(expected.hash)) {
+                window.comparisonExposures.push('comparison contents inserted');
+              }
+            }
+          }
+        }).observe(element, { childList: true, subtree: true });
+      }, { source, hash });
+
+      await stage.click();
+      const first = await acknowledge('native comparison returned', stages, 1);
+      expect(first.reply.result.files[0]).toMatchObject({ relative_path: source, source_sha256: hash });
+      if (withdrawn) {
+        await remove.click();
+        expect((await revoked.promise).result.revision_id).toBe(id);
+        observed.push({ phase: 'peer durably withdrew before delivery' });
+      }
+      holdStatus = true;
+      await focus();
+      first.release.resolve();
+      const firstStatus = await acknowledge('first access check returned', statuses, 1);
+      await expect.poll(() => page.evaluate(() => window.deliveredComparisons)).toBe(1);
+      if (withdrawn) {
+        if (folderBase) expect(firstStatus.reply.error.code).toBe('PERMISSION_DENIED');
+        else expect(firstStatus.reply.result).toEqual({ available: false, revoked: true });
+        await assertHidden();
+        firstStatus.release.resolve();
+        await expect(page.getByRole('alert')).toContainText('Access removed for this published revision.');
+        await assertHidden();
+      } else {
+        await assertHidden();
+        await focus();
+        await focus();
+        firstStatus.release.resolve();
+        const latest = await acknowledge('trailing access check returned', statuses, 2);
+        await assertHidden();
+        expect(latest.reply.error).toBeUndefined();
+        expect(folderBase ? latest.reply.result.revision.revision_id : latest.reply.result.available).toBe(folderBase ? id : true);
+        latest.release.resolve();
+        await expect(table.getByRole('rowheader', { name: source })).toBeVisible();
+        await expect(table.getByText(hash, { exact: true }).first()).toHaveCount(1);
+      }
+      expect(stages).toHaveLength(1);
+    } finally {
+      for (const { release } of [...stages, ...statuses]) release.resolve();
+      await testInfo.attach('comparison-focus-order', { body: JSON.stringify(observed), contentType: 'application/json' });
+      await peerPage?.close();
+      await peer?.close();
+      await bridge?.close();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+}
+
+for (const confirmBeforeFocus of [false, true]) {
+  base(`keeps folder ${confirmBeforeFocus ? 'confirmation' : 'choices'} bound to the authorized staged comparison`, {
+    tag: '@profile-folder-refresh',
+  }, async ({ page }, testInfo) => {
+    const binary = process.env.SCOPEHUB_LOCAL_IMPORT_BRIDGE;
+    base.skip(!binary, 'Set SCOPEHUB_LOCAL_IMPORT_BRIDGE to the portable Rust test example.');
+    const root = await mkdtemp(join(await realpath(tmpdir()), 'scopehub-folder-choices-'));
+    const profile = join(root, 'profile');
+    const folder = join(root, 'source');
+    const csv = rows => [equity.header, ...rows].map(row => row.join(',') + '\n').join('');
+    const firstSource = csv(equity.rows);
+    const sourceHash = createHash('sha256').update(firstSource).digest('hex');
+    const conflictTime = Date.parse(equity.times[0]);
+    const withdrawalTime = Date.parse(equity.times[1]);
+    const choices = alternative_index => ({
+      conflicts: [{ time_ms: conflictTime, alternative_index }], withdraw_bars: [withdrawalTime], withdraw_sources: ['removed.csv'],
+    });
+    let bridge;
+    let peer;
+    let accessGate;
+    let stageGate;
+    const calls = [];
+    const observations = [];
+    const replyFor = name => calls.filter(({ args }) => args?.operation === `market.${name}`);
+    const read = (operation, payload, owner = bridge) => owner.request('execute_operation', {
+      operation: `market.${operation}`, requestId: randomUUID(), payload: { version: 1, ...payload },
+    });
+    const run = async (operation, payload) => {
+      const reply = await read(operation, payload);
+      expect(reply.error).toBeUndefined();
+      return reply.result;
+    };
+    try {
+      await mkdir(profile, { mode: 0o700 });
+      await mkdir(folder, { mode: 0o700 });
+      const removed = join(folder, 'removed.csv');
+      await writeFile(removed, firstSource);
+      bridge = startLocalImportBridge(binary, profile, folder, { workspace: true });
+      const { result: catalog } = await bridge.request('choose_local_csv_folder', {});
+      const selected = { folder_id: catalog.folder_id, file_id: catalog.files[0].file_id, expected_sha256: sourceHash };
+      const mapping = { version: 1, revision: 'synthetic-review-equity', encoding: 'utf-8', delimiter: ',', record_kind: 'native_ohlcv',
+        timestamp_convention: 'bar_start', volume_semantics: 'per_bar', ...equity.settings, columns: equity.columns };
+      const preview = { ...selected, mapping, row_limit: 2 };
+      expect((await run('previewLocalImport', preview)).preview.rows[1].normalized.close).toBe(40);
+      const { record } = await run('saveLocalImportMapping', preview);
+      const { revision: { revision_id: revision } } = await run('publishLocalImport', { ...selected, review_revision: record.review_revision });
+      const sourceFolder = { folder_id: catalog.folder_id };
+      const cleanStage = await run('previewLocalFolderRefresh', { ...sourceFolder, revision_id: revision });
+      const cleanReview = { ...sourceFolder, review_id: cleanStage.review_id };
+      const cleanCandidate = await run('prepareLocalFolderPublication', { ...cleanReview, conflicts: [], withdraw_bars: [], withdraw_sources: [] });
+      const { revision: { revision_id: folderRevision } } = await run('publishLocalFolderRefresh', {
+        ...cleanReview, candidate_sha256: cleanCandidate.candidate_sha256, idempotency_key: randomUUID(),
+      });
+      const replacement = join(folder, 'replacement.csv');
+      const alternative = close => equity.rows[0].map((cell, index) => index === 5 ? String(close) : cell);
+      await rm(removed);
+      await writeFile(replacement, csv([alternative(37), alternative(39)]));
+
+      await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
+        if (command === 'cancel_local_import_preview') {
+          calls.push({ command, args });
+          return { result: null };
+        }
+        const reply = await bridge.request(command, args);
+        calls.push({ command, args, reply });
+        const gate = args?.operation === 'market.previewLocalFolderRefresh' ? stageGate
+          : args?.payload?.type === 'frozen_chart_status' && args.payload.revision_id === revision ? accessGate : undefined;
+        if (gate) {
+          gate.entered.resolve(reply);
+          await gate.release.promise;
+        }
+        return reply;
+      });
+      await page.addInitScript(() => {
+        window.isTauri = true;
+        window.__SCOPEHUB_DESKTOP_WORKSPACE__ = true;
+        window.__TAURI_INTERNALS__ = {
+          async invoke(command, args) {
+            const reply = await window.testNativeInvoke(command, args);
+            if (args?.operation === 'market.previewLocalFolderRefresh') {
+              window.deliveredFolderStages = (window.deliveredFolderStages ?? 0) + 1;
+            }
+            if (reply.error) throw reply.error;
+            return reply.result;
+          },
+        };
+      });
+      await page.goto('/');
+      await control(page, 'Choose local CSV folder').last().click();
+      const review = page.getByRole('region', { name: 'Folder refresh review' });
+      const accepted = review.getByLabel('Accepted revision ID');
+      const table = review.getByRole('table', { name: 'Folder source changes' });
+      const stage = control(review, 'Stage folder refresh');
+      const prepare = control(review, 'Review folder publication');
+      const publish = control(review, 'Publish reviewed folder');
+      const counters = review.getByText(/conflicts resolved/);
+      const radios = [1, 2].map(number => review.getByRole('radio', { name: `Use alternative ${number} for ${new Date(conflictTime).toISOString()}` }));
+      const withdrawal = review.getByRole('checkbox', { name: `Withdraw bar at ${new Date(withdrawalTime).toISOString()}` });
+      const removal = review.getByRole('checkbox', { name: 'Withdraw source removed.csv' });
+      const focus = () => page.evaluate(() => window.dispatchEvent(new Event('focus')));
+      const selectDetails = async () => {
+        for (const summary of [/2026-04-14.+Competing values/, /2026-04-15.+Withdrawal candidate/]) {
+          const header = review.getByText(summary);
+          if (!await header.evaluate(node => node.parentElement.open)) await header.click();
+        }
+      };
+      const recordChoices = async phase => {
+        await selectDetails();
+        const selected = { conflict: await radios[1].isChecked(), bar: await withdrawal.isChecked(), source: await removal.isChecked() };
+        observations.push({ phase, selected, publishEnabled: await publish.count() === 1 && await publish.isEnabled(),
+          prepares: replyFor('prepareLocalFolderPublication').length, publishes: replyFor('publishLocalFolderRefresh').length,
+          digest: replyFor('prepareLocalFolderPublication').at(-1)?.reply.result?.candidate_sha256 });
+        return selected;
+      };
+      const choose = async alternativeIndex => {
+        await selectDetails();
+        await radios[alternativeIndex].check();
+        await withdrawal.check();
+        await removal.check();
+        await expect(prepare).toBeEnabled();
+      };
+      const prepareCandidate = async alternativeIndex => {
+        await prepare.click();
+        await expect(publish).toBeEnabled();
+        const prepared = replyFor('prepareLocalFolderPublication').at(-1);
+        expect(prepared.args.payload).toMatchObject(choices(alternativeIndex));
+        expect(prepared.reply.result).toMatchObject({
+          review_id: prepared.args.payload.review_id, parent_revision_id: revision, bar_count: 1, source_count: 1,
+        });
+        expect(prepared.reply.result.candidate_sha256).toMatch(/^[a-f0-9]{64}$/);
+        return prepared.reply.result;
+      };
+      const assertWithheld = async () => {
+        await expect(table).toHaveCount(0);
+        for (const content of [sourceHash, 'removed.csv', 'replacement.csv']) {
+          await expect(review.getByText(content, { exact: true })).toHaveCount(0);
+        }
+        await expect(review.getByText(/Competing values|Withdrawal candidate/)).toHaveCount(0);
+        await expect(publish).toHaveCount(0);
+      };
+      const recheck = async (expected, withdraw = false) => {
+        const gate = { entered: Promise.withResolvers(), release: Promise.withResolvers() };
+        accessGate = gate;
+        await focus();
+        await expect.poll(() => calls.filter(call => call.args?.payload?.type === 'frozen_chart_status'
+          && call.args.payload.revision_id === revision).at(-1)?.reply.result).toEqual(expected);
+        expect((await gate.entered.promise).result).toEqual(expected);
+        await assertWithheld();
+        accessGate = undefined;
+        gate.release.resolve();
+        if (!withdraw) await expect(table).toBeVisible();
+      };
+      const stageNew = async () => {
+        await stage.click();
+        await expect(table).toBeVisible();
+        return replyFor('previewLocalFolderRefresh').at(-1).reply.result;
+      };
+
+      await accepted.fill(revision);
+      const initial = await stageNew();
+      expect(initial.bars.find(item => item.time_ms === conflictTime).alternatives.map(item => item.bar.close)).toEqual([37, 39]);
+      await choose(1);
+      await expect(counters).toContainText('1 of 1 conflicts resolved · 1 of 1 bar withdrawals reviewed · 1 of 1 source withdrawals reviewed');
+      const prepared = confirmBeforeFocus ? await prepareCandidate(1) : undefined;
+      await recheck({ available: true });
+      expect(await recordChoices('same stage after access confirmation')).toEqual({ conflict: true, bar: true, source: true });
+      expect(replyFor('previewLocalFolderRefresh')).toHaveLength(1);
+      expect(replyFor('publishLocalFolderRefresh')).toHaveLength(0);
+
+      if (!prepared) {
+        await prepareCandidate(1);
+        peer = startLocalImportBridge(binary, profile, folder, { workspace: true });
+        expect((await read('revokeLocalImportRevision', { revision_id: revision }, peer)).result.revision_id).toBe(revision);
+        await recheck({ available: false, revoked: true }, true);
+        await expect(page.getByRole('alert')).toContainText('Access removed for this published revision.');
+        await assertWithheld();
+        expect(replyFor('publishLocalFolderRefresh')).toHaveLength(0);
+        observations.push({ phase: 'real peer revocation removed prepared authority' });
+        return;
+      }
+
+      await expect(publish).toBeEnabled();
+      await control(review, 'Edit folder choices').click();
+      await expect(publish).toHaveCount(0);
+      await radios[0].check();
+      const edited = await prepareCandidate(0);
+      expect(edited.review_id).toBe(prepared.review_id);
+      expect(edited.candidate_sha256).not.toBe(prepared.candidate_sha256);
+      await recheck({ available: true });
+      await selectDetails();
+      await expect(radios[0]).toBeChecked();
+      await expect(radios[1]).not.toBeChecked();
+      await expect(withdrawal).toBeChecked();
+      await expect(removal).toBeChecked();
+      await expect(publish).toBeEnabled();
+      expect(replyFor('publishLocalFolderRefresh')).toHaveLength(0);
+      observations.push({ phase: 'edited choices confirmed on the same stage', digest: edited.candidate_sha256 });
+
+      await accepted.fill(folderRevision);
+      await assertWithheld();
+      await accepted.fill(revision);
+      await assertWithheld();
+      await accepted.fill(folderRevision);
+      const folderStage = await stageNew();
+      expect(folderStage.folder_base.revision_id).toBe(folderRevision);
+      await expect(counters).toContainText('0 of 1 conflicts resolved · 0 of 1 bar withdrawals reviewed · 0 of 1 source withdrawals reviewed');
+      await accepted.fill(revision);
+      await assertWithheld();
+      await writeFile(replacement, csv([alternative(37), alternative(39), alternative(39)]));
+      const changed = await stageNew();
+      expect(changed.review_id).not.toBe(initial.review_id);
+      await expect(counters).toContainText('0 of 1 conflicts resolved · 0 of 1 bar withdrawals reviewed · 0 of 1 source withdrawals reviewed');
+      await choose(1);
+      await prepareCandidate(1);
+
+      stageGate = { entered: Promise.withResolvers(), release: Promise.withResolvers() };
+      await stage.click();
+      expect((await stageGate.entered.promise).result.review_id).toBe(changed.review_id);
+      await control(page, 'Cancel folder refresh').click();
+      const deliveries = replyFor('previewLocalFolderRefresh').length;
+      stageGate.release.resolve();
+      stageGate = undefined;
+      await expect.poll(() => page.evaluate(() => window.deliveredFolderStages)).toBe(deliveries);
+      await expect(page.getByText('Stopped waiting for the folder refresh.', { exact: true })).toBeVisible();
+      await assertWithheld();
+      expect(calls.filter(call => call.command === 'cancel_local_import_preview')).toHaveLength(1);
+      await stageNew();
+      await expect(counters).toContainText('0 of 1 conflicts resolved · 0 of 1 bar withdrawals reviewed · 0 of 1 source withdrawals reviewed');
+      await choose(0);
+      const final = await prepareCandidate(0);
+      expect(final.review_id).toBe(changed.review_id);
+      await expect(radios[0]).toBeChecked();
+      expect(replyFor('publishLocalFolderRefresh')).toHaveLength(0);
+      await publish.click();
+      const published = page.getByRole('region', { name: 'Published local folder' });
+      await expect(published).toContainText('1 bar · 1 source');
+      const [submission] = replyFor('publishLocalFolderRefresh');
+      expect(replyFor('publishLocalFolderRefresh')).toHaveLength(1);
+      expect(submission.args.payload).toMatchObject({ review_id: final.review_id, candidate_sha256: final.candidate_sha256 });
+      const newId = submission.reply.result.revision.revision_id;
+      const frozen = await run('readLocalFolderRevision', { revision_id: newId });
+      expect(frozen.bars.map(item => [item.bar.time_ms, item.bar.close])).toEqual([[conflictTime, 37]]);
+      expect(frozen.files.map(item => item.relative_path)).toEqual(['replacement.csv']);
+      const list = await run('listLocalFolderRevisions', { after_revision_id: null, limit: 8 });
+      expect(list.revisions.map(item => item.revision_id).sort()).toEqual([folderRevision, newId].sort());
+      observations.push({ phase: 'one explicit publication', digest: final.candidate_sha256, close: 37, sources: 1 });
+    } finally {
+      accessGate?.release.resolve();
+      stageGate?.release.resolve();
+      await testInfo.attach('folder-review-choice-lifecycle', { body: JSON.stringify(observations), contentType: 'application/json' });
+      await peer?.close();
+      await bridge?.close();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+}
 
 base('rejects a late source declaration conflict before publishing a native CSV revision', {
   tag: '@profile-local-csv',
@@ -1613,13 +2052,15 @@ base('rejects a late source declaration conflict before publishing a native CSV 
 
 base('reviews explicit CSV declarations and competing bars with source provenance', {
   tag: '@profile-folder-refresh',
-}, async ({ page }) => {
+}, async ({ page, baseURL }, testInfo) => {
   const binary = process.env.SCOPEHUB_LOCAL_IMPORT_BRIDGE;
   base.skip(!binary, 'Set SCOPEHUB_LOCAL_IMPORT_BRIDGE to the portable Rust test example.');
   const temporary = await mkdtemp(join(await realpath(tmpdir()), 'scopehub-folder-economics-ui-'));
   const profile = join(temporary, 'profile');
   const folder = join(temporary, 'synthetic-csv');
   let bridge;
+  let stageObservation;
+  const stages = [];
   try {
     await mkdir(profile, { mode: 0o700 });
     await mkdir(folder, { mode: 0o700 });
@@ -1639,8 +2080,24 @@ base('reviews explicit CSV declarations and competing bars with source provenanc
     bridge = startLocalImportBridge(binary, profile, folder);
     const calls = [];
     await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
+      const observation = args?.operation === 'market.previewLocalFolderRefresh' ? stageObservation : undefined;
+      if (observation) {
+        observation.stages.push({ phase: 'invoke-entered', elapsedMs: Math.round(performance.now() - observation.started) });
+        observation.entered.resolve();
+        if (observation.loseBeforeNative) {
+          await observation.delivery.promise;
+          return { error: { code: 'CANCELLED', retryable: false } };
+        }
+      }
       const reply = await bridge.request(command, args);
-      calls.push({ args, reply });
+      calls.push({ command, args, reply });
+      if (observation) {
+        observation.stages.push({ phase: 'native-settled', code: reply.error?.code ?? 'OK',
+          elapsedMs: Math.round(performance.now() - observation.started) });
+        observation.completed.resolve(reply);
+        await observation.delivery.promise;
+        observation.stages.push({ phase: 'delivered' });
+      }
       return reply;
     });
     await page.addInitScript(() => {
@@ -1680,10 +2137,35 @@ base('reviews explicit CSV declarations and competing bars with source provenanc
     await writeFile(join(folder, 'competing.csv'), csv(row(6), row(7)));
 
     const review = page.getByRole('region', { name: 'Folder refresh review' });
-    await control(page, 'Stage folder refresh').click();
-    await expect(review.getByRole('table', { name: 'Folder source changes' })).toBeVisible();
+    const stage = control(review, 'Stage folder refresh');
+    const input = review.getByLabel('Accepted revision ID');
+    const changes = review.getByRole('table', { name: 'Folder source changes' });
+    const acceptedId = resultOf('market.publishLocalImport').revision.revision_id;
+    await expect(input).toHaveValue(acceptedId);
+    async function stageWithWitness(label, loseBeforeNative = false) {
+      const completed = Promise.withResolvers();
+      const entered = Promise.withResolvers();
+      const delivery = Promise.withResolvers();
+      const observed = { label, stages: [], started: performance.now(), completed, entered, delivery, loseBeforeNative };
+      stageObservation = observed;
+      stages.push({ label, stages: observed.stages });
+      observed.stages.push({ phase: 'click' });
+      await stage.click();
+      const reply = await (loseBeforeNative ? entered : completed).promise;
+      return { reply, delivery, stages: observed.stages };
+    }
 
-    const staged = resultOf('market.previewLocalFolderRefresh');
+    await page.clock.install();
+    const completedStage = await stageWithWitness('completed stage with delayed delivery');
+    expect(completedStage.reply.error).toBeUndefined();
+    await page.clock.fastForward(15_100);
+    await expect(changes).toHaveCount(0);
+    await expect(page.getByText('Checking complete files in the selected folder…')).toBeVisible();
+    completedStage.delivery.resolve();
+    await expect(changes).toBeVisible();
+    completedStage.stages.push({ phase: 'table-rendered' });
+
+    const staged = completedStage.reply.result;
     expect(staged.review_id).toMatch(/^[0-9a-f]{64}$/);
     expect(staged.publication_allowed).toBe(false);
     await expect(review.getByRole('button', { name: 'Review folder publication' })).toHaveCount(0);
@@ -1723,7 +2205,49 @@ base('reviews explicit CSV declarations and competing bars with source provenanc
     });
     expect(after.result.bars.map(entry => entry.bar.close)).toEqual([5]);
     await expect(frozen.getByLabel('Selected bar')).toContainText('C 5');
+
+    await input.fill(randomUUID());
+    const rejected = await stageWithWitness('rejected accepted revision');
+    expect(rejected.reply.error).toMatchObject({ code: 'SNAPSHOT_UNAVAILABLE' });
+    rejected.delivery.resolve();
+    await expect(page.getByRole('alert')).toContainText('This frozen revision is unavailable in the current profile.');
+    await expect(changes).toHaveCount(0);
+    rejected.stages.push({ phase: 'rejection-rendered' });
+
+    await input.fill(acceptedId);
+    const lostDelivery = await stageWithWitness('completed native stage with lost delivery');
+    expect(lostDelivery.reply.error).toBeUndefined();
+    const cancel = control(page, 'Cancel folder refresh');
+    const stopped = page.getByText('Stopped waiting for the folder refresh.', { exact: true });
+    await page.clock.fastForward(15_100);
+    await expect(stage).toBeDisabled();
+    await cancel.click();
+    await expect(stopped).toBeVisible();
+    await expect(stage).toBeEnabled();
+    await expect(changes).toHaveCount(0);
+    lostDelivery.stages.push({ phase: 'stopped-waiting' });
+    lostDelivery.delivery.resolve();
+    await expect.poll(() => lostDelivery.stages.at(-1)?.phase).toBe('delivered');
+    await page.clock.runFor(50);
+    await expect(changes).toHaveCount(0);
+    await expect(frozen.getByLabel('Selected bar')).toContainText('C 5');
+
+    const notDelivered = await stageWithWitness('invoke never reaches the native worker', true);
+    expect(notDelivered.stages.map(entry => entry.phase)).toEqual(['click', 'invoke-entered']);
+    await expect(page.getByText('Checking complete files in the selected folder…')).toBeVisible();
+    await page.clock.fastForward(15_100);
+    await expect(stage).toBeDisabled();
+    await cancel.click();
+    await expect(stopped).toBeVisible();
+    await expect(stage).toBeEnabled();
+    await expect(changes).toHaveCount(0);
+    notDelivered.stages.push({ phase: 'stopped-waiting' });
+    notDelivered.delivery.resolve();
+    await expect.poll(() => calls.filter(call => call.command === 'cancel_local_import_preview')).toHaveLength(2);
+    expect(stages.map(entry => entry.stages.filter(({ phase }) => phase === 'invoke-entered').length)).toEqual([1, 1, 1, 1]);
   } finally {
+    stageObservation?.delivery.resolve();
+    await testInfo.attach('folder-stage-boundaries', { body: JSON.stringify(stages), contentType: 'application/json' });
     await bridge?.close();
     await rm(temporary, { recursive: true, force: true });
   }
@@ -2282,6 +2806,8 @@ base('publishes a reviewed folder once and reopens its frozen provenance without
   const folder = join(temporary, 'synthetic-csv');
   let bridge;
   let loseReceipt = true;
+  let denyFolderRead = false;
+  const heldFolderStatus = Promise.withResolvers();
   const calls = [];
   const operations = name => calls.filter(call => call.args?.operation === `market.${name}`);
   const run = (operation, payload) => bridge.request('execute_operation', {
@@ -2298,6 +2824,10 @@ base('publishes a reviewed folder once and reopens its frozen provenance without
 
     bridge = startLocalImportBridge(binary, profile, folder);
     await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
+      if (denyFolderRead && args?.operation === 'market.readLocalFolderRevision') {
+        if (args.payload.include_details === false) await heldFolderStatus.promise;
+        else return { error: { code: 'PERMISSION_DENIED' } };
+      }
       const reply = await bridge.request(command, args);
       calls.push({ command, args, reply });
       if (args?.operation === 'market.publishLocalFolderRefresh' && reply.result && loseReceipt) {
@@ -2466,6 +2996,13 @@ base('publishes a reviewed folder once and reopens its frozen provenance without
       await expect(row.getByRole('cell', { name: '39', exact: true })).toBeVisible();
     }
 
+    denyFolderRead = true;
+    await published.getByRole('button', { name: 'Open frozen folder chart' }).click();
+    await expect(chart).toHaveCount(0);
+    await expect(provenance).toHaveCount(0);
+    denyFolderRead = false;
+    heldFolderStatus.resolve();
+    await expect(chart.getByLabel('Selected bar')).toContainText('C 42');
     await expect(acceptedId).toHaveValue(revisionId);
     // Recreate both published sources, then replace only the former representative.
     const copyPath = join(folder, 'retained-copy.csv');
@@ -2568,6 +3105,7 @@ base('publishes a reviewed folder once and reopens its frozen provenance without
     expect(revokedRow.error.code).toMatch(/PERMISSION_DENIED|SNAPSHOT_UNAVAILABLE/);
     expect(revokedRow.result).toBeUndefined();
   } finally {
+    heldFolderStatus.resolve();
     await bridge?.close();
     await rm(temporary, { recursive: true, force: true });
   }
@@ -2822,5 +3360,727 @@ base('reviews conflicting declarations in a reopened historical CSV without chan
   } finally {
     await bridge?.close();
     await rm(root, { recursive: true, force: true });
+  }
+});
+
+for (const kind of ['CSV', 'folder']) {
+  for (const [decision, route] of ['available', 'revoked'].flatMap(decision =>
+    ['explicit ID', 'list-only'].map(route => [decision, route]))) {
+    base(`source-row absence keeps ${kind} hidden until ${route} retry confirms ${decision} access`, {
+      tag: '@profile-folder-refresh',
+    }, async ({ page }, testInfo) => {
+      const isFolder = kind === 'folder';
+      const id = randomUUID();
+      const path = 'daily.csv';
+      const sourceHash = createHash('sha256').update(`${kind}:${path}`).digest('hex');
+      const series = { ...equity.settings, roll_method: null };
+      const revision = {
+        revision_id: id, symbol: '000731', bar_count: 2, series,
+        bar_summary: { final_close: 40, final_trading_day: '2026-04-15', first_trading_day: '2026-04-14' },
+        ...(isFolder ? { origin_path: path, source_count: 1, base_revision_id: randomUUID(), parent_revision_id: null }
+          : { relative_path: path, timeframe: series.timeframe, source_sha256: sourceHash, source_record_count: 2,
+            review_revision: 1, mapping_sha256: 'a'.repeat(64) }),
+      };
+      const discovery = route === 'list-only';
+      const other = { ...revision, revision_id: randomUUID(), [isFolder ? 'origin_path' : 'relative_path']: 'unrelated.csv',
+        bar_summary: { ...revision.bar_summary, final_close: 70 } };
+      const locators = [1, 2].map(record_number => ({ record_number, line_start: record_number + 1, line_end: record_number + 1 }));
+      const sources = locators.map(locator => ({ ...locator, relative_path: path, source_sha256: sourceHash }));
+      const bars = equity.rows.map((row, index) => ({
+        bar: { time_ms: Date.parse(equity.times[index]), trading_day: row[1], open: Number(row[2]), high: Number(row[3]),
+          low: Number(row[4]), close: Number(row[5]), volume: Number(row[6]) || null, is_closed: true },
+        ...(isFolder ? { sources: [sources[index]] } : { locators: [locators[index]] }),
+      }));
+      const result = { version: 1, revision, bars,
+        ...(isFolder ? { files: [{ relative_path: path, source_sha256: sourceHash, record_count: 2 }] } : {}) };
+      const lateRow = Promise.withResolvers();
+      const retryStatus = Promise.withResolvers();
+      const calls = [];
+      const visibility = [];
+      let phase = 'original';
+      const rowOperation = isFolder ? 'market.readLocalFolderSourceRow' : readSourceRow;
+      const chartOperation = isFolder ? 'market.readLocalFolderRevision' : 'market.readLocalImportRevision';
+      const listingOperation = isFolder ? 'market.listLocalFolderRevisions' : 'market.listLocalImportRevisions';
+      const original = 'Authorized original source row';
+      const stale = 'Late original source row';
+      await page.exposeBinding('testNativeInvoke', async (_, command, { operation, payload, requestId }) => {
+        expect(command).toBe('execute_operation');
+        if (operation === 'instrument.search') return { result: { instruments: [] } };
+        if (operation === 'market.listLocalImportRevisions' || operation === 'market.listLocalFolderRevisions') {
+          const revisions = operation === listingOperation ? (discovery ? [revision, other] : [revision]) : [];
+          calls.push({ phase, kind: 'list', operation, ids: revisions.map(entry => entry.revision_id) });
+          return { result: { version: 1, revisions, next_after_revision_id: null } };
+        }
+        expect(payload.revision_id).toBe(id);
+        if (payload.type === 'frozen_chart_status' || operation === chartOperation && payload.include_details === false) {
+          expect(operation ?? payload.type).toBe(isFolder ? chartOperation : 'frozen_chart_status');
+          const access = phase === 'retry' ? decision : ['absent', 'first refresh'].includes(phase) ? 'missing' : 'available';
+          calls.push({ phase, kind: 'status', operation: operation ?? payload.type, id: payload.revision_id,
+            requestId: requestId ?? payload.request_id, access });
+          if (phase === 'retry') await retryStatus.promise;
+          if (isFolder) {
+            if (access === 'available') return { result: { version: 1, revision, bars: [], files: [] } };
+            return { error: { code: access === 'revoked' ? 'PERMISSION_DENIED' : 'SNAPSHOT_UNAVAILABLE' } };
+          }
+          return { result: { available: access === 'available', ...(access === 'revoked' ? { revoked: true } : {}) } };
+        }
+        if (operation === chartOperation) {
+          calls.push({ phase, kind: 'chart', operation });
+          return { result };
+        }
+        expect(operation).toBe(rowOperation);
+        expect(payload.review_declarations).toBe(true);
+        const locator = isFolder ? payload.source : payload.locator;
+        const record = locator.record_number;
+        expect(locator).toEqual((isFolder ? sources : locators)[record - 1]);
+        const outcome = phase === 'absent' ? 'SNAPSHOT_UNAVAILABLE' : record === 1 ? 'late' : 'available';
+        calls.push({ phase, kind: 'row', operation, requestId, record, outcome });
+        if (outcome === 'SNAPSHOT_UNAVAILABLE') return { error: { code: outcome } };
+        if (outcome === 'late') await lateRow.promise;
+        return { result: { version: 1, revision_id: id, header: ['Memo'], raw_fields: [record === 1 ? stale : original],
+          declaration_conflicts: [], ...(isFolder ? { source: sources[record - 1] }
+            : { locator: locators[record - 1], source_sha256: sourceHash }) } };
+      });
+      await page.addInitScript(operation => {
+        window.isTauri = true;
+        window.__TAURI_INTERNALS__ = {
+          async invoke(command, args) {
+            const reply = await window.testNativeInvoke(command, args);
+            if (reply.error) throw reply.error;
+            if (args.operation === operation && (args.payload.source ?? args.payload.locator).record_number === 1) {
+              window.lateSourceRowDelivered = true;
+            }
+            return reply.result;
+          },
+        };
+      }, rowOperation);
+
+      const clock = new Date('2026-04-16T08:00:00Z');
+      await page.clock.install({ time: clock });
+      await page.clock.pauseAt(new Date(clock.getTime() + 1000));
+      const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+      const chart = dialog.getByRole('region', { name: `Frozen local ${kind} chart` });
+      const provenance = dialog.getByRole('region', { name: `Published ${isFolder ? 'folder ' : ''}source provenance` });
+      const rows = dialog.getByRole('table', { name: `Published ${isFolder ? 'folder ' : ''}source rows` });
+      const rawFields = dialog.getByRole('region', { name: 'Original CSV fields', exact: true });
+      const entry = dialog.getByRole('button', { name: /Final close 40/ });
+      const unrelated = dialog.getByRole('button', { name: /Final close 70/ });
+      const revisionInput = dialog.getByLabel('Revision ID');
+      const open = control(dialog, isFolder ? 'Open frozen folder revision' : 'Open frozen chart');
+      const openLibrary = async () => {
+        await control(page, 'Open published CSV').last().click();
+        if (isFolder) await control(dialog, 'Folder revisions').click();
+        await expect(revisionInput).toHaveValue('');
+      };
+      const refreshList = async () => {
+        const listCount = calls.filter(call => call.operation === listingOperation).length;
+        await control(dialog, 'Refresh revisions').click();
+        await expect.poll(() => calls.filter(call => call.operation === listingOperation).length).toBe(listCount + 1);
+        await expect(unrelated).toBeVisible();
+        await expect(revisionInput).toHaveValue('');
+      };
+      const inspect = record => control(dialog, `Inspect record ${record}${isFolder ? ` from ${path}` : ''}`).click();
+      const observe = async label => visibility.push({ label, chart: await chart.count(), provenance: await provenance.count(),
+        rows: await rows.count(), original: await rawFields.count(), entry: await entry.count() });
+      const expectWithheld = async label => {
+        for (const item of [chart, provenance, rows, rawFields, entry]) await expect(item).toHaveCount(0);
+        await observe(label);
+      };
+      try {
+        await page.goto('/');
+        await openLibrary();
+        if (!discovery) await revisionInput.fill(id);
+        await expect(entry).toBeVisible();
+        await entry.click();
+        await expect(chart.getByLabel('Selected bar')).toContainText('C 40');
+        await dialog.getByText('Source rows (2)', { exact: true }).click();
+        await inspect(2);
+        await expect(rawFields).toContainText(original);
+        await observe('authorized original');
+
+        await inspect(1);
+        await expect.poll(() => calls.filter(call => call.outcome === 'late')).toHaveLength(1);
+        phase = 'absent';
+        await inspect(2);
+        await expectWithheld('source row reported absent');
+
+        if (discovery) {
+          await expect.poll(() => calls.filter(call => call.kind === 'status' && call.phase === 'absent').length).toBe(1);
+          phase = 'first refresh';
+          await refreshList();
+          await expectWithheld('first successful list refresh still withheld');
+        }
+        phase = 'retry';
+        if (discovery) await refreshList();
+        else await open.click();
+        await expect.poll(() => calls.filter(call => call.kind === 'status' && call.phase === 'retry').length,
+          { timeout: 2000, message: `A public ${route} retry must ask the source to confirm access` }).toBe(1);
+        await expectWithheld('retry status pending');
+        expect(calls.filter(call => call.kind === 'chart')).toHaveLength(1);
+        retryStatus.resolve();
+
+        if (discovery) {
+          if (decision === 'available') await expect(entry).toBeVisible();
+          else await expectWithheld('list status confirmed revocation');
+          await expect(chart).toHaveCount(0);
+          expect(calls.filter(call => call.kind === 'chart')).toHaveLength(1);
+          phase = 'reopen';
+          await control(dialog, 'Close').click();
+          await expect(dialog).toHaveCount(0);
+          lateRow.resolve();
+          await expect.poll(() => page.evaluate(() => window.lateSourceRowDelivered === true)).toBe(true);
+          await expect(chart).toHaveCount(0);
+          await openLibrary();
+          await expect(unrelated).toBeVisible();
+          if (decision === 'available') {
+            await expect(chart).toHaveCount(0);
+            await entry.click();
+          } else {
+            await expectWithheld('reopen after confirmed revocation');
+            await refreshList();
+            await expectWithheld('refresh after confirmed revocation');
+          }
+          const reads = calls.filter(call => call.kind === 'status');
+          const operation = isFolder ? chartOperation : 'frozen_chart_status';
+          expect(reads.map(call => [call.phase, call.operation, call.id, call.access])).toEqual([
+            ['absent', operation, id, 'missing'],
+            ['first refresh', operation, id, 'missing'],
+            ['retry', operation, id, decision],
+          ]);
+          expect(new Set(reads.map(call => call.requestId)).size).toBe(reads.length);
+          expect(reads.every(call => /^[\da-f-]{36}$/.test(call.requestId))).toBe(true);
+          expect(calls.filter(call => call.operation === listingOperation).every(call =>
+            JSON.stringify(call.ids) === JSON.stringify([id, other.revision_id]))).toBe(true);
+          await expect(revisionInput).toHaveValue('');
+        }
+
+        if (decision === 'available') {
+          await expect(chart.getByLabel('Selected bar')).toContainText('C 40');
+          await expect(provenance).toContainText(id);
+          await expect(entry).toBeVisible();
+          await expect(rawFields).toHaveCount(0);
+          await observe('available status confirmed and reread chart');
+          expect(calls.filter(call => call.kind === 'chart')).toHaveLength(2);
+        } else {
+          if (!discovery) {
+            await expect(dialog.getByRole('alert')).toBeVisible();
+            await expectWithheld('revoked status confirmed');
+            phase = 'confirmed';
+            await open.click();
+            await expect(dialog.getByRole('alert')).toBeVisible();
+            await expectWithheld('retry after confirmed revocation');
+            expect(calls.filter(call => call.kind === 'status' && call.phase === 'confirmed')).toEqual([]);
+          }
+          expect(calls.filter(call => call.kind === 'chart')).toHaveLength(1);
+        }
+
+        lateRow.resolve();
+        await expect.poll(() => page.evaluate(() => window.lateSourceRowDelivered === true)).toBe(true);
+        await expect(dialog.getByText(stale, { exact: true })).toHaveCount(0);
+        if (decision === 'available') {
+          phase = 'confirmed';
+          await dialog.getByText('Source rows (2)', { exact: true }).click();
+          await inspect(2);
+          await expect(rawFields).toContainText(original);
+        } else await expectWithheld('late original response delivered');
+      } finally {
+        lateRow.resolve();
+        retryStatus.resolve();
+        await testInfo.attach('source-row-access', {
+          body: JSON.stringify({ kind, decision, route, revision: id, calls, visibility,
+            lateRowDelivered: await page.evaluate(() => window.lateSourceRowDelivered === true) }, null, 2),
+          contentType: 'application/json',
+        });
+      }
+    });
+  }
+}
+
+async function withPublishedAccessFixture(page, testInfo, isFolder, run) {
+  const binary = process.env.SCOPEHUB_LOCAL_IMPORT_BRIDGE;
+  base.skip(!binary, 'Set SCOPEHUB_LOCAL_IMPORT_BRIDGE to the portable Rust test example.');
+  const root = await mkdtemp(join(await realpath(tmpdir()), 'scopehub-publication-access-'));
+  const profile = join(root, 'profile');
+  const folder = join(root, 'source');
+  const path = 'daily.csv';
+  let bridge;
+  const calls = [];
+  const observations = [];
+  const publication = {};
+  let phase = 'initial';
+  let deliver = (_, reply) => reply;
+  try {
+    await mkdir(profile, { mode: 0o700 });
+    await mkdir(folder, { mode: 0o700 });
+    const csv = [equity.header, ...equity.rows].map(row => row.join(',')).join('\n') + '\n';
+    await writeFile(join(folder, path), csv);
+    bridge = startLocalImportBridge(binary, profile, folder);
+    const market = async (operation, input) => {
+      const reply = await bridge.request('execute_operation', {
+        operation: `market.${operation}`, payload: { version: 1, ...input }, requestId: randomUUID(),
+      });
+      expect(reply.error, JSON.stringify(reply.error)).toBeUndefined();
+      return reply.result;
+    };
+    const picked = (await bridge.request('choose_local_csv_folder', {})).result;
+    const { folder_id } = picked;
+    const source = {
+      folder_id, file_id: picked.files[0].file_id,
+      expected_sha256: createHash('sha256').update(csv).digest('hex'),
+    };
+    const mapping = {
+      version: 1, revision: 'publication-access', encoding: 'utf-8', delimiter: ',', record_kind: 'native_ohlcv',
+      volume_semantics: 'per_bar', timestamp_convention: 'bar_start', ...equity.settings, columns: equity.columns,
+    };
+    const input = { ...source, mapping, row_limit: 2 };
+    await market('previewLocalImport', input);
+    const { record } = await market('saveLocalImportMapping', input);
+    const { revision: csvRevision } = await market('publishLocalImport', { ...source, review_revision: record.review_revision });
+    const staged = await market('previewLocalFolderRefresh', { folder_id, revision_id: csvRevision.revision_id });
+    const review = { folder_id, review_id: staged.review_id };
+    const prepared = await market('prepareLocalFolderPublication', { ...review, conflicts: [], withdraw_bars: [], withdraw_sources: [] });
+    const { revision: folderRevision } = await market('publishLocalFolderRefresh', {
+      ...review, candidate_sha256: prepared.candidate_sha256, idempotency_key: randomUUID(),
+    });
+    const id = (isFolder ? folderRevision : csvRevision).revision_id;
+    Object.assign(publication, { id, csvRevision, folderRevision, source });
+    expect(csvRevision.revision_id).not.toBe(folderRevision.revision_id);
+
+    await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
+      const { payload, operation } = args;
+      const statusKind = payload.type === 'frozen_chart_status' ? 'CSV'
+        : operation === 'market.readLocalFolderRevision' && payload.include_details === false ? 'folder' : undefined;
+      const call = { phase, operation: operation ?? payload.type, id: payload.revision_id, statusKind,
+        requestId: args.requestId ?? payload.request_id, input: args };
+      calls.push(call);
+      const reply = await bridge.request(command, args);
+      if (call.operation?.match(/listLocal(?:Import|Folder)Revisions$/)) {
+        call.listed = reply.result?.revisions.map(revision => revision.revision_id);
+      }
+      if (reply.error || statusKind || call.id === id) {
+        call.native = { error: reply.error?.code, available: reply.result?.available, revoked: reply.result?.revoked,
+          revision: reply.result?.revision?.revision_id ?? reply.result?.revision_id, fields: reply.result?.raw_fields,
+          closes: reply.result?.bars?.map(entry => entry.bar.close) };
+      }
+      const delivered = await deliver(call, reply);
+      if (delivered !== reply) call.substituted = delivered;
+      call.delivered = true;
+      return delivered;
+    });
+    await page.addInitScript(() => {
+      window.isTauri = true;
+      window.__TAURI_INTERNALS__ = {
+        async invoke(command, args) {
+          const reply = await window.testNativeInvoke(command, args);
+          if (reply.error) throw reply.error;
+          return reply.result;
+        },
+      };
+    });
+    const clock = new Date('2026-04-16T08:00:00Z');
+    await page.clock.install({ time: clock });
+    await page.clock.pauseAt(new Date(clock.getTime() + 1000));
+    await page.goto('/');
+
+    const kind = isFolder ? 'folder' : 'CSV';
+    const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+    const inputId = dialog.getByLabel('Revision ID');
+    const entry = dialog.getByRole('button', { name: new RegExp(isFolder ? 'Open folder revision from daily\\.csv' : 'Open daily\\.csv') });
+    const chart = dialog.getByRole('region', { name: `Frozen local ${kind} chart` });
+    const provenance = dialog.getByRole('region', { name: `Published ${isFolder ? 'folder ' : ''}source provenance` });
+    const rows = dialog.getByRole('table', { name: `Published ${isFolder ? 'folder ' : ''}source rows` });
+    const original = dialog.getByRole('region', { name: 'Original CSV fields' });
+    const status = dialog.getByRole('alert');
+    const observe = async label => {
+      const value = { label, entry: await entry.count(), chart: await chart.count(), provenance: await provenance.count(),
+        rows: await rows.count(), original: await original.count(), explanation: await status.allTextContents(),
+        liveStatus: await dialog.getByRole('status').allTextContents() };
+      observations.push(value);
+      return value;
+    };
+    const hidden = async label => {
+      for (const item of [entry, chart, provenance, rows, original]) await expect(item).toHaveCount(0);
+      await observe(label);
+    };
+    const click = name => control(dialog, name).click();
+    const chooseKind = folder => click(folder ? 'Folder revisions' : 'Single-file revisions');
+    const openLibrary = async folder => {
+      await openPublishedRevisionDialog(page);
+      if (folder) await chooseKind(true);
+      await expect(inputId).toHaveValue('');
+    };
+    const openId = folder => click(folder ? 'Open frozen folder revision' : 'Open frozen chart');
+    const inspect = () => click(isFolder ? `Inspect record 2 from ${path}` : 'Inspect record 2');
+    const showRow = async () => {
+      await expect(chart.getByLabel('Selected bar')).toContainText('C 40');
+      await expect(provenance).toContainText(id);
+      await dialog.getByText('Source rows (2)', { exact: true }).click();
+      await inspect();
+      await expect(original.getByRole('row', { name: 'Native close 40', exact: true })).toBeVisible();
+    };
+    const correctStatus = () => calls.filter(call => call.id === id && call.statusKind === kind);
+    const chartCalls = () => calls.filter(call => call.id === id && !call.statusKind
+      && call.operation === (isFolder ? 'market.readLocalFolderRevision' : 'market.readLocalImportRevision'));
+    const temporary = isFolder ? { error: { code: 'SNAPSHOT_UNAVAILABLE' } } : { result: { available: false } };
+    await run({ calls, phase: value => { phase = value; }, deliver: intercept => { deliver = intercept; },
+      id, kind, market, inputId, entry, chart, status, observe, hidden, click, chooseKind, openLibrary, openId,
+      inspect, showRow, correctStatus, chartCalls, temporary, dialog });
+  } finally {
+    await bridge?.close();
+    await rm(root, { recursive: true, force: true });
+    await testInfo.attach('published-revision-access', {
+      body: JSON.stringify({ ...publication, calls, observations }, null, 2), contentType: 'application/json',
+    });
+  }
+}
+
+for (const isFolder of [false, true]) {
+  const kind = isFolder ? 'folder' : 'CSV';
+  const otherKind = isFolder ? 'CSV' : 'folder';
+
+  base(`${kind} revision discovery resumes after a pending ${otherKind} lookup`, {
+    tag: '@profile-folder-refresh',
+  }, async ({ page }, testInfo) => withPublishedAccessFixture(page, testInfo, isFolder, async fixture => {
+    const { id, calls, inputId, entry, chart, hidden, click, chooseKind, openLibrary, openId, inspect, showRow,
+      chartCalls, correctStatus, temporary, phase, deliver, dialog, observe } = fixture;
+    const releaseOther = Promise.withResolvers();
+    const releaseCorrect = Promise.withResolvers();
+    const matchingLists = () => calls.filter(call => ['reopen', 'refresh 1', 'refresh 2'].includes(call.phase)
+      && call.operation === (isFolder ? 'market.listLocalFolderRevisions' : 'market.listLocalImportRevisions') && call.delivered);
+    const wrongStatus = () => calls.find(call => call.id === id && call.statusKind === otherKind);
+    const recoveryStatus = () => correctStatus().filter(call => ['reopen', 'refresh 1', 'refresh 2'].includes(call.phase));
+    deliver(async (call, reply) => {
+      if (call.phase === 'source row interrupted') {
+        if (call.operation.endsWith('SourceRow')) return { error: { code: 'SNAPSHOT_UNAVAILABLE' } };
+        if (call.statusKind === kind) return temporary;
+      }
+      if (call.statusKind === otherKind) await releaseOther.promise;
+      if (recoveryStatus().includes(call)) await releaseCorrect.promise;
+      return reply;
+    });
+    try {
+      await openLibrary(isFolder);
+      await entry.click();
+      await showRow();
+      phase('source row interrupted');
+      await inspect();
+      await hidden('original row interrupted');
+      await expect.poll(() => correctStatus().map(call => call.delivered)).toEqual([true]);
+
+      phase('other library lookup');
+      await chooseKind(!isFolder);
+      await inputId.fill(id);
+      await openId(!isFolder);
+      await expect.poll(() => wrongStatus()?.native).toBeDefined();
+      expect(wrongStatus().native).toMatchObject(isFolder ? { available: false } : { error: 'SNAPSHOT_UNAVAILABLE' });
+      expect(wrongStatus().delivered).toBeUndefined();
+      await click('Close');
+      await expect(dialog).toHaveCount(0);
+
+      phase('reopen');
+      await openLibrary(isFolder);
+      await expect.poll(() => matchingLists().length).toBe(1);
+      for (const number of [1, 2]) {
+        phase(`refresh ${number}`);
+        await click('Refresh revisions');
+        await expect.poll(() => matchingLists().length).toBe(number + 1);
+        await expect(inputId).toHaveValue('');
+        await hidden(`refresh ${number} while the other lookup is pending`);
+      }
+      expect(matchingLists().map(call => [call.phase, call.listed])).toEqual([
+        ['reopen', [id]], ['refresh 1', [id]], ['refresh 2', [id]],
+      ]);
+      expect(recoveryStatus()).toEqual([]);
+      expect(chartCalls()).toHaveLength(1);
+
+      releaseOther.resolve();
+      await expect.poll(() => recoveryStatus().map(call => call.id), {
+        timeout: 2500, message: 'The current library must check its own revision after the preceding lookup settles',
+      }).toEqual([id]);
+      expect(wrongStatus().delivered).toBe(true);
+      await hidden('matching status is pending');
+      await expectEmptyRevisionLibrary(dialog, kind);
+      releaseCorrect.resolve();
+      await expect(entry).toBeVisible();
+      await expect(chart).toHaveCount(0);
+      expect(chartCalls()).toHaveLength(1);
+      expect(matchingLists()).toHaveLength(3);
+      expect(recoveryStatus()).toHaveLength(1);
+      phase('open recovered chart');
+      await entry.click();
+      await showRow();
+      expect(chartCalls()).toHaveLength(2);
+      await observe('recovered chart and original row');
+
+      phase('confirmed withdrawal');
+      await withdrawPublishedRevision(dialog, kind);
+      await observe('withdrawal live status');
+      await hidden('withdrawal removed the entry, chart and original row');
+      const withdrawal = calls.filter(call => call.phase === 'confirmed withdrawal' && call.operation.startsWith('market.revoke'));
+      expect(withdrawal).toMatchObject([{ id, delivered: true, native: { revision: id } }]);
+      await click('Close');
+      await expect(dialog).toHaveCount(0);
+
+      phase('reopen after withdrawal');
+      await openLibrary(isFolder);
+      await expectEmptyRevisionLibrary(dialog, kind);
+      await click('Refresh revisions');
+      await expectEmptyRevisionLibrary(dialog, kind);
+      const listOperation = isFolder ? 'market.listLocalFolderRevisions' : 'market.listLocalImportRevisions';
+      expect(calls.filter(call => call.phase === 'reopen after withdrawal' && call.operation === listOperation)
+        .map(call => call.listed)).toEqual([[], []]);
+      await expect(inputId).toHaveValue('');
+      await hidden('reopened library remained empty after refresh');
+
+      phase('denied explicit reopen');
+      await inputId.fill(id);
+      await openId(isFolder);
+      await expectWithdrawnRevisionDenied(dialog);
+      await hidden('explicit reopen denied without displaying the prior revision');
+      expect(chartCalls()).toHaveLength(2);
+      await click('Close');
+      await expect(dialog).toHaveCount(0);
+    } finally {
+      releaseOther.resolve();
+      releaseCorrect.resolve();
+    }
+  }));
+
+  base(`${kind} explicit ID distinguishes a temporary status from confirmed revocation without a workspace`, {
+    tag: '@profile-folder-refresh',
+  }, async ({ page }, testInfo) => withPublishedAccessFixture(page, testInfo, isFolder, async fixture => {
+    const { id, calls, inputId, entry, status, hidden, openLibrary, openId, inspect, showRow, chartCalls,
+      correctStatus, temporary, phase, deliver, market, observe } = fixture;
+    const retry = Promise.withResolvers();
+    const revoked = Promise.withResolvers();
+    deliver(async (call, reply) => {
+      if (['source row interrupted', 'native revocation'].includes(call.phase) && call.operation.endsWith('SourceRow')) {
+        // Deliver only the interruption to the browser. The status below must
+        // independently establish the genuine withdrawal on the second attempt.
+        if (call.phase === 'native revocation') expect(reply.error?.code).toBe('PERMISSION_DENIED');
+        return { error: { code: 'SNAPSHOT_UNAVAILABLE' } };
+      }
+      if (call.statusKind && ['source row interrupted', 'explicit temporary result'].includes(call.phase)) return temporary;
+      if (call.statusKind && call.phase === 'explicit unconfirmed result') return { error: { code: 'INTERNAL_ERROR' } };
+      if (call.statusKind && call.phase === 'explicit recovery') await retry.promise;
+      if (call.statusKind && call.phase === 'native revocation') await revoked.promise;
+      return reply;
+    });
+    try {
+      await openLibrary(isFolder);
+      await inputId.fill(id);
+      await entry.click();
+      await showRow();
+      phase('source row interrupted');
+      await inspect();
+      await hidden('original row interrupted');
+      await expect.poll(() => correctStatus().map(call => call.delivered)).toEqual([true]);
+
+      phase('explicit temporary result');
+      await openId(isFolder);
+      await expect(status).toBeVisible();
+      await hidden('explicit temporary status with explanation');
+      await expect.soft(status).toHaveText('This frozen chart is unavailable in the current profile.', { timeout: 2500 });
+      expect(chartCalls()).toHaveLength(1);
+
+      phase('explicit unconfirmed result');
+      await openId(isFolder);
+      await expect(status).toBeVisible();
+      await hidden('explicit unconfirmed status with explanation');
+      await expect.soft(status).toHaveText('Unable to verify access to this published revision. Try opening it again.', { timeout: 2500 });
+      expect(chartCalls()).toHaveLength(1);
+
+      phase('explicit recovery');
+      await openId(isFolder);
+      await expect.poll(() => correctStatus().map(call => call.phase)).toEqual([
+        'source row interrupted', 'explicit temporary result', 'explicit unconfirmed result', 'explicit recovery',
+      ]);
+      await hidden('waiting for the explicit status reply');
+      await expect(status).toHaveCount(0);
+      retry.resolve();
+      await showRow();
+      await expect(status).toHaveCount(0);
+      expect(chartCalls()).toHaveLength(2);
+      await observe('explicit recovery restored the chart and original row');
+
+      phase('native revocation');
+      await market(isFolder ? 'revokeLocalFolderRevision' : 'revokeLocalImportRevision', { revision_id: id });
+      await inspect();
+      await hidden('actual revocation hides the chart and original row');
+      await expect.poll(() => correctStatus().filter(call => call.phase === 'native revocation').map(call => call.native))
+        .toMatchObject([isFolder ? { error: 'PERMISSION_DENIED' } : { available: false, revoked: true }]);
+      phase('explicit while revocation is pending');
+      await openId(isFolder);
+      await hidden('explicit retry before the revoked status arrives');
+      await expect(status).toHaveCount(0);
+      revoked.resolve();
+      await expect(status).toHaveText('This profile does not have permission to display this revision.');
+      await hidden('explicit denial after the revoked status arrives');
+      phase('explicit after confirmed revocation');
+      await openId(isFolder);
+      await expect(status).toHaveText('This profile does not have permission to display this revision.');
+      await hidden('explicit denial after confirmed revocation');
+      expect(correctStatus().map(call => call.phase)).toEqual([
+        'source row interrupted', 'explicit temporary result', 'explicit unconfirmed result', 'explicit recovery', 'native revocation',
+      ]);
+      expect(chartCalls()).toHaveLength(2);
+      expect(calls.some(call => ['frozen_chart', 'snapshot'].includes(call.operation))).toBe(false);
+    } finally {
+      retry.resolve();
+      revoked.resolve();
+    }
+  }));
+}
+
+base('a silent folder status releases the published drawer and cannot reopen it late', async ({ page }) => {
+  const id = randomUUID();
+  const statusEntered = Promise.withResolvers();
+  const silent = Promise.withResolvers();
+  let statuses = 0;
+  let opens = 0;
+  await page.exposeBinding('testNativeInvoke', (_, command, args) => {
+    if (command !== 'execute_operation') return { result: null };
+    if (args.operation.endsWith('Revisions')) return { result: { version: 1, revisions: [], next_after_revision_id: null } };
+    expect(args.operation).toBe('market.readLocalFolderRevision');
+    if (args.payload.include_details !== false) {
+      opens++;
+      return { error: { code: 'SNAPSHOT_UNAVAILABLE' } };
+    }
+    if (++statuses === 1) return { error: { code: 'SNAPSHOT_UNAVAILABLE' } };
+    if (statuses === 2) {
+      statusEntered.resolve();
+      return silent.promise;
+    }
+    return { result: { revision: { revision_id: id } } };
+  });
+  await page.addInitScript(() => {
+    window.isTauri = true;
+    window.__TAURI_INTERNALS__ = {
+      async invoke(command, args) {
+        const reply = await window.testNativeInvoke(command, args);
+        if (reply.error) throw reply.error;
+        return reply.result;
+      },
+    };
+  });
+  try {
+    await page.clock.install();
+    await page.goto('/');
+    await control(page, 'Open published CSV').last().click();
+    const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+    await dialog.getByRole('button', { name: 'Folder revisions' }).click();
+    await dialog.getByLabel('Revision ID').fill(id);
+    const open = control(dialog, 'Open frozen folder revision');
+    await open.click();
+    await expect.poll(() => statuses).toBe(1);
+    await expect(open).toBeEnabled();
+    await open.click();
+    await statusEntered.promise;
+    await expect(open).toBeDisabled();
+    await page.clock.fastForward(5100);
+    await expect(open).toBeEnabled();
+    await open.click();
+    await expect.poll(() => opens).toBe(2);
+    await expect(open).toBeEnabled();
+    await dialog.press('Escape');
+    silent.resolve({ result: { revision: { revision_id: id } } });
+    await expect(dialog).toHaveCount(0);
+    await expect(page.getByRole('region', { name: 'Frozen local folder chart' })).toHaveCount(0);
+  } finally {
+    silent.resolve({ result: { revision: { revision_id: id } } });
+  }
+});
+
+base('refresh verifies temporarily withheld folder revisions before restoring discovery', {
+  tag: '@profile-folder-refresh',
+}, async ({ page }, testInfo) => {
+  const ids = [randomUUID(), randomUUID(), randomUUID()];
+  const replies = ids.map((revision_id, index) => {
+    const close = [58, 68, 78][index];
+    const relative_path = ['available.csv', 'missing.csv', 'revoked.csv'][index];
+    const source_sha256 = createHash('sha256').update(`${relative_path}:${close}`).digest('hex');
+    const bar = { time_ms: Date.parse('2026-04-16T01:30:00Z'), trading_day: '2026-04-16',
+      open: close - 1, high: close + 1, low: close - 2, close, volume: 125, is_closed: true };
+    const revision = { revision_id, base_revision_id: randomUUID(), parent_revision_id: null, origin_path: relative_path,
+      symbol: '000731', source_count: 1, bar_count: 1, series: { ...equity.settings, roll_method: null },
+      bar_summary: { final_close: close, final_trading_day: bar.trading_day, first_trading_day: bar.trading_day } };
+    return { version: 1, revision, files: [{ relative_path, source_sha256, record_count: 1 }],
+      bars: [{ bar, sources: [{ relative_path, source_sha256, record_number: 1, line_start: 2, line_end: 2 }] }] };
+  });
+  const availableStatus = Promise.withResolvers();
+  const availableEntered = Promise.withResolvers();
+  let recover = false;
+  let lists = 0;
+  const checks = [];
+  const reads = [];
+  await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
+    if (command !== 'execute_operation') return { result: null };
+    if (args.operation === 'market.listLocalImportRevisions') return { result: { revisions: [], next_after_revision_id: null } };
+    if (args.operation === 'market.listLocalFolderRevisions') {
+      lists++;
+      return { result: { version: 1, revisions: replies.map(reply => reply.revision), next_after_revision_id: null } };
+    }
+    expect(args.operation).toBe('market.readLocalFolderRevision');
+    const id = args.payload.revision_id;
+    const statusOnly = args.payload.include_details === false;
+    (statusOnly ? checks : reads).push({ id, recover });
+    if (id === ids[2]) return { error: { code: 'PERMISSION_DENIED' } };
+    if (id === ids[1] || !recover) return { error: { code: 'SNAPSHOT_UNAVAILABLE' } };
+    if (statusOnly) {
+      availableEntered.resolve();
+      await availableStatus.promise;
+      return { result: { revision: replies[0].revision, bars: [], files: [] } };
+    }
+    return { result: replies[0] };
+  });
+  await page.addInitScript(() => {
+    window.isTauri = true;
+    window.__TAURI_INTERNALS__ = {
+      async invoke(command, args) {
+        const reply = await window.testNativeInvoke(command, args);
+        if (reply.error) throw reply.error;
+        return reply.result;
+      },
+    };
+  });
+  const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+  const entries = ['available.csv', 'missing.csv', 'revoked.csv'].map(name =>
+    dialog.getByRole('button', { name: new RegExp('Open folder revision from ' + name.replace('.', '\\.')) }));
+  const frozen = dialog.getByRole('region', { name: 'Frozen local folder chart' });
+  try {
+    await page.goto('/');
+    await control(page, 'Open published CSV').last().click();
+    await control(dialog, 'Folder revisions').click();
+    for (const [index, entry] of entries.entries()) {
+      await entry.click();
+      await expect.poll(() => checks.filter(row => row.id === ids[index]).length).toBe(1);
+      await expect(entry).toHaveCount(0);
+      await expect(frozen).toHaveCount(0);
+    }
+    recover = true;
+    await control(dialog, 'Refresh revisions').click();
+    await expect.poll(() => lists).toBe(2);
+    await expect.poll(() => checks.filter(row => row.recover && row.id === ids[0]).length, { timeout: 2500 }).toBe(1);
+    await availableEntered.promise;
+    await expect(entries[0]).toHaveCount(0);
+    await expect(frozen).toHaveCount(0);
+    availableStatus.resolve();
+    await expect(entries[0]).toBeVisible();
+    await expect.poll(() => checks.filter(row => row.recover && row.id === ids[1]).length).toBe(1);
+    await expect(entries[1]).toHaveCount(0);
+    await expect(entries[2]).toHaveCount(0);
+    expect(checks.filter(row => row.recover && row.id === ids[2])).toEqual([]);
+    await entries[0].click();
+    await expect(frozen.getByLabel('Selected bar')).toContainText('C 58');
+    await expect(dialog.getByRole('region', { name: 'Published folder source provenance' })).toContainText(ids[0]);
+    expect(reads.filter(row => row.recover).map(row => row.id)).toEqual([ids[0]]);
+    await dialog.press('Escape');
+    await expect(frozen).toHaveCount(0);
+  } finally {
+    availableStatus.resolve();
+    await testInfo.attach('folder-recheck-ordering', {
+      body: JSON.stringify({ ids, lists, checks, reads, visible: await frozen.allTextContents() }, null, 2),
+      contentType: 'application/json',
+    });
   }
 });

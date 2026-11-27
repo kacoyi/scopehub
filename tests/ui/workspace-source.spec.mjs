@@ -32,10 +32,6 @@ function persistedSource(profile) {
   }
 }
 
-function requestType(request) {
-  if (new URL(request.url()).pathname === workspaceEndpoint) return request.postDataJSON()?.type;
-}
-
 async function openPublishedCsv(page, revision, sampleDemo) {
   if (sampleDemo) {
     await control(chart(page), 'Open offline sample').click();
@@ -64,8 +60,8 @@ async function withPublishedSource(browser, testInfo, use, { gateStatus = false,
         expect(before).toEqual({
           selection_revision: sampleDemo ? 1 : 0, kind: sampleDemo ? 'sample' : 'none', revision_id: null,
         });
-        const record = (stage, http, code) => {
-          if (stages.length < 20) stages.push({ stage, http, code, revision: persisted().selection_revision });
+        const record = (stage, http, code, requestId) => {
+          if (stages.length < 20) stages.push({ stage, http, code, requestId, revision: persisted().selection_revision });
         };
         const source = { kind: 'frozen', revision_id: revision };
         await use({ page, dispatch, holdRevisionRead, dialog, persisted, before, record, source });
@@ -104,6 +100,45 @@ async function observeWrites(page, record, onWrite, onSnapshot) {
   return writes;
 }
 
+async function holdBackgroundRevision(page, revisionId, holdRevisionRead, record) {
+  const ready = Promise.withResolvers();
+  const deadline = AbortSignal.timeout(8_000);
+  const expired = () => ready.reject(deadline.reason);
+  deadline.addEventListener('abort', expired, { once: true });
+  const origin = new URL(page.url()).origin;
+  const endpoint = url => url.origin === origin && url.pathname === workspaceEndpoint;
+  let captured = false;
+  const intercept = async route => {
+    const request = route.request();
+    const frame = request.postDataJSON();
+    if (captured || frame?.type !== 'frozen_chart_status' || frame.revision_id !== revisionId) return route.fallback();
+    captured = true;
+    let forwarded = false;
+    try {
+      const holder = await holdRevisionRead(async () => {
+        forwarded = true;
+        // Continue this exact same-origin status now. Fallback advances only
+        // after the route handler returns, which still awaits the gate claim.
+        await route.continue();
+        const response = await request.response();
+        if (!response) throw new Error('The designated browser status did not receive an HTTP response.');
+        return { status: response.status(), body: await response.json() };
+      }, frame.request_id, event => record(`background-gate-${event.phase}`, event.status, event.code, event.requestId), deadline);
+      ready.resolve({ ...holder, request });
+    } catch (error) {
+      ready.reject(error);
+      if (!forwarded) await route.abort();
+    }
+  };
+  try {
+    await page.route(endpoint, intercept);
+    return await ready.promise;
+  } finally {
+    deadline.removeEventListener('abort', expired);
+    await page.unroute(endpoint, intercept);
+  }
+}
+
 function expectedSnapshot(source, selection_revision) {
   return { ok: true, result: { workspace: { id: 'main' }, selection_revision, source } };
 }
@@ -138,7 +173,7 @@ const contentionCases = [
 for (const [scenario, title] of contentionCases) {
   test(title, async ({ browser }, testInfo) => {
     await withPublishedSource(browser, testInfo, async ({ page, dispatch, holdRevisionRead, dialog, persisted, before, record, source }) => {
-      let release;
+      let holder;
       let peerSource;
       const rejected = Promise.withResolvers();
       const deliver = Promise.withResolvers();
@@ -151,15 +186,14 @@ for (const [scenario, title] of contentionCases) {
           rejected.resolve();
           await deliver.promise;
         }
-        const statusDelivered = page.waitForResponse(response => requestType(response.request()) === 'frozen_chart_status',
-          { timeout: 5_000 });
-        release();
-        const response = await statusDelivered;
-        expect(await response.json()).toEqual({ ok: true, result: { available: true } });
+        holder.release();
+        expect(await holder.reply).toEqual({ ok: true, result: { available: true } });
+        const response = await holder.request.response();
+        expect(response.status()).toBe(200);
         record('background-revision-released', response.status());
         if (scenario === 'peer') peerSource = await commitPeer(dispatch, before.selection_revision);
       });
-      ({ release } = await holdRevisionRead());
+      holder = await holdBackgroundRevision(page, source.revision_id, holdRevisionRead, record);
       record('background-revision-held');
       try {
         await useSource(dialog).click();
@@ -195,7 +229,7 @@ for (const [scenario, title] of contentionCases) {
         if (scenario !== 'cancel') expect(writes[1].frame).toEqual(writes[0].frame);
       } finally {
         deliver.resolve();
-        release();
+        holder.release();
       }
     }, { gateStatus: true });
   });

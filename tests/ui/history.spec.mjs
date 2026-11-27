@@ -319,3 +319,46 @@ test('a chart assembles every pinned page and discards a crossed continuation', 
   await expect(page.getByRole('alert')).toContainText('failed validation');
   await expect(page.locator('.chart canvas')).toHaveCount(0);
 });
+
+for (const [label, alter] of [
+  ['dataset adjustment', result => { result.dataset.price_adjustment = 'split_adjusted'; }],
+  ['cutoff', result => { result.quality_state.last_observed_ms = result.snapshot.as_of_ms + 1; }],
+  ['cursor boundary', result => { result.next_cursor.previous_time_ms += 1_000; }],
+  ['bar ordering', result => { [result.bars[1], result.bars[2]] = [result.bars[2], result.bars[1]]; }],
+]) {
+  test(`the desktop history client rejects a pinned page with a contradictory ${label}`, async ({ page, backend }, testInfo) => {
+    backend.fault(async (args, real) => {
+      if (args.operation !== 'market.readHistoryPage') return real(args);
+      const reply = await real({ ...args, payload: { ...args.payload, page_size: 3 } });
+      if (args.payload.cursor?.next_index === 3) {
+        expect(reply.ok, 'Registry admitted the original continuation').toBe(true);
+        expect(reply.result.offset).toBe(3);
+        expect(reply.result.bars).toHaveLength(3);
+        expect(reply.result.next_cursor.next_index).toBe(6);
+        alter(reply.result);
+      }
+      return reply;
+    });
+    await page.goto('/#demo');
+    const readOutcome = async () => ({
+      alerts: await page.getByRole('alert').allTextContents(),
+      historyCount: await page.locator('.history').count(),
+      canvasCount: await page.locator('.chart canvas').count(),
+      calls: backend.calls.map(({ operation, payload }) => ({ operation, offset: payload.cursor?.next_index ?? 0 })),
+    });
+    await expect.poll(async () => {
+      const { alerts, historyCount } = await readOutcome();
+      return alerts.length > 0 || historyCount > 0;
+    }).toBe(true);
+    const outcome = await readOutcome();
+    await testInfo.attach('pinned-history-outcome', { contentType: 'application/json', body: JSON.stringify(outcome) });
+    expect(outcome).toEqual({
+      alerts: ['The data response failed validation.'], historyCount: 0, canvasCount: 0,
+      calls: [
+        { operation: 'instrument.search', offset: 0 },
+        { operation: 'market.readHistoryPage', offset: 0 },
+        { operation: 'market.readHistoryPage', offset: 3 },
+      ],
+    });
+  });
+}

@@ -1,0 +1,122 @@
+{
+  "version": 3,
+  "task_id": "M0-169",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "2727e7b359dc1b6ef9e26dcb9467063417458075",
+      "scope": "Review the two ordinary trusted-indicator timeout cases and their synthetic fixture against the independently archived protected Windows producer and aggregate. Check early startup and actually running child witnesses, timeout type and retryability, absence of artifacts, PID and scratch cleanup at terminal return, and adjacent successful completion and cancellation. Verify the extended time budget is fixture-only and cannot turn absent witnesses into a pass. Distinguish the separately owned M0-167 scratch incident and unobserved native stages.",
+      "supersedes": null,
+      "requested_at": "2026-11-26T15:30:30.234925+00:00",
+      "request_id": "53652cdd3d2880ae1751c557e70fd8e7c0056709218bbe218e2d5ee948789c27",
+      "evidence_sha256": "2dff36099fb4211be1078f698df4652f919758dd99f63aba359fa7199d6dcd67"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "2727e7b359dc1b6ef9e26dcb9467063417458075",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-169 2727e7b359dc1b6ef9e26dcb9467063417458075",
+      "scope": "CHANGES_REQUESTED M0-169 2727e7b359dc1b6ef9e26dcb9467063417458075",
+      "observation": "The Windows fixture checks the scratch directory when `compute` returns, then reads the witness files and launches a separate `tasklist.exe` query for each PID.",
+      "reviewer": "Independent Astra Standard (t19q)",
+      "original_sha256": "8f73eb1b2826147431e73e62fcecf59176565816091629730f711bc339ccc316",
+      "response_id": "721196f7574afce99a3aa14e840a9698d831c57c5ba25919be10b3e47f0b6b47",
+      "response_sha256": "1fa0166857c045763dd03690f46ea30106ae2e8427a3848c2c38ccfb348dda14",
+      "legacy_response_sha256": "c7a79c63110041312381938a1f4ee08a19e3c82fa4a37557473b76b68532fa6e",
+      "observation_body_sha256": "0695f9429ce6aeadc6aa802ce7b3678ce4d4861b3b7e939448cbcc7d7aa25e6a",
+      "event": {
+        "id": "msg_09613808d420a098016b08511e93f887d1a7526b0cc06ae470",
+        "timestamp": "2026-11-26T15:33:04.843Z"
+      },
+      "supersedes": "53652cdd3d2880ae1751c557e70fd8e7c0056709218bbe218e2d5ee948789c27",
+      "evidence_sha256": "024984a77dc0c4e7ce7fc262778afd6eb76c9ea923e04f8e1c15c52cb13210f0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "87bb428743835b71b2c7bd09a7808255d3231979",
+      "scope": "Resolve the previous Windows process observation refusal against 87bb4287 and the genuine earlier response. Review capture of live native process references, exactly one bounded immediate group sample after compute returns, timing precision, the actual known-live mixed-group rejection and all-exited positive. Verify identity and ownership, normal and cancellation controls, both deadline stages, scratch and no artifact. Distinguish local observations and native platform coverage. Use archived originals and the task handoff.",
+      "supersedes": "721196f7574afce99a3aa14e840a9698d831c57c5ba25919be10b3e47f0b6b47",
+      "requested_at": "2026-11-26T15:40:39.946732+00:00",
+      "request_id": "73219a963f4c86d35fdd890e3e8a0b0f613231dae73e5e3e263aceed6fdcb307",
+      "evidence_sha256": "967f2ec7b4a8f14463893555fa020d8411fcff810357e33c5c56045a8df75748"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "87bb428743835b71b2c7bd09a7808255d3231979",
+      "verdict": "approved",
+      "decision": "APPROVE M0-169 87bb428743835b71b2c7bd09a7808255d3231979",
+      "scope": "APPROVE M0-169 87bb428743835b71b2c7bd09a7808255d3231979",
+      "observation": "On Linux, I independently observed the candidate reject a group with one pipe-held child still alive and accept the same retained references after both children exited.",
+      "reviewer": "Independent Astra Standard (t19w)",
+      "original_sha256": "bd8e2c199bf81d69fbaeed183f108267184cc8ca758d08513973042ac14dc52b",
+      "response_id": "5c543c74445e7c4bcb96e0c2c708b84ee402f51b88598ff4fdba989d1389efa9",
+      "response_sha256": "f1dd85736ef7fdf6e324e6f09597d17f730db00a31ff6bbdae42472f9b18a7a6",
+      "legacy_response_sha256": "2c4d582b60c95fae5c359cc2beae9aee5995041bcdf3723f9bdce2963f3d8113",
+      "observation_body_sha256": "adc3f836d86e02a87367eb345b57e89c146e787276612ffd8dac808431e787e4",
+      "event": {
+        "id": "msg_016ae761ad5566a0016b085349e82887d2a0540fdac5a766fb",
+        "timestamp": "2026-11-26T15:42:25.177Z"
+      },
+      "supersedes": "73219a963f4c86d35fdd890e3e8a0b0f613231dae73e5e3e263aceed6fdcb307",
+      "evidence_sha256": "d7ee05a9c63dfe6e4670b7533330ff4b534b973799faa71d0ca0edcdd557b1fc"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b767732ad317bb4f1fd7e1646ba9aeb0e0c00513",
+      "scope": "Verify the corrected Clippy gate on the protected composition, scratch and deadline invariants, both deadline phases, the process group witness and real native first attempts. Check preserved ledger and shared test behavior, including the new rust-lints task coverage. Distinguish review and native evidence on the prior revision from the new candidate.",
+      "supersedes": "5c543c74445e7c4bcb96e0c2c708b84ee402f51b88598ff4fdba989d1389efa9",
+      "requested_at": "2026-11-27T02:53:37.963793+00:00",
+      "request_id": "5fd59b6a4d3ef8d1967b3d4c0d08286a1b60844fe55fe8cb6e23a5c2bf1264dc",
+      "evidence_sha256": "b1e63180f49c2546e2668c5d7c2ffc49551e36ccab4ae643484bce1db42db428"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b767732ad317bb4f1fd7e1646ba9aeb0e0c00513",
+      "verdict": "approved",
+      "decision": "APPROVE M0-169 b767732ad317bb4f1fd7e1646ba9aeb0e0c00513",
+      "scope": "APPROVE M0-169 b767732ad317bb4f1fd7e1646ba9aeb0e0c00513",
+      "observation": "On Linux, I observed the candidate’s process observer return false with two children still alive, false with one still alive, and true after all three exited.",
+      "reviewer": "Independent Astra Standard (t1bf)",
+      "original_sha256": "90ddcfb897abd0231bd8de1b9385fb9aacb5724bd20d8c85b687d83340a98b6e",
+      "response_id": "2d8a5781a4b6ff0ac3d240d6abc0bd71276b7dead303bbba0baf4a6fb92d5b1c",
+      "response_sha256": "f379275f3f95036285a32c38c68fd98c494b0b67545c0a59d3be1c2f5167bc23",
+      "legacy_response_sha256": "edac210bac367a315a3236948e4473d39e7bc1ccfc4f9d10cb75d5aea7c74aa9",
+      "observation_body_sha256": "fdbf8c60965bc52854874827d63a4c019ccf42399f02be2e42dbc8c5a8397103",
+      "event": {
+        "id": "msg_0f9e33fd1d44a6da016b08f13d14c887d0b35c6877d26d50ee",
+        "timestamp": "2026-11-27T02:56:17.149Z"
+      },
+      "supersedes": "5fd59b6a4d3ef8d1967b3d4c0d08286a1b60844fe55fe8cb6e23a5c2bf1264dc",
+      "evidence_sha256": "990246fc28a015999bf93e0f2dd0fa012cdeb4f56e1c76846e0877279ba11181"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a6c7aa2239de14d973a1fecd24874c7517d0de61",
+      "scope": "Review the actual trusted-indicator deadline interaction after combining the market interruption and cancellation corrections on a6c7aa22.",
+      "supersedes": "2d8a5781a4b6ff0ac3d240d6abc0bd71276b7dead303bbba0baf4a6fb92d5b1c",
+      "requested_at": "2026-11-27T08:22:40.499326+00:00",
+      "request_id": "39017d6bd9858f531899dc16fd0d555eef75ba5b1b5a1592dec8d4e83b611982",
+      "evidence_sha256": "4b73b00445d10ada32f412bd6014428887b2f68a30f99513fb5858648ed98eef"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a6c7aa2239de14d973a1fecd24874c7517d0de61",
+      "verdict": "approved",
+      "decision": "APPROVE M0-169 a6c7aa2239de14d973a1fecd24874c7517d0de61",
+      "scope": "APPROVE M0-169 a6c7aa2239de14d973a1fecd24874c7517d0de61",
+      "observation": "In my independent Linux check, the candidate observer rejected the held process set while one child was alive and accepted the same set after both children exited.",
+      "reviewer": "Independent Astra Standard (t1fh)",
+      "original_sha256": "5fed218b5cca16d192da658c1752cdeb1f5b0d771ebcfe1486821ef89c430e4f",
+      "response_id": "65257e375b1eadbbc85df750d064a10602bc2b60296ddc1bfbdb191ef6df3c7a",
+      "response_sha256": "e10969884ebc28f76b0b6d064ac5c4bc9218b490b6700e78a1755b316b4bde52",
+      "legacy_response_sha256": "5a3f2edc18e4dce0f780ba525aceccc244b3189c5e900702f97372164646dba1",
+      "observation_body_sha256": "4710acf6b092f8941c7a75a128af6de28ab1d232cff232220d4fbb1144f810c1",
+      "event": {
+        "id": "msg_09da07acb6b71b53016b093e6561f087d0810243ca5d1f4296",
+        "timestamp": "2026-11-27T08:25:27.676Z"
+      },
+      "supersedes": "39017d6bd9858f531899dc16fd0d555eef75ba5b1b5a1592dec8d4e83b611982",
+      "evidence_sha256": "0733c4e328a3cc740a447abbed04359b6310b1973befa26dbff5f4626de5fc21"
+    }
+  ]
+}

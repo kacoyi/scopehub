@@ -2,6 +2,7 @@
 
 from pathlib import Path
 import sys
+from uuid import UUID
 
 import psutil
 
@@ -19,38 +20,69 @@ def owned_test_runner(helper, expected_pid, redirector):
     return parent
 
 
+def matching_interpreters(bridge, root, worker_script, interpreter, redirector, witness):
+    try:
+        children = bridge.children()
+    except psutil.NoSuchProcess:
+        return
+    for child in children:
+        try:
+            args = child.cmdline()[1:]
+            if len(args) != 2 or Path(args[0]).resolve() != worker_script or args[1] != witness:
+                continue
+            # Only the exact Windows venv launcher may parent the interpreter.
+            members = child.children() if redirector is not None and Path(child.exe()).resolve() == redirector else [child]
+        except psutil.NoSuchProcess:
+            continue
+        for member in members:
+            try:
+                if (member.cmdline()[1:] == args
+                        and Path(member.exe()).resolve() == interpreter
+                        and Path(member.cwd()).resolve() == root):
+                    yield member
+            except psutil.NoSuchProcess:
+                # An expired member does not describe its live siblings.
+                continue
+
+
+def owned_worker(owner, root, bridge_executable, interpreter, redirector, witness):
+    workers = []
+    worker_script = root / 'tests' / 'ubuntu-preview' / 'market_interruption_worker.py'
+    for bridge in owner.children(recursive=True):
+        try:
+            if (bridge.name().lower() != bridge_executable.name
+                    or Path(bridge.exe()).resolve() != bridge_executable
+                    or Path(bridge.cwd()).resolve() != root
+                    or bridge.cmdline()[1:] != ['--test-market-interruption', witness]):
+                continue
+        except psutil.NoSuchProcess:
+            continue
+        # AccessDenied propagates: an incomplete observation cannot establish uniqueness.
+        workers.extend((member, bridge) for member in matching_interpreters(
+            bridge, root, worker_script, interpreter, redirector, witness))
+
+    if len(workers) != 1:
+        raise RuntimeError(f'Expected one owned synthetic market interpreter, found {len(workers)}')
+    child, bridge = workers[0]
+    if bridge not in child.parents() or owner not in bridge.parents():
+        raise RuntimeError('The preview no longer owns the selected worker')
+    return child
+
+
 def main():
     root = Path(__file__).resolve().parents[2]
-    if len(sys.argv) != 2 or not sys.argv[1].isdecimal() or sys.stdin.isatty():
+    if len(sys.argv) != 3 or not sys.argv[1].isdecimal() or sys.stdin.isatty():
         raise RuntimeError('A live preview test must own this helper')
-    redirector = root / '.venv' / 'Scripts' / 'python.exe' if sys.platform == 'win32' else None
-    owner = owned_test_runner(psutil.Process(), int(sys.argv[1]), redirector)
-    bridge_name = 'history_bridge.exe' if sys.platform == 'win32' else 'history_bridge'
+    witness = str(UUID(sys.argv[2]))
+    helper = psutil.Process()
+    redirector = (root / '.venv' / 'Scripts' / 'python.exe').resolve() if sys.platform == 'win32' else None
+    owner = owned_test_runner(helper, int(sys.argv[1]), redirector)
+    bridge_name = 'history_bridge_interruption.exe' if sys.platform == 'win32' else 'history_bridge_interruption'
     bridge_executable = (root / 'target' / 'debug' / 'examples' / bridge_name).resolve()
     print('ready', flush=True)
     if sys.stdin.readline() != 'interrupt\n':
-        return
-
-    workers = []
-    for bridge in owner.children(recursive=True):
-        try:
-            if (bridge.name().lower() != bridge_name or Path(bridge.exe()).resolve() != bridge_executable
-                    or Path(bridge.cwd()).resolve() != root):
-                continue
-            for child in bridge.children(recursive=True):
-                if child.cmdline()[1:] == ['-m', 'worker_runtime', '--role', 'market', '--demo'] and Path(child.cwd()).resolve() == root:
-                    workers.append((child, bridge))
-        except psutil.NoSuchProcess:
-            continue
-    # The Windows venv redirector can parent the actual interpreter. Select
-    # the interpreter, and require exactly one matching process lineage.
-    parents = {child.ppid() for child, _ in workers}
-    leaves = [(child, bridge) for child, bridge in workers if child.pid not in parents]
-    if len(leaves) != 1:
-        raise RuntimeError(f'Expected one owned synthetic market interpreter, found {len(leaves)}')
-    child, bridge = leaves[0]
-    if bridge not in child.parents() or owner not in bridge.parents():
-        raise RuntimeError('The preview no longer owns the selected worker')
+        raise RuntimeError('The test did not request its owned interruption')
+    child = owned_worker(owner, root, bridge_executable, Path(helper.exe()).resolve(), redirector, witness)
     child.kill()
 
 
