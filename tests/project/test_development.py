@@ -961,9 +961,20 @@ class DevelopmentTests(ProjectFixture):
             {**base, 'id': 'caller', 'paths': ['python/caller'], 'public_entries': ['python/caller/main.py'], 'dependencies': ['adapter']},
             {**base, 'id': 'adapter', 'paths': ['python/adapter'], 'public_entries': ['python/adapter/public.py'], 'dependencies': []},
         ]
+        self.record['modules'][1]['status'] = 'planned'
         self.save_record()
         caller = self.root / 'python/caller/main.py'
+        self.assertEqual([], declared_source_boundaries(self.root))
         caller.write_text('from adapter.public import value\n')
+        self.assertEqual([
+            'Planned module entry imported by implemented module: caller -> python/adapter/public.py',
+        ], declared_source_boundaries(self.root))
+        self.record['modules'][0]['status'] = 'planned'
+        self.save_record()
+        self.assertEqual([], declared_source_boundaries(self.root))
+        self.record['modules'][0]['status'] = 'implemented'
+        self.record['modules'][1]['status'] = 'implemented'
+        self.save_record()
         self.assertEqual([], declared_source_boundaries(self.root))
         caller.write_text('from adapter.private import value\n')
         self.assertTrue(any('Private module entry' in item for item in declared_source_boundaries(self.root)))

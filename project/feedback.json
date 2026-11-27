@@ -9645,6 +9645,27 @@
       "deferral_reason": null
     },
     {
+      "id": "indicator-module-inventory-retains-planned-scope",
+      "status": "addressed",
+      "severity": "minor",
+      "source": "Protected source ff6c880b289b18e3e58d667dcb5b76c7f12fe053; archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/indicator-module-before.json (SHA-256 bab816e326743964f5aee49a12d831ae45bcb277b592b6a23dc1c8e29aa0db82).",
+      "observation": "The public module source labels indicators planned and assigns it declarative computation. The implemented Python worker calls the listed trusted evaluation entry, three M3-005 receipts report the indicator workflow passed, and the registered Rust domain owns declarative calculation.",
+      "task_ids": [
+        "M0-165"
+      ],
+      "regression_checks": [
+        "project-state",
+        "architecture",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The accepted worker began importing the trusted Python indicator entry while the engineering inventory still classified the target as planned and assigned it declarative computation.",
+        "correction": "The module record identifies the Python trusted evaluator and the Rust domain owner of declarative computation. Existing callers and profile data are preserved.",
+        "prevention": "The architecture check uses its existing static import scan to reject an implemented Python caller importing from a module labeled planned. The focused regression also accepts a planned but unused module and the implemented target."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "verified-peer-note-deletion-missing-approval-delivery",
       "status": "open",
       "severity": "major",
