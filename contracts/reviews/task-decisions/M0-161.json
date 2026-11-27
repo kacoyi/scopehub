@@ -117,6 +117,15 @@
       },
       "supersedes": "c59b8162de6c918263468ebff2f3d35568c1935096cbe362f1233346670e1407",
       "evidence_sha256": "13f7c41b0622f9cfffdabe5eaffeb05ff21b03e5560ec24dc9411b4e679ffae3"
+    },
+    {
+      "kind": "request",
+      "source_commit": "cf795dd4694a6c54db70ec9f336d9ee373f201c2",
+      "scope": "Reassess the current ordinary and read-only routing on the protected composition at cf795dd4, preserving the previous M0-161 acceptance and the two-workstream stop.",
+      "supersedes": "e7abf2057200849ef9f488aa0cfabf78b31f7ac6e5bef1324519da01f06f5f4e",
+      "requested_at": "2026-11-27T04:22:29.044208+00:00",
+      "request_id": "f6bcf47451f091854be81c8d1f0eaa6c46a3f0c0dd72f0c2c40d9a976224c75c",
+      "evidence_sha256": "6c8186f8bae3f02fcf4eb5636d0e3df88cb05ef464d5da0f204c35e3cf9abd1f"
     }
   ]
 }
