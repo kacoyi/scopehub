@@ -409,6 +409,16 @@
       "catalogs": [
         "6aea6efed8165bd008535f415cb7aec35b8d5fb8510849d9d1610874885cb480"
       ]
+    },
+    "2e283c938755b4a5fc90fbc107560c4bd485fdcd1bcd342964eb652e9322347c": {
+      "sources": [
+        "fdcb927bb1acde1d41db15e11e0ac63662dff4a5"
+      ],
+      "assignment": "lanes-1",
+      "run_observations": "session-and-external-clients",
+      "catalogs": [
+        "6aea6efed8165bd008535f415cb7aec35b8d5fb8510849d9d1610874885cb480"
+      ]
     }
   }
 }
