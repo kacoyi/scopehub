@@ -190,6 +190,120 @@ class PublicPublisherObservationTests(unittest.TestCase):
     def weekly(self, archive, sample):
         return self.collect(archive, [self.linux, sample])
 
+    def split_report_pair(self, *, browser_failed=False):
+        catalog = fixtures.SPLIT_CATALOG
+        fixtures.use_catalog(self, catalog, lanes=timing.LEGACY_WINDOWS_LANES)
+        report = fixtures.split_harness_report(675)
+        report['ci'] = dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(self.clock)), checkout_sha='a' * 40)
+        fixtures.native_raw_fixture(self, report, catalog)
+        workspace = next(row for row in report['checks'] if row['id'] == 'workspace-timeframe')
+        if browser_failed:
+            workspace.update(status='failed', exit_code=1)
+            report.update(status='failed', limitations=[timing.WINDOWS_LANE_FAILED], integration_gates=
+                          timing.integration_gates(report['checks'], catalog['required_change_checks'], requested=True))
+        browser = deepcopy(report)
+        browser['selection'].update(profile='ci-windows-browser', checks=['workspace-timeframe'])
+        browser['native_requirement']['requested'] = False
+        browser['checks'] = [workspace.copy() if row['id'] == 'workspace-timeframe' else {
+            'id': row['id'], 'command': row['command'], 'status': 'blocked', 'reason_code': 'not_selected',
+        } for row in report['checks']]
+        browser.update(generated_at='2026-11-20T00:11:25.251Z', timing={'elapsed_seconds': 565})
+        jobs = fixtures.HostedTimingTests.split_windows_jobs(self)
+        producer = jobs[2]
+        producer['steps'].extend([
+            dict(name='Stage current verification evidence', number=13, status='completed', conclusion='success',
+                 started_at='2026-11-20T00:11:25Z', completed_at='2026-11-20T00:11:27Z'),
+            dict(name='Run actions/upload-artifact@revision', number=14, status='completed', conclusion='success',
+                 started_at='2026-11-20T00:11:27Z', completed_at='2026-11-20T00:11:29Z'),
+            dict(name='Run actions/upload-artifact@revision', number=15, status='completed', conclusion='skipped',
+                 started_at='2026-11-20T00:11:29Z', completed_at='2026-11-20T00:11:29Z'),
+        ])
+        if browser_failed:
+            self.run['conclusion'] = 'failure'
+            producer['conclusion'] = None
+            producer['steps'][0]['conclusion'] = 'failure'
+            jobs[4]['conclusion'] = 'failure'
+            jobs[4]['steps'][0]['conclusion'] = None
+        self.clock = timing.actions_clock(self.run, list(jobs))
+        actions = ('--actions', self.write_variant('producer-run', self.run), self.write_variant('producer-jobs', jobs))
+        return report, browser, actions
+
+    def test_split_report_requires_consistent_producer_steps_and_originals(self):
+        original, browser, actions = self.split_report_pair(browser_failed=True)
+        changed = deepcopy(original)
+        row = next(row for row in changed['checks'] if row['id'] == 'workspace-timeframe')
+        row['duration_seconds'] += 1
+        passed = deepcopy(original)
+        next(row for row in passed['checks'] if row['id'] == 'workspace-timeframe').update(status='passed', exit_code=0)
+        passed.update(status='passed', limitations=[], integration_gates=
+                      timing.integration_gates(passed['checks'], fixtures.SPLIT_CATALOG['required_change_checks'],
+                                               requested=True))
+        for label, reports in (('raw', (original, changed, passed)), ('legacy-compact', tuple(
+                timing.report_sample(report) for report in (original, changed, passed)))):
+            for index, order in enumerate((reports, tuple(reversed(reports)))):
+                with self.subTest(input=label, order=index):
+                    files = [browser, *order]
+                    args = [arg for number, item in enumerate(files) for arg in (
+                        '--report', self.write_variant(f'lineage-{number}', item),
+                    )]
+                    archive = self.directory / f'lineage-{label}-{index}.json'
+                    normal = self.invoke(*args, *actions)
+                    with (patch.object(timing, 'hosted_repository', return_value='fixture/scopehub'),
+                          patch.object(timing, 'collection_source', return_value='c' * 40),
+                          patch.object(timing, 'recent_runs', return_value=[self.run]),
+                          patch.object(timing, 'download_timing', return_value=[]),
+                          patch.object(timing, 'inspect_jobs', return_value=self.clock)):
+                        weekly = self.invoke(*args, '--recent', 1, '--github-actions', '--save', archive)
+                    for view in (normal, weekly, self.invoke('--report', archive)):
+                        attributed, = (sample for sample in view['samples'] if sample['profile'] == 'full' and sample['job'])
+                        self.assertEqual('failed', attributed['report_status'])
+                        self.assertEqual((765, 1687), (attributed['seconds']['total'], attributed['seconds']['runner']))
+                        measured = next(row for row in attributed['checks'] if row['id'] == 'workspace-timeframe')
+                        self.assertEqual(12, measured['duration_seconds'])
+                        self.assertTrue(any('retained original browser producer results' in issue['error']
+                                            for issue in view['input_issues']))
+                        self.assertTrue(any('publisher status' in issue['error'] for issue in view['input_issues']))
+
+    def test_report_generated_after_last_upload_cannot_withdraw_original(self):
+        _, browser, actions = self.split_report_pair()
+        late = dict(browser, generated_at='2026-11-20T00:11:30Z')
+        for label, reports in (('raw', [browser, late]), ('legacy-compact', [timing.report_sample(report)
+                                                                            for report in [browser, late]])):
+            for index, order in enumerate((reports, list(reversed(reports)))):
+                with self.subTest(input=label, order=index):
+                    archive = self.directory / f'upload-{label}-{index}.json'
+                    args = [arg for number, item in enumerate(order) for arg in (
+                        '--report', self.write_variant(f'upload-{number}', item),
+                    )]
+                    ordinary = self.invoke(*args, *actions)
+                    weekly = self.collect(archive, [timing.report_sample(browser), timing.report_sample(late)])
+                    for view in (ordinary, weekly, self.invoke('--report', archive)):
+                        original, = [row for row in view['samples'] if row.get('job')]
+                        self.assertEqual(timing.timestamp(browser['generated_at']), timing.timestamp(original['recorded_at']))
+                        self.assertEqual(680, original['seconds']['runner'])
+                        issue, = (note for note in view['input_issues'] if 'outside the publishing job' in note['error'])
+                        self.assertEqual('33', issue['job_id'])
+
+    def test_raw_failed_check_without_log_reference_cannot_receive_clock_credit(self):
+        _, browser, actions = self.split_report_pair(browser_failed=True)
+        genuine = self.write_variant('failed-reference', browser)
+        control, = self.invoke('--report', genuine, *actions)['samples']
+        self.assertEqual(680, control['seconds']['runner'])
+        for label, fields in (('missing', {}), ('empty', {'log': '', 'log_sha256': ''})):
+            with self.subTest(reference=label):
+                change = deepcopy(browser)
+                row = next(row for row in change['checks'] if row['id'] == 'workspace-timeframe')
+                del row['log'], row['log_sha256']
+                row.update(fields)
+                path = self.write_variant(label, change)
+                archive = self.directory / f'failed-{label}.archive.json'
+                inspected = self.invoke('--report', path, *actions, '--save', archive)
+                for view in (inspected, self.invoke('--report', archive)):
+                    self.assertEqual([], view['samples'])
+                    producer, = [job for job in view['hosted'][0]['sibling_jobs'] if job['job_id'] == '33']
+                    self.assertEqual(680, producer['seconds']['runner'])
+                    self.assertTrue(any('failed-check log reference' in note['error'] for note in view['input_issues']))
+
     def test_full_timing_respects_a_failed_required_windows_producer(self):
         catalog = fixtures.SPLIT_CATALOG
         fixtures.use_catalog(self, catalog, lanes=timing.LEGACY_WINDOWS_LANES)

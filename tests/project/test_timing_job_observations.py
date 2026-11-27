@@ -2,6 +2,7 @@
 
 from contextlib import redirect_stdout
 from io import StringIO
+from itertools import count
 import json
 from pathlib import Path
 import subprocess
@@ -156,9 +157,9 @@ class PublicJobObservationTests(unittest.TestCase):
                             'total', 'tail', 'aggregate_setup', 'runner',
                         )))
 
-        for name, boundary in (
-            ('no end after cleanup', {'completed_at': '2026-11-20T00:12:43Z'}),
-            ('no start before setup', {'started_at': '2026-11-20T00:12:09Z'}),
+        for name, boundary, expected_total in (
+            ('no end after cleanup', {'completed_at': '2026-11-20T00:12:43Z'}, None),
+            ('no start before setup', {'started_at': '2026-11-20T00:12:09Z'}, 765),
         ):
             with self.subTest(case=name):
                 jobs_path.write_bytes(timing.json_bytes({'jobs': [*original_jobs[:-1], {**witnessed, **boundary}]}))
@@ -167,7 +168,70 @@ class PublicJobObservationTests(unittest.TestCase):
                                          '--actions', run_path, jobs_path, '--save', saved)
                 for view in (observed, self.ordinary(root, '--report', saved)):
                     totals = {row['platform']: row['seconds']['total'] for row in view['hosted'][0]['jobs']}
-                    self.assertEqual({'Linux': 510, 'Windows': None}, totals)
+                    self.assertEqual({'Linux': 510, 'Windows': expected_total}, totals)
+
+    def test_ordered_steps_bound_verification_and_job_clocks(self):
+        root = self.timing_checkout()
+        run, jobs, other, report_path = (root / name for name in ('run.json', 'jobs.json', 'other.json', 'report.json'))
+        run.write_bytes(timing.json_bytes(hosted_run()))
+        verification = hosted_job(35, 'ubuntu', '00:29', '01:19', 'Run pnpm check', '00:53', '01:09')
+        report = fast_report(20, 16)
+        report['selection']['profile'] = 'full'
+        report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
+                        'event': 'pull_request', 'head_sha': FIXTURE_PR_HEAD, 'checkout_sha': 'a' * 40}
+        report_path.write_bytes(timing.json_bytes(timing.report_sample(report)))
+
+        def step(number, name, start, end):
+            return {'number': number, 'name': name, 'conclusion': 'success',
+                    'started_at': f'2026-11-20T00:{start}Z', 'completed_at': f'2026-11-20T00:{end}Z'}
+
+        verification['steps'] = [
+            step(2, 'Run actions/checkout@reviewed', '00:32', '00:43'),
+            step(7, 'Run actions/download-artifact@reviewed', '00:52', '00:53'),
+            step(9, 'Run pnpm check', '00:53', '01:09'),
+            step(11, 'Stage current verification evidence', '01:09', '01:12'),
+            step(27, 'Post Run actions/checkout@reviewed', '01:16', '01:18'),
+        ]
+        job_identity = {key: verification[key] for key in ('id', 'run_id', 'run_attempt', 'run_url', 'head_sha')}
+        fields = ('queue', 'setup', 'harness_step', 'tail', 'runner', 'total')
+        original = (29, 24, 16, 10, 50, 79)
+        captures = count()
+
+        def check(data, paths, expected):
+            jobs.write_bytes(timing.json_bytes({'jobs': [data]}))
+            saved = root / f'archive-{next(captures)}.json'
+            actions = [arg for path in paths for arg in ('--actions', run, path)]
+            observed = self.ordinary(root, '--report', report_path, *actions, '--save', saved)
+            for view in (observed, self.ordinary(root, '--report', saved)):
+                row, = view['samples']
+                self.assertEqual(expected, tuple(row['seconds'][field] for field in fields))
+
+        check(verification, [jobs], original)
+        cases = (
+            ('before download', 'step', 'started_at', '00:52', original, (29, None, None, 10, 50, 79)),
+            ('after download', 'step', 'started_at', '00:54', (29, None, None, 10, 50, 79), None),
+            ('after staging began', 'step', 'completed_at', '01:10', original, (29, 24, None, None, 50, 79)),
+            ('after checkout began', 'job', 'started_at', '00:33', original, (None, None, 16, 10, None, 79)),
+            ('at checkout start', 'job', 'started_at', '00:32', (None, None, 16, 10, None, 79), None),
+            ('before post checkout ended', 'job', 'completed_at', '01:17', original, (29, 24, 16, None, None, None)),
+            ('at post checkout end', 'job', 'completed_at', '01:18', (29, 24, 16, None, None, None), None),
+        )
+        for name, scope, edge, clock, conflicting, sole in cases:
+            changed = {edge: f'2026-11-20T00:{clock}Z'}
+            if scope == 'step':
+                claim = {'steps': [{'number': 9, **changed}]}
+                replaced = {**verification, 'steps': [{**row, **changed} if row['number'] == 9 else row
+                                                       for row in verification['steps']]}
+            else:
+                claim = changed
+                replaced = {**verification, **changed}
+            other.write_bytes(timing.json_bytes({'jobs': [{**job_identity, **claim}]}))
+            for order in ((jobs, other), (other, jobs)):
+                with self.subTest(claim=name, first=order[0].name):
+                    check(verification, order, conflicting)
+            if sole is not None:
+                with self.subTest(claim=name, first='sole'):
+                    check(replaced, [jobs], sole)
 
     def test_step_clocks_use_joined_eligibility_before_selecting_a_phase(self):
         run = hosted_run()

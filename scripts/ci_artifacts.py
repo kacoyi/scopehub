@@ -22,7 +22,7 @@ if __package__:
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, release_artifacts, validate_notice,
     )
-    from .verification_report import report_observation_issue, windows_publisher_status_issue
+    from .verification_report import failed_check_log_issue, report_observation_issue, windows_publisher_status_issue
     from .verification_scope import (
         SCOPED_PROFILES, WINDOWS_LANES, ci_base, ci_event_checkout, require_ancestor,
         windows_lane_checks, windows_lane_report_matches, windows_lanes_run_id, windows_published_scope,
@@ -41,7 +41,7 @@ else:
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, release_artifacts, validate_notice,
     )
-    from verification_report import report_observation_issue, windows_publisher_status_issue
+    from verification_report import failed_check_log_issue, report_observation_issue, windows_publisher_status_issue
     from verification_scope import (
         SCOPED_PROFILES, WINDOWS_LANES, ci_base, ci_event_checkout, require_ancestor,
         windows_lane_checks, windows_lane_report_matches, windows_lanes_run_id, windows_published_scope,
@@ -331,7 +331,7 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False):
     expected = ci_provenance(report['source'], env, root)
     if not expected or report.get('ci') != expected or expected['checkout_sha'] != env['GITHUB_SHA']:
         raise PublicationError('Report provenance does not match the current hosted job.')
-    if issue := report_observation_issue(report):
+    if issue := report_observation_issue(report) or failed_check_log_issue(report):
         raise PublicationError(f'The report has {issue}.')
     run_id = report['run_id']
     if not re.fullmatch(r'[a-zA-Z0-9_-][a-zA-Z0-9._-]*', run_id):
@@ -512,8 +512,11 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
 
 
 def stage_timing(destination, env, *, has_report):
+    original_sha256 = None
     if has_report:
-        report = evidence_json((destination / 'test-report.json').read_bytes())
+        contents = (destination / 'test-report.json').read_bytes()
+        report = evidence_json(contents)
+        original_sha256 = digest(contents)
     else:
         report = {
             'environment': {'system': env.get('RUNNER_OS'), 'machine': env.get('RUNNER_ARCH')},
@@ -523,7 +526,7 @@ def stage_timing(destination, env, *, has_report):
                 'head_sha': env.get('SCOPEHUB_SOURCE_HEAD'), 'checkout_sha': env.get('GITHUB_SHA'),
             },
         }
-    sample = report_sample(report, cache=env.get('SCOPEHUB_TIMING_CACHE'))
+    sample = report_sample(report, cache=env.get('SCOPEHUB_TIMING_CACHE'), original_sha256=original_sha256)
     if has_report:
         if raw_caches := env.get('SCOPEHUB_TIMING_WINDOWS_CACHES'):
             try:

@@ -739,8 +739,11 @@ class HostedTimingTests(unittest.TestCase):
         genuine = {'collected_at': first, 'capture_source': 'c' * 40, 'limit_per_event': 12,
                    'completed_runs_considered': 1, 'unsuccessful_runs': 0, 'runs_with_compact': 1,
                    'runs_without_compact': 0, 'missing_compact_run_ids': [],
+                   'downloaded_compact_inputs_sha256': [receipt['report_input_sha256']],
+                   'listed_attempt_jobs_sha256': [timing.timing_input_sha256(clock)],
                    'collected_samples': [receipt], 'cold_bootstrap': False}
         missing = {**genuine, 'collected_at': last, 'runs_with_compact': 0, 'runs_without_compact': 1,
+                   'downloaded_compact_inputs_sha256': [],
                    'missing_compact_run_ids': ['11'], 'collected_samples': [], 'cold_bootstrap': True}
 
         with tempfile.TemporaryDirectory() as folder:
@@ -816,6 +819,106 @@ class HostedTimingTests(unittest.TestCase):
             self.assertEqual(selected, reopen(combined)['recent_collection'])
             self.assertEqual(last, reopen(combined, new)['recent_collection']['collected_at'])
             self.assertTrue(reopen(empty)['recent_collection']['cold_bootstrap'])
+
+    def collection_replay(self, folder):
+        run = hosted_run()
+        clock = timing.hosted_timing(run, self.split_windows_jobs())
+        report = split_harness_report(675)
+        report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(clock))), 'checkout_sha': 'a' * 40}
+        windows = timing.report_sample(report)
+        linux = split_linux_sample(windows)
+
+        def collect(name, reports, *, previous=None, jobs_available=True):
+            path = folder / name
+            argv = ['timing.py', '--recent', '1', '--github-actions', '--save', str(path)]
+            if previous:
+                argv.extend(('--report', str(previous)))
+            with (patch.object(sys, 'argv', argv), redirect_stdout(StringIO()) as stdout,
+                  patch.object(timing, 'local_paths', return_value=[]),
+                  patch.object(timing, 'timing_directories', return_value=()),
+                  patch.object(timing, 'hosted_repository', return_value='fixture/scopehub'),
+                  patch.object(timing, 'collection_source', return_value='c' * 40),
+                  patch.object(timing, 'recent_runs', return_value=[run]),
+                  patch.object(timing, 'download_timing', return_value=reports),
+                  patch.object(timing, 'inspect_jobs', return_value=clock,
+                               side_effect=None if jobs_available else timing.TimingError('Job listing unavailable.'))):
+                timing.main()
+            return path, json.loads(stdout.getvalue())
+
+        def reopen(*paths, save_to=None):
+            argv = ['timing.py', *(argument for path in paths for argument in ('--report', str(path)))]
+            if save_to:
+                argv.extend(('--save', str(save_to)))
+            with patch.object(sys, 'argv', argv), redirect_stdout(StringIO()) as stdout:
+                timing.main()
+            view = json.loads(stdout.getvalue())
+            _, windows_job = view['hosted'][0]['jobs']
+            self.assertEqual((765, 1687, 695), tuple(
+                windows_job['seconds'][key] for key in ('total', 'runner', 'harness_step')))
+            return view['recent_collection']
+
+        return (linux, windows), collect, reopen
+
+    def test_cold_reopen_binds_receipts_to_collection_acquisitions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            reports, collect, reopen = self.collection_replay(folder)
+            genuine, original = collect('genuine.json', reports)
+            both = original['recent_collection']['collected_samples']
+            self.assertEqual({'Linux', 'Windows'}, {row['platform'] for row in both})
+            self.assertEqual(both, reopen(genuine)['collected_samples'])
+
+            partial_path, partial = collect('partial.json', reports[:1], previous=genuine)
+            linux_only = partial['recent_collection']['collected_samples']
+            self.assertEqual(['Linux'], [row['platform'] for row in linux_only])
+            self.assertEqual(linux_only, reopen(partial_path)['collected_samples'])
+
+            legacy = json.loads(partial_path.read_bytes())
+            legacy['recent_collection'].pop('downloaded_compact_inputs_sha256')
+            legacy['recent_collection'].pop('listed_attempt_jobs_sha256', None)
+            legacy['recent_collection']['collected_samples'] = both
+            legacy_path = folder / 'legacy-copy.json'
+            timing.save_review_archive(legacy_path, legacy)
+            with self.subTest(legacy_replay=True):
+                self.assertEqual([], reopen(legacy_path)['collected_samples'])
+
+            failed_path, failed = collect('jobs-failed.json', reports, jobs_available=False)
+            self.assertEqual([], failed['recent_collection']['collected_samples'])
+            self.assertTrue(any(row.get('source') == 'attempt_jobs' for row in failed['input_issues']))
+            failed_archive = json.loads(failed_path.read_bytes())
+            failed_archive['recent_collection']['collected_samples'] = both
+            injected = folder / 'failed-with-copied-receipts.json'
+            timing.save_review_archive(injected, failed_archive)
+            for index, paths in enumerate(((genuine, injected), (injected, genuine))):
+                with self.subTest(input_order=index):
+                    saved = folder / f'failed-replay-{index}.json'
+                    self.assertEqual([], reopen(*paths, save_to=saved)['collected_samples'])
+                    self.assertEqual([], reopen(saved)['collected_samples'])
+
+    def test_cold_reopen_combines_equal_acquisition_without_recrediting_unqualified_claims(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            reports, collect, reopen = self.collection_replay(folder)
+            genuine, original = collect('genuine.json', reports)
+            both = original['recent_collection']['collected_samples']
+            linux_only = [row for row in both if row['platform'] == 'Linux']
+            incomplete = json.loads(genuine.read_bytes())
+            incomplete['samples'] = [row for row in incomplete['samples'] if row['platform'] == 'Linux']
+            incomplete_path = folder / 'incomplete.json'
+            timing.save_review_archive(incomplete_path, incomplete)
+            saved = folder / 'resaved-incomplete.json'
+            self.assertEqual(linux_only, reopen(incomplete_path, save_to=saved)['collected_samples'])
+            invalid = json.loads(genuine.read_bytes())
+            invalid['recent_collection']['runs_with_compact'] = True
+            invalid_path = folder / 'invalid-count.json'
+            timing.save_review_archive(invalid_path, invalid)
+            self.assertEqual([], reopen(invalid_path)['collected_samples'])
+            for companion in (incomplete_path, saved, invalid_path):
+                for paths in ((genuine, companion), (companion, genuine)):
+                    with self.subTest(paths=[path.name for path in paths]):
+                        combined = reopen(*paths)
+                        self.assertEqual(both, combined['collected_samples'])
+                        self.assertFalse(combined.get('collection_order_uncertain', False))
 
     def test_recent_collection_requires_original_layout_and_publishing_qualification(self):
         run = hosted_run()

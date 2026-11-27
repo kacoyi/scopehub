@@ -27458,6 +27458,7 @@
         "M0-133"
       ],
       "scope": [
+        "tests/project/test_ci_artifacts.py",
         "scripts/timing.py",
         "tests/project/test_timing.py",
         "project/tasks.json",
@@ -27942,6 +27943,7 @@
             "development-tooling"
           ],
           "entrypoints": [
+            "tests/project/test_ci_artifacts.py",
             "scripts/timing.py",
             "tests/project/test_timing.py",
             "tests/project/test_timing_job_observations.py",
@@ -28009,7 +28011,7 @@
             "Project job and workflow order into a shared feasible interval view, then derive each Windows phase, whole-run wall and runner cost from its own supported endpoints."
           ],
           "data_plan": "Read existing saved reviews and retained per-attempt captures. Cover missing, conflicting and intact historical data. Retain compatible V1 evidence, including individually supported legacy intervals. Recompute derived layout where the original assertions survive. Use retained report timestamps and job boundaries to withdraw incompatible old attributions and preserve original bytes.",
-          "cleanup": "Use the retained originals by digest and qualify the preserved and changed scopes on the same composed source. Keep the established decisions bound to their own revisions. Request independent review only for material overlap and leave the actual scheduled observation and hosted qualification to the coordinator."
+          "cleanup": "Use the retained originals by digest and qualify the preserved and changed scopes on the same composed source. Keep the established decisions bound to their own revisions. Request independent review only for material overlap and leave the actual scheduled observation and hosted qualification to the coordinator. Verify the cutover on ordinary reads, standard-library offline weekly transport and separate-process cold saves. Retire per-entry receipt borrowing and fixed visible-step guards only after the original adjacent controls pass. Preserve the format and the historical compatibility path for unobserved facts."
         }
       }
     },
@@ -28372,6 +28374,7 @@
         "M0-148"
       ],
       "scope": [
+        "tests/project/test_ci_artifacts.py",
         "scripts/timing_clock.py",
         "scripts/timing.py",
         "project/timing-publishers.json",
@@ -28787,6 +28790,7 @@
             "development-tooling"
           ],
           "entrypoints": [
+            "tests/project/test_ci_artifacts.py",
             "scripts/timing.py",
             "scripts/verification_scope.py",
             "scripts/ci_artifacts.py",
@@ -28844,7 +28848,7 @@
             "Reuse publisher semantic admission and dependency-constrained lifetimes across raw projection and compact reads while preserving independently proven job clocks."
           ],
           "data_plan": "Use the four authenticated producer artifacts and original compact measurements. Keep their raw source, artifact IDs, checksums and publishing check selections. Preserve the original reviews and replays in archives/observations/repo-hygiene-20261125/m0-150-review-followup-460248f9/, archives/observations/repo-hygiene-20261125/independent-final-m0-150-73fd4773/ and archives/observations/repo-hygiene-20261125/m0-150-combined-replay-73fd4773/. Retain the resumed contradictory-cache and checkout-marker inputs and raw outputs with their source identities for coordinator handoff. Preserve original producer, compact and raw aggregate bytes. Recover usable report measurements even when publisher eligibility or job attribution cannot be established. Compare the shared selection projection against statically inspected, observed historical publisher forms. Read their committed data and identities without executing historical programs. The full project loader also depends on schema and project state validation, which the scheduled system Python reader does not replay.",
-          "cleanup": "Keep synthetic inconsistent controls isolated from the genuine artifacts and preserve any indeterminate original as a diagnostic. The coordinator commissions three material decisions first, one for job facts, one for historical publisher selection and outcomes, and one for checkout proof, each with an ordinary genuine positive. Reuse originals by digest and consolidate reproducers and risk assertions under each owner. Hold downstream reviews while a primary decision is red. Obtain the remaining formal decisions before acceptance, and compare against the next genuine capture or product change when available."
+          "cleanup": "Keep synthetic inconsistent controls isolated from the genuine artifacts and preserve any indeterminate original as a diagnostic. The coordinator commissions three material decisions first, one for job facts, one for historical publisher selection and outcomes, and one for checkout proof, each with an ordinary genuine positive. Reuse originals by digest and consolidate reproducers and risk assertions under each owner. Hold downstream reviews while a primary decision is red. Obtain the remaining formal decisions before acceptance, and compare against the next genuine capture or product change when available. Compare exact raw producer contents and report-bound diagnostics with the same observed publisher inputs. Keep old compact checks at their observed precision."
         }
       }
     },

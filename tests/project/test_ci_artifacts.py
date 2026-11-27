@@ -455,6 +455,28 @@ class PublicationTests(ProjectFixture):
         self.assertTrue((self.destination / 'runs/fixture/ubuntu-preview.log').is_file())
         self.assertEqual('failed', read_json(self.destination / 'test-report.json')['status'])
 
+    def test_failed_check_requires_its_log_reference_before_staging(self):
+        self.add_catalog_checks('workspace-timeframe')
+        original = self.hosted_report(system='Windows')
+        original['status'] = 'failed'
+        self.add_result(original, 'workspace-timeframe', status='failed')
+        self.save_report(original)
+        result = read_json(self.reports / 'test-report.json')['checks'][-1]
+        self.assertTrue(stage_artifacts(self.root, self.destination, self.env))
+        self.assertEqual((self.root / result['log']).read_bytes(),
+                         (self.destination / 'runs/fixture/workspace-timeframe.log').read_bytes())
+        for label, references in (('missing', {}), ('empty', {'log': '', 'log_sha256': ''})):
+            with self.subTest(reference=label):
+                rejected = self.destination.with_name(label)
+                report = deepcopy(original)
+                row = report['checks'][-1]
+                del row['log'], row['log_sha256']
+                row.update(references)
+                self.save_report(report)
+                with self.assertRaises(ValueError):
+                    stage_artifacts(self.root, rejected, self.env)
+                self.assertFalse((rejected / 'test-report.json').exists())
+
     def native_revision_report(self, *, status='failed'):
         check_id = 'windows-published-revision-access'
         production_catalog = read_json(ci_artifacts.ROOT / 'project/checks.json')

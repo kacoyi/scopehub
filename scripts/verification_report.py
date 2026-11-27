@@ -122,6 +122,19 @@ def publishing_observation_checks(catalog, run_observations):
     return {row['id'] for row in catalog['checks'] if row['id'] in owners and row['status'] == 'implemented'}
 
 
+def failed_check_log_issue(report):
+    """A finalized failed check must retain its bound process diagnostic."""
+    for row in report['checks']:
+        key = row['id']
+        if row['status'] == 'failed' and (
+            row.get('log') != f".reports/runs/{report['run_id']}/{key}.log"
+            or not isinstance(row.get('log_sha256'), str)
+            or not re.fullmatch(r'[0-9a-f]{64}', row['log_sha256'])
+        ):
+            return f'an invalid or missing failed-check log reference for {key}'
+    return None
+
+
 def report_observation_issue(report, *, run_observations=RUN_OBSERVATION_CHECKS):
     """Validate observation claims available in both raw publication and timing inputs."""
     checks = report['checks']
@@ -150,12 +163,11 @@ def archived_windows_python_lanes(profile):
     return (lane,) if lane in WINDOWS_PYTHON_PART_LANES else ()
 
 
-def distinct_windows_producer_reports(report):
-    """Compare the original report digests after their producing roles are validated."""
-    ordinary = report.get('windows_producers', {}).values()
-    python = (part['producer_report_sha256'] for part in report.get('windows_python', {}).values())
-    originals = [*ordinary, *python]
-    return len(originals) == len(set(originals))
+def windows_producer_bindings(report):
+    return {**report.get('windows_producers', {}), **{
+        lane: part['producer_report_sha256'] for lane, part in report.get('windows_python', {}).items()
+        if 'producer_report_sha256' in part
+    }}
 
 
 def windows_publisher_status_issue(status, checks, selected, catalog, *, scoped=False, auxiliary_failure=False):
