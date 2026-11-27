@@ -29438,7 +29438,7 @@
           "report_sha256": "fe340f34a7d37d598dd354882df3d3d5efa8d86a4626d24c9b1e99d5b1fd4599"
         }
       ],
-      "next_action": "Exercise the initiating note approval with original, missing-ID and malformed-ID receipts, and distinguish explicit pre-admission BUSY from a single durable deletion in the peer draft fixture. Retain exact-source browser observations and hand off for independent review, ordinary Windows observation and protected verification.",
+      "next_action": "Review the clean candidate and its exact-source browser controls for valid, missing-ID and malformed-ID approvals, genuine pre-admission BUSY, and one durable peer deletion. The coordinator obtains an independent decision, an ordinary Windows observation and matching protected verification before resolving findings or completing the task.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -29514,6 +29514,10 @@
             {
               "path": "contracts/contract.json",
               "pointer": "/operation_authorization/replay"
+            },
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/DecisionNoteReceipt11"
             },
             {
               "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",

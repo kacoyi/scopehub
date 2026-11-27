@@ -16,6 +16,7 @@ export type NoteIntent = WriteCommand['intent'];
 export type PreparedNote = { command: WriteCommand; challengeId: string };
 export type PreparedRestore = { scope: DecisionNoteRestoreScope11; stageId: string; summary: DecisionNoteRestoreSummary };
 const maxBackupBytes = 512 * 1024;
+const decisionNoteUuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 
 export function noteErrorCode(error: unknown) {
   return error && typeof error === 'object' && 'code' in error ? error.code : undefined;
@@ -91,6 +92,8 @@ export async function resolveNote(prepared: PreparedNote, decision: 'approve' | 
       ...command, ...envelope(), confirmation: { challenge_id: challengeId, decision },
     }, signal);
     if (decision === 'approve' && outcome.state === 'committed' && outcome.receipt?.undoable === false
+        && typeof outcome.receipt.operation_id === 'string' && outcome.receipt.operation_id.length === 36
+        && decisionNoteUuid.test(outcome.receipt.operation_id)
         && outcome.receipt.workspace_id === command.scope.workspace_id
         && outcome.receipt.target?.kind === 'decision_note'
         && outcome.receipt.target.object_id === command.scope.target.object_id
