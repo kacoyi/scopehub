@@ -27409,6 +27409,300 @@
           "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
         }
       }
+    },
+    {
+      "id": "M0-162",
+      "milestone": "M0",
+      "title": "Recover and retire completed owned Herdr assignments from a fresh checkout",
+      "status": "done",
+      "depends_on": [
+        "M0-158"
+      ],
+      "scope": [
+        "AGENTS.md",
+        "scripts/herdr.py",
+        "scripts/herdr_lifecycle.py",
+        "scripts/herdr_native.py",
+        "scripts/herdr_returns.py",
+        "tests/project/test_herdr.py",
+        "tests/project/test_herdr_lifecycle.py",
+        "tests/project/test_herdr_native.py",
+        "tests/project/test_herdr_returns.py",
+        "project/development.json",
+        "project/evidence",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0030"
+      ],
+      "acceptance": [
+        "Use the existing Herdr launch and coordination workflow to collect a finished owned assignment, retain the recoverable original result locally, and close the exact completed tab. A fresh clean checkout can execute the supported workflow without the prior private coordinator scripts.",
+        "Match the registered owner, assignment and actual completed turn through Herdr-supported identity. Accept a genuine implementation response without a task ID repeated in its prose. Preserve stronger independent review provenance and its separate acceptance gate.",
+        "Exercise positive and negative controls for working or foreign terminals, changed or interrupted turns, absent or ambiguous originals, and retries after process interruption. An unresolved lane cannot block retirement of other eligible owned lanes. Protect recovery across the archive/close boundary with repeatable handoff.",
+        "Verify through the normal entry in an isolated real local Herdr assignment, after restart or in a fresh checkout where practicable. Existing standalone or read-only usage stays supported. Keep user and coordinator tabs, other spaces, worktrees and source files outside the close operation."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-162-e85d2d5b26c3e73a.json",
+          "sha256": "9c1132e153f0263273fb8f4d42edd4b164c3e8d84f8854ff833012d4375edbe3"
+        },
+        {
+          "path": "project/evidence/M0-162-4d0ab4864211bc4b.json",
+          "sha256": "9f336d77da284e317e923a7a727d9f3504bb2a5b247f11033e24f07afdb2b874"
+        },
+        {
+          "path": "project/evidence/M0-162-9bc780d559793964.json",
+          "sha256": "3d45973b40b738e4254a13577a79436bf2ce4df0a9de9356dde2e93991038f1e"
+        },
+        {
+          "path": "project/evidence/M0-162-205964df56810178.json",
+          "sha256": "653f15bb2579747c25301a8b823510b954a16101a3fbdbe44ea9bc4e521e9dd4"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent Astra approved 0c4a1a14b90c7427c62108f57d7170dcb7d0b5aa in events/9 of contracts/reviews/task-decisions/M0-162.json. Through project:herdr in an isolated Linux desktop space, the owned runner recovered after both assignment lock waits exceeded 10.65 seconds, retained the exact original and completion events, and exited successfully. Repeated collection observed the exact tab absent while the original space and its disposable parent were still present. No preexisting tab disappeared. The native Core, desktop and Codex used a synthetic loopback model response. Fresh-checkout, restart and rejected-path replays supplement the native run. The native index is retained at archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t17z/host-after-budget-native/observation-index.json (SHA-256 d53cf65557e9f15cfe1766eef2d7d555fafda9624a3bf1fa1b6d08a7cc6a0d3f).",
+      "plan": {
+        "outcome": "Owned work cleans up when its genuine result is recoverable and independent lanes continue across failures.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+          "project/delivery.json",
+          "project/development.json",
+          "scripts/herdr.py",
+          "tests/project/test_herdr.py"
+        ],
+        "hypotheses": [
+          "The initial launcher had no versioned return-to-retirement path. The external collector treated human-facing wording as an identity test and serialized unrelated collections.",
+          "An exact snapshot cannot bind a subsequent address-only kill to its completed turn. Restart must independently observe the finished turn or hold its terminal intact. A dedicated noninteractive one-shot can archive its original and completion event before exiting, allowing the desktop to remove its tab naturally.",
+          "Start persistence and completion each contend for the same assignment lock. The owner can keep the captured execution and retry only temporary contention past its initial budget without treating it as an operator hold. Recognize an identical committed execution and require the exact archive pair before exiting.",
+          "Flattening desktop rows drops explicit empty spaces and treats missing identities like absence. Preserve the original local space and require complete tab, pane and terminal identities before claiming disappearance."
+        ],
+        "risks": [
+          {
+            "failure": "A premature close could interrupt live or unrelated work or lose its original; a hold on one lane could starve other collections. Waiting for new work alone could strand the last completed assignment.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A new turn can start after the last live read or finish after a retiring journal write. Replay both boundaries and assert the terminal remains intact, its exact original and turn proof persist, and an independent assignment can still be archived.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A competing collector can strand the one-shot before its first execution save or after completion when the initial lock budget expires. Exercise public run-owned and collect with lock release after both budgets, bounded paced waits, missing or conflicting execution, explicit inspection holds, interrupted collection and mismatched or damaged evidence. Require that only the same owned process exits after recovering its captured identity and exact return pair.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An incomplete desktop snapshot could report a false closure or hide closure in an explicitly empty original space. Exercise public collect with a fixed verified receipt and native exit while varying only the desktop observation.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Deeply nested malformed child output can unwind the owned runner before its inspection hold. Replay valid and malformed child output through public run-owned and retain the rejected input without an archive or normal exit.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A structurally invalid execution record can stop a whole collection batch. Exercise an invalid one-shot record and a healthy independent lane together through public collect and retain the damaged bytes.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain the original response and completion event before the owned one-shot process exits. Keep reusable or ambiguous sessions intact and recover by terminal and source receipt.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/herdr.py",
+            "tests/project/test_herdr.py"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/herdr/parallel"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/review"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/1"
+            }
+          ],
+          "non_goals": [
+            "Change product runtime behavior, expand owner authorization, or publish private evidence."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing local Herdr model and approval roles, independently bound review records, intact active sessions and other projects, and private local evidence."
+          ],
+          "change": [
+            "Make a scoped and resumable result/retirement path available through the repository-owned Herdr workflow with direct behavior checks.",
+            "Register the ordinary visible coordinator launch with an exact local parent, preserve deliberate standalone sessions and native service tiers, and schedule an independent watcher so a final assignment is collectable without a later dispatch.",
+            "Archive reusable assignments without terminal operations. Allow a dedicated one-shot implementation to archive its paired return evidence and end its own process, with independently observed desktop closure.",
+            "After a competing collection, let the same finished one-shot exit with its verified return pair. Retain complete empty-space evidence and report unresolved desktop snapshots as process exit only.",
+            "Keep the ten-second fast retry bound. For captured start-save and completion contention, announce the wait once and retry the current lane at a slower cadence. Keep operator inspection holds for other failures, including a missing or different execution."
+          ],
+          "data_plan": "Development records only. Keep task originals private and preserve existing product data and permissions.",
+          "cleanup": "Use the supported repository entry for the corrected behavior. Version 2 registrations keep older collectors from processing migrated lanes. Recover Version 1 originals without assuming prior retirement was verified. Retire superseded local workarounds after matched verification and preserve originals required for audit."
+        }
+      }
+    },
+    {
+      "id": "M0-168",
+      "title": "Qualify Herdr transport capability and return-byte evidence on Windows verification",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-162"
+      ],
+      "scope": [
+        "scripts/herdr.py",
+        "scripts/herdr_native.py",
+        "scripts/herdr_returns.py",
+        "tests/project/test_herdr_native.py",
+        "tests/project/test_herdr_returns.py",
+        "tests/project/test_herdr.py",
+        "tests/project/test_herdr_lifecycle.py",
+        "project/feedback.json",
+        "project/tasks.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0030"
+      ],
+      "acceptance": [
+        "Bind the supported host transport and unsupported-capability behavior to the actual repository entry. Exercise the supported native handshake and preserve a precise safe hold on an unavailable transport.",
+        "Preserve original session bytes and distinguish a genuine return, changed bytes and an unrelated review subject through the normal return collector. Verify LF and CRLF handling according to the actual producer format without normalizing away the recorded identity.",
+        "Keep the genuine Linux desktop interruption and neighboring-window controls, verify the corrected behavior independently, and obtain current hosted Windows and Linux observations. Recheck the integrated source."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-168-ad2897d98d8eeb98.json",
+          "sha256": "cf8349de646e9e51db63474ed15c8f30ebb758c5033d6239fa845dd84ebec4a0"
+        },
+        {
+          "path": "project/evidence/M0-168-e50b1abad10a0777.json",
+          "sha256": "e12e2af290154a390f3a5d4c326a46c3cf5a058ec6e59c8874ea8ea446cfc34c"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45841715488-1",
+          "source_commit": "bc37367abf26f5bf97e3d15558ead399065c7212",
+          "report_sha256": "8c50ac9561b6320a11957b0085492253fde911bb6b681299b9680555c378fcc5"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Scoped pre-integration qualification passed. The independent approval of a216dd82fa7065cd7761d8a0f05e3343a3d90cb8 applies to composed source 503e09287da77f0e5867c9b7f42c4fdb6697a978. Ordinary PR 142 run 45937389013 attempt 1 tested merge preview 47b8dff56d551696ecb22625b60d6ccf8231288e with the same tree. Both required checks passed on hosted Linux and Windows. The Linux report has an overall blocked result outside the task scope. Linux passed all five named controls, including the filesystem Unix socket handshake and missing-capability hold. Windows passed the three portable controls for simulated handshake identity, exact LF and CRLF return bytes, and exact review subject. Its two Linux-only controls skipped as expected. The independent replay also detected a change to the archived original's line ending. The separate historical Linux desktop observation retains the interruption, exact archived events, owned tab closure and neighboring-window controls. The original Windows failure remains archived. The coordinator owns publication and the protected integrated-source recheck.",
+      "plan": {
+        "outcome": "Qualify the public collector and its controls on both hosted operating systems under the supported local Herdr contract.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/herdr.py",
+          "scripts/herdr_native.py",
+          "scripts/herdr_returns.py",
+          "tests/project/test_herdr_native.py",
+          "tests/project/test_herdr_returns.py",
+          "project/checks.json",
+          "project/development.json"
+        ],
+        "hypotheses": [
+          "The mocked handshake bypassed the public Linux host check and relied on the real interpreter's Unix socket constant. Check the managed host gate, supported wire protocol, and missing Linux transport separately.",
+          "The archived Windows traceback reaches the file version guard after the binary read. CPython 3.12 uses change time for Windows descriptor ctime and creation time for path ctime. Test that compatible file identity checks accept identical bytes and still reject changes and wrong review subjects."
+        ],
+        "risks": [
+          {
+            "failure": "Bypassing a host prerequisite could permit an unsupported native operation.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Normalizing all raw transcript data could falsely accept a changed original or a different review.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Restore the previous behavior with the first Windows failure and native Linux evidence preserved, and keep unsupported cases held.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/herdr.py",
+            "scripts/herdr_native.py",
+            "scripts/herdr_returns.py",
+            "tests/project/test_herdr_native.py",
+            "tests/project/test_herdr_returns.py"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/herdr/parallel"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/review"
+            }
+          ],
+          "non_goals": [
+            "Respect the existing supported Herdr host and transport scope. Preserve exact original response identity and scoped collection. Use local synthetic sessions and retain the separate real Linux desktop observation."
+          ],
+          "open_questions": [
+            "Which original bytes represent the matching result, and where is the supported host capability first observable?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Respect the existing supported Herdr host and transport scope. Preserve exact original response identity and scoped collection. Use local synthetic sessions and retain the separate real Linux desktop observation."
+          ],
+          "change": [
+            "Bind the supported host transport and unsupported-capability behavior to the actual repository entry. Exercise the supported native handshake and preserve a precise safe hold on an unavailable transport.",
+            "Preserve original session bytes and distinguish a genuine return, changed bytes and an unrelated review subject through the normal return collector. Verify LF and CRLF handling according to the actual producer format without normalizing away the recorded identity."
+          ],
+          "data_plan": "Preserve all archived session bytes and formats. Exercise disposable synthetic originals.",
+          "cleanup": "After checking both platforms and earlier real desktop observations, remove any superseded fixture assumptions and preserve the first failure."
+        }
+      }
     }
   ]
 }
