@@ -48,29 +48,40 @@ async fn reap(mut process: impl Process, grace: Duration) {
 
 /// The reaper keeps its process and admission permit if its caller's budget
 /// expires or the caller is cancelled while awaiting cleanup.
-pub(super) struct PendingCleanup {
-    task: JoinHandle<()>,
+pub(super) struct PendingCleanup<T = ()> {
+    task: JoinHandle<T>,
     deadline: Instant,
 }
 
-impl PendingCleanup {
+impl<T: Send + 'static> PendingCleanup<T> {
     pub(super) fn start(
-        cleanup: impl Future<Output = ()> + Send + 'static,
+        cleanup: impl Future<Output = T> + Send + 'static,
         budget: Duration,
+    ) -> Self {
+        Self::start_at(cleanup, Instant::now() + budget)
+    }
+
+    pub(super) fn start_at(
+        cleanup: impl Future<Output = T> + Send + 'static,
+        deadline: Instant,
     ) -> Self {
         Self {
             task: tokio::spawn(cleanup),
-            deadline: Instant::now() + budget,
+            deadline,
         }
     }
 
     /// Cancelling this wait leaves the same reaper and deadline available to shutdown.
-    pub(super) async fn wait(&mut self) -> Result<(), ProtocolError> {
+    pub(super) async fn wait(&mut self) -> Result<T, ProtocolError> {
         match timeout_at(self.deadline, &mut self.task).await {
-            Ok(Ok(())) => Ok(()),
+            Ok(Ok(result)) => Ok(result),
             Ok(Err(_)) => Err(ProtocolError::Io),
             Err(_) => Err(ProtocolError::Timeout),
         }
+    }
+
+    pub(super) async fn finish(self) {
+        let _ = self.task.await;
     }
 }
 

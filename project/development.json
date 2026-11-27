@@ -231,6 +231,7 @@
       "responsibility": "Hide chart SDK and canvas lifecycle behind chart operations.",
       "public_entries": [
         "apps/desktop/ui/src/chart-adapter/history.ts",
+        "apps/desktop/ui/src/chart-adapter/price-format.ts",
         "apps/desktop/ui/src/chart-adapter/candle-annotations.ts"
       ],
       "dependencies": [
@@ -813,7 +814,14 @@
     ],
     "tooling": [
       "For authorized work on this repository, the development AI may independently select, install and configure development tools within existing access and spending grants. These include build and test tools, command-line utilities, skills, MCP servers and plugins. Use trusted distributions and the pinned project setup where applicable. Test the capability before relying on it.",
-      "Keep development tools scoped to project code and synthetic fixtures. Use the product user’s chosen grants and data policy independently. Escalate an actual missing credential, entitlement, device, input, product tradeoff or required acceptance with the concrete action needed."
+      "Keep development tools scoped to project code and synthetic fixtures. Use the product user’s chosen grants and data policy independently. Escalate an actual missing credential, entitlement, device, input, product tradeoff or required acceptance with the concrete action needed.",
+      "A visible implementation or source-bound review launched by a matching local Herdr parent on supported Linux registers automatically. Use --parent to specify an exact local parent, or --standalone for a deliberately interactive session. Previously started or unregistered tabs are not adopted.",
+      "From the local coordinator, use pnpm project:herdr <task> implement --assignment \"<scope>\" --space <space>. Use review with --source <full-clean-commit> for independent review. Select --effort ultra --tier priority for a specific Sol Ultra Fast assignment and --tier default for Astra Standard.",
+      "Use the public dry run to inspect launch arguments. When the launcher inherits the parent and automatically manages the assignment, managed_argv shows the registered launch and argv remains the legacy standalone plan. For managed dispatch, call the same project:herdr entry without --dry-run and consume its JSON assignment and terminal IDs. Running a planned hc argv directly does not create an owned lifecycle record.",
+      "Inspect with pnpm project:herdr collect --parent <terminal> --dry-run. Recover with pnpm project:herdr collect --parent <terminal> [--assignment-id <id>]. Resume with pnpm project:herdr collect --parent <terminal> --assignment-id <id> --watch.",
+      "Use one registered initial CLI turn. For reusable sessions a detached, per-assignment watcher observes completion for up to 24 hours even when no new launch follows. Reusable sessions stay open after archival. A later top-level turn, missing or ambiguous proof, an unrelated foreground program or active dependent terminals may hold that lane. Add --one-shot for a visible owned implementation that runs one noninteractive Codex turn and exits after persisting its verified return. A one-shot runner with a verified terminal and a failed or ambiguous return stays open for inspection.",
+      "Use the managed launch assignment ID with collect --assignment-id to recover the private original, completion event and receipt after archival. State lives under XDG_STATE_HOME or ~/.local/state, or the launch --state-dir override. The original Codex rollout remains in its sessions directory. Older archives contain the completion digest in the receipt. Use project:review separately to accept a source-bound review.",
+      "Managed collection targets a local Linux Herdr Core Unix socket with readable procfs descriptors and supported Codex CLI rollouts. The baseline is Core 0.1.22, App 0.1.18 and Codex CLI 0.172.0. Collection never sends native kill, removal or desktop close operations. A completed one-shot can exit after its own or an independent collection verifies the original and completion for that exact execution. The desktop may then remove its tab. Collect reports one_shot_tab_closed only after observing a normal exit of the exact registered program and the disappearance of its exact tab, pane and terminal address from a complete desktop snapshot containing the original local space. An explicitly empty original space counts as an observation. Incomplete snapshots leave desktop closure unresolved. The finished Core row may remain as evidence. macOS, Windows, remote cores, and legacy Herdr TUI are outside managed collection."
     ]
   },
   "repository_layout": {
@@ -917,7 +925,7 @@
       "All dynamic operations must pass through the Rust registry first; do not add generic execute/shell/sql tools",
       "Keep mock implementations until a provider is confirmed; do not temporarily scrape market data from the internet to pretend that integration exists",
       "Implement the native Ubuntu development host and the Windows v1 release. Reserve other host integrations for a separately approved platform scope.",
-      "Tests cover protocols, identity, permissions, and computation semantics first, then the UI",
+      "Use engineering-contract-v1.json#/implementation_policy/first_test to choose the first check and exercise the affected boundary.",
       "Do not implement live trading types, buttons, or tools as hidden placeholders",
       "State explicitly in the final report whether real data and cloud models are configured; do not exaggerate the completed scope"
     ]

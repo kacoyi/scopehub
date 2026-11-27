@@ -712,6 +712,24 @@ fn chart_evidence_migrates_populated_v5_and_rechecks_scope_grants_and_frozen_tar
             .evidence_chart_display_allowed(&local_import, &revoked)
             .unwrap()
     );
+    for (revision, expected) in [
+        (id.as_str(), json!({"available": true})),
+        (
+            revoked.as_str(),
+            json!({"available": false, "revoked": true}),
+        ),
+        (
+            "00000000-0000-4000-8000-000000000000",
+            json!({"available": false}),
+        ),
+    ] {
+        assert_eq!(
+            first
+                .evidence_chart_display_status(&local_import, revision)
+                .unwrap(),
+            expected
+        );
+    }
     let chart = first.open_evidence_chart(&local_import, &id).unwrap();
     assert_eq!(chart["snapshot"]["dataset_id"], id);
     assert_eq!(chart["bars"][1]["bar"]["close"], 8);

@@ -126,7 +126,7 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
   const displayed = useRef<string | undefined>(undefined);
   const workspaceRevision = workspace.snapshot?.workspace.revision;
   const selectionRevision = workspace.snapshot?.selection_revision;
-  const revoked = access?.revoked.has(snapshot.dataset_id);
+  const revoked = access?.withheldStatus('csv', snapshot.dataset_id) === 'revoked';
 
   const invalidateJobs = useCallback(() => {
     const attempt = active.current;
@@ -280,7 +280,7 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
           || (approved ? event.params_hash !== approved.parameters_hash || event.snapshot.content_hash !== approved.snapshot_hash
             || event.engine_version !== 'scopehub-trusted-python-1' || event.snapshot.warmup_bars !== 0
             : status.resolved_parameters.period !== requestedPeriod)) throw new Error();
-        if (access && !access.canDisplay(snapshot.dataset_id)) return;
+        if (access && !access.canDisplay('csv', snapshot.dataset_id)) return;
         displayed.current = id;
         showResult({ range: event.snapshot, result: event.artifact.result });
         setResult(status);
@@ -290,7 +290,7 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
     } catch (error) {
       if (attempt.taskId) void cancelTask(attempt.taskId).catch(() => {});
       if (attempt.poll.signal.aborted) return;
-      if (displayAccessDenied(error)) void access?.verify(snapshot.dataset_id);
+      if (displayAccessDenied(error)) void access?.verify('csv', snapshot.dataset_id);
       setMessage({ text: describeError(error, mode), error: code(error) !== 'CANCELLED' });
     } finally {
       if (active.current === attempt) {

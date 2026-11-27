@@ -1,0 +1,468 @@
+{
+  "version": 3,
+  "task_id": "M2-034",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "29e5caeedfe37bc557bb71e3901b20efa3821f9e",
+      "scope": "Independently verify the frozen access refresh admission, retained selection, bounded requests and typed outcomes on the current combined implementation, including retained native and browser controls and interaction with focus recovery.",
+      "supersedes": null,
+      "requested_at": "2026-11-25T21:18:08.388435+00:00",
+      "request_id": "d633f91c6d5e4c6e238ed2953a5cb0f2badc9835b52f1df92858df8c380acce1",
+      "evidence_sha256": "3da245ffad9be59ba35d484f8b15eefed660c887983360d951245a9b1392fb7d"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "29e5caeedfe37bc557bb71e3901b20efa3821f9e",
+      "verdict": "approved",
+      "decision": "APPROVE M2-034 29e5caeedfe37bc557bb71e3901b20efa3821f9e",
+      "scope": "APPROVE M2-034 29e5caeedfe37bc557bb71e3901b20efa3821f9e",
+      "observation": "Two refresh requests queued behind a held layout produced one snapshot request, and its late reply could not replace the revoked state returned by manual reload.",
+      "reviewer": "Independent Astra Standard (t110)",
+      "original_sha256": "d940e668d3aca573d31fa1c8bc135dc6ccc06f454aee1a1f785fffbc6748472e",
+      "response_id": "f5f91dd9ad854a8aac505d367cd1f1c8a6abad12908907ffea6a4ec30bf8658b",
+      "response_sha256": "2f0ca80de53ca1f2698991eb4f3499ef9f19c0559be6415ed3ec305b53b95c8c",
+      "legacy_response_sha256": "043132f3b3b742bff8f480f061e355c65e217d97db77ab903a053356f4ffe46b",
+      "observation_body_sha256": "5d3fbc66ece471171e868d44be953b34f9e935b6295e28c9c4f0f4c69d191325",
+      "event": {
+        "id": "msg_0d2fdf8a53849dc2016b0751f56e1c87d08cceac4d437db580",
+        "timestamp": "2026-11-25T21:24:15.008Z"
+      },
+      "supersedes": "d633f91c6d5e4c6e238ed2953a5cb0f2badc9835b52f1df92858df8c380acce1",
+      "evidence_sha256": "d8f2b6439142f595014154dccc7f38434a3ca68ca3c10be6f695819709b84421"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26",
+      "scope": "Recheck the denied initial frozen read, single independently owned refresh, late snapshot, manual recovery and revocation on the current combined source. Compare the earlier approved chart source and the interaction with decision-note refocus.",
+      "supersedes": "f5f91dd9ad854a8aac505d367cd1f1c8a6abad12908907ffea6a4ec30bf8658b",
+      "requested_at": "2026-11-26T02:45:05.060676+00:00",
+      "request_id": "be1686e68b3b878710a7c958b297160b1cf902c314c96cd614e42420148ec399",
+      "evidence_sha256": "3609794bbe40acd476594d9e1eaf5c64f0f3abc8de46ca3e3019f1d98001b49c"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26",
+      "verdict": "approved",
+      "decision": "APPROVE M2-034 a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26",
+      "scope": "APPROVE M2-034 a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26",
+      "observation": "Two access refreshes and one focus event queued behind a held layout produced one snapshot, and its late revision 6 reply could not overwrite the revoked revision 7 returned by manual reload.",
+      "reviewer": "Independent Astra Standard (t11m)",
+      "original_sha256": "d28fdfb8805ffff38bc893dfbc86d919dde1c278e569453d3e8fe374fc5e2310",
+      "response_id": "bdd352bf00f02b2b516eb2d3533b454072005afcbe9febb4aa41fba414edcc49",
+      "response_sha256": "ec7e4189452973e0b58c323656bc6e4ee32d473428b78701ed56407c95b1755e",
+      "legacy_response_sha256": "612d37bfbb7080f64e50756ba38cf46b11d029b8c59d8ddeb7293d69abeb229d",
+      "observation_body_sha256": "c4b4052d3b9218c1704cd28a73f58e70e89769cad87134a98c6b01c1e3bba881",
+      "event": {
+        "id": "msg_0a94d92705f7db9e016b07a1ce7fa887d2aeace126a8ba2320",
+        "timestamp": "2026-11-26T03:05:00.865Z"
+      },
+      "supersedes": "be1686e68b3b878710a7c958b297160b1cf902c314c96cd614e42420148ec399",
+      "evidence_sha256": "a63b6c939de10bc591059e68035bd0c0a157ca481e93d69ee752f66b1b1e8bfe"
+    },
+    {
+      "kind": "request",
+      "source_commit": "83303f3546ddb5385d4c6e5c768e7737705628e5",
+      "scope": "Independently test the coupled frozen chart selection and persistence contract with the new source-row recovery. Reopen a previously saved selection, inspect explicit clearing, and verify ordinary restore and revocation via the supported application. Preserve previous decisions and the node and Chromium controls.",
+      "supersedes": "bdd352bf00f02b2b516eb2d3533b454072005afcbe9febb4aa41fba414edcc49",
+      "requested_at": "2026-11-26T03:38:00.003157+00:00",
+      "request_id": "8cccda8612f428653f2f65525ae9c89808c92ef560e278b202ee67cb81ebb55a",
+      "evidence_sha256": "141595afe3a741d41d1be667e92b63a2a282161be250b234ae5b26c592798e86"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "83303f3546ddb5385d4c6e5c768e7737705628e5",
+      "verdict": "approved",
+      "decision": "APPROVE M2-034 83303f3546ddb5385d4c6e5c768e7737705628e5",
+      "scope": "APPROVE M2-034 83303f3546ddb5385d4c6e5c768e7737705628e5",
+      "observation": "In the independent Node replay, a saved frozen-bar selection reopened at revision 8, and clearing it while the source-row access check was pending advanced the selection to revision 9 and kept it empty after the chart recovered and reopened.",
+      "reviewer": "Independent Astra Standard (t129)",
+      "original_sha256": "0971b05dc9daeabebf767266b1338b81376ebe4184ba6715e2a8b32704571e2f",
+      "response_id": "26f55494dffdb83cd61790cba0f93bc89509b9d23c9cb9af8a65f15ec02a0a02",
+      "response_sha256": "0447dc9a36dd7503b277f4fdb92c10dbc24da4ddf20a87e0174c8a8f5484aedc",
+      "legacy_response_sha256": "f7dcde829ce2f32604da59bd9ad4ee1d05587df806878286b987fbcebf80781f",
+      "observation_body_sha256": "eb53f1bf81070a2bebed0d0ccdb899046d0ce69dd308bc635e47258f986d8fe6",
+      "event": {
+        "id": "msg_06b65a2f84232688016b07ae251b0087d2926501907fef825f",
+        "timestamp": "2026-11-26T03:57:37.866Z"
+      },
+      "supersedes": "8cccda8612f428653f2f65525ae9c89808c92ef560e278b202ee67cb81ebb55a",
+      "evidence_sha256": "427db6a73432f0397226e2d84095ed227299f034ff4a9522b4127cd1d3420f39"
+    },
+    {
+      "kind": "request",
+      "source_commit": "359e33231892432813493958b580ee25aaf94a5f",
+      "scope": "Independently test the coupled frozen chart selection and persistence contract with the new source-row recovery. Reopen a previously saved selection, inspect explicit clearing, and verify ordinary restore and revocation via the supported application. Preserve previous decisions and the node and Chromium controls.",
+      "supersedes": "26f55494dffdb83cd61790cba0f93bc89509b9d23c9cb9af8a65f15ec02a0a02",
+      "requested_at": "2026-11-26T04:21:35.331199+00:00",
+      "request_id": "d1786e93e6c14d270443d996e83df12540a115994cd15e92a31cacf4a609fb3a",
+      "evidence_sha256": "e40207ed90df817690c3adde36320caabe8ef64204e63a6b24058d1631ee4124"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "359e33231892432813493958b580ee25aaf94a5f",
+      "verdict": "approved",
+      "decision": "APPROVE M2-034 359e33231892432813493958b580ee25aaf94a5f",
+      "scope": "APPROVE M2-034 359e33231892432813493958b580ee25aaf94a5f",
+      "observation": "In my independent Node replay, clearing the saved bar selection while the list access check was pending advanced its revision from 13 to 14, and the selection stayed empty after the chart recovered and the application reopened.",
+      "reviewer": "Independent Astra Standard (t12y)",
+      "original_sha256": "6b7b7e1cfe83ea1928de674caf635d0a23bcbbff9e7d7f49d0df4168c0f66fbb",
+      "response_id": "c9ae22378651dd42751df1d8fe93d260aa5c691ac6a440ccb74c088be5beeeca",
+      "response_sha256": "a7db47dcc36e93480fb1f9227789df06a0f91d5be1376f5b2c528786493c7821",
+      "legacy_response_sha256": "8c7442a5e5096aec334a295bb08ff4734d8cb671384614cbe7e00ec0e717035e",
+      "observation_body_sha256": "fc9a7df6061a88dc330a195b2df7d4756ee9b0758cb4f40e5c2e8769262204bd",
+      "event": {
+        "id": "msg_023ec2bbc1c4e27a016b07b8f5998c87d1a14684e4da14692e",
+        "timestamp": "2026-11-26T04:43:45.625Z"
+      },
+      "supersedes": "d1786e93e6c14d270443d996e83df12540a115994cd15e92a31cacf4a609fb3a",
+      "evidence_sha256": "2ebbdeb773433bc8951ae81c55fb979d71ccd97129c529f01c9114a9df465da0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e59f853673d76e4c71983834f40784dbf64e262d",
+      "scope": "Independently test the coupled frozen chart selection and persistence contract with the new source-row recovery. Reopen a previously saved selection, inspect explicit clearing, and verify ordinary restore and revocation via the supported application. Preserve previous decisions and the node and Chromium controls. Recheck the original decision on 359e3323.",
+      "supersedes": "c9ae22378651dd42751df1d8fe93d260aa5c691ac6a440ccb74c088be5beeeca",
+      "requested_at": "2026-11-26T05:11:26.518888+00:00",
+      "request_id": "60336b393902e32e7a247d4238f3c375eedddc2bd41932f2c8ff15f032c5f721",
+      "evidence_sha256": "1bfd475e12ca329913cf26dc43bb1c96779b5fff565a9e1cbcff0ecc3ffc7f87"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e59f853673d76e4c71983834f40784dbf64e262d",
+      "verdict": "approved",
+      "decision": "APPROVE M2-034 e59f853673d76e4c71983834f40784dbf64e262d",
+      "scope": "APPROVE M2-034 e59f853673d76e4c71983834f40784dbf64e262d",
+      "observation": "In Chromium, clearing the saved bar while the list access check was pending advanced the selection revision from 13 to 14, and the selection stayed empty after the chart recovered and the application reopened.",
+      "reviewer": "Independent Astra Standard (t13f)",
+      "original_sha256": "75cdaea2db5d3d983eac9c5fabfa9502ac1586c2cf4238be7f9aebc6ed77f3a3",
+      "response_id": "5fde653824b911598cd45b6c8c83374030eef7889529b3206dcac8ddbd35d967",
+      "response_sha256": "2905168ed098ea457bc11890f862a872b2c12042ea9145625c3f1c97058f7d8f",
+      "legacy_response_sha256": "0181db8c60735814516d61df9c0c2c81bf5f4637c27667621278e153b140b9cf",
+      "observation_body_sha256": "6ccafa2dea0adaf2e106cade9eb829ae8f59bef6f47e8ee3595b72701583dfa2",
+      "event": {
+        "id": "msg_075de4172318bb41016b07c176c54087d2ab2fe9e4185428ee",
+        "timestamp": "2026-11-26T05:20:01.675Z"
+      },
+      "supersedes": "60336b393902e32e7a247d4238f3c375eedddc2bd41932f2c8ff15f032c5f721",
+      "evidence_sha256": "11983859d649d570a2d131b11cc8ece9d5283915c516951d6768aade191eced7"
+    },
+    {
+      "kind": "request",
+      "source_commit": "76fe9dd86e2838ac31463efd8e2a84ac432009e3",
+      "scope": "Review the resolved source, protected native admission and persistence of a cleared frozen selection across refocus, interruption and reopen. Exercise the actual public boundary and compare with the approved e59f8536 source. Verify that indicator status distinguishes refusal before admission from a busy result after admission.",
+      "supersedes": "5fde653824b911598cd45b6c8c83374030eef7889529b3206dcac8ddbd35d967",
+      "requested_at": "2026-11-26T05:30:40.285730+00:00",
+      "request_id": "b62031e27615779e086aa6d4b09ba287f49fec96ac5b76d2df0fe239c8191167",
+      "evidence_sha256": "2ec5bf51d5c6d6a561b1f0adb885d63f1d72791a7b2ca79db803f62bee39a3c3"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "76fe9dd86e2838ac31463efd8e2a84ac432009e3",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-034 76fe9dd86e2838ac31463efd8e2a84ac432009e3",
+      "scope": "CHANGES_REQUESTED M2-034 76fe9dd86e2838ac31463efd8e2a84ac432009e3",
+      "observation": "After I withdrew the only folder revision through the candidate UI in Chromium, the Windows probe’s status locator matched both the withdrawal confirmation and the empty-library message, causing a Playwright strict-mode failure.",
+      "reviewer": "Independent Astra Standard (t13s)",
+      "original_sha256": "bd78f8852cbde7fbb4d3f46eb9182248c7eeeb105dd0dafaa205deac99802def",
+      "response_id": "9b254345ab52c4d05998ed5cdb73fb3765df06c595d7f414c53539465d6f90c0",
+      "response_sha256": "504a1f21e1555a121419edf522d7675101440a9ec1062f371ea67a582a1cb344",
+      "legacy_response_sha256": "c3032d4feba83188a515e47c163e07b9e956227d1a6ba65ee6d2e357608969dc",
+      "observation_body_sha256": "7672789869815073bfbd30b79e6347526dd02731637e4a873fcab3214d66d0cb",
+      "event": {
+        "id": "msg_0d6b455134d4d499016b07c5ecab3487d1b6d881be845ab789",
+        "timestamp": "2026-11-26T05:39:12.132Z"
+      },
+      "supersedes": "b62031e27615779e086aa6d4b09ba287f49fec96ac5b76d2df0fe239c8191167",
+      "evidence_sha256": "e865eeff5bfd8e88e90a29afc0b4cadca4fd133db5fa66ab4b9a8a0e34072890"
+    },
+    {
+      "kind": "request",
+      "source_commit": "f30e5235cf9270116b6f1e37e1425898f1822d7b",
+      "scope": "Verify persisted frozen selection, its explicit clearing and reopened state after withdrawal. Challenge the shared public and native status assertions for both providers, including simultaneous removal and empty-library notices. Compare the conflicting local workspace outcomes with their originals.",
+      "supersedes": "9b254345ab52c4d05998ed5cdb73fb3765df06c595d7f414c53539465d6f90c0",
+      "requested_at": "2026-11-26T06:06:31.719912+00:00",
+      "request_id": "1b9970cd71ba3dd048952235c6a1ffd82d8a72fe69bbaca476ab47c805f5f1d9",
+      "evidence_sha256": "abf8a828ab53533743861a3d6a23a466be7f3e84d9c799b1026adf7c7a56a2e1"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "f30e5235cf9270116b6f1e37e1425898f1822d7b",
+      "verdict": "approved",
+      "decision": "APPROVE M2-034 f30e5235cf9270116b6f1e37e1425898f1822d7b",
+      "scope": "APPROVE M2-034 f30e5235cf9270116b6f1e37e1425898f1822d7b",
+      "observation": "In Chromium with controlled IPC, clearing the saved bar while its access check was pending advanced the selection revision from 13 to 14, and reopening after withdrawal issued zero frozen-chart reads and zero selection writes.",
+      "reviewer": "Independent Astra Standard (t144)",
+      "original_sha256": "4baac832b2c55ef9397e3c2a2a182a3e8670f78c0cbd29997e0b1b3189c7ceab",
+      "response_id": "e3a2a5221c80c92e380cf1c57f6f2b6ee0a4a717940fa76b9c36016ffdc4096f",
+      "response_sha256": "dea6c54b4fe6252da5e006db59edee59b4c1be31537ae40847c23f2078d891f3",
+      "legacy_response_sha256": "5b287501b476ee51bf5f91d956aa1bc9fb9cf040a29e94377bdf2a2e8e1d7ca3",
+      "observation_body_sha256": "b91ded0946fe1a5a469e3ab3c010cca6862af734f673483c32c0a512478cdf92",
+      "event": {
+        "id": "msg_0b9d2b21b6e1d212016b07ce3c667c87d1894f3222af938e4c",
+        "timestamp": "2026-11-26T06:14:40.865Z"
+      },
+      "supersedes": "1b9970cd71ba3dd048952235c6a1ffd82d8a72fe69bbaca476ab47c805f5f1d9",
+      "evidence_sha256": "ef5254fa3829a9666ad976f3e45210ea63abe9ec8f2f5439935927542c8fbdba"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a1866052ec539edaf7925c3fd426c0f66b21b91c",
+      "scope": "Review the source-bound native startup and selection observation after guarded run 45769045630 failed before admission. Check what proves that the candidate application reached the relevant view and what a launch-only attachment establishes. Preserve the previously observed frozen selection and reopen behavior.",
+      "supersedes": "e3a2a5221c80c92e380cf1c57f6f2b6ee0a4a717940fa76b9c36016ffdc4096f",
+      "requested_at": "2026-11-26T07:48:58.300484+00:00",
+      "request_id": "2311967e4d1ecf7c7f29881ff24180b2a224414a204309e782c3777a2395858f",
+      "evidence_sha256": "5e02969a75cb76b92c7dad0611fefdfaeca08b8e273dd7f5a047ae8f1d21afef"
+    },
+    {
+      "kind": "request",
+      "source_commit": "09514768174b878432665898058eb9c4d7fca038",
+      "scope": "Review the source-bound native startup and selection observation after guarded run 45769045630 failed before admission. Check what proves that the candidate application reached the relevant view and what a launch-only attachment establishes. Preserve the previously observed frozen selection and reopen behavior.",
+      "supersedes": "2311967e4d1ecf7c7f29881ff24180b2a224414a204309e782c3777a2395858f",
+      "requested_at": "2026-11-26T12:44:42.967311+00:00",
+      "request_id": "fc01028991eae8ec2bf002c31de5ac30d64b8d45900cba84cc095d31ccb2f4ac",
+      "evidence_sha256": "9e3393be494bca119733aa32d3dd1daa62c557531d2caa4c67e823b0f3a0c67c"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b39a02e2130ed16f9ccbef223839752aa7ad9ffd",
+      "scope": "Review the source-bound native startup and selection observation after guarded run 45769045630 failed before admission. Check what proves that the candidate application reached the relevant view and what a launch-only attachment establishes. Preserve the previously observed frozen selection and reopen behavior.",
+      "supersedes": "fc01028991eae8ec2bf002c31de5ac30d64b8d45900cba84cc095d31ccb2f4ac",
+      "requested_at": "2026-11-26T12:58:52.368690+00:00",
+      "request_id": "78e23dd3db5efe54eaec41a2a60f8757c5c9e03d5c7998c4d8aff6ef832a2625",
+      "evidence_sha256": "5ea981a0b03fef195db3c9c175584b5a7f7142ab5967e7d78afa18ed9744665e"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b39a02e2130ed16f9ccbef223839752aa7ad9ffd",
+      "verdict": "approved",
+      "decision": "APPROVE M2-034 b39a02e2130ed16f9ccbef223839752aa7ad9ffd",
+      "scope": "APPROVE M2-034 b39a02e2130ed16f9ccbef223839752aa7ad9ffd",
+      "observation": "Guarded Windows run 45769045630 timed out after 60 seconds while waiting for the debugging endpoint, and its original log contains no admission events or public drawer actions.",
+      "reviewer": "Independent Astra Standard (t16h)",
+      "original_sha256": "bf428bd29b1926c5c0d0fb2e1ba3036e5b36bb2aece36cdaa492e323f1dfd6bf",
+      "response_id": "de754d0f1ed30f96f55a325fefdc0083987b5304b6454f3fffd36372edf42294",
+      "response_sha256": "06def3a75c7cbe361657701cf7fac7228fb5b08ec9224c5526e4f52d38a3cbfb",
+      "legacy_response_sha256": "098e2d1c73717f3328992a053c6c7ba2d6daa3880e122b83178cf46daad1c916",
+      "observation_body_sha256": "251d8def96af5834b310d1c07b863fe1976ac53daa46e8db71795ae682ab346b",
+      "event": {
+        "id": "msg_07c64e0f16f6e605016b082ebb85dc87d297dcd67cd356a9d4",
+        "timestamp": "2026-11-26T13:06:23.110Z"
+      },
+      "supersedes": "78e23dd3db5efe54eaec41a2a60f8757c5c9e03d5c7998c4d8aff6ef832a2625",
+      "evidence_sha256": "e283c7d271b2b4335a90ee4591cb934239301019aac47bd3b90bc6c6e766bfab"
+    },
+    {
+      "kind": "request",
+      "source_commit": "01026c1b3545c940f8d3d960eb64b603e1324b33",
+      "scope": "Check the combined workspace fixture against the accepted frozen selection, owned clear and restart behavior, including the relevant ordinary browser selection and private handoff assertions after PR 127. The b39a02e2 source decision and actual individual focused observations remain available. Trace the changed file's combined behavior to the preserved product callers; report what remains unobserved on Windows.",
+      "supersedes": "de754d0f1ed30f96f55a325fefdc0083987b5304b6454f3fffd36372edf42294",
+      "requested_at": "2026-11-26T13:09:50.978311+00:00",
+      "request_id": "9f655d0688aa7f88d71f34e9f89a5621c5de755d7ef3565ded6d1ae689282b08",
+      "evidence_sha256": "66874b51ddb8e9908d80226334cebc721b4bfb0859f0e9564378d07fa74b0db6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "01026c1b3545c940f8d3d960eb64b603e1324b33",
+      "verdict": "approved",
+      "decision": "APPROVE M2-034 01026c1b3545c940f8d3d960eb64b603e1324b33",
+      "scope": "APPROVE M2-034 01026c1b3545c940f8d3d960eb64b603e1324b33",
+      "observation": "With the list access check held open, my controlled replay of the candidate UI hooks issued one explicit clear, advanced the selection revision from 13 to 14, and restored an empty selection on remount.",
+      "reviewer": "Independent Astra Standard (t16s)",
+      "original_sha256": "ac7c1707a1a5967b3c3fe07eee99628ccc5f7ad33365c36a206bf37eccf044ee",
+      "response_id": "29e822206c5f3ec8263e7b464ad7a33a2c062b3149983e544a4bc4eb1d685511",
+      "response_sha256": "bbc2e93957c210fc14842a408150c66200890153fd232df450ca875e69111aa0",
+      "legacy_response_sha256": "c683d81f1d3ab60c7917e2e97642f5571930b4cf633faa21cfb7b2bff7ed16b7",
+      "observation_body_sha256": "d6b6e57d66908861ab701ba4f7ceee4f05e33090e151e0d8968985bb26d03c48",
+      "event": {
+        "id": "msg_0d2f71b4e546763d016b0830a251a087d2816acdd27ace5ca4",
+        "timestamp": "2026-11-26T13:14:30.208Z"
+      },
+      "supersedes": "9f655d0688aa7f88d71f34e9f89a5621c5de755d7ef3565ded6d1ae689282b08",
+      "evidence_sha256": "8f7d1593de5045297f753324dc18c21e6dd59bcd31fa6745733919fa631cdbc0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "030661a9862276017321f94b621bd70e99561020",
+      "scope": "Inspect the first-reopen proof helper on the changed shared desktop-workspace test and preserved clear, replacement and source-revision behavior. Exercise at least one positive and one refused read without assuming the committed selection was lost.",
+      "supersedes": "29e822206c5f3ec8263e7b464ad7a33a2c062b3149983e544a4bc4eb1d685511",
+      "requested_at": "2026-11-26T13:58:53.566030+00:00",
+      "request_id": "a419f8e25a0f5c3673fe9a1267476fb003aaa3d6b1933f7033dc584efbf68d38",
+      "evidence_sha256": "9fcb9daa427a1749d9648be0448e77f7d5ba1d0ee6127111a454a38f1e63a2b5"
+    },
+    {
+      "kind": "request",
+      "source_commit": "aeb1763f21237fd897877ef9bba08219223f7615",
+      "scope": "Inspect the first-reopen proof helper on the changed shared desktop-workspace test and preserved clear, replacement and source-revision behavior. Exercise at least one positive and one refused read without assuming the committed selection was lost.",
+      "supersedes": "a419f8e25a0f5c3673fe9a1267476fb003aaa3d6b1933f7033dc584efbf68d38",
+      "requested_at": "2026-11-26T14:22:07.033951+00:00",
+      "request_id": "8d6c496acdab0e735581ac0b951ef1c84fef65dbfb5ea3d83752d980a28ee8b6",
+      "evidence_sha256": "1d05db46b0ffe42ea29bf7ffb7b3d8669f931d75a62dc69d7bdebb63bbf3323e"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "aeb1763f21237fd897877ef9bba08219223f7615",
+      "verdict": "approved",
+      "decision": "APPROVE M2-034 aeb1763f21237fd897877ef9bba08219223f7615",
+      "scope": "APPROVE M2-034 aeb1763f21237fd897877ef9bba08219223f7615",
+      "observation": "I replayed the first-reopen proof helper and observed that it accepted selection revision 2, rejected both HTTP 403 and an HTTP 200 reply carrying a result and an error on the first read, and retried after a typed HTTP 429 BUSY refusal.",
+      "reviewer": "Independent Astra Standard (t18q)",
+      "original_sha256": "5d92daed4eb98e088d82c23456dfaebbcfdaa80bfd18f94830c10d4e54014214",
+      "response_id": "1bbc80f0c20a23e2555cc1ae365a7e5fb579afad59764c72f90235dcee60bbd3",
+      "response_sha256": "15780e756fdfffb23fbd4b6b500de081db18d398cabb896992b65cc60e638df3",
+      "legacy_response_sha256": "d04695b0371cd94762328bb630753295f74db659d4d83e45623ef3e0eda01ce2",
+      "observation_body_sha256": "60f3abd17a83b34c15adc9c07db884ba6f82ff96d6fec03fccb1fe6a7da9ee10",
+      "event": {
+        "id": "msg_0e6c257710dac60c016b084499cb8c87d1bb7ecaa4b5f1d175",
+        "timestamp": "2026-11-26T14:39:39.837Z"
+      },
+      "supersedes": "8d6c496acdab0e735581ac0b951ef1c84fef65dbfb5ea3d83752d980a28ee8b6",
+      "evidence_sha256": "44cb353b836a359f4625c1ce64809768909014db771635e8e53d33ea23edce8a"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e04c951d90ee2c99b6e039b2caf8f753d21727de",
+      "scope": "Inspect the first-reopen proof helper on the changed shared desktop-workspace test and preserved clear, replacement and source-revision behavior. Exercise at least one positive and one refused read without assuming the committed selection was lost.",
+      "supersedes": "1bbc80f0c20a23e2555cc1ae365a7e5fb579afad59764c72f90235dcee60bbd3",
+      "requested_at": "2026-11-26T15:05:47.422008+00:00",
+      "request_id": "a3e889cea76c640f22d983aa7e748a84dc51398de15d64cffefbc2e063edd40a",
+      "evidence_sha256": "d9d3664a6caebf2e431399ab3bdf88b9385edf6ddaa7a6ebaecf1f195af5ef71"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e04c951d90ee2c99b6e039b2caf8f753d21727de",
+      "verdict": "approved",
+      "decision": "APPROVE M2-034 e04c951d90ee2c99b6e039b2caf8f753d21727de",
+      "scope": "APPROVE M2-034 e04c951d90ee2c99b6e039b2caf8f753d21727de",
+      "observation": "I replayed the recorded replies through the first-reopen proof helper and observed that it accepted selection revision 2, stopped after one HTTP 403 denial, rejected an HTTP 200 reply containing both a result and an error, and recovered revision 2 after one retryable HTTP 429 BUSY refusal.",
+      "reviewer": "Independent Astra Standard (t196)",
+      "original_sha256": "2bb5cd7249cbb37aebe74653c434cc49e7f52ba73652cf7bd09e1eb68bf6cea4",
+      "response_id": "d867aa824637af770c9eb72c61c4dd27853096f7872d060d84b9f8010175209f",
+      "response_sha256": "d187a51820e879b8b52b1366cf345478962c14c4510cb31be2de89340cd2df16",
+      "legacy_response_sha256": "132fe8928f68fa15b8a4c296e62eb0e328f93132b32085e954c0f5cff32a6088",
+      "observation_body_sha256": "be9c5e5003464044af026fd615125633135963bd8fb575533dd81eab31b12ebb",
+      "event": {
+        "id": "msg_00475b997b8a065e016b084c22710887d2976bc793fe23151a",
+        "timestamp": "2026-11-26T15:11:43.649Z"
+      },
+      "supersedes": "a3e889cea76c640f22d983aa7e748a84dc51398de15d64cffefbc2e063edd40a",
+      "evidence_sha256": "6b6889f8ee5e1e359e2ff6fae64f18623a9ff3adb2be9ae20d25ee74106b2268"
+    },
+    {
+      "kind": "request",
+      "source_commit": "3d34bec7f9dbbffb88f65af8cd0b8689b13373aa",
+      "scope": "Inspect the first-reopen proof helper on the changed shared desktop-workspace test and preserved clear, replacement and source-revision behavior. Exercise at least one positive and one refused read without assuming the committed selection was lost.",
+      "supersedes": "d867aa824637af770c9eb72c61c4dd27853096f7872d060d84b9f8010175209f",
+      "requested_at": "2026-11-26T15:13:31.796736+00:00",
+      "request_id": "c33341ec9fd405245049ff51e83c87759b66877eceb30b267e0ece1a29aa023e",
+      "evidence_sha256": "6f9c38a54186c06a94ee45a8afdf37c8d7aae0e1375a10c515a695ae7175a1e3"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "3d34bec7f9dbbffb88f65af8cd0b8689b13373aa",
+      "verdict": "approved",
+      "decision": "APPROVE M2-034 3d34bec7f9dbbffb88f65af8cd0b8689b13373aa",
+      "scope": "APPROVE M2-034 3d34bec7f9dbbffb88f65af8cd0b8689b13373aa",
+      "observation": "I replayed the recorded replies through the first-reopen proof helper and observed that it read selection revision 2 on HTTP 200, stopped after one HTTP 403 or one contradictory HTTP 200, and recovered the same source and revision after a single retryable HTTP 429 BUSY refusal.",
+      "reviewer": "Independent Astra Standard (t19g)",
+      "original_sha256": "0c0565cb06cb279457db4f07db5db7a5ffe3fd61dca2998530dd414ada8082b3",
+      "response_id": "892f285fea724fa64aba422b2298f570ce43276c0b3e9b61246c581ac654e8f1",
+      "response_sha256": "6572ba4710c708ea69b71fb6810b404f6063e6d5bb2c5d9aae74785ead6afa3d",
+      "legacy_response_sha256": "8ceddfb55d58d4cb8b10a91a2e4f884691c8b4008dcfeafa5273ae7194d206cf",
+      "observation_body_sha256": "eaf2890f241351b00d3919ae63b920458eecc464ef11ece5be3ffb7f85b4fc23",
+      "event": {
+        "id": "msg_0e315ca29aa2297b016b084e3034e087d29223df6ecf800eb6",
+        "timestamp": "2026-11-26T15:20:36.131Z"
+      },
+      "supersedes": "c33341ec9fd405245049ff51e83c87759b66877eceb30b267e0ece1a29aa023e",
+      "evidence_sha256": "726e0df2bf25b1fe03767f55f9746e540ca0fec6ea4beacd42141877d082d57e"
+    },
+    {
+      "kind": "request",
+      "source_commit": "21cf84718d8d82d2cb3a54347c7552e8691946c3",
+      "scope": "Inspect the first-reopen proof helper on the changed shared desktop-workspace test and preserved clear, replacement and source-revision behavior. Exercise at least one positive and one refused read without assuming the committed selection was lost.",
+      "supersedes": "892f285fea724fa64aba422b2298f570ce43276c0b3e9b61246c581ac654e8f1",
+      "requested_at": "2026-11-27T03:04:59.661902+00:00",
+      "request_id": "b5164fdf254801ffbd5b2a06d47dfab4b016f3d5d4f243ba3d35d4497976f900",
+      "evidence_sha256": "e8b9eafa0ac7eecf8567e6db0b83933b01c42d955d114fec0dc2a36ed8e9bd34"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "21cf84718d8d82d2cb3a54347c7552e8691946c3",
+      "verdict": "approved",
+      "decision": "APPROVE M2-034 21cf84718d8d82d2cb3a54347c7552e8691946c3",
+      "scope": "APPROVE M2-034 21cf84718d8d82d2cb3a54347c7552e8691946c3",
+      "observation": "When I replayed the retained replies through the candidate’s first-reopen proof helper, it retried the HTTP 429 BUSY read, returned selection revision 2 on the next snapshot, and stopped after one HTTP 403 permission denial.",
+      "reviewer": "Independent Astra Standard (t1bg)",
+      "original_sha256": "7f6f2271850fca28699675f91123808ac0fb10e158b6ff5ea160676c0a77c294",
+      "response_id": "cf519a918e722fa41e8501eaddb06eb10358ed7c945eb2b5d0a47ac9a8d6cdd7",
+      "response_sha256": "9db141131a78f8553bb96bb13c855cdfd6ff99a3bfa265919062721cd8e4f933",
+      "legacy_response_sha256": "2a5d1cdae0fd118f7077e5c284670382e9c264ccf0136075f052673b68af0a01",
+      "observation_body_sha256": "6752c55c1f61840ba869456654a32bd8f51de488dcac53c53d908badd9954b60",
+      "event": {
+        "id": "msg_0c52b9d0facd6096016b08f42d670c87d082e85d76d207e5a1",
+        "timestamp": "2026-11-27T03:08:51.265Z"
+      },
+      "supersedes": "b5164fdf254801ffbd5b2a06d47dfab4b016f3d5d4f243ba3d35d4497976f900",
+      "evidence_sha256": "b9619295d02d89eef7d18a9b18ac38c16bf24503b66040b7876f8ca8b4a61a27"
+    },
+    {
+      "kind": "request",
+      "source_commit": "f636dcdd382340e453dd29b91cfff01c2413929f",
+      "scope": "Check whether changing the native snapshot admission rule alters the previously approved frozen-access refresh and clear path. Compare this delta with your retained approval and the existing public observations for that path.",
+      "supersedes": "cf519a918e722fa41e8501eaddb06eb10358ed7c945eb2b5d0a47ac9a8d6cdd7",
+      "requested_at": "2026-11-27T03:34:33.049893+00:00",
+      "request_id": "ecac464db2e845648fc3f50508b3bd6ce83a253acef64c6f6141a78721f79420",
+      "evidence_sha256": "7bccc84a8238923e63b8c5c8d8e592145323511bd9431195b24d141559aa45c7"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "f636dcdd382340e453dd29b91cfff01c2413929f",
+      "verdict": "approved",
+      "decision": "APPROVE M2-034 f636dcdd382340e453dd29b91cfff01c2413929f",
+      "scope": "APPROVE M2-034 f636dcdd382340e453dd29b91cfff01c2413929f",
+      "observation": "I replayed the candidate’s frozen-access refresh reader and observed one call for a valid snapshot at selection revision 2, two calls to recover that same revision after a marked writer refusal, and one call each for permission denial and an admitted storage BUSY.",
+      "reviewer": "Independent Astra Standard (t1bz)",
+      "original_sha256": "98681061dd38243bd77dfaa627c439ed028fb61a7e0811cf5523c343122bc846",
+      "response_id": "b9ca23eb22a761dbbb36489b60491431d54dc8b1ea3616c752eb83f743591730",
+      "response_sha256": "5dda13a6d77bd58610e4ee5ba8b3035a617a8327711c35a29158b88ba11c57ac",
+      "legacy_response_sha256": "41ec4b6384a38fe77d89982e7cf9b63f7ad7417591020ab047f6a8be5bc92f62",
+      "observation_body_sha256": "b490b10ecd5dd5c1faa0dbe431fa78ca47abcade14c2d289946706e8b19a9412",
+      "event": {
+        "id": "msg_07c9f93e7f694672016b08fb82416887d0bce1d5ed340ed022",
+        "timestamp": "2026-11-27T03:40:00.076Z"
+      },
+      "supersedes": "ecac464db2e845648fc3f50508b3bd6ce83a253acef64c6f6141a78721f79420",
+      "evidence_sha256": "4f21fc48996f1058201155cbdb735e9828bc7bd712c3f9c07062ba545d24d8da"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ff7f9403dc57e4a945796d56aa07ec6aaabbba33",
+      "scope": "Requalify frozen access refresh on the composition when the shared workspace consumer changes.",
+      "supersedes": "b9ca23eb22a761dbbb36489b60491431d54dc8b1ea3616c752eb83f743591730",
+      "requested_at": "2026-11-27T07:13:35.591062+00:00",
+      "request_id": "3786bd9798a3fdd7e3eac2dc68a849f6103a1545e69de2c24f5395163ba0661b",
+      "evidence_sha256": "4578c69fa4225a5fccb66e33b0b93e1c88aecd2c177f9b49a9adec3a68a7079c"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ff7f9403dc57e4a945796d56aa07ec6aaabbba33",
+      "verdict": "approved",
+      "decision": "APPROVE M2-034 ff7f9403dc57e4a945796d56aa07ec6aaabbba33",
+      "scope": "APPROVE M2-034 ff7f9403dc57e4a945796d56aa07ec6aaabbba33",
+      "observation": "I replayed the retained writer events through the candidate’s shared snapshot helper and observed request 2 reach the writer and drain with HTTP 200, while the competing snapshot returned retryable HTTP 429 BUSY before reaching the writer.",
+      "reviewer": "Independent Astra Standard (t1f3)",
+      "original_sha256": "769fcd9dd439fb32bd0bb2bd33deb747fc7d3fcb6ddda75f8efc356195f6b122",
+      "response_id": "4fbf1531b1d0f6dcd418d66e3cb51b1610375c68fd698a2435b3562c9c5d6604",
+      "response_sha256": "c664ed9062c71dd87aa3636a09b94ec5b90309c0983e3fb8e5cac55b46e26810",
+      "legacy_response_sha256": "8ac48c9879419bca2eed5cfab070404ea969246635be4ecebdadd7520f3936ed",
+      "observation_body_sha256": "3cabacad451e3700ac29858e7f0d12d826bb98cd77e14833d537244c7b50afd2",
+      "event": {
+        "id": "msg_096a0a672a7da6a4016b092fb7ea6487d09578412da749c754",
+        "timestamp": "2026-11-27T07:22:48.120Z"
+      },
+      "supersedes": "3786bd9798a3fdd7e3eac2dc68a849f6103a1545e69de2c24f5395163ba0661b",
+      "evidence_sha256": "99cc0389f68e38162678f6522a279cd24da63f06c6231101a7608922f63ffab5"
+    }
+  ]
+}

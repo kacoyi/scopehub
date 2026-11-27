@@ -25,3 +25,7 @@ windows-sys = { version = "0.61", features = [
     "Win32_System_Threading",
     "Win32_System_WindowsProgramming",
 ] }
+
+[[example]]
+name = "windows_handoff_probe"
+test = true
