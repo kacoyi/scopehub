@@ -9555,7 +9555,7 @@
     },
     {
       "id": "windows-cold-repair-script-pending-after-document-commit",
-      "status": "open",
+      "status": "addressed",
       "severity": "major",
       "source": "Original Windows PR 146 attempt 1, run 45939423128, staged producer and protected comparison in archives/observations/repo-hygiene-20261125/pr146-producer-45939423128-recovery/cold-start-recurrence.json (SHA-256 55c4b69f0351c8ec55952597d2c580b4ee4fea96453ddff132142846362e2d51). The complete ordinary Windows aggregate at archives/runs/windows-change-45939423128-1/test-report.json contains the same market-recovery failure.",
       "observation": "The first public closed-bar repair stopped before its chart assertions. At 10016 ms the document had returned HTTP 200, committed at 23 ms and finished at 31 ms; one unnamed script requested at 7026 ms was still pending. The other 40 cases passed. The same first public test on protected Windows run 45936740302 committed at 17 ms, reached DOMContentLoaded at 255 ms, verified the sample at 1629 ms, and passed in 6281 ms. The intentional workspace-start.ts hold was issued at 23 ms in the producer and 34 ms in the protected run. It stopped at the original deadline in both. The original late script route and cause of the delay remain unknown.",
@@ -9574,7 +9574,11 @@
           "report_sha256": "b3b9ec298a949738d74f3c4d44e52840837a0239195673707ba3ea0e7df5ad59"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The original preview fixture signaled readiness as soon as the document responded, while Vite could still transform required startup assets on demand. The original Windows trace identifies a committed document and one unnamed late pending script. Its route and the cause of its delay remain unknown.",
+        "correction": "Prepare the real Vite startup entry, dynamic application entry and stylesheet and wait for the initial crawl before signaling preview readiness. Keep the first public browser navigation, real synthetic worker, chart and frozen-source assertions, and the existing 10000 ms deadline.",
+        "prevention": "Ordinary PR 147 run 45971658258 attempt 1 passed all three required checks on Linux and Windows. The first public repair verified the sample at 1016 ms and 1560 ms respectively. The deliberately held required module still left the document committed and rejected startup at 10002 ms and 10018 ms respectively. The first Windows failure, the protected comparison and the original held-module controls remain archived."
+      },
       "deferral_reason": null
     }
   ]

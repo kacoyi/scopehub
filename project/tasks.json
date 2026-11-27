@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-173",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -29266,7 +29266,7 @@
       "id": "M0-173",
       "title": "Resolve the observed cold Windows repair preview stall after document commit",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-154"
       ],
@@ -29292,10 +29292,19 @@
         "python-contracts-workers",
         "market-recovery"
       ],
-      "evidence": [],
-      "next_action": "Independently review the clean prepared-preview source and compare its first ordinary Windows public repair and held-module observation with the retained producer and protected control. Attach any matching full-run recurrence to the existing finding before evaluating closure.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-173-dd6cb1d22ad7340d.json",
+          "sha256": "3b6eb845354193ca0f9f24663b3f190927365c5e5a23997d0e732363e3bbab55"
+        },
+        {
+          "path": "project/evidence/M0-173-2cb833308cb3574e.json",
+          "sha256": "8a64594db3fe5a6870c84c5fa29cf9bf84a72ff7f3b990ed32907b580ee4c464"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Scoped pre-integration qualification passed. Independent approval of f707c0edf2a1068226d7e330f4ebdcde3c731701 applies to a3d02a0ea79cd5636359d0235478caf909a29047, whose only additions since review are review records. Ordinary PR 147 run 45971658258 attempt 1 tested the same tree at merge preview 89aedef2253b7aba2146496b9bc00ddd80c72d44. All three required checks and all 41 market-recovery cases passed on Linux and Windows. The Linux aggregate was blocked outside task scope. The first public repair verified the sample at 1016 ms on Linux and 1560 ms on Windows and passed the existing chart and frozen-source assertions. The intentional workspace-start.ts hold rejected navigation at 10002 ms and 10018 ms respectively. The adjacent handoff controls passed 18 on Linux and 17 on Windows, with the POSIX signal case skipped on Windows. The original Windows failure and protected comparison remain archived. The original late script route and delay cause remain unknown. In the intermediate run 45943406153 the Windows market-recovery check passed while python-contracts-workers expired at its existing ceiling. The qualifying originals are indexed in archives/observations/repo-hygiene-20261125/pr147-native-original-45971658258/manifest.json (SHA-256 40899482a08552d3a7a1e83773b9602a919df53ffa3ee4fa11beac4fecc50c32). The coordinator owns composition with protected 4d17dff0d0c82df10a05a7339fda219a0a3d2bf8 and observation of the first protected push after integration.",
       "diagnostic_reports": [
         {
           "run_id": "windows-change-45939423128-1",

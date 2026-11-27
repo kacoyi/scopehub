@@ -1,0 +1,101 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-173",
+  "task_definition_sha256": "81c062f0db6fb05b26e4870aa4bf256150331b5218a0391a6f7ca960f47aa365",
+  "run_id": "windows-change-45971658258-1",
+  "recorded_at": "2026-11-27T09:37:21.430662+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "a3ae588bf2c2237f0e35f6890fd061960a2e8853c71434488a76799f9a2bab9e",
+    "file_count": 641,
+    "git_head": "89aedef2253b7aba2146496b9bc00ddd80c72d44",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "2cb833308cb3574ecbbff3f93f92c3ba873f899b4b8bce3a8b2899c0969bc027",
+  "environment": {
+    "system": "Windows",
+    "release": "2025Server",
+    "machine": "AMD64",
+    "python": "3.12.10",
+    "python_executable": "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (6b2d39dcc 2026-11-17 x86_64-pc-windows-msvc)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "bc6b566e7d6bfb3374aaa5f62b5ac4d1bc176c10e9952f1b373f7134d453fc29"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "45c85b6a9872acc2379d5147593eed40e918a58425c46a33709fa35ba6317d10"
+    },
+    {
+      "id": "market-recovery",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-closed-bar-repair.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f395bc953754723d1dc4a2e7607d809fc67f1afd9b3dc46b168be24a83c8dc94"
+    }
+  ],
+  "project_definition_sha256": "46c4489c835f6e36017ac9c5e96b1ceb2abae670ea5397b3070aa7e928a48a45",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "42a422c7ccbc72f259d5e1f93dbf5f9181e065dd8191fec5e842491680b9ed44",
+    "e15f28818661ae61078637dee70c9f919c5c3b7cb0ca5a2e14a5ba0fa754e7d1"
+  ],
+  "ci": {
+    "provider": "github-actions",
+    "repository": "kacoyi/scopehub",
+    "run_id": "45971658258",
+    "run_attempt": "1",
+    "event": "pull_request",
+    "head_sha": "a3d02a0ea79cd5636359d0235478caf909a29047",
+    "checkout_sha": "89aedef2253b7aba2146496b9bc00ddd80c72d44",
+    "run_url": "https://github.com/kacoyi/scopehub/actions/runs/45971658258"
+  }
+}
