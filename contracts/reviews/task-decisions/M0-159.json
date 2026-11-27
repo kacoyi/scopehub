@@ -135,6 +135,26 @@
       "requested_at": "2026-11-27T09:48:47.479944+00:00",
       "request_id": "87eeae618015efe541b96e91f510f082ae74bd11acbc461855a689726d393b2e",
       "evidence_sha256": "53c4f0ed70907c8928e5093d70351d12452aa243f0643ce0642d4cc91bb25af4"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "aec0118d0573ccc949e4e44a71c379c8b9b29d17",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-159 aec0118d0573ccc949e4e44a71c379c8b9b29d17",
+      "scope": "CHANGES_REQUESTED M0-159 aec0118d0573ccc949e4e44a71c379c8b9b29d17",
+      "observation": "In an offline replay of protected push 45747974114, the closure check returned `passed` with only the Windows aggregate report linked to the observer.",
+      "reviewer": "Independent Astra Standard (t1gz)",
+      "original_sha256": "ea3c086c84fd932d7037b1db525c9efaffc08016776f3b17006c1363c4c927a9",
+      "response_id": "466a280b4d4459fdf15cf8eb1a14b559fb6ab014fff9b739b6718e486146a707",
+      "response_sha256": "0fec3e1a817da6156cfae766f49b9e94ef43dc8545dd91373db8cd0011db77de",
+      "legacy_response_sha256": "f928db13cbbfc9d396792d610f454413ea81e08905d5fbe80a587eb1d4911096",
+      "observation_body_sha256": "7ac2298ef03f25a72d0eb7b08e64cf12dd3d5a3e9b8080129f724537d0179a3c",
+      "event": {
+        "id": "msg_09137b56e19ef395016b09532317fc87d0a536c47e381998cc",
+        "timestamp": "2026-11-27T09:53:57.633Z"
+      },
+      "supersedes": "87eeae618015efe541b96e91f510f082ae74bd11acbc461855a689726d393b2e",
+      "evidence_sha256": "f1d520394a3e611f36bb40273158632c15542d077a4c1acd2e44dda96a6642e1"
     }
   ]
 }
