@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-171",
   "tasks": [
     {
       "id": "M0-001",
@@ -27407,6 +27407,116 @@
           ],
           "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
           "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
+        }
+      }
+    },
+    {
+      "id": "M0-171",
+      "title": "Recover Windows handoff fixture preparation after its subprocess deadline",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-147"
+      ],
+      "scope": [
+        "tests/ubuntu-preview",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain the failed first-attempt native test, the previously passing protected comparison and the current same-fixture control. Name the failing preparation phase and preserve any unknown inner stage.",
+        "Use the existing fixture at its normal entry to distinguish successful preparation from real expiration or interruption. Preserve its established comparison outcomes, bounded diagnostics and cleanup. Correct the verified cost or fixture isolation issue once.",
+        "Obtain independent review and retain a native Windows run of the ordinary handoff scenario on the repaired source, then verify the integrated revision."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "evidence": [],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45933801256-1",
+          "source_commit": "4c6907e67c50eadfa95308b46594f92722e2490b",
+          "report_sha256": "2b4e4c9dce03a68efcfe32ed9dd49a0efdb48287a8f9a9195f55c689d4cb0657"
+        }
+      ],
+      "next_action": "Independently review the clean candidate, then retain an ordinary Windows workspace-timeframe run with the helper compilation and leaf matrix phase observations. Verify the integrated revision and keep the historical inner stage and cause open.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Retain the failed first-attempt native test, the previously passing protected comparison and the current same-fixture control. Name the failing preparation phase and preserve any unknown inner stage. Use the existing fixture at its normal entry to distinguish successful preparation from real expiration or interruption. Preserve its established comparison outcomes, bounded diagnostics and cleanup. Correct the verified cost or fixture isolation issue once.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.setup.mjs",
+          "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+          "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.cs",
+          "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.ps1",
+          "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "project/checks.json",
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json"
+        ],
+        "hypotheses": [
+          "The first PR 123 attempt exhausted the leaf matrix preparation subprocess deadline before the 24 native file comparisons. The protected run and two contemporary Windows controls completed the same case. Their 8646, 7374 and 7668 ms observations and the failed 15362 ms observation cover the whole case. Startup, helper compilation, matrix work and host contention remain separate possibilities for the historical expiration."
+        ],
+        "risks": [
+          {
+            "failure": "Hiding the failed setup or accepting partial preparation would falsely pass the scenario; unbounded diagnostic retries would distort its cost.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Restore the preceding implementation and retain the diagnosed failures and controls if the ordinary contract changes.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.setup.mjs",
+            "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+            "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.ps1",
+            "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/0"
+            }
+          ],
+          "non_goals": [
+            "Keep adjustments inside development verification of disposable synthetic fixtures. Preserve production authorization, user data, established permission checks, native result meanings and existing product behavior."
+          ],
+          "open_questions": [
+            "Which preparation milestones and timings are observed by the next ordinary Windows job? The first attempt emitted no inner milestone."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Keep adjustments inside development verification of disposable synthetic fixtures. Preserve production authorization, user data, established permission checks, native result meanings and existing product behavior."
+          ],
+          "change": [
+            "Compile the existing C# fixture helper once in Windows workspace setup and load its run-owned assembly during ordinary leaf calibration. Record bounded phase timings and exercise an interrupted calibration before any native file comparison."
+          ],
+          "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
+          "cleanup": "Delete the assembly with the owned workspace run directory and preserve exclusive leaf fixture ownership and cleanup. Retain the original failed job and passing comparisons."
         }
       }
     }

@@ -8311,6 +8311,30 @@
         "prevention": "Guarded run 45930637026 passed all required checks on native Windows and Linux. The public bridge controls assert a completed preview, rejection of a save after a controlled preview interruption, cancellation after proven save admission, and an ordinary subsequent load with not_saved and no profile directory. The protected integration recheck remains with the coordinator."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-calibration-expires-before-file-comparison",
+      "status": "open",
+      "severity": "major",
+      "source": "First native observation archives/observations/repo-hygiene-20261125/pr123-native-original-45933801256/manifest.json (SHA-256 1c7999a4d37d4976091603fa5272d322c77bed4270fbf00c33aa4c7e9a8c294e).",
+      "observation": "The first ordinary PR 123 Windows browser job 140292229420 failed while preparing the test-owned file matrix in the private launcher handoff case. The case took 15362 ms. The workspace suite recorded 97 passed, one failed and two skipped. The bounded subprocess diagnostic identified expiration before the subsequent file comparisons. Its last internal stage and the reason for its elapsed time are unknown. The earlier M0-147 first protected case passed in 8646 ms including its other work.",
+      "task_ids": [
+        "M0-171"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45933801256-1",
+          "source_commit": "4c6907e67c50eadfa95308b46594f92722e2490b",
+          "report_sha256": "2b4e4c9dce03a68efcfe32ed9dd49a0efdb48287a8f9a9195f55c689d4cb0657"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
