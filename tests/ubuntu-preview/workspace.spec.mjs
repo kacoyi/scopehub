@@ -251,6 +251,12 @@ test('frozen chart shares two visible bars and clears the independent selection'
   const preparation = {};
   try {
     await seedFrozenEvidence(profile, id, a, b, evidenceBars(a, b), preparation);
+    expect(preparation).toMatchObject({
+      outcome: 'ready', revision: 0, deadline_ms: 12_000, pid: expect.any(Number),
+      exit: { code: 0, signal: null }, close: { code: 0, signal: null },
+    });
+    preparation.reaped = !alive(preparation.pid);
+    expect(preparation.reaped).toBe(true);
     await inService(port, profile, 'ubuntu-workspace', async server => {
       const denied = await post(server, { type: 'frozen_chart', request_id: randomUUID(), revision_id: id }, { Authorization: '' });
       expect(denied.status).toBe(403);
@@ -374,6 +380,43 @@ test('frozen evidence preparation rejects a mismatched profile with a reaped bri
     const database = new DatabaseSync(join(profile.root, 'workspace.sqlite3'), { readOnly: true });
     try {
       expect(database.prepare('SELECT count(*) AS count FROM local_dataset_revisions').get().count).toBe(0);
+    } finally {
+      database.close();
+    }
+  } finally {
+    try { await closePreparationProfile(profile, preparation); }
+    finally {
+      await testInfo.attach('frozen-evidence-preparation', { body: JSON.stringify(preparation), contentType: 'application/json' });
+    }
+  }
+  expect(preparation.profile_removed).toBe(true);
+});
+
+test('frozen evidence preparation rejects a negative startup revision before fixture writes', async ({}, testInfo) => {
+  const profile = await makeProfile();
+  const a = Date.UTC(2026, 1, 3);
+  const b = Date.UTC(2026, 1, 4);
+  const preparation = {};
+  try {
+    await initializeFrozenProfile(workspaceBridge, profile, workspaceId);
+    const frame = { ok: true, private_profile: true, result: { workspace: { id: workspaceId, revision: -1 } } };
+    // Node uses index.js when the bridge's first argument is the profile directory.
+    await writeFile(join(profile.root, 'index.js'), `console.log(JSON.stringify(${JSON.stringify(frame)}));`);
+    await expect(seedFrozenEvidence(profile, randomUUID(), a, b, evidenceBars(a, b), preparation, process.execPath))
+      .rejects.toHaveProperty('preparation', preparation);
+    expect(preparation).toMatchObject({
+      outcome: 'invalid-startup-frame', deadline_ms: 12_000, pid: expect.any(Number),
+      exit: { code: 0, signal: null }, close: { code: 0, signal: null },
+    });
+    preparation.reaped = !alive(preparation.pid);
+    expect(preparation.reaped).toBe(true);
+    const database = new DatabaseSync(join(profile.root, 'workspace.sqlite3'), { readOnly: true });
+    try {
+      preparation.fixture_rows = database.prepare(`SELECT
+        (SELECT count(*) FROM reviewed_import_mappings) AS mappings,
+        (SELECT count(*) FROM local_dataset_source_blobs) AS blobs,
+        (SELECT count(*) FROM local_dataset_revisions) AS revisions`).get();
+      expect(preparation.fixture_rows).toEqual({ mappings: 0, blobs: 0, revisions: 0 });
     } finally {
       database.close();
     }
@@ -791,8 +834,8 @@ function evidenceBars(a, b) {
   ];
 }
 
-async function seedFrozenEvidence(profile, id, a, b, fixture = evidenceBars(a, b), preparation) {
-  await initializeFrozenProfile(workspaceBridge, profile, workspaceId, preparation);
+async function seedFrozenEvidence(profile, id, a, b, fixture = evidenceBars(a, b), preparation, executable = workspaceBridge) {
+  await initializeFrozenProfile(executable, profile, workspaceId, preparation);
   // Independent fixture inputs. The application reopens and verifies the actual
   // SQLite revision. No operation, authorization or chart reply is stubbed.
   const database = new DatabaseSync(join(profile.root, 'workspace.sqlite3'));
@@ -5295,7 +5338,8 @@ test('workspace private handoff reports blocked publication and releases its ser
   const path = join(profile.root, filename);
   const blocked = { visit: 'blocked-publication' };
   const recovered = { visit: 'after-publication-block' };
-  const observation = { blocked, recovered };
+  const rejectedWithOlderDocument = { visit: 'rejected-with-older-document' };
+  const observation = { blocked, recovered, rejected_with_older_document: rejectedWithOlderDocument };
   try {
     // Occupy only the final path. The real writer and atomic publication run.
     await mkdir(path);
@@ -5317,13 +5361,44 @@ test('workspace private handoff reports blocked publication and releases its ser
 
     await rm(path, { recursive: true });
     let writer;
+    let olderDocument;
     await inService(port, profile, 'ubuntu-workspace', async server => {
       writer = await writerPid(server);
       expect(state(await (await post(server, snapshot)).json())).toEqual({ revision: 0, timeframe: '1m', undo: null });
+      olderDocument = await readFile(server.handoff);
     }, { handoffObservation: recovered });
     await expect.poll(() => alive(writer)).toBe(false);
     observation.reopened_writer_reaped = true;
-    expect(recovered).toMatchObject({ outcome: 'ready', cleanup: { file_state: 'missing' } });
+    expect(recovered).toMatchObject({
+      outcome: 'ready', publication: { published: true, rejected: false }, cleanup: { file_state: 'missing' },
+    });
+
+    // Put back the previous same-port document. The bound database makes the
+    // real writer refuse the new profile ID before it can issue a handoff.
+    await writeFile(path, olderDocument, { flag: 'wx', mode: 0o600 });
+    const mismatched = { ...profile, id: 'synthetic-' + randomUUID() };
+    let admitted = false;
+    const rejection = await inService(port, mismatched, 'ubuntu-workspace', () => { admitted = true; }, {
+      handoffObservation: rejectedWithOlderDocument,
+    }).catch(error => error);
+    observation.rejected_callback_entered = admitted;
+    observation.older_document_preserved = olderDocument.equals(await readFile(path));
+    observation.rejected_port_released = await portAvailable(port);
+    observation.rejected_service_reaped = !alive(rejectedWithOlderDocument.pid);
+    expect(observation.rejected_callback_entered).toBe(false);
+    expect(rejection).toHaveProperty('handoff', rejectedWithOlderDocument);
+    expect(observation.older_document_preserved).toBe(true);
+    expect(observation.rejected_port_released).toBe(true);
+    expect(observation.rejected_service_reaped).toBe(true);
+    expect(rejectedWithOlderDocument).toMatchObject({
+      outcome: 'launcher-rejected', last_file: { file_state: 'file' },
+      publication: { published: false, rejected: true },
+      publication_after_close: { published: false, rejected: true },
+      writer_stderr: { error: 'profile-mismatch' },
+      cleanup: { forced_kill_requested_ms: null, close: { code: 0, signal: null }, file_state: 'file' },
+    });
+    expect(rejectedWithOlderDocument.finished_ms - rejectedWithOlderDocument.readiness_ms)
+      .toBeLessThan(rejectedWithOlderDocument.deadline_ms);
   } finally {
     try { await closePreparationProfile(profile, observation); }
     finally {

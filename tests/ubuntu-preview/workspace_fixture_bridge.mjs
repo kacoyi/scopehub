@@ -1,8 +1,10 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import protocol from '../../contracts/schemas/protocol.schema.json' with { type: 'json' };
 
 const exec = promisify(execFile);
 const deadlineMs = 12_000;
+const { minimum: revisionMinimum, maximum: revisionMaximum } = protocol.$defs.Revision;
 const bridgeErrors = new Map([
   ['Workspace storage requires an absolute profile directory and valid identities.', 'invalid-binding'],
   ['Workspace storage has an unsupported format.', 'unsupported-format'],
@@ -74,8 +76,11 @@ export async function initializeFrozenProfile(executable, profile, workspaceId, 
     let frame;
     try { frame = JSON.parse(result.stdout); } catch { /* Report the frame category only. */ }
     const workspace = frame?.result?.workspace;
+    const revision = workspace?.revision;
     observation.outcome = frame?.ok === true && frame.private_profile === true
-      && workspace?.id === workspaceId && Number.isSafeInteger(workspace.revision) ? 'ready' : 'invalid-startup-frame';
+      && workspace?.id === workspaceId && Number.isSafeInteger(revision)
+      && revision >= revisionMinimum && revision <= revisionMaximum ? 'ready' : 'invalid-startup-frame';
+    if (observation.outcome === 'ready') observation.revision = revision;
   }
   if (observation.outcome !== 'ready') {
     throw Object.assign(new Error(`Frozen evidence bridge preparation failed: ${JSON.stringify(observation)}`), { preparation: observation });

@@ -78,7 +78,11 @@ export async function waitForWorkspaceHandoff(path, url, startup, output, observ
   });
   try {
     for (;;) {
-      const current = await Promise.race([readHandoff(path, url, stop.signal), expired]);
+      const { published, rejected } = output.handoffPublication();
+      // A same-port file can survive a prior visit. Only the current child can
+      // confirm publication of the document this visit is allowed to read.
+      const sample = published && !rejected ? readHandoff(path, url, stop.signal) : workspaceHandoffFile(path);
+      const current = await Promise.race([sample, expired]);
       if (current) {
         const { capability, ...file } = current;
         observation.last_file = { ...file, elapsed_ms: startup.elapsed() };
@@ -88,8 +92,8 @@ export async function waitForWorkspaceHandoff(path, url, startup, output, observ
       const terminal = startup.terminal();
       const remaining = deadline - performance.now();
       const outcome = terminal.child_error ? 'child-error' : terminal.exit ? 'child-exited'
-        : !current || remaining <= 0 ? 'deadline' : current.capability ? 'ready'
-        : observation.publication.rejected ? 'launcher-rejected' : undefined;
+        : !current || remaining <= 0 ? 'deadline' : observation.publication.rejected ? 'launcher-rejected'
+        : current.capability ? 'ready' : undefined;
       if (outcome) {
         Object.assign(observation, { outcome, terminal, finished_ms: startup.elapsed() });
         return outcome === 'ready' ? current.capability : undefined;
