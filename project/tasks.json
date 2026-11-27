@@ -26193,7 +26193,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Use .reports/audit-20261127/m0-146-review-corrections/implementation-handoff.json for the two reviewed corrections and their local comparisons. The coordinator owns source-bound review, publication and comparable ordinary full warm Windows PR qualification against 900 seconds. Keep PR145 and PR147 unsplit Python timeout originals separate from the browser scheduling and market recovery observations.",
+      "next_action": "Use .reports/audit-20261127/m0-146-completed-lane/implementation-handoff.json for the completed-lane interruption correction and the retained b1541b81 decisions. The coordinator owns source-bound review, publication and comparable ordinary full warm Windows PR qualification against 900 seconds. Keep PR145 and PR147 unsplit Python timeout originals separate from the browser scheduling and market recovery observations.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -26343,7 +26343,7 @@
             ]
           },
           {
-            "failure": "A real SIGINT between completed recovery work and desktop-localization discarded both harness reports. Exercise the ordinary recovery entry and its publication with the signal at that boundary. Verify exact completed rows and logs, the unstarted localization row, and unsuccessful producer and aggregate results.",
+            "failure": "A real SIGINT discarded both harness reports before desktop-localization on 115a410b. On b1541b81 that boundary retained its evidence, but a real SIGINT after all five recovery results again discarded both reports. Compare a normal run with those two interruptions through the ordinary recovery entry. Verify exact completed rows, logs and Python manifest, both report copies, local recovery, producer and aggregate publication, and exit states. Only the first case with a genuine unstarted check should record interrupted_before_start.",
             "checks": [
               "project-state",
               "python-contracts-workers"

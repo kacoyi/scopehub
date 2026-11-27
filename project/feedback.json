@@ -9266,7 +9266,7 @@
       "status": "open",
       "severity": "major",
       "source": "Independent Astra Standard t1df on 115a410bcaebde3f9d782862701d86e957a75be9. Original response at archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1df/original-assistant-response.jsonl (SHA-256 67648e56ebc6cfab3dd48834ff060e972c7a6502f10a80cdfd008040e084933a).",
-      "observation": "In a replay of the ordinary Windows recovery producer using original results, the Python suffix and three serial checks finished before SIGINT was delivered just before desktop-localization. The scheduler skipped the unstarted check and raised KeyboardInterrupt before either harness report could be written. Completed results were unavailable to local recovery and aggregate diagnostics.",
+      "observation": "In a replay of the ordinary Windows recovery producer using original results, the Python suffix and three serial checks finished before SIGINT was delivered just before desktop-localization. The scheduler skipped the unstarted check and raised KeyboardInterrupt before either harness report could be written. Completed results were unavailable to local recovery and aggregate diagnostics. The independent t1dp replay on b1541b819e0116f7c844684a2d9390940a55fd6f confirmed the earlier boundary is fixed and reproduced the same loss when SIGINT arrived after all five results were available. The scheduler raised KeyboardInterrupt and neither report was written. Original response at archives/observations/repo-hygiene-20261125/independent-final-m0-146-b1541b81/original-assistant-response.jsonl (SHA-256 5aa696bdf54fadb026bbaffcee001273c6f5c4e1ca75cacc320d5e2e186d274b).",
       "task_ids": [
         "M0-146"
       ],

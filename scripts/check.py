@@ -2,7 +2,7 @@
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor, wait
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from contextvars import ContextVar, copy_context
 from datetime import datetime, timezone
 from io import UnsupportedOperation
@@ -83,6 +83,7 @@ PRIVATE_CHECK_LOGS = RUN_OBSERVATION_CHECKS | set(FIELD_ACTIONS) | {'credential-
 STOP_REASONS = {'interrupted', 'cleanup_failed'}
 INTERRUPTED_BEFORE_START = 'interrupted_before_start'
 PYTHON_MANIFEST_INTERRUPTED = 'Interrupted while finalizing the Windows Python manifest.'
+RECOVERY_LANE_INTERRUPTED = 'The Windows recovery lane was interrupted.'
 BUILD_CHECKS = {'typescript-contracts', 'ui-build', 'rust-format', 'rust-contracts-workers',
                 'rust-lints', 'windows-native-build'}
 WINDOWS_BROWSER_CHECKS = {'market-workflow', 'chart-history', 'ubuntu-preview',
@@ -310,9 +311,8 @@ def build_window(catalog, selected, environment, index):
     return window
 
 
-def run_overlapped(checks, env, run_dir, *, system, timed_first=False, retain_between_checks=False):
-    cancel = Event()
-    console = CHECK_CONSOLE.get() or CheckConsole()
+@contextmanager
+def overlap_stop_requests(console):
     interrupted = False
 
     def request_stop(_signum, _frame):
@@ -322,8 +322,20 @@ def run_overlapped(checks, env, run_dir, *, system, timed_first=False, retain_be
         interrupted = True
         console.interrupted = True
 
+    handlers = {signum: signal.signal(signum, request_stop) for signum in (signal.SIGINT, signal.SIGTERM)}
+    try:
+        yield lambda: interrupted
+    finally:
+        for signum, handler in handlers.items():
+            signal.signal(signum, handler)
+
+
+def run_overlapped(checks, env, run_dir, *, system, timed_first=False, recovery_finalization=None):
+    cancel = Event()
+    console = CHECK_CONSOLE.get() or CheckConsole()
+
     def cancelled():
-        return interrupted or cancel.is_set()
+        return interrupted() or cancel.is_set()
 
     def run(check):
         try:
@@ -345,47 +357,49 @@ def run_overlapped(checks, env, run_dir, *, system, timed_first=False, retain_be
 
     results = {}
     unstarted = None
-    handlers = {signum: signal.signal(signum, request_stop) for signum in (signal.SIGINT, signal.SIGTERM)}
     token = CHECK_CONSOLE.set(console)
     console.cooperative = True
     try:
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            python = executor.submit(copy_context().run, run_first)
+        with ExitStack() as overlap:
+            # Recovery owns the stop request until both harness reports are written.
+            signals = recovery_finalization if recovery_finalization is not None else overlap
+            interrupted = signals.enter_context(overlap_stop_requests(console))
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                python = executor.submit(copy_context().run, run_first)
 
-            def wait_for_python():
-                # Service the main-thread signal handler even after the other check has returned.
-                while not python.done():
-                    wait((python,), timeout=.25)
-                return python.result()
+                def wait_for_python():
+                    # Service the main-thread signal handler even after the other check has returned.
+                    while not python.done():
+                        wait((python,), timeout=.25)
+                    return python.result()
 
-            try:
-                for check in checks[1:]:
-                    if cancelled():
-                        unstarted = check
-                        break
-                    results[check['id']] = run(check)
                 try:
-                    result = wait_for_python()
-                except KeyboardInterrupt:
+                    for check in checks[1:]:
+                        if cancelled():
+                            unstarted = check
+                            break
+                        results[check['id']] = run(check)
+                    try:
+                        result = wait_for_python()
+                    except KeyboardInterrupt:
+                        cancel.set()
+                        result = wait_for_python()
+                        if result.get('reason_code') not in STOP_REASONS:
+                            raise
+                    results[checks[0]['id']] = result
+                finally:
                     cancel.set()
-                    result = wait_for_python()
-                    if result.get('reason_code') not in STOP_REASONS:
-                        raise
-                results[checks[0]['id']] = result
-            finally:
-                cancel.set()
-        if interrupted and not any(result.get('reason_code') in STOP_REASONS for result in results.values()):
-            if unstarted is None or not retain_between_checks:
-                raise KeyboardInterrupt
-            results[unstarted['id']] = {
-                'id': unstarted['id'], 'status': 'blocked', 'command': check_command(unstarted),
-                'reason_code': INTERRUPTED_BEFORE_START, 'reason': 'Interrupted before this check was started.',
-            }
+            if interrupted() and not any(result.get('reason_code') in STOP_REASONS for result in results.values()):
+                if recovery_finalization is None:
+                    raise KeyboardInterrupt
+                if unstarted is not None:
+                    results[unstarted['id']] = {
+                        'id': unstarted['id'], 'status': 'blocked', 'command': check_command(unstarted),
+                        'reason_code': INTERRUPTED_BEFORE_START, 'reason': 'Interrupted before this check was started.',
+                    }
     finally:
         console.cooperative = False
         CHECK_CONSOLE.reset(token)
-        for signum, handler in handlers.items():
-            signal.signal(signum, handler)
     return results
 
 
@@ -439,8 +453,27 @@ def checked_session(project, run_dir, key, source):
     return observation
 
 
-@check_console()
 def main():
+    with check_console(), ExitStack() as recovery_finalization:
+        run_verification(recovery_finalization)
+
+
+def publish_report(run_dir, report):
+    validate_model(ROOT, 'HarnessReport', report)
+    contents = json.dumps(report, indent=2) + '\n'
+    # Complete both disk publications before attempting final notification.
+    with defer_finalization_sigint() as interrupted_publication:
+        original = run_dir / 'test-report.tmp'
+        original.write_text(contents, encoding='utf-8')
+        original.replace(run_dir / 'test-report.json')
+        latest = REPORTS / f"{report['run_id']}.tmp"
+        latest.write_text(contents, encoding='utf-8')
+        latest.replace(REPORTS / 'test-report.json')
+    if interrupted_publication():
+        CHECK_CONSOLE.get().interrupted = True
+
+
+def run_verification(recovery_finalization):
     started = time.monotonic()
     parser = argparse.ArgumentParser()
     parser.add_argument('--require-windows', action='store_true')
@@ -510,6 +543,7 @@ def main():
     python_parts = {}
     producer_reports = {}
     part_failed = False
+    recovery_interrupted = False
     lane = args.ci_windows_lane
     recovery_window = []
     part_check = None
@@ -535,6 +569,7 @@ def main():
         results = imported['checks']
         python_parts = imported.get('windows_python', {})
         producer_reports = imported.get('windows_producers', {})
+        recovery_interrupted = RECOVERY_LANE_INTERRUPTED in imported.get('limitations', ())
         started = time.monotonic() - elapsed
         catalog = []
     else:
@@ -549,7 +584,7 @@ def main():
         if not stopped and recovery_window and check['id'] == recovery_window[0]['id']:
             concurrent_results = run_overlapped([part_check, *recovery_window], env, run_dir,
                                                 system=environment['system'], timed_first=True,
-                                                retain_between_checks=True)
+                                                recovery_finalization=recovery_finalization)
             stopped = concurrent_results[part_check['id']].get('reason_code') in STOP_REASONS
         if check['id'] not in concurrent_results and (check['id'] not in selected or stopped):
             results.append({'id': check['id'], 'status': 'blocked', 'command': command,
@@ -706,26 +741,29 @@ def main():
             ['git', 'status', '--short'], cwd=ROOT, env=env, capture_output=True, check=True,
             text=True, encoding='utf-8', errors='replace',
         ).stdout.splitlines()
-    validate_model(ROOT, 'HarnessReport', report)
-    contents = json.dumps(report, indent=2) + '\n'
-    # Complete both disk publications before attempting final notification.
-    # Limit deferral to disk I/O, so the console can always be interrupted.
-    with defer_finalization_sigint() as interrupted_publication:
-        original = run_dir / 'test-report.tmp'
-        original.write_text(contents, encoding='utf-8')
-        original.replace(run_dir / 'test-report.json')
-        latest = REPORTS / f'{run_id}.tmp'
-        latest.write_text(contents, encoding='utf-8')
-        latest.replace(REPORTS / 'test-report.json')
     console = CHECK_CONSOLE.get()
-    if interrupted_publication():
-        console.interrupted = True
+
+    def record_recovery_interruption():
+        if not (recovery_interrupted or recovery_window and console.interrupted):
+            return False
+        if RECOVERY_LANE_INTERRUPTED in report['limitations']:
+            return False
+        report['limitations'].append(RECOVERY_LANE_INTERRUPTED)
+        report.update(status='failed', product_complete=False)
+        return True
+
+    record_recovery_interruption()
+    publish_report(run_dir, report)
+    recovery_finalization.close()
+    if record_recovery_interruption():
+        # The stop arrived while the first copies were being published.
+        publish_report(run_dir, report)
     print_check({'report': (run_dir / 'test-report.json').relative_to(ROOT).as_posix(),
                  'status': report['status'], 'source_unchanged': source_unchanged,
                  'm0_complete': next(item['status'] == 'passed' for item in milestones if item['id'] == 'M0')})
     local_blocked = any(r['status'] == 'blocked' and project['checks'][r['id']]['platforms'] == 'all' for r in implemented)
     selection_blocked = bool(args.task or args.profile) and any(r['status'] != 'passed' for r in results if r['id'] in selected)
-    exit_code = 1 if failed or local_blocked or selection_blocked or native_blocked or integration_blocked else 0
+    exit_code = 1 if report['status'] == 'failed' or local_blocked or selection_blocked or native_blocked or integration_blocked else 0
     if exit_code:
         recovery_command = f'pnpm project:recover --task {args.task} --save' if args.task else RECOVERY_COMMAND
         print_check({'recovery_command': recovery_command,
