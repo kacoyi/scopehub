@@ -271,7 +271,7 @@ def stops_after_check(result, *, fail_fast=False):
             or (result['status'] != 'passed' and (fail_fast or result['id'] == 'environment')))
 
 
-def windows_lane_checks(selected, lane, *, python_split=False, recovery_owns_market_workflow=False, ownership=None):
+def windows_lane_checks(selected, lane, *, python_split=False, recovery_checks=frozenset(), ownership=None):
     if ownership is None:
         ownership = WINDOWS_LANE_CHECKS
     if python_split and lane == 'python':
@@ -279,11 +279,11 @@ def windows_lane_checks(selected, lane, *, python_split=False, recovery_owns_mar
     if lane == 'core':
         return selected.difference(*ownership.values())
     owned = ownership.get(lane, set())
-    if python_split and recovery_owns_market_workflow:
+    if python_split:
         if lane == 'browser':
-            owned = owned - {'market-workflow'}
+            owned = owned - recovery_checks
         elif lane == 'recovery':
-            owned = owned | {'market-workflow'}
+            owned = owned | (ownership['browser'] & recovery_checks)
     return selected & owned
 
 
@@ -470,7 +470,7 @@ def main():
     if args.ci_windows_lane:
         selected = windows_lane_checks(
             selected, args.ci_windows_lane, python_split=python_split,
-            recovery_owns_market_workflow=python_split and windows_python.RECOVERY_OWNS_MARKET_WORKFLOW,
+            recovery_checks=windows_python.RECOVERY_PR_CHECKS if python_split else frozenset(),
         )
     maintain_automatically(ROOT)
     project_hash = project_definition_hash(project)
@@ -503,9 +503,9 @@ def main():
     if python_split and lane in windows_python.LANES:
         part_check = {**project['checks'][windows_python.CHECK], 'id': windows_python.part_id(lane),
                       'command': windows_python.command(sys.executable, lane)}
-        if lane == 'recovery' and windows_python.RECOVERY_OWNS_MARKET_WORKFLOW:
+        if lane == 'recovery' and windows_python.RECOVERY_PR_CHECKS:
             # Python uses self-contained test checkouts and ephemeral listeners.
-            # Keep the three browser and Cargo checks serial on the other worker.
+            # Keep the browser and Cargo checks serial on the other worker.
             recovery_window = [check for check in catalog if check['id'] in selected
                                and check['status'] == 'implemented' and check['platforms'] == 'all']
     if args.ci_windows_aggregate:

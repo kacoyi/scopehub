@@ -16,8 +16,8 @@ CHECK = 'python-contracts-workers'
 LANES = ('python', 'recovery')
 LEGACY_CUTOFF = 'tests.project.test_verification_scope'
 CUTOFF = 'tests.project.test_review_acceptance'
-# Historical split sources without this declaration kept market-workflow on browser.
-RECOVERY_OWNS_MARKET_WORKFLOW = True
+# The publisher reads the transfer from the tested commit.
+RECOVERY_PR_CHECKS = {'market-workflow', 'desktop-localization'}
 COMMAND = ['{python}', '-m', 'unittest', 'discover', '-s', 'tests', '-t', '.',
            '-p', 'test_*.py', '-v', '--durations', '0']
 REPORT_VERSION = '2.1'

@@ -676,10 +676,10 @@ class WindowsLaneTests(ProjectFixture):
             shutil.copyfile(runner_source, runner)
         if legacy_market_workflow:
             source = runner.read_text(encoding='utf-8')
-            source = source.replace('RECOVERY_OWNS_MARKET_WORKFLOW = True\n', '', 1).replace(
+            source = source.replace("RECOVERY_PR_CHECKS = {'market-workflow', 'desktop-localization'}\n", '', 1).replace(
                 f'CUTOFF = {windows_python.CUTOFF!r}\n', f'CUTOFF = {windows_python.LEGACY_CUTOFF!r}\n', 1)
             runner.write_text(source, encoding='utf-8')
-            self.enterContext(patch.object(windows_python, 'RECOVERY_OWNS_MARKET_WORKFLOW', False))
+            self.enterContext(patch.object(windows_python, 'RECOVERY_PR_CHECKS', set()))
             schema_path = self.root / 'contracts/schemas/project.schema.json'
             schema = read_json(schema_path)
             schema['$defs']['HostedHarnessReport']['properties'].pop('windows_producers', None)
@@ -1683,6 +1683,12 @@ class WindowsLaneTests(ProjectFixture):
             self.assertFalse((rejected / latest).exists())
 
     def test_recovery_overlap_does_not_restart_checks_after_python_cleanup_failure(self):
+        catalog_path = self.root / 'project/checks.json'
+        catalog = read_json(catalog_path)
+        localization = 'desktop-localization'
+        catalog['checks'].append(dict(catalog['checks'][0], id=localization))
+        catalog['required_change_checks'].append(localization)
+        catalog_path.write_bytes(json_bytes(catalog))
         self.partition_fixture()
         recovery_started = Event()
         execute = harness.execute
@@ -1693,7 +1699,7 @@ class WindowsLaneTests(ProjectFixture):
                 result = execute(name, command, env, run_dir, timeout, cancel=cancel)
                 return {**result, 'status': 'failed', 'reason_code': 'cleanup_failed'}
             if name != 'market-recovery':
-                self.assertNotEqual('market-recovery-ui', name)
+                self.assertNotIn(name, {'market-recovery-ui', localization})
                 return execute(name, command, env, run_dir, timeout, cancel=cancel)
             recovery_started.set()
             result = execute(name, command, env, run_dir, timeout)
@@ -1711,6 +1717,8 @@ class WindowsLaneTests(ProjectFixture):
         interruption = rows['market-recovery-ui']
         self.assertEqual(('blocked', 'earlier_failure'), (interruption['status'], interruption['reason_code']))
         self.assertNotIn('log', interruption)
+        self.assertEqual(('blocked', 'earlier_failure'), (rows[localization]['status'], rows[localization]['reason_code']))
+        self.assertNotIn('log', rows[localization])
         part = producer['windows_python']['recovery']
         self.assertEqual('cleanup_failed', part['reason_code'])
 
@@ -1719,6 +1727,7 @@ class WindowsLaneTests(ProjectFixture):
             code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
             self.assertEqual((1, 'failed'), (code, report['status']))
             self.assertIn(interruption, report['checks'])
+            self.assertIn(rows[localization], report['checks'])
             self.assertTrue(ci_artifacts.stage_artifacts(self.root, archived, os.environ))
             changed = deepcopy(report)
             changed['checks'][changed['checks'].index(interruption)]['reason'] = 'A different diagnostic reason.'
@@ -1768,6 +1777,7 @@ class WindowsLaneTests(ProjectFixture):
         catalog_path = self.root / 'project/checks.json'
         catalog = read_json(catalog_path)
         check = 'market-workflow'
+        localization = 'desktop-localization'
         command = ['{python}', '-c', dedent('''\
             import os, time
             from pathlib import Path
@@ -1782,14 +1792,34 @@ class WindowsLaneTests(ProjectFixture):
             ''')]
         catalog['checks'].append(dict(catalog['checks'][0], id=check, command=command))
         catalog['required_change_checks'].append(check)
+        catalog['checks'].append(dict(catalog['checks'][0], id=localization,
+                                      command=['{python}', '-c', dedent('''\
+                                          import os
+                                          print('desktop localization fixture')
+                                          if 'SCOPEHUB_FIXTURE_LOCALIZATION_FAILURE' in os.environ:
+                                              raise SystemExit(17)
+                                          ''')]))
+        catalog['required_change_checks'].append(localization)
         catalog_path.write_bytes(json_bytes(catalog))
         self.partition_fixture(receipt_scope=True, legacy_market_workflow=legacy, cutoff_case=True)
 
         project_checks = harness.select_checks(harness.load_project(self.root))
         for lane in harness.WINDOWS_LANES:
             # Main pushes, which never run the split, retain their existing assignments.
-            self.assertEqual(lane == 'browser', check in harness.windows_lane_checks(
-                project_checks, lane, recovery_owns_market_workflow=True))
+            assigned = harness.windows_lane_checks(project_checks, lane, recovery_checks={check, localization})
+            self.assertEqual({check, localization} if lane == 'browser' else set(), assigned & {check, localization})
+
+        if not legacy:
+            with patch.dict(os.environ, {'SCOPEHUB_FIXTURE_LOCALIZATION_FAILURE': '1'}):
+                code, failed = self.run_harness('--ci-windows-lane', owner)
+            failure = next(row for row in failed['checks'] if row['id'] == localization)
+            self.assertEqual((1, 'failed', 'failed', 17), (code, failed['status'], failure['status'], failure['exit_code']))
+            with tempfile.TemporaryDirectory() as directory:
+                staged = Path(directory) / 'failed-localization'
+                self.assertTrue(ci_artifacts.stage_artifacts(self.root, staged, os.environ, lane=owner))
+                self.assertEqual(failure['log_sha256'],
+                                 project.file_digest(staged / failure['log'].removeprefix('.reports/')))
+            shutil.rmtree(self.reports)
 
         with (patch.object(harness, 'execute', wraps=harness.execute) as execute,
               patch.dict(os.environ, {'SCOPEHUB_FIXTURE_REQUIRE_OVERLAP': '0' if legacy else '1'})):
@@ -1797,6 +1827,9 @@ class WindowsLaneTests(ProjectFixture):
         self.assertEqual([owner], [lane for lane, producer in lanes.items()
                                   if check in producer['selection']['checks']])
         self.assertEqual(1, sum(call.args[0] == check for call in execute.call_args_list))
+        self.assertEqual([owner], [lane for lane, producer in lanes.items()
+                                  if localization in producer['selection']['checks']])
+        self.assertEqual(1, sum(call.args[0] == localization for call in execute.call_args_list))
         case_owners = []
         for lane in windows_python.LANES:
             run = lanes[lane]['run_id']
@@ -1815,6 +1848,11 @@ class WindowsLaneTests(ProjectFixture):
         relative = row['log'].removeprefix('.reports/')
         self.assertEqual((self.downloads / f'verification-windows-2-{owner}' / relative).read_bytes(),
                          (published / relative).read_bytes())
+        localization_row, = (row for row in report['checks'] if row['id'] == localization)
+        self.assertIn(localization_row, lanes[owner]['checks'])
+        localization_log = localization_row['log'].removeprefix('.reports/')
+        self.assertEqual((self.downloads / f'verification-windows-2-{owner}' / localization_log).read_bytes(),
+                         (published / localization_log).read_bytes())
         omitted = next(row for row in report['checks'] if row['id'] == 'runtime-stability')
         self.assertEqual(('blocked', 'not_selected'), (omitted['status'], omitted['reason_code']))
         self.assertNotIn('log', omitted)
@@ -1837,7 +1875,7 @@ class WindowsLaneTests(ProjectFixture):
         # Open with the current reader, including when the producer predates the move.
         self.checkout_report_head(report)
         path = published / 'test-report.json'
-        with patch.object(windows_python, 'RECOVERY_OWNS_MARKET_WORKFLOW', True):
+        with patch.object(windows_python, 'RECOVERY_PR_CHECKS', {check, localization}):
             receipt = self.record_report(path, artifact=published)
             with self.replace_artifact_bytes(published, {latest: altered, per_run: altered}):
                 self.record_report(path, artifact=published, task='M0-004', error=check)
@@ -1854,6 +1892,11 @@ class WindowsLaneTests(ProjectFixture):
                     producer_path: bad_producer, 'test-report.json': json_bytes(changed)}):
                 self.record_report(path, artifact=published, error='producer')
             self.assertEqual(receipt, self.record_report(path, artifact=published))
+            if not legacy:
+                changed = deepcopy(report)
+                changed['checks'][changed['checks'].index(localization_row)]['duration_seconds'] += 1
+                with self.replace_artifact_bytes(published, dict.fromkeys((latest, per_run), json_bytes(changed))):
+                    self.record_report(path, artifact=published, error=localization)
         self.assertEqual(recovery['producer_report_sha256'], project.file_digest(published / producer_path))
         browser_original = published / f"runs/{report['run_id']}/windows-browser.producer.json"
         if legacy:

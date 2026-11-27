@@ -478,9 +478,24 @@ def runner_partition_cutoff(runner):
     return cutoffs[0].decode('ascii')
 
 
-def runner_assigns_market_workflow_to_recovery(runner):
-    return re.search(rb'^RECOVERY_OWNS_MARKET_WORKFLOW[ \t]*=[ \t]*True[ \t]*\r?$',
-                     runner, re.MULTILINE) is not None
+def runner_recovery_checks(runner):
+    if runner is None:
+        return set()
+    try:
+        declarations = [node.value for node in ast.parse(runner).body
+                        if isinstance(node, ast.Assign) and len(node.targets) == 1
+                        and isinstance(node.targets[0], ast.Name) and node.targets[0].id == 'RECOVERY_PR_CHECKS']
+        if declarations:
+            declaration, = declarations
+            checks = ast.literal_eval(declaration)
+            if not isinstance(checks, set) or not all(isinstance(key, str) for key in checks):
+                raise ValueError('Invalid recovery check selection.')
+            return checks
+    except (SyntaxError, TypeError, ValueError) as error:
+        raise PublicationError('Unrecognized Windows PR recovery selection in the recorded source.') from error
+    if re.search(rb'^RECOVERY_OWNS_MARKET_WORKFLOW[ \t]*=[ \t]*True[ \t]*\r?$', runner, re.MULTILINE):
+        return {'market-workflow'}
+    return set()
 
 
 def validate_hosted_platform(report, platform):
@@ -582,12 +597,10 @@ def committed_lane_ownership(source):
         raise PublicationError('Unrecognized Windows lane ownership in the recorded source.') from error
 
 
-def windows_assignments(source, selected, runner):
-    split = runner is not None
-    recovery_owns_workflow = split and runner_assigns_market_workflow_to_recovery(runner)
+def windows_assignments(source, selected, *, split, recovery_checks):
     ownership = committed_lane_ownership(source)
     return {lane: windows_lane_checks(
-        selected, lane, python_split=split, recovery_owns_market_workflow=recovery_owns_workflow, ownership=ownership,
+        selected, lane, python_split=split, recovery_checks=recovery_checks, ownership=ownership,
     ) for lane in WINDOWS_LANES}
 
 
@@ -605,13 +618,14 @@ def validate_windows_aggregate(root, project, reports, report, source, source_co
              and source_uses_windows_python_parts(committed))
     retain, part_reports = source_producer_bindings(committed)
     runner = committed_windows_python(committed) if split else None
-    assignments = windows_assignments(committed, selected, runner)
+    recovery_checks = runner_recovery_checks(runner)
+    assignments = windows_assignments(committed, selected, split=split, recovery_checks=recovery_checks)
     rows = {row['id']: row for row in report['checks']}
     native = rows.get('windows-native-build', {})
     native_ok = native.get('status') == 'passed' and native.get('exit_code') == 0
     validate_windows_lane(project, report, source, ci, selected, 'aggregate', 'full',
                           native_requirement={'requested': True, 'satisfied': native_ok})
-    recovery_overlap = split and runner_assigns_market_workflow_to_recovery(runner)
+    recovery_overlap = bool(recovery_checks)
     for lane, lane_selection in assignments.items():
         validate_producer_outcomes(report, lane_selection, lane, recovery_overlap=recovery_overlap)
     required = project['catalog']['required_change_checks']
@@ -679,10 +693,13 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=None, collecti
             split = (windows_python.enabled(project, expected, selected)
                      and source_uses_windows_python_parts(committed))
             runner = committed_windows_python(committed) if split else None
-            assignments = windows_assignments(committed, selected, runner)
+            recovery_checks = runner_recovery_checks(runner)
+            assignments = windows_assignments(committed, selected, split=split, recovery_checks=recovery_checks)
+        else:
+            recovery_checks = runner_recovery_checks(runner)
         lane_selection = assignments[lane]
         profile = f'ci-windows-{lane}'
-        recovery_overlap = runner is not None and runner_assigns_market_workflow_to_recovery(runner)
+        recovery_overlap = bool(recovery_checks)
         identity_failure = not report['source_unchanged'] or not report['project_unchanged']
         if source is None and identity_failure:
             # Retain a finalized diagnostic for the failed producer. Collection
@@ -916,7 +933,7 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
     retain, retain_part_producers = source_producer_bindings(committed) if not profile else (False, False)
     runner = committed_windows_python(committed) if partitioned else None
     cutoff = runner_partition_cutoff(runner) if partitioned else None
-    assignments = windows_assignments(committed, selected, runner)
+    assignments = windows_assignments(committed, selected, split=partitioned, recovery_checks=runner_recovery_checks(runner))
     retained_lanes = ordinary_producer_lanes(assignments, partitioned, retain)
     started = []
     caches = {}
