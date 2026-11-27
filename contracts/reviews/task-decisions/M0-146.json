@@ -378,6 +378,15 @@
       },
       "supersedes": "bdee55a93bd4f8b9500ca23e8b4b515acc991bb418fe0c0c1ed189cba948c18b",
       "evidence_sha256": "9058a0e3e26d6fd63671cea0f456b204a32ca4da9736ddfaedbd624925f4cc03"
+    },
+    {
+      "kind": "request",
+      "source_commit": "cba1e6e4e71eb5c6564e3d8edced38057bfd7880",
+      "scope": "Review the exact source at the common Windows boundary with the original browser-owned and current recovery-owned market-workflow and both retained recovery rows. Repeat selected and unselected substitution, valid skips and real earlier_failure controls, match all original reports and current isolated and overlapped Linux callbacks, and verify that composing e593f4f3 and correcting the legacy test fixture preserved the full 35-check schedule and 1200-second Python deadline. Keep the first ordinary full warm Windows PR and its 900-second objective open until directly measured.",
+      "supersedes": "239eb83abffdeecfee0bd50b980d0a03fe0ec982ba552965907d14b20186a0a5",
+      "requested_at": "2026-11-27T03:12:06.730424+00:00",
+      "request_id": "3466d977e31fca07610f5b0857fc36a80f52d556bad96c0e8736cb1aa632eadf",
+      "evidence_sha256": "7b897d9cf2deaddb2ef8abff324ca832e74d08e7520ee45bbd4b710d7e04e9be"
     }
   ]
 }
