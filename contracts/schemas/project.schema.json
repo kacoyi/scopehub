@@ -1533,6 +1533,10 @@
               "log_sha256": {
                 "type": "string",
                 "pattern": "^[a-f0-9]{64}$"
+              },
+              "browser_results_sha256": {
+                "type": ["string", "null"],
+                "pattern": "^[a-f0-9]{64}$"
               }
             },
             "required": [
@@ -1709,7 +1713,7 @@
         "checks": {
           "items": {
             "propertyNames": {"enum": ["id", "status", "command", "reason", "reason_code", "duration_seconds",
-              "exit_code", "log", "log_sha256", "observation", "field_observation"]}
+              "exit_code", "log", "log_sha256", "observation", "field_observation", "browser_results_sha256"]}
           }
         }
       },

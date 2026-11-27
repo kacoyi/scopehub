@@ -40,7 +40,7 @@ try:
         from .storage import maintain_automatically
         from .verification_evidence import (
             FIELD_ACTIONS, RUN_OBSERVATION_CHECKS, collect_run_observation, field_observation,
-            integration_validation, redacted_check_log, release_artifacts,
+            hosted_artifact_path, integration_validation, redacted_check_log, release_artifacts,
         )
     else:
         from doctor import tool_version
@@ -53,7 +53,7 @@ try:
         from storage import maintain_automatically
         from verification_evidence import (
             FIELD_ACTIONS, RUN_OBSERVATION_CHECKS, collect_run_observation, field_observation,
-            integration_validation, redacted_check_log, release_artifacts,
+            hosted_artifact_path, integration_validation, redacted_check_log, release_artifacts,
         )
 except Exception as error:
     if __name__ != '__main__':
@@ -84,6 +84,10 @@ STOP_REASONS = {'interrupted', 'cleanup_failed'}
 INTERRUPTED_BEFORE_START = 'interrupted_before_start'
 PYTHON_MANIFEST_INTERRUPTED = 'Interrupted while finalizing the Windows Python manifest.'
 RECOVERY_LANE_INTERRUPTED = 'The Windows recovery lane was interrupted.'
+WINDOWS_PYTHON_INTERRUPTION = {
+    'python': 'The Windows Python lane was interrupted.',
+    'recovery': RECOVERY_LANE_INTERRUPTED,
+}
 BUILD_CHECKS = {'typescript-contracts', 'ui-build', 'rust-format', 'rust-contracts-workers',
                 'rust-lints', 'windows-native-build'}
 WINDOWS_BROWSER_CHECKS = {'market-workflow', 'chart-history', 'ubuntu-preview',
@@ -104,6 +108,8 @@ WINDOWS_PR_CHECK_TRANSFERS = {
     'workspace': {'workspace-timeframe', 'desktop-workspace-transport',
                   'market-recovery-ui', 'desktop-localization'},
 }
+WINDOWS_WORKSPACE_RESULT_CHECKS = WINDOWS_PR_CHECK_TRANSFERS[WINDOWS_WORKSPACE_LANE]
+BROWSER_RESULTS_DIGEST = 'browser_results_sha256'
 WINDOWS_LANES_RUN_PREFIX = 'windows-change-'
 CHECK_OUTPUT_LOCK = Lock()
 CHECK_CONSOLE = ContextVar('check_console', default=None)
@@ -325,25 +331,36 @@ def build_window(catalog, selected, environment, index):
 
 
 @contextmanager
-def overlap_stop_requests(console):
+def cooperative_stop_requests(console):
     interrupted = False
+    finished = False
 
     def request_stop(_signum, _frame):
         # Signal delivery can interrupt process launch or lock acquisition.
         # Let each lane observe the request inside its normal cleanup path.
         nonlocal interrupted
-        interrupted = True
+        if not finished:
+            interrupted = True
         console.interrupted = True
 
+    def stop_requested(*, finish=False):
+        nonlocal finished
+        if finish:
+            finished = True
+        return interrupted
+
+    previous_cooperation = console.cooperative
+    console.cooperative = True
     handlers = {signum: signal.signal(signum, request_stop) for signum in (signal.SIGINT, signal.SIGTERM)}
     try:
-        yield lambda: interrupted
+        yield stop_requested
     finally:
         for signum, handler in handlers.items():
             signal.signal(signum, handler)
+        console.cooperative = previous_cooperation
 
 
-def run_overlapped(checks, env, run_dir, *, system, timed_first=False, recovery_finalization=None):
+def run_overlapped(checks, env, run_dir, *, system, timed_first=False, stop_requested=None):
     cancel = Event()
     console = CHECK_CONSOLE.get() or CheckConsole()
 
@@ -371,12 +388,9 @@ def run_overlapped(checks, env, run_dir, *, system, timed_first=False, recovery_
     results = {}
     unstarted = None
     token = CHECK_CONSOLE.set(console)
-    console.cooperative = True
     try:
         with ExitStack() as overlap:
-            # Recovery owns the stop request until both harness reports are written.
-            signals = recovery_finalization if recovery_finalization is not None else overlap
-            interrupted = signals.enter_context(overlap_stop_requests(console))
+            interrupted = stop_requested or overlap.enter_context(cooperative_stop_requests(console))
             with ThreadPoolExecutor(max_workers=1) as executor:
                 python = executor.submit(copy_context().run, run_first)
 
@@ -403,7 +417,7 @@ def run_overlapped(checks, env, run_dir, *, system, timed_first=False, recovery_
                 finally:
                     cancel.set()
             if interrupted() and not any(result.get('reason_code') in STOP_REASONS for result in results.values()):
-                if recovery_finalization is None:
+                if stop_requested is None:
                     raise KeyboardInterrupt
                 if unstarted is not None:
                     results[unstarted['id']] = {
@@ -411,7 +425,6 @@ def run_overlapped(checks, env, run_dir, *, system, timed_first=False, recovery_
                         'reason_code': INTERRUPTED_BEFORE_START, 'reason': 'Interrupted before this check was started.',
                     }
     finally:
-        console.cooperative = False
         CHECK_CONSOLE.reset(token)
     return results
 
@@ -467,8 +480,8 @@ def checked_session(project, run_dir, key, source):
 
 
 def main():
-    with check_console(), ExitStack() as recovery_finalization:
-        run_verification(recovery_finalization)
+    with check_console(), ExitStack() as producer_signals:
+        run_verification(producer_signals)
 
 
 def publish_report(run_dir, report):
@@ -486,7 +499,7 @@ def publish_report(run_dir, report):
         CHECK_CONSOLE.get().interrupted = True
 
 
-def run_verification(recovery_finalization):
+def run_verification(producer_signals):
     started = time.monotonic()
     parser = argparse.ArgumentParser()
     parser.add_argument('--require-windows', action='store_true')
@@ -560,11 +573,15 @@ def run_verification(recovery_finalization):
     python_parts = {}
     producer_reports = {}
     part_failed = False
-    recovery_interrupted = False
+    part_interruption = None
+    part_stop_requested = None
+    imported_interruptions = []
     lane = args.ci_windows_lane
     recovery_window = []
     part_check = None
     if python_split and lane in windows_python.LANES:
+        part_interruption = WINDOWS_PYTHON_INTERRUPTION[lane]
+        part_stop_requested = producer_signals.enter_context(cooperative_stop_requests(CHECK_CONSOLE.get()))
         part_check = {**project['checks'][windows_python.CHECK], 'id': windows_python.part_id(lane),
                       'command': windows_python.command(sys.executable, lane)}
         if lane == 'recovery' and windows_python.RECOVERY_PR_CHECKS:
@@ -586,7 +603,8 @@ def run_verification(recovery_finalization):
         results = imported['checks']
         python_parts = imported.get('windows_python', {})
         producer_reports = imported.get('windows_producers', {})
-        recovery_interrupted = RECOVERY_LANE_INTERRUPTED in imported.get('limitations', ())
+        imported_interruptions = [marker for marker in WINDOWS_PYTHON_INTERRUPTION.values()
+                                  if marker in imported.get('limitations', ())]
         started = time.monotonic() - elapsed
         catalog = []
     else:
@@ -601,7 +619,7 @@ def run_verification(recovery_finalization):
         if not stopped and recovery_window and check['id'] == recovery_window[0]['id']:
             concurrent_results = run_overlapped([part_check, *recovery_window], env, run_dir,
                                                 system=environment['system'], timed_first=True,
-                                                recovery_finalization=recovery_finalization)
+                                                stop_requested=part_stop_requested)
             stopped = concurrent_results[part_check['id']].get('reason_code') in STOP_REASONS
         if check['id'] not in concurrent_results and (check['id'] not in selected or stopped):
             results.append({'id': check['id'], 'status': 'blocked', 'command': command,
@@ -627,6 +645,14 @@ def run_verification(recovery_finalization):
                         for row in results):
                     check_env = {**env, 'SCOPEHUB_REUSE_OPERATIONS_BUILD': '1'}
                 result = execute(check['id'], command, check_env, run_dir, check_timeout(check, environment['system']))
+            if lane and check['id'] in WINDOWS_WORKSPACE_RESULT_CHECKS and 'log' in result:
+                result[BROWSER_RESULTS_DIGEST] = None
+                try:
+                    artifact = hosted_artifact_path(run_dir, f"{check['id']}/results.json")
+                    result[BROWSER_RESULTS_DIGEST] = file_digest(artifact)
+                except (OSError, ProjectError) as error:
+                    if result['status'] == 'passed':
+                        result.update(status='failed', reason_code='missing_acceptance_evidence', reason=str(error))
             if result['status'] == 'passed':
                 try:
                     if check['id'] in RUN_OBSERVATION_CHECKS:
@@ -650,27 +676,21 @@ def run_verification(recovery_finalization):
             if record is None:
                 timeout = check_timeout(part_check, environment['system'])
                 part_start = datetime.now(timezone.utc).isoformat()
-                record = execute(label, part_command, env, run_dir, timeout)
+                record = execute(label, part_command, env, run_dir, timeout, cancel=part_stop_requested)
                 if 'duration_seconds' in record:
                     record['started_at'] = part_start
             manifest = run_dir / f'{label}.json'
-            with defer_finalization_sigint() as interrupted_manifest:
-                if manifest.is_file() and 'log_sha256' in record:
-                    try:
-                        # execute() has already closed and digested the complete original log.
-                        windows_python.seal_manifest(manifest, record['log_sha256'])
-                        record['manifest_sha256'] = file_digest(manifest)
-                    except (OSError, ValueError) as error:
-                        if record.get('reason_code') not in STOP_REASONS:
-                            record.update(status='failed', reason_code='missing_acceptance_evidence', reason=str(error))
-                elif record['status'] == 'passed':
-                    record.update(status='failed', reason_code='missing_acceptance_evidence',
-                                  reason='Windows Python part completed without its case manifest.')
-            if interrupted_manifest():
-                CHECK_CONSOLE.get().interrupted = True
-                if record.get('reason_code') not in STOP_REASONS:
-                    record.update(status='failed', reason_code='interrupted',
-                                  reason=PYTHON_MANIFEST_INTERRUPTED)
+            if manifest.is_file() and 'log_sha256' in record:
+                try:
+                    # execute() has already closed and digested the complete original log.
+                    windows_python.seal_manifest(manifest, record['log_sha256'])
+                    record['manifest_sha256'] = file_digest(manifest)
+                except (OSError, ValueError) as error:
+                    if record.get('reason_code') not in STOP_REASONS:
+                        record.update(status='failed', reason_code='missing_acceptance_evidence', reason=str(error))
+            elif record['status'] == 'passed':
+                record.update(status='failed', reason_code='missing_acceptance_evidence',
+                              reason='Windows Python part completed without its case manifest.')
         python_parts[lane] = record
         part_failed = record['status'] != 'passed'
     final_source = source_identity(ROOT)
@@ -703,7 +723,7 @@ def run_verification(recovery_finalization):
     if integration_blocked:
         passed = False
     lane_failure = bool(args.ci_windows_aggregate and os.environ.get('SCOPEHUB_WINDOWS_LANE_RESULT') != 'success')
-    failed = (any(check_failed(result) for result in implemented) or lane_failure or part_failed
+    failed = (any(check_failed(result) for result in implemented) or lane_failure or part_failed or bool(imported_interruptions)
               or not source_unchanged or not project_unchanged)
     milestones, acceptance = product_progress(project, results)
     report = {
@@ -732,6 +752,7 @@ def run_verification(recovery_finalization):
             'Execution snapshots exclude workflow records; the project-state check validates those records separately.',
             'Task and decision definitions must remain unchanged during verification and match when evidence is recorded.',
             'A dirty-worktree digest identifies tested inputs but does not independently preserve their source bytes.',
+            *imported_interruptions,
         ],
     }
     if python_parts:
@@ -760,20 +781,19 @@ def run_verification(recovery_finalization):
         ).stdout.splitlines()
     console = CHECK_CONSOLE.get()
 
-    def record_recovery_interruption():
-        if not (recovery_interrupted or recovery_window and console.interrupted):
+    def record_producer_interruption():
+        if part_interruption in report['limitations']:
             return False
-        if RECOVERY_LANE_INTERRUPTED in report['limitations']:
-            return False
-        report['limitations'].append(RECOVERY_LANE_INTERRUPTED)
+        report['limitations'].append(part_interruption)
         report.update(status='failed', product_complete=False)
         return True
 
-    record_recovery_interruption()
+    if part_stop_requested and part_stop_requested():
+        record_producer_interruption()
     publish_report(run_dir, report)
-    recovery_finalization.close()
-    if record_recovery_interruption():
-        # The stop arrived while the first copies were being published.
+    # Freeze the decision after both publications. Later signals can still
+    # unblock notification, but cannot change the recorded producer verdict.
+    if part_stop_requested and part_stop_requested(finish=True) and record_producer_interruption():
         publish_report(run_dir, report)
     print_check({'report': (run_dir / 'test-report.json').relative_to(ROOT).as_posix(),
                  'status': report['status'], 'source_unchanged': source_unchanged,
@@ -785,7 +805,7 @@ def run_verification(recovery_finalization):
         recovery_command = f'pnpm project:recover --task {args.task} --save' if args.task else RECOVERY_COMMAND
         print_check({'recovery_command': recovery_command,
                      'failed_report': (run_dir / 'test-report.json').relative_to(ROOT).as_posix()})
-    raise SystemExit(exit_code or int(console.interrupted))
+    raise SystemExit(exit_code or int(part_stop_requested is None and console.interrupted))
 
 
 if __name__ == '__main__':

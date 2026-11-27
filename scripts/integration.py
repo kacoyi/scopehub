@@ -42,6 +42,11 @@ FULL_HARNESS_STEPS = {
     'verify (windows-latest)': 'Run uv run python scripts/check.py --require-windows',
 }
 SCOPED_HARNESS_STEPS = {f'Verify {profile} changes': profile for profile in SCOPED_PROFILES}
+WINDOWS_PRODUCER_LAYOUTS = {
+    timing.WINDOWS_AGGREGATE_MARKER: timing.LEGACY_WINDOWS_LANES,
+    timing.WINDOWS_RECOVERY_MARKER: timing.WINDOWS_RECOVERY_LANES,
+    timing.WINDOWS_WORKSPACE_MARKER: timing.WINDOWS_WORKSPACE_LANES,
+}
 MAIN_PUSH_BUDGET_POLICY = 'post_merge_main_push_budget'
 RECURRING_PUSH_BUDGET_POLICY = 'recurring_main_push_budget'
 # This exception belongs to one reviewed repair. The first policy PR cannot
@@ -122,11 +127,16 @@ def job_verification_profile(job):
     return None
 
 
+def tested_merge_tree(tested):
+    tree = tested.get('tree')
+    sha = tree.get('sha') if isinstance(tree, dict) else None
+    return sha if isinstance(sha, str) and re.fullmatch(REVISION, sha) else None
+
+
 def expected_verification_profile(root, base, head, tested):
     """Use the head comparison only when it represents the checked merge tree."""
-    tree = tested.get('tree')
-    merge_tree = tree.get('sha') if isinstance(tree, dict) else None
-    if not isinstance(merge_tree, str) or not re.fullmatch(REVISION, merge_tree):
+    merge_tree = tested_merge_tree(tested)
+    if merge_tree is None:
         return 'full', 'The checked merge tree was unavailable.'
     try:
         head_tree = command(['git', '--no-replace-objects', 'rev-parse', '--verify', '--end-of-options',
@@ -141,29 +151,48 @@ def expected_verification_profile(root, base, head, tested):
     return scope['profile'], scope.get('reason')
 
 
-def checkout_requires_workspace_producer(root, checkout, head):
-    for revision in (checkout, head):
-        try:
-            raw = git(root, 'show', f'{revision}:{timing.WORKFLOW}')
-        except ScopeError:
-            continue
-        workflow = yaml.safe_load(raw)
-        steps = (workflow or {}).get('jobs', {}).get('windows_change', {}).get('steps', [])
-        return any(step.get('name') == timing.WINDOWS_WORKSPACE_MARKER for step in steps)
-    return False
+def committed_windows_producer_marker(root, tested):
+    # The checked commit may be absent locally. An identical Git tree still binds every workflow byte.
+    tree = tested_merge_tree(tested)
+    try:
+        if tree is None or git(root, 'cat-file', '-t', tree).strip() != b'tree':
+            raise ValueError('Expected a Git tree.')
+        jobs = yaml.safe_load(git(root, 'cat-file', 'blob', f'{tree}:{WORKFLOW}'))['jobs']
+        if not isinstance(jobs.get('verify'), dict):
+            raise ValueError('Expected the protected verification job.')
+        if 'windows_change' not in jobs:
+            if any(f'windows_{lane}' in jobs for lane in timing.WINDOWS_WORKSPACE_LANES):
+                raise ValueError('Expected a publisher for the Windows producers.')
+            return None
+        publisher = jobs['windows_change']
+        marker, = (step.get('name') for step in publisher['steps']
+                   if step.get('name') in WINDOWS_PRODUCER_LAYOUTS)
+        lanes = {f'windows_{lane}': lane for lane in WINDOWS_PRODUCER_LAYOUTS[marker]}
+        needs = publisher['needs']
+        if not isinstance(needs, list) or len(needs) != len(lanes) or set(needs) != lanes.keys():
+            raise ValueError('The publisher dependencies disagree with the Windows producer layout.')
+        for job_id, lane in lanes.items():
+            producer = jobs[job_id]
+            if (producer['strategy']['matrix']['lane'] != [lane] or producer['runs-on'] != 'windows-latest'
+                    or producer['name'] not in ('Windows change checks (${{ matrix.lane }})',
+                                                timing.WINDOWS_PRODUCERS[lane])):
+                raise ValueError('The Windows producer declaration disagrees with its expected lane.')
+    except (ScopeError, OSError, subprocess.SubprocessError, yaml.YAMLError, RecursionError,
+            AttributeError, KeyError, TypeError, ValueError) as error:
+        raise ProjectError('The Windows producer layout could not be verified from the tested merge tree.') from error
+    return marker
 
 
-def verified_workspace_producers(run, repository, jobs, profile):
+def verified_windows_producers(run, repository, jobs, profile, marker):
     result = timing.hosted_timing({**run, 'repository': {'full_name': repository}}, jobs)
     workflow = result['workflow']
-    if not (workflow.get('windows_workspace_producer') and workflow['matrix_complete']
-            and workflow['identity_complete']):
+    if not (workflow.get('windows_split') and workflow['matrix_complete'] and workflow['identity_complete']):
         return False
     windows, = (row for row in jobs if row.get('name') == 'verify (windows-latest)')
-    if not any(step.get('name') == timing.WINDOWS_WORKSPACE_MARKER and step.get('status') == 'completed'
+    if not any(step.get('name') == marker and step.get('status') == 'completed'
                and step.get('conclusion') == 'success' for step in windows.get('steps', [])):
         return False
-    for lane in timing.WINDOWS_WORKSPACE_LANES:
+    for lane in WINDOWS_PRODUCER_LAYOUTS[marker]:
         job, = (row for row in jobs if row.get('name') == timing.WINDOWS_PRODUCERS[lane])
         if job['conclusion'] != 'success':
             return False
@@ -222,9 +251,15 @@ def verified_pr_run(root, repository, pr, runs, dirty, contexts):
         if result['status'] == 'passed' and insufficient:
             result.update(status='blocked', reason=f"Run {run['id']} requires {expected} verification. "
                           f"Required jobs with insufficient coverage: {', '.join(insufficient)}.")
-        if result['status'] == 'passed' and checkout_requires_workspace_producer(root, commit, head):
+        if result['status'] == 'passed':
+            try:
+                marker = committed_windows_producer_marker(root, tested)
+            except ProjectError as error:
+                result.update(status='blocked', reason=f"Run {run['id']}: {error}")
+                return result, jobs
             windows = next((job for job in jobs if job['name'] == 'verify (windows-latest)'), None)
-            if not windows or not verified_workspace_producers(run, repository, jobs, windows['verification_profile']):
+            if marker and (not windows or not verified_windows_producers(
+                    run, repository, jobs, windows.get('verification_profile'), marker)):
                 result.update(status='blocked', reason=f"Run {run['id']} lacks the committed Windows producer layout.")
         return result, jobs
     return {'status': 'blocked', 'reason': reason, 'run': None}, []

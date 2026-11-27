@@ -186,6 +186,12 @@ class IntegrationAssessmentTests(unittest.TestCase):
 
 
 class IntegrationFixture(ProjectFixture):
+    def setUp(self):
+        super().setUp()
+        workflow = self.root / timing.WORKFLOW
+        workflow.parent.mkdir(parents=True)
+        workflow.write_text('jobs:\n  verify: {}\n', encoding='utf-8')
+
     def git(self, *args):
         return subprocess.run(['git', '-c', 'user.name=Test Fixture', '-c', 'user.email=fixture@example.invalid',
                                '-c', 'commit.gpgsign=false', *args], cwd=self.root, capture_output=True,
@@ -626,14 +632,19 @@ class IntegrationHistoryTests(IntegrationFixture):
               patch.object(integration, 'job_checkout', return_value=(1, tested['sha']))):
             return integration.verified_pr_run(self.root, 'fixture/project', pr, [run], False, [UBUNTU, WINDOWS])
 
+    def declare_windows_producers(self, marker, lanes):
+        producers = {f'windows_{lane}': {'name': timing.WINDOWS_PRODUCERS[lane], 'runs-on': 'windows-latest',
+                                        'strategy': {'matrix': {'lane': [lane]}}} for lane in lanes}
+        workflow = {'jobs': {'verify': {}, **producers,
+                             'windows_change': {'needs': list(producers), 'steps': [{'name': marker}]}}}
+        (self.root / timing.WORKFLOW).write_bytes(json_bytes(workflow))
+        return workflow
+
     def test_current_pr_requires_the_committed_workspace_producer_layout(self):
         records = self.root / 'README.md'
         records.write_text('Fixture summary.\n', encoding='utf-8')
         base = self.commit()
-        workflow = self.root / timing.WORKFLOW
-        workflow.parent.mkdir(parents=True, exist_ok=True)
-        workflow.write_text('jobs:\n  windows_change:\n    steps:\n'
-                            f'      - name: {timing.WINDOWS_WORKSPACE_MARKER}\n', encoding='utf-8')
+        self.declare_windows_producers(timing.WINDOWS_WORKSPACE_MARKER, timing.WINDOWS_WORKSPACE_LANES)
         head = self.commit()
         guard = step(timing.WINDOWS_WORKSPACE_MARKER)
 
@@ -671,6 +682,49 @@ class IntegrationHistoryTests(IntegrationFixture):
                                          producer_jobs=[*scoped_jobs[:-1], wrongly_executed])
         self.assertEqual('blocked', result['status'])
         self.assertIn('committed Windows producer layout', result['reason'])
+
+    def test_windows_layout_comes_from_the_tested_merge_tree(self):
+        workflow = self.root / timing.WORKFLOW
+        self.declare_windows_producers(timing.WINDOWS_RECOVERY_MARKER, timing.WINDOWS_RECOVERY_LANES)
+        base = self.commit()
+        (self.root / 'implementation.py').write_text('value = 2\n', encoding='utf-8')
+        head = self.commit()
+        declaration = self.declare_windows_producers(timing.WINDOWS_WORKSPACE_MARKER, timing.WINDOWS_WORKSPACE_LANES)
+        workspace = self.commit()
+        declaration['jobs']['windows_change']['needs'].remove('windows_workspace')
+        workflow.write_bytes(json_bytes(declaration))
+        incomplete = self.commit()
+        declaration['jobs']['windows_change']['needs'].append('windows_workspace')
+        declaration['jobs']['windows_workspace']['strategy']['matrix']['lane'] = ['browser']
+        workflow.write_bytes(json_bytes(declaration))
+        wrong_lane = self.commit()
+        older_merge = self.merge_observation(base, head)
+        tested_merge = self.merge_observation(base, head, tree_revision=workspace)
+        incomplete_merge = self.merge_observation(base, head, tree_revision=incomplete)
+        wrong_lane_merge = self.merge_observation(base, head, tree_revision=wrong_lane)
+        not_local = dict(older_merge, sha='7' * 40)
+        for controls, lanes, marker, status, reason in (
+            (older_merge, timing.WINDOWS_RECOVERY_LANES, timing.WINDOWS_RECOVERY_MARKER, 'passed', ''),
+            (not_local, timing.WINDOWS_RECOVERY_LANES, timing.WINDOWS_RECOVERY_MARKER, 'passed', ''),
+            (tested_merge, timing.WINDOWS_WORKSPACE_LANES, timing.WINDOWS_WORKSPACE_MARKER, 'passed', ''),
+            (tested_merge, timing.WINDOWS_RECOVERY_LANES, timing.WINDOWS_RECOVERY_MARKER, 'blocked',
+             'lacks the committed Windows producer layout'),
+            (dict(tested_merge, tree={'sha': '8' * 40}), timing.WINDOWS_RECOVERY_LANES,
+             timing.WINDOWS_RECOVERY_MARKER, 'blocked', 'could not be verified from the tested merge tree'),
+            (dict(tested_merge, tree={'sha': head}), timing.WINDOWS_RECOVERY_LANES,
+             timing.WINDOWS_RECOVERY_MARKER, 'blocked', 'could not be verified from the tested merge tree'),
+            (incomplete_merge, timing.WINDOWS_WORKSPACE_LANES, timing.WINDOWS_WORKSPACE_MARKER, 'blocked',
+             'could not be verified from the tested merge tree'),
+            (wrong_lane_merge, timing.WINDOWS_WORKSPACE_LANES, timing.WINDOWS_WORKSPACE_MARKER, 'blocked',
+             'could not be verified from the tested merge tree'),
+        ):
+            with self.subTest(tree=controls['tree'], marker=marker, expected=status):
+                producers = [dict(name=timing.WINDOWS_PRODUCERS[lane], status='completed', conclusion='success',
+                                  steps=[step(f'Verify the Windows {lane} lane')]) for lane in lanes]
+                result, _ = self.observe_harness(base, head, [step(UBUNTU_FULL)], [step(WINDOWS_FULL), step(marker)],
+                                                 tested=controls, producer_jobs=producers)
+                self.assertEqual(status, result['status'], result['reason'])
+                self.assertIn(reason, result['reason'])
 
     def test_narrow_profiles_allow_matching_or_platform_full_harnesses(self):
         locale = self.root / 'apps/desktop/ui/src/i18n/locales/zh-Hans/core.json'
@@ -759,7 +813,9 @@ class IntegrationHistoryTests(IntegrationFixture):
                 self.assertIn(reason, result['expected_profile_reason'])
                 self.assertEqual(['records', 'records'], [job['verification_profile'] for job in jobs])
                 full, _ = self.observe_harness(base, head, [step(UBUNTU_FULL)], [step(WINDOWS_FULL)], tested=tested)
-                self.assertEqual('passed', full['status'])
+                self.assertEqual('passed' if tested == different else 'blocked', full['status'])
+                if tested != different:
+                    self.assertIn('could not be verified from the tested merge tree', full['reason'])
                 self.assertEqual('full', full['expected_profile'])
 
         profile, reason = integration.expected_verification_profile(self.root, base, '0' * len(head), matching)

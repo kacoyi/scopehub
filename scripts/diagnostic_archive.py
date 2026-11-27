@@ -177,6 +177,21 @@ def _checked_observations(root, directory, checks):
     verified = []
     for check in checks:
         check_id = check['id']
+        if 'browser_results_sha256' in check:
+            relative = f'{check_id}/results.json'
+            sha256 = check['browser_results_sha256']
+            if 'log' not in check or (check['status'] == 'passed' and sha256 is None):
+                raise DiagnosticArchiveError(f'Missing browser results binding: {check_id}')
+            if sha256 is not None:
+                _verify_file(directory, relative, sha256)
+                verified.append(relative)
+            else:
+                try:
+                    _path(directory, relative)
+                except FileNotFoundError:
+                    pass
+                else:
+                    raise DiagnosticArchiveError(f'Unexpected unbound diagnostic bytes: {relative}')
         if 'observation' in check:
             binding = check['observation']
             relative = f'{check_id}.observation.json'
