@@ -12062,6 +12062,123 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "timing-aggregate-finish-violates-cleanup-interval",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent Astra Standard (t1hj) on 17cd39cfc82e095f341f9b2f3a4c20022e36996d, recorded at fb1575c79ec6c038774d9cbb331aafbbc37d588b. Original response observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1hj/original-assistant-response.jsonl (SHA-256 a6eaaad18ad6bf5f6e56c9ed65885d872179aba4ccb7db82e0ea3432ef6c8bb6).",
+      "observation": "On push 45838575346, an aggregate completion before its successful cleanup step completed erased the 1291-second Windows wall clock and 10-second finalization from ordinary, offline weekly and cold reads, disqualifying the Windows weekly receipt. A finish at cleanup completion remains a feasible competing endpoint.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-aggregate-verification-start-violates-setup-interval",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent Astra Standard (t1hj) on 17cd39cfc82e095f341f9b2f3a4c20022e36996d, recorded at fb1575c79ec6c038774d9cbb331aafbbc37d588b. Original response observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1hj/original-assistant-response.jsonl (SHA-256 a6eaaad18ad6bf5f6e56c9ed65885d872179aba4ccb7db82e0ea3432ef6c8bb6).",
+      "observation": "On push 45838575346, an aggregate verification start before Set up job completed erased the otherwise established 24-second setup measurement in all three readers. A second start after setup is genuinely ambiguous.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-passing-aggregate-contradicts-failed-producer",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent Astra Standard (t1hk) on 17cd39cfc82e095f341f9b2f3a4c20022e36996d, recorded at fb1575c79ec6c038774d9cbb331aafbbc37d588b. Original response observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1hk/original-assistant-response.jsonl (SHA-256 7c7cd3b2419fa71a43222825104b558ef50838e661598a330d528aefd47d6553).",
+      "observation": "The PR 123 failure run 45933801256 admitted raw and compact aggregates that changed the failed browser check and aggregate outcome to passing. The historical publisher accepted the observed failure and rejected a passing claim over its failed browser original.",
+      "task_ids": [
+        "M0-150",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-aggregate-aliases-distinct-producer-originals",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent Astra Standard (t1hk) on 17cd39cfc82e095f341f9b2f3a4c20022e36996d, recorded at fb1575c79ec6c038774d9cbb331aafbbc37d588b. Original response observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1hk/original-assistant-response.jsonl (SHA-256 7c7cd3b2419fa71a43222825104b558ef50838e661598a330d528aefd47d6553).",
+      "observation": "A split Windows 2.1 aggregate for 45965137241 kept complete coverage after replacing the browser digest with the Python producer digest. The historical publisher rejected the same substitution on 45933801256.",
+      "task_ids": [
+        "M0-150",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-producer-lifetime-ignores-dependent-job-start",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent Astra Standard (t1hk) on 17cd39cfc82e095f341f9b2f3a4c20022e36996d, recorded at fb1575c79ec6c038774d9cbb331aafbbc37d588b. Original response observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1hk/original-assistant-response.jsonl (SHA-256 7c7cd3b2419fa71a43222825104b558ef50838e661598a330d528aefd47d6553).",
+      "observation": "On 45965137241, a browser report recorded after aggregate start displaced the genuine report after adding a browser completion after the dependent aggregate started. The unmodified endpoint rejected the out-of-lifetime report.",
+      "task_ids": [
+        "M0-150",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-collection-credits-receipts-without-run-download",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent Astra Standard (t1hm) on 17cd39cfc82e095f341f9b2f3a4c20022e36996d, recorded at fb1575c79ec6c038774d9cbb331aafbbc37d588b. Original response observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1hm/original-assistant-response.jsonl (SHA-256 98ace9685b498c19111767eaffbe8da5971f9c4f36199dbbdcfff5b29710efb4).",
+      "observation": "Both saved orders credited copied PR 96 receipts to the newer collection whose acquisition facts named the run as missing compact reports. In a mixed collection, the copied receipts incorrectly raised two independently valid receipts to four.",
+      "task_ids": [
+        "M0-156",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-collection-treats-missing-run-membership-as-ordered",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent Astra Standard (t1hm) on 17cd39cfc82e095f341f9b2f3a4c20022e36996d, recorded at fb1575c79ec6c038774d9cbb331aafbbc37d588b. Original response observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1hm/original-assistant-response.jsonl (SHA-256 98ace9685b498c19111767eaffbe8da5971f9c4f36199dbbdcfff5b29710efb4).",
+      "observation": "Permuting two missing run IDs at the same collection time cleared capture identity and two valid receipts for a different run. Independent receipt bytes and missing-run membership agreed.",
+      "task_ids": [
+        "M0-156",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

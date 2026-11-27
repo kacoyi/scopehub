@@ -27503,7 +27503,8 @@
         "Retain execution when observed steps and feasible ordering establish identical endpoints despite missing unrelated job starts. Keep runner sums unknown when a required job interval is unavailable. Exercise both originals and rejected ordering or incomplete endpoint controls.",
         "A missing aggregate or producer job boundary can erase a measured execution interval or authorize an infeasible order. Check known or absent starts and ends, contradictory order, reordered and duplicate facts, cold reopen and rotated captures. Keep unknown queue and runner values where exact endpoints are absent.",
         "Reject an infeasible Windows scheduling cut when an observed aggregate step completion precedes a prerequisite finish, even if job and step starts are absent. Retain the demonstrated 1242-second and 827-second controls and independent clocks.",
-        "Replay the applicable e6f12373 findings and genuine originals at the ordinary, standard-library weekly and cold entrypoints. Carry exact local source and outcomes to the retained handoff while hosted, native and scheduled evidence remains with the coordinator."
+        "Replay the applicable e6f12373 findings and genuine originals at the ordinary, standard-library weekly and cold entrypoints. Carry exact local source and outcomes to the retained handoff while hosted, native and scheduled evidence remains with the coordinator.",
+        "An impossible cleanup finish or pre-setup verification start can erase other Windows measurements. Replay the original push, infeasible alternatives and still-feasible alternatives at ordinary, offline weekly and cold entries in both orders."
       ],
       "checks": [
         "project-state",
@@ -27511,7 +27512,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Use .reports/m0-155-1024b35f-reconciliation/handoff.json for the combined local correction and exact-source regression evidence. The coordinator owns the three independent decisions on a common candidate, hosted and native qualification, and the November 28 scheduled observation at 16:17 UTC.",
+      "next_action": "Use .reports/m0-155-17cd39cf-reconciliation/handoff.json for the local source and regression evidence. Keep all five downstream scopes gated on three new independent approvals on the same candidate. The coordinator owns hosted and native qualification and the scheduled observation on 2026-11-28 at 16:17 UTC.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -27545,7 +27546,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-155-e6f12373/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-e6f12373/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1h0/final-response.txt",
-          "contracts/decisions/0039-reuse-timing-source-semantics.json"
+          "contracts/decisions/0039-reuse-timing-source-semantics.json",
+          "observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1hj/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "Recent preload and historical linked reads can see different retained evidence when a conflict removes the platform index entry or an attempt is older than the routine window.",
@@ -27896,6 +27898,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "An impossible cleanup finish or pre-setup verification start can erase other Windows measurements. Replay the original push, infeasible alternatives and still-feasible alternatives at ordinary, offline weekly and cold entries in both orders.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain all source captures, saved reviews and original classifications if a change loses a valid clock or expands the ordinary read without a bound.",
@@ -27967,7 +27976,8 @@
             "Use the prerequisite scheduling cut to constrain verification steps without substituting an inferred instant into queue or runner metrics.",
             "Retain job-scoped successful Actions setup and completion step witnesses in the existing observation shape for prerequisite ordering.",
             "Qualify the observed historical split and unsplit publisher closures at the timing reader, and exercise the composed unsplit publisher with preserved workspace evidence.",
-            "Derive timing admission from the source publisher and feasible endpoints. Reduce saved collection metadata by observed chronology and keep current receipts distinct from qualified historical measurements."
+            "Derive timing admission from the source publisher and feasible endpoints. Reduce saved collection metadata by observed chronology and keep current receipts distinct from qualified historical measurements.",
+            "Project job and workflow order into a shared feasible interval view, then derive each Windows phase, whole-run wall and runner cost from its own supported endpoints."
           ],
           "data_plan": "Read existing saved reviews and retained per-attempt captures. Cover missing, conflicting and intact historical data. Retain compatible V1 evidence, including individually supported legacy intervals. Recompute derived layout where the original assertions survive. Use retained report timestamps and job boundaries to withdraw incompatible old attributions and preserve original bytes.",
           "cleanup": "Use the retained originals by digest and qualify the preserved and changed scopes on the same composed source. Keep the established decisions bound to their own revisions. Request independent review only for material overlap and leave the actual scheduled observation and hosted qualification to the coordinator."
@@ -28021,7 +28031,8 @@
         "Check reachable shallow boundary parent claims even when graph enumeration is unavailable. Withhold unproven checkout qualification when the bounded search cannot establish it. Keep genuine Windows receipts and separate Actions clocks with both input orders and both proof controls.",
         "A rejected report can enter checkout conflict reduction and withdraw a genuine receipt on another platform. Check genuine paired receipts beside late digestless or incomplete reports in both orders and cold reopen, with a valid legacy control.",
         "Reject a raw report whose present source facts contradict its checkout claim before cross-platform conflict reduction. On the PR 96 public replay, preserve both original receipt identities and separately observed Windows clocks. Retain legacy records that genuinely omit optional source fields.",
-        "Replay the applicable e6f12373 findings and genuine originals at the ordinary, standard-library weekly and cold entrypoints. Carry exact local source and outcomes to the retained handoff while hosted, native and scheduled evidence remains with the coordinator."
+        "Replay the applicable e6f12373 findings and genuine originals at the ordinary, standard-library weekly and cold entrypoints. Carry exact local source and outcomes to the retained handoff while hosted, native and scheduled evidence remains with the coordinator.",
+        "Cross-collection receipt reuse or missing-run order can change current receipt eligibility. Replay genuine, missing, mixed, reordered and conflicting collections in both orders and check independent history and the protected summary."
       ],
       "checks": [
         "project-state",
@@ -28040,7 +28051,7 @@
         }
       ],
       "evidence": [],
-      "next_action": "Use .reports/m0-155-1024b35f-reconciliation/handoff.json for the combined local correction and exact-source regression evidence. The coordinator owns the three independent decisions on a common candidate, hosted and native qualification, and the November 28 scheduled observation at 16:17 UTC.",
+      "next_action": "Use .reports/m0-155-17cd39cf-reconciliation/handoff.json for the local source and regression evidence. Keep all five downstream scopes gated on three new independent approvals on the same candidate. The coordinator owns hosted and native qualification and the scheduled observation on 2026-11-28 at 16:17 UTC.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -28073,7 +28084,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-b6cd4be5/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-e6f12373/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1h2/final-response.txt",
-          "contracts/decisions/0039-reuse-timing-source-semantics.json"
+          "contracts/decisions/0039-reuse-timing-source-semantics.json",
+          "observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1hm/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "The substitute Git fingerprint is computable with the standard library; importing the full project entry brings an unrelated parser into the weekly job.",
@@ -28227,6 +28239,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "Cross-collection receipt reuse or missing-run order can change current receipt eligibility. Replay genuine, missing, mixed, reordered and conflicting collections in both orders and check independent history and the protected summary.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain the recorded evidence and archived identities; revert an extraction that changes the validated execution inputs or weekly runtime requirements.",
@@ -28286,7 +28305,8 @@
             "Validate parent uniqueness and known object facts against the observed event in the shared proof path before admitting substitution. Preserve a separately verified execution-input fallback when the preview is genuinely unavailable.",
             "When a PR preview is unavailable, compare the claimed merge tree with locally observable direct ancestry from the event head header, including at shallow boundaries.",
             "Use local Git parent observations to distinguish proved ancestry, examined boundaries and inconclusive traversal before evaluating either missing-preview fallback.",
-            "Allow only admitted report claims to participate in cross-platform checkout and receipt comparison."
+            "Allow only admitted report claims to participate in cross-platform checkout and receipt comparison.",
+            "Bind saved receipts to successful acquisition for their own run in that collection and compare missing-run membership as a set."
           ],
           "data_plan": "Use the retained real run and the existing committed-tree fingerprint format. Compare old and new identity results on supported inputs. Read existing proof shapes through the shared Git checks with system Python. Keep original reports and distinguish unsupported attribution from independently measured harness time.",
           "cleanup": "Share the authoritative identity calculation and remove redundant imports and transitional code after both call sites pass. The coordinator commissions three material decisions first, one for job facts, one for historical publisher selection and outcomes, and one for checkout proof, each with an ordinary genuine positive. Reuse originals by digest and consolidate reproducers and risk assertions under each owner. Hold downstream reviews while a primary decision is red. Obtain the remaining formal decisions before acceptance, and compare against the next genuine capture or product change when available."
@@ -28351,9 +28371,10 @@
         "Before conflict reduction, reject proved out-of-job report instants on both platforms. Keep the final-second positive, paired receipts, and independent Actions clocks across input order and reopen.",
         "Bind observation ownership to the historical publisher before raw compaction. Verify PR 96 genuine raw and compact pairs, modified report admission and the genuine pair beside the modified input.",
         "Incomplete or digestless reports can bypass a publishing-job contradiction and enter attempt reduction. Check genuine and modified reports with one or both job boundaries, digest, coverage and status variations on ordinary, weekly and reopened reads.",
-        "Replay the applicable e6f12373 findings and genuine originals at the ordinary, standard-library weekly and cold entrypoints. Carry exact local source and outcomes to the retained handoff while hosted, native and scheduled evidence remains with the coordinator."
+        "Replay the applicable e6f12373 findings and genuine originals at the ordinary, standard-library weekly and cold entrypoints. Carry exact local source and outcomes to the retained handoff while hosted, native and scheduled evidence remains with the coordinator.",
+        "Producer outcome, raw digest aliasing or dependency-infeasible report creation can admit an impossible report and displace a genuine one. Replay the historical publisher and raw and compact reader entries with supported, rejected and unrelated controls."
       ],
-      "next_action": "Use .reports/m0-155-1024b35f-reconciliation/handoff.json for the combined local correction and exact-source regression evidence. The coordinator owns the three independent decisions on a common candidate, hosted and native qualification, and the November 28 scheduled observation at 16:17 UTC.",
+      "next_action": "Use .reports/m0-155-17cd39cf-reconciliation/handoff.json for the local source and regression evidence. Keep all five downstream scopes gated on three new independent approvals on the same candidate. The coordinator owns hosted and native qualification and the scheduled observation on 2026-11-28 at 16:17 UTC.",
       "blocker": null,
       "evidence": [],
       "closure_reason": null,
@@ -28386,7 +28407,8 @@
           "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-150-e6f12373/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1h1/final-response.txt",
-          "contracts/decisions/0039-reuse-timing-source-semantics.json"
+          "contracts/decisions/0039-reuse-timing-source-semantics.json",
+          "observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1hk/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "The earlier and later sources had the same four Windows producer jobs and aggregate catalog. The browser and recovery assignments changed while the reader used one current mapping for both.",
@@ -28679,6 +28701,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "Producer outcome, raw digest aliasing or dependency-infeasible report creation can admit an impossible report and displace a genuine one. Replay the historical publisher and raw and compact reader entries with supported, rejected and unrelated controls.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Keep the original artifacts and the explicit unknown result for a source whose publishing selection cannot be established; restore the prior reader if historical coverage cannot be preserved.",
@@ -28740,7 +28769,8 @@
             "Require source-bound final selection and publisher-allowed outcomes for every native result row. Preserve compatible historical publisher forms and surface unknown qualification when the source cannot establish the final selection.",
             "Share the bounded publishing check inventory, cadence and profile-reference rules with the current project loader. Preserve publisher order on raw Windows reports and validate it before aggregate reconciliation.",
             "Check report instants at observed precision and share result-derived summary and required native build predicates between current producers and the timing reader. Keep the verified historical profiles and register new publisher closures only on genuine publication.",
-            "Apply publishing time contradictions independently of report coverage and digest before any attempt-wide reduction."
+            "Apply publishing time contradictions independently of report coverage and digest before any attempt-wide reduction.",
+            "Reuse publisher semantic admission and dependency-constrained lifetimes across raw projection and compact reads while preserving independently proven job clocks."
           ],
           "data_plan": "Use the four authenticated producer artifacts and original compact measurements. Keep their raw source, artifact IDs, checksums and publishing check selections. Preserve the original reviews and replays in archives/observations/repo-hygiene-20261125/m0-150-review-followup-460248f9/, archives/observations/repo-hygiene-20261125/independent-final-m0-150-73fd4773/ and archives/observations/repo-hygiene-20261125/m0-150-combined-replay-73fd4773/. Retain the resumed contradictory-cache and checkout-marker inputs and raw outputs with their source identities for coordinator handoff. Preserve original producer, compact and raw aggregate bytes. Recover usable report measurements even when publisher eligibility or job attribution cannot be established. Compare the shared selection projection against statically inspected, observed historical publisher forms. Read their committed data and identities without executing historical programs. The full project loader also depends on schema and project state validation, which the scheduled system Python reader does not replay.",
           "cleanup": "Keep synthetic inconsistent controls isolated from the genuine artifacts and preserve any indeterminate original as a diagnostic. The coordinator commissions three material decisions first, one for job facts, one for historical publisher selection and outcomes, and one for checkout proof, each with an ordinary genuine positive. Reuse originals by digest and consolidate reproducers and risk assertions under each owner. Hold downstream reviews while a primary decision is red. Obtain the remaining formal decisions before acceptance, and compare against the next genuine capture or product change when available."
