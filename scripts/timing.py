@@ -129,7 +129,8 @@ BROWSER_STEPS = {
     'Install and start the pinned chart-test browser',
 }
 TIMED_STEPS = HARNESS_STEPS | BROWSER_STEPS | {f'Verify the Windows {lane} lane' for lane in WINDOWS_LANES}
-OBSERVED_STEPS = TIMED_STEPS | WINDOWS_ROLE_STEPS | WINDOWS_PROFILE_STEPS.keys()
+ACTIONS_ORDER_STEPS = {'Set up job', 'Complete job'}
+OBSERVED_STEPS = TIMED_STEPS | ACTIONS_ORDER_STEPS | WINDOWS_ROLE_STEPS | WINDOWS_PROFILE_STEPS.keys()
 PENDING_STEP_STATUSES = {'queued', 'pending', 'waiting'}
 EXPECTED_FULL_OMISSIONS = {'not_implemented', 'unsupported_platform'}
 WINDOW = 3
@@ -515,7 +516,7 @@ def observed_step_rows(steps):
             for field in ('status', 'conclusion'):
                 if value := short_label(step.get(field)):
                     row[field] = value
-            if name is None or name in TIMED_STEPS:
+            if name is None or name in TIMED_STEPS or name in ACTIONS_ORDER_STEPS:
                 for field in ('started_at', 'completed_at'):
                     if (value := timestamp(step.get(field))) is not None:
                         row[field] = encode_timestamp(value)
@@ -651,22 +652,23 @@ def split_execution_bounds(parent, sources, active):
     # A producer's earliest feasible finish and the aggregate's latest
     # feasible start bound their shared scheduling cut. Those witnesses
     # determine feasibility only. The measured span uses observed steps.
-    inactive = [ordered_limit(source, ('requested', 'start', 'end'), 'end')
+    inactive = [ordered_limit(source, ('requested', 'start', 'cleanup_end', 'end'), 'end')
                 for lane, source in sources.items() if lane not in active]
     if None in inactive:
         return None
-    order = phase_order('harness')
+    producer_order = ('requested', 'start', 'harness_start', 'harness_end', 'cleanup_end', 'end')
+    aggregate_order = ('requested', 'start', 'setup_start', 'harness_start', 'harness_end', 'end')
     running = []
     for lane in active:
         source = sources[lane]
         running.append([
-            (harness, ordered_limit({**source, 'harness_start': (harness,)}, order, 'end'))
+            (harness, ordered_limit({**source, 'harness_start': (harness,)}, producer_order, 'end'))
             for harness in source['harness_start']
         ])
 
     executions = []
     for end in parent['harness_end']:
-        deadline = ordered_limit({**parent, 'harness_end': (end,)}, order, 'start', latest=True)
+        deadline = ordered_limit({**parent, 'harness_end': (end,)}, aggregate_order, 'start', latest=True)
         if deadline is None or any(finish > deadline for finish in inactive):
             continue
         eligible = [tuple(harness for harness, finish in lane if finish is not None and finish <= deadline)
@@ -677,13 +679,14 @@ def split_execution_bounds(parent, sources, active):
 
 
 def split_stage_intervals(parent, members, scoped):
-    parent = job_endpoint_choices(parent)
+    parent = job_endpoint_choices(parent.job) | (parent.order_bounds or {})
     unplaced = unplaced_phases(parent)
     blocked = {stage for stage, endpoints in WINDOWS_PARENT_ENDPOINTS.items() if unplaced.intersection(endpoints)}
     stages = dict.fromkeys(WINDOWS_DERIVED_STAGES)
     if not members:
         return stages, blocked
-    sources = {lane: job_endpoint_choices(member) for lane, member in members.items()}
+    sources = {lane: job_endpoint_choices(member.job) | (member.order_bounds or {})
+               for lane, member in members.items()}
     active = ('core',) if scoped else sources
     if any('harness_start' in unplaced_phases(sources[lane]) for lane in active):
         blocked.update(('setup', 'harness_step'))
@@ -1249,7 +1252,7 @@ def reconcile_steps(jobs, *, skipped=False):
             statuses[name].add(row['status'])
         if name in WINDOWS_LAYOUT_STEPS:
             recorded.add(name)
-        if name in TIMED_STEPS:
+        if name in TIMED_STEPS or name in ACTIONS_ORDER_STEPS:
             endpoints = {field: {timestamp(row[key])} for field, key in
                          (('start', 'started_at'), ('end', 'completed_at')) if key in row}
             if endpoints:
@@ -1328,6 +1331,7 @@ class JobClockEvidence(NamedTuple):
     job: dict | None
     disputed: tuple
     endpoint_disputes: frozenset = frozenset()
+    order_bounds: dict | None = None
 
 
 class JobClaims(NamedTuple):
@@ -1488,7 +1492,12 @@ def reconcile_job_clocks(by_id, attempt, layout, issues):
             error = ('Conflicting Windows producer job measurements.' if producer
                      else 'Conflicting protected job measurements.')
             timing_issue(issues, {**issue, 'fields': list(disputed), 'error': error})
-        observed[key] = JobClockEvidence(job, disputed, endpoint_disputes)
+        order_bounds = None
+        if projected and (setup := steps.get('Set up job')) and setup.succeeded:
+            order_bounds = {'setup_start': setup.endpoints['start']}
+        if producer and (cleanup := steps.get('Complete job')) and cleanup.succeeded:
+            order_bounds = {'cleanup_end': cleanup.endpoints['end']}
+        observed[key] = JobClockEvidence(job, disputed, endpoint_disputes, order_bounds)
     return observed
 
 
@@ -1686,11 +1695,11 @@ def project_windows_stages(evidence, attempt, run, fact, profile, issues):
     sources = {lane: evidence.jobs.get((attempt, ('producer', WINDOWS_PRODUCERS[lane]))) for lane in lanes}
     have_members = (run['workflow'].get('windows_layout_identified', True)
                     and all(source is not None and source.job is not None for source in sources.values()))
-    members = {lane: source.job for lane, source in sources.items()} if have_members else {}
+    members = sources if have_members else {}
     scoped = profile in SCOPED_PROFILES
     groups = {'all': lanes, 'active': ('core',) if scoped else lanes}
     seconds = dict(fact.job['seconds'])
-    derived, blocked = split_stage_intervals(fact.job, members, scoped)
+    derived, blocked = split_stage_intervals(fact, members, scoped)
     disputed = set()
     for stage, inputs in WINDOWS_DERIVED_STAGES.items():
         if stage in blocked:

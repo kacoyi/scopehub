@@ -45,7 +45,17 @@ class PublicJobObservationTests(unittest.TestCase):
             'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
             'event': 'pull_request', 'head_sha': FIXTURE_PR_HEAD, 'checkout_sha': 'a' * 40,
         })
-        report_path.write_bytes(timing.json_bytes(timing.report_sample(report)))
+        windows_report = timing.report_sample(report)
+        report_path.write_bytes(timing.json_bytes(windows_report))
+        linux_harness = fast_report(20, 450)
+        linux_harness['selection']['profile'] = 'full'
+        linux_harness['ci'] = report['ci']
+        linux_report = timing.report_sample(linux_harness)
+        linux_path = root / 'linux.json'
+        linux_path.write_bytes(timing.json_bytes(linux_report))
+        receipts = {row['platform']: timing.platform_report_receipt(row, timing.report_input_sha256(row))
+                    for row in (linux_report, windows_report)}
+        linux = hosted_job(31, 'ubuntu', '00:10', '08:30', 'Run pnpm check', '00:50', '08:10')
         core = hosted_job(32, 'windows', '00:20', '09:00', 'Verify the Windows core lane', '01:10', '08:40')
         browser = hosted_job(33, 'windows', '00:40', '12:00', 'Verify the Windows browser lane', '02:00', '11:25')
         python = hosted_job(34, 'windows', '00:30', '08:00', 'Verify the Windows python lane', '01:00', '07:50')
@@ -60,6 +70,16 @@ class PublicJobObservationTests(unittest.TestCase):
         late_finish = dict(browser, completed_at='2026-11-20T00:12:40Z')
         late_step = dict(browser['steps'][0], completed_at='2026-11-20T00:12:40Z')
         late_without_end = dict(no_producer_end, steps=[late_step])
+        setup = dict(parent['steps'][0], name='Set up job', number=1,
+                     started_at='2026-11-20T00:12:08Z', completed_at='2026-11-20T00:12:12Z')
+        witnessed_parent = dict(no_parent_start, steps=[setup, *parent['steps']])
+        finish_after_setup = dict(browser, completed_at='2026-11-20T00:12:18Z')
+        completion = dict(browser['steps'][0], name='Complete job', number=99,
+                          started_at='2026-11-20T00:11:50Z', completed_at='2026-11-20T00:12:00Z')
+        witnessed_producer = dict(no_producer_end, steps=[*browser['steps'], completion])
+        late_completion = dict(completion, started_at='2026-11-20T00:12:09Z',
+                               completed_at='2026-11-20T00:12:18Z')
+        late_witnessed_producer = dict(no_producer_end, steps=[*browser['steps'], late_completion])
         cases = (
             ('untouched', original, (695, 8, 1687, 765)),
             ('producer start', [core, browser, dict(python, started_at=None), parent], (695, 8, None, 765)),
@@ -72,18 +92,33 @@ class PublicJobObservationTests(unittest.TestCase):
              (None, None, None, 765)),
             ('impossible job order', [core, late_finish, python, no_parent_start], (None, None, None, 765)),
             ('impossible step order', [core, late_without_end, python, no_parent_start], (None, None, None, 765)),
+            ('setup after producer', [core, browser, python, witnessed_parent], (695, None, None, 765)),
+            ('setup before producer finishes', [core, finish_after_setup, python, witnessed_parent],
+             (None, None, None, 765)),
+            ('both setup and completion support order', [core, witnessed_producer, python, witnessed_parent],
+             (695, None, None, 765)),
+            ('completion after setup', [witnessed_parent, python, late_witnessed_producer, core, witnessed_parent],
+             (None, None, None, 765)),
         )
         for index, (case, jobs, expected) in enumerate(cases):
             with self.subTest(case=case):
-                jobs_path.write_bytes(timing.json_bytes({'jobs': jobs}))
+                jobs_path.write_bytes(timing.json_bytes({'jobs': [linux, *jobs]}))
                 saved = root / f'capture-{index}.json'
-                ordinary = self.ordinary(root, '--report', report_path, '--actions', run_path, jobs_path, '--save', saved)
+                ordinary = self.ordinary(root, '--report', report_path, '--report', linux_path,
+                                         '--actions', run_path, jobs_path, '--save', saved)
                 reopened = self.ordinary(root, '--report', saved)
                 for view in (ordinary, reopened):
-                    sample, = view['samples']
-                    self.assertEqual(expected, tuple(sample['seconds'][field] for field in (
+                    samples = {row['platform']: row['seconds'] for row in view['samples']}
+                    self.assertEqual(expected, tuple(samples['Windows'][field] for field in (
                         'harness_step', 'queue', 'runner', 'total',
                     )))
+                    self.assertEqual((510, 500), tuple(samples['Linux'][field] for field in ('total', 'runner')))
+                    self.assertEqual({'Linux': 510, 'Windows': expected[-1]}, {
+                        row['platform']: row['seconds']['total'] for row in view['hosted'][0]['jobs']
+                    })
+                    platforms = ('Linux', 'Windows') if expected[-1] is not None else ('Linux',)
+                    self.assertCountEqual([receipts[platform] for platform in platforms],
+                                          timing.platform_report_receipts(view['samples']))
 
     def test_step_clocks_use_joined_eligibility_before_selecting_a_phase(self):
         run = hosted_run()
