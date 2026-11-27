@@ -97,6 +97,26 @@
       "requested_at": "2026-11-27T10:27:52.160977+00:00",
       "request_id": "c26fd494e7a5afab60953d3042fac7aa26fac63535c10aa959bb530db4f81759",
       "evidence_sha256": "f0c24978de4ac358e54ac389d59c1bfd3e29db5c2ac3d2255095cfeb39aeb662"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "23ea59440819f3ce7c5b31901819c94a68c8deb2",
+      "verdict": "approved",
+      "decision": "APPROVE M0-177 23ea59440819f3ce7c5b31901819c94a68c8deb2",
+      "scope": "APPROVE M0-177 23ea59440819f3ce7c5b31901819c94a68c8deb2",
+      "observation": "In my replay of the initiating deletion action, both extra-field replies left the result unverified, and the success notice appeared only after an explicit retry returned the original receipt.",
+      "reviewer": "Independent Astra Standard (t1hp)",
+      "original_sha256": "c6c55eed3744a7d7e6582e7770469387a373276b3484c0aa1441f6ed1b6ddd48",
+      "response_id": "8dde226c4563d30a6295e83761d06827e93ea87cd4b60b758459c9e0ae3c1626",
+      "response_sha256": "277830c158a3a675a48a140b6084dd2136f510f81d08c3e63812ab3ee1397023",
+      "legacy_response_sha256": "4dd51619858cf3b484ea10210d5e2dfd1f107f4d9e83e3256a8bd125b70265db",
+      "observation_body_sha256": "5a71770c8ad077a82cc27d4db1e7f460cdbf6190f59bdaf2cf9e23229af40e5b",
+      "event": {
+        "id": "msg_09b35f040a86c00c016b095c25c48487d0a63f827669f03c6c",
+        "timestamp": "2026-11-27T10:32:25.446Z"
+      },
+      "supersedes": "c26fd494e7a5afab60953d3042fac7aa26fac63535c10aa959bb530db4f81759",
+      "evidence_sha256": "e1e35a9ab0b275ac1afe99e56a35fe03bf0b48ab891b929385b48c906c286e0b"
     }
   ]
 }
