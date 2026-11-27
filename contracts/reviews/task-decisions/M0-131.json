@@ -218,6 +218,15 @@
       "requested_at": "2026-11-27T03:12:07.776127+00:00",
       "request_id": "e1dc5a972638f693cc1b97b4cfeb69bfed7612c3e653058201796210fb538fe0",
       "evidence_sha256": "481fcf7d2477c462fdf4d8a4c50cbdfbf95825f5b668421dd6230348f5141125"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "Check that independent cache classifications and platform and runner clocks still follow the retained publishing jobs under the two corrected boundaries. Reuse the recorded PR116/121 job observations and the existing incomplete-boundary control.",
+      "supersedes": "e1dc5a972638f693cc1b97b4cfeb69bfed7612c3e653058201796210fb538fe0",
+      "requested_at": "2026-11-27T03:36:28.770483+00:00",
+      "request_id": "e817591b64010eff1c26c2501595c38ceb3cc9aa2ff74fd37ea5f84492fa2bd2",
+      "evidence_sha256": "ece3237b5eb078320ef2e2616f915b1b4f0c2b68bce3b196ee8fe99c7bd24f60"
     }
   ]
 }

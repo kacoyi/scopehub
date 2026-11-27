@@ -378,6 +378,15 @@
       },
       "supersedes": "eb87110bc91f1de4601871acf13140d05c66cbc9c5d24dcc65206eda6fe0965a",
       "evidence_sha256": "94b1f6859fa80e612ab3dbc276ce6a57b790ec33b4e4d49cd2778cff167bf613"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "Check the corrected Windows producer/aggregate chronological cut against the public weekly sample decision. Reuse the observed thirteen-second contradiction, the valid 1242 and 827 second samples with missing unrelated job envelopes, and the independently established clocks. Judge the shared chronological ordering rule by the actual supported workflow and the retained records.",
+      "supersedes": "192f268274a821657e5d9873250e9e9fa9ba9a3152114785faef510b97c215a2",
+      "requested_at": "2026-11-27T03:36:23.682279+00:00",
+      "request_id": "727b1eb1d78cb266cde6bc10d43d137334b5da1b47cc2e087144a52437051e49",
+      "evidence_sha256": "5054ec9c815dcb0e4d7edf75682b9df2e795765337b447aeebddc3b2e6d40eff"
     }
   ]
 }

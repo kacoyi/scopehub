@@ -218,6 +218,15 @@
       "requested_at": "2026-11-27T03:12:06.403264+00:00",
       "request_id": "ec190abdaea69ac3d49861f07447efdbe324ebcfa7a296cda77606f89ed1e101",
       "evidence_sha256": "65ca5a304116ec61904018d553db6b659995eae60272f409e2e4d9cc748bea7f"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "Check whether the fixed split-job chronology or the source-consistency check changes the retained actual publisher attribution or an independently established platform clock. Reuse the earlier source-bound scope and its actual job and report observations.",
+      "supersedes": "ec190abdaea69ac3d49861f07447efdbe324ebcfa7a296cda77606f89ed1e101",
+      "requested_at": "2026-11-27T03:36:27.462637+00:00",
+      "request_id": "aa27d158f753ca6d6740ccf194dfda06bd6d6e8ef66416295d29ff5970511e7f",
+      "evidence_sha256": "b6aea9966a15bcdf03e456291f2b09b151ae0d68e4054bed947b58ef7ab849a5"
     }
   ]
 }

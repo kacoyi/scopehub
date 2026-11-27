@@ -398,6 +398,15 @@
       },
       "supersedes": "1d3934b3b85f6a3a92ad42fb65372f637f7020f223012f97a025dea8e495ffd8",
       "evidence_sha256": "24c409f881da9acb542e9cae025f4cca392625077cf373303dc839f70be1fa4d"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "Check the source-admission change against the already approved original publishing interval, required selection and archive reopen behavior. Reuse the b6cd4be5 publisher approval and the retained real Linux and Windows observations. Focus on whether the two changed rules alter that published result.",
+      "supersedes": "5259cbd6225cef94fb5c71799aad1ffe8c8f2e4ada844b3b56b268b026977522",
+      "requested_at": "2026-11-27T03:36:26.339841+00:00",
+      "request_id": "4a076cb8c6ebcdd82303aec9d6352f79e23d61b3e2db856e7a6b7a1a2b039ea6",
+      "evidence_sha256": "fe3e5fd243615a2e2aff65b423d2d8135d25e7d10cc4fc749a4f3eaae93aa467"
     }
   ]
 }

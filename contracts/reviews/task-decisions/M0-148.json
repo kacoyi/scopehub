@@ -218,6 +218,15 @@
       "requested_at": "2026-11-27T03:12:11.658340+00:00",
       "request_id": "6b8e2dc7faab4976ec2bc8990644d1affc225152e3211775ffa74c45bd318776",
       "evidence_sha256": "e5c38d1b8836bc6c813c8c6cae80c72d7d164670a048811601efe0b5838aaf42"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "Check the historical Windows publishing catalog and stored digest at its recorded checkout under the revised report admission. Reuse the native historical receipt and existing accepted/rejected publication control for this scope.",
+      "supersedes": "6b8e2dc7faab4976ec2bc8990644d1affc225152e3211775ffa74c45bd318776",
+      "requested_at": "2026-11-27T03:36:32.910972+00:00",
+      "request_id": "e6790deeb88929977ae5b0639d264d4f3ba2fd1018ce55a66bdb79a87cd8ca6f",
+      "evidence_sha256": "8427ab522fa061ff343fd4ab26a405ccdabe0ef4c8508f780c69a762b6318a24"
     }
   ]
 }

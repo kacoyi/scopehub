@@ -218,6 +218,15 @@
       "requested_at": "2026-11-27T03:12:09.094068+00:00",
       "request_id": "e405b1eabc771ea5603415c7b28e238ff2aa5749a2b78cf87a9dcfb95a329aa2",
       "evidence_sha256": "6176e56f7f6276f4db1499b79259b4c3df1a0de4e370841453ee4a5a51695364"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "Check that the corrected admission and ordering decisions agree across ordinary and reopened captures. Reuse the existing archive rotation and adverse-input observations for this task; compare their publication decisions and any independent clocks.",
+      "supersedes": "e405b1eabc771ea5603415c7b28e238ff2aa5749a2b78cf87a9dcfb95a329aa2",
+      "requested_at": "2026-11-27T03:36:30.178732+00:00",
+      "request_id": "1fd8d4b6affe0721f39dd2d534e2eab397986a9de7bfeb09279fdd124d82cdba",
+      "evidence_sha256": "e1870c68e17e4a5463592b37a438df3b9a5bd7c54fc96a831cf111449fd063fe"
     }
   ]
 }

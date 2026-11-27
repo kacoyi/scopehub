@@ -407,6 +407,15 @@
       },
       "supersedes": "c0a01707d55bb07e03d74ba06375ed7cccb4ab359cb5b62972ef87178ae51c19",
       "evidence_sha256": "f6d7519ec16d81188c715374b70cbca56e6943625a9f5785de637ba18a4dfdee"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "Check whether a report with contradictory start and end commits can withdraw independently qualified evidence from the PR 96 weekly archive. Compare the two original receipt digests and the native Windows 876-second wall and 2584 runner-seconds. Keep genuinely absent historical optional fields and records that discarded an endpoint distinguishable.",
+      "supersedes": "f681697c1402ff65cd34fc2242c2c9f88a621252d33f3037c06de1a37b575a20",
+      "requested_at": "2026-11-27T03:36:24.929949+00:00",
+      "request_id": "38b3c704e1fd1ab117181e80c5c3946ea88992bb7391a6236b6cf72737dca33e",
+      "evidence_sha256": "f9ae15ac3194524c0003270d5e3715348df88f579d3059a61d3dd7934d061ace"
     }
   ]
 }

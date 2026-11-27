@@ -218,6 +218,15 @@
       "requested_at": "2026-11-27T03:12:10.420752+00:00",
       "request_id": "679f2228bdb515091bc6c109e8eb5e25144d626316bc326d8041d0882ade9667",
       "evidence_sha256": "ff1fd25f3dd6d540c381fef705da8a8719ba1ee1a111e0a7b8b251a038ccd4c0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "Check the current weekly sample/receipt eligibility boundary after the two corrections, using the retained ordinary-versus-weekly observations and the previous freshness decision. The genuine future due cycle remains a separate observed event.",
+      "supersedes": "679f2228bdb515091bc6c109e8eb5e25144d626316bc326d8041d0882ade9667",
+      "requested_at": "2026-11-27T03:36:31.584930+00:00",
+      "request_id": "d667afddf4f7c68ea8a2c455310c2bf4323b15ef4688ce5253b4fdd869c6252e",
+      "evidence_sha256": "57c7cbc1af767e6a8fb4bd51ab139480063849924ed55c56f28eec0f7a95054a"
     }
   ]
 }
