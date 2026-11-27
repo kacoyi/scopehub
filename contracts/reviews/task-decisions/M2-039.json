@@ -552,6 +552,15 @@
       },
       "supersedes": "95a4f129e44e57652413b0482d31e8a9e110eede0de88520e28b1caeff34eb37",
       "evidence_sha256": "19e537b763479f77c66cb0a5b19e987f7541f98cc975bc5b9f69b41e3cbaff7d"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ffdb95b29f21f6b2530cc74f7a77ef456ae0991b",
+      "scope": "Independently verify the new M2-039 evidence closure and composition with protected main, including the applicability of prior M2-034/035/039 decisions. Reuse their actual originals and established controls.",
+      "supersedes": "d4201a4df888c6d741dece25f63ddc2bcc177cb832286d7011165fa1d5cfb7b7",
+      "requested_at": "2026-11-27T04:45:31.664840+00:00",
+      "request_id": "a6e7ff0e5cb892aa5d2464a83e490f06c11524abc9f66e99b0d8ec28b0d4e6fc",
+      "evidence_sha256": "f6fda5d6134a41d18370696076900ace498fe92c4599faa238065c1bce1562b7"
     }
   ]
 }
