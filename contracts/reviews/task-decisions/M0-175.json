@@ -97,6 +97,26 @@
       "requested_at": "2026-11-27T08:22:41.270744+00:00",
       "request_id": "4f0c05f7aec2e987a613ca09ef35886c22f0749dbba3d16afda837f5f4090bf4",
       "evidence_sha256": "7612e81990237d9891ee791694122d922e2497e44223c142e2420abf5372fc67"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a6c7aa2239de14d973a1fecd24874c7517d0de61",
+      "verdict": "approved",
+      "decision": "APPROVE M0-175 a6c7aa2239de14d973a1fecd24874c7517d0de61",
+      "scope": "APPROVE M0-175 a6c7aa2239de14d973a1fecd24874c7517d0de61",
+      "observation": "The candidate’s Linux trace records cancellation returning after 1.001145518 seconds with scratch still present, followed by acknowledged release, removal of that scratch, absence of interpreter PID 655 and supervisor PID 624, and exactly one invocation.",
+      "reviewer": "Independent Astra Standard (t1fk)",
+      "original_sha256": "8828ce346831d6b0fa7b56a4ccda048c8ff3c7cd7a5b8444ed3dc87c218f8fbe",
+      "response_id": "f48ad0caf34067e0a7ab4b66a71c7a0c2bf50ce16f95ec30f1911963fc840f9d",
+      "response_sha256": "c1677d8fec7808cbb24d68adddfd2361288048e0da991688e931403aabf79414",
+      "legacy_response_sha256": "8326639dfd764f66cd33d2685073df6694c30097d2e2ea6abde13ce2c61b0a9a",
+      "observation_body_sha256": "982697e437a6ccd365430059ba7271c713bb077e539051e7ceefb6443675b298",
+      "event": {
+        "id": "msg_0056a5750a0d55be016b093fcc4a8487d08cf82d154da92417",
+        "timestamp": "2026-11-27T08:31:32.844Z"
+      },
+      "supersedes": "4f0c05f7aec2e987a613ca09ef35886c22f0749dbba3d16afda837f5f4090bf4",
+      "evidence_sha256": "9f0bf730bfcbf098168a19c6ef509c8750e6e936c509cf1f5138e27fe6db2878"
     }
   ]
 }

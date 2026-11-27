@@ -97,6 +97,26 @@
       "requested_at": "2026-11-27T08:22:40.499326+00:00",
       "request_id": "39017d6bd9858f531899dc16fd0d555eef75ba5b1b5a1592dec8d4e83b611982",
       "evidence_sha256": "4b73b00445d10ada32f412bd6014428887b2f68a30f99513fb5858648ed98eef"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a6c7aa2239de14d973a1fecd24874c7517d0de61",
+      "verdict": "approved",
+      "decision": "APPROVE M0-169 a6c7aa2239de14d973a1fecd24874c7517d0de61",
+      "scope": "APPROVE M0-169 a6c7aa2239de14d973a1fecd24874c7517d0de61",
+      "observation": "In my independent Linux check, the candidate observer rejected the held process set while one child was alive and accepted the same set after both children exited.",
+      "reviewer": "Independent Astra Standard (t1fh)",
+      "original_sha256": "5fed218b5cca16d192da658c1752cdeb1f5b0d771ebcfe1486821ef89c430e4f",
+      "response_id": "65257e375b1eadbbc85df750d064a10602bc2b60296ddc1bfbdb191ef6df3c7a",
+      "response_sha256": "e10969884ebc28f76b0b6d064ac5c4bc9218b490b6700e78a1755b316b4bde52",
+      "legacy_response_sha256": "5a3f2edc18e4dce0f780ba525aceccc244b3189c5e900702f97372164646dba1",
+      "observation_body_sha256": "4710acf6b092f8941c7a75a128af6de28ab1d232cff232220d4fbb1144f810c1",
+      "event": {
+        "id": "msg_09da07acb6b71b53016b093e6561f087d0810243ca5d1f4296",
+        "timestamp": "2026-11-27T08:25:27.676Z"
+      },
+      "supersedes": "39017d6bd9858f531899dc16fd0d555eef75ba5b1b5a1592dec8d4e83b611982",
+      "evidence_sha256": "0733c4e328a3cc740a447abbed04359b6310b1973befa26dbff5f4626de5fc21"
     }
   ]
 }

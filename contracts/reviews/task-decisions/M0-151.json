@@ -88,6 +88,26 @@
       "requested_at": "2026-11-27T08:22:42.048922+00:00",
       "request_id": "d2d5b7a667d8c901743e56344b1ebf095e1059acda2b4e4b090cc635724c36da",
       "evidence_sha256": "194d4c6aae7331e67db3c025d411cefd00f9572c0d51951ffe3540aee8d37651"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a6c7aa2239de14d973a1fecd24874c7517d0de61",
+      "verdict": "approved",
+      "decision": "APPROVE M0-151 a6c7aa2239de14d973a1fecd24874c7517d0de61",
+      "scope": "APPROVE M0-151 a6c7aa2239de14d973a1fecd24874c7517d0de61",
+      "observation": "In the candidate’s Linux browser replay, the chart issued one subscription and displayed “Market worker reconnecting…” followed by “Market worker resumed” at confirmed sequence 1, including when both recovery frames arrived in one read.",
+      "reviewer": "Independent Astra Standard (t1fm)",
+      "original_sha256": "c8a72c9aae55655c57e63d7c6132cfa18d2019b434344a50ce32fbd3237a9177",
+      "response_id": "01127459e8ee11a72523ff89e2d77c5afa8d0f6531f5f5cf67d1572e6b834215",
+      "response_sha256": "8412137266c71da9224428af5f1c1c4beadefe8862bd214645b364532de67dea",
+      "legacy_response_sha256": "377b1ed99f2b511477290449e6fc58625f9d734c4a50eeac32dd97a454a98937",
+      "observation_body_sha256": "27a83b74f6892b34f58258eab0fbfcfe6dc88182c44b9def46f0c0bca78cb050",
+      "event": {
+        "id": "msg_0e9140820e8c7cec016b093fbf504c87d0997aece6aa8824ff",
+        "timestamp": "2026-11-27T08:31:15.701Z"
+      },
+      "supersedes": "d2d5b7a667d8c901743e56344b1ebf095e1059acda2b4e4b090cc635724c36da",
+      "evidence_sha256": "517665c00102066e6cef29b09e23c7ff06ebdd82d615db516e6498bb08b44007"
     }
   ]
 }
