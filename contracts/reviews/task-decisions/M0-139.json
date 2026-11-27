@@ -474,6 +474,26 @@
       "requested_at": "2026-11-27T05:37:26.735998+00:00",
       "request_id": "e2f3f56b5b3634d6780044e8a8ed0524db826d6ba5f29dfecc1b62598dcdec91",
       "evidence_sha256": "66a2c4662ae3e3559ce9e217592ad9b00c95a1fb439409e2ebfe417d04869581"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b1541b819e0116f7c844684a2d9390940a55fd6f",
+      "verdict": "approved",
+      "decision": "APPROVE M0-139 b1541b819e0116f7c844684a2d9390940a55fd6f",
+      "scope": "APPROVE M0-139 b1541b819e0116f7c844684a2d9390940a55fd6f",
+      "observation": "For Windows run 45933801256 attempt 1, producer staging, collection, and aggregate publication preserved the failed workspace-timeframe row, its 19,079-byte log, and its 872,015-byte Playwright results, and each rejected the row when its log binding was removed.",
+      "reviewer": "Independent Astra Standard (t1dn)",
+      "original_sha256": "b6f3f0f2fd3870c88e3c4025f34f8f39462dc7f80ca62c9cbaeee069de215329",
+      "response_id": "15b8b00aa1c4f22e3300134a9b4fd6bb2daab755a141988f08b7cee5e0a1d871",
+      "response_sha256": "2147750416d54e862f260119ebb23416e2aa1624bef0114d7c61b01d3d1c1ae4",
+      "legacy_response_sha256": "1737a9c3c06c559774807243cfd3da84e3cd2cf0b6f85de3c894d4de262ba504",
+      "observation_body_sha256": "0961c62ca221d3f62a041fb00877d976642fa9150a81b26ce202e28eeaa69276",
+      "event": {
+        "id": "msg_0d8273e4abe541f2016b09185722a887d0b9c4299448048ad6",
+        "timestamp": "2026-11-27T05:42:59.456Z"
+      },
+      "supersedes": "e2f3f56b5b3634d6780044e8a8ed0524db826d6ba5f29dfecc1b62598dcdec91",
+      "evidence_sha256": "00833b5548818d42415122bcb7414644dca7820c87658d077ec4991ae7a5c3c1"
     }
   ]
 }

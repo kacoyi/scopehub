@@ -474,6 +474,26 @@
       "requested_at": "2026-11-27T05:37:27.350655+00:00",
       "request_id": "83e2803a55bfb361698016f16c29c22a7b49b771de3ad61bd04cbd12fe97a05e",
       "evidence_sha256": "ba6aed0b8a39a2e2201fad05fad108a3f9da3123550e75f8c66e9ff179c3f395"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b1541b819e0116f7c844684a2d9390940a55fd6f",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 b1541b819e0116f7c844684a2d9390940a55fd6f",
+      "scope": "CHANGES_REQUESTED M0-146 b1541b819e0116f7c844684a2d9390940a55fd6f",
+      "observation": "In an independent replay through the recovery lane, SIGINT after all five results were available raised KeyboardInterrupt before either harness report was written.",
+      "reviewer": "Independent Astra Standard (t1dp)",
+      "original_sha256": "5aa696bdf54fadb026bbaffcee001273c6f5c4e1ca75cacc320d5e2e186d274b",
+      "response_id": "2c7a5f663cc18629cf747c03b18eab4b42f955f0c13a3b693a0283b3295c0aa1",
+      "response_sha256": "f098402cdf5ec2d1810f8f4c8d1e6ec4479b5542d43d7eb6fe26dc2a4b3c424d",
+      "legacy_response_sha256": "be9e4cd4c544d52183f1e2373b1bff66d1a13b1766f0115d2ee58dea27955e82",
+      "observation_body_sha256": "ab89042208ea809a663136bc2ae4aa6f698e37de66dc7af122351fe3abe59a5a",
+      "event": {
+        "id": "msg_0c206b09a6e8d825016b09181dee1487d0b88e4fc544bc1a64",
+        "timestamp": "2026-11-27T05:42:10.051Z"
+      },
+      "supersedes": "83e2803a55bfb361698016f16c29c22a7b49b771de3ad61bd04cbd12fe97a05e",
+      "evidence_sha256": "4dc6b9950b3b5f79913f8feaf5b72da66fa197eb6f90be93d2e7bb26bfd6b842"
     }
   ]
 }
