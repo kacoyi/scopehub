@@ -9332,20 +9332,27 @@
       "id": "windows-workspace-bridge-link-failed-before-csv-interaction",
       "status": "open",
       "severity": "major",
-      "source": "First native observation archives/observations/repo-hygiene-20261125/pr149-native-original-45962154175/manifest.json (SHA-256 4beaa98c96f3e632f13b6cc3823af1ceef8614f1ddf4ead08a84c42a3a872ad8).",
-      "observation": "Ordinary PR 149 Windows run 45962154175 failed before the CSV list recovery test could interact. The test-scoped Cargo build reported LNK1104 opening target/debug/examples/local_import_bridge.exe. The other consumer of the same build output overlapped on another worker and passed. Windows recorded 101 passed, two skipped and one failed. Both consumers also overlapped and passed on protected 45960739508 with identical fixture and configuration. The locking process and trigger for linking are unknown.",
+      "source": "First native observation archives/observations/repo-hygiene-20261125/pr149-native-original-45962154175/manifest.json (SHA-256 4beaa98c96f3e632f13b6cc3823af1ceef8614f1ddf4ead08a84c42a3a872ad8). Passing control archives/observations/repo-hygiene-20261125/main-native-original-45960739508/manifest.json (SHA-256 26312289b5fcf554a9f550813323a64f8698c6768e3d5fd9627934359e9cd881). Independent review contracts/reviews/task-decisions/M0-176.json#/events/1 and original response archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1fp/final-response.txt (SHA-256 84e673a33abc5050256b9e353a2f08f0b6e6cfb2e3abc44226ea5f8b8d471998).",
+      "observation": "Ordinary PR 149 Windows run 45962154175 failed before the CSV list recovery test could interact. The test-scoped Cargo build reported LNK1104 opening target/debug/examples/local_import_bridge.exe. The other consumer of the same build output overlapped on another worker and passed. Windows recorded 101 passed, two skipped and one failed. Both consumers also overlapped and passed on protected 45960739508 with identical fixture and configuration. The locking process and trigger for linking are unknown. Independent review of c494a94b013a655a6034ee73c13f2612b449c581 confirmed that the two filtered indicator selections list 17 and three cases respectively, with no native CSV consumer, but their shared global setup builds the example and aborts on rejection. The reviewer identified that a successful CARGO_BUILD_TARGET invocation writes outside the default debug examples directory while setup copies from that fixed directory, which may hold an older executable. Injected port acquisition failure after fixture creation bypassed fixture.close() in the revocation case while injected server startup failure ran it. The follow-up Linux baseline aborted both indicator invocations before case entry when real Cargo rejected an added unknown feature on just the CSV build. The explicitly targeted Cargo invocation succeeded and reported the host-triple executable, but the CSV consumer executed a staged image with the confirmed default artifact digest. During a real loopback bind conflict in revocation, the native bridge and owned directory existed at failure. In-test child close was absent and the directory remained after the Playwright run.",
       "task_ids": [
         "M0-176"
       ],
       "regression_checks": [
         "project-state",
-        "workspace-timeframe"
+        "workspace-timeframe",
+        "indicator-declarative-preview",
+        "indicator-workflow"
       ],
       "diagnostic_reports": [
         {
           "run_id": "windows-change-45962154175-1",
           "source_commit": "19cfc02e49ffe7f92b5be7374d301b60ab0cba17",
           "report_sha256": "a03a04dc5e930d0a50f04ac0e47aeb23b02e8c76523b5e0d2b4d259263c687c6"
+        },
+        {
+          "run_id": "windows-change-45960739508-1",
+          "source_commit": "2a3a65d66cced09120ef2be602411028001f89ae",
+          "report_sha256": "115a5e6e5ec0a74dbb1e39252c331ca3e33d86b6a40b2f98d24c9a0df6963be3"
         }
       ],
       "resolution": null,

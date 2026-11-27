@@ -1,11 +1,11 @@
 import { execFile, spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { EventEmitter, getEventListeners, once } from 'node:events';
-import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { chmod, copyFile, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { createServer as createHttpServer, request as httpRequest } from 'node:http';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, isAbsolute, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { PassThrough } from 'node:stream';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -418,23 +418,51 @@ test('published CSV requires a verified browser status before reopening', async 
   }
 });
 
-const csvAccessTest = test.extend({
-  localImportBridge: async ({}, use, testInfo) => {
-    const run = process.env.SCOPEHUB_WORKSPACE_TEST_RUN;
-    await testInfo.attach('local-import-bridge-build', {
-      body: await readFile(join(run, 'local-import-bridge-build.txt')), contentType: 'text/plain',
-    });
-    await use(join(run, process.platform === 'win32' ? 'local_import_bridge.exe' : 'local_import_bridge'));
-  },
+function localImportBridgePaths() {
+  const run = process.env.SCOPEHUB_WORKSPACE_TEST_RUN;
+  return {
+    binary: join(run, process.platform === 'win32' ? 'local_import_bridge.exe' : 'local_import_bridge'),
+    log: join(run, 'local-import-bridge-build.txt'),
+  };
+}
+
+test('prepare native CSV import bridge', { tag: '@prepare-native-csv' }, async ({}, testInfo) => {
+  const { stdout, stderr } = await exec('cargo', [
+    'build', '--locked', '-p', 'scopehub-desktop', '--example', 'local_import_bridge',
+    '--features', 'portable-test-bridge', '--target-dir', 'target', '--message-format=json-render-diagnostics',
+  ], { cwd: root, timeout: 295_000, maxBuffer: 16 * 1024 * 1024 });
+  const executables = stdout.split(/\r?\n/).filter(line => line.startsWith('{')).map(line => JSON.parse(line))
+    .filter(message => message.reason === 'compiler-artifact' && message.target.name === 'local_import_bridge'
+      && message.target.kind.includes('example') && typeof message.executable === 'string')
+    .map(message => message.executable);
+  if (executables.length !== 1 || !isAbsolute(executables[0])) {
+    throw new Error('Cargo did not report one absolute executable for the local_import_bridge example.');
+  }
+  const [source] = executables;
+  const { binary, log } = localImportBridgePaths();
+  // Consumers execute the run-owned copy and release it before global teardown.
+  await copyFile(source, binary);
+  const diagnostics = `Prepared ${binary}\nCargo executable ${source}\n${stderr}`;
+  await writeFile(log, diagnostics);
+  await testInfo.attach('local-import-bridge-build', { body: diagnostics, contentType: 'text/plain' });
 });
 
-csvAccessTest('published revocation removes visible and delayed frozen evidence and leaves an authorized clear', async ({ browser, localImportBridge }, testInfo) => {
+const csvAccessTest = test.extend({
+  localImportBridge: async ({}, use, testInfo) => {
+    const { binary, log } = localImportBridgePaths();
+    await testInfo.attach('local-import-bridge-build', { body: await readFile(log), contentType: 'text/plain' });
+    await use(binary);
+  },
+});
+const csvAccess = { tag: '@native-csv' };
+
+csvAccessTest('published revocation removes visible and delayed frozen evidence and leaves an authorized clear', csvAccess, async ({ browser, localImportBridge }, testInfo) => {
   const fixture = await publishCsvAccessFixture(testInfo, localImportBridge);
-  const port = Number(process.env.SCOPEHUB_EVIDENCE_REVOCATION_PORT ?? await freePort());
   const { revoked, entitled, profile, market } = fixture;
   const held = Promise.withResolvers();
   const deliver = Promise.withResolvers();
   try {
+    const port = Number(process.env.SCOPEHUB_EVIDENCE_REVOCATION_PORT ?? await freePort());
     await inService(port, profile, 'ubuntu-workspace', async server => {
       const revision = revoked.revision_id;
       const open = async (page, id, start = true) => {
@@ -529,7 +557,7 @@ csvAccessTest('published revocation removes visible and delayed frozen evidence 
   }
 });
 
-csvAccessTest('CSV list recovery preserves the saved selection and timeframe undo through the native registry', async ({
+csvAccessTest('CSV list recovery preserves the saved selection and timeframe undo through the native registry', csvAccess, async ({
   page, localImportBridge,
 }, testInfo) => {
   const fixture = await publishCsvAccessFixture(testInfo, localImportBridge, { workspace: true });

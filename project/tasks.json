@@ -28732,12 +28732,15 @@
       "acceptance": [
         "Bind the original Windows linker error and the overlapping passing protected control to the actual build and use entrypoints. Preserve unknown process ownership explicitly.",
         "Exercise the normal fixture with concurrent consumers and genuine failed preparation. Preserve both observable browser journeys, failure diagnostics and synthetic resource cleanup while preventing shared executable replacement during use.",
+        "Exercise each filtered indicator entry without the CSV bridge, including with its Cargo invocation set to fail. Exercise a successful explicitly targeted native Cargo build with an older default artifact present, and verify cleanup on an injected port acquisition failure after revocation has started its native bridge.",
         "Obtain independent review and retain the first applicable native Windows workspace result for both consumers on the corrected source. Confirm the integrated workspace result separately."
       ],
       "checks": [
         "project-state",
         "python-contracts-workers",
-        "workspace-timeframe"
+        "workspace-timeframe",
+        "indicator-declarative-preview",
+        "indicator-workflow"
       ],
       "evidence": [],
       "diagnostic_reports": [
@@ -28745,13 +28748,18 @@
           "run_id": "windows-change-45962154175-1",
           "source_commit": "19cfc02e49ffe7f92b5be7374d301b60ab0cba17",
           "report_sha256": "a03a04dc5e930d0a50f04ac0e47aeb23b02e8c76523b5e0d2b4d259263c687c6"
+        },
+        {
+          "run_id": "windows-change-45960739508-1",
+          "source_commit": "2a3a65d66cced09120ef2be602411028001f89ae",
+          "report_sha256": "115a5e6e5ec0a74dbb1e39252c331ca3e33d86b6a40b2f98d24c9a0df6963be3"
         }
       ],
-      "next_action": "Review the prepared bridge and retained local controls at the clean candidate source. Retain the first applicable native Windows workspace result for both consumers and verify the integrated result before closing.",
+      "next_action": "Obtain a new independent decision on the revised clean source and retained local controls for selected CSV, full workspace, rejected build, filtered indicators and pre-server cleanup. After approval, the coordinator retains the first applicable native Windows workspace result for both consumers and separately verifies the integrated result before closing.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
-        "outcome": "Bind the original Windows linker error and the overlapping passing protected control to the actual build and use entrypoints. Preserve unknown process ownership explicitly. Exercise the normal fixture with concurrent consumers and genuine failed preparation. Preserve both observable browser journeys, failure diagnostics and synthetic resource cleanup while preventing shared executable replacement during use.",
+        "outcome": "Preserve the original Windows failure and passing overlap. Prepare one run-owned native executable from the selected Cargo output when either CSV consumer is selected. Preserve both real browser journeys, independent indicator check outcomes, rejected build diagnostics and synthetic process and directory cleanup before server startup.",
         "change_types": [
           "tooling"
         ],
@@ -28760,17 +28768,33 @@
           "tests/ubuntu-preview/workspace.config.mjs",
           "tests/ubuntu-preview/workspace.setup.mjs",
           "project/checks.json",
-          "contracts/reviews/2026-11-26-maintenance-workstreams.json"
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+          "contracts/reviews/task-decisions/M0-176.json"
         ],
         "hypotheses": [
-          "Two workers request a build at the same executable path while a peer can use it. Both original runs show overlapping consumers. Build once before either worker starts and stage a run-owned executable so the consumers never execute the Cargo output path."
+          "Two original workers request a build at the same executable path while a peer can use it. Both runs show overlapping consumers. A single preparation for selected CSV tests stages a run-owned executable outside the Cargo output while keeping the independent indicator checks free of the native example build.",
+          "Cargo reports the executable for the selected native target in its compiler artifact stream. Staging that file after successful completion handles an explicit host target even with an older image in the default directory.",
+          "Entering the fixture cleanup scope before acquiring the port allows the revocation path to reap its native child and remove its synthetic directory if the port bind fails before server startup."
         ],
         "risks": [
           {
-            "failure": "A workaround could mask a failed build, choose an old or different executable, or suppress one of the two real concurrent journeys.",
+            "failure": "Preparation could mask a rejected build, stage the stale default executable on a successful explicitly targeted build, or suppress one of the real concurrent journeys. Retain genuine Cargo rejection and explicit native-target controls with a previous default output present, then exercise selected CSV and full workspace runs.",
             "checks": [
               "project-state",
               "python-contracts-workers",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "An unrelated filtered check could pay for the native CSV example or fail with it. Run both cataloged indicator filters with a refusal constrained to that Cargo example and verify their selected cases run without a bridge build attempt.",
+            "checks": [
+              "indicator-declarative-preview",
+              "indicator-workflow"
+            ]
+          },
+          {
+            "failure": "A failed port bind before server startup could leave an executing native child and a synthetic profile directory. Inject the failure through the normal revocation case, observe the started child and owned directory, and confirm removal of both.",
+            "checks": [
               "workspace-timeframe"
             ]
           }
@@ -28794,6 +28818,10 @@
             {
               "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
               "pointer": "/outcomes/0"
+            },
+            {
+              "path": "contracts/reviews/task-decisions/M0-176.json",
+              "pointer": "/events/1"
             }
           ],
           "non_goals": [
@@ -28809,10 +28837,12 @@
             "Limit the correction to the existing synthetic workspace verification fixture and its checks. Preserve production data paths, product behavior, accepted task history and ordinary verification budgets."
           ],
           "change": [
-            "Build and stage the portable native bridge in workspace global setup and keep its successful build log with both consumers. Exercise overlapping independent workers and force a genuine Cargo failure with a previous output present to check that the suite rejects preparation and removes the run directory."
+            "Use one reported Playwright dependency case to prepare the portable native bridge for the selected CSV consumers. Keep build time in the preparation case and keep both existing browser test deadlines. Filtered runs that only select other workspace tests retain their existing check cost and outcomes.",
+            "Stage the executable reported by the successful Cargo invocation for the selected target, and retain its readable build diagnostics with both real consumers.",
+            "Keep revocation port acquisition inside the fixture cleanup scope so that pre-server failures clean up the native child and owned synthetic directory."
           ],
           "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
-          "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
+          "cleanup": "Use the existing run lifetime to remove the staged bridge, including after rejected preparation. Retain both original Windows reports, the previous independent response and the local controls for each escape path."
         }
       }
     }
