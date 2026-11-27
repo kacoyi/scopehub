@@ -1272,6 +1272,9 @@ test('offline sample indicator binds recovered result provenance to the frozen c
       service_exited: true, port_released: true, profile_removed: true });
     expect(alive(cleanup.writer.pid)).toBe(false);
   }
+  const finalCancels = (await readIndicatorJournal(journal))
+    .filter(row => row.stage === 'pipe-write' && row.operation === 'task.cancel');
+  expect(finalCancels.map(row => row.task_id)).toEqual(trials.map(trial => trial.task_id));
 });
 
 test('workspace delivers pre-admission BUSY after a complete indicator draft request', async () => {
