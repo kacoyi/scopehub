@@ -68,6 +68,26 @@
       "requested_at": "2026-11-27T10:12:28.352140+00:00",
       "request_id": "918b92a994864bb47cdbf993b8231bdf25bbfccd5b48bbbf90ed491e323677d7",
       "evidence_sha256": "64331954e99772249dc38d7248de98e064fffad655cfccf5d2a81bc0950bfe83"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c845c2bf670bda28f94eda2387378e53bc1ec2bf",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-177 c845c2bf670bda28f94eda2387378e53bc1ec2bf",
+      "scope": "CHANGES_REQUESTED M0-177 c845c2bf670bda28f94eda2387378e53bc1ec2bf",
+      "observation": "In my in-memory replay, adding a synthetic note body under `outcome.result` to a retained deletion reply still produced the initiating success notice and passed the fixture’s receipt check.",
+      "reviewer": "Independent Astra Standard (t1hf)",
+      "original_sha256": "183ebf6821b7c9b83b3925369b859f5b0ee090f2867b35774f5ea41e67fbe660",
+      "response_id": "af5348d4065a5d11c4303bcc118020a78c1417d42f0bee610d8bf812da1a2a04",
+      "response_sha256": "00b1409c5a310592dc2004b9411382298c09e2bc3ad5c9dbb7384cbe6d56f3c2",
+      "legacy_response_sha256": "f3dda11b6be48d8d12a885d44dbaf1f028c1461c35eb99127bc2fcb697659e72",
+      "observation_body_sha256": "11779e3310f71c66a0a5591e3a367ff0d8a5b4b2e74ada6220895a592e45ce6d",
+      "event": {
+        "id": "msg_0eece4ba6abdc944016b09588622a887d0a0935420f121e7c4",
+        "timestamp": "2026-11-27T10:17:00.344Z"
+      },
+      "supersedes": "918b92a994864bb47cdbf993b8231bdf25bbfccd5b48bbbf90ed491e323677d7",
+      "evidence_sha256": "d14c6e927783833e8a0b2094305f5c81dde3b2e9270e79b13fb2f800ed0ad286"
     }
   ]
 }
