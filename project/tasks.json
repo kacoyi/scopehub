@@ -29524,7 +29524,7 @@
         }
       ],
       "evidence": [],
-      "next_action": "Use the two original failing Windows entries and the same-preview Linux and adjacent native controls. Distinguish the private handoff wait and direct profile bridge creation at their existing boundaries. Preserve each unknown and inspect the earliest evidenced cause before choosing a correction.",
+      "next_action": "Independently review the existing preparation boundaries and qualify the correction with first-attempt native Windows and Linux task checks, then recheck the integrated source. Compare the visit, file and publication observations independently from the direct bridge exit and ACL observations. Keep the original visit, bridge terminal state and any common cause open without discriminating evidence.",
       "plan": {
         "outcome": "Both affected fixture preparations admit the real successful journey and report the observed failing stage without exposing the private capability or discarding cleanup. Qualify the exact Linux and Windows paths and integrated source.",
         "change_types": [
@@ -29537,8 +29537,8 @@
           "contracts/reviews/2026-11-26-maintenance-workstreams.json"
         ],
         "hypotheses": [
-          "The readiness wait completed before the private access document predicate expired. The original records insufficient detail to identify the visit, file state or mismatch.",
-          "The frozen evidence fixture ran the bridge against a synthetic profile and the command failed before the chart action. Check existing evidence for startup, completion, process ownership and cleanup separately from the handoff wait."
+          "The original readiness wait returned before the private access document predicate expired. The report did not distinguish a missing or unsuitable file, a writer or publication refusal, or a service exit. The controlled publication rejection exercises the real writer and distinguishes its occupied final path after readiness.",
+          "The original frozen evidence preparation failed during the direct bridge invocation. Its terminal state is unknown. The controlled profile mismatch exercises the same bridge entry and distinguishes a declared native exit from a deadline, without reaching fixture writes."
         ],
         "risks": [
           {
@@ -29557,7 +29557,8 @@
           ],
           "entrypoints": [
             "tests/ubuntu-preview/workspace.spec.mjs",
-            "tests/ubuntu-preview/workspace_service_readiness.mjs"
+            "tests/ubuntu-preview/workspace_service_readiness.mjs",
+            "tests/ubuntu-preview/workspace_fixture_bridge.mjs"
           ],
           "rules": [
             {

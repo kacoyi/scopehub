@@ -1,24 +1,104 @@
+import { lstat, readFile } from 'node:fs/promises';
 import { get } from 'node:http';
 import { setTimeout as delay } from 'node:timers/promises';
 import { stripVTControlCharacters } from 'node:util';
+import { workspaceBridgeNotices } from './workspace_fixture_bridge.mjs';
 
 export const startupMessage = 'workspace-service-startup';
 const handoffRejectionNotice = 'The private workspace handoff could not be issued.';
 const maxCliLineLength = 256;
 
-export function captureServiceOutput(child, observeCliStdout) {
+export function captureServiceOutput(child, observeCliStdout, port) {
   let output = '';
+  let stderr = '';
+  let stdout = '';
   let handoffRejected = false;
+  let handoffPublished = false;
+  const publicationNotice = `Open workspace-access-${port}.html from the private workspace profile directory.`;
   for (const stream of [child.stdout, child.stderr]) {
     stream.setEncoding('utf8');
     stream.on('data', chunk => {
-      const recent = output + chunk;
-      handoffRejected ||= recent.includes(handoffRejectionNotice);
-      if (stream === child.stdout) observeCliStdout?.(chunk);
-      output = recent.slice(-6000);
+      output = (output + chunk).slice(-6000);
+      if (stream === child.stdout) {
+        stdout = (stdout + chunk).slice(-8192);
+        handoffPublished ||= stdout.includes(publicationNotice);
+        observeCliStdout?.(chunk);
+      } else {
+        stderr = (stderr + chunk).slice(-8193);
+        handoffRejected ||= stderr.includes(handoffRejectionNotice);
+      }
     });
   }
-  return { recent: () => output, handoffRejected: () => handoffRejected };
+  return {
+    recent: () => output, handoffRejected: () => handoffRejected,
+    handoffPublication: () => ({ published: handoffPublished, rejected: handoffRejected }),
+    writerNotices: () => workspaceBridgeNotices(stderr),
+  };
+}
+
+function fileError(error) {
+  if (error.code === 'ENOENT') return { file_state: 'missing' };
+  const code = ['EACCES', 'EPERM', 'EBUSY', 'EISDIR', 'ENOTDIR', 'EIO'].find(code => code === error.code);
+  return { file_state: 'unreadable', code: code ?? 'unknown' };
+}
+
+export async function workspaceHandoffFile(path) {
+  try {
+    const metadata = await lstat(path);
+    return { file_state: !metadata.isFile() ? 'non-file' : metadata.size > 4096 ? 'oversize' : 'file' };
+  } catch (error) {
+    return fileError(error);
+  }
+}
+
+async function readHandoff(path, url, signal) {
+  const metadata = await workspaceHandoffFile(path);
+  if (metadata.file_state !== 'file') return metadata;
+  try {
+    const content = await readFile(path, { encoding: 'utf8', signal });
+    const link = /href="(http:\/\/127\.0\.0\.1:\d+\/#workspace=([a-f0-9]{64}))"/.exec(content);
+    if (!link) return { file_state: 'invalid-link' };
+    const origin = URL.parse(link[1])?.origin;
+    if (!origin) return { file_state: 'invalid-link' };
+    if (origin !== url) return { file_state: 'wrong-origin' };
+    return { file_state: 'ready', capability: link[2] };
+  } catch (error) {
+    return fileError(error);
+  }
+}
+
+export async function waitForWorkspaceHandoff(path, url, startup, output, observation) {
+  const deadlineMs = 12_000;
+  const deadline = performance.now() + deadlineMs;
+  const stop = new AbortController();
+  const expired = delay(deadlineMs, undefined, { signal: stop.signal }).catch(() => undefined);
+  const counts = {};
+  Object.assign(observation, {
+    stage: 'private-handoff', readiness_ms: startup.elapsed(), deadline_ms: deadlineMs, counts, last_file: null,
+  });
+  try {
+    for (;;) {
+      const current = await Promise.race([readHandoff(path, url, stop.signal), expired]);
+      if (current) {
+        const { capability, ...file } = current;
+        observation.last_file = { ...file, elapsed_ms: startup.elapsed() };
+        counts[file.file_state] = (counts[file.file_state] ?? 0) + 1;
+      }
+      observation.publication = output.handoffPublication();
+      const terminal = startup.terminal();
+      const remaining = deadline - performance.now();
+      const outcome = terminal.child_error ? 'child-error' : terminal.exit ? 'child-exited'
+        : !current || remaining <= 0 ? 'deadline' : current.capability ? 'ready'
+        : observation.publication.rejected ? 'launcher-rejected' : undefined;
+      if (outcome) {
+        Object.assign(observation, { outcome, terminal, finished_ms: startup.elapsed() });
+        return outcome === 'ready' ? current.capability : undefined;
+      }
+      await delay(Math.min(100, remaining));
+    }
+  } finally {
+    stop.abort();
+  }
 }
 
 function probeStatus(url, signal) {
@@ -68,6 +148,7 @@ export function observeServiceStartup(child, { startedAt, mode, port }) {
   }));
 
   const exited = () => child.exitCode !== null || child.signalCode !== null;
+  const terminal = () => ({ child_error: childError ?? null, exit: exit ?? null, close: close ?? null });
   function recordProbe(cause) {
     outcomes[cause] = (outcomes[cause] ?? 0) + 1;
     lastProbe = { cause, elapsed_ms: elapsed() };
@@ -76,6 +157,7 @@ export function observeServiceStartup(child, { startedAt, mode, port }) {
   return {
     closed,
     elapsed,
+    terminal,
     observeCliStdout(chunk) {
       // Vite prints its local URL after listen() completes in the terminal-signal fixture.
       if (listening) return;
@@ -121,8 +203,7 @@ export function observeServiceStartup(child, { startedAt, mode, port }) {
     failure(observation, cleanup, recentOutput) {
       const startup = {
         mode, requested_port: port, pid: child.pid ?? null, ...observation,
-        phases, probe: { outcomes, last: lastProbe ?? null }, child_error: childError ?? null,
-        ...cleanup, exit: exit ?? null, close: close ?? null,
+        phases, probe: { outcomes, last: lastProbe ?? null }, ...terminal(), ...cleanup,
         // Report only known notices. A rolling tail can contain a fragment of a private handoff.
         output: outputNotices.filter(notice => recentOutput.includes(notice)).join('\n'),
       };

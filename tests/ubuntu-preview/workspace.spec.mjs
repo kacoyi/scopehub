@@ -1,7 +1,7 @@
 import { execFile, spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { EventEmitter, getEventListeners, once } from 'node:events';
-import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { createServer as createHttpServer, request as httpRequest } from 'node:http';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -23,7 +23,9 @@ import { assertWindowsLeafAclMatrix, assertUnsuitableWindowsHandoffsRejected, as
 import { handoffProbeCases } from './workspace_test_handoff_probe_cases.mjs';
 import { claimProfile, withProfilePoolAclControl } from './workspace_profile_pool.mjs';
 import { observeIndicatorGate } from './workspace_indicator_gate.mjs';
-import { captureServiceOutput, observeServiceStartup, startupMessage } from './workspace_service_readiness.mjs';
+import { initializeFrozenProfile } from './workspace_fixture_bridge.mjs';
+import { captureServiceOutput, observeServiceStartup, startupMessage, waitForWorkspaceHandoff, workspaceHandoffFile }
+  from './workspace_service_readiness.mjs';
 import { observeSnapshotGate } from './workspace_snapshot_gate.mjs';
 
 const exec = promisify(execFile);
@@ -153,11 +155,18 @@ const service = `
 `;
 
 test('fresh browsers restore committed timeframe and eligible undo after service restarts', async ({ browser }, testInfo) => {
-  const profile = await makeProfile();
   const port = await freePort();
+  const profile = await makeProfile();
   const observation = [];
+  const handoffs = [];
+  const preparation = { handoffs };
+  const visit = (name, use) => {
+    const handoffObservation = { visit: name };
+    handoffs.push(handoffObservation);
+    return inService(port, profile, 'ubuntu-workspace', use, { handoffObservation });
+  };
   try {
-    await inService(port, profile, 'ubuntu-workspace', async server => {
+    await visit('first', async server => {
       const writer = await writerPid(server);
       await inFreshBrowser(browser, server, async (page, initial) => {
         expect(state(initial)).toEqual({ revision: 0, timeframe: '1m', undo: null });
@@ -177,7 +186,7 @@ test('fresh browsers restore committed timeframe and eligible undo after service
     expect(await portAvailable(port)).toBe(true);
     expect((await stat(join(profile.root, 'workspace.sqlite3'))).size).toBeGreaterThan(0);
 
-    await inService(port, profile, 'ubuntu-workspace', async server => {
+    await visit('undo', async server => {
       const writer = await writerPid(server);
       expect(server.pid).not.toBe(observation[0].vite);
       expect(writer).not.toBe(observation[0].writer);
@@ -205,7 +214,7 @@ test('fresh browsers restore committed timeframe and eligible undo after service
     });
     await expect.poll(() => alive(observation[1].writer)).toBe(false);
 
-    await inService(port, profile, 'ubuntu-workspace', async server => {
+    await visit('after-undo', async server => {
       const writer = await writerPid(server);
       expect(server.pid).not.toBe(observation[1].vite);
       expect(writer).not.toBe(observation[1].writer);
@@ -217,21 +226,31 @@ test('fresh browsers restore committed timeframe and eligible undo after service
       });
     });
     await expect.poll(() => alive(observation[2].writer)).toBe(false);
+    for (const handoff of handoffs) {
+      expect(handoff).toMatchObject({ outcome: 'ready', cleanup: { file_state: 'missing', close: { code: 0, signal: null } } });
+    }
     await testInfo.attach('workspace-restarts', { body: JSON.stringify(observation), contentType: 'application/json' });
   } finally {
-    await profile.close();
+    try { await closePreparationProfile(profile, preparation); }
+    finally {
+      await testInfo.attach('workspace-handoff-preparation', {
+        body: JSON.stringify(preparation), contentType: 'application/json',
+      });
+    }
   }
+  expect(preparation.profile_removed).toBe(true);
 });
 
 test('frozen chart shares two visible bars and clears the independent selection', async ({ browser }, testInfo) => {
-  const profile = await makeProfile();
   const port = Number(process.env.SCOPEHUB_EVIDENCE_TEST_PORT ?? await freePort());
+  const profile = await makeProfile();
   const id = 'e6cbffaf-8822-4d60-8652-b1e406a1eb20';
   const a = Date.parse('2026-02-03T00:00:00Z');
   const b = Date.parse('2026-02-04T00:00:00Z');
   const observation = [];
+  const preparation = {};
   try {
-    await seedFrozenEvidence(profile, id, a, b);
+    await seedFrozenEvidence(profile, id, a, b, evidenceBars(a, b), preparation);
     await inService(port, profile, 'ubuntu-workspace', async server => {
       const denied = await post(server, { type: 'frozen_chart', request_id: randomUUID(), revision_id: id }, { Authorization: '' });
       expect(denied.status).toBe(403);
@@ -327,8 +346,44 @@ test('frozen chart shares two visible bars and clears the independent selection'
       body: JSON.stringify(observation, null, 2), contentType: 'application/json',
     });
   } finally {
-    await profile.close();
+    try { await closePreparationProfile(profile, preparation); }
+    finally {
+      await testInfo.attach('frozen-evidence-preparation', { body: JSON.stringify(preparation), contentType: 'application/json' });
+    }
   }
+  expect(preparation.profile_removed).toBe(true);
+});
+
+test('frozen evidence preparation rejects a mismatched profile with a reaped bridge', async ({}, testInfo) => {
+  const profile = await makeProfile();
+  const a = Date.UTC(2026, 1, 3);
+  const b = Date.UTC(2026, 1, 4);
+  const preparation = {};
+  try {
+    await initializeFrozenProfile(workspaceBridge, profile, workspaceId);
+    const binding = { ...profile, id: 'synthetic-' + randomUUID() };
+    await expect(seedFrozenEvidence(binding, randomUUID(), a, b, evidenceBars(a, b), preparation))
+      .rejects.toHaveProperty('preparation', preparation);
+    expect(preparation).toMatchObject({
+      outcome: 'nonzero-exit', code: 1, pid: expect.any(Number),
+      exit: { code: 1, signal: null }, close: { code: 1, signal: null },
+      stderr: { error: 'profile-mismatch' },
+    });
+    preparation.reaped = !alive(preparation.pid);
+    expect(preparation.reaped).toBe(true);
+    const database = new DatabaseSync(join(profile.root, 'workspace.sqlite3'), { readOnly: true });
+    try {
+      expect(database.prepare('SELECT count(*) AS count FROM local_dataset_revisions').get().count).toBe(0);
+    } finally {
+      database.close();
+    }
+  } finally {
+    try { await closePreparationProfile(profile, preparation); }
+    finally {
+      await testInfo.attach('frozen-evidence-preparation', { body: JSON.stringify(preparation), contentType: 'application/json' });
+    }
+  }
+  expect(preparation.profile_removed).toBe(true);
 });
 
 test('published CSV requires a verified browser status before reopening', async ({ browser }, testInfo) => {
@@ -736,10 +791,8 @@ function evidenceBars(a, b) {
   ];
 }
 
-async function seedFrozenEvidence(profile, id, a, b, fixture = evidenceBars(a, b)) {
-  const create = exec(workspaceBridge, [profile.root, profile.id, workspaceId], { timeout: 12_000 });
-  create.child.stdin.end();
-  await create;
+async function seedFrozenEvidence(profile, id, a, b, fixture = evidenceBars(a, b), preparation) {
+  await initializeFrozenProfile(workspaceBridge, profile, workspaceId, preparation);
   // Independent fixture inputs. The application reopens and verifies the actual
   // SQLite revision. No operation, authorization or chart reply is stubbed.
   const database = new DatabaseSync(join(profile.root, 'workspace.sqlite3'));
@@ -5235,6 +5288,51 @@ test('the private launcher handoff is required and a previous launch cannot auth
   }
 });
 
+test('workspace private handoff reports blocked publication and releases its service', async ({}, testInfo) => {
+  const port = await freePort();
+  const profile = await makeProfile();
+  const filename = `workspace-access-${port}.html`;
+  const path = join(profile.root, filename);
+  const blocked = { visit: 'blocked-publication' };
+  const recovered = { visit: 'after-publication-block' };
+  const observation = { blocked, recovered };
+  try {
+    // Occupy only the final path. The real writer and atomic publication run.
+    await mkdir(path);
+    await expect(inService(port, profile, 'ubuntu-workspace', () => {
+      throw new Error('The blocked handoff must not admit the visit.');
+    }, { handoffObservation: blocked })).rejects.toHaveProperty('handoff', blocked);
+    expect(blocked).toMatchObject({
+      outcome: 'launcher-rejected', last_file: { file_state: 'non-file' },
+      publication: { published: false, rejected: true },
+      cleanup: { forced_kill_requested_ms: null, close: { code: 0, signal: null }, file_state: 'non-file' },
+    });
+    expect(blocked.finished_ms - blocked.readiness_ms).toBeLessThan(blocked.deadline_ms);
+    expect(alive(blocked.pid)).toBe(false);
+    observation.port_released = await portAvailable(port);
+    observation.temporary_removed = !(await readdir(profile.root)).some(name => name.startsWith(`.${filename}-`));
+    expect(observation.port_released).toBe(true);
+    expect(observation.temporary_removed).toBe(true);
+    expect((await stat(join(profile.root, 'workspace.sqlite3'))).isFile()).toBe(true);
+
+    await rm(path, { recursive: true });
+    let writer;
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      writer = await writerPid(server);
+      expect(state(await (await post(server, snapshot)).json())).toEqual({ revision: 0, timeframe: '1m', undo: null });
+    }, { handoffObservation: recovered });
+    await expect.poll(() => alive(writer)).toBe(false);
+    observation.reopened_writer_reaped = true;
+    expect(recovered).toMatchObject({ outcome: 'ready', cleanup: { file_state: 'missing' } });
+  } finally {
+    try { await closePreparationProfile(profile, observation); }
+    finally {
+      await testInfo.attach('workspace-handoff-preparation', { body: JSON.stringify(observation), contentType: 'application/json' });
+    }
+  }
+  expect(observation.profile_removed).toBe(true);
+});
+
 test('losing parent IPC releases the listener and writer with a history response held', async ({}, testInfo) => {
   const profile = await makeProfile();
   const port = await freePort();
@@ -5588,6 +5686,11 @@ async function makeProfile(id = 'synthetic-' + randomUUID()) {
   }
 }
 
+async function closePreparationProfile(profile, observation) {
+  try { await profile.close(); }
+  finally { observation.profile_removed = (await workspaceHandoffFile(profile.root)).file_state === 'missing'; }
+}
+
 if (process.platform === 'win32') {
   test('the Windows workspace pool opens a claimed profile and refuses unsafe outer ACLs', async () => {
     const runPool = process.env.SCOPEHUB_WORKSPACE_TEST_PROFILE_POOL;
@@ -5935,7 +6038,7 @@ async function portAvailable(port) {
   }
 }
 
-function spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault, snapshotGate, indicatorGate, entry = vite, traceStartup }) {
+function spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault, snapshotGate, indicatorGate, entry = vite, traceStartup, traceHandoff }) {
   // Vite publishes its dependency cache by renaming directories. Reuse warm
   // caches across launches, but give every live server its own write path.
   let slot = 0;
@@ -5953,6 +6056,7 @@ function spawnService(port, profile, mode, { terminalSignal, historyTrace, histo
       SCOPEHUB_WORKSPACE_PROFILE_ID: profile.id,
       SCOPEHUB_WORKSPACE_ID: profile.workspaceId ?? workspaceId,
       ...(historyTrace && { SCOPEHUB_TEST_PREVIEW: '1' }),
+      ...(traceHandoff && { SCOPEHUB_WORKSPACE_ACL_PHASES: '1' }),
     },
     stdio: terminalSignal ? ['pipe', 'pipe', 'pipe'] : ['ignore', 'pipe', 'pipe', 'ipc'],
   });
@@ -5974,17 +6078,19 @@ async function reapService(child, done, onForcedKill) {
 
 async function inService(port, profile, mode, use, {
   expectHandoff = true, terminalSignal, historyTrace = false, historyFault = false,
-  snapshotGate = false, indicatorGate = false, entry, holdTimeoutMs,
+  snapshotGate = false, indicatorGate = false, entry, holdTimeoutMs, handoffObservation,
 } = {}) {
   const url = 'http://127.0.0.1:' + port;
   const startedAt = performance.now();
   const child = spawnService(port, profile, mode, {
     terminalSignal, historyTrace, historyFault, snapshotGate, indicatorGate, entry, traceStartup: true,
+    traceHandoff: Boolean(handoffObservation),
   });
   const carrierGate = indicatorGate ? observeIndicatorGate(child) : undefined;
   const startup = observeServiceStartup(child, { startedAt, mode, port });
-  const output = captureServiceOutput(child, terminalSignal ? startup.observeCliStdout : undefined);
+  const output = captureServiceOutput(child, terminalSignal ? startup.observeCliStdout : undefined, port);
   let startupFailure;
+  let handoff;
   let disconnectedExit;
   let disconnectedWriter;
   const historyStages = new Map();
@@ -6036,19 +6142,11 @@ async function inService(port, profile, mode, use, {
   try {
     startupFailure = await startup.wait(url, holdTimeoutMs);
     if (!startupFailure && mode === 'ubuntu-workspace' && expectHandoff) {
-      await expect.poll(async () => {
-        const content = await readFile(server.handoff, 'utf8').catch(error => {
-          if (error.code === 'ENOENT') return '';
-          throw error;
-        });
-        const link = /href="(http:\/\/127\.0\.0\.1:\d+\/#workspace=([a-f0-9]{64}))"/.exec(content);
-        if (!link || new URL(link[1]).origin !== url) return false;
-        const capability = link[2];
-        server.capability = capability;
-        return true;
-      }, { message: 'The launcher issued a private access document', timeout: 12_000 }).toBe(true);
+      handoff = handoffObservation ?? {};
+      handoff.pid = child.pid;
+      server.capability = await waitForWorkspaceHandoff(server.handoff, url, startup, output, handoff);
     }
-    if (!startupFailure) await use(server);
+    if (!startupFailure && (!handoff || server.capability)) await use(server);
   } finally {
     const cleanupStarted = startup.elapsed();
     try {
@@ -6078,6 +6176,18 @@ async function inService(port, profile, mode, use, {
         throw startup.failure(startupFailure, {
           cleanup_started_ms: cleanupStarted, forced_kill_requested_ms: forcedKillRequested,
         }, recentOutput);
+      }
+      if (handoff && (handoffObservation || !server.capability)) {
+        handoff.publication_after_close = output.handoffPublication();
+        handoff.writer_stderr = output.writerNotices();
+        handoff.cleanup = {
+          started_ms: cleanupStarted, forced_kill_requested_ms: forcedKillRequested,
+          ...startup.terminal(), ...await workspaceHandoffFile(server.handoff),
+        };
+        if (!server.capability) {
+          throw Object.assign(new Error(`Workspace private handoff failed: ${JSON.stringify(handoff)}`), { handoff });
+        }
+        expect(JSON.stringify(handoff).includes(server.capability)).toBe(false);
       }
       expect(signal).not.toBe('SIGKILL');
     }
