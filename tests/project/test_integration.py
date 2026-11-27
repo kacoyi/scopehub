@@ -39,15 +39,20 @@ CHECKOUT = {'uses': CHECKOUT_ACTION}
 CHECKOUT_STEP = dict(step(f'Run {CHECKOUT_ACTION}'), number=2)
 PREPARE = {'id': 'reports', 'name': 'Initialize CI verification reports'}
 STAGE_NAME = 'Stage current verification evidence'
-PUBLICATION = [
-    {'id': 'artifacts', 'name': STAGE_NAME},
-    {'uses': UPLOAD_ACTION, 'with': {'path': '${{ steps.artifacts.outputs.path }}'}},
-    {'uses': UPLOAD_ACTION, 'continue-on-error': True, 'with': {'path': '${{ steps.artifacts.outputs.timing_path }}'}},
-]
+UPLOAD_SECOND = '2026-11-21T16:42:55Z'
 DOWNLOADS = [
     {'uses': DOWNLOAD_ACTION, 'with': {'pattern': 'verification-windows-${{ github.run_attempt }}-*'}},
     {'uses': DOWNLOAD_ACTION, 'with': {'name': 'verification-windows-${{ github.run_attempt }}-core'}},
 ]
+
+
+def publication(name):
+    return [
+        {'id': 'artifacts', 'name': STAGE_NAME},
+        {'uses': UPLOAD_ACTION, 'with': {'name': name, 'path': '${{ steps.artifacts.outputs.path }}'}},
+        {'uses': UPLOAD_ACTION, 'continue-on-error': True,
+         'with': {'path': '${{ steps.artifacts.outputs.timing_path }}'}},
+    ]
 
 
 def publication_steps(*, aggregated=False, profile='full', producer=False):
@@ -106,9 +111,34 @@ def checkout_log(pr, commit, git='/usr/bin/git'):
 
 
 def attempt_job(job, run, job_id):
-    return dict({'head_branch': run.get('head_branch'), **job},
+    steps = [dict(item, started_at=UPLOAD_SECOND, completed_at=UPLOAD_SECOND)
+             if item['name'] == f'Run {UPLOAD_ACTION}' else item for item in job['steps']]
+    return dict({'head_branch': run.get('head_branch'), **job}, steps=steps,
                 id=job_id, run_id=run['id'], run_attempt=run['run_attempt'], head_sha=run['head_sha'],
                 run_url=f"https://api.github.com/repos/fixture/project/actions/runs/{run['id']}")
+
+
+def publication_evidence(run, jobs):
+    artifacts, uploads = [], {}
+    lanes = {name: lane for lane, name in timing.WINDOWS_PRODUCERS.items()}
+    for job in jobs:
+        job_id = job['id']
+        uploads[job_id] = ()
+        if job['name'] == WINDOWS:
+            name = 'verification-windows-latest'
+        elif job['name'] in lanes:
+            name = f"verification-windows-{run['run_attempt']}-{lanes[job['name']]}"
+        else:
+            continue
+        artifact_id = 10000 + job_id
+        host_url = f"https://github.com/fixture/project/actions/runs/{run['id']}/artifacts/{artifact_id}"
+        api_url = f'https://api.github.com/repos/fixture/project/actions/artifacts/{artifact_id}/zip'
+        size = 200
+        artifacts.append({'name': name, 'id': artifact_id, 'expired': False, 'size_in_bytes': size,
+                          'workflow_run': {'id': run['id'], 'head_sha': run['head_sha']},
+                          'archive_download_url': api_url})
+        uploads[job_id] = ((f'Run {UPLOAD_ACTION}', name, size, artifact_id, UPLOAD_SECOND, host_url),)
+    return artifacts, uploads
 
 
 class IntegrationAssessmentTests(unittest.TestCase):
@@ -127,11 +157,19 @@ class IntegrationAssessmentTests(unittest.TestCase):
 
         def download(argv, **options):
             self.assertEqual('repos/fixture/project/actions/jobs/10/logs', argv[-1])
-            options['stdout'].buffer.write(b'\xff\r\n' + checkout_log(3, commit).encode())
+            lines = [f'##[group]Run {UPLOAD_ACTION}', 'with:', '  name: verification-windows-latest',
+                     '##[endgroup]',
+                     'Artifact verification-windows-latest has been successfully uploaded! Final size is 200 bytes. '
+                     'Artifact ID is 12',
+                     'Artifact download URL: https://github.com/fixture/project/actions/runs/1/artifacts/12']
+            reports = ''.join(f'\n2026-11-21T16:42:55.9198332Z {line}' for line in lines)
+            options['stdout'].buffer.write(b'\xff\r\n' + (checkout_log(3, commit) + reports).encode())
             return subprocess.CompletedProcess(argv, 0, stderr=b'')
 
         with patch.object(subprocess, 'run', side_effect=download):
-            self.assertEqual((3, commit), integration.job_checkout('.', 'fixture/project', 10))
+            claims = ((f'Run {UPLOAD_ACTION}', 'verification-windows-latest', 200, 12, UPLOAD_SECOND,
+                       'https://github.com/fixture/project/actions/runs/1/artifacts/12'),)
+            self.assertEqual((3, commit, claims), integration.job_checkout('.', 'fixture/project', 10))
         with patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess([], 1, stderr=b'HTTP 404')):
             with self.assertRaisesRegex(ProjectError, 'job 10: HTTP 404'):
                 integration.job_checkout('.', 'fixture/project', 10)
@@ -232,7 +270,7 @@ class IntegrationFixture(ProjectFixture):
         workflow = self.root / timing.WORKFLOW
         workflow.parent.mkdir(parents=True)
         workflow.write_bytes(json_bytes({'jobs': {'verify': {'steps': [
-            CHECKOUT, PREPARE, {'name': WINDOWS_FULL}, *PUBLICATION,
+            CHECKOUT, PREPARE, {'name': WINDOWS_FULL}, *publication(integration.MATRIX_ARTIFACT),
         ]}}}))
 
     def git(self, *args):
@@ -363,6 +401,7 @@ class IntegrationHistoryTests(IntegrationFixture):
         run = {'id': 100, 'run_attempt': attempt, 'status': 'completed', 'conclusion': 'success', 'head_sha': head,
                'head_branch': 'task', 'event': 'pull_request', 'path': integration.WORKFLOW}
         jobs = [attempt_job(job, run, index) for index, job in enumerate(args['jobs'], 1000)]
+        artifacts, uploads = publication_evidence(run, jobs)
         if records:
             for job in jobs:
                 job['steps'] = [CHECKOUT_STEP, step('Verify records changes'), *job['steps'][2:]]
@@ -393,6 +432,8 @@ class IntegrationHistoryTests(IntegrationFixture):
                 return json.dumps([{'workflow_runs': [run]}])
             if f'/runs/100/attempts/{attempt}/jobs?' in argv[-1]:
                 return json.dumps([{'jobs': jobs}])
+            if '/runs/100/artifacts?' in argv[-1]:
+                return json.dumps([{'artifacts': artifacts}])
             if argv[-1].endswith(f'/git/commits/{tested["sha"]}'):
                 return json.dumps(tested)
             self.assertEqual('repos/fixture/project/branches/main/protection', argv[-1])
@@ -400,7 +441,8 @@ class IntegrationHistoryTests(IntegrationFixture):
 
         with (patch.object(integration, 'github_identity', return_value='fixture/project'),
               patch.object(integration, 'command', side_effect=command),
-              patch.object(integration, 'job_checkout', return_value=(1, tested['sha'])),
+              patch.object(integration, 'job_checkout', side_effect=lambda root, repo, job_id, action:
+                           (1, tested['sha'], uploads[job_id])),
               patch.object(timing, 'offline_budget_status',
                            return_value={'budget_recovery': [recovery, main_recovery]},
                            side_effect=AssertionError('Unrelated scope queried timing') if expect_no_timing else None)):
@@ -653,7 +695,7 @@ class IntegrationHistoryTests(IntegrationFixture):
         self.assertIn(f'Unresolved major feedback: {PUSH_BUDGET}', result['blockers'])
 
     def observe_harness(self, base, head, ubuntu_steps, windows_steps, *, tested=None, producer_jobs=(),
-                        checkout_refs=None, windows_publication=None):
+                        checkout_refs=None, windows_publication=None, artifact_control=None):
         fixture = observations()
         pr = dict(fixture['pr'], baseRefOid=base, headRefOid=head)
         run = {'id': 100, 'run_attempt': 2, 'head_sha': head, 'status': 'completed', 'conclusion': 'success',
@@ -665,27 +707,34 @@ class IntegrationHistoryTests(IntegrationFixture):
         protected = [dict(job, steps=[CHECKOUT_STEP, *steps])
                      for job, steps in zip(fixture['jobs'], (ubuntu_steps, [*windows_steps, *windows_publication]))]
         jobs = [attempt_job(job, run, job_id) for job_id, job in enumerate([*protected, *producer_jobs], 1000)]
+        artifacts, uploads = publication_evidence(run, jobs)
+        if artifact_control:
+            artifact_control(artifacts, uploads)
         if tested is None:
             tested = self.merge_observation(base, head)
-        api_responses = iter([json.dumps([{'jobs': jobs}]), json.dumps(tested)])
+        api_responses = iter([json.dumps([{'jobs': jobs}]), json.dumps(tested), json.dumps([{'artifacts': artifacts}])])
         original = integration.command
 
         def command(argv, root):
             return original(argv, root) if argv[0] == 'git' else next(api_responses)
 
+        def checkout(root, repo, job_id, action):
+            return (*(checkout_refs or {}).get(job_id, (1, tested['sha'])), uploads[job_id])
+
         with (patch.object(integration, 'command', side_effect=command),
-              patch.object(integration, 'job_checkout', side_effect=lambda root, repo, job_id, action:
-                           (checkout_refs or {}).get(job_id, (1, tested['sha'])))):
+              patch.object(integration, 'job_checkout', side_effect=checkout)):
             return integration.verified_pr_run(self.root, 'fixture/project', pr, [run], False, [UBUNTU, WINDOWS])
 
     def declare_windows_producers(self, marker, lanes):
         producers = {f'windows_{lane}': {'name': timing.WINDOWS_PRODUCERS[lane], 'runs-on': 'windows-latest',
                                         'strategy': {'matrix': {'lane': [lane]}}, 'steps': [
-                                            CHECKOUT, PREPARE, {'name': f'Verify the Windows {lane} lane'}, *PUBLICATION,
+                                            CHECKOUT, PREPARE, {'name': f'Verify the Windows {lane} lane'},
+                                            *publication(integration.LANE_ARTIFACT),
                                         ]} for lane in lanes}
         workflow = {'jobs': {'verify': {'steps': [CHECKOUT]}, **producers, 'windows_change': {
             'needs': list(producers),
-            'steps': [CHECKOUT, PREPARE, *DOWNLOADS, {'name': WINDOWS_FULL}, *PUBLICATION, {'name': marker}],
+            'steps': [CHECKOUT, PREPARE, *DOWNLOADS, {'name': WINDOWS_FULL},
+                      *publication('verification-windows-latest'), {'name': marker}],
         }}}
         (self.root / timing.WORKFLOW).write_bytes(json_bytes(workflow))
         return workflow
@@ -739,20 +788,23 @@ class IntegrationHistoryTests(IntegrationFixture):
         base = self.commit()
         for marker, lanes in ((timing.WINDOWS_RECOVERY_MARKER, timing.WINDOWS_RECOVERY_LANES),
                               (timing.WINDOWS_WORKSPACE_MARKER, timing.WINDOWS_WORKSPACE_LANES)):
-            self.declare_windows_producers(marker, lanes)
+            declared = self.declare_windows_producers(marker, lanes)
             head = self.commit()
             producers = self.producer_jobs(lanes)
             publisher = publication_steps(aggregated=True)
 
-            def observe(jobs=producers, publication=publisher):
+            def observe(jobs=producers, publication=publisher, **controls):
                 result, _ = self.observe_harness(
                     base, head, [step(UBUNTU_FULL)], [step(WINDOWS_FULL), step(marker)],
-                    producer_jobs=jobs, windows_publication=publication,
+                    producer_jobs=jobs, windows_publication=publication, **controls,
                 )
                 return result
 
             with self.subTest(marker=marker):
-                self.assertEqual('passed', observe()['status'])
+                passing = observe()
+                self.assertEqual('passed', passing['status'])
+                self.assertEqual(len(lanes) + 1, len(passing['required_artifacts']))
+                self.assertEqual('verification-windows-latest', passing['required_artifacts'][0]['name'])
                 self.assertEqual('passed', observe(publication=publisher[:-1])['status'])
                 for optional_result in ('skipped', 'failure'):
                     self.assertEqual('passed', observe(publication=[
@@ -781,6 +833,40 @@ class IntegrationHistoryTests(IntegrationFixture):
                         result = observe(jobs=[*producers[:index], missing, *producers[index + 1:]])
                         self.assertEqual('blocked', result['status'])
                         self.assertIn(producer['name'], result['reason'])
+
+                browser = 1002 + lanes.index('browser')
+                python = 1002 + lanes.index('python')
+                swap_logs = lambda assets, uploads: uploads.update({browser: uploads[python]})
+                result = observe(artifact_control=swap_logs)
+                self.assertEqual('blocked', result['status'])
+                self.assertIn('did not publish the downloadable evidence artifact verification-windows-2-browser',
+                              result['reason'])
+
+                for bad in ({'expired': True}, {'archive_download_url': 'https://example.invalid/zip'},
+                            {'workflow_run': {'id': 99, 'head_sha': head}}):
+                    with self.subTest(artifact=bad):
+                        result = observe(artifact_control=lambda assets, uploads: assets[0].update(bad))
+                        self.assertEqual('blocked', result['status'])
+                        self.assertIn('lacks the expected downloadable evidence artifact', result['reason'])
+                result = observe(artifact_control=lambda assets, uploads: assets[0].update(size_in_bytes=999))
+                self.assertIn('did not publish the downloadable evidence artifact', result['reason'])
+
+                def change_timestamp(assets, uploads):
+                    (claim,) = uploads[1001]
+                    uploads[1001] = ((*claim[:4], '2026-11-21T16:41:55Z', claim[-1]),)
+
+                result = observe(artifact_control=change_timestamp)
+                self.assertEqual('blocked', result['status'])
+                self.assertIn('did not publish the downloadable evidence artifact', result['reason'])
+
+                final_upload = next(step for step in declared['jobs']['windows_change']['steps']
+                                    if step.get('uses') == UPLOAD_ACTION)
+                final_upload['with']['name'] = 'verification-timing-windows-latest'
+                (self.root / timing.WORKFLOW).write_bytes(json_bytes(declared))
+                wrong_name = self.commit()
+                result = observe(tested=self.merge_observation(base, head, tree_revision=wrong_name))
+                self.assertEqual('blocked', result['status'])
+                self.assertIn('does not declare the required evidence steps', result['reason'])
             base = head
 
     def test_scoped_windows_publication_requires_the_core_transfer(self):
@@ -861,6 +947,18 @@ class IntegrationHistoryTests(IntegrationFixture):
             self.assertEqual(status, result['status'], result['reason'])
             if status == 'blocked':
                 self.assertIn('committed Windows producer layout', result['reason'])
+
+        for path, expectation in (('.reports/', 'passed'), ('.reports/timing/', 'blocked')):
+            workflow = {'jobs': {'verify': {'steps': [
+                CHECKOUT, {'name': WINDOWS_FULL},
+                {'uses': UPLOAD_ACTION, 'with': {'path': path, 'name': 'verification-${{ matrix.os }}'}},
+            ]}}}
+            (self.root / timing.WORKFLOW).write_bytes(json_bytes(workflow))
+            historical = self.commit()
+            upload = dict(step(f'Run {UPLOAD_ACTION}'), number=4)
+            result, _ = self.observe_harness(base, historical, [step(UBUNTU_FULL)], [step(WINDOWS_FULL)],
+                                             windows_publication=[upload])
+            self.assertEqual(expectation, result['status'], result['reason'])
 
     def test_windows_layout_comes_from_the_tested_merge_tree(self):
         workflow = self.root / timing.WORKFLOW
@@ -1036,9 +1134,10 @@ class IntegrationHistoryTests(IntegrationFixture):
         checked = {990: (1, '6' * 40), 1000: (1, '7' * 40), 1010: (2, '8' * 40), 1020: (1, '9' * 40)}
         checked.update({job + 1: source for job, source in checked.items()})
         ubuntu_job, windows_job = args['jobs']
-        windows_steps = list(windows_job['steps'])
+        windows_steps = attempt_job(windows_job, run, 1001)['steps']
         head_parent = {99: head, 100: head, 101: head, 102: head}
         queries = []
+        artifacts, uploads = publication_evidence(run, [attempt_job(windows_job, run, 1001)])
 
         def command(argv, root):
             queries.append(argv)
@@ -1048,6 +1147,8 @@ class IntegrationHistoryTests(IntegrationFixture):
                 return json.dumps(pr)
             if 'event=pull_request' in argv:
                 return json.dumps([{'workflow_runs': runs[:2]}, {'workflow_runs': runs[2:]}])
+            if '/runs/100/artifacts?' in argv[-1]:
+                return json.dumps([{'artifacts': artifacts}])
             for run_id, attempt, parent in [(99, 1, base), (100, 2, base), (101, 1, base), (102, 1, 'f' * 40)]:
                 _, merge_sha = checked[run_id * 10]
                 if f'/runs/{run_id}/attempts/{attempt}/jobs?' in argv[-1]:
@@ -1064,7 +1165,8 @@ class IntegrationHistoryTests(IntegrationFixture):
             return json.dumps(args['protection'])
 
         original = integration.command
-        checkout = patch.object(integration, 'job_checkout', side_effect=lambda root, repo, job_id, action: checked[job_id])
+        checkout = patch.object(integration, 'job_checkout', side_effect=lambda root, repo, job_id, action:
+                                (*checked[job_id], uploads.get(job_id, ())))
         self.addCleanup(checkout.stop)
         checkout.start()
         with (patch.object(integration, 'github_identity', return_value='fixture/project'),
