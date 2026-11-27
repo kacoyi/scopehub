@@ -7,14 +7,32 @@ use scopehub_domain::protocol::{Error, ErrorCode, IndicatorCompute11, Message};
 use serde_json::{Value, json};
 use tokio::{sync::oneshot, time::timeout};
 
-use super::{compute, encode_frame, error};
+use super::{PendingCleanup, compute_retaining_cleanup, encode_frame, error};
 use crate::{decode_line, market::WorkerConfig, max_message_bytes};
 
 /// Private native CLI carrier for an already confirmed run. The parent keeps
 /// stdin open after its request and closes it to cancel or signal parent loss.
 /// Call from a standalone process, outside an async runtime.
 pub fn run_child(config: &WorkerConfig) -> ExitCode {
-    let result = run(config);
+    let Ok(runtime) = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+    else {
+        return write_outcome(Err(error(ErrorCode::WORKEREXITED)));
+    };
+    let mut cleanup = None;
+    let result = runtime.block_on(run(config, &mut cleanup));
+    let exit = write_outcome(result);
+    // Keep driving the reaper after publishing the terminal frame.
+    if let Some(cleanup) = cleanup {
+        runtime.block_on(cleanup.finish());
+    }
+    exit
+}
+
+fn write_outcome(
+    result: Result<scopehub_domain::protocol::IndicatorComputed11, Error>,
+) -> ExitCode {
     let frame = match result {
         Ok(result) => encode_frame(&result),
         Err(failure) => encode_frame(&json!({"error": failure})),
@@ -34,7 +52,10 @@ pub fn run_child(config: &WorkerConfig) -> ExitCode {
     }
 }
 
-fn run(config: &WorkerConfig) -> Result<scopehub_domain::protocol::IndicatorComputed11, Error> {
+async fn run(
+    config: &WorkerConfig,
+    cleanup: &mut Option<PendingCleanup<io::Result<()>>>,
+) -> Result<scopehub_domain::protocol::IndicatorComputed11, Error> {
     let (input, frame) = oneshot::channel();
     let (cancel, eof) = oneshot::channel();
     // A blocked stdin read must not delay process exit after a successful reply.
@@ -50,20 +71,19 @@ fn run(config: &WorkerConfig) -> Result<scopehub_domain::protocol::IndicatorComp
             }
         })
         .map_err(|_| error(ErrorCode::WORKEREXITED))?;
-    tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .map_err(|_| error(ErrorCode::WORKEREXITED))?
-        .block_on(async {
-            let request = timeout(config.deadline, frame)
-                .await
-                .map_err(|_| error(ErrorCode::TIMEOUT))?
-                .map_err(|_| error(ErrorCode::WORKEREXITED))??;
-            compute(config, &request, async {
-                let _ = eof.await;
-            })
-            .await
-        })
+    let request = timeout(config.deadline, frame)
+        .await
+        .map_err(|_| error(ErrorCode::TIMEOUT))?
+        .map_err(|_| error(ErrorCode::WORKEREXITED))??;
+    compute_retaining_cleanup(
+        config,
+        &request,
+        async {
+            let _ = eof.await;
+        },
+        cleanup,
+    )
+    .await
 }
 
 fn read_request(input: &mut impl BufRead) -> Result<IndicatorCompute11, Error> {

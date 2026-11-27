@@ -465,6 +465,35 @@
       },
       "supersedes": "ac456fbd31112cc9bd9a76790ae16669047e52f64133ae563a9929f3dc71840c",
       "evidence_sha256": "377172e362bdc080c359b9a598dd40440575ea012943a0e9dc825479dfc35b9d"
+    },
+    {
+      "kind": "request",
+      "source_commit": "59c203f6a2f9f076a4b773a2e73fbfeba30a98bb",
+      "scope": "Independently qualify the exact PR 97 native submission after incorporation of three approved decisions. Check the decision-only delta from 3d34bec7, matched raw responses, unchanged tested implementation, previously verified portable and native workflow definitions and offline readiness for the selected task. Reuse the existing approved browser evidence. This narrow decision is for the exact tree handed to the guarded workflow.",
+      "supersedes": "7304d7464e95d678498ecbaf99a0b805716a263e43e93701f6569440d86c1230",
+      "requested_at": "2026-11-26T15:22:28.987187+00:00",
+      "request_id": "1e016e4a1aa50e0ffa0c0988c7e08cab3b41557c9e9677ddb056a5ee4f055560",
+      "evidence_sha256": "5f005411e8426d5cb07b999db1dc67e36231516df4024b643b412a2394437f9a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "59c203f6a2f9f076a4b773a2e73fbfeba30a98bb",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 59c203f6a2f9f076a4b773a2e73fbfeba30a98bb",
+      "scope": "APPROVE M2-039 59c203f6a2f9f076a4b773a2e73fbfeba30a98bb",
+      "observation": "In my offline replay, the workflow guard accepted the exact candidate and protected base, rejected the previous reviewed head, and rejected a stale base.",
+      "reviewer": "Independent Astra Standard (t19m)",
+      "original_sha256": "f1ea54ed4e5e98f7acb045592b4c5dc5587101c624875614cf9caf86afbfe518",
+      "response_id": "8ec031b25cd771cc43e1bfbedef622302a27fd49376f755a1756e4ac429f8439",
+      "response_sha256": "b25fad3aeb825ca8825ef5972f018da8daf0f85f20e2a19196423075e7f26295",
+      "legacy_response_sha256": "15729985310b8fddd4daa1e08ba27f81a6a950b56f563126e0aef9167304e6d1",
+      "observation_body_sha256": "ea18202cbedabaefc31608dfe65a2be46c8b96c9d8701f5cf2ba979e76fa7a07",
+      "event": {
+        "id": "msg_0d0076eb8e4e05f0016b084f62159487d28afb4afaa59aec2c",
+        "timestamp": "2026-11-26T15:25:37.226Z"
+      },
+      "supersedes": "1e016e4a1aa50e0ffa0c0988c7e08cab3b41557c9e9677ddb056a5ee4f055560",
+      "evidence_sha256": "ca3d88070695f55cdedb98d9b2d4d65642291861bb8c4d979f3c8ff877919c6c"
     }
   ]
 }

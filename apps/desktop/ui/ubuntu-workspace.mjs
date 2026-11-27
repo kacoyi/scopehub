@@ -27,6 +27,11 @@ const cancelIndicator = 'task.cancel';
 const acceptIndicator = 'indicator.acceptVersion';
 const removeIndicator = 'indicator.remove';
 const indicatorConfirmation = 'confirmation.respond';
+const indicatorWorkerProgram = 'scopehub-indicator-child';
+const indicatorWorkerFailure = 'Trusted indicator execution failed.';
+const indicatorWorkerFrameBytes = 4 * 1024 * 1024;
+// One registry job can run while a previous carrier still owns cleanup.
+const maxIndicatorCarriers = 2;
 const acceptedLayers = 'indicator_accepted_layers';
 const acceptedOutput = 'indicator_accepted_output';
 const indicatorReads = [previewStatus, acceptedLayers, acceptedOutput];
@@ -330,46 +335,103 @@ function validPrivateRecordOutcome(outcome, job, workspaceId) {
     && receipt.committed_workspace_revision === job.workspaceRevision + 1;
 }
 
-function launchTrustedWorker(root, program, wireRequest, frameBytes, failureMessage, env = process.env) {
+function trustedWorkerFault(code, message) {
+  return JSON.stringify({ error: { code, retryable: false, message, details: {} } });
+}
+
+function decodeWorkerFrame(bytes) {
+  if (bytes.indexOf(10) !== bytes.length - 1) throw invalidReply();
+  const raw = new TextDecoder('utf-8', { fatal: true }).decode(bytes.subarray(0, -1));
+  // Preserve numeric types for Rust's hash check.
+  return { raw, value: JSON.parse(raw) };
+}
+
+function isWorkerFailure(value) {
+  const error = value?.error;
+  return error && Object.keys(value).length === 1 && Object.keys(error).length === 4
+    && typeof error.code === 'string' && typeof error.retryable === 'boolean'
+    && typeof error.message === 'string' && error.message.length > 0 && error.message.length <= 512
+    && error.details && typeof error.details === 'object' && !Array.isArray(error.details);
+}
+
+function launchTrustedWorker(root, program, wireRequest, frameBytes, failureMessage, { env = process.env } = {}) {
+  const isIndicator = program === indicatorWorkerProgram;
   const executable = process.platform === 'win32' ? program + '.exe' : program;
   const child = spawn(resolve(root, 'target/debug', executable), ['--root', root], {
     cwd: root, stdio: ['pipe', 'pipe', 'ignore'], windowsHide: true, env,
   });
-  const workerFault = code => JSON.stringify({ error: { code, retryable: false, message: failureMessage, details: {} } });
+  const workerFault = code => trustedWorkerFault(code, failureMessage);
   const finished = Promise.withResolvers();
+  const closed = Promise.withResolvers();
   const chunks = [];
   let length = 0;
+  let rawFrame;
   let outputLimit = false;
   let workerError = false;
   let cancelled = false;
+  let failureDelivered = false;
   const cancel = () => {
+    if (cancelled) return;
     cancelled = true;
     child.stdin.end();
   };
-  child.once('error', () => { workerError = true; });
-  child.stdin.on('error', () => { workerError = true; });
-  child.stdout.on('data', chunk => {
+  const onError = () => { workerError = true; };
+  const onData = chunk => {
+    if (failureDelivered || outputLimit || chunk.length === 0) return;
     length += chunk.length;
     if (length > frameBytes) {
       outputLimit = true;
+      chunks.length = 0;
+      rawFrame = null;
       child.stdin.end();
-    } else if (!outputLimit) chunks.push(chunk);
-  });
-  child.once('close', exit => {
-    if (cancelled) return finished.resolve(workerFault('CANCELLED'));
-    if (outputLimit) return finished.resolve(workerFault('RESOURCE_LIMIT'));
-    if (workerError || exit !== 0 && length === 0) return finished.resolve(workerFault('WORKER_EXITED'));
+      return;
+    }
+    if (rawFrame !== undefined) {
+      rawFrame = null;
+      return;
+    }
+    chunks.push(chunk);
+    if (!chunk.includes(10)) return;
     try {
-      const bytes = Buffer.concat(chunks);
-      if (bytes.indexOf(10) !== bytes.length - 1) return finished.resolve(workerFault('OUTPUT_INVALID'));
-      const raw = new TextDecoder('utf-8', { fatal: true }).decode(bytes.subarray(0, -1));
-      JSON.parse(raw);
-      // Preserve the worker's numeric representation for Rust's hash check.
-      finished.resolve(raw);
-    } catch { finished.resolve(workerFault('OUTPUT_INVALID')); }
+      const { raw, value } = decodeWorkerFrame(Buffer.concat(chunks, length));
+      if (isIndicator && !cancelled && !workerError && isWorkerFailure(value)) {
+        // A terminal failure cannot publish an artifact. Drain the carrier
+        // through close while its reaper still owns cleanup.
+        failureDelivered = true;
+        finished.resolve(raw);
+      } else {
+        rawFrame = raw;
+      }
+    } catch {
+      rawFrame = null;
+    } finally {
+      chunks.length = 0;
+    }
+  };
+  child.once('error', onError);
+  child.stdin.on('error', onError);
+  child.stdout.on('error', onError);
+  child.stdout.on('data', onData);
+  child.once('close', exit => {
+    child.off('error', onError);
+    child.stdin.off('error', onError);
+    child.stdout.off('error', onError);
+    child.stdout.off('data', onData);
+    try {
+      if (failureDelivered) return;
+      if (cancelled) return finished.resolve(workerFault('CANCELLED'));
+      if (outputLimit) return finished.resolve(workerFault('RESOURCE_LIMIT'));
+      if (workerError || exit !== 0 && length === 0) return finished.resolve(workerFault('WORKER_EXITED'));
+      if (rawFrame == null) return finished.resolve(workerFault('OUTPUT_INVALID'));
+      finished.resolve(isIndicator && exit !== 0 ? workerFault('WORKER_EXITED') : rawFrame);
+    } finally {
+      chunks.length = 0;
+      rawFrame = null;
+      closed.resolve();
+    }
   });
   child.stdin.write(wireRequest + '\n');
-  return { cancel, result: finished.promise };
+  return { cancel, result: finished.promise, closed: closed.promise };
 }
 
 function startWriter(root, { path, profileId, workspaceId }) {
@@ -390,16 +452,42 @@ function startWriter(root, { path, profileId, workspaceId }) {
   let pending;
   let model;
   let credential;
-  const python = new Map();
-  const stoppingPython = new Set();
+  const indicatorCarriers = new Map();
+  const stoppingModels = new Set();
 
-  function stopPython(task) {
-    const run = python.get(task);
-    if (!run) return;
+  function stopIndicator(task) {
+    const run = indicatorCarriers.get(task);
+    if (!run?.pending) return;
+    run.pending = false;
     run.cancel();
-    stoppingPython.add(run.result);
-    void run.result.then(() => stoppingPython.delete(run.result));
-    python.delete(task);
+  }
+
+  function finishIndicator(task, result) {
+    if (failure) return;
+    const header = JSON.stringify({ type: 'indicator_python_result', task_id: task });
+    const worker = Buffer.byteLength(result) < indicatorWorkerFrameBytes - maxRequestBytes
+      ? result : trustedWorkerFault('RESOURCE_LIMIT', 'Trusted indicator output exceeded its limit.');
+    // The writer receives this private notification in the same order as
+    // public commands. Reading status still controls publication of success.
+    child.stdin.write(header.slice(0, -1) + ',"worker":' + worker + '}\n');
+  }
+
+  function startIndicator(task, request) {
+    for (const id of indicatorCarriers.keys()) stopIndicator(id);
+    if (indicatorCarriers.size >= maxIndicatorCarriers) {
+      finishIndicator(task, trustedWorkerFault('BUSY', indicatorWorkerFailure));
+      return;
+    }
+    const run = launchTrustedWorker(root, indicatorWorkerProgram, request, indicatorWorkerFrameBytes,
+      indicatorWorkerFailure);
+    run.pending = true;
+    indicatorCarriers.set(task, run);
+    void run.result.then(result => {
+      if (!run.pending) return;
+      run.pending = false;
+      finishIndicator(task, result);
+    });
+    void run.closed.then(() => indicatorCarriers.delete(task));
   }
 
   function stopModel() {
@@ -408,8 +496,8 @@ function startWriter(root, { path, profileId, workspaceId }) {
     model = undefined;
     if (!run) return;
     run.cancel();
-    stoppingPython.add(run.result);
-    void run.result.then(() => stoppingPython.delete(run.result));
+    stoppingModels.add(run.closed);
+    void run.closed.then(() => stoppingModels.delete(run.closed));
   }
   let remainder = Buffer.alloc(0);
 
@@ -429,7 +517,7 @@ function startWriter(root, { path, profileId, workspaceId }) {
     fail(reason);
     stopModel();
     credential = undefined;
-    for (const task of python.keys()) stopPython(task);
+    for (const task of indicatorCarriers.keys()) stopIndicator(task);
     if (killTimer || child.exitCode !== null || child.signalCode !== null) return;
     child.stdin.end();
     killTimer = setTimeout(kill, 2_000);
@@ -528,15 +616,8 @@ function startWriter(root, { path, profileId, workspaceId }) {
       const task = frame?.result?.outcome?.result?.task_id;
       if (job.operation !== indicatorConfirmation || frame?.result?.outcome?.operation !== 'indicator.runPreview'
         || !uuid(task) || request.task_id !== task || request.operation !== 'indicator.compute'
-        || request.source?.language !== 'python' || python.has(task)) throw invalidReply();
-      for (const [id, run] of python) {
-        if (run.completed) python.delete(id);
-        else stopPython(id);
-      }
-      const run = launchTrustedWorker(root, 'scopehub-indicator-child', wireRequest,
-        4 * 1024 * 1024, 'Trusted indicator execution failed.');
-      python.set(task, run);
-      void run.result.then(result => { run.completed = result; });
+        || request.source?.language !== 'python' || indicatorCarriers.has(task)) throw invalidReply();
+      startIndicator(task, wireRequest);
     }
     const modelRequest = frame.text_model_work;
     delete frame.text_model_work;
@@ -566,7 +647,7 @@ function startWriter(root, { path, profileId, workspaceId }) {
         // The one-shot cloud carrier needs no inherited developer environment.
         const env = cloud ? (process.platform === 'win32' ? { SystemRoot: process.env.SystemRoot } : {}) : process.env;
         const run = launchTrustedWorker(root, 'scopehub-text-model-child', wire,
-          512 * 1024, 'Trusted text model execution failed.', env);
+          512 * 1024, 'Trusted text model execution failed.', { env });
         const current = { turn, connection: job.modelConnection, cloud, run, result: undefined };
         model = current;
         void run.result.then(result => { current.result = result; });
@@ -574,12 +655,11 @@ function startWriter(root, { path, profileId, workspaceId }) {
     }
     if (job.operation === cancelIndicator && frame.result?.outcome?.status === 'cancelled'
         || job.operation === previewStatus && frame.result?.status === 'terminal') {
-      stopPython(job.taskId);
+      stopIndicator(job.taskId);
     }
     if (job.operation === sourceMutation && frame.ok === true) {
-      for (const task of python.keys()) stopPython(task);
+      for (const task of indicatorCarriers.keys()) stopIndicator(task);
     }
-    if (job.deliveredPython) python.delete(job.taskId);
     clearTimeout(job.timer);
     pending = undefined;
     job.resolve(frame);
@@ -648,13 +728,6 @@ function startWriter(root, { path, profileId, workspaceId }) {
         line = JSON.stringify({ type, command: body, history: history.result }) + '\n';
         if (Buffer.byteLength(line) > 256 * 1024) throw new PreviewFailure(413, 'RESOURCE_LIMIT');
       }
-      const finishedPython = body.type === previewStatus && python.get(body.task_id)?.completed;
-      if (finishedPython) {
-        const header = JSON.stringify({ ...body, type: 'indicator_python_result' });
-        const worker = Buffer.byteLength(finishedPython) < 4 * 1024 * 1024 - maxRequestBytes ? finishedPython
-          : '{"error":{"code":"RESOURCE_LIMIT","retryable":false,"message":"Trusted indicator output exceeded its limit.","details":{}}}';
-        line = header.slice(0, -1) + ',"worker":' + worker + '}\n';
-      }
       const textArgs = body.type === 'request' && body.intent?.operation === textConnection
         ? body.intent.arguments : undefined;
       const finishedModel = textArgs?.action === 'poll' && model?.turn === textArgs.turn_id
@@ -670,7 +743,7 @@ function startWriter(root, { path, profileId, workspaceId }) {
         ? body.type : body.operation ?? body.intent?.operation;
       pending = {
         ...reply, requestId, messageId: body.message_id, operation,
-        revisionId: body.revision_id, taskId: body.task_id, deliveredPython: Boolean(finishedPython),
+        revisionId: body.revision_id, taskId: body.task_id,
         layerId: body.layer_id ?? (body.scope?.target?.kind === 'layer' ? body.scope.target.object_id : undefined),
         selectionRevision: body.expected_selection_revision,
         recordId: typeof body.intent?.arguments?.record_id === 'string'
@@ -713,7 +786,8 @@ function startWriter(root, { path, profileId, workspaceId }) {
     },
     async close() {
       stop(unavailable());
-      await Promise.all([stopped.promise, ...stoppingPython]);
+      const indicatorsClosed = Array.from(indicatorCarriers.values(), run => run.closed);
+      await Promise.all([stopped.promise, ...stoppingModels, ...indicatorsClosed]);
     },
   };
 }
