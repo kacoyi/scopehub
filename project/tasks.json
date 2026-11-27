@@ -27470,7 +27470,11 @@
         "contracts/decisions/0033-source-evidence-before-timing-attribution.json",
         "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json",
         "contracts/decisions/0036-qualify-timing-before-attempt-reduction.json",
-        "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json"
+        "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json",
+        "project/timing-publishers.json",
+        "scripts/verification_report.py",
+        "scripts/verification_scope.py",
+        "tests/project/test_timing_publisher_observations.py"
       ],
       "decision_refs": [
         "0004",
@@ -27499,7 +27503,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Use the local qualification handoff in .reports/m0-155-main-2a3a65d6/handoff.json for independent review of the materially changed scopes and matching verification on the protected baseline. The coordinator owns prior held requests, hosted and native qualification, and the actual November 28 observation at 16:17 UTC.",
+      "next_action": "Use .reports/m0-155-protected-770b2481/handoff.json for exact-source review of material timing and publisher integration. The coordinator owns hosted and native qualification and the November 28 scheduled observation at 16:17 UTC.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -27794,6 +27798,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "A real archived split producer or unsplit platform report loses attribution, or an unregistered or misbound source claims the same scope. Replay the retained originals and mismatched controls through the ordinary and offline weekly readers and keep receipt eligibility dependent on independently complete evidence.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain all source captures, saved reviews and original classifications if a change loses a valid clock or expands the ordinary read without a bound.",
@@ -27806,7 +27817,9 @@
             "tests/project/test_timing.py",
             "tests/project/test_timing_job_observations.py",
             "tests/project/test_timing_job_roles.py",
-            "scripts/maintenance.py"
+            "scripts/maintenance.py",
+            "scripts/verification_report.py",
+            "scripts/verification_scope.py"
           ],
           "rules": [
             {
@@ -27831,12 +27844,13 @@
             }
           ],
           "non_goals": [
-            "Changing protected platform objectives, test deadlines or measurement provenance."
+            "Changing protected platform objectives, test deadlines or measurement provenance.",
+            "Changing the current Windows scheduler or adding publication support for historical split producers."
           ],
           "open_questions": [
             "Check legacy scope against direct job facts, skipped and executed layout markers, and whether the same role and independent clocks survive save, rotation, linked reads and reopen.",
             "Compare the existing parallel qualifications with a shared historically supported contract. Measure conversion and replay effort with a reserved historical input and state which facts remain unknown.",
-            "Verify which original claims survive the current protected scheduling and publisher boundaries through ordinary and offline weekly reads."
+            "Replay the exact historical split and unsplit publication inputs, including missing and disputed identities, using ordinary and offline weekly readers on the protected composition."
           ]
         },
         "evolution": {
@@ -27854,7 +27868,7 @@
             "Capture step facts before name selection and bind number-only fragments only within the established job. Use joined eligibility for both listed and reopened phase projections.",
             "Use the prerequisite scheduling cut to constrain verification steps without substituting an inferred instant into queue or runner metrics.",
             "Retain job-scoped successful Actions setup and completion step witnesses in the existing observation shape for prerequisite ordering.",
-            "Reconcile overlapping scheduling, publisher and source-selection logic and qualify exact original inputs at the ordinary and offline weekly readers."
+            "Qualify the observed historical split and unsplit publisher closures at the timing reader, and exercise the composed unsplit publisher with preserved workspace evidence."
           ],
           "data_plan": "Read existing saved reviews and retained per-attempt captures. Cover missing, conflicting and intact historical data. Retain compatible V1 evidence, including individually supported legacy intervals. Recompute derived layout where the original assertions survive. Use retained report timestamps and job boundaries to withdraw incompatible old attributions and preserve original bytes.",
           "cleanup": "Use the retained originals by digest and qualify the preserved and changed scopes on the same composed source. Keep the established decisions bound to their own revisions. Request independent review only for material overlap and leave the actual scheduled observation and hosted qualification to the coordinator."

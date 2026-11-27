@@ -26,6 +26,7 @@ if __package__:
     )
     from .verification_report import (
         RUN_OBSERVATION_CHECKS, RUN_OBSERVATION_POLICIES, passed_observation_checks,
+        WINDOWS_PYTHON_CHECK, archived_windows_python_issue, archived_windows_python_lanes,
         publishing_observation_checks, report_observation_issue,
     )
     from .verification_scope import (
@@ -45,6 +46,7 @@ else:
     )
     from verification_report import (
         RUN_OBSERVATION_CHECKS, RUN_OBSERVATION_POLICIES, passed_observation_checks,
+        WINDOWS_PYTHON_CHECK, archived_windows_python_issue, archived_windows_python_lanes,
         publishing_observation_checks, report_observation_issue,
     )
     from verification_scope import (
@@ -432,8 +434,8 @@ def input_report_sample(report):
             'working_tree_dirty': source.get('working_tree_dirty'),
         }) if commit_id(ci.get('checkout_sha')) and commit_id(ci.get('head_sha')) else (None, None, None)
     revision, catalog = publishing or (None, None)
+    publisher = committed_windows_publisher(ROOT, revision) if revision and (native or observation_claims) else None
     if ci and platform in PLATFORMS.values():
-        publisher = committed_windows_publisher(ROOT, revision) if observation_claims and revision else None
         policy = publisher['run_observations'] if publisher else RUN_OBSERVATION_CHECKS
         if issue := report_observation_issue(report, run_observations=policy):
             raise TimingError(f'Timing report has {issue}.')
@@ -444,11 +446,21 @@ def input_report_sample(report):
     if native:
         snapshot = committed_publishing_snapshot(revision, root=ROOT) if revision is not None else None
         expected_source = {**snapshot, 'git_head': ci['checkout_sha']} if snapshot is not None else None
-        if issue := windows_raw_timing_issue(report, catalog=catalog, source=expected_source):
+        split_assignment = archived_split_assignment(publisher, assignment, catalog, ci, profile)
+        parts = archived_windows_python_lanes(profile) if split_assignment is not None else ()
+        if issue := windows_raw_timing_issue(report, catalog=catalog, source=expected_source,
+                                            version='2.1' if parts else '2.0'):
             raise TimingError(f'Timing report has {issue}.')
         if (timestamp(report.get('generated_at')) is None
                 or duration(report.get('timing', {}).get('elapsed_seconds')) is None):
             raise TimingError('Invalid native harness report timing.')
+        if split_assignment is not None:
+            retained = {'browser'} if profile == 'full' and split_assignment['browser'].intersection(
+                selection['checks']) else set()
+            if issue := archived_windows_python_issue(report, parts, retained):
+                raise TimingError(f'Timing report has {issue}.')
+        elif 'windows_python' in report:
+            raise TimingError('Timing report has unexpected Windows Python part evidence.')
         for row in report['checks']:
             reason = row.get('reason_code')
             if reason is not None and not short_label(reason):
@@ -2071,6 +2083,7 @@ WINDOWS_PUBLISHING_PATHS = (
     'scripts/verification_evidence.py',
     'scripts/verification_report.py',
     'scripts/verification_scope.py',
+    'scripts/windows_python.py',
     'scripts/worktree.py',
 )
 PUBLISHING_REGISTRY = ROOT / 'project/timing-publishers.json'
@@ -2084,7 +2097,8 @@ def windows_publishing_registry():
     assignments = registry['assignments']
     return {
         digest: {'catalogs': program['catalogs'], 'assignment': assignments[program['assignment']],
-                 'run_observations': RUN_OBSERVATION_POLICIES[program['run_observations']]}
+                 'run_observations': RUN_OBSERVATION_POLICIES[program['run_observations']],
+                 'split_recovery_checks': program.get('split_recovery_checks')}
         for digest, program in registry['programs'].items()
     }
 
@@ -2207,6 +2221,20 @@ def native_publisher_contract(sample):
     return None, None, issue
 
 
+def archived_split_assignment(publisher, assignment, catalog, ci, profile):
+    if (not publisher or publisher.get('split_recovery_checks') is None or not assignment
+            or ci['event'] != 'pull_request' or profile in SCOPED_PROFILES):
+        return None
+    # These archived publishers enabled their parts only for the ordinary discovery command.
+    command = ['{python}', '-m', 'unittest', 'discover', '-s', 'tests', '-t', '.',
+               '-p', 'test_*.py', '-v', '--durations', '0']
+    if not any(row['id'] == WINDOWS_PYTHON_CHECK and row['command'] == command
+               and row.get('cadence', 'change') == 'change' for row in catalog['checks']):
+        return None
+    moved = assignment['browser'].intersection(publisher['split_recovery_checks'])
+    return {**assignment, 'browser': assignment['browser'] - moved, 'recovery': assignment['recovery'] | moved}
+
+
 def windows_full_summary_issue(sample, selected, catalog, platform):
     if sample['profile'] != 'full':
         return None
@@ -2277,14 +2305,22 @@ def native_report_issue(sample, run, issues):
         publishing, assignment = None, None
     result_issue = None
     if assignment is not None:
-        _, catalog = publishing
+        revision, catalog = publishing
+        publisher = committed_windows_publisher(ROOT, revision)
+        split_assignment = archived_split_assignment(publisher, assignment, catalog, ci, profile)
         expected_lanes = tuple(lane for lane in WINDOWS_LANES if lane == 'core' or lane in assignment) if assignment else ()
         # An incomplete listing can still prove the identity of a producer's job.
         # Compare widths only when the Actions capture actually identified the layout.
         observed_lanes = windows_clock_lanes(run, identified=True)
         matching_producer = bool(expected_lanes) and (not observed_lanes or observed_lanes == expected_lanes)
+        if split_assignment is not None and profile == 'ci-windows-python':
+            # The Python process has its own recorded part and owns no ordinary result rows.
+            scope_matches = not selected and 'python' in expected_lanes
+        else:
+            scope_matches = windows_published_scope(sample['selected'], profile, expected_lanes, catalog,
+                                                    assignment=split_assignment or assignment)
         if (sample['selected'] == sorted(selected) and (not producer or matching_producer)
-                and windows_published_scope(sample['selected'], profile, expected_lanes, catalog, assignment=assignment)):
+                and scope_matches):
             result_issue = (windows_result_issue(sample['checks'], selected, catalog)
                             or windows_full_summary_issue(sample, selected, catalog, platform))
             if not result_issue:

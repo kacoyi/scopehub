@@ -164,7 +164,7 @@ def windows_result_issue(rows, selected, catalog):
     return None
 
 
-def windows_raw_timing_issue(report, *, catalog=None, source=None):
+def windows_raw_timing_issue(report, *, catalog=None, source=None, version='2.0'):
     """Validate native publisher inputs that the compact timing format omits."""
     initial = report.get('source')
     final = report.get('source_end')
@@ -196,7 +196,7 @@ def windows_raw_timing_issue(report, *, catalog=None, source=None):
     if (not isinstance(requirement, dict) or set(requirement) != {'requested', 'satisfied'}
             or requirement['requested'] is not (profile == 'full') or requirement['satisfied'] is not True
             or not isinstance(python, str) or not python
-            or report.get('report_version') != '2.0'
+            or report.get('report_version') != version
             or report.get('status') not in {'passed', 'failed', 'blocked'}
             or not isinstance(report.get('project_definition_sha256'), str)
             or not re.fullmatch(r'[0-9a-f]{64}', report['project_definition_sha256'])

@@ -361,6 +361,43 @@
       "catalogs": [
         "f3e0e38578b071bf1be39e36db73de02373a7c7a1324b572bb9cc070fe74c404"
       ]
+    },
+    "eb219fdfa108145d1d0321917d5070483d20c6c29a1d577c8f7ef5c60b59bf0d": {
+      "sources": [
+        "4426c72eca462844f6fa799288a0146ed54bf54b"
+      ],
+      "assignment": "lanes-1",
+      "run_observations": "session-and-external-clients",
+      "catalogs": [
+        "6aea6efed8165bd008535f415cb7aec35b8d5fb8510849d9d1610874885cb480"
+      ]
+    },
+    "2b9b97d3b82296698b441b66faebb4b726663d5379b1b12b426fdd610ca309e5": {
+      "sources": [
+        "a46b0f8a6e3edd9cfea7144f1c9b234ca30c6286"
+      ],
+      "assignment": "lanes-3",
+      "run_observations": "session-and-external-clients",
+      "catalogs": [
+        "6aea6efed8165bd008535f415cb7aec35b8d5fb8510849d9d1610874885cb480"
+      ],
+      "split_recovery_checks": [
+        "desktop-localization",
+        "market-workflow"
+      ]
+    },
+    "5648ea33cf0947f371e8dce58d1526b5c3997755bb66a2d48170b5cd5671992b": {
+      "sources": [
+        "4c6907e67c50eadfa95308b46594f92722e2490b"
+      ],
+      "assignment": "lanes-3",
+      "run_observations": "session-and-external-clients",
+      "catalogs": [
+        "2e53c37d2f5abb897aadd2d4a323a79254a49f5d8f04fb546c0310f2f1a17972"
+      ],
+      "split_recovery_checks": [
+        "market-workflow"
+      ]
     }
   }
 }

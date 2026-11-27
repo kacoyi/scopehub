@@ -16,6 +16,58 @@ from scripts import timing
 from tests.project import test_timing as fixtures
 
 
+class ArchivedSplitPublisherTests(unittest.TestCase):
+    def test_python_part_without_ordinary_checks_is_a_source_bound_producer(self):
+        catalog = deepcopy(fixtures.SPLIT_CATALOG)
+        check = next(row for row in catalog['checks'] if row['id'] == 'python-contracts-workers')
+        check['command'] = ['{python}', '-m', 'unittest', 'discover', '-s', 'tests', '-t', '.',
+                            '-p', 'test_*.py', '-v', '--durations', '0']
+        fixtures.use_catalog(self, catalog)
+        report = fixtures.split_harness_report(90)
+        report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
+                        'event': 'pull_request', 'head_sha': 'b' * 40, 'checkout_sha': 'a' * 40}
+        report['selection'] = {'profile': 'ci-windows-python', 'task_id': None, 'checks': []}
+        report['checks'] = [{'id': row['id'], 'status': 'blocked', 'reason_code': 'not_selected'}
+                            for row in catalog['checks']]
+        fixtures.native_raw_fixture(self, report, catalog)
+        part = 'windows-python-python'
+        report.update(report_version='2.1', windows_python={'python': {
+            'id': part, 'status': 'passed', 'exit_code': 0, 'duration_seconds': 65,
+            'started_at': '2026-11-20T00:11:10Z',
+            'command': [report['environment']['python_executable'], 'scripts/windows_python.py', 'python'],
+            'log': f".reports/runs/{report['run_id']}/{part}.log",
+            'log_sha256': '3' * 64, 'manifest_sha256': '4' * 64,
+        }})
+        publisher = {'catalogs': {timing.publishing_catalog_digest(catalog)},
+                     'split_recovery_checks': ['workspace-timeframe'],
+                     'run_observations': timing.RUN_OBSERVATION_CHECKS}
+        with patch.object(timing, 'committed_windows_publisher', return_value=publisher):
+            sample = timing.input_report_sample(report)
+            self.assertEqual([], sample['selected'])
+            self.assertFalse(sample['coverage_complete'])
+            self.assertFalse(timing.native_report_issue(sample, None, []))
+            self.assertTrue(timing.native_report_issue(dict(sample, selected=['python-contracts-workers']), None, []))
+            with self.assertRaisesRegex(timing.TimingError, 'differ from the publishing lane'):
+                timing.input_report_sample(dict(report, windows_python={}))
+            for key, value, error in (
+                ('log', 'unbound.log', 'invalid Windows Python process reference'),
+                ('started_at', '2026-11-20T00:10:00Z', 'outside its harness interval'),
+                ('exit_code', False, 'invalid Windows Python process reference'),
+            ):
+                with self.subTest(key=key):
+                    changed = deepcopy(report)
+                    changed['windows_python']['python'][key] = value
+                    with self.assertRaisesRegex(timing.TimingError, error):
+                        timing.input_report_sample(changed)
+            pushed = dict(report, ci={**report['ci'], 'event': 'push'})
+            with self.assertRaisesRegex(timing.TimingError, 'invalid native harness metadata'):
+                timing.input_report_sample(pushed)
+        with patch.object(timing, 'committed_windows_publisher', return_value=None):
+            with self.assertRaisesRegex(timing.TimingError, 'invalid native harness metadata'):
+                timing.input_report_sample(report)
+            self.assertTrue(timing.native_report_issue(sample, None, []))
+
+
 class PublicPublisherObservationTests(unittest.TestCase):
     def setUp(self):
         fixtures.use_catalog(self, fixtures.OLD_FULL_CATALOG, lanes=())

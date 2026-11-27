@@ -11650,6 +11650,29 @@
         "prevention": "The first-attempt ordinary PR run 45931554585 and guarded run 45931566969 both passed rust-lints on Linux and Windows. The earlier guarded receipts remain bound to the selection that omitted rust-lints."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "timing-reader-omits-observed-split-and-unsplit-publishers",
+      "status": "open",
+      "severity": "major",
+      "source": "Ordinary timing save on 438e4a1bf02e9b99dfe2fe75ab97851fdecd9f22 rejected the original PR 123 Python producer. The pre-fix response is .reports/m0-155-main-2a3a65d6/samples/baseline-438e4a1b/pr123-split-originals/ordinary.stdout.json (SHA-256 be99e849bf3ea11a827699f3c62cb293c0256977a8e9fbd0a37e195838397af4) and the exact producer input is .reports/m0-155-main-2a3a65d6/samples/baseline-438e4a1b/pr123-split-originals/extra-1.json (SHA-256 4c90ba2131eaf6cfbd236eaea09f39b1d5c3b3a332ecea4554e4030436c77d70). The same source withheld native report attribution for PR 143 in .reports/m0-155-protected-770b2481/baseline-unsplit-reader.json (SHA-256 dd068e3680465bbfac09c0e56400b95525ea8d7b63ced781397ed990ea37d1f9). The original report is .reports/m0-155-protected-770b2481/originals/pr143-native-original-45966576424/artifacts/windows/test-report.json (SHA-256 9c33d474b622ee9c0c77f867fbed69d3a408072f5c837ac7c31751f3395a6fe6).",
+      "observation": "The reader refused to save an explicit review with the historical four-lane Python producer because the archived 2.1 report has a separate Python process and an empty ordinary check selection. The authentic 2.0 PR 143 report and compact projection resolved to the verified historical head, but the reader withheld report attribution because its publisher closure was absent from the inventory.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45966576424-1",
+          "source_commit": "d207e059ae85e6f6bbdfb57781d961462568ee89",
+          "report_sha256": "9c33d474b622ee9c0c77f867fbed69d3a408072f5c837ac7c31751f3395a6fe6"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
