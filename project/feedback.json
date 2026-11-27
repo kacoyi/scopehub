@@ -9673,7 +9673,7 @@
       "id": "peer-note-deletion-fixture-blocks-notice-failure-on-approval-body",
       "status": "open",
       "severity": "major",
-      "source": "Independent Astra Standard (t1gt) on 59c57475671aaca62f097fcf92a3ff668cd4a5a1. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-177-59c57475/original-assistant-response.jsonl (SHA-256 b39821aa6397383ca595491f118fb98face995b9771a1c78b1535c723ab35104), recorded via project:review in 6b1ecf077cd31cb2109bd950b315bfebf1729750.",
+      "source": "Independent Astra Standard (t1gt) on 59c57475671aaca62f097fcf92a3ff668cd4a5a1. The review replayed the fixture in memory using a retained real approval receipt. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-177-59c57475/original-assistant-response.jsonl (SHA-256 b39821aa6397383ca595491f118fb98face995b9771a1c78b1535c723ab35104), recorded via project:review in 6b1ecf077cd31cb2109bd950b315bfebf1729750.",
       "observation": "With real approval headers available and the response body held in a controlled replay, the reviewed fixture remained pending 5.3 seconds after the click and reported the missing notice only after the body was released. The baseline already reported the missing notice, the normal notice control passed, and the missing-notice control with a delivered body failed on time. The original Windows timing cause remains unknown.",
       "task_ids": [
         "M0-177"
