@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-155",
+  "focus_task_id": "M0-156",
   "tasks": [
     {
       "id": "M0-001",
@@ -27020,9 +27020,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "diagnostic_reports": [],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45936405663-1",
+          "source_commit": "1bd2d33708a299e76428d4b84d6cd71f179af81a",
+          "report_sha256": "b8f0f05c0b312105c1a82574e2e600bba6e3b4e33d8e6646c038a1ba3eb32590"
+        }
+      ],
       "evidence": [],
-      "next_action": "Use the common local handoff in .reports/m0-155-post-b6cd4be5/handoff.json for scoped exact-source independent review and matching verification. The coordinator owns the five held requests, hosted and native qualification, and the November 28 actual observation.",
+      "next_action": "Use .reports/m0-156-windows-receipt-fixtures/implementation-handoff.json for scoped independent review of the portable Git fixture and matching verification. The coordinator owns the timing group's review follow-through, hosted and native qualification, and the November 28 actual observation.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -27174,6 +27180,13 @@
           },
           {
             "failure": "A raw report can contradict its own source stability flag and withdraw an independent receipt after compaction. Apply one admission decision before reduction and compare the genuine PR 96 pair against a self-contradictory report and an honest legacy control.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Windows can deny deletion of a read-only loose commit before the disposable test reaches the timing reader. Run both named Python tests on Windows and Linux, retaining the readable long-history control, the genuine receipt and the independent Actions clocks.",
             "checks": [
               "project-state",
               "python-contracts-workers"

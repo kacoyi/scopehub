@@ -10409,6 +10409,29 @@
         "prevention": "Guarded run 45930637026 passed all required checks on native Windows and Linux. The public bridge controls assert a completed preview, rejection of a save after a controlled preview interruption, cancellation after proven save admission, and an ordinary subsequent load with not_saved and no profile directory. The protected integration recheck remains with the coordinator."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-timing-fixtures-cannot-remove-read-only-loose-commits",
+      "status": "open",
+      "severity": "major",
+      "source": "PR 145 ordinary attempt 45936405663/1 submitted 47d68773e3e0bcb5a0a8b53682d9d25487e15dcc and tested 1bd2d33708a299e76428d4b84d6cd71f179af81a. Original cross-platform artifacts are indexed by archives/observations/repo-hygiene-20261125/pr145-native-original-45936405663/manifest.json (SHA-256 9346a56d25b09f36a1dfc27065d5c0ab72713c9d07b3e28ea4aca750485edafa). The Windows diagnostic resolves at archives/runs/windows-change-45936405663-1/test-report.json.",
+      "observation": "Windows python-contracts-workers failed in test_unresolved_linux_checkout_leaves_genuine_windows_receipt and test_weekly_receipts_require_a_commit_or_genuinely_missing_checkout. Both raised PermissionError [WinError 5] when unlinking loose commit files in their respective temporary Git repositories, before either reached the timing decision. The same Python suite passed on Linux (917 tests, four skipped).",
+      "task_ids": [
+        "M0-156"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45936405663-1",
+          "source_commit": "1bd2d33708a299e76428d4b84d6cd71f179af81a",
+          "report_sha256": "b8f0f05c0b312105c1a82574e2e600bba6e3b4e33d8e6646c038a1ba3eb32590"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
