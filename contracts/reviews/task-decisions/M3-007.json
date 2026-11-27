@@ -117,6 +117,15 @@
       },
       "supersedes": "08cf621368656ac993e62122bc39105c42b7a983d1ef3e15bfe4ee7e99ebfd88",
       "evidence_sha256": "9fb45ffd26ad18c7e8cecfeda5373d2dbda05ed7ec075dba8534f36e87ba9878"
+    },
+    {
+      "kind": "request",
+      "source_commit": "0c3e56b4c808427b89751ff6fdee49b91741e3e9",
+      "scope": "Review the actual source overlap in the existing offline sample indicator and workspace journeys. Independently bind single lost status delivery to one reread of the admitted task, the period-two value 3500.5 and preserved chart/source identity. Recheck normal and rejected, cancellation and fixed frozen crop cases on the protected combination, with the previous seven-check Windows/Linux receipt and the first failed ordinary observations at their own sources. Decide on the merged behavior and preserved historical scope. The Windows and protected observations on this exact combination remain pending.",
+      "supersedes": "2f8cb76e55b8e5f8d71cef4834deb9bc3f2e40f773110b264032c03706b43a7e",
+      "requested_at": "2026-11-27T09:16:45.583539+00:00",
+      "request_id": "08595217073fdda30f97cc46c2391ad9e720cfe040671bebe59199d11d4ef180",
+      "evidence_sha256": "91b7c91317bd0778eecaf92e869dd44cb8cc710c3d3280218092d2bc5ca451fc"
     }
   ]
 }
