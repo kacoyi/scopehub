@@ -9524,6 +9524,31 @@
         "prevention": "The first-attempt ordinary PR run 45931554585 and guarded run 45931566969 both passed rust-lints on Linux and Windows. The earlier guarded receipts remain bound to the selection that omitted rust-lints."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "verified-peer-note-deletion-missing-approval-delivery",
+      "status": "open",
+      "severity": "major",
+      "source": "First native observation archives/observations/repo-hygiene-20261125/pr150-native-original-45971216845/manifest.json (SHA-256 5f9118902b0a50be1978fd5c3231b750aa9cbbb52a540f495b113a817d92e6a1).",
+      "observation": "The first ordinary PR 150 Windows workspace report timed out at the initiating note-deletion notice after five seconds. Its own journal records one approval sent, a single matching stored deletion marker at revision 5, the missing note and outcome, no correlated approval response, and zero observer fallback attempts. On Linux the identical preview received committed and exercised two fallback attempts. Both CSV consumers passed on both platforms. The location and cause of the missing Windows observation are unknown.",
+      "task_ids": [
+        "M0-177"
+      ],
+      "regression_checks": [
+        "project-state",
+        "workspace-timeframe",
+        "market-workflow",
+        "ui-build"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45971216845-1",
+          "source_commit": "0d444941b5b5082486c0607223179a22cae77a3c",
+          "report_sha256": "ba89eebe0283ebbb75d909017c5552a45fb55d1dcb7c07f48c78cae6cf51302b"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

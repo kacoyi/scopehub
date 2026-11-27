@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-177",
   "tasks": [
     {
       "id": "M0-001",
@@ -29137,6 +29137,118 @@
           "change": [
             "Inspect which runtime, process and fixture events are observed in the genuine failed and earlier passing runs. Pair a real running-child deadline observation with a bounded early-timeout control in an isolated synthetic task. Preserve product limits and capture process and filesystem cleanup. Coordinate shared Rust test changes with M0-167.",
             "Use a prestarted test-only helper to poll retained process references once without waiting. Bound and report the 100 ms result-to-reply window, exercise a pipe-gated living child and an exited set through the same observer at a public compute result, and retain the old Linux evidence alongside the updated observations."
+          ],
+          "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
+          "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
+        }
+      }
+    },
+    {
+      "id": "M0-177",
+      "title": "Recover the verified decision-note outcome when approval delivery is interrupted",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M2-038",
+        "M2-040"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "tests/ubuntu-preview",
+        "tests/ui",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Bind the first Windows failure and the same-preview Linux control to the original browser journals, storage marker, approval and ordinary observable outcome. Record what remained unknown in the first failure.",
+        "Reconcile the existing operation and fixture contract for a missing approval reply. Use synthetic committed, unresolved and refusal controls with actual transport and stored marker identity. Check the documented recovery action for the existing result without repeating a deletion or exposing deleted note content.",
+        "Independently review the smallest evidenced repair or contract-aligned verification correction, preserve adjacent normal and observer-abort behavior and obtain ordinary native and protected observations."
+      ],
+      "checks": [
+        "project-state",
+        "workspace-timeframe",
+        "market-workflow",
+        "ui-build"
+      ],
+      "evidence": [],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45971216845-1",
+          "source_commit": "0d444941b5b5082486c0607223179a22cae77a3c",
+          "report_sha256": "ba89eebe0283ebbb75d909017c5552a45fb55d1dcb7c07f48c78cae6cf51302b"
+        }
+      ],
+      "next_action": "Compare the authenticated original timeline with the ordinary recovery contract and history of M2-036, M2-038 and M2-040. Start at the initiating browser with one admitted deletion, its observed reaction and its durable marker. Retain a valid committed control and a missing or rejected response with the existing recovery behavior. Preserve scope and run costs.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Bind the first Windows failure and the same-preview Linux control to the original browser journals, storage marker, approval and ordinary observable outcome. Record what remained unknown in the first failure. Reconcile the existing operation and fixture contract for a missing approval reply. Use synthetic committed, unresolved and refusal controls with actual transport and stored marker identity. Check the documented recovery action for the existing result without repeating a deletion or exposing deleted note content.",
+        "change_types": [
+          "tooling",
+          "ui"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "apps/desktop/ui/src/decision-notes.tsx",
+          "apps/desktop/ui/src/decision-note-transport.ts",
+          "project/checks.json",
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json"
+        ],
+        "hypotheses": [
+          "The original proves storage commit without an observed approval response. Distinguish transport interruption, fixture ordering and the existing product recovery path before choosing whether the harness or a consumer needs a repair."
+        ],
+        "risks": [
+          {
+            "failure": "Treating a committed but undelivered approval as a clean refusal or automatic success could duplicate a mutation or expose the deleted note. A relaxed wait could conceal the real failing boundary.",
+            "checks": [
+              "project-state",
+              "workspace-timeframe",
+              "market-workflow",
+              "ui-build"
+            ]
+          }
+        ],
+        "rollback": "Restore the preceding implementation and retain the diagnosed failures and controls if the ordinary contract changes.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "ui",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "apps/desktop/ui/src/decision-notes.tsx",
+            "apps/desktop/ui/src/decision-note-transport.ts"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/0"
+            }
+          ],
+          "non_goals": [
+            "Use disposable local synthetic profiles. Preserve owner confirmation, current time budgets, private data handling, recovery semantics and historical task definitions. Keep the independent CSV bridge preparation outcome with M0-176."
+          ],
+          "open_questions": [
+            "The original proves storage commit without an observed approval response. Distinguish transport interruption, fixture ordering and the existing product recovery path before choosing whether the harness or a consumer needs a repair."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Use disposable local synthetic profiles. Preserve owner confirmation, current time budgets, private data handling, recovery semantics and historical task definitions. Keep the independent CSV bridge preparation outcome with M0-176."
+          ],
+          "change": [
+            "Compare the authenticated original timeline with the ordinary recovery contract and history of M2-036, M2-038 and M2-040. Start at the initiating browser with one admitted deletion, its observed reaction and its durable marker. Retain a valid committed control and a missing or rejected response with the existing recovery behavior. Preserve scope and run costs."
           ],
           "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
           "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
