@@ -173,15 +173,17 @@ class DiagnosticArchiveTests(unittest.TestCase):
     def test_resolving_verifies_the_bound_ordinary_producer_report(self):
         report = self.harness_report()
         producer = b'{"run_attempt":"2"}\r\n'
-        report['windows_producers'] = {'browser': sha256(producer)}
+        report['windows_producers'] = dict.fromkeys(('browser', 'workspace'), sha256(producer))
         path, locator = self.harness(report)
-        original = self.write(path.parent / 'windows-browser.producer.json', producer)
-        self.assertIn(original.name, resolve_diagnostic(locator, self.archive)['verified_observations'])
-        original.write_bytes(producer.replace(b'2', b'1'))
-        with self.assertRaisesRegex(DiagnosticArchiveError, 'windows-browser.producer.json'):
-            resolve_diagnostic(locator, self.archive)
-        original.write_bytes(producer)
-        self.assertIn(original.name, resolve_diagnostic(locator, self.archive)['verified_observations'])
+        originals = [self.write(path.parent / f'windows-{lane}.producer.json', producer)
+                     for lane in report['windows_producers']]
+        for original in originals:
+            with self.subTest(file=original.name):
+                self.assertIn(original.name, resolve_diagnostic(locator, self.archive)['verified_observations'])
+                original.write_bytes(producer.replace(b'2', b'1'))
+                with self.assertRaisesRegex(DiagnosticArchiveError, original.name):
+                    resolve_diagnostic(locator, self.archive)
+                original.write_bytes(producer)
 
     def test_checksum_manifest_covers_retained_files(self):
         path, locator = self.harness()

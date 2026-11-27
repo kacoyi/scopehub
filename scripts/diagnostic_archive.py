@@ -247,7 +247,7 @@ def _checked_windows_python(directory, report):
 
 def _checked_windows_producers(directory, report):
     records = report.get('windows_producers', {})
-    if not isinstance(records, dict) or records.keys() - {'browser', 'recovery'}:
+    if not isinstance(records, dict) or records.keys() - {'browser', 'recovery', 'workspace'}:
         raise DiagnosticArchiveError('Invalid Windows diagnostic producer identities')
     verified = []
     for lane, sha256 in records.items():

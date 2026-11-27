@@ -339,6 +339,65 @@ class HostedTimingTests(unittest.TestCase):
                 self.assertEqual(765, observed['seconds']['total'])
                 self.assertIsNone(observed['review_exclusion'])
 
+    def workspace_windows_jobs(self, *, scoped=False):
+        *producers, aggregate = self.split_windows_jobs(scoped=scoped)
+        aggregate = dict(aggregate, steps=[
+            aggregate['steps'][0], {'name': timing.WINDOWS_WORKSPACE_MARKER, 'conclusion': 'success'},
+        ])
+        for job_id, lane, end in ((36, 'recovery', '05:00'), (37, 'workspace', '12:05')):
+            job = hosted_job(job_id, 'windows', '00:35', '00:55' if scoped else end,
+                             'Select the Windows lane work' if scoped else f'Verify the Windows {lane} lane',
+                             '00:40' if scoped else '02:00', '00:55' if scoped else end)
+            producers.append(dict(job, name=timing.WINDOWS_PRODUCERS[lane]))
+        return producers, aggregate
+
+    def test_current_pr_clock_requires_the_workspace_producer_and_protected_push_skips_it(self):
+        for scoped in (False, True):
+            (*others, workspace), aggregate = self.workspace_windows_jobs(scoped=scoped)
+            jobs = [*others, workspace, aggregate]
+            current = json.loads(timing.json_bytes(timing.hosted_timing(hosted_run(), jobs)))
+            self.assertTrue(timing.valid_clock(current))
+            self.assertTrue(timing.clock_complete(current))
+            self.assertTrue(current['workflow']['windows_workspace_producer'])
+            windows, = (row for row in current['jobs'] if row['platform'] == 'Windows')
+            self.assertEqual(8 if scoped else 3, windows['seconds']['queue'])
+            self.assertEqual(85 if scoped else 695, windows['seconds']['harness_step'])
+            for wrong in ([], [dict(workspace, run_attempt=2)], [workspace, dict(workspace, id=38)]):
+                self.assertFalse(timing.clock_complete(timing.hosted_timing(hosted_run(), [*others, *wrong, aggregate])))
+            old_marker = dict(aggregate, steps=[aggregate['steps'][0], {'name': timing.WINDOWS_RECOVERY_MARKER}])
+            self.assertFalse(timing.clock_complete(timing.hosted_timing(hosted_run(), [*others, workspace, old_marker])))
+            push = dict(hosted_run(), event='push')
+            for inactive in ([], [dict(workspace, conclusion='skipped')]):
+                current_push = timing.hosted_timing(push, [*others, *inactive, aggregate])
+                self.assertTrue(timing.clock_complete(current_push))
+                self.assertNotIn('windows_workspace_producer', current_push['workflow'])
+            self.assertFalse(timing.clock_complete(timing.hosted_timing(push, jobs)))
+
+    def test_current_pr_warm_cache_requires_three_matching_restores_and_two_explicit_omissions(self):
+        producers, aggregate = self.workspace_windows_jobs()
+        current = timing.hosted_timing(hosted_run(), [*producers, aggregate])
+        report = fast_report(20, 675)
+        report['selection']['profile'] = 'full'
+        report['environment']['system'] = 'Windows'
+        report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
+                        'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'a' * 40}
+        warm = timing.report_sample(report, cache='warm')
+        previous = dict(core='warm', browser='warm', recovery='warm', python='not_requested')
+        states = dict(previous, recovery='not_requested', workspace='warm')
+        current_sample = dict(warm, windows_caches=states)
+        self.assertTrue(timing.valid_sample(current_sample))
+        self.assertFalse(timing.valid_sample(dict(current_sample, ci=dict(warm['ci'], event='push'))))
+        for lane, state in (('workspace', 'partial'), ('core', 'unknown'), ('browser', 'not_requested'),
+                            ('recovery', 'warm'), ('python', 'warm')):
+            with self.subTest(lane=lane, state=state):
+                changed = dict(states, **{lane: state})
+                self.assertEqual('unknown', timing.windows_aggregate_cache(changed))
+                self.assertFalse(timing.valid_sample(dict(warm, windows_caches=changed)))
+        for sample, cache in ((current_sample, 'warm'), (dict(warm, windows_caches=previous), 'unknown'),
+                              (warm, 'unknown')):
+            review, = timing.timing_view([sample], hosted=[current])['reviews']
+            self.assertEqual(cache, review['cache'])
+
     def test_scoped_windows_counts_launched_setup_siblings_and_uses_only_the_core_harness(self):
         run = dict(hosted_run(), event='push')
         result = timing.hosted_timing(run, self.split_windows_jobs(scoped=True))

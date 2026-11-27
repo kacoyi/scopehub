@@ -510,6 +510,9 @@ class LegacyWindowsPythonTranscriptTests(unittest.TestCase):
 class WindowsLaneTests(ProjectFixture):
     recovery_screenshot = 'market-recovery/browser/market-closed-bar-repair-fixture/verified-closed-bar-repair.png'
     recovery_ui_report = 'market-recovery-ui/results.json'
+    current_cutoff = windows_python.CUTOFF
+    current_transfers = harness.WINDOWS_PR_CHECK_TRANSFERS
+    historical_recovery_checks = {'market-workflow', 'desktop-localization'}
 
     def setUp(self):
         super().setUp()
@@ -557,6 +560,9 @@ class WindowsLaneTests(ProjectFixture):
         self.enterContext(patch.object(harness.platform, 'machine', return_value='AMD64'))
         self.enterContext(patch.object(harness, 'maintain_automatically'))
         self.enterContext(patch.object(harness, 'tool_version', return_value='fixture'))
+        self.enterContext(patch.object(harness, 'WINDOWS_PR_CHECK_TRANSFERS', {}))
+        self.enterContext(patch.object(windows_python, 'RECOVERY_PR_CHECKS', self.historical_recovery_checks))
+        self.enterContext(patch.object(windows_python, 'CUTOFF', windows_python.SCHEDULING_CUTOFF))
 
     def run_harness(self, *args):
         with (patch.object(sys, 'argv', ['check.py', *args]), redirect_stdout(StringIO()),
@@ -608,28 +614,35 @@ class WindowsLaneTests(ProjectFixture):
                 code, report = self.run_harness(*args)
             self.assertEqual(int(bool(fixture_exit or ui_exit or lane == 'recovery' and recovery_part_failed)), code)
             destination = self.downloads / f'verification-windows-{attempt}-{lane}'
-            if lane == 'browser':
+            own = report['selection']['checks']
+            if 'workspace-timeframe' in own and lane == 'browser':
                 run = self.reports / 'runs' / report['run_id'] / 'workspace-timeframe'
-                run.mkdir()
-                (run / 'results.json').write_bytes(b'{"synthetic": true}\n')
-            if lane == 'recovery':
+                if not run.exists():
+                    run.mkdir()
+                    (run / 'results.json').write_bytes(b'{"synthetic": true}\n')
+            if 'market-recovery' in own:
                 screenshot = self.reports / 'runs' / report['run_id'] / self.recovery_screenshot
                 screenshot.parent.mkdir(parents=True)
                 screenshot.write_bytes(b'synthetic screenshot bytes\n')
                 (screenshot.parents[2] / 'results.json').write_bytes(b'{"synthetic": true}\n')
+            if 'market-recovery-ui' in own:
                 ui_report = self.reports / 'runs' / report['run_id'] / self.recovery_ui_report
-                ui_report.parent.mkdir()
-                ui_report.write_bytes(b'{"synthetic": "recovery UI"}\n')
+                if not ui_report.exists():
+                    ui_report.parent.mkdir()
+                    ui_report.write_bytes(b'{"synthetic": "recovery UI"}\n')
             publication_env = ({**os.environ, **self.scope_environment(profile), 'GITHUB_JOB': 'windows_core'}
                                if profile else os.environ)
-            self.assertTrue(ci_artifacts.stage_artifacts(self.root, destination, publication_env,
-                                                         lane=None if profile else lane))
+            if lane == 'workspace':
+                self.stage_workspace_producer(destination)
+            else:
+                self.assertTrue(ci_artifacts.stage_artifacts(self.root, destination, publication_env,
+                                                             lane=None if profile else lane))
             reports[lane] = report
             shutil.rmtree(self.reports)
         return reports
 
     def partition_fixture(self, discovery=None, *, scoped_catalog=False, receipt_scope=False, legacy_runner=False,
-                          legacy_market_workflow=False, cutoff=None, cutoff_cases=False):
+                          legacy_market_workflow=False, cutoff=None, cutoff_cases=False, workspace_layout=False):
         catalog_path = self.root / 'project/checks.json'
         catalog = read_json(catalog_path)
         python_check = next(row for row in catalog['checks'] if row['id'] == windows_python.CHECK)
@@ -653,6 +666,7 @@ class WindowsLaneTests(ProjectFixture):
             task_by_id(ledger, 'M0-001')['checks'].append(windows_python.CHECK)
             task_by_id(ledger, 'M0-004')['plan'] = deepcopy(task_by_id(ledger, 'M0-001')['plan'])
             self.save_ledger(ledger)
+        repository = Path(__file__).resolve().parents[2]
         workflow = Path('.github/workflows/verify.yml')
         (self.root / workflow).parent.mkdir(parents=True, exist_ok=True)
         # The fixture publisher still discovers the split from the committed workflow.
@@ -664,32 +678,34 @@ class WindowsLaneTests(ProjectFixture):
             '''), encoding='utf-8')
         for directory in ('scripts', 'tests', 'tests/project'):
             (self.root / directory).mkdir()
-        runner_source = Path(__file__).resolve().parents[2] / 'scripts/windows_python.py'
+        runner_source = repository / 'scripts/windows_python.py'
         runner = self.root / 'scripts/windows_python.py'
+        source = runner_source.read_text(encoding='utf-8')
+        if workspace_layout:
+            shutil.copyfile(repository / workflow, self.root / workflow)
+            shutil.copyfile(repository / 'scripts/check.py', self.root / 'scripts/check.py')
+        else:
+            recovery = 'RECOVERY_PR_CHECKS = set()\n'
+            self.assertIn(recovery, source)
+            legacy_recovery = "RECOVERY_PR_CHECKS = {'market-workflow', 'desktop-localization'}\n"
+            source = source.replace(recovery, '' if legacy_market_workflow else legacy_recovery, 1)
         if legacy_runner:
-            source = runner_source.read_text(encoding='utf-8')
             # Exercise the historical output shape even in a shallow test checkout.
             for line in ('CALLBACK_RECORD_VERSION = 1\n',
                          "        'callback_record_version': CALLBACK_RECORD_VERSION,\n",
                          "    write_callback_record(destination.with_suffix('.log'), outcomes)\n"):
                 source = source.replace(line, '', 1)
-            runner.write_text(source, encoding='utf-8')
-        else:
-            shutil.copyfile(runner_source, runner)
         if legacy_market_workflow:
-            source = runner.read_text(encoding='utf-8')
-            source = source.replace("RECOVERY_PR_CHECKS = {'market-workflow', 'desktop-localization'}\n", '', 1)
-            runner.write_text(source, encoding='utf-8')
             cutoff = windows_python.LEGACY_CUTOFF
             self.enterContext(patch.object(windows_python, 'RECOVERY_PR_CHECKS', set()))
             schema_path = self.root / 'contracts/schemas/project.schema.json'
             schema = read_json(schema_path)
             schema['$defs']['HostedHarnessReport']['properties'].pop('windows_producers', None)
             schema_path.write_bytes(json_bytes(schema))
-        if cutoff is not None:
-            source = runner.read_text(encoding='utf-8')
-            source = source.replace(f'\nCUTOFF = {windows_python.CUTOFF!r}\n', f'\nCUTOFF = {cutoff!r}\n', 1)
-            runner.write_text(source, encoding='utf-8')
+        if not workspace_layout or cutoff is not None:
+            source = source.replace(f'\nCUTOFF = {self.current_cutoff!r}\n',
+                                    f'\nCUTOFF = {cutoff or windows_python.CUTOFF!r}\n', 1)
+        runner.write_text(source, encoding='utf-8')
         for package in ('tests', 'tests/project'):
             (self.root / package / '__init__.py').write_bytes(b'')
         (self.root / 'tests/project/test_first.py').write_text(
@@ -712,6 +728,11 @@ class WindowsLaneTests(ProjectFixture):
                 'import unittest\n'
                 'class ReviewAcceptance(unittest.TestCase):\n'
                 '    def test_review_acceptance(self): pass\n', encoding='utf-8')
+            if workspace_layout:
+                (self.root / 'tests/project/test_storage.py').write_text(
+                    'import unittest\n'
+                    'class Storage(unittest.TestCase):\n'
+                    '    def test_storage(self): pass\n', encoding='utf-8')
             (self.root / 'tests/project/test_verification_scheduling.py').write_text(dedent('''\
                 import os, time, unittest
                 from pathlib import Path
@@ -1036,6 +1057,50 @@ class WindowsLaneTests(ProjectFixture):
         subprocess.run(['git', 'remote', 'add', 'origin', 'https://github.com/fixture/scopehub'],
                        cwd=self.root, check=True)
 
+    def use_current_workspace_layout(self):
+        self.enterContext(patch.object(harness, 'WINDOWS_PR_CHECK_TRANSFERS', self.current_transfers))
+        self.enterContext(patch.object(windows_python, 'RECOVERY_PR_CHECKS', set()))
+        self.enterContext(patch.object(windows_python, 'CUTOFF', self.current_cutoff))
+        catalog_path = self.root / 'project/checks.json'
+        catalog = read_json(catalog_path)
+        for name in ('market-workflow', 'desktop-workspace-transport', 'desktop-localization'):
+            catalog['checks'].append(dict(catalog['checks'][0], id=name))
+            catalog['required_change_checks'].append(name)
+        workspace = {'workspace-timeframe', 'desktop-workspace-transport', 'market-recovery-ui', 'desktop-localization'}
+        command = dedent('''\
+            import json, os, sys
+            from pathlib import Path
+
+            name = sys.argv[1]
+            print(f'Fixture executed {name}')
+            if name != 'desktop-localization':
+                report = Path(os.environ['SCOPEHUB_RUN_DIR']) / name / 'results.json'
+                report.parent.mkdir()
+                report.write_text(json.dumps({'fixture': name}), encoding='utf-8')
+            if name == 'workspace-timeframe':
+                sys.exit(int(os.environ.get('SCOPEHUB_FIXTURE_WORKSPACE_EXIT', 0)))
+            ''')
+        for check in catalog['checks']:
+            if check['id'] in workspace | {'market-workflow'}:
+                check['command'] = ['{python}', '-c', command, check['id']]
+        catalog_path.write_bytes(json_bytes(catalog))
+        ledger = self.ledger()
+        task_by_id(ledger, 'M0-001')['checks'].append('workspace-timeframe')
+        self.save_ledger(ledger)
+        self.partition_fixture(cutoff_cases=True, receipt_scope=True, workspace_layout=True)
+
+    def stage_workspace_producer(self, destination):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / 'outputs.txt'
+            env = {'GITHUB_JOB': 'windows_workspace', 'RUNNER_TEMP': directory, 'GITHUB_OUTPUT': str(output),
+                   'SCOPEHUB_TIMING_CACHE': 'warm'}
+            with (patch.dict(os.environ, env), patch.object(ci_artifacts, 'ROOT', self.root),
+                  patch.object(sys, 'argv', ['ci_artifacts.py', 'stage-windows-lane'])):
+                ci_artifacts.main()
+            values = dict(line.split('=', 1) for line in output.read_text(encoding='utf-8').splitlines())
+            shutil.move(values['path'], destination)
+            self.assertEqual('warm', read_json(destination / ci_artifacts.TIMING_FILE)['cache'])
+
     @staticmethod
     def seal_legacy_manifest(path, _):
         manifest = read_json(path)
@@ -1110,12 +1175,23 @@ class WindowsLaneTests(ProjectFixture):
 
     def test_full_windows_main_push_publication_rejects_a_different_attempt(self):
         self.use_native_report_line_endings()
+        self.use_current_workspace_layout()
         pull = read_json(self.event)['pull_request']
         after = os.environ['GITHUB_SHA']
         self.event.write_bytes(json_bytes({'ref': 'refs/heads/main', 'before': pull['base']['sha'], 'after': after}))
         with patch.dict(os.environ, {'GITHUB_EVENT_NAME': 'push', 'GITHUB_REF': 'refs/heads/main',
                                      'SCOPEHUB_SOURCE_HEAD': after, 'GITHUB_RUN_ATTEMPT': '1'}):
-            self.produce()
+            lanes = self.produce()
+            self.assertEqual(['desktop-localization', 'desktop-workspace-transport', 'market-workflow',
+                              'workspace-timeframe'], lanes['browser']['selection']['checks'])
+            self.assertEqual(['market-recovery', 'market-recovery-ui'], lanes['recovery']['selection']['checks'])
+            self.assertEqual([windows_python.CHECK], lanes['python']['selection']['checks'])
+            self.assertNotIn('windows_python', lanes['python'])
+            fifth = self.downloads / 'verification-windows-1-workspace'
+            fifth.mkdir()
+            with self.assertRaisesRegex(ci_artifacts.PublicationError, 'Missing or unexpected'):
+                self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+            fifth.rmdir()
             code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
             self.assertEqual((0, '2.0'), (code, report['report_version']))
             clean = self.downloads / 'clean-push'
@@ -2356,6 +2432,138 @@ class WindowsLaneTests(ProjectFixture):
                 if row['id'] in planned:
                     self.assertEqual('not_implemented', row['reason_code'])
             overlap.assert_not_called()
+
+    def test_full_windows_pr_workspace_producer_binds_checks_attachments_and_python_order(self):
+        self.use_current_workspace_layout()
+        previous = signal.signal(signal.SIGINT, signal.default_int_handler)
+        self.addCleanup(signal.signal, signal.SIGINT, previous)
+        workspace_checks = ['desktop-localization', 'desktop-workspace-transport', 'market-recovery-ui',
+                            'workspace-timeframe']
+        aggregate = ('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+        with patch.object(harness, 'run_overlapped', wraps=harness.run_overlapped) as overlap:
+            lanes = self.produce(lanes=harness.ALL_WINDOWS_LANES)
+        overlap.assert_not_called()
+        self.assertEqual(workspace_checks, lanes['workspace']['selection']['checks'])
+        self.assertEqual(['market-recovery', 'market-workflow'], lanes['browser']['selection']['checks'])
+        for lane in windows_python.LANES:
+            self.assertEqual([], lanes[lane]['selection']['checks'])
+        passed_workspace = self.downloads / 'verification-windows-2-workspace'
+        code, report = self.run_harness(*aggregate)
+        self.assertEqual((0, 'passed'), (code, report['status']))
+        self.assertEqual({'requested': True, 'satisfied': True}, report['native_requirement'])
+        self.assertEqual('passed', report['integration_gates']['status'])
+        self.assertEqual(set(lanes['core']['selection']['checks']) | set(workspace_checks)
+                         | {'market-recovery', 'market-workflow', windows_python.CHECK},
+                         set(report['selection']['checks']))
+        run = Path('runs', report['run_id'])
+        python_row = next(row for row in report['checks'] if row['id'] == windows_python.CHECK)
+        combined = (self.root / python_row['log']).read_text(encoding='utf-8')
+        serial = subprocess.run([sys.executable, *windows_python.COMMAND[1:]], cwd=self.root,
+                                capture_output=True, text=True, encoding='utf-8', check=True)
+        self.assertEqual([line for line in serial.stderr.splitlines() if ' ... ' in line],
+                         [line for line in combined.splitlines() if ' ... ' in line])
+        for lane, case in (('python', 'test_review_acceptance'), ('recovery', 'test_storage')):
+            manifest = read_json(self.reports / run / f'windows-python-{lane}.json')
+            self.assertIn(case, {row[0].rsplit('.', 1)[-1] for row in manifest['cases']})
+
+        def assert_workspace_bytes(destination, producer):
+            latest = producer / 'test-report.json'
+            original = destination / run / 'windows-workspace.producer.json'
+            self.assertEqual(latest.read_bytes(), original.read_bytes())
+            current = read_json(destination / 'test-report.json')
+            self.assertEqual(harness.file_digest(original), current['windows_producers']['workspace'])
+            for row in read_json(latest)['checks']:
+                name = row['id']
+                if name not in workspace_checks:
+                    continue
+                self.assertIn(row, current['checks'])
+                if 'log' in row:
+                    log = Path(row['log'].removeprefix('.reports/'))
+                    self.assertEqual((producer / log).read_bytes(), (destination / log).read_bytes())
+                    if name != 'desktop-localization':
+                        artifact = run / name / 'results.json'
+                        self.assertEqual({'fixture': name}, read_json(producer / artifact))
+                        self.assertEqual((producer / artifact).read_bytes(), (destination / artifact).read_bytes())
+
+        published = self.downloads.parent / f'{self.downloads.name}-published'
+        self.addCleanup(shutil.rmtree, published, ignore_errors=True)
+        published.mkdir()
+        good = published / 'passed'
+        self.assertTrue(ci_artifacts.stage_artifacts(self.root, good, os.environ))
+        assert_workspace_bytes(good, passed_workspace)
+        screenshot = run / self.recovery_screenshot
+        browser = self.downloads / 'verification-windows-2-browser'
+        self.assertEqual((browser / screenshot).read_bytes(), (good / screenshot).read_bytes())
+        diagnostic = resolve_diagnostic(diagnostic_locator(good / 'test-report.json'), good)
+        self.assertIn('windows-workspace.producer.json', diagnostic['verified_observations'])
+        shutil.rmtree(self.reports)
+
+        # Reuse actual producer executions to reject a missing or earlier attempt.
+        backup = passed_workspace.rename(published / 'workspace')
+        with self.assertRaisesRegex(ci_artifacts.PublicationError, 'Missing or unexpected'):
+            self.run_harness(*aggregate)
+        with patch.dict(os.environ, {'GITHUB_RUN_ATTEMPT': '1'}):
+            self.produce(lanes=('workspace',))
+        stale = self.downloads / 'verification-windows-1-workspace'
+        stale.rename(passed_workspace)
+        with self.assertRaisesRegex(ci_artifacts.PublicationError, 'provenance'):
+            self.run_harness(*aggregate)
+        shutil.rmtree(passed_workspace)
+        shutil.rmtree(self.reports, ignore_errors=True)
+
+        # An actual rejected process retains its output. An interruption during
+        # log finalization retains the completed bytes and stops later checks.
+        for interrupted in (False, True):
+            with self.subTest(interrupted=interrupted):
+                stage = published / ('interrupted' if interrupted else 'rejected')
+                signaled = []
+                original_digest = harness.file_digest
+
+                def digest_check(path):
+                    digest = original_digest(path)
+                    if interrupted and path.name == 'workspace-timeframe.log' and not signaled:
+                        signaled.append(path)
+                        signal.raise_signal(signal.SIGINT)
+                    return digest
+
+                with (patch.object(harness, 'file_digest', digest_check),
+                      patch.dict(os.environ, {
+                          'GITHUB_JOB': 'windows_workspace',
+                          'SCOPEHUB_FIXTURE_WORKSPACE_EXIT': '0' if interrupted else '7',
+                      })):
+                    code, producer = self.run_harness('--ci-windows-lane', 'workspace')
+                    self.assertEqual((1, 'failed'), (code, producer['status']))
+                    self.stage_workspace_producer(passed_workspace)
+                shutil.rmtree(self.reports)
+                with patch.dict(os.environ, {'SCOPEHUB_WINDOWS_LANE_RESULT': 'cancelled' if interrupted else 'failure'}):
+                    code, failed = self.run_harness(*aggregate)
+                    self.assertEqual((1, 'failed'), (code, failed['status']))
+                    self.assertTrue(ci_artifacts.stage_artifacts(self.root, stage, os.environ))
+                rows = {row['id']: row for row in failed['checks']}
+                first = rows['workspace-timeframe']
+                self.assertEqual(('failed', 0 if interrupted else 7), (first['status'], first['exit_code']))
+                second = rows['market-recovery-ui']
+                if interrupted:
+                    self.assertEqual('interrupted', first['reason_code'])
+                    self.assertEqual(('blocked', 'earlier_failure'), (second['status'], second['reason_code']))
+                    self.assertNotIn('log', second)
+                else:
+                    self.assertEqual('passed', second['status'])
+                assert_workspace_bytes(stage, passed_workspace)
+                self.assertTrue((stage / run / 'workspace-timeframe/results.json').is_file())
+                shutil.rmtree(passed_workspace)
+                shutil.rmtree(self.reports)
+
+        backup.rename(passed_workspace)
+        self.checkout_report_head(report)
+        artifact = self.reports / 'ci' / 'workspace'
+        shutil.copytree(good, artifact)
+        report_path = artifact / 'test-report.json'
+        receipt = self.record_report(report_path, artifact=artifact)
+        self.assertEqual(receipt, self.record_report(report_path, artifact=artifact, cold=True))
+        producer = artifact / run / 'windows-workspace.producer.json'
+        with self.replace_artifact_bytes(artifact, {producer.relative_to(artifact): producer.read_bytes() + b' '}):
+            self.record_report(report_path, artifact=artifact, error='Artifact bytes differ from the recorded digest')
 
     def test_aggregate_keeps_actual_commands_catalog_order_and_evidence_bytes(self):
         lanes = self.produce()

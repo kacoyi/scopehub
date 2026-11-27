@@ -16,9 +16,10 @@ CHECK = 'python-contracts-workers'
 LANES = ('python', 'recovery')
 LEGACY_CUTOFF = 'tests.project.test_verification_scope'
 REVIEW_ACCEPTANCE_CUTOFF = 'tests.project.test_review_acceptance'
-CUTOFF = 'tests.project.test_verification_scheduling'
+SCHEDULING_CUTOFF = 'tests.project.test_verification_scheduling'
+CUTOFF = 'tests.project.test_storage'
 # The publisher reads the transfer from the tested commit.
-RECOVERY_PR_CHECKS = {'market-workflow', 'desktop-localization'}
+RECOVERY_PR_CHECKS = set()
 COMMAND = ['{python}', '-m', 'unittest', 'discover', '-s', 'tests', '-t', '.',
            '-p', 'test_*.py', '-v', '--durations', '0']
 REPORT_VERSION = '2.1'

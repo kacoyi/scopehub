@@ -8,6 +8,8 @@ import re
 import subprocess
 import tempfile
 
+import yaml
+
 if __package__:
     from . import timing
     from .ci import WORKFLOW, classify_runs, command, github_identity
@@ -139,6 +141,42 @@ def expected_verification_profile(root, base, head, tested):
     return scope['profile'], scope.get('reason')
 
 
+def checkout_requires_workspace_producer(root, checkout, head):
+    for revision in (checkout, head):
+        try:
+            raw = git(root, 'show', f'{revision}:{timing.WORKFLOW}')
+        except ScopeError:
+            continue
+        workflow = yaml.safe_load(raw)
+        steps = (workflow or {}).get('jobs', {}).get('windows_change', {}).get('steps', [])
+        return any(step.get('name') == timing.WINDOWS_WORKSPACE_MARKER for step in steps)
+    return False
+
+
+def verified_workspace_producers(run, repository, jobs, profile):
+    result = timing.hosted_timing({**run, 'repository': {'full_name': repository}}, jobs)
+    workflow = result['workflow']
+    if not (workflow.get('windows_workspace_producer') and workflow['matrix_complete']
+            and workflow['identity_complete']):
+        return False
+    windows, = (row for row in jobs if row.get('name') == 'verify (windows-latest)')
+    if not any(step.get('name') == timing.WINDOWS_WORKSPACE_MARKER and step.get('status') == 'completed'
+               and step.get('conclusion') == 'success' for step in windows.get('steps', [])):
+        return False
+    for lane in timing.WINDOWS_WORKSPACE_LANES:
+        job, = (row for row in jobs if row.get('name') == timing.WINDOWS_PRODUCERS[lane])
+        if job['conclusion'] != 'success':
+            return False
+        harness = f'Verify the Windows {lane} lane'
+        expected = (harness if profile == 'full' else
+                    f'Verify {profile} changes' if lane == 'core' else 'Select the Windows lane work')
+        successful = {step['name'] for step in job.get('steps', [])
+                      if step.get('status') == 'completed' and step.get('conclusion') == 'success'}
+        if expected not in successful or (profile != 'full' and lane != 'core' and harness in successful):
+            return False
+    return True
+
+
 def verified_pr_run(root, repository, pr, runs, dirty, contexts):
     # The REST pull_requests array describes matching open PRs *now*. It may
     # change when a PR moves, and is empty for some legitimate PR attempts.
@@ -184,6 +222,10 @@ def verified_pr_run(root, repository, pr, runs, dirty, contexts):
         if result['status'] == 'passed' and insufficient:
             result.update(status='blocked', reason=f"Run {run['id']} requires {expected} verification. "
                           f"Required jobs with insufficient coverage: {', '.join(insufficient)}.")
+        if result['status'] == 'passed' and checkout_requires_workspace_producer(root, commit, head):
+            windows = next((job for job in jobs if job['name'] == 'verify (windows-latest)'), None)
+            if not windows or not verified_workspace_producers(run, repository, jobs, windows['verification_profile']):
+                result.update(status='blocked', reason=f"Run {run['id']} lacks the committed Windows producer layout.")
         return result, jobs
     return {'status': 'blocked', 'reason': reason, 'run': None}, []
 

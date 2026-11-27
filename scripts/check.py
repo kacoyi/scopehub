@@ -96,6 +96,14 @@ WINDOWS_LANE_CHECKS = {
     'recovery': {'market-recovery', 'market-recovery-ui'},
 }
 WINDOWS_LANES = ('core', *WINDOWS_LANE_CHECKS)
+WINDOWS_WORKSPACE_LANE = 'workspace'
+ALL_WINDOWS_LANES = (*WINDOWS_LANES, WINDOWS_WORKSPACE_LANE)
+# Full PRs have two independent browser runners and two toolchain-only Python producers.
+WINDOWS_PR_CHECK_TRANSFERS = {
+    'browser': {'market-recovery'},
+    'workspace': {'workspace-timeframe', 'desktop-workspace-transport',
+                  'market-recovery-ui', 'desktop-localization'},
+}
 WINDOWS_LANES_RUN_PREFIX = 'windows-change-'
 CHECK_OUTPUT_LOCK = Lock()
 CHECK_CONSOLE = ContextVar('check_console', default=None)
@@ -278,9 +286,14 @@ def check_failed(result):
     return result['status'] == 'failed' or result.get('reason_code') == INTERRUPTED_BEFORE_START
 
 
-def windows_lane_checks(selected, lane, *, python_split=False, recovery_checks=frozenset(), ownership=None):
+def windows_lane_checks(selected, lane, *, python_split=False, recovery_checks=frozenset(), ownership=None,
+                        pr_transfers=None):
     if ownership is None:
         ownership = WINDOWS_LANE_CHECKS
+    if pr_transfers:
+        moving = set().union(*pr_transfers.values())
+        ownership = {key: (checks - moving) | pr_transfers.get(key, set()) for key, checks in ownership.items()}
+        ownership.update({key: checks for key, checks in pr_transfers.items() if key not in ownership})
     if python_split and lane == 'python':
         return set()
     if lane == 'core':
@@ -482,7 +495,7 @@ def run_verification(recovery_finalization):
     selection.add_argument('--task')
     parser.add_argument('--fail-fast', action='store_true')
     parser.add_argument('--ci-build-setup-required', action='store_true', help=argparse.SUPPRESS)
-    parser.add_argument('--ci-windows-lane', choices=WINDOWS_LANES, help=argparse.SUPPRESS)
+    parser.add_argument('--ci-windows-lane', choices=ALL_WINDOWS_LANES, help=argparse.SUPPRESS)
     parser.add_argument('--ci-windows-aggregate', type=Path, help=argparse.SUPPRESS)
     args = parser.parse_args()
     if args.ci_build_setup_required:
@@ -514,9 +527,13 @@ def run_verification(recovery_finalization):
             import windows_python
         python_split = windows_python.enabled(project, ci, selected)
     if args.ci_windows_lane:
+        transfers = WINDOWS_PR_CHECK_TRANSFERS if ci['event'] == 'pull_request' else {}
+        if args.ci_windows_lane == WINDOWS_WORKSPACE_LANE and not transfers:
+            parser.error('The Windows workspace producer requires a full pull request')
         selected = windows_lane_checks(
             selected, args.ci_windows_lane, python_split=python_split,
             recovery_checks=windows_python.RECOVERY_PR_CHECKS if python_split else frozenset(),
+            pr_transfers=transfers,
         )
     maintain_automatically(ROOT)
     project_hash = project_definition_hash(project)

@@ -12,8 +12,8 @@ import tempfile
 
 if __package__:
     from . import windows_python
-    from .check import (INTERRUPTED_BEFORE_START, PRIVATE_CHECK_LOGS, PYTHON_MANIFEST_INTERRUPTED,
-                        RECOVERY_LANE_INTERRUPTED, WINDOWS_LANES,
+    from .check import (ALL_WINDOWS_LANES, INTERRUPTED_BEFORE_START, PRIVATE_CHECK_LOGS, PYTHON_MANIFEST_INTERRUPTED,
+                        RECOVERY_LANE_INTERRUPTED, WINDOWS_LANES, WINDOWS_WORKSPACE_LANE,
                         WINDOWS_LANES_RUN_PREFIX, check_failed, check_timeout, ci_provenance, redacted_check_log, select_checks,
                         stops_after_check, windows_lane_checks, windows_lanes_run_id)
     from .project import (ProjectError, digest, file_digest, json_bytes, load_project,
@@ -30,8 +30,8 @@ if __package__:
     from .verification_scope import SCOPED_PROFILES, ci_base, ci_event_checkout, require_ancestor
 else:
     import windows_python
-    from check import (INTERRUPTED_BEFORE_START, PRIVATE_CHECK_LOGS, PYTHON_MANIFEST_INTERRUPTED,
-                       RECOVERY_LANE_INTERRUPTED, WINDOWS_LANES,
+    from check import (ALL_WINDOWS_LANES, INTERRUPTED_BEFORE_START, PRIVATE_CHECK_LOGS, PYTHON_MANIFEST_INTERRUPTED,
+                       RECOVERY_LANE_INTERRUPTED, WINDOWS_LANES, WINDOWS_WORKSPACE_LANE,
                        WINDOWS_LANES_RUN_PREFIX, check_failed, check_timeout, ci_provenance, redacted_check_log, select_checks,
                        stops_after_check, windows_lane_checks, windows_lanes_run_id)
     from project import (ProjectError, digest, file_digest, json_bytes, load_project,
@@ -55,7 +55,7 @@ COMMIT_SHA = re.compile(r'(?!0{40})[0-9a-f]{40}')
 RUN_ID = re.compile(r'[a-zA-Z0-9_-][a-zA-Z0-9._-]*')
 PRODUCER_REPORT_DIGEST = 'producer_report_sha256'
 WINDOWS_PRODUCERS = 'windows_producers'
-WINDOWS_PRODUCER_JOBS = {f'windows_{lane}': lane for lane in WINDOWS_LANES}
+WINDOWS_PRODUCER_JOBS = {f'windows_{lane}': lane for lane in ALL_WINDOWS_LANES}
 PROCESS_FIELDS = {'log', 'log_sha256', 'exit_code', 'duration_seconds'}
 DOWNLOAD_PLATFORMS = {'windows': 'Windows', 'windows-latest': 'Windows', 'linux': 'Linux', 'ubuntu-latest': 'Linux'}
 NATIVE_REVISION_ACCESS = 'windows-published-revision-access'
@@ -555,7 +555,8 @@ def runner_uses_callback_records(runner):
 
 def runner_partition_cutoff(runner):
     cutoffs = re.findall(rb"^CUTOFF[ \t]*=[ \t]*'([^'\r\n]+)'[ \t]*\r?$", runner, re.MULTILINE)
-    supported = (windows_python.CUTOFF, windows_python.REVIEW_ACCEPTANCE_CUTOFF, windows_python.LEGACY_CUTOFF)
+    supported = (windows_python.CUTOFF, windows_python.SCHEDULING_CUTOFF,
+                 windows_python.REVIEW_ACCEPTANCE_CUTOFF, windows_python.LEGACY_CUTOFF)
     if len(cutoffs) != 1 or cutoffs[0] not in {value.encode('ascii') for value in supported}:
         raise PublicationError('Unrecognized Windows Python partition in the recorded source.')
     return cutoffs[0].decode('ascii')
@@ -648,10 +649,10 @@ def check_scoped_windows_aggregate(project, report, profile, *, source=None):
     validate_windows_lane(project, report, source or report['source'], report['ci'], selected, 'core', profile)
 
 
-def committed_lane_ownership(source):
+def committed_lane_ownership(source, *, event):
     path = source / 'scripts/check.py'
     if not path.is_file():
-        return None
+        return None, {}
     # Read the scheduler declarations without executing historical source.
     try:
         declarations = {
@@ -675,21 +676,33 @@ def committed_lane_ownership(source):
                 or any(not isinstance(checks, set) for checks in ownership.values())
                 or len(set().union(*ownership.values())) != sum(len(checks) for checks in ownership.values())):
             raise ValueError('Invalid Windows lane ownership.')
-        return ownership
+        transfers = {}
+        if event == 'pull_request' and 'WINDOWS_PR_CHECK_TRANSFERS' in declarations:
+            transfers = ast.literal_eval(declarations['WINDOWS_PR_CHECK_TRANSFERS'])
+            if not isinstance(transfers, dict):
+                raise ValueError('Invalid Windows PR transfers.')
+            if transfers:
+                if (not {WINDOWS_WORKSPACE_LANE} <= transfers.keys() <= {'browser', WINDOWS_WORKSPACE_LANE}
+                        or any(not isinstance(checks, set) or not checks for checks in transfers.values())):
+                    raise ValueError('Invalid Windows PR transfers.')
+                moving = set().union(*transfers.values())
+                if not moving <= set().union(*ownership.values()) or len(moving) != sum(map(len, transfers.values())):
+                    raise ValueError('Invalid Windows PR transfers.')
+        return ownership, transfers
     except (SyntaxError, AttributeError, KeyError, TypeError, ValueError) as error:
         raise PublicationError('Unrecognized Windows lane ownership in the recorded source.') from error
 
 
-def windows_assignments(source, selected, *, split, recovery_checks):
-    ownership = committed_lane_ownership(source)
+def windows_assignments(source, selected, *, event, split, recovery_checks):
+    ownership, transfers = committed_lane_ownership(source, event=event)
     return {lane: windows_lane_checks(
-        selected, lane, python_split=split, recovery_checks=recovery_checks, ownership=ownership,
-    ) for lane in WINDOWS_LANES}
+        selected, lane, python_split=split, recovery_checks=recovery_checks, ownership=ownership, pr_transfers=transfers,
+    ) for lane in (ALL_WINDOWS_LANES if transfers else WINDOWS_LANES)}
 
 
 def ordinary_producer_lanes(assignments, split, retain):
-    lanes = ('browser',) if split else ('browser', 'recovery')
-    return {lane for lane in lanes if retain and assignments[lane]}
+    lanes = ('browser', WINDOWS_WORKSPACE_LANE) if split else ('browser', 'recovery', WINDOWS_WORKSPACE_LANE)
+    return {lane for lane in lanes if retain and assignments.get(lane)}
 
 
 def validate_windows_aggregate(root, project, reports, report, source, source_commit, destination=None,
@@ -702,7 +715,7 @@ def validate_windows_aggregate(root, project, reports, report, source, source_co
     retain, part_reports = source_producer_bindings(committed)
     runner = committed_windows_python(committed) if split else None
     recovery_checks = runner_recovery_checks(runner)
-    assignments = windows_assignments(committed, selected, split=split, recovery_checks=recovery_checks)
+    assignments = windows_assignments(committed, selected, event=ci['event'], split=split, recovery_checks=recovery_checks)
     rows = {row['id']: row for row in report['checks']}
     native = rows.get('windows-native-build', {})
     native_ok = native.get('status') == 'passed' and native.get('exit_code') == 0
@@ -781,9 +794,12 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=None, collecti
                      and source_uses_windows_python_parts(committed))
             runner = committed_windows_python(committed) if split else None
             recovery_checks = runner_recovery_checks(runner)
-            assignments = windows_assignments(committed, selected, split=split, recovery_checks=recovery_checks)
+            assignments = windows_assignments(committed, selected, event=expected['event'],
+                                              split=split, recovery_checks=recovery_checks)
         else:
             recovery_checks = runner_recovery_checks(runner)
+        if lane not in assignments:
+            raise PublicationError(f'Windows {lane} lane is inactive for the recorded source and event.')
         lane_selection = assignments[lane]
         profile = f'ci-windows-{lane}'
         recovery_overlap = bool(recovery_checks)
@@ -1019,12 +1035,6 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
             raise PublicationError('Unrecognized scoped Windows aggregate profile.')
         base = ci_base(root, checkout, env)
         require_ancestor(root, base, checkout)
-    names = ('core',) if profile else WINDOWS_LANES
-    prefix = 'verification-windows-' + ci['run_attempt'] + '-'
-    expected_names = {prefix + lane for lane in names}
-    if not downloads.is_dir() or {path.name for path in downloads.iterdir()} != expected_names:
-        raise PublicationError('Missing or unexpected Windows lane artifacts. Rerun all jobs for this attempt.')
-
     reports = root / '.reports'
     run_id = windows_lanes_run_id(ci)
     rows = {}
@@ -1034,7 +1044,13 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
     retain, retain_part_producers = source_producer_bindings(committed) if not profile else (False, False)
     runner = committed_windows_python(committed) if partitioned else None
     cutoff = runner_partition_cutoff(runner) if partitioned else None
-    assignments = windows_assignments(committed, selected, split=partitioned, recovery_checks=runner_recovery_checks(runner))
+    assignments = windows_assignments(committed, selected, event=ci['event'], split=partitioned,
+                                      recovery_checks=runner_recovery_checks(runner))
+    names = ('core',) if profile else assignments
+    prefix = 'verification-windows-' + ci['run_attempt'] + '-'
+    expected_names = {prefix + lane for lane in names}
+    if not downloads.is_dir() or {path.name for path in downloads.iterdir()} != expected_names:
+        raise PublicationError('Missing or unexpected Windows lane artifacts. Rerun all jobs for this attempt.')
     retained_lanes = ordinary_producer_lanes(assignments, partitioned, retain)
     started = []
     caches = {}

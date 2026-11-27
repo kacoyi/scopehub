@@ -603,13 +603,17 @@ class IntegrationHistoryTests(IntegrationFixture):
         self.assertEqual('records', result['workflow']['expected_profile'])
         self.assertIn(f'Unresolved major feedback: {PUSH_BUDGET}', result['blockers'])
 
-    def observe_harness(self, base, head, ubuntu_steps, windows_steps, *, tested=None):
+    def observe_harness(self, base, head, ubuntu_steps, windows_steps, *, tested=None, producer_jobs=()):
         fixture = observations()
         pr = dict(fixture['pr'], baseRefOid=base, headRefOid=head)
         run = {'id': 100, 'run_attempt': 2, 'head_sha': head, 'status': 'completed', 'conclusion': 'success',
                'path': '.github/workflows/verify.yml', 'event': 'pull_request'}
         jobs = [dict(job, id=job_id, head_sha=head, steps=[CHECKOUT_STEP, *steps])
                 for job_id, (job, steps) in enumerate(zip(fixture['jobs'], [ubuntu_steps, windows_steps]), 1000)]
+        if producer_jobs:
+            jobs = [dict(job, id=job_id, run_id=100, run_attempt=2, head_sha=head,
+                         run_url='https://api.github.com/repos/fixture/project/actions/runs/100')
+                    for job_id, job in enumerate([*jobs, *producer_jobs], 1000)]
         if tested is None:
             tested = self.merge_observation(base, head)
         api_responses = iter([json.dumps([{'jobs': jobs}]), json.dumps(tested)])
@@ -621,6 +625,52 @@ class IntegrationHistoryTests(IntegrationFixture):
         with (patch.object(integration, 'command', side_effect=command),
               patch.object(integration, 'job_checkout', return_value=(1, tested['sha']))):
             return integration.verified_pr_run(self.root, 'fixture/project', pr, [run], False, [UBUNTU, WINDOWS])
+
+    def test_current_pr_requires_the_committed_workspace_producer_layout(self):
+        records = self.root / 'README.md'
+        records.write_text('Fixture summary.\n', encoding='utf-8')
+        base = self.commit()
+        workflow = self.root / timing.WORKFLOW
+        workflow.parent.mkdir(parents=True, exist_ok=True)
+        workflow.write_text('jobs:\n  windows_change:\n    steps:\n'
+                            f'      - name: {timing.WINDOWS_WORKSPACE_MARKER}\n', encoding='utf-8')
+        head = self.commit()
+        guard = step(timing.WINDOWS_WORKSPACE_MARKER)
+
+        def jobs(profile):
+            return [dict(name=timing.WINDOWS_PRODUCERS[lane], status='completed', conclusion='success',
+                         steps=[step(f'Verify the Windows {lane} lane' if profile == 'full' else
+                                     f'Verify {profile} changes' if lane == 'core' else 'Select the Windows lane work')])
+                    for lane in timing.WINDOWS_WORKSPACE_LANES]
+
+        full_jobs = jobs('full')
+        result, _ = self.observe_harness(base, head, [step(UBUNTU_FULL)], [step(WINDOWS_FULL), guard],
+                                         producer_jobs=full_jobs)
+        self.assertEqual('passed', result['status'], result['reason'])
+        for producers, windows_guard in (
+            (full_jobs[:-1], guard),
+            ([*full_jobs, full_jobs[-1]], guard),
+            ([*full_jobs[:-1], dict(full_jobs[-1], conclusion='cancelled')], guard),
+            (full_jobs, step(timing.WINDOWS_RECOVERY_MARKER)),
+            (full_jobs, step(timing.WINDOWS_WORKSPACE_MARKER, conclusion='skipped')),
+        ):
+            result, _ = self.observe_harness(base, head, [step(UBUNTU_FULL)], [step(WINDOWS_FULL), windows_guard],
+                                             producer_jobs=producers)
+            self.assertEqual('blocked', result['status'])
+            self.assertIn('committed Windows producer layout', result['reason'])
+
+        records.write_text('Updated fixture summary.\n', encoding='utf-8')
+        scoped_head = self.commit()
+        scoped_jobs = jobs('records')
+        scoped = step('Verify records changes')
+        result, _ = self.observe_harness(head, scoped_head, [scoped], [scoped, guard], producer_jobs=scoped_jobs)
+        self.assertEqual('passed', result['status'], result['reason'])
+        wrongly_executed = dict(scoped_jobs[-1], steps=[*scoped_jobs[-1]['steps'],
+                                                        step('Verify the Windows workspace lane')])
+        result, _ = self.observe_harness(head, scoped_head, [scoped], [scoped, guard],
+                                         producer_jobs=[*scoped_jobs[:-1], wrongly_executed])
+        self.assertEqual('blocked', result['status'])
+        self.assertIn('committed Windows producer layout', result['reason'])
 
     def test_narrow_profiles_allow_matching_or_platform_full_harnesses(self):
         locale = self.root / 'apps/desktop/ui/src/i18n/locales/zh-Hans/core.json'

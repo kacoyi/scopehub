@@ -45,9 +45,13 @@ CACHE_STATES = {'cold', 'partial', 'warm', 'not_requested', 'not_restored'}
 NORMAL_EVENTS = {'pull_request', 'push'}
 PLATFORMS = {'ubuntu-latest': 'Linux', 'windows-latest': 'Windows'}
 LEGACY_WINDOWS_LANES = ('core', 'browser', 'python')
-WINDOWS_PRODUCERS = {lane: f'Windows change checks ({lane})' for lane in (*LEGACY_WINDOWS_LANES, 'recovery')}
+WINDOWS_RECOVERY_LANES = (*LEGACY_WINDOWS_LANES, 'recovery')
+WINDOWS_WORKSPACE_LANES = (*WINDOWS_RECOVERY_LANES, 'workspace')
+WINDOWS_PRODUCERS = {lane: f'Windows change checks ({lane})' for lane in WINDOWS_WORKSPACE_LANES}
 WINDOWS_AGGREGATE_MARKER = 'Require successful Windows lane jobs'
 WINDOWS_RECOVERY_MARKER = 'Require successful Windows lane jobs (four producers)'
+WINDOWS_WORKSPACE_MARKER = 'Require successful Windows lane jobs (PR workspace producer)'
+WINDOWS_MARKERS = {WINDOWS_AGGREGATE_MARKER, WINDOWS_RECOVERY_MARKER, WINDOWS_WORKSPACE_MARKER}
 SCOPED_HARNESS_STEPS = {f'Verify {profile} changes' for profile in SCOPED_PROFILES}
 HARNESS_STEPS = {
     'Run pnpm check',
@@ -361,11 +365,14 @@ def observe_job(job, *, identity, requested, label=None, harness_steps=HARNESS_S
 
 
 def windows_aggregate_cache(caches):
-    if (not isinstance(caches, dict) or caches.keys() != WINDOWS_PRODUCERS.keys()
+    if (not isinstance(caches, dict)
+            or caches.keys() not in (set(WINDOWS_RECOVERY_LANES), set(WINDOWS_WORKSPACE_LANES))
             or not all(isinstance(state, str) and state in CACHE_STATES | {'unknown'} for state in caches.values())):
         raise ValueError('Expected one cache state per Windows producer.')
-    required = {state for lane, state in caches.items() if lane != 'python'}
-    if caches['python'] == 'not_requested' and len(required) == 1 and 'not_requested' not in required:
+    without_cache = {'python', 'recovery'} if 'workspace' in caches else {'python'}
+    required = {state for lane, state in caches.items() if lane not in without_cache}
+    if (all(caches[lane] == 'not_requested' for lane in without_cache)
+            and len(required) == 1 and 'not_requested' not in required):
         return next(iter(required))
     return 'unknown'
 
@@ -423,17 +430,20 @@ def hosted_timing(run, jobs):
     requested = timestamp(run.get('created_at')) if attempt == '1' else None
     identity = (run_id, attempt, run.get('head_sha'), repository)
     jobs = list(jobs)
-    aggregate_markers = {step.get('name') for job in jobs if job.get('name') == 'verify (windows-latest)'
-                         for step in job.get('steps', [])}
-    recovery_layout = (WINDOWS_RECOVERY_MARKER in aggregate_markers
-                       or any(job.get('name') == WINDOWS_PRODUCERS['recovery'] for job in jobs))
-    legacy_layout = WINDOWS_AGGREGATE_MARKER in aggregate_markers
-    expected = WINDOWS_PRODUCERS if recovery_layout else LEGACY_WINDOWS_LANES
-    identified_layout = legacy_layout != recovery_layout
-    split = run.get('event') in NORMAL_EVENTS and (
-        recovery_layout or legacy_layout
-        or any(job.get('name') in WINDOWS_PRODUCERS.values() for job in jobs)
-    )
+    event = run.get('event')
+    markers = [step['name'] for job in jobs if job.get('name') == 'verify (windows-latest)'
+               for step in job.get('steps', []) if step.get('name') in WINDOWS_MARKERS]
+    marker = markers[0] if len(markers) == 1 else None
+    recovery_layout = marker in {WINDOWS_RECOVERY_MARKER, WINDOWS_WORKSPACE_MARKER}
+    workspace_layout = marker == WINDOWS_WORKSPACE_MARKER and event == 'pull_request'
+    expected = (WINDOWS_WORKSPACE_LANES if workspace_layout else
+                WINDOWS_RECOVERY_LANES if recovery_layout else LEGACY_WINDOWS_LANES)
+    split = event in NORMAL_EVENTS and (
+        bool(markers) or any(job.get('name') in WINDOWS_PRODUCERS.values() for job in jobs))
+    if marker == WINDOWS_WORKSPACE_MARKER and event == 'push':
+        workspace = [job for job in jobs if job.get('name') == WINDOWS_PRODUCERS['workspace']]
+        if len(workspace) == 1 and workspace[0].get('conclusion') == 'skipped':
+            jobs.remove(workspace[0])
     rows, siblings, producers = [], [], {}
     aggregate = None
     for job in jobs:
@@ -463,7 +473,7 @@ def hosted_timing(run, jobs):
 
     actual = [*rows, *siblings]
     runners = [row['seconds']['runner'] for row in actual]
-    if split and aggregate and identified_layout:
+    if split and aggregate and marker:
         split_windows_seconds(aggregate, producers, requested, expected)
     ids = [row['job_id'] for row in actual if row['job_id'] is not None]
     if len(set(ids)) != len(ids):
@@ -471,7 +481,7 @@ def hosted_timing(run, jobs):
             if ids.count(row['job_id']) > 1:
                 row['identity_issues']['conflicts'].append('duplicate_job_id')
     bound_matrix = (len(rows) == len(PLATFORMS) and {row['platform'] for row in rows} == set(PLATFORMS.values())
-                    and (not split or identified_layout and has_windows_producers(siblings, expected))
+                    and (not split or marker and has_windows_producers(siblings, expected))
                     and all(not row['identity_issues']['conflicts'] for row in actual))
     complete = (bound_matrix and run.get('status') == 'completed'
                 and all(row['status'] == 'completed' for row in actual))
@@ -496,6 +506,8 @@ def hosted_timing(run, jobs):
         result['workflow']['windows_split'] = True
         if recovery_layout:
             result['workflow']['windows_recovery_producer'] = True
+        if workspace_layout:
+            result['workflow']['windows_workspace_producer'] = True
     return result
 
 
@@ -550,7 +562,8 @@ def valid_sample(sample):
         return False
     if 'windows_caches' in sample and (
             sample['platform'] != 'Windows' or sample['profile'] != 'full'
-            or windows_aggregate_cache(sample['windows_caches']) != sample['cache']):
+            or windows_aggregate_cache(sample['windows_caches']) != sample['cache']
+            or ('workspace' in sample['windows_caches'] and (not ci or ci['event'] != 'pull_request'))):
         return False
     return not sample['coverage_complete'] or (
         set(selected) <= {check['id'] for check in checks}
@@ -576,6 +589,9 @@ def valid_clock(run):
             and (workflow.get('windows_split') is None or type(workflow['windows_split']) is bool)
             and ('windows_recovery_producer' not in workflow
                  or (workflow.get('windows_split') is True and workflow['windows_recovery_producer'] is True))
+            and ('windows_workspace_producer' not in workflow
+                 or (workflow.get('windows_recovery_producer') is True
+                     and workflow['windows_workspace_producer'] is True and run['event'] == 'pull_request'))
             and isinstance(jobs, list) and isinstance(siblings, list) and all(
                 labels(job, ('job_id', 'platform', 'runner_label', 'status', 'conclusion'))
                 and all(isinstance(job['identity_issues'][key], list) for key in ('missing', 'conflicts'))
@@ -603,7 +619,8 @@ def clock_capture_complete(run):
     workflow = run['workflow']
     siblings = run.get('sibling_jobs', [])
     split = workflow.get('windows_split') or 'sibling_jobs' in run
-    expected = WINDOWS_PRODUCERS if workflow.get('windows_recovery_producer') else LEGACY_WINDOWS_LANES
+    expected = (WINDOWS_WORKSPACE_LANES if workflow.get('windows_workspace_producer') else
+                WINDOWS_RECOVERY_LANES if workflow.get('windows_recovery_producer') else LEGACY_WINDOWS_LANES)
     actual = [*run['jobs'], *siblings]
     ids = {job['job_id'] for job in actual if positive_id(job['job_id'])}
     return (run.get('status') == 'completed' and bool(run['conclusion']) and workflow['matrix_complete'] is True
@@ -614,8 +631,9 @@ def clock_capture_complete(run):
             and all(job['status'] == 'completed' and job['conclusion'] and not job['identity_issues']['missing']
                     and not job['identity_issues']['conflicts']
                     and job['seconds']['total'] is not None and job['seconds']['runner'] is not None for job in actual)
-            and (not split or (
-                has_windows_producers(siblings, expected) and all(job['conclusion'] != 'success'
+            and (not split or (run['event'] in NORMAL_EVENTS
+                and (not workflow.get('windows_workspace_producer') or run['event'] == 'pull_request')
+                and has_windows_producers(siblings, expected) and all(job['conclusion'] != 'success'
                                                        or job['seconds']['harness_step'] is not None for job in run['jobs'])
             )))
 
@@ -676,8 +694,9 @@ def clock_signature(run):
                   key=lambda job: tuple(job[key] or '' for key in ('job_id', 'platform', 'runner_label')))
     return (
         run['conclusion'],
+        *(run['workflow'].get(key) for key in ('windows_split', 'windows_recovery_producer', 'windows_workspace_producer')),
         *(duration(run['workflow'].get(key)) for key in ('total_elapsed_seconds', 'runner_work_seconds')),
-        tuple((job['job_id'], job['platform'], job['runner_label'], job['conclusion'],
+        tuple((job['job_id'], job['platform'], job['runner_label'], job.get('name'), job['conclusion'],
                tuple(duration(job['seconds'].get(key)) for key in (*ATTEMPT_SECONDS, *SPLIT_SECONDS))) for job in jobs),
     )
 
@@ -744,9 +763,11 @@ def merge_samples(samples, hosted, issues):
         seconds.update({key: job['seconds'][key] if job else None for key in ATTEMPT_SECONDS})
         seconds.update({key: duration(job['seconds'].get(key)) if job else None for key in SPLIT_SECONDS})
         cache = sample['cache']
-        if (run and run['workflow'].get('windows_recovery_producer') and sample['platform'] == 'Windows'
-                and sample['profile'] == 'full' and 'windows_caches' not in sample):
-            cache = 'unknown'
+        if run and sample['platform'] == 'Windows' and sample['profile'] == 'full':
+            workflow, caches = run['workflow'], sample.get('windows_caches', {})
+            if (workflow.get('windows_recovery_producer') and not caches
+                    or bool(workflow.get('windows_workspace_producer')) != ('workspace' in caches)):
+                cache = 'unknown'
         yield {**sample, 'seconds': seconds, 'cache': cache,
                'job': {key: value for key, value in job.items() if key != 'seconds'} if job else None,
                'workflow_success': run['conclusion'] == 'success' if run else None,
