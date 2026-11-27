@@ -1,0 +1,151 @@
+{
+  "version": 3,
+  "task_id": "M0-165",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "16444fef187a3319672207576df1bbd5d607fa0d",
+      "scope": "Check the normal engineering navigation for the implemented Python indicator responsibility and Rust declarative ownership. Inspect the actual worker call and accepted fixture evidence, exercise a false planned declaration and an unrelated valid planned module where available. Verify scope and regression cost.",
+      "supersedes": null,
+      "requested_at": "2026-11-26T12:45:06.407432+00:00",
+      "request_id": "7a30a42fd66542eb31be920b08dbf242fa2320b3d33cdd1839a83bccfcc47df2",
+      "evidence_sha256": "e6632efb7a7bffc8eeb26cb517c6fb0a4e3e5f0ac2aae25ef8185bfa5ac8abc4"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "16444fef187a3319672207576df1bbd5d607fa0d",
+      "verdict": "approved",
+      "decision": "APPROVE M0-165 16444fef187a3319672207576df1bbd5d607fa0d",
+      "scope": "APPROVE M0-165 16444fef187a3319672207576df1bbd5d607fa0d",
+      "observation": "The architecture check accepted the corrected inventory, rejected the original planned indicator entry, and raised no error for the historically planned product-ai module.",
+      "reviewer": "Independent Astra Standard (t15w)",
+      "original_sha256": "235209c055c20e0bfa2c7ae02e24af9edb37e0b0c784a2280f768da34d4c5d49",
+      "response_id": "8d456a883c4bd6719342879dddd5b8c28e301bb812bacf29a9524c40bf51e273",
+      "response_sha256": "42d557aa28aa321caaa6cefbaf2d758b31fb6bcac50e5a4450d3905f155e5ddb",
+      "legacy_response_sha256": "3dc4435dfb0c48fa8a25e41a3361afcfac5d826aa79096e0d55a8be00314146a",
+      "observation_body_sha256": "cb519bd5602c6ea2134ca23c4e241b8697c4e22142222b6229f19a55194aea0e",
+      "event": {
+        "id": "msg_0749debd815c3522016b082a8502ac87d1b2d2c4332ea72a36",
+        "timestamp": "2026-11-26T12:48:30.825Z"
+      },
+      "supersedes": "7a30a42fd66542eb31be920b08dbf242fa2320b3d33cdd1839a83bccfcc47df2",
+      "evidence_sha256": "61e17a5b55df0039b52f6cbeb7b2deeef1542920ce9c4bfe44ee8ca47e73cd4e"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ddb0ca167dc64c738f142cfde45c4f2b05a3396f",
+      "scope": "Review the indicator implementation inventory and its development tests after combining with the protected first-test rule. Check both shared paths, the Python trusted evaluator, Rust declarative owner, and the architecture check through existing public entries. Verify a used/absent, planned/unused, and valid implemented module.",
+      "supersedes": "8d456a883c4bd6719342879dddd5b8c28e301bb812bacf29a9524c40bf51e273",
+      "requested_at": "2026-11-26T14:02:39.149068+00:00",
+      "request_id": "9c87f38f40134e5849283235e2407b56197b97fbaf6b3706d70fabef16f97eae",
+      "evidence_sha256": "f82f57466b3f71a6508cb8ba2fc336adfbfa79d74f1f62c9f3d81a130f6172de"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ddb0ca167dc64c738f142cfde45c4f2b05a3396f",
+      "verdict": "approved",
+      "decision": "APPROVE M0-165 ddb0ca167dc64c738f142cfde45c4f2b05a3396f",
+      "scope": "APPROVE M0-165 ddb0ca167dc64c738f142cfde45c4f2b05a3396f",
+      "observation": "With the worker source held fixed, the architecture check accepted the implemented indicator entry and rejected the archived planned entry at the worker’s import of `python/indicators/trusted.py`.",
+      "reviewer": "Independent Astra Standard (t180)",
+      "original_sha256": "2c0b3ed4939481773111790dbeaec1570db874ab4fceb7f0c2ef11a1a2330354",
+      "response_id": "2f43e1bcfd52d3213d13d3021dc953e2f106db016f91bc1814a534308e34de6c",
+      "response_sha256": "f9ba5e521689487bf58209d4e0f96caa43b737967463974d2a03aa3e14bfa617",
+      "legacy_response_sha256": "ef59a5c76051869c60fbf2752e45ad1812ef839bac30a99d1120dadf71d5fc3c",
+      "observation_body_sha256": "69d0e4091c687098e641b6118f3fe88df1c9e995a6c6ab947469de87fafe7e7e",
+      "event": {
+        "id": "msg_05c7cea01b77dc2d016b083cb356d087d2857c3c289c977c55",
+        "timestamp": "2026-11-26T14:05:55.068Z"
+      },
+      "supersedes": "9c87f38f40134e5849283235e2407b56197b97fbaf6b3706d70fabef16f97eae",
+      "evidence_sha256": "6cacffcb7c6b9dcf2e6f8ca0829636c26aaf32a8cb759456385c7a81cc6bd6d8"
+    },
+    {
+      "kind": "request",
+      "source_commit": "8e7af472becfc99a017c23e31355de413d9d4495",
+      "scope": "Review the indicator implementation inventory and its development tests after combining with the protected first-test rule. Check both shared paths, the Python trusted evaluator, Rust declarative owner, and the architecture check through existing public entries. Verify a used/absent, planned/unused, and valid implemented module.",
+      "supersedes": "2f43e1bcfd52d3213d13d3021dc953e2f106db016f91bc1814a534308e34de6c",
+      "requested_at": "2026-11-26T14:36:19.840966+00:00",
+      "request_id": "f0cb03a4f38310f3a12f2dfda81b7fb43810ff145d7eb2cab19dae002a4ebc3e",
+      "evidence_sha256": "6c22f416402550a4ecae49c5d1d9420dcac09878fac0da1a010353ff64c479ae"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "8e7af472becfc99a017c23e31355de413d9d4495",
+      "verdict": "approved",
+      "decision": "APPROVE M0-165 8e7af472becfc99a017c23e31355de413d9d4495",
+      "scope": "APPROVE M0-165 8e7af472becfc99a017c23e31355de413d9d4495",
+      "observation": "The public architecture check rejected the original planned indicator record while the worker imported its trusted evaluator, and accepted that same record when the import was removed.",
+      "reviewer": "Independent Astra Standard (t18t)",
+      "original_sha256": "b07c00f91f1e5dbe992786a8fa4c823d6d6d14a379a5e5ba77c605243eeba4d2",
+      "response_id": "c524828e10aa9f05a5d6688dbaef204b8b0c015e24342c75c776ff6034039176",
+      "response_sha256": "f5bf56d7fc91345262ddf8acb14dd188241e594f8f379dbc1bdfe76afab85a7e",
+      "legacy_response_sha256": "471c451db680e142dee6e63e4d73f73d4a6a7d2084bb07c3d5f1a5c0f1f2b21d",
+      "observation_body_sha256": "e452dc6a3442de78ddf0dfc7dcd57a3408a399027f1e625763c061d17ea5d59e",
+      "event": {
+        "id": "msg_0d07ef71c2017d35016b08447a11b887d2bac241d0aa96189a",
+        "timestamp": "2026-11-26T14:39:02.305Z"
+      },
+      "supersedes": "f0cb03a4f38310f3a12f2dfda81b7fb43810ff145d7eb2cab19dae002a4ebc3e",
+      "evidence_sha256": "9213fc1f2968eac0c90d5bd7e26c9b830a643418c42b85ee439b933e9efd2e57"
+    },
+    {
+      "kind": "request",
+      "source_commit": "fbc2808262a2bd9d43ba2d21a9debebf68976b57",
+      "scope": "Independently review the trusted Python evaluator and Rust declarative ownership in the integrated project/development.json. Verify the actual public worker entry and module owners, a restored erroneous planned status versus a legitimately unreferenced planned module, the protected evolution guidance, and preservation of accepted historical evidence. Inspect only the existing architecture inventory and consumer scope. Earlier hosted Python clock values are historical observations. Native candidate and protected rechecks remain separate.",
+      "supersedes": "c524828e10aa9f05a5d6688dbaef204b8b0c015e24342c75c776ff6034039176",
+      "requested_at": "2026-11-27T09:14:20.304919+00:00",
+      "request_id": "4ee1aedefc66e5510288938dd93f863837d3c5283e5ceb9f939587a4eb947cf3",
+      "evidence_sha256": "689a24cbf57c74d74453f2d38642a9dd17dd5f6859e3cb5caaaeb1bd1ced1cd6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "fbc2808262a2bd9d43ba2d21a9debebf68976b57",
+      "verdict": "approved",
+      "decision": "APPROVE M0-165 fbc2808262a2bd9d43ba2d21a9debebf68976b57",
+      "scope": "APPROVE M0-165 fbc2808262a2bd9d43ba2d21a9debebf68976b57",
+      "observation": "The candidate passed the architecture check, and restoring only the former planned status produced exactly one error for the worker’s import of the trusted Python evaluator.",
+      "reviewer": "Independent Astra Standard (t1g7)",
+      "original_sha256": "e5bb56904a61dc561f68143b27bda12987429e5987846ab4372cffb6b08babbf",
+      "response_id": "faeeb1dc3ccfc289be458011c55da6503d32216c0af6bc78f31cf96fc0124ae8",
+      "response_sha256": "4ec3525ea73b6caf651c8e77e7740e3916e82cf7f1804c705cda1779c996e55a",
+      "legacy_response_sha256": "2d05241fb5334ee83822028602ca390e2024aea97a4c2148b7cf9dbfc1d0f970",
+      "observation_body_sha256": "2eb18baf2eab66f10317df87cec7367f5a869c80fb9f8cb9360161301782c1fc",
+      "event": {
+        "id": "msg_0a204a640d576745016b094a7ade7087d0b456889981292feb",
+        "timestamp": "2026-11-27T09:16:56.713Z"
+      },
+      "supersedes": "4ee1aedefc66e5510288938dd93f863837d3c5283e5ceb9f939587a4eb947cf3",
+      "evidence_sha256": "09e27b2618ae643423639d4fb274f1a1102890422da88b4886b442ef7e057ccf"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d7078506c69145952f7fe65cbc92b8ce3441f505",
+      "scope": "Review the exact indicator ownership and architecture inventory on the new protected maintenance-navigation baseline. Check the combined test_development module and its two original parents, the producer/consumer public entries and the distinction between trusted Python and Rust declarative paths.",
+      "supersedes": "faeeb1dc3ccfc289be458011c55da6503d32216c0af6bc78f31cf96fc0124ae8",
+      "requested_at": "2026-11-27T09:39:48.305552+00:00",
+      "request_id": "fcea32d8ee29405a9ef6828afdff6fdb08327ba3763093aebf31cadd89f44f75",
+      "evidence_sha256": "99d7637e3efbe01eea39c036edcc5e2d6a26bec12563c66373754fbb601fbc76"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d7078506c69145952f7fe65cbc92b8ce3441f505",
+      "verdict": "approved",
+      "decision": "APPROVE M0-165 d7078506c69145952f7fe65cbc92b8ce3441f505",
+      "scope": "APPROVE M0-165 d7078506c69145952f7fe65cbc92b8ce3441f505",
+      "observation": "Restoring the archived planned status made the architecture check reject the worker’s import of the trusted evaluator, while a separate planned entry with a declared dependency and no consumer passed.",
+      "reviewer": "Independent Astra Standard (t1gx)",
+      "original_sha256": "8740f6635d585d623d1e4a314fbbbc9c539a4cefb54e168427a0bab8b1466b99",
+      "response_id": "b9649fc854992d0c58c6582c266b2858872bf504f7b69685ea6209682fba7ecd",
+      "response_sha256": "479b074c4567678dfbe1f05bd6cf5f6f591cba9d298140d98553b0ba2c5f757e",
+      "legacy_response_sha256": "88d168643370cc0df269934f6db780888476e639402a6492ca43f35fe207dc04",
+      "observation_body_sha256": "4c83080affc6c511b897965befb96c9344d3656027f9dde7730ec3051989a285",
+      "event": {
+        "id": "msg_0b9314bef8a64391016b0950a972a087d0b85cf20451c412b4",
+        "timestamp": "2026-11-27T09:43:23.236Z"
+      },
+      "supersedes": "fcea32d8ee29405a9ef6828afdff6fdb08327ba3763093aebf31cadd89f44f75",
+      "evidence_sha256": "10111f5ca08b737a41f73c147d0ad833e2fa62ac55a5217689d7c9dcf79c049c"
+    }
+  ]
+}

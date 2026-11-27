@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-177",
+  "task_definition_sha256": "49fc4faceded70f101358655dc70bec6e690e0a6876db3399a6a03f81becaf84",
+  "run_id": "20261127T093149.622922Z-80a64f9c",
+  "recorded_at": "2026-11-27T09:34:35.786621+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "dda6921a336a5c16e5004de969ebaf36075fcb84910722517832b8f2bc4fe164",
+    "file_count": 639,
+    "git_head": "2e45a282fbe9a330c0f3115ce6eac2aba7e0bf9d",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "ff3dbea57f3bcc4b06bd3b49de4d74634b9594dc9c5eac27ee1a944533bea577",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-44-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/peer-delete-approval-delivery/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/peer-delete-approval-delivery/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "6e1e3f15c2e78453cedf3c189ab53387c784dc8d17b7aa4035c1816101d1c22d"
+    },
+    {
+      "id": "workspace-timeframe",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e7b1ad0db824c68795c55306706514bddbbff5fd05b67186be69fd8afb1bccb2"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "03783edc82e294cc110dcd044541b4aacb731e0b564ddf395e7c9155b0a51c29"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2585fe80d4be06b3a101e84899680c8fd369d6202fd98c071c3e84822a1a5430"
+    }
+  ],
+  "project_definition_sha256": "ac8c271f9fa5b15f36bdae7907c9c47c00d9acc1fb410c179252c56adc7e0e83",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "c37937736730ea58f469c5dd4d07d53980b50af020d413688b2b55f0e10f5b09"
+  ]
+}

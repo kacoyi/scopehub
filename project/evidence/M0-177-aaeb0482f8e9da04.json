@@ -1,0 +1,109 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-177",
+  "task_definition_sha256": "777ce67c32c4c45f108330825ae20f8d4d20da493a2c400fea1dbb18e426688e",
+  "run_id": "20261127T102311.320818Z-8360c2ab",
+  "recorded_at": "2026-11-27T10:26:13.650286+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "b5bb09380511d8217c9b93e98842a079fa67d105f052359714b94e0d79dfee56",
+    "file_count": 641,
+    "git_head": "1e49685b4bd11eecc7a13fe5af79577de5e21f24",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "aaeb0482f8e9da0452c70647f30b1911d4022d91326b86bb434b19dbb1d6407c",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-44-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/peer-delete-approval-delivery/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/peer-delete-approval-delivery/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5fc0e227e13b3de90c8839c7dd5863d8de82c7b5c58cca470b2ea03d02bf914b"
+    },
+    {
+      "id": "generated-contracts",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/peer-delete-approval-delivery/.venv/bin/python",
+        "scripts/generate_contracts.py",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2719b148446f3f90bc72a301de4cb865c753293e11fd58cf63cc3d97888a5154"
+    },
+    {
+      "id": "workspace-timeframe",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ec984a8beca14965b3530222a138c26855ee873a2cb21dccafccfd72827585dc"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "b2194f406adf0a6db20ba6ddeb676b3a128b293a663777aaf5bb41dc7a8242a7"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "07732d9a6922cd1052618cff1d7d7b468bc61d90d669513074348bc81aad82c0"
+    }
+  ],
+  "project_definition_sha256": "c92210d3d2e4bb8f9797e8daeea8594c1522dd0cd2036c40bf58035d8d376773",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "068bae17930c44064031cae7668101f35f427cf81e413ade72837944fa6fd405",
+    "1c262bd921231cfb5e162726c3e0c89fa5ccd16ceae1b51694a9c74501c01b73",
+    "36f6b886cab205df665e1f0f40d3e6f1d52dfd4611e3092e0f3c7fba127a2640",
+    "578a28fe4e9c5f9425fc8fec59fd0227b2aba3e6696297314fec612a9586adc7",
+    "b0fa49a85a2f71242ae3d062e66688f2d3527041843333004817874d7b8e51f2",
+    "c37937736730ea58f469c5dd4d07d53980b50af020d413688b2b55f0e10f5b09"
+  ]
+}
