@@ -227,6 +227,26 @@
       "requested_at": "2026-11-27T03:36:31.584930+00:00",
       "request_id": "d667afddf4f7c68ea8a2c455310c2bf4323b15ef4688ce5253b4fdd869c6252e",
       "evidence_sha256": "57c7cbc1af767e6a8fb4bd51ab139480063849924ed55c56f28eec0f7a95054a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-145 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "APPROVE M0-145 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "observation": "In my offline replay of run 45546767887, the weekly collector issued one Windows receipt for the Windows artifact and zero for the same report bytes from the Ubuntu artifact, while both cases retained the 804-second wall time and 2467 runner-seconds.",
+      "reviewer": "Independent Astra Standard (t1c5)",
+      "original_sha256": "4a3423cfe25dcda57610284173ac0981f13b52360df719cb7f32dc4050cf7fc1",
+      "response_id": "143cd2205f727b86209bacc4b4aef42abb972b3381edb3210fed008abab98d87",
+      "response_sha256": "ee0985b42d9a047f6fdca4539bb800f72d6f61a8f2c45e494251fb32bfc1b013",
+      "legacy_response_sha256": "5c1e452addf60095aaa10ac48f1ca87bd2e92354f9274218239ee197d06ff9c5",
+      "observation_body_sha256": "f0d9b1dc57e0670ac76ae7a617c28b8b8deb305a411d68e92b41a4a80ec29789",
+      "event": {
+        "id": "msg_06f12e2ac5391733016b08fd60094487d0a6a58094fcdf9965",
+        "timestamp": "2026-11-27T03:48:14.402Z"
+      },
+      "supersedes": "d667afddf4f7c68ea8a2c455310c2bf4323b15ef4688ce5253b4fdd869c6252e",
+      "evidence_sha256": "6dea72ef5954cf6f0e48b0f64920309dba196c57dcc07a3172302daa4ec77555"
     }
   ]
 }

@@ -227,6 +227,26 @@
       "requested_at": "2026-11-27T03:36:30.178732+00:00",
       "request_id": "1fd8d4b6affe0721f39dd2d534e2eab397986a9de7bfeb09279fdd124d82cdba",
       "evidence_sha256": "e1870c68e17e4a5463592b37a438df3b9a5bd7c54fc96a831cf111449fd063fe"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-133 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "APPROVE M0-133 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "observation": "For run 45838575346, ordinary review and cold reopening after twelve later captures both excluded the 1242-second Windows execution sample when the aggregate setup finished before its prerequisite, and both retained the 1291-second Windows wall time.",
+      "reviewer": "Independent Astra Standard (t1c4)",
+      "original_sha256": "e62182547e7218853e7cf08784ced19fcdf49d6ad5fee18078098e995b7d4a58",
+      "response_id": "eefc38667e0f834f2bbaf4d6d63ff085067457abc8c35e3a62196c5d36a9f2d8",
+      "response_sha256": "ebf7117c8d9d5ac587079665668c8037847585f274d43d84ab0322003e6d52a2",
+      "legacy_response_sha256": "a250877d053712e55fc2c34ebc29d457fcfee8de19ef5f0abe51f27f3412cb7e",
+      "observation_body_sha256": "30477eae5affe264fd19ff463c000b34f10b59c01b18744df529a166610f3601",
+      "event": {
+        "id": "msg_0aaa1ec058fbcf2f016b08fcd17a7487d0bd3ef728586adc2f",
+        "timestamp": "2026-11-27T03:45:40.790Z"
+      },
+      "supersedes": "1fd8d4b6affe0721f39dd2d534e2eab397986a9de7bfeb09279fdd124d82cdba",
+      "evidence_sha256": "50b0f45cb0e995bd7b13c5dd26e35930a0576f6b54d19215eb4a836b7aba3172"
     }
   ]
 }

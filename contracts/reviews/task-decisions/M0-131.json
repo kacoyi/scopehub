@@ -227,6 +227,26 @@
       "requested_at": "2026-11-27T03:36:28.770483+00:00",
       "request_id": "e817591b64010eff1c26c2501595c38ceb3cc9aa2ff74fd37ea5f84492fa2bd2",
       "evidence_sha256": "ece3237b5eb078320ef2e2616f915b1b4f0c2b68bce3b196ee8fe99c7bd24f60"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-131 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "APPROVE M0-131 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "observation": "On PR 116, replacing only the browser report’s selected checks with the recovery job’s checks made the browser cache unknown and removed its clock, while recovery stayed warm at 421 seconds and Windows retained its 883-second wall clock and 2775 runner-seconds.",
+      "reviewer": "Independent Astra Standard (t1c3)",
+      "original_sha256": "b84723231a35df31284fd8f2962e47d2331a35f51d9fb4e206c5ca6465e190bf",
+      "response_id": "a190062fef4a587b5c62007959849372f8f8287a20077f0d34024efb8a56a3bf",
+      "response_sha256": "08a394363f7b02f85b9d3bfa3cdd94d0537c944a3beb50ec513768f101e6a572",
+      "legacy_response_sha256": "62fa1315696c60cd090a42e04d8c1524200969ace11d9b1d3374ef477b53927b",
+      "observation_body_sha256": "ad8b797b97be0968ac1af359af4755efc6bf2618b13579c88c4e80569d1bee11",
+      "event": {
+        "id": "msg_0ad894474d703181016b08fcd4d46487d0908a1bb56a184c69",
+        "timestamp": "2026-11-27T03:45:42.801Z"
+      },
+      "supersedes": "e817591b64010eff1c26c2501595c38ceb3cc9aa2ff74fd37ea5f84492fa2bd2",
+      "evidence_sha256": "9a9d552f5506b043e06a31fbc3019c7a4f912ae940da862e56305d02de9070db"
     }
   ]
 }

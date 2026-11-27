@@ -387,6 +387,26 @@
       "requested_at": "2026-11-27T03:36:23.682279+00:00",
       "request_id": "727b1eb1d78cb266cde6bc10d43d137334b5da1b47cc2e087144a52437051e49",
       "evidence_sha256": "5054ec9c815dcb0e4d7edf75682b9df2e795765337b447aeebddc3b2e6d40eff"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-155 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "APPROVE M0-155 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "observation": "The public timing reader excluded the Windows execution sample for the 13-second ordering contradiction and retained the valid 1242-second and 827-second samples.",
+      "reviewer": "Independent Astra Standard (t1bx)",
+      "original_sha256": "bbec1cf726cadd28b2ac9d7b13b9487293d7213ec9bdcf911acbc6379aee92a2",
+      "response_id": "eafb830f61614a35d8474564d9e7401500a7455672d5b212f9c096d868a1c4db",
+      "response_sha256": "15d631738164ac057c1659b088badce46dca831248f52b16d30565a7985dbb00",
+      "legacy_response_sha256": "867e28d2a4387fc5f1844e9b6bd008c5747206fbaa818917278e45f39143f611",
+      "observation_body_sha256": "3573bf4d57de35f1bce1fa2c32959f33e1be88c56db87aa0779229715dbc2ded",
+      "event": {
+        "id": "msg_06d8aba8645ecc19016b08fb4b387c87d086d73fd443eb4336",
+        "timestamp": "2026-11-27T03:39:09.377Z"
+      },
+      "supersedes": "727b1eb1d78cb266cde6bc10d43d137334b5da1b47cc2e087144a52437051e49",
+      "evidence_sha256": "29db7591edbaf446628e5f9cc9cc861054b5254fb01663d80a213f770f1241dd"
     }
   ]
 }

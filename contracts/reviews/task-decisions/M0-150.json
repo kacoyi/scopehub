@@ -407,6 +407,26 @@
       "requested_at": "2026-11-27T03:36:26.339841+00:00",
       "request_id": "4a076cb8c6ebcdd82303aec9d6352f79e23d61b3e2db856e7a6b7a1a2b039ea6",
       "evidence_sha256": "fe3e5fd243615a2e2aff65b423d2d8135d25e7d10cc4fc749a4f3eaae93aa467"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-150 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "APPROVE M0-150 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "observation": "Reopening the PR 96 archive alongside a Linux report with contradictory source snapshots preserved both original receipt digests and the 827-second Windows verification interval.",
+      "reviewer": "Independent Astra Standard (t1c1)",
+      "original_sha256": "374ffb359acda4db7ccbbfa920ca371aefc92bfc96cc279f7e559d9444234bfd",
+      "response_id": "c8db7d7043b9d5f187ff0ef3ef1dbd0985e42abbd71ccf0068880f91bc848849",
+      "response_sha256": "a67077ec80054bba3acaf9d9acec0c952fcc28b95bf39f1d68bc701c3ead590f",
+      "legacy_response_sha256": "446aeac09619a3ec2902dab6e4ad733f85de3f13a7d9cafd5837da33d0ad5adb",
+      "observation_body_sha256": "9346cd4382b18dfdf59a0df88f5b2d8d9834e5ff4645a12c19ceb54bf9b3b690",
+      "event": {
+        "id": "msg_0db87de1c696a2e4016b08fcc597a887d0b8a5ad23ca902121",
+        "timestamp": "2026-11-27T03:45:23.899Z"
+      },
+      "supersedes": "4a076cb8c6ebcdd82303aec9d6352f79e23d61b3e2db856e7a6b7a1a2b039ea6",
+      "evidence_sha256": "93a2ab71901d95936d1d23d214cb611deda8b5439f4667cd9a97bc6811658ce4"
     }
   ]
 }

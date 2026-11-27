@@ -416,6 +416,26 @@
       "requested_at": "2026-11-27T03:36:24.929949+00:00",
       "request_id": "38b3c704e1fd1ab117181e80c5c3946ea88992bb7391a6236b6cf72737dca33e",
       "evidence_sha256": "f9ae15ac3194524c0003270d5e3715348df88f579d3059a61d3dd7934d061ace"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-156 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "APPROVE M0-156 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "observation": "Reopening the PR 96 weekly archive with a Linux report whose start and end commits disagreed preserved both original receipt digests and the Windows measurements of 876 wall seconds and 2584 runner-seconds.",
+      "reviewer": "Independent Astra Standard (t1by)",
+      "original_sha256": "f1a77e2b0e9fb16a0db4a6e26882dc7326631e497fa2ffde13a189bbc9c54311",
+      "response_id": "3d3b9b91047566681736eab7d01f3b40b456a310edce5c676e32c672ce889565",
+      "response_sha256": "d06951dc8e20ba6c6172c6e026debc70a352b7cadf50242b6e87fbdf2bd7771c",
+      "legacy_response_sha256": "d84359ac0d3cd49a31c8083adec1f9452eb47dc0f5d57359330744d5c16b2ddb",
+      "observation_body_sha256": "dfcb09042b951512927efa5e2314b25404c4c3cfc68b6ca2b2843260151af850",
+      "event": {
+        "id": "msg_07a2ef30795fbb28016b08fb380c2487d0a7eb30acf6b8c9f1",
+        "timestamp": "2026-11-27T03:38:50.069Z"
+      },
+      "supersedes": "38b3c704e1fd1ab117181e80c5c3946ea88992bb7391a6236b6cf72737dca33e",
+      "evidence_sha256": "dd7e7245956d9df99f57bf2deec9a148fd09c683b436d1de9c927597786cc51b"
     }
   ]
 }

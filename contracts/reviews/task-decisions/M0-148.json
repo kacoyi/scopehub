@@ -227,6 +227,26 @@
       "requested_at": "2026-11-27T03:36:32.910972+00:00",
       "request_id": "e6790deeb88929977ae5b0639d264d4f3ba2fd1018ce55a66bdb79a87cd8ca6f",
       "evidence_sha256": "8427ab522fa061ff343fd4ab26a405ccdabe0ef4c8508f780c69a762b6318a24"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-148 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "APPROVE M0-148 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "observation": "For run 45838575346, the reader retained the Windows receipt for the 35 checks selected at the recorded publishing checkout and rejected the control that changed only the execution-input digest.",
+      "reviewer": "Independent Astra Standard (t1c6)",
+      "original_sha256": "2e9eb38c58081f4d505a26cf52c12252f86c9972f05f390376cabcc85825cc7d",
+      "response_id": "05763de99cd5c314ced4c18817e17b172e07b7d5612b0e96cae5119da981488a",
+      "response_sha256": "5dd12b50e534ca05092d30d2bce884ec3e4afb2ad32525823d94f3035fd3cd59",
+      "legacy_response_sha256": "1e53f412c2313d18412789b2591e13a92360f4e1e900e3d0e589b3ab9b125b6d",
+      "observation_body_sha256": "4370f92f294fa3d8b02cf6048bb58959c4ce1e65cff04bc813b9ea46ccfe63c3",
+      "event": {
+        "id": "msg_019b162a29fb6f7a016b08fcbf86ec87d08bfce3f7ea4b68b6",
+        "timestamp": "2026-11-27T03:45:17.422Z"
+      },
+      "supersedes": "e6790deeb88929977ae5b0639d264d4f3ba2fd1018ce55a66bdb79a87cd8ca6f",
+      "evidence_sha256": "7d5b8af3e4904babb4c22b1b1aa9c16084c67ac0570221f372fdcddc5f9305ac"
     }
   ]
 }
