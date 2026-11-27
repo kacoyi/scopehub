@@ -648,6 +648,26 @@
       "requested_at": "2026-11-27T09:51:59.976877+00:00",
       "request_id": "7085a4a9b96551dd3f515761de94fe6ab6e07f56da1431be6cb18be0404e20bb",
       "evidence_sha256": "6a8b656e115652c0d7b3ab5de03fcd5ad45e1123cccc34ec78f646679270d4fe"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "f5ba8771b485118ef017c75f5b184bb61991a90e",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-139 f5ba8771b485118ef017c75f5b184bb61991a90e",
+      "scope": "CHANGES_REQUESTED M0-139 f5ba8771b485118ef017c75f5b184bb61991a90e",
+      "observation": "In an offline replay of Windows run 45965137241, the integration command returned exit code 0 after the browser producer’s required artifact upload was marked skipped.",
+      "reviewer": "Independent Astra Standard (t1h3)",
+      "original_sha256": "e3123160d43a8ff0a835a36148c1492491f917d738c4ea390ddcbbc30843fa4d",
+      "response_id": "77a21fc2db688bec28e3dd68c8eaa97202761e2f3c0e31211289ae1a41a56719",
+      "response_sha256": "66a71f3273e3f7af1d4c0523d843cc0b1225e7495070342ce7d2da3dfde4930c",
+      "legacy_response_sha256": "691b63f582ffb58278d78258ee6514ce3a5f2d30e4c6744cb7f3aa3b00d789e8",
+      "observation_body_sha256": "c5d6d3c88b39904755ebd351dbe029656eebb6d0d3937c28be95ee9b6d2189cf",
+      "event": {
+        "id": "msg_0cd87b8eb733c755016b0954a6cfe487d0b2b96efd7f82ef0c",
+        "timestamp": "2026-11-27T10:00:26.679Z"
+      },
+      "supersedes": "7085a4a9b96551dd3f515761de94fe6ab6e07f56da1431be6cb18be0404e20bb",
+      "evidence_sha256": "f72ac004e5e56a39e3d0298ea3c9aed2510efeaced6727cb4d6d4398e5342a59"
     }
   ]
 }

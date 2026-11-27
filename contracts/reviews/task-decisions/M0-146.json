@@ -648,6 +648,26 @@
       "requested_at": "2026-11-27T09:52:00.671095+00:00",
       "request_id": "b9fba548a9e2ddbe19b5b42a7920a38a80af21975eaffe4de7328cd4ee8923f6",
       "evidence_sha256": "d50917b5b461b745cfffb65cac85c5fa4433807109e814917128dca3762c34ad"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "f5ba8771b485118ef017c75f5b184bb61991a90e",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 f5ba8771b485118ef017c75f5b184bb61991a90e",
+      "scope": "CHANGES_REQUESTED M0-146 f5ba8771b485118ef017c75f5b184bb61991a90e",
+      "observation": "In my offline replay, interrupting the final Git read left both the Python and workspace producers with completed logs and attachments but no finalized report.",
+      "reviewer": "Independent Astra Standard (t1h4)",
+      "original_sha256": "93c291a708386d5154604f9d50436e99077f9f18c3180991a791b330708db592",
+      "response_id": "31de753014209d81b3f2ad817c891aaae867dbfeb159156d1d3df0ef71814ae6",
+      "response_sha256": "c86a6f77ef1f9351e9e94e338ef56247304c2744fefc93c23a248fd96e418d93",
+      "legacy_response_sha256": "40496a15dbfade91d5baeb5ed77d77101fb2e4db6d537e0a4a189f91525b9033",
+      "observation_body_sha256": "49feddac367e18e0d0d11d50d8dd50fd41cd282aaa937cd0836dbd3d50fab03d",
+      "event": {
+        "id": "msg_0758eb79212c6c82016b0954b7369c87d0904e01bbff2aa204",
+        "timestamp": "2026-11-27T10:00:43.925Z"
+      },
+      "supersedes": "b9fba548a9e2ddbe19b5b42a7920a38a80af21975eaffe4de7328cd4ee8923f6",
+      "evidence_sha256": "216b9a0fd8095a65f98e68b52ca7d635011008e0c122662b9e51714eb86556bb"
     }
   ]
 }
