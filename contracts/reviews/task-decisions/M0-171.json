@@ -30,6 +30,15 @@
       },
       "supersedes": "3008bd01112921ae88b2ae899d83b22a8c8ca3282c5b74bd19a315972d1d0c0f",
       "evidence_sha256": "b14c86236fc14d9963e310c9e11396c097e5086774178c76926106b6d3c1803b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "f707c0edf2a1068226d7e330f4ebdcde3c731701",
+      "scope": "Verify that this combination preserves the accepted handoff calibration, case order, Windows path and genuine refusal/timeout semantics. Inspect the original adverse Windows observation, the successful guarded receipts, the 18 focused Linux controls on the present source including failure and cleanup, and interaction with the combined cold fixture. Preserve the closed M0-171 history and limits of each platform.",
+      "supersedes": "268a8fb1ca61277349b830ebd8d73aa1a85733afc528707f99380c617038c176",
+      "requested_at": "2026-11-27T09:06:51.239647+00:00",
+      "request_id": "274d80ddd504fe91e650d2dc8ae7333c36d8bfb11cf1fa5e36947790eb278cf2",
+      "evidence_sha256": "c8b3ea989024eceef4facd2a6f61e3c4a3ac19c773eafa56411a19f20425d5b1"
     }
   ]
 }

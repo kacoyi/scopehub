@@ -30,6 +30,15 @@
       },
       "supersedes": "36b6168cf55402ea50baa8cc5ce606af7523efb1ad476c7114e6c88908a13402",
       "evidence_sha256": "2694f6ba62ae146ff029be8fea5643924c521ddc7db3758bf6880cee5a8b51f1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "f707c0edf2a1068226d7e330f4ebdcde3c731701",
+      "scope": "Verify the actual cold public chart recovery and deliberate held-module boundary at the protected combination. Trace the genuine successful cold 827ms sample and the held 10.009s refusal, including what the anonymous script and previous Windows delay do and do not establish. Inspect ordering, failure cleanup and the existing user-visible recovery on this source. Keep earlier 41-case hosted evidence, the 1200.047s previous unsplit failure and pending fresh hosted observations distinct.",
+      "supersedes": "4b30ff6cd325e25fe1e241756568062ae4d79c250ad71fbcda134e09f04d6681",
+      "requested_at": "2026-11-27T09:06:50.397111+00:00",
+      "request_id": "99f0edd83992c84bd0a60698176c8de65d5980da4cf2116f9e1dc4b154044b6f",
+      "evidence_sha256": "14c4db27e80a8e2f744c43bd9e6231a3eeb74f177c85fc5d9059d2f25b0f70ea"
     }
   ]
 }
