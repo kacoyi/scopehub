@@ -358,6 +358,26 @@
       "requested_at": "2026-11-27T02:45:59.584193+00:00",
       "request_id": "bb1efc8f7d512ba4e5c8d143876dcd212336a2f02d8cf16bbec02b0c7a151d4d",
       "evidence_sha256": "004f2ae5748fdc9e54d4d2954f0f2d850a046d8ca51a34a397768da99a3f0b9f"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "4c4865fa8db31cd57c84a8061d8abc00e03d1a01",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 4c4865fa8db31cd57c84a8061d8abc00e03d1a01",
+      "scope": "CHANGES_REQUESTED M0-156 4c4865fa8db31cd57c84a8061d8abc00e03d1a01",
+      "observation": "Removing the input digest from a late Linux report with a conflicting checkout caused PR 96 to lose its genuine Windows receipt.",
+      "reviewer": "Independent Astra Standard (t1b6)",
+      "original_sha256": "8769bcf3750fc1218acc17a84953ceea8a17e820290bd92b11913a5d6989c2d1",
+      "response_id": "7a1ae5d951f60ca924a96fbed4d6030d9b61017dd23c23c8f385adf546877356",
+      "response_sha256": "1910f0d6469af3bb65d3233cf0776bd025f18321af12dc07a6c6428f05a70bc5",
+      "legacy_response_sha256": "c5261ec0f5eaab043cefb927c8a65053c19babbcdce1ac05f3753c0c22cd6a52",
+      "observation_body_sha256": "6821d15a648c6057f89f01a0f5ba8d4be31799232e1065b948773bfee2bb0c98",
+      "event": {
+        "id": "msg_04ac0bfddd71aef0016b08f06e037c87d0ab14921344af816c",
+        "timestamp": "2026-11-27T02:52:56.905Z"
+      },
+      "supersedes": "bb1efc8f7d512ba4e5c8d143876dcd212336a2f02d8cf16bbec02b0c7a151d4d",
+      "evidence_sha256": "3dd6ca044f7326084577bad2a74308fe9eee0ba4809a0866b5227afbf4b72fc7"
     }
   ]
 }

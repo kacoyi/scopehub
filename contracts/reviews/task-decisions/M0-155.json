@@ -329,6 +329,26 @@
       "requested_at": "2026-11-27T02:45:58.663395+00:00",
       "request_id": "0cab0818acfccce0f2aa4f1b197e11cdd7ade0cc56b4f875c5d8bc2ee709157e",
       "evidence_sha256": "b13d878c8690eaf1d4c9b23f664df0d952d3775e1b64c31a0e460d7161bbb0df"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "4c4865fa8db31cd57c84a8061d8abc00e03d1a01",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 4c4865fa8db31cd57c84a8061d8abc00e03d1a01",
+      "scope": "CHANGES_REQUESTED M0-155 4c4865fa8db31cd57c84a8061d8abc00e03d1a01",
+      "observation": "Removing only the Windows aggregate job’s start time from run 45838575346 made both readers discard the 1242-second execution interval established by the original steps.",
+      "reviewer": "Independent Astra Standard (t1b4)",
+      "original_sha256": "ffe97e411f81ca13646a1cc18ade6a2b96bf8a1d225950ba7a73a11fb5891f4e",
+      "response_id": "84317e3573363666aefdf1a43f41d2e11db456c0f1ce4a6e413c47b746ea6f0f",
+      "response_sha256": "c38b670f4632d3f7c1b272c697d5dd76f30da84dcdadcad0faabd4e2bdc9580c",
+      "legacy_response_sha256": "da6d446992521c05b93138d03745888f2eceefa30128ff3dd9442f8c1ec40209",
+      "observation_body_sha256": "43a915296c5273010740a76e377b031ca57a3424d0dce743254934ac09d2951a",
+      "event": {
+        "id": "msg_081079b0e1b27203016b08f0804d2487d0b3b9fbd2a69d13c7",
+        "timestamp": "2026-11-27T02:53:12.133Z"
+      },
+      "supersedes": "0cab0818acfccce0f2aa4f1b197e11cdd7ade0cc56b4f875c5d8bc2ee709157e",
+      "evidence_sha256": "4049e6092657d83864563f649643e38cc9ad5c7681be2152931adfb99bf39e23"
     }
   ]
 }

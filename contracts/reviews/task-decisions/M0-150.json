@@ -349,6 +349,26 @@
       "requested_at": "2026-11-27T02:45:57.545806+00:00",
       "request_id": "f87173c0d6c4e752acc507bfd9d6dc183935f249426ffdb81a97310e983c220b",
       "evidence_sha256": "b3ce4abd35d83f30450cb6c1b7df3fc5175fe50f9578d4cc9ee9e710826837e1"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "4c4865fa8db31cd57c84a8061d8abc00e03d1a01",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 4c4865fa8db31cd57c84a8061d8abc00e03d1a01",
+      "scope": "CHANGES_REQUESTED M0-150 4c4865fa8db31cd57c84a8061d8abc00e03d1a01",
+      "observation": "For run 45838575346, removing the input digest from an out-of-job Linux report gave it 950 seconds of attributed time and displaced the genuine Linux receipt on reopen.",
+      "reviewer": "Independent Astra Standard (t1b5)",
+      "original_sha256": "cfe80e6d94045d6e862913f24ac7bf6ad206ab15183f0ee32023362696737899",
+      "response_id": "6ecd43cd5a3ae1ebfe76601aa6725b78de455ec4881f00588795dad70d58338f",
+      "response_sha256": "00e466ebf2e3cebcac866a900f47efa6f5b72edb75a27a98b57824ae795ceab0",
+      "legacy_response_sha256": "569fdfc29e9746a7f4c420ff8f14dea1b8ef262920e3b93f875f0ccb180e7866",
+      "observation_body_sha256": "5aee3b08c8f8ed1c9843fc8e5101c159fd7039d668dd52a8fb4ec7eb22428972",
+      "event": {
+        "id": "msg_055f8ba8373d4c6a016b08f060526887d0a8753bf28e613fa9",
+        "timestamp": "2026-11-27T02:52:41.264Z"
+      },
+      "supersedes": "f87173c0d6c4e752acc507bfd9d6dc183935f249426ffdb81a97310e983c220b",
+      "evidence_sha256": "3395ad1e076937cb09875c48d7fa3c7efe191ac924730cf7c2757de487f636cb"
     }
   ]
 }
