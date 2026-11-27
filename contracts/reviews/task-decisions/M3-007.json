@@ -126,6 +126,26 @@
       "requested_at": "2026-11-27T09:16:45.583539+00:00",
       "request_id": "08595217073fdda30f97cc46c2391ad9e720cfe040671bebe59199d11d4ef180",
       "evidence_sha256": "91b7c91317bd0778eecaf92e869dd44cb8cc710c3d3280218092d2bc5ca451fc"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "0c3e56b4c808427b89751ff6fdee49b91741e3e9",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M3-007 0c3e56b4c808427b89751ff6fdee49b91741e3e9",
+      "scope": "CHANGES_REQUESTED M3-007 0c3e56b4c808427b89751ff6fdee49b91741e3e9",
+      "observation": "After one lost status delivery, the gapped sample preview displayed 3500.5 when I replayed its admitted task’s ready response with the normal sample’s archived artifact; the same response with its own artifact displayed Unknown.",
+      "reviewer": "Independent Astra Standard (t1g9)",
+      "original_sha256": "84daf687a6cc95e6af4bfc40f1d96d55d3550ab0b732ad64bf11efd8ec69b8d9",
+      "response_id": "9ad104929806c7c933d148c01ce68f2c2413eb00dfed3e0ed219f1309b3e90f9",
+      "response_sha256": "05f27d16f1b4f9e274d81e3995f18ea0b2f0522c034a18c4dd97414b9f4ba9b7",
+      "legacy_response_sha256": "e96eef314f38fd8dda79df6e297e5f0ffd5b512415ecd1c3cc8ee668734fe6e8",
+      "observation_body_sha256": "d234777b59742d2ad781044e94ed5feeca55b4e8f38b65637756027ecfaad2b7",
+      "event": {
+        "id": "msg_03c6a995f493b7bf016b094c0f797487d0a200c05b4e1aa29c",
+        "timestamp": "2026-11-27T09:23:47.154Z"
+      },
+      "supersedes": "08595217073fdda30f97cc46c2391ad9e720cfe040671bebe59199d11d4ef180",
+      "evidence_sha256": "16539ec78c6cda66a13b699f962bb5b3e61a644b6d8dddee9166158581189fcb"
     }
   ]
 }
