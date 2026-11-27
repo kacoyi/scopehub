@@ -3438,13 +3438,14 @@ test('indicator-preview excludes points and markers outside the displayed chart 
   }
 });
 
-test('private decision notes require consent and retain the dated original separately from outcomes', async ({ browser }) => {
+test('private decision notes require consent and retain the dated original separately from outcomes', async ({ browser }, testInfo) => {
   const profile = await makeProfile();
   const other = await makeProfile();
   const port = await freePort();
   const declinedThesis = 'Synthetic draft that should never be saved';
   const thesis = 'Synthetic thesis at decision time';
   const outcome = 'Synthetic later observation';
+  const deletionRecovery = {};
   let originalWriter;
   try {
     await inService(port, profile, 'ubuntu-workspace', async server => {
@@ -3525,21 +3526,80 @@ test('private decision notes require consent and retain the dated original separ
         await expect(outcomes.getByText('2026-02-04')).toBeVisible();
         await expect(original.getByText('2026-01-03', { exact: true })).toBeVisible();
 
+        const events = deletionRecovery.events = [];
+        observeDecisionNoteWindow(page, 'deleting-window', events, performance.now());
         await notes.getByRole('button', { name: 'Review deletion' }).click();
         await expect(notes.getByRole('heading', { name: 'Delete this decision note and its later outcomes?' })).toBeVisible();
+        const before = decisionNoteStoredState(profile);
+        deletionRecovery.before = before;
+        const [noteId] = before.notes;
+        expect(before).toMatchObject({ workspace: { revision: 3 }, notes: [expect.any(String)],
+          outcomeCount: 1, deletions: [] });
+        const confirmation = notes.getByRole('button', { name: 'Retry confirmation' });
+        const success = notes.getByRole('status').filter({ hasText: 'Decision note deleted.' });
         const lost = await dropApprovalReply(page, server, 'decisionNote.delete');
-        await notes.getByRole('button', { name: 'Delete decision note' }).click();
-        await expect(notes.getByRole('button', { name: 'Retry confirmation' })).toBeEnabled();
-        await expect(notes.getByRole('alert')).toHaveText('The local workspace could not verify the result.');
-        await expect(notes.getByText('Decision note deleted.')).toHaveCount(0);
-        expect(lost.outcome()).toMatchObject({ state: 'committed', receipt: { committed_workspace_revision: 4 } });
+        let originalApproval;
+        let originalOutcome;
+        let afterCommit;
+        try {
+          const failed = await duringPageEvent(page, 'requestfailed', request => new URL(request.url()).pathname === endpoint
+            && isDecisionNoteDeleteApproval(request.postDataJSON()), async () => {
+            await notes.getByRole('button', { name: 'Delete decision note' }).click();
+            await expect(confirmation).toBeEnabled();
+          }, 5_000);
+          originalApproval = failed.postDataJSON();
+          const producerReply = lost.reply();
+          afterCommit = decisionNoteStoredState(profile);
+          deletionRecovery.interruption = {
+            requestId: originalApproval.request_id, http: failed.existingResponse()?.status() ?? null,
+            error: failed.failure()?.errorText,
+            producerReply, stored: afterCommit,
+          };
+          expect(deletionRecovery.interruption).toMatchObject({ http: null, error: expect.any(String) });
+          expect(originalApproval).toMatchObject({ scope: { workspace_id: workspaceId, expected_workspace_revision: 3,
+            idempotency_key: expect.any(String), target: { kind: 'decision_note', object_id: noteId } },
+          confirmation: { challenge_id: expect.any(String), decision: 'approve' } });
+          expect(producerReply).toMatchObject({ http: 200, frame: { ok: true, result: {
+            request_id: originalApproval.request_id, outcome: { state: 'committed', operation: 'decisionNote.delete',
+              receipt: { workspace_id: workspaceId, target: { kind: 'decision_note', object_id: noteId },
+                committed_workspace_revision: 4, undoable: false },
+            },
+          } } });
+          originalOutcome = producerReply.frame.result.outcome;
+          expect(originalOutcome).not.toHaveProperty('result');
+          expect(afterCommit).toMatchObject({ workspace: { revision: 4 }, notes: [],
+            outcomeCount: 0, deletions: [{ noteId, revision: 4 }] });
+          await expect(notes.getByRole('alert')).toHaveText('The local workspace could not verify the result.');
+          await expect(success).toHaveCount(0);
+          await expect(notes.getByText(thesis)).toHaveCount(0);
+          await expect(notes.getByText(outcome)).toHaveCount(0);
+          deletionRecovery.interruption.drawer = await decisionNoteMode(page);
+        } finally {
+          await lost.restore();
+        }
+        const replay = await onDecisionNoteDeleteApproval(page, async () => {
+          await confirmation.click();
+          await expect(notes.getByText('No saved decision notes.')).toBeVisible();
+        });
+        const replayApproval = replay.request().postDataJSON();
+        const replayFrame = await replay.json();
+        const sameScope = isDeepStrictEqual(replayApproval.scope, originalApproval.scope);
+        const sameConfirmation = isDeepStrictEqual(replayApproval.confirmation, originalApproval.confirmation);
+        deletionRecovery.replay = { requestId: replayApproval.request_id, sameScope, sameConfirmation, frame: replayFrame };
+        expect(replayApproval.request_id).not.toBe(originalApproval.request_id);
+        expect(sameScope).toBe(true);
+        expect(sameConfirmation).toBe(true);
+        expect(replayFrame).toMatchObject({ ok: true, result: { request_id: replayApproval.request_id } });
+        expect(replayFrame.result.outcome).toEqual(originalOutcome);
+        await expect(success).toBeVisible();
         await expect(notes.getByText(thesis)).toHaveCount(0);
         await expect(notes.getByText(outcome)).toHaveCount(0);
-        await lost.restore();
-        await notes.getByRole('button', { name: 'Retry confirmation' }).click();
-        await expect(notes.getByText('No saved decision notes.')).toBeVisible();
-        await expect(notes.getByText(thesis)).toHaveCount(0);
-        await expect(notes.getByText(outcome)).toHaveCount(0);
+        deletionRecovery.replay.drawer = await decisionNoteMode(page);
+        deletionRecovery.replay.stored = decisionNoteStoredState(profile);
+        expect(deletionRecovery.replay.stored).toEqual(afterCommit);
+        expect(events.filter(row => row.stage === 'request'
+          && row.operation === 'decisionNote.delete' && row.confirmation === 'approve').map(row => row.requestId))
+          .toEqual([originalApproval.request_id, replayApproval.request_id]);
         await notes.getByRole('button', { name: 'Close decision notes' }).click();
         const undo = await act(page, 'Undo timeframe change', 'workspace.undo');
         expect(undo.result.outcome).toMatchObject({ state: 'committed', result: { revision: 5, timeframe: '1m' } });
@@ -3555,6 +3615,9 @@ test('private decision notes require consent and retain the dated original separ
       });
     });
   } finally {
+    await testInfo.attach('decision-note-approval-recovery', {
+      body: JSON.stringify(deletionRecovery), contentType: 'application/json',
+    });
     await Promise.all([profile.close(), other.close()]);
   }
 });
@@ -3723,7 +3786,7 @@ function observeDecisionNoteWindow(page, window, events, baseline) {
     void response.json().then(frame => {
       const result = frame.result;
       const outcome = result?.outcome;
-      Object.assign(row, { state: outcome?.state, code: outcome?.error?.code ?? frame.error?.code,
+      Object.assign(row, { replyRequestId: result?.request_id, state: outcome?.state, code: outcome?.error?.code ?? frame.error?.code,
         retryable: outcome?.error?.retryable ?? frame.error?.retryable, receiptRevision: outcome?.receipt?.committed_workspace_revision,
         workspaceRevision: result?.workspace?.revision ?? outcome?.result?.revision, selectionRevision: result?.selection_revision,
         selectedNote: outcome?.result?.note?.note_id, list: outcome?.result?.notes?.map(note => note.note_id) });
@@ -3749,6 +3812,7 @@ async function decisionNoteMode(page) {
       listDates: [...dialog.querySelectorAll('.note-list time')].map(time => time.dateTime),
       notice: dialog.querySelector('.note-status')?.textContent,
       error: dialog.querySelector('.note-error')?.textContent,
+      retryConfirmation: buttons.includes('Retry confirmation') || undefined,
     };
   });
 }
@@ -4162,7 +4226,13 @@ for (const scenario of ['recovers', 'nonretryable', 'denied', 'exhausts', 'abort
               }
               await observer.route(url, injectAdmission);
               try {
-                await deleteBackupTestNote(peer, peer.getByRole('dialog', { name: 'Decision notes' }), removed.date);
+                try {
+                  await deleteBackupTestNote(peer, peer.getByRole('dialog', { name: 'Decision notes' }), removed.date);
+                } finally {
+                  observation.initiating = await decisionNoteMode(peer).catch(error => ({
+                    readError: error.message.split('\n')[0],
+                  }));
+                }
                 await observer.evaluate(() => window.dispatchEvent(new Event('focus')));
                 if (!holdsSnapshot && !snapshotFails && !snapshotContention) {
                   await expect.poll(() => fallbackReplies()[0]).toMatchObject({
@@ -4299,6 +4369,9 @@ for (const scenario of ['recovers', 'nonretryable', 'denied', 'exhausts', 'abort
                 const approvals = events.filter(row => row.stage === 'request'
                   && row.operation === 'decisionNote.delete' && row.confirmation === 'approve');
                 expect(approvals).toMatchObject([{ window: 'deleting-window', target: removedId, expectedRevision: 4 }]);
+                expect(events.filter(row => row.stage === 'response' && row.requestId === approvals[0].requestId))
+                  .toMatchObject([{ window: 'deleting-window', replyRequestId: approvals[0].requestId,
+                    state: 'committed', receiptRevision: 5 }]);
                 expect(decisionNoteStoredState(profile)).toMatchObject({
                   workspace: { revision: 5 }, notes: remainingIds, outcomeCount: 0,
                   deletions: [{ noteId: removedId, revision: 5 }],
@@ -4376,7 +4449,13 @@ test('a confirmed decision-note deletion survives list retries and clears when a
                 expect((await act(peer, '5m', 'chart.setTimeframe')).result.outcome.state).toBe('committed');
                 allowApproval.resolve();
               });
-              observation.refused = (await rejected.json()).result.outcome;
+              const request = rejected.request().postDataJSON();
+              const frame = await rejected.json();
+              expect(request.scope.target).toEqual({ kind: 'decision_note', object_id: noteId });
+              expect(frame.result.request_id).toBe(request.request_id);
+              observation.refusalDelivery = { http: rejected.status(), requestId: request.request_id,
+                target: request.scope.target, expectedRevision: request.scope.expected_workspace_revision };
+              observation.refused = frame.result.outcome;
               expect(observation.refused).toMatchObject({ state: 'failed', error: { code: 'STALE_CONTEXT' } });
               await expect(notes.getByRole('alert')).toHaveText('The workspace changed. Reload its current state and review again.');
               await expect(status).toHaveCount(0);
@@ -6336,22 +6415,32 @@ function isDecisionNoteDeleteApproval(payload) {
 }
 
 function onDecisionNoteDeleteApproval(page, action) {
-  return duringPageEvent(page, 'response', response => new URL(response.url()).pathname === endpoint
-    && isDecisionNoteDeleteApproval(response.request().postDataJSON()), action, 5_000);
+  const matches = request => new URL(request.url()).pathname === endpoint
+    && isDecisionNoteDeleteApproval(request.postDataJSON());
+  return duringPageEvent(page, 'response', response => matches(response.request()), action, 5_000, matches);
 }
 
 async function deleteBackupTestNote(page, notes, date) {
   await notes.getByRole('button', { name: new RegExp(date) }).click();
   await notes.getByRole('button', { name: 'Review deletion' }).click();
-  const reply = await onDecisionNoteDeleteApproval(page, async () => {
-    await notes.getByRole('button', { name: 'Delete decision note' }).click();
-    await expect(notes.getByText('Decision note deleted.')).toBeVisible();
-  });
-  const request = reply.request().postDataJSON();
-  const frame = await reply.json();
-  expect(frame).toMatchObject({ ok: true, result: { request_id: request.request_id, outcome: {
-    state: 'committed', receipt: { target: request.scope.target, undoable: false },
-  } } });
+  let notice;
+  let observedNotice;
+  try {
+    const reply = await onDecisionNoteDeleteApproval(page, async () => {
+      await notes.getByRole('button', { name: 'Delete decision note' }).click();
+      // Start the existing notice wait at the click, while observing approval delivery independently.
+      notice = Promise.allSettled([expect(notes.getByText('Decision note deleted.')).toBeVisible()]);
+    });
+    const request = reply.request().postDataJSON();
+    const frame = await reply.json();
+    expect(frame).toMatchObject({ ok: true, result: { request_id: request.request_id, outcome: {
+      state: 'committed', receipt: { target: request.scope.target, undoable: false,
+        workspace_id: request.scope.workspace_id, committed_workspace_revision: request.scope.expected_workspace_revision + 1 },
+    } } });
+  } finally {
+    [observedNotice] = await (notice ?? []);
+  }
+  if (observedNotice.status === 'rejected') throw observedNotice.reason;
   await expect(notes.getByRole('button', { name: 'New decision note' })).toBeVisible();
   await expect(notes.getByRole('button', { name: new RegExp(date) })).toHaveCount(0);
 }
@@ -6391,7 +6480,7 @@ async function chooseBackup(notes, bytes) {
 
 async function dropApprovalReply(page, server, operation, isApproval = payload => payload.confirmation?.decision === 'approve') {
   const endpointUrl = server.url + endpoint;
-  let outcome;
+  let reply;
   const handle = async route => {
     const payload = route.request().postDataJSON();
     if (payload?.intent?.operation !== operation || !isApproval(payload)) {
@@ -6401,7 +6490,7 @@ async function dropApprovalReply(page, server, operation, isApproval = payload =
     try {
       const response = await route.fetch();
       try {
-        outcome = (await response.json()).result.outcome;
+        reply = { http: response.status(), frame: await response.json() };
       } finally {
         await response.dispose();
       }
@@ -6410,7 +6499,7 @@ async function dropApprovalReply(page, server, operation, isApproval = payload =
     }
   };
   await page.route(endpointUrl, handle);
-  return { outcome: () => outcome, restore: () => page.unroute(endpointUrl, handle) };
+  return { outcome: () => reply?.frame.result.outcome, reply: () => reply, restore: () => page.unroute(endpointUrl, handle) };
 }
 
 async function act(page, name, operation) {

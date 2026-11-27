@@ -29183,13 +29183,12 @@
           "report_sha256": "ba89eebe0283ebbb75d909017c5552a45fb55d1dcb7c07f48c78cae6cf51302b"
         }
       ],
-      "next_action": "Compare the authenticated original timeline with the ordinary recovery contract and history of M2-036, M2-038 and M2-040. Start at the initiating browser with one admitted deletion, its observed reaction and its durable marker. Retain a valid committed control and a missing or rejected response with the existing recovery behavior. Preserve scope and run costs.",
+      "next_action": "Independently review the retained first-attempt timeline and the Linux browser controls on the clean candidate. Obtain a matching ordinary Windows observation and protected verification before resolving the original finding or completing the task.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
         "outcome": "Bind the first Windows failure and the same-preview Linux control to the original browser journals, storage marker, approval and ordinary observable outcome. Record what remained unknown in the first failure. Reconcile the existing operation and fixture contract for a missing approval reply. Use synthetic committed, unresolved and refusal controls with actual transport and stored marker identity. Check the documented recovery action for the existing result without repeating a deletion or exposing deleted note content.",
         "change_types": [
-          "tooling",
           "ui"
         ],
         "context": [
@@ -29200,11 +29199,11 @@
           "contracts/reviews/2026-11-26-maintenance-workstreams.json"
         ],
         "hypotheses": [
-          "The original proves storage commit without an observed approval response. Distinguish transport interruption, fixture ordering and the existing product recovery path before choosing whether the harness or a consumer needs a repair."
+          "The first Windows journal observes one approval without a correlated response before the initiating assertion fails. The stored marker establishes commit by teardown, while the observer still reads revision 4 within the assertion window. A controlled browser delivery interruption exercises the existing recovery path without attributing the original failure."
         ],
         "risks": [
           {
-            "failure": "Treating a committed but undelivered approval as a clean refusal or automatic success could duplicate a mutation or expose the deleted note. A relaxed wait could conceal the real failing boundary.",
+            "failure": "A notice-first failure can conceal whether the browser received a valid receipt. Treating an unresolved commit as a refusal or success can also duplicate a write or disclose deleted content. Check the observed reply, drawer and marker independently within the existing budgets.",
             "checks": [
               "project-state",
               "workspace-timeframe",
@@ -29231,6 +29230,10 @@
               "pointer": "/scaffold_maintenance/workflow"
             },
             {
+              "path": "contracts/contract.json",
+              "pointer": "/operation_authorization/replay"
+            },
+            {
               "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
               "pointer": "/outcomes/0"
             }
@@ -29239,7 +29242,7 @@
             "Use disposable local synthetic profiles. Preserve owner confirmation, current time budgets, private data handling, recovery semantics and historical task definitions. Keep the independent CSV bridge preparation outcome with M0-176."
           ],
           "open_questions": [
-            "The original proves storage commit without an observed approval response. Distinguish transport interruption, fixture ordering and the existing product recovery path before choosing whether the harness or a consumer needs a repair."
+            "The first Windows run does not locate the missing browser observation or establish when SQLite committed relative to the initiating assertion. The archived preview identity is recorded in both reports, but the transient preview commit object is unavailable in this checkout."
           ]
         },
         "evolution": {
@@ -29248,7 +29251,7 @@
             "Use disposable local synthetic profiles. Preserve owner confirmation, current time budgets, private data handling, recovery semantics and historical task definitions. Keep the independent CSV bridge preparation outcome with M0-176."
           ],
           "change": [
-            "Compare the authenticated original timeline with the ordinary recovery contract and history of M2-036, M2-038 and M2-040. Start at the initiating browser with one admitted deletion, its observed reaction and its durable marker. Retain a valid committed control and a missing or rejected response with the existing recovery behavior. Preserve scope and run costs."
+            "Observe approval delivery and the initiating notice within their original windows. Retain the initiator drawer state beside the observer and durable marker. In the existing consent case, distinguish a locally committed approval whose reply is interrupted from an explicit stale refusal, and verify that the same approval recovers the original receipt without another deletion."
           ],
           "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
           "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
