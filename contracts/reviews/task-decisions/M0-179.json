@@ -59,6 +59,15 @@
       },
       "supersedes": "ce7d95f8d6bc4cbf5c0d1ed17467f2a1fff11f527083d8272f6ef4282fe2c8b7",
       "evidence_sha256": "6dad070be97a9f39f5c5fe0f140304540165cae5b3fc942a45159452c34280cb"
+    },
+    {
+      "kind": "request",
+      "source_commit": "2f0a9f63f0e2c72949ba60a43b4cec8205a80efc",
+      "scope": "Independently check the source that reconciles M0-179 and protected M0-177, targeting the changed preparation, fixture, shared workspace browser and actual M0-177 consumers.",
+      "supersedes": "0558458769e23df07bc566a698d4e6f9383f74155c2c47ab398b0990d77dce3b",
+      "requested_at": "2026-11-27T11:55:12.519661+00:00",
+      "request_id": "9e2821632e262275c7c2da894f280ebb61a41fe9d5b5f08dde7bd1ee156986e6",
+      "evidence_sha256": "0314cfbe268d4b1aafd36fbfdc1924503c70dcd890a05ef861663e586191c3f2"
     }
   ]
 }
