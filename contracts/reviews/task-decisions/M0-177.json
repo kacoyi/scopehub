@@ -10,6 +10,26 @@
       "requested_at": "2026-11-27T09:37:43.143686+00:00",
       "request_id": "f8ff98ef00ae344c6f85963c175650e701e61ca7cb9d41a4353483c34cf165d3",
       "evidence_sha256": "52b6c5eb7f298fe882e346be06f3adbd983e8d4c18921d7de2efa3baf143b5d2"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "59c57475671aaca62f097fcf92a3ff668cd4a5a1",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-177 59c57475671aaca62f097fcf92a3ff668cd4a5a1",
+      "scope": "CHANGES_REQUESTED M0-177 59c57475671aaca62f097fcf92a3ff668cd4a5a1",
+      "observation": "In a controlled replay with the approval response body held back, the candidate helper was still pending at 5.3 seconds after the click, while the baseline helper had already reported the missing deletion notice.",
+      "reviewer": "Independent Astra Standard (t1gt)",
+      "original_sha256": "b39821aa6397383ca595491f118fb98face995b9771a1c78b1535c723ab35104",
+      "response_id": "d86b525c30abee7596450ef122f1ac45bfa562b6eaaee70c6c55175586af377c",
+      "response_sha256": "35dcd0da9b524efbcf297e5e7bc0ab8c17dd0a55a5ca8a7e8395964d051da660",
+      "legacy_response_sha256": "02aa0c49a9fe9dc214d7b5eab6b13f017620bbdefbd3126190479f169fe4e46a",
+      "observation_body_sha256": "3552d95e6227ee3205d18d08ef72897aec983edf4ee882dfc2e7d59d3b2cbb7d",
+      "event": {
+        "id": "msg_048239ce0957f20a016b09505c263487d093d3dfeae7797214",
+        "timestamp": "2026-11-27T09:42:12.918Z"
+      },
+      "supersedes": "f8ff98ef00ae344c6f85963c175650e701e61ca7cb9d41a4353483c34cf165d3",
+      "evidence_sha256": "f7c165b4a179584345fc2cfdecbdc7da1dd195627083cae61b343169beb86c14"
     }
   ]
 }
