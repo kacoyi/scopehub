@@ -39,6 +39,26 @@
       "requested_at": "2026-11-27T09:02:36.142494+00:00",
       "request_id": "6946b2fd8443e2bce34bbdf96298b75016086c83db100e9e23382ed5789ff8d7",
       "evidence_sha256": "aa3ffeebb0e40d9b2342d7b2c1d456269c935438881cd81a6b4e586c1236a1f7"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ca0d16eb5aa8d5f05d9e0b8f369c297c2a959c09",
+      "verdict": "approved",
+      "decision": "APPROVE M0-176 ca0d16eb5aa8d5f05d9e0b8f369c297c2a959c09",
+      "scope": "APPROVE M0-176 ca0d16eb5aa8d5f05d9e0b8f369c297c2a959c09",
+      "observation": "Playwright listed exactly one preparation case when either CSV journey was selected alone or both were selected together, and neither indicator selection included it.",
+      "reviewer": "Independent Astra Standard (t1fx)",
+      "original_sha256": "dee62cb4119c8793f4a89242430512485f40495d97bb2030cd1eb26ecf1f62e3",
+      "response_id": "810e8d0d8edc5b303553fcd99bcc297e243e3bbece4eebad42d559dba91b7beb",
+      "response_sha256": "5d8241084e7f27d9b629c9e944a73e2ba0066697f6b7b940c050cfc8e0937629",
+      "legacy_response_sha256": "73847f692326b111c2bcf86386f7378e715f19570e0acfe59d221940b3431cc9",
+      "observation_body_sha256": "6975e05211d0f81b19847f336bae3a02606944fc3fcda2539affb1fc2a1e1b70",
+      "event": {
+        "id": "msg_077544666e146e73016b09484502e087d0af731288813d5ee7",
+        "timestamp": "2026-11-27T09:07:39.030Z"
+      },
+      "supersedes": "6946b2fd8443e2bce34bbdf96298b75016086c83db100e9e23382ed5789ff8d7",
+      "evidence_sha256": "836c79440a91d3290ab8d04572a0366129d694a7d6e6dbba08423059c626e7cc"
     }
   ]
 }
