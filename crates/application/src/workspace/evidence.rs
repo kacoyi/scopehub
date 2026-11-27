@@ -102,6 +102,24 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             .inspect(|tx| tx.local_evidence_display_allowed(revision_id))
     }
 
+    /// Distinguish missing bytes from a deliberately withdrawn revision.
+    pub fn evidence_chart_display_status(
+        &self,
+        access: &WorkspaceAccess<'_>,
+        revision_id: &str,
+    ) -> Result<Value, Error> {
+        use super::FrozenWorkspaceSourceStatus::{Available, Revoked, Unavailable};
+
+        self.authorize_evidence_display(access)?;
+        self.port.inspect(|tx| {
+            Ok(match tx.local_evidence_display_status(revision_id)? {
+                Available => json!({"available": true}),
+                Revoked => json!({"available": false, "revoked": true}),
+                Unavailable => json!({"available": false}),
+            })
+        })
+    }
+
     fn authorize_evidence_display(&self, access: &WorkspaceAccess<'_>) -> Result<(), Error> {
         if !matches!(access.actor, Actor::LocalUser)
             || access.principal_id != access.profile_id
