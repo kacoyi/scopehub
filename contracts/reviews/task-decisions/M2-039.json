@@ -503,6 +503,26 @@
       "requested_at": "2026-11-27T03:04:58.502315+00:00",
       "request_id": "086bcfa401247cd4f21a507fb103db158a2e23706df337781c2e3426d925478e",
       "evidence_sha256": "5929396028f732cea5da1f02d56d5b68bed2c2423f8a5209f2ede23a932cde2b"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "21cf84718d8d82d2cb3a54347c7552e8691946c3",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 21cf84718d8d82d2cb3a54347c7552e8691946c3",
+      "scope": "APPROVE M2-039 21cf84718d8d82d2cb3a54347c7552e8691946c3",
+      "observation": "In my replay, the first-reopen proof accepted B at selection revision 2, rejected the same HTTP 200 result when it also carried a permission error, and timed out at four seconds when valid B arrived late.",
+      "reviewer": "Independent Astra Standard (t1bj)",
+      "original_sha256": "36dfe1d439af9a6047146480b51bcc0afa27a225f0afb58b88c901284ca21868",
+      "response_id": "66b96dea6fe4a9e804d01f3029d44b17c60dbb014ee6766296e8deb0ce874ad1",
+      "response_sha256": "4d050ff77e0857468cd81592f8a90222bdc19b64680b1d5177446fb1ac43c496",
+      "legacy_response_sha256": "ab3c2ca70b76ffe59f10a090f12b071ff9b800d65a257d5aba18697b89c213ca",
+      "observation_body_sha256": "23dafbb1160dea9433e6690f51fec3b3d823737b4475f83aa1292a2c3c2d545c",
+      "event": {
+        "id": "msg_000454aa985a04ec016b08f41833b487d08b27ba24e2b7f6dc",
+        "timestamp": "2026-11-27T03:08:37.026Z"
+      },
+      "supersedes": "086bcfa401247cd4f21a507fb103db158a2e23706df337781c2e3426d925478e",
+      "evidence_sha256": "309785375ad1b50c54c49094328fcc1ff1151c7a50b81bfe21c8107ad98586c5"
     }
   ]
 }

@@ -405,6 +405,26 @@
       "requested_at": "2026-11-27T03:05:01.061353+00:00",
       "request_id": "4322573a97fe1027a79d1caae9583939a5ff147e565cf268879ee5f397476012",
       "evidence_sha256": "db7b2fc29684dfb0bdc73bf1a5539db7de6e9afde6c47227dac626164c4fe71d"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "21cf84718d8d82d2cb3a54347c7552e8691946c3",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-035 21cf84718d8d82d2cb3a54347c7552e8691946c3",
+      "scope": "CHANGES_REQUESTED M2-035 21cf84718d8d82d2cb3a54347c7552e8691946c3",
+      "observation": "When I replayed the archived BUSY error from an admitted Windows SQLite write through the candidate’s native snapshot reader, it issued a second snapshot request and returned that request’s success.",
+      "reviewer": "Independent Astra Standard (t1bh)",
+      "original_sha256": "994ae25d39d9084eb6b48edca1e25472528f0cd450654faff5dba0c5f3ff321f",
+      "response_id": "667410462eb804b8d060ad8cbbc0c14a2573fa86cc4f9f0aaedfb4a8ba696277",
+      "response_sha256": "9b47747f7135367cc3c13579bf20f34849b7b149f4b6520d44565e3c29cc0cac",
+      "legacy_response_sha256": "f0b232db954a0f85d4d2b9d806ad70bba63de11ed8ec1bb6cb053075e0949ce4",
+      "observation_body_sha256": "a69ba0faacecbb5722e8657106768c9cefc4d6c8305048e6aa8f0bb046f84789",
+      "event": {
+        "id": "msg_0de328d821289cb0016b08f45ae09c87d08cda150e69da8e3a",
+        "timestamp": "2026-11-27T03:09:42.865Z"
+      },
+      "supersedes": "4322573a97fe1027a79d1caae9583939a5ff147e565cf268879ee5f397476012",
+      "evidence_sha256": "505f319d34537fb2571a7683638b0374b14d95e8c86de1b8d9e3e637aad97cf8"
     }
   ]
 }

@@ -385,6 +385,26 @@
       "requested_at": "2026-11-27T03:04:59.661902+00:00",
       "request_id": "b5164fdf254801ffbd5b2a06d47dfab4b016f3d5d4f243ba3d35d4497976f900",
       "evidence_sha256": "e8b9eafa0ac7eecf8567e6db0b83933b01c42d955d114fec0dc2a36ed8e9bd34"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "21cf84718d8d82d2cb3a54347c7552e8691946c3",
+      "verdict": "approved",
+      "decision": "APPROVE M2-034 21cf84718d8d82d2cb3a54347c7552e8691946c3",
+      "scope": "APPROVE M2-034 21cf84718d8d82d2cb3a54347c7552e8691946c3",
+      "observation": "When I replayed the retained replies through the candidate’s first-reopen proof helper, it retried the HTTP 429 BUSY read, returned selection revision 2 on the next snapshot, and stopped after one HTTP 403 permission denial.",
+      "reviewer": "Independent Astra Standard (t1bg)",
+      "original_sha256": "7f6f2271850fca28699675f91123808ac0fb10e158b6ff5ea160676c0a77c294",
+      "response_id": "cf519a918e722fa41e8501eaddb06eb10358ed7c945eb2b5d0a47ac9a8d6cdd7",
+      "response_sha256": "9db141131a78f8553bb96bb13c855cdfd6ff99a3bfa265919062721cd8e4f933",
+      "legacy_response_sha256": "2a5d1cdae0fd118f7077e5c284670382e9c264ccf0136075f052673b68af0a01",
+      "observation_body_sha256": "6752c55c1f61840ba869456654a32bd8f51de488dcac53c53d908badd9954b60",
+      "event": {
+        "id": "msg_0c52b9d0facd6096016b08f42d670c87d082e85d76d207e5a1",
+        "timestamp": "2026-11-27T03:08:51.265Z"
+      },
+      "supersedes": "b5164fdf254801ffbd5b2a06d47dfab4b016f3d5d4f243ba3d35d4497976f900",
+      "evidence_sha256": "b9619295d02d89eef7d18a9b18ac38c16bf24503b66040b7876f8ca8b4a61a27"
     }
   ]
 }
