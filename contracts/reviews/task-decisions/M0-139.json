@@ -445,6 +445,26 @@
       "requested_at": "2026-11-27T05:19:25.144743+00:00",
       "request_id": "891985b8d1efcd04fcf4aa56e8892f04bdd40172b7e4cccc00de064e191eb2cf",
       "evidence_sha256": "7ce3f430079c016a06d288dceeba17474f6f576ebd65c773b8263026a886c950"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "115a410bcaebde3f9d782862701d86e957a75be9",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-139 115a410bcaebde3f9d782862701d86e957a75be9",
+      "scope": "CHANGES_REQUESTED M0-139 115a410bcaebde3f9d782862701d86e957a75be9",
+      "observation": "For Windows run 45933801256 attempt 1, the candidate staged the failed browser producer and its aggregate after the executed workspace-timeframe row lost its log reference and digest, omitting the original 19,079-byte log and Playwright results file.",
+      "reviewer": "Independent Astra Standard (t1dd)",
+      "original_sha256": "9f4581ce71861b8cef2ba37cae6e173d001da2399b2f58c21aba3eab5d7e7c9e",
+      "response_id": "36533f49045ed0402b009c44a3e1c85030c318f3fffc64d4ff91b78f78d087a6",
+      "response_sha256": "2d8b1d9b28333863f9e7c6d9c5af0daa803fcd27acc667576a366402ec0b2e4d",
+      "legacy_response_sha256": "f7b9a024a4914f1b6bcf286992391a5976da5b71e7ecb28c81df02325f6e6f93",
+      "observation_body_sha256": "dd3122398d7d86261efe6aa05e942785359782bd1651df238b9b96cac19a5851",
+      "event": {
+        "id": "msg_0dc8f29315b7c6be016b091413034487d0868e144df67ae132",
+        "timestamp": "2026-11-27T05:24:50.793Z"
+      },
+      "supersedes": "891985b8d1efcd04fcf4aa56e8892f04bdd40172b7e4cccc00de064e191eb2cf",
+      "evidence_sha256": "2e12261b642b323e0981731c50979d815f4e89f736a95857201dd2225e267f8f"
     }
   ]
 }

@@ -445,6 +445,26 @@
       "requested_at": "2026-11-27T05:19:25.761491+00:00",
       "request_id": "f501fb5ddf4a251be691648421d17914a1be94b473c04a09eb0dc48b8deb1189",
       "evidence_sha256": "228c5af8b02d617b8abfe103c06429e4a67dde464739b566646fec4dd7053f27"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "115a410bcaebde3f9d782862701d86e957a75be9",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 115a410bcaebde3f9d782862701d86e957a75be9",
+      "scope": "CHANGES_REQUESTED M0-146 115a410bcaebde3f9d782862701d86e957a75be9",
+      "observation": "In a local replay, SIGINT immediately before desktop localization caused the recovery producer to exit without writing either harness report.",
+      "reviewer": "Independent Astra Standard (t1df)",
+      "original_sha256": "67648e56ebc6cfab3dd48834ff060e972c7a6502f10a80cdfd008040e084933a",
+      "response_id": "840e9ce099174fa67b8da928c2edb33c0ae5b93adc2bb739932264ccc068d6ad",
+      "response_sha256": "a4bcae6ac22ce0cc18cb8c110a141f96521c64c04e74f481ed3a7ebe97c1398c",
+      "legacy_response_sha256": "ee66841aed67d369579be68740092f2bc4e1a5fca9f663e381ad6ab35f133326",
+      "observation_body_sha256": "37053781db8dfb267379b838095a0f4fd150f89315e08bf90869533bfdc808d0",
+      "event": {
+        "id": "msg_0bb5b8b0cfa70109016b0913f7b65087d09c96c746cfc23d3e",
+        "timestamp": "2026-11-27T05:24:26.283Z"
+      },
+      "supersedes": "f501fb5ddf4a251be691648421d17914a1be94b473c04a09eb0dc48b8deb1189",
+      "evidence_sha256": "9e617f429b4a71b07a568c6cae933de57c3cb7c791e663d5299a0f188edf4166"
     }
   ]
 }
