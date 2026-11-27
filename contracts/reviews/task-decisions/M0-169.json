@@ -59,6 +59,15 @@
       },
       "supersedes": "73219a963f4c86d35fdd890e3e8a0b0f613231dae73e5e3e263aceed6fdcb307",
       "evidence_sha256": "d7ee05a9c63dfe6e4670b7533330ff4b534b973799faa71d0ca0edcdd557b1fc"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b767732ad317bb4f1fd7e1646ba9aeb0e0c00513",
+      "scope": "Verify the corrected Clippy gate on the protected composition, scratch and deadline invariants, both deadline phases, the process group witness and real native first attempts. Check preserved ledger and shared test behavior, including the new rust-lints task coverage. Distinguish review and native evidence on the prior revision from the new candidate.",
+      "supersedes": "5c543c74445e7c4bcb96e0c2c708b84ee402f51b88598ff4fdba989d1389efa9",
+      "requested_at": "2026-11-27T02:53:37.963793+00:00",
+      "request_id": "5fd59b6a4d3ef8d1967b3d4c0d08286a1b60844fe55fe8cb6e23a5c2bf1264dc",
+      "evidence_sha256": "b1e63180f49c2546e2668c5d7c2ffc49551e36ccab4ae643484bce1db42db428"
     }
   ]
 }
