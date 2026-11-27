@@ -8281,7 +8281,7 @@
     },
     {
       "id": "windows-indicator-deadline-expires-before-running-child-observation",
-      "status": "open",
+      "status": "addressed",
       "severity": "major",
       "source": "First native observation archives/observations/repo-hygiene-20261125/main-producer-45844453865-core/observation.json (SHA-256 f846a83ef0363e4a5755e8de09c7e4ea09aec0b7797b2188de8a496b56083545).",
       "observation": "Protected push 45844453865 Windows core job 139994374749 had 12 passing and two failing trusted-indicator tests. The deadline case at trusted_indicator.rs:450 observed TIMEOUT before its joined interpreter and sleeping-child witnesses completed. Its later cleanup and no-surviving-child assertions were not reached. The original does not determine which witness had already completed or whether Python had entered. A separate scratch assertion at line 340 recurred on the old implementation and remains owned by M0-167.",
@@ -8305,12 +8305,16 @@
           "report_sha256": "17936b45c6f4c0067a2fc281de760f968c5416cad1579015e14adf895d775623"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The former fixture could reach TIMEOUT before its joined interpreter and sleeping-child witness observation completed. The original leaves each witness state, actual indicator entry and child startup, and terminal process and scratch cleanup unknown.",
+        "correction": "Use a fixture-only finite deadline and distinct controls for interpreter startup before hello and a running child after interpreter admission. Require the expected witnesses while the processes are alive, then observe the typed terminal result, artifact absence and owned resource cleanup.",
+        "prevention": "Guarded run 45931566969 passed both deadline controls, separate normal and cancellation cases, and the indicator workflow on Linux and Windows. Retain the producer and aggregate failures and the earlier passing Windows deadline comparison. The coordinator owns the protected integration recheck."
+      },
       "deferral_reason": null
     },
     {
       "id": "windows-indicator-deadline-observes-process-exit-after-terminal-boundary",
-      "status": "open",
+      "status": "addressed",
       "severity": "major",
       "source": "Independent Astra Standard review of 2727e7b359dc1b6ef9e26dcb9467063417458075, recorded at 7d6c99be4549a99969e462a38f069518aab553c5. Exact original at archives/observations/repo-hygiene-20261125/independent-final-m0-169-2727e7b3/original-assistant-response.jsonl (SHA-256 8f73eb1b2826147431e73e62fcecf59176565816091629730f711bc339ccc316).",
       "observation": "The Windows deadline fixture checked scratch at the terminal result, then read the witness files and started a separate serial tasklist.exe subprocess for each witnessed PID. In the running-child case that means three queries, each allowed up to two seconds. A witnessed process still alive at the terminal result could exit before its later query and pass the assertion. This is a confirmed limitation of the fixture observation. The review observed no candidate process leak and established no new cleanup facts about the original protected Windows failure.",
@@ -8320,7 +8324,11 @@
       "regression_checks": [
         "rust-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Witness rereads and serial PID queries deferred the first exit observation and could miss a process that exited after the terminal result.",
+        "correction": "Acquire stable references while the witnessed processes are alive. Sample the entire group at the first bounded observation after return and ahead of witness rereads, with a 100 ms result-to-reply bound.",
+        "prevention": "The same observer rejected the held live child and accepted the exited set in the guarded Linux and Windows Rust checks. The two deadline cases passed their first-sample and scratch assertions. Retained Linux diagnostics record the measured intervals."
+      },
       "deferral_reason": null
     },
     {
@@ -8328,7 +8336,7 @@
       "source": "PR 143 first-attempt ordinary check run 45852075540 at merge preview 4f0a5c8d3119465e9725aee4d170b7b9a3992e89. Retained original manifest at archives/observations/repo-hygiene-20261125/pr143-native-original-45852075540/manifest.json (SHA-256 abd10d03e9daa77464fedd03b2c472e1ae45df7d7d565bfb371d896467858ebe).",
       "observation": "Linux and Windows each failed only rust-lints. Clippy flagged the deadline fixture in crates/worker-host/tests/deadline/mod.rs for wrapping an already computed boot witness option in an unnecessary closure. The Rust test checks passed on both platforms. The two passing guarded task reports from run 45852268773 bind to PR head 184cfb0f7ae10d88a34cfbb2c07bf6eb9d131604 and did not select rust-lints.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-169"
       ],
@@ -8347,7 +8355,11 @@
           "report_sha256": "d7dda19a28bfb65608c6680419364a1d0ef914d48a3db928fcc4b20d9c938764"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The deadline fixture used an unnecessary closure to return an already computed boot witness option, which Clippy rejected on both platforms.",
+        "correction": "Use Option::and for the already computed boot witness option and include rust-lints in the task's required checks.",
+        "prevention": "The first-attempt ordinary PR run 45931554585 and guarded run 45931566969 both passed rust-lints on Linux and Windows. The earlier guarded receipts remain bound to the selection that omitted rust-lints."
+      },
       "deferral_reason": null
     }
   ]

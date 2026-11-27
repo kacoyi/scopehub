@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-169",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -27287,7 +27287,7 @@
       "id": "M0-169",
       "title": "Qualify the running indicator deadline after real interpreter admission",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M3-005"
       ],
@@ -27311,7 +27311,16 @@
         "indicator-workflow",
         "rust-lints"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-169-5dcdc7769fe6c9bc.json",
+          "sha256": "276b366e063e1da1958f20aae4603e145a0c441873ec8ee1d9a4c7117258817d"
+        },
+        {
+          "path": "project/evidence/M0-169-15044bdfa776ee3f.json",
+          "sha256": "f034915810ab7f8063612476d7080994cb9a7568a8f9e14f50f10a94ad73cc04"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "windows-change-45844453865-1",
@@ -27329,9 +27338,9 @@
           "report_sha256": "49e0b487bd0cd4501a5c5888ae2198149015b40a9cbcc78242d916ff08d4fff8"
         }
       ],
-      "next_action": "Renew source-bound review on the composed candidate, including the shared M0-167 cancellation tests, the M0-169 deadline controls and the ordinary Rust lint correction. The coordinator verifies the exact head on Linux and Windows and checks protected integration. Retain the two prior guarded task receipts at their original source and scope.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Independent review approved b767732ad317bb4f1fd7e1646ba9aeb0e0c00513. Guarded run 45931566969 passed all four required checks on Linux and Windows at 9a3c4664712f088a494fa226fb65e41971690932, which adds only the review ledger. The native controls distinguished interpreter startup before hello from actual indicator admission and a witnessed sleeping child. Both returned non-retryable TIMEOUT with no artifact, absent scratch and all retained process references exited at the first sample within 100 ms of return. The observer rejected a held live child and accepted the exited set. Normal completion and cancellation passed separately. Ordinary PR 143 run 45931554585 passed the Rust regressions and lints on both platforms at merge preview a5299db8febecd892c139b5e81621459f7eb7169. Its task-cadence indicator-workflow was blocked and is covered by the guarded reports. The original protected run 45844453865 returned TIMEOUT before joined witness observation completed. The individual witness states, actual indicator entry and child startup, and terminal process and scratch state remain unknown. The M0-167 scratch failure retains its own diagnostic. Earlier guarded receipts remain at their original source and scope. The coordinator owns the protected integration recheck.",
       "plan": {
         "outcome": "Retain the exact original and distinguish expiration before observing both witnesses from deadline cleanup after actual interpreter and child admission. Record which phases were seen in each positive and interrupted control. Exercise the ordinary trusted-indicator boundary with a finite test deadline and original production limits. Observe the actual terminal result, absence of an artifact and cleanup of scratch and all owned witnessed processes at the first bounded post-result sample. Keep startup expiration, normal completion and cancellation distinct.",
         "change_types": [
