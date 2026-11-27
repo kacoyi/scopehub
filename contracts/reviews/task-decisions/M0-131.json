@@ -303,6 +303,15 @@
       "requested_at": "2026-11-27T10:16:56.859184+00:00",
       "request_id": "bedc589063db4a08bc645f171b83fa75773a7635d311b853fc68bd4dabfb7d53",
       "evidence_sha256": "e7aed4c395fc8522f38a2e445c0e3adc117fb949f3e14c5427c1570d4ccc2a54"
+    },
+    {
+      "kind": "request",
+      "source_commit": "6491b83725eb2b1ac60ebe2e6854f51941fe6e83",
+      "scope": "Producer and platform job identity, historical ownership, timed step and cache attribution, and independently usable clocks after a dispute.",
+      "supersedes": "bedc589063db4a08bc645f171b83fa75773a7635d311b853fc68bd4dabfb7d53",
+      "requested_at": "2026-11-27T10:49:13.349458+00:00",
+      "request_id": "287b0498dca4ddef99118b13e0a859d24adbe312b23bc251bae3e190ed35d040",
+      "evidence_sha256": "40b60ab3a8f77f3a879203fc3ed026433ef915455c977b0c51e1ba9f0f987f04"
     }
   ]
 }

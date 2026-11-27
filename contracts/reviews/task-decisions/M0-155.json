@@ -523,6 +523,15 @@
       },
       "supersedes": "d9b2c2a9309e6790f69f0e84e5ba77c9337b71e6c1a889e9a9060ff4dd04c9bc",
       "evidence_sha256": "5dd3f0fd34b31bdea2ed59eadc810d9504324489e7771733c77f03e761180abe"
+    },
+    {
+      "kind": "request",
+      "source_commit": "6491b83725eb2b1ac60ebe2e6854f51941fe6e83",
+      "scope": "Ordinary, weekly and cold restoration of conflicting and independent timing, feasible prerequisite order, and observed historical publication inputs.",
+      "supersedes": "8ad55186cd607406c5db60553a4c1ade0e6444c50c5b5626a7ca801e20e7214d",
+      "requested_at": "2026-11-27T10:49:17.686438+00:00",
+      "request_id": "8dc26b3651a811f19ac05e79e4ee57e9ca490dcd2cb344e57882f0fb6033e693",
+      "evidence_sha256": "72f5e89e37712db9adc950de7ab39eaf5f16d3593dfcad7ced36931ffde714a6"
     }
   ]
 }
