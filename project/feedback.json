@@ -10280,6 +10280,54 @@
         "prevention": "The retained local public-registry comparison and guarded indicator-workflow on Ubuntu and Windows exercise the same success payload at exit 0, exit 1 and Node-observed SIGTERM. The abnormal cases return WORKER_EXITED with no artifact or committed effects and allow adjacent approval before the first status read."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "timing-missing-aggregate-start-withdraws-proven-execution",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-155 decision 84317e3573363666aefdf1a43f41d2e11db456c0f1ce4a6e413c47b746ea6f0f on 4c4865fa8db31cd57c84a8061d8abc00e03d1a01 at contracts/reviews/task-decisions/M0-155.json#/events/23. Original assistant response archives/observations/repo-hygiene-20261125/independent-final-m0-155-4c4865fa/original-assistant-response.jsonl (SHA-256 ffe97e411f81ca13646a1cc18ade6a2b96bf8a1d225950ba7a73a11fb5891f4e).",
+      "observation": "Removing only the Windows aggregate job start from the seven original jobs of run 45838575346 withdrew the provable 1242-second execution interval through ordinary, weekly, cold and rotated reads. Windows wall time stayed 1291 seconds and runner work correctly became unknown. PR 96 also lost its proven 827 seconds. Moving a producer completion beyond the aggregate verification end is a distinct infeasible-order control.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-late-digestless-report-withdraws-independent-platform-receipt",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-156 decision 7a1ae5d951f60ca924a96fbed4d6030d9b61017dd23c23c8f385adf546877356 on 4c4865fa8db31cd57c84a8061d8abc00e03d1a01 at contracts/reviews/task-decisions/M0-156.json#/events/25. Original assistant response archives/observations/repo-hygiene-20261125/independent-final-m0-156-4c4865fa/original-assistant-response.jsonl (SHA-256 8769bcf3750fc1218acc17a84953ceea8a17e820290bd92b11913a5d6989c2d1).",
+      "observation": "On PR 96, a Linux report recorded outside its publishing job and claiming a different checkout withdrew the genuine Windows receipt in ordinary, weekly and cold reads and in both arrival orders only after removal of the Linux input digest. Independent Windows 876-second wall time and 2584 runner-seconds survived. The same late report with matching checkout spuriously gained 770 seconds and a Linux receipt.",
+      "task_ids": [
+        "M0-156"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-digestless-or-partial-report-bypasses-publishing-boundary",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 decision 6ecd43cd5a3ae1ebfe76601aa6725b78de455ec4881f00588795dad70d58338f on 4c4865fa8db31cd57c84a8061d8abc00e03d1a01 at contracts/reviews/task-decisions/M0-150.json#/events/24. Original assistant response archives/observations/repo-hygiene-20261125/independent-final-m0-150-4c4865fa/original-assistant-response.jsonl (SHA-256 cfe80e6d94045d6e862913f24ac7bf6ad206ab15183f0ee32023362696737899).",
+      "observation": "Run 45838575346 Linux report at 14:39:39.000000001Z gained 950 seconds and a weekly receipt after removing its input digest, then displaced the genuine Linux receipt in either cold reopen order. The adjacent final-second report remained valid. On PR 96, marking an out-of-job Linux report with a different checkout as incomplete or failed let it withdraw both genuine receipts. Actions clocks survived.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

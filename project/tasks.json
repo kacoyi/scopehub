@@ -26603,7 +26603,8 @@
         "Use bounded historical lookup and retain the existing capture and saved-review formats. Verify the correction through the selected task checks and the exact independent review. Preserve each prior timing decision and the existing reports.",
         "On the common source, preserve compatible number-only step fragments, withhold conflicting or unbound fragments from their dependent phases, and retain independent clocks through ordinary reads, offline weekly collection, rotation and cold reopen.",
         "Public and weekly timing preserve an aggregate for equivalent feasible endpoint assignments and withhold only affected metrics when the exact duration can change. Cover sub-microsecond distinctions, equivalent offsets, rotation, cold read and a separately reserved producer.",
-        "Retain execution when observed steps and feasible ordering establish identical endpoints despite missing unrelated job starts. Keep runner sums unknown when a required job interval is unavailable. Exercise both originals and rejected ordering or incomplete endpoint controls."
+        "Retain execution when observed steps and feasible ordering establish identical endpoints despite missing unrelated job starts. Keep runner sums unknown when a required job interval is unavailable. Exercise both originals and rejected ordering or incomplete endpoint controls.",
+        "A missing aggregate or producer job boundary can erase a measured execution interval or authorize an infeasible order. Check known or absent starts and ends, contradictory order, reordered and duplicate facts, cold reopen and rotated captures. Keep unknown queue and runner values where exact endpoints are absent."
       ],
       "checks": [
         "project-state",
@@ -26611,7 +26612,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Use the common local handoff in .reports/m0-155-post-de7e2376/handoff.json for exact-source independent primary review and matching verification. The coordinator retains the five held requests, hosted and native runs, and the November 28 actual observation.",
+      "next_action": "Use the common local handoff in .reports/m0-155-post-4c4865fa/handoff.json for exact-source independent review and matching verification. The coordinator owns the five held requests, hosted and native qualification, and the November 28 actual observation.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26636,7 +26637,8 @@
           "contracts/decisions/0033-source-evidence-before-timing-attribution.json",
           "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-155-318f54c8/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-155-de7e2376/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-155-de7e2376/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-155-4c4865fa/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "Recent preload and historical linked reads can see different retained evidence when a conflict removes the platform index entry or an attempt is older than the routine window.",
@@ -26647,7 +26649,8 @@
           "Successful publishing and lane steps, actual runner labels, job status and clock endpoints can be retained per job before any layout inference. Job time can independently contradict a report attribution when its recorded creation falls outside the observed publishing interval.",
           "Completeness and source at the publisher boundary, per-ID observation union and readable Git ancestry can be decided before portable receipt projection using a bounded contract for supported snapshots.",
           "A single normalized representation of independent job and step facts with separately evaluated evidence eligibility can eliminate order-dependent partial fixes while retaining supported clocks and the existing archive format.",
-          "Apply shared invariants to original facts before projection. Verify stable metrics and report attribution independently on the real producer pairs and cold readers."
+          "Apply shared invariants to original facts before projection. Verify stable metrics and report attribution independently on the real producer pairs and cold readers.",
+          "An unobserved scheduling boundary constrains feasibility through observed job and step clocks without itself becoming a measured endpoint."
         ],
         "risks": [
           {
@@ -26879,6 +26882,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "A missing aggregate or producer job boundary can erase a measured execution interval or authorize an infeasible order. Check known or absent starts and ends, contradictory order, reordered and duplicate facts, cold reopen and rotated captures. Keep unknown queue and runner values where exact endpoints are absent.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain all source captures, saved reviews and original classifications if a change loses a valid clock or expands the ordinary read without a bound.",
@@ -26975,7 +26985,8 @@
         "Retain the original failing interpretation and the positive control. Verify the change through focused regression, normal task verification and source-bound independent review.",
         "At ordinary and offline weekly entries, reject a proved event-head ancestor across shallow boundaries and withhold fallback when Git ancestry is incomplete at the reader. Preserve independently observed Actions clocks and the qualified expired-preview controls on cold reread.",
         "Exclude independently disproved Linux and Windows checkouts before cross-platform conflict detection. The real paired valid Windows receipt and independent Actions clocks survive an invalid Linux counterpart in ordinary and cold weekly reads. Genuine expired previews continue to qualify.",
-        "Check reachable shallow boundary parent claims even when graph enumeration is unavailable. Withhold unproven checkout qualification when the bounded search cannot establish it. Keep genuine Windows receipts and separate Actions clocks with both input orders and both proof controls."
+        "Check reachable shallow boundary parent claims even when graph enumeration is unavailable. Withhold unproven checkout qualification when the bounded search cannot establish it. Keep genuine Windows receipts and separate Actions clocks with both input orders and both proof controls.",
+        "A rejected report can enter checkout conflict reduction and withdraw a genuine receipt on another platform. Check genuine paired receipts beside late digestless or incomplete reports in both orders and cold reopen, with a valid legacy control."
       ],
       "checks": [
         "project-state",
@@ -26983,7 +26994,7 @@
       ],
       "diagnostic_reports": [],
       "evidence": [],
-      "next_action": "Use the common local handoff in .reports/m0-155-post-de7e2376/handoff.json for exact-source independent primary review and matching verification. The coordinator retains the five held requests, hosted and native runs, and the November 28 actual observation.",
+      "next_action": "Use the common local handoff in .reports/m0-155-post-4c4865fa/handoff.json for exact-source independent review and matching verification. The coordinator owns the five held requests, hosted and native qualification, and the November 28 actual observation.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -27010,12 +27021,14 @@
           "contracts/decisions/0033-source-evidence-before-timing-attribution.json",
           "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-318f54c8/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-de7e2376/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-de7e2376/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-4c4865fa/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "The substitute Git fingerprint is computable with the standard library; importing the full project entry brings an unrelated parser into the weekly job.",
           "Raw Git commit headers keep exact parent and tree facts available at the shallow boundary. An unavailable object cannot contradict a properly bound proof, while a known inconsistent object or impossible parent relation can.",
-          "Apply shared invariants to original facts before projection. Verify stable metrics and report attribution independently on the real producer pairs and cold readers."
+          "Apply shared invariants to original facts before projection. Verify stable metrics and report attribution independently on the real producer pairs and cold readers.",
+          "Only claims surviving independent report admission can participate in attempt-wide checkout reduction."
         ],
         "risks": [
           {
@@ -27117,6 +27130,13 @@
           },
           {
             "failure": "Check reachable shallow boundary parent claims even when graph enumeration is unavailable. Withhold unproven checkout qualification when the bounded search cannot establish it. Keep genuine Windows receipts and separate Actions clocks with both input orders and both proof controls.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A rejected report can enter checkout conflict reduction and withdraw a genuine receipt on another platform. Check genuine paired receipts beside late digestless or incomplete reports in both orders and cold reopen, with a valid legacy control.",
             "checks": [
               "project-state",
               "python-contracts-workers"
@@ -27229,9 +27249,10 @@
         "At the public timing entry, retain historical genuine publisher controls while distinguishing precision-level recording conflicts, a required native result missing from a complete report, and a contradicted raw integration summary.",
         "Apply portable observation ownership, passing status and integration summary admission to Linux and Windows before compaction. With real paired raw inputs, retain independent Actions clocks and accept equivalent recording offsets at full source precision.",
         "Before conflict reduction, reject proved out-of-job report instants on both platforms. Keep the final-second positive, paired receipts, and independent Actions clocks across input order and reopen.",
-        "Bind observation ownership to the historical publisher before raw compaction. Verify PR 96 genuine raw and compact pairs, modified report admission and the genuine pair beside the modified input."
+        "Bind observation ownership to the historical publisher before raw compaction. Verify PR 96 genuine raw and compact pairs, modified report admission and the genuine pair beside the modified input.",
+        "Incomplete or digestless reports can bypass a publishing-job contradiction and enter attempt reduction. Check genuine and modified reports with one or both job boundaries, digest, coverage and status variations on ordinary, weekly and reopened reads."
       ],
-      "next_action": "Use the common local handoff in .reports/m0-155-post-de7e2376/handoff.json for exact-source independent primary review and matching verification. The coordinator retains the five held requests, hosted and native runs, and the November 28 actual observation.",
+      "next_action": "Use the common local handoff in .reports/m0-155-post-4c4865fa/handoff.json for exact-source independent review and matching verification. The coordinator owns the five held requests, hosted and native qualification, and the November 28 actual observation.",
       "blocker": null,
       "evidence": [],
       "closure_reason": null,
@@ -27259,7 +27280,8 @@
           "contracts/decisions/0033-source-evidence-before-timing-attribution.json",
           "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-150-318f54c8/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-de7e2376/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-de7e2376/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-4c4865fa/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "The earlier and later sources had the same four Windows producer jobs and aggregate catalog. The browser and recovery assignments changed while the reader used one current mapping for both.",
@@ -27267,7 +27289,8 @@
           "A cache vector supplies the named fields for qualified report reconciliation. Actions job listings supply clock and topology evidence independently.",
           "The recognized launcher must preserve the lane selector result through its ordered report projection. An unsupported consumer or write invalidates the static proof.",
           "Running admission against a proven historical publishing catalog and selector can expose mutations that leave the selector text unchanged. Exact per-check eligibility can distinguish implemented and planned rows with unchanged aggregate work.",
-          "Apply shared invariants to original facts before projection. Verify stable metrics and report attribution independently on the real producer pairs and cold readers."
+          "Apply shared invariants to original facts before projection. Verify stable metrics and report attribution independently on the real producer pairs and cold readers.",
+          "A bound publishing job can independently disprove a recording instant even when the report has incomplete coverage or missing execution identity."
         ],
         "risks": [
           {
@@ -27519,6 +27542,13 @@
           },
           {
             "failure": "Bind observation ownership to the historical publisher before raw compaction. Verify PR 96 genuine raw and compact pairs, modified report admission and the genuine pair beside the modified input.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Incomplete or digestless reports can bypass a publishing-job contradiction and enter attempt reduction. Check genuine and modified reports with one or both job boundaries, digest, coverage and status variations on ordinary, weekly and reopened reads.",
             "checks": [
               "project-state",
               "python-contracts-workers"
