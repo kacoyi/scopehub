@@ -9739,6 +9739,38 @@
         "prevention": "The retained public integration replay holds closure across interruption, reopening, restored conflicts and reversed nomination order. The first ordinary PR 138 run passed the incomplete-evidence and premature-closure controls on Linux and Windows. The original false closure remains retained."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "protected-python-policy-pins-superseded-finding",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent review of aec0118d0573ccc949e4e44a71c379c8b9b29d17, contracts/reviews/task-decisions/M0-159.json#/events/10. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-159-aec0118d/original-assistant-response.jsonl, SHA-256 ea3c086c84fd932d7037b1db525c9efaffc08016776f3b17006c1363c4c927a9.",
+      "observation": "The protected policy pins the former two-diagnostic M0-153 feedback identity 651431ef14deed4896496e5ef4f4516770b5721231b8908d170f0477745a36ee. The current independently reviewed feedback at 2cac22b85efa33304594d339246284038408b7ee preserves a third real diagnostic from protected Windows push 45969084025. The public integration decision refused the current feedback before native receipt intake even after the observation owner was supplied.",
+      "task_ids": [
+        "M0-178"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "protected-python-success-accepts-aggregate-without-producer",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent review of aec0118d0573ccc949e4e44a71c379c8b9b29d17, contracts/reviews/task-decisions/M0-159.json#/events/10. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-159-aec0118d/original-assistant-response.jsonl, SHA-256 ea3c086c84fd932d7037b1db525c9efaffc08016776f3b17006c1363c4c927a9.",
+      "observation": "In an offline replay of protected push 45747974114, the closure check returned `passed` with only the Windows aggregate report linked to the observer.",
+      "task_ids": [
+        "M0-178"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

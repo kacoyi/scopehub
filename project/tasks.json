@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-178",
   "tasks": [
     {
       "id": "M0-001",
@@ -29545,7 +29545,113 @@
             "Classify each nominated first-commit original before reducing the observation. A nomination can be excluded only while its verified content establishes an unrelated context, so losing archive bytes cannot authorize closure. Keep verified failure actionable when the aggregate is unavailable."
           ],
           "data_plan": "Keep the native originals in the development archive and preserve checkout-local reproductions for independent review. Bind the original feedback, both native originals and the guarded receipt to the separate adoption. Record the first protected observation using its report locator on M0-160, including a verified producer failure if the aggregate is unavailable.",
-          "cleanup": "Keep the original finding open while the observation is unavailable or failed. Preserve the exact first attempt and assign corrective work after a failure. Close the finding and observer together after verified serial success, with separate whole-workflow timing follow-through."
+        "cleanup": "Keep the original finding open while the observation is unavailable or failed. Preserve the exact first attempt and assign corrective work after a failure. Close the finding and observer together after verified serial success, with separate whole-workflow timing follow-through."
+        }
+      }
+    },
+    {
+      "id": "M0-178",
+      "title": "Correct the reviewed protected Windows Python observation policy",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-159"
+      ],
+      "scope": [
+        "project/delivery.json",
+        "scripts/integration.py",
+        "tests/project/test_integration.py",
+        "tests/project/test_protected_python.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "On the public integration decision, accept the exact current reviewed M0-153 feedback identity with all three diagnostic locators, including protected push 45969084025. Reject the older and substituted records.",
+        "Replay the real first-attempt protected Windows producer and aggregate from push 45747974114 through the ordinary closure decision. Require both originals for matched success and refuse success with either original absent. Keep the independently verified producer-only timeout actionable with the original finding open.",
+        "Retain the independent review original, the positive and rejected replay results and their exact code and input provenance. Obtain independent review and matching project-state and python-contracts-workers verification on native Linux and Windows before completion and separate protected policy adoption."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Retain the source-specific public-entry reproductions, correct and verify the policy locally, then hand the exact candidate to the coordinator for independent review and matching native Linux and Windows checks.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The M0-159 policy can qualify the reviewed M0-153 feedback and requires agreement of both first-push originals to close the deadline finding.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/delivery.json",
+          "scripts/integration.py",
+          "scripts/protected_python.py",
+          "tests/project/test_integration.py",
+          "tests/project/test_protected_python.py",
+          "contracts/reviews/task-decisions/M0-159.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-159-aec0118d/original-assistant-response.jsonl (SHA-256 ea3c086c84fd932d7037b1db525c9efaffc08016776f3b17006c1363c4c927a9)"
+        ],
+        "hypotheses": [
+          "The exact reviewed M0-153 feedback at 2cac22b85efa33304594d339246284038408b7ee retains the earlier two diagnostics and the protected Windows producer timeout from 45969084025. Its canonical protected feedback identity supersedes the two-diagnostic identity in the unadopted policy.",
+          "The Windows aggregate imports the Python producer row and log. Its own existence alone does not establish retention of the producer report. Requiring both validated report profiles after the failure branch preserves actionable producer-only failures."
+        ],
+        "risks": [
+          {
+            "failure": "The independently reviewed repair fails at the protected feedback identity check, or a stale or substituted diagnostic record qualifies it.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The first protected observation closes on a missing producer or aggregate original, or incomplete evidence prevents recording a verified producer timeout while the finding stays open.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Preserve the original review, rejected decisions and native reports. Withhold policy adoption if the corrected binding or closure decision fails verification.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/integration.py",
+            "tests/project/test_integration.py",
+            "tests/project/test_protected_python.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/integration"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/protected_python_observation"
+            }
+          ],
+          "non_goals": [
+            "Change the M0-153 repair, activate M0-160, record a future protected success, or change Windows process and whole-workflow deadlines."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "replacement",
+          "preserve": [
+            "Keep accepted M0-159 definitions and evidence immutable, keep M0-153 and M0-160 separate, and preserve protected adoption order and producer-only failure recording."
+          ],
+          "change": [
+            "Pin the current reviewed finding and require both verified Windows originals for success under the same protected observation policy."
+          ],
+          "data_plan": "Retain the independent response and historical control inputs with source and digest provenance in the assigned checkout. Use the historical pushes only as offline controls.",
+          "cleanup": "Hand off the exact reviewed candidate path and keep native verification and the future protected observation explicit until their own evidence exists."
         }
       }
     }
