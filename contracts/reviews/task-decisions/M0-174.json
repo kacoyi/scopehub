@@ -10,6 +10,26 @@
       "requested_at": "2026-11-27T05:44:08.307111+00:00",
       "request_id": "82146e173a00c86c6c28c472706fc149f2740a938b4e7cb4ed02cc2f7247409b",
       "evidence_sha256": "4f2e2d8037abc87024ee20b41ffcd901e680113cf79a40b5ab804d6994560c32"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "90ab2fff33bfb034dc756700688f79782d7f6036",
+      "verdict": "approved",
+      "decision": "APPROVE M0-174 90ab2fff33bfb034dc756700688f79782d7f6036",
+      "scope": "APPROVE M0-174 90ab2fff33bfb034dc756700688f79782d7f6036",
+      "observation": "The corrected Linux run recorded the second window resubmitting its retained draft after a retryable HTTP 429 BUSY, cancelling its own review, and leaving the first window able to commit its original approval.",
+      "reviewer": "Independent Astra Standard (t1dq)",
+      "original_sha256": "96f78a9c221b3d151bb97a754af151b537dc5a7876d2de0e5ee47df343d9e4db",
+      "response_id": "336e897c40fd5dc5a549c40b084c87a7fd9981695b164af0fee02cc84d6ae2f3",
+      "response_sha256": "ef85245acba9f30731889623b095742859665114e43150d799ecb58915a6bcc4",
+      "legacy_response_sha256": "e45a5b2bd0b72eba590502de085eafa17aa15f31cfa7c4705b39877964b5b143",
+      "observation_body_sha256": "02d4b91123fadd6f70c876ed6720888558b626a15ef5e1bc4de32059bf3b7ab3",
+      "event": {
+        "id": "msg_0033510c1761d1d9016b0919279c4c87d0bffb3ebf7f9dc279",
+        "timestamp": "2026-11-27T05:46:31.023Z"
+      },
+      "supersedes": "82146e173a00c86c6c28c472706fc149f2740a938b4e7cb4ed02cc2f7247409b",
+      "evidence_sha256": "d4fdb7d2a12ea6648bb6913bd28f7231e731b46ddc0e43944656d4a76fbf1c8a"
     }
   ]
 }
