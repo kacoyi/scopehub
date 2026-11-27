@@ -306,6 +306,33 @@ class PublicPublisherObservationTests(unittest.TestCase):
                 self.assertEqual(rejected, any('outside the publishing job boundaries' in issue['error']
                                               for issue in view['input_issues']))
 
+    def test_raw_linux_source_contradiction_cannot_withdraw_archived_receipts(self):
+        archive = self.directory / 'genuine.json'
+        original = self.collect(archive, [self.linux, self.windows])
+        receipts = original['recent_collection']['collected_samples']
+        self.assertEqual({'Linux', 'Windows'}, {row['platform'] for row in receipts})
+
+        checkout = 'b' * 40
+        legacy = dict(fixtures.historical_report(), ci=dict(self.linux['ci'], checkout_sha=checkout),
+                      source={'git_head': checkout})
+        contradicted = dict(legacy, source_end={'git_head': self.linux['source_commit']})
+        for unchanged in (False, True):
+            with self.subTest(source_unchanged=unchanged):
+                raw = self.write_variant('contradicted', dict(contradicted, source_unchanged=unchanged))
+                view = self.invoke('--report', archive, '--report', raw)
+                self.assertCountEqual(receipts, timing.platform_report_receipts(view['samples']))
+                self.assertEqual(receipts, view['recent_collection']['collected_samples'])
+                self.assertEqual({'Linux': (240, 230), 'Windows': (360, 340)}, {
+                    sample['platform']: (sample['seconds']['total'], sample['seconds']['runner'])
+                    for sample in view['samples'] if sample['job'] is not None
+                })
+
+        legacy_path = self.write_variant('legacy', legacy)
+        view = self.invoke('--report', archive, '--report', legacy_path)
+        self.assertEqual([], list(timing.platform_report_receipts(view['samples'])))
+        self.assertIn('Conflicting timing checkouts for this attempt.',
+                      [issue['error'] for issue in view['input_issues']])
+
     def test_disproved_linux_checkout_does_not_displace_windows_receipt(self):
         def git(*args):
             return subprocess.run(['git', '-c', 'user.name=Timing Fixture', '-c', 'user.email=timing@example.test',

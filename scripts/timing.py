@@ -129,8 +129,11 @@ BROWSER_STEPS = {
     'Install and start the pinned chart-test browser',
 }
 TIMED_STEPS = HARNESS_STEPS | BROWSER_STEPS | {f'Verify the Windows {lane} lane' for lane in WINDOWS_LANES}
-ACTIONS_ORDER_STEPS = {'Set up job', 'Complete job'}
-OBSERVED_STEPS = TIMED_STEPS | ACTIONS_ORDER_STEPS | WINDOWS_ROLE_STEPS | WINDOWS_PROFILE_STEPS.keys()
+ACTIONS_ORDER_STEPS = {'Set up job': 'setup', 'Complete job': 'cleanup'}
+# Both split layouts put optional browser preparation before verification.
+WINDOWS_SPLIT_JOB_ORDER = ('requested', 'start', 'setup_start', 'setup_end', 'browser_start', 'browser_end',
+                           'harness_start', 'harness_end', 'cleanup_start', 'cleanup_end', 'end')
+OBSERVED_STEPS = TIMED_STEPS | ACTIONS_ORDER_STEPS.keys() | WINDOWS_ROLE_STEPS | WINDOWS_PROFILE_STEPS.keys()
 PENDING_STEP_STATUSES = {'queued', 'pending', 'waiting'}
 EXPECTED_FULL_OMISSIONS = {'not_implemented', 'unsupported_platform'}
 WINDOW = 3
@@ -327,6 +330,21 @@ def report_check_work(checks):
                                    if row['status'] in {'passed', 'failed'}))
 
 
+def valid_inputs_digest(value):
+    return isinstance(value, str) and bool(re.fullmatch(r'[0-9a-f]{64}', value))
+
+
+def consistent_hosted_source(initial, final):
+    """Check the hosted harness source fence using the fields still present."""
+    if not isinstance(final, dict) or any(
+            snapshot.get('working_tree_dirty', False) is not False
+            or ('sha256' in snapshot and not valid_inputs_digest(snapshot['sha256']))
+            for snapshot in (initial, final)):
+        return False
+    return all(initial[field] == final[field] for field in ('git_head', 'sha256')
+               if field in initial and field in final)
+
+
 def report_sample(report, *, cache=None):
     """Project only coverage, timing and run identity. Commands, paths and logs stay out."""
     environment = report.get('environment', {})
@@ -351,20 +369,25 @@ def report_sample(report, *, cache=None):
     if not (native_publisher or (profile and profile.startswith('ci-windows-'))):
         selected.sort()
     status = short_label(report.get('status'))
+    source = report.get('source', {})
+    source_unchanged = report.get('source_unchanged')
+    if ci and not consistent_hosted_source(source, report.get('source_end', {})):
+        # Carry the failed source fence into the compact report's existing
+        # identity and coverage fields before it can make a checkout claim.
+        source_unchanged = False
     coverage_complete = (
         len(selected) == len(selection.get('checks', []))
         and report_coverage(checks, selected, status, profile, platform)
-        and report.get('source_unchanged') is not False and report.get('project_unchanged') is not False
+        and source_unchanged is not False and report.get('project_unchanged') is not False
         and report.get('native_requirement', {}).get('satisfied') is not False
     )
     check_work, check_work_complete = report_check_work(checks)
     recorded_at = report_recording_spelling(report.get('generated_at'))
-    source = report.get('source', {})
     source_commit = source.get('git_head')
     inputs_digest = source.get('sha256')
     dirty = source.get('working_tree_dirty')
     identity_complete = (
-        commit_id(source_commit) and report.get('source_unchanged') is True and report.get('project_unchanged') is True
+        commit_id(source_commit) and source_unchanged is True and report.get('project_unchanged') is True
         and (ci is None or (all(ci.values()) and commit_id(ci['head_sha']) and ci['checkout_sha'] == source_commit
                            and positive_id(ci['run_id']) and positive_id(ci['run_attempt'])))
     )
@@ -373,7 +396,7 @@ def report_sample(report, *, cache=None):
         'run_id': short_label(report.get('run_id')),
         'recorded_at': recorded_at,
         'source_commit': source_commit if commit_id(source_commit) else None,
-        'inputs_sha256': inputs_digest if isinstance(inputs_digest, str) and re.fullmatch(r'[0-9a-f]{64}', inputs_digest) else None,
+        'inputs_sha256': inputs_digest if valid_inputs_digest(inputs_digest) else None,
         'working_tree_dirty': dirty if isinstance(dirty, bool) else None,
         'profile': profile, 'task_id': short_label(selection.get('task_id')),
         'platform': platform, 'arch': short_label(environment.get('machine')),
@@ -649,26 +672,24 @@ def windows_aggregate_cache(caches):
 
 
 def split_execution_bounds(parent, sources, active):
-    # A producer's earliest feasible finish and the aggregate's latest
-    # feasible start bound their shared scheduling cut. Those witnesses
-    # determine feasibility only. The measured span uses observed steps.
-    inactive = [ordered_limit(source, ('requested', 'start', 'cleanup_end', 'end'), 'end')
+    # Every producer must finish before the aggregate starts. For each fixed
+    # measured endpoint, the earliest feasible finishes fit together exactly
+    # when they all fit the latest feasible aggregate start.
+    inactive = [ordered_limit(source, WINDOWS_SPLIT_JOB_ORDER, 'end')
                 for lane, source in sources.items() if lane not in active]
     if None in inactive:
         return None
-    producer_order = ('requested', 'start', 'harness_start', 'harness_end', 'cleanup_end', 'end')
-    aggregate_order = ('requested', 'start', 'setup_start', 'harness_start', 'harness_end', 'end')
     running = []
     for lane in active:
         source = sources[lane]
         running.append([
-            (harness, ordered_limit({**source, 'harness_start': (harness,)}, producer_order, 'end'))
+            (harness, ordered_limit({**source, 'harness_start': (harness,)}, WINDOWS_SPLIT_JOB_ORDER, 'end'))
             for harness in source['harness_start']
         ])
 
     executions = []
     for end in parent['harness_end']:
-        deadline = ordered_limit({**parent, 'harness_end': (end,)}, aggregate_order, 'start', latest=True)
+        deadline = ordered_limit({**parent, 'harness_end': (end,)}, WINDOWS_SPLIT_JOB_ORDER, 'start', latest=True)
         if deadline is None or any(finish > deadline for finish in inactive):
             continue
         eligible = [tuple(harness for harness, finish in lane if finish is not None and finish <= deadline)
@@ -1483,10 +1504,11 @@ def reconcile_job_clocks(by_id, attempt, layout, issues):
             job.update(endpoints=dict.fromkeys(JOB_ENDPOINTS))
             job.pop('endpoint_choices', None)
             job.pop('endpoint_disputes', None)
-        elif projected and (setup := steps.get('Set up job')) and setup.succeeded:
-            order_bounds = {'setup_start': setup.endpoints['start']}
-        elif producer and (cleanup := steps.get('Complete job')) and cleanup.succeeded:
-            order_bounds = {'cleanup_end': cleanup.endpoints['end']}
+        elif projected or producer:
+            order_bounds = {}
+            for step, phase in ACTIONS_ORDER_STEPS.items():
+                if (witness := steps.get(step)) and witness.succeeded:
+                    order_bounds.update({f'{phase}_{edge}': values for edge, values in witness.endpoints.items()})
         job.update(status=status, conclusion=conclusion, identity_issues={'missing': [], 'conflicts': []})
         if unplaced:
             timing_issue(issues, {**issue, 'endpoints': sorted(unplaced),

@@ -73,6 +73,7 @@ class PublicJobObservationTests(unittest.TestCase):
         setup = dict(parent['steps'][0], name='Set up job', number=1,
                      started_at='2026-11-20T00:12:08Z', completed_at='2026-11-20T00:12:12Z')
         witnessed_parent = dict(no_parent_start, steps=[setup, *parent['steps']])
+        setup_finish_only = dict(no_parent_start, steps=[dict(setup, started_at=None), *parent['steps']])
         finish_after_setup = dict(browser, completed_at='2026-11-20T00:12:18Z')
         completion = dict(browser['steps'][0], name='Complete job', number=99,
                           started_at='2026-11-20T00:11:50Z', completed_at='2026-11-20T00:12:00Z')
@@ -94,6 +95,8 @@ class PublicJobObservationTests(unittest.TestCase):
             ('impossible step order', [core, late_without_end, python, no_parent_start], (None, None, None, 765)),
             ('setup after producer', [core, browser, python, witnessed_parent], (695, None, None, 765)),
             ('setup before producer finishes', [core, finish_after_setup, python, witnessed_parent],
+             (None, None, None, 765)),
+            ('setup completed before producer finishes', [core, finish_after_setup, python, setup_finish_only],
              (None, None, None, 765)),
             ('both setup and completion support order', [core, witnessed_producer, python, witnessed_parent],
              (695, None, None, 765)),
