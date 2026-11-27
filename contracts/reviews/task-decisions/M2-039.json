@@ -581,6 +581,15 @@
       },
       "supersedes": "a6e7ff0e5cb892aa5d2464a83e490f06c11524abc9f66e99b0d8ec28b0d4e6fc",
       "evidence_sha256": "f64b37565d04be6ea6044a6def8c9524f3d68d43e46a56e9f56446dd17babd6d"
+    },
+    {
+      "kind": "request",
+      "source_commit": "4460e72f0652b454572252d90a15ebe8e817bca7",
+      "scope": "Verify the corrected attribution for the single previously rejected feedback closure and approve or reject the composed M2-039 evidence on its exact source.",
+      "supersedes": "e12449c772aa92d24b0fe9387963596457ab704fc759beb3d0c7aab62722cc63",
+      "requested_at": "2026-11-27T04:58:26.623459+00:00",
+      "request_id": "ebca812cc5b1d5984b2f4eeebaadf1eb044c54eff534c6b13bf05c13ef814286",
+      "evidence_sha256": "cefeaa87ee2cc1cb7f0d2a24a8df438562bb970a8ff279320a8ed79b7f02e199"
     }
   ]
 }
