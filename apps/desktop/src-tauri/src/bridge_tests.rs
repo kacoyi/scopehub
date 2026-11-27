@@ -2290,12 +2290,20 @@ async fn reviewed_mapping_reopens_a_legacy_v4_windows_key() {
 }
 
 #[cfg(any(target_os = "linux", windows))]
+const REVIEWED_SAVE_CSV: &[u8] =
+    b"Ticker,Date,Open,High,Low,Close,Shares\n000418,2026-11-19,4,6,3,5,20\n";
+
+#[cfg(any(target_os = "linux", windows))]
+const REVIEWED_SAVE_SHA256: &str =
+    "c5de5a715559910c81af6741230851a9e66413adec6a095828b018aa4033d269";
+
+#[cfg(any(target_os = "linux", windows))]
 #[tokio::test]
 async fn pending_local_import_stops_on_cancellation_selection_change_or_shutdown() {
     use scopehub_platform::local_folder::{Cancellation, FolderError};
     use std::fs;
 
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, Debug)]
     enum Interruption {
         Cancel,
         Revoke,
@@ -2308,18 +2316,21 @@ async fn pending_local_import_stops_on_cancellation_selection_change_or_shutdown
         Interruption::Shutdown,
     ] {
         let fixture = ImportFixture::new();
+        let profile = fixture.0.join("profile");
         let selected = fixture.0.join("selected");
         fs::create_dir(&selected).unwrap();
-        let content = b"contract,quote\nTEST,7\n";
-        fs::write(selected.join("source.csv"), content).unwrap();
+        fs::write(selected.join("source.csv"), REVIEWED_SAVE_CSV).unwrap();
         let module = fixture.0.join("python").join("worker_runtime");
         fs::create_dir_all(&module).unwrap();
         fs::write(module.join("local_import.py"), r#"
-import json, pathlib, sys, time
+import base64, hashlib, json, pathlib, sys, time
 print(json.dumps({'protocol_version':'1.1','type':'hello','message_id':'74237caa-395f-4d71-a07f-bb15f86fda88',
     'timestamp_ms':0,'role':'market','worker_version':'fixture','supported_protocols':['1.0','1.1'],
     'capabilities':['market.previewLocalImport']}), flush=True)
-sys.stdin.buffer.read()
+header, chunk = map(json.loads, sys.stdin.buffer.read().splitlines())
+source = base64.b64decode(chunk['data'], validate=True)
+assert chunk['request_id'] == header['request_id'] and chunk['index'] == 0
+assert len(source) == header['byte_count'] and hashlib.sha256(source).hexdigest() == header['sha256']
 pathlib.Path('received').touch()
 time.sleep(30)
 "#).unwrap();
@@ -2329,35 +2340,32 @@ time.sleep(30)
                 root: fixture.0.clone(),
                 ..config
             })),
-            ..state()
+            ..state_with_local_profile(Some(&profile))
         };
         let folders = state.local_folders();
-        let catalog = folders
-            .adopt_selected(&selected, &Cancellation::default())
-            .unwrap();
-        let request = import_request(
-            &catalog,
-            "source.csv",
-            json!({"version":1,"revision":"1","encoding":"utf-8","delimiter":",","record_kind":"quote_snapshot"}),
-        );
+        let ids = select_csv(&state, &selected).await;
+        let folder_id = ids["folder_id"].as_str().unwrap().parse().unwrap();
+        let mut request = ids.clone();
+        request["mapping"] = equity_mapping();
         let preview = state.execute(
             "main",
             Some(PREVIEW_LOCAL_IMPORT),
-            request,
+            request.clone(),
             Some("preview-1"),
         );
         tokio::pin!(preview);
         let ready = fixture.0.join("received");
         tokio::select! {
-            result = &mut preview => panic!("preview ended before it could be interrupted: {result:?}"),
-            _ = tokio::time::timeout(Duration::from_secs(3), async {
+            result = &mut preview => panic!("{interruption:?}: preview ended before the worker received the source: {result:?}"),
+            result = tokio::time::timeout(Duration::from_secs(3), async {
                 while !ready.exists() { tokio::time::sleep(Duration::from_millis(10)).await; }
-            }) => assert!(ready.exists(), "controlled worker did not receive the bytes"),
+            }) => result.expect("controlled worker did not receive the complete CSV"),
         }
+        eprintln!("preview phase=source_received interruption={interruption:?}");
         let interrupt = async {
             match interruption {
-                Interruption::Cancel => state.local_import.cancel("preview-1"),
-                Interruption::Revoke => folders.revoke(catalog.folder_id).unwrap(),
+                Interruption::Cancel => state.cancel_local_import("preview-1"),
+                Interruption::Revoke => folders.revoke(folder_id).unwrap(),
                 Interruption::Shutdown => state.shutdown().await,
             }
         };
@@ -2365,15 +2373,29 @@ time.sleep(30)
             tokio::join!(preview, interrupt)
         })
         .await
-        .unwrap();
+        .expect("preview interruption did not finish");
         let code = match interruption {
             Interruption::Revoke => ErrorCode::STALECONTEXT,
             Interruption::Cancel | Interruption::Shutdown => ErrorCode::CANCELLED,
         };
         assert_eq!(result.unwrap_err().code, code);
+        eprintln!("preview phase=interrupted interruption={interruption:?} code={code:?}");
+        if matches!(interruption, Interruption::Cancel) {
+            request["expected_sha256"] = json!(REVIEWED_SAVE_SHA256);
+            let error = execute_import(&state, SAVE_LOCAL_IMPORT_MAPPING, request)
+                .await
+                .unwrap_err();
+            assert_eq!(error.code, ErrorCode::INVALIDARGUMENT);
+            assert_eq!(
+                error.message,
+                "Preview this mapping and review a normalized bar before saving."
+            );
+            eprintln!("save phase=review_required code={:?}", error.code);
+        }
+        assert!(!profile.exists());
         if matches!(interruption, Interruption::Shutdown) {
             assert_eq!(
-                folders.check_current(catalog.folder_id),
+                folders.check_current(folder_id),
                 Err(FolderError::SelectionUnavailable)
             );
             assert!(matches!(
@@ -2389,35 +2411,56 @@ time.sleep(30)
 #[cfg(any(target_os = "linux", windows))]
 #[test]
 fn cancelling_an_admitted_reviewed_save_keeps_the_profile_unwritten() {
-    use std::{fs, task::Poll};
+    use std::{fs, task::Poll, time::Instant};
 
-    // Occupy the only blocking slot after getting a real public preview so the
-    // save can be cancelled deterministically while its live reread is pending.
-    let runtime = tokio::runtime::Builder::new_current_thread()
+    let fixture = ImportFixture::new();
+    let profile = fixture.0.join("profile");
+    let source = fixture.0.join("source");
+    fs::create_dir(&source).unwrap();
+    fs::write(source.join("source.csv"), REVIEWED_SAVE_CSV).unwrap();
+    let state = state_with_local_profile(Some(&profile));
+
+    // Windows worker pipes use the blocking pool during preview. Keep the
+    // single-slot scheduling control local to the save's checked reread.
+    let preview_runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let (ids, save) = preview_runtime.block_on(async {
+        let ids = select_csv(&state, &source).await;
+        eprintln!("preview phase=selected");
+        let mut save = ids.clone();
+        save["mapping"] = equity_mapping();
+        let started = Instant::now();
+        let shown = execute_import(&state, PREVIEW_LOCAL_IMPORT, save.clone())
+            .await
+            .unwrap_or_else(|error| {
+                panic!(
+                    "public preview failed after selection and {} ms: {error:?}",
+                    started.elapsed().as_millis()
+                )
+            });
+        assert_eq!(shown["sha256"], REVIEWED_SAVE_SHA256);
+        let rows = shown["preview"]["rows"].as_array().unwrap();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0]["symbol"], "000418");
+        assert_eq!(rows[0]["normalized"]["close"], 5.0);
+        assert_eq!(rows[0]["normalized"]["volume"], 20.0);
+        eprintln!(
+            "preview phase=completed elapsed_ms={}",
+            started.elapsed().as_millis()
+        );
+        save["expected_sha256"] = shown["sha256"].clone();
+        (ids, save)
+    });
+    drop(preview_runtime);
+
+    let save_runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .max_blocking_threads(1)
         .build()
         .unwrap();
-    runtime.block_on(async {
-        let fixture = ImportFixture::new();
-        let profile = fixture.0.join("profile");
-        let source = fixture.0.join("source");
-        fs::create_dir(&source).unwrap();
-        fs::write(
-            source.join("source.csv"),
-            b"Ticker,Date,Open,High,Low,Close,Shares\n000418,2026-11-19,4,6,3,5,20\n",
-        )
-        .unwrap();
-
-        let state = state_with_local_profile(Some(&profile));
-        let ids = select_csv(&state, &source).await;
-        let mut save = ids.clone();
-        save["mapping"] = equity_mapping();
-        let shown = execute_import(&state, PREVIEW_LOCAL_IMPORT, save.clone())
-            .await
-            .unwrap();
-        save["expected_sha256"] = shown["sha256"].clone();
-
+    save_runtime.block_on(async {
         let (entered, blocking_slot_held) = oneshot::channel();
         let (release, released) = oneshot::channel::<()>();
         let blocker = tokio::task::spawn_blocking(move || {
@@ -2437,7 +2480,19 @@ fn cancelling_an_admitted_reviewed_save_keeps_the_profile_unwritten() {
             Poll::Ready(())
         })
         .await;
-        state.local_import.cancel("save-with-pending-read");
+        assert_eq!(
+            tokio::time::timeout(
+                Duration::from_secs(3),
+                execute_import(&state, LOAD_LOCAL_IMPORT_MAPPING, ids.clone()),
+            )
+            .await
+            .expect("load must reject admission while the save holds it")
+            .unwrap_err()
+            .code,
+            ErrorCode::BUSY,
+        );
+        eprintln!("save phase=admitted checked_reread=pending");
+        state.cancel_local_import("save-with-pending-read");
         let result = tokio::time::timeout(Duration::from_secs(3), save).await;
         release.send(()).unwrap();
         blocker.await.unwrap();
@@ -2449,6 +2504,7 @@ fn cancelling_an_admitted_reviewed_save_keeps_the_profile_unwritten() {
             "not_saved",
         );
         assert!(!profile.exists());
+        eprintln!("save phase=cancelled mapping=not_saved profile=absent");
         state.shutdown().await;
     });
 }

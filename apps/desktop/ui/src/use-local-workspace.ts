@@ -1,7 +1,9 @@
+import { withReplyDeadline } from './reply-deadline';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { abortableDelay } from './abortable-delay';
 import { message, t } from './i18n';
+import { decodeWorkspaceHttpReply } from './workspace-http-reply';
 import type {
   AiTextConnectionCommand11,
   IndicatorAcceptVersionCommand11, IndicatorCreateDraftCommand11, IndicatorRemoveCommand11,
@@ -31,13 +33,13 @@ type WorkspaceSource = Exclude<WorkspaceSourceChoice, { kind: 'frozen' }>
   | { kind: 'frozen'; revision_id: string; status: 'available' | 'revoked' | 'unavailable' };
 type SourceRequest = { type: 'workspace_source'; request_id: string; expected_selection_revision: number; source: WorkspaceSourceChoice };
 type SnapshotRequest = { type: 'snapshot' };
-type AdmissionRead = SnapshotRequest | DecisionNoteReadCommand11
+type AdmissionRead = SnapshotRequest | DecisionNoteReadCommand11 | PrivateRecordReadCommand11
   | { type: 'frozen_chart'; request_id: string; revision_id: string };
 type LocalRequest = SourceRequest | AdmissionRead | Command | DecisionNoteSaveCommand11
   | AiTextConnectionCommand11
   | DecisionNoteAppendOutcomeCommand11 | DecisionNoteDeleteCommand11 | DecisionNoteExportBackupCommand11
   | DecisionNotePreviewRestoreCommand11 | DecisionNoteRestoreBackupCommand11
-  | PrivateRecordChangeCommand11 | PrivateRecordExportCommand11 | PrivateRecordReadCommand11
+  | PrivateRecordChangeCommand11 | PrivateRecordExportCommand11
   | SharedSelectionRequest11 | ReadProjectedChart11
   | IndicatorCreateDraftCommand11 | IndicatorRunPreviewCommand11 | TaskCancelRequest11
   | IndicatorAcceptVersionCommand11 | IndicatorRemoveCommand11 | TrustedConfirmationDecision11
@@ -136,7 +138,7 @@ function retryableBusy(error: unknown) {
     && 'retryable' in error && error.retryable === true;
 }
 
-function nativeStatusAdmissionRefused(error: unknown) {
+function nativeWorkspaceAdmissionRefused(error: unknown) {
   if (!error || typeof error !== 'object' || !('details' in error)) return false;
   const details = error.details;
   return details !== null && typeof details === 'object' && 'workspace_admission' in details
@@ -147,12 +149,13 @@ async function exchange<T>(body: LocalRequest, signal: AbortSignal, onAdmissionB
   const operation = body.type === 'request' ? 'operation' in body ? body.operation : body.intent.operation : null;
   if (nativeWorkspace || nativeModel && operation === 'ai.textConnection' || desktop && body.type === 'frozen_chart_status') {
     signal.throwIfAborted();
+    const requiresAdmissionProof = body.type === 'snapshot' || body.type === 'indicator_preview_status';
     const value = await invoke<T>('execute_operation', { operation, payload: body }).catch(error => {
-      // Indicator status requires a lock denial. SQLite may report BUSY
-      // after the task read has been admitted. The source transaction keeps
-      // its existing retry rule because BUSY there cannot follow commit.
+      // Snapshot and indicator status reads can return SQLite BUSY after
+      // admission, so only an explicit lock refusal permits a retry.
+      // A source transaction cannot return BUSY after commit.
       if (onAdmissionBusy && retryableBusy(error)
-          && (body.type !== 'indicator_preview_status' || nativeStatusAdmissionRefused(error))) onAdmissionBusy();
+          && (!requiresAdmissionProof || nativeWorkspaceAdmissionRefused(error))) onAdmissionBusy();
       throw error;
     });
     signal.throwIfAborted();
@@ -186,13 +189,13 @@ async function postWorkspace<T>(path: string, body: object, signal: AbortSignal,
     }
     throw error;
   });
-  const reply = await response.json();
+  const rawReply: unknown = await response.json();
   signal.throwIfAborted();
-  if (reply?.ok === false && errorCode(reply.error)) {
-    if (admissionBusy && response.status === 429 && !('result' in reply) && retryableBusy(reply.error)) admissionBusy();
+  const reply = decodeWorkspaceHttpReply(rawReply, response.ok);
+  if (!reply.ok) {
+    if (admissionBusy && response.status === 429 && retryableBusy(reply.error)) admissionBusy();
     throw reply.error;
   }
-  if (!response.ok || reply?.ok !== true || !reply.result) throw { code: 'OUTPUT_INVALID' };
   return reply.result as T;
 }
 
@@ -203,8 +206,8 @@ export function readIndicatorPreviewStatus(taskId: string, signal: AbortSignal, 
     signal, onAdmissionBusy);
 }
 
-async function waitForWorkspaceReply<T>(body: SourceRequest | AdmissionRead, signal: AbortSignal,
-  onAdmissionBusy: () => void, nativeWrite?: NativeSourceWrite): Promise<T> {
+async function waitForWorkspaceReply<T>(body: LocalRequest, signal: AbortSignal,
+  onAdmissionBusy?: () => void, nativeWrite?: NativeSourceWrite): Promise<T> {
   signal.throwIfAborted();
   let stopWaiting: (() => void) | undefined;
   try {
@@ -215,7 +218,7 @@ async function waitForWorkspaceReply<T>(body: SourceRequest | AdmissionRead, sig
       // Fetch can abort its delivery wait. Native invoke can still settle later,
       // so keep both handlers attached and discard any result after the deadline.
       void exchange<T>(body, signal, () => {
-        if (!signal.aborted) onAdmissionBusy();
+        if (!signal.aborted) onAdmissionBusy?.();
       }).finally(() => {
         if (nativeWrite) nativeWrite.pending = false;
       }).then(resolve, reject);
@@ -244,7 +247,14 @@ function validWorkspace(value: Workspace | undefined) {
 }
 
 export async function readWorkspaceSnapshot(signal: AbortSignal): Promise<Snapshot> {
-  return validateSnapshot(await exchangeWorkspace<Snapshot>({ type: 'snapshot' }, signal));
+  return validateSnapshot(await withReplyDeadline(sourceReplyDeadlineMs, deadline =>
+    retryAdmission(onBusy => waitForWorkspaceReply<Snapshot>({ type: 'snapshot' }, deadline, onBusy), deadline), signal));
+}
+
+export function readFrozenRevisionStatus(revision_id: string, signal: AbortSignal) {
+  return waitForWorkspaceReply<{ available: boolean; revoked?: true }>({
+    type: 'frozen_chart_status', request_id: crypto.randomUUID(), revision_id,
+  }, signal);
 }
 
 function validateSnapshot(snapshot: Snapshot): Snapshot {
@@ -352,7 +362,8 @@ async function selectEvidence(snapshot: Snapshot, target: ChartInterval11 | null
     workspace_id: snapshot.workspace.id, expected_selection_revision: snapshot.selection_revision, target,
   };
   const exchange = async () => {
-    const reply = await exchangeWorkspace<SelectEvidenceReply11>(request, signal);
+    const reply = await withReplyDeadline(sourceReplyDeadlineMs, deadline =>
+      waitForWorkspaceReply<SelectEvidenceReply11>(request, deadline), signal);
     if (reply.request_id !== request.request_id || reply.operation !== request.operation
       || reply.type !== 'response' || reply.protocol_version !== '1.1') throw { code: 'OUTPUT_INVALID' };
     if ('error' in reply) throw reply.error;
@@ -362,7 +373,7 @@ async function selectEvidence(snapshot: Snapshot, target: ChartInterval11 | null
     // BUSY rejects admission or rolls back before commit. A missing or invalid
     // reply may follow a commit and still requires reloading workspace state.
     if (errorCode(error) !== 'BUSY') throw error;
-    await new Promise<void>(resolve => window.setTimeout(resolve, 150));
+    await abortableDelay(150, signal);
     signal.throwIfAborted();
     return exchange();
   });
@@ -439,27 +450,65 @@ export function useLocalWorkspace() {
   const sourceActive = useRef(false);
   const sourceReadback = useRef<SourceReadback | null>(null);
   const mounted = useRef(false);
+  const focus = useRef({ generation: 0, pending: false });
+  const [focusView, setFocusView] = useState(focus.current);
+  const updateFocus = useCallback((status: typeof focus.current) => {
+    focus.current = status;
+    setFocusView(status);
+  }, []);
+  const hasConfirmedFocus = useCallback((generation: number) =>
+    focus.current.generation === generation && !focus.current.pending, []);
   const queuedRecovery = useRef<{ revision: number; start: () => void } | null>(null);
+  const queuedAccess = useRef<{ revisions: Set<string>; start?: () => void }>({ revisions: new Set() });
+  const unconfirmedAccess = useRef(new Set<string>());
+  const [unconfirmedRevisions, setUnconfirmedRevisions] = useState<ReadonlySet<string>>(unconfirmedAccess.current);
   const [view, setView] = useState<View>({ snapshot: undefined, pending: 'open', errorId: undefined });
+  const showSnapshot = useCallback((snapshot: Snapshot, readback?: Pick<View, 'sourceNotice'>) => {
+    // A write's readback can settle its receipt without settling the focus
+    // requirement. Only the latest ordinary snapshot clears that requirement.
+    const confirmed = !focus.current.pending;
+    setView(previous => ({
+      snapshot: confirmed ? snapshot : previous.snapshot,
+      pending: undefined, errorId: undefined,
+      sourceNotice: readback ? readback.sourceNotice : previous.sourceNotice,
+    }));
+  }, []);
   const release = useCallback((controller: AbortController) => {
     if (active.current !== controller) return;
     active.current = null;
     if (sourceReadback.current) return;
     const next = queuedRecovery.current;
     queuedRecovery.current = null;
-    next?.start();
+    if (next) next.start();
+    else {
+      const { start } = queuedAccess.current;
+      delete queuedAccess.current.start;
+      start?.();
+    }
   }, []);
   const run = useCallback((work: (signal: AbortSignal) => Promise<Snapshot>, pending: View['pending']) => {
     if (active.current || sourceReadback.current) return;
     const controller = new AbortController();
     active.current = controller;
+    const checkedAccess = pending === 'open' ? [...unconfirmedAccess.current] : [];
+    const focusAtRead = work === readWorkspaceSnapshot ? focus.current : undefined;
+    const superseded = () => focusAtRead !== undefined && focusAtRead.generation !== focus.current.generation;
     setView(previous => ({ ...previous, pending, errorId: undefined, selectionNotice: undefined }));
     return work(controller.signal).then(snapshot => {
-      if (controller.signal.aborted) return false;
-      setView(previous => ({ snapshot, pending: undefined, errorId: undefined, sourceNotice: previous.sourceNotice }));
+      if (controller.signal.aborted || superseded()) return false;
+      if (focusAtRead?.pending) updateFocus({ ...focusAtRead, pending: false });
+      if (checkedAccess.length && !focus.current.pending) {
+        const next = new Set(unconfirmedAccess.current);
+        for (const id of checkedAccess) {
+          if (!queuedAccess.current.revisions.has(id)) next.delete(id);
+        }
+        unconfirmedAccess.current = next;
+        setUnconfirmedRevisions(next);
+      }
+      showSnapshot(snapshot);
       return true;
     }, error => {
-      if (!controller.signal.aborted) {
+      if (!controller.signal.aborted && !superseded()) {
         const selectionBusy = pending === 'evidence' && errorCode(error) === 'BUSY';
         setView(previous => ({
           ...previous, pending: undefined,
@@ -469,7 +518,25 @@ export function useLocalWorkspace() {
       }
       return false;
     }).finally(() => release(controller));
-  }, [release]);
+  }, [release, showSnapshot, updateFocus]);
+  const queueSnapshot = useCallback(() => {
+    const entry = queuedAccess.current;
+    const start = () => {
+      entry.revisions.clear();
+      void run(readWorkspaceSnapshot, 'open');
+    };
+    // Focus and access checks share one trailing slot behind the active
+    // operation, including a source write or a readback awaiting recovery.
+    if (active.current || sourceReadback.current) entry.start = start;
+    else start();
+  }, [run]);
+  const refreshPublishedAccess = useCallback((id: string) => {
+    if (!mounted.current || queuedAccess.current.revisions.has(id)) return;
+    queuedAccess.current.revisions.add(id);
+    unconfirmedAccess.current = new Set(unconfirmedAccess.current).add(id);
+    setUnconfirmedRevisions(unconfirmedAccess.current);
+    queueSnapshot();
+  }, [queueSnapshot]);
   const canCheckRevision = useCallback(() => !sourceActive.current, []);
   const runSource = useCallback(async (work: (signal: AbortSignal) => Promise<void>) => {
     if (active.current) throw { code: 'BUSY' };
@@ -513,9 +580,9 @@ export function useLocalWorkspace() {
       throw error;
     }
     sourceReadback.current = null;
-    setView({ snapshot: current, pending: undefined, errorId: undefined, sourceNotice: notice?.localizedMessage });
+    showSnapshot(current, { sourceNotice: notice?.localizedMessage });
     if (notice) throw notice;
-  }, []);
+  }, [showSnapshot]);
   const recoverSource = useCallback(() => runSource(readSource), [readSource, runSource]);
   const reload = useCallback(() => {
     if (sourceReadback.current) void recoverSource().catch(() => {});
@@ -524,16 +591,27 @@ export function useLocalWorkspace() {
   useEffect(() => {
     if (!enabled) return;
     mounted.current = true;
+    const requireFocusConfirmation = () => {
+      if (document.visibilityState !== 'visible') return;
+      updateFocus({ generation: focus.current.generation + 1, pending: true });
+      queueSnapshot();
+    };
+    window.addEventListener('focus', requireFocusConfirmation);
+    document.addEventListener('visibilitychange', requireFocusConfirmation);
     reload();
     return () => {
+      window.removeEventListener('focus', requireFocusConfirmation);
+      document.removeEventListener('visibilitychange', requireFocusConfirmation);
       mounted.current = false;
       queuedRecovery.current = null;
+      queuedAccess.current = { revisions: new Set() };
+      unconfirmedAccess.current = new Set();
       sourceActive.current = false;
       sourceReadback.current = null;
       active.current?.abort();
       active.current = null;
     };
-  }, [reload]);
+  }, [queueSnapshot, reload, updateFocus]);
 
   if (!enabled) return undefined;
   const { snapshot } = view;
@@ -577,9 +655,7 @@ export function useLocalWorkspace() {
       if (current.workspace.id !== workspace_id || current.workspace.revision < outcome.receipt.committed_workspace_revision) {
         throw { code: 'OUTPUT_INVALID' };
       }
-      if (!signal.aborted) setView(previous => ({
-        snapshot: current, pending: undefined, errorId: undefined, sourceNotice: previous.sourceNotice,
-      }));
+      if (!signal.aborted) showSnapshot(current);
       return undefined;
     } finally {
       if (active.current === controller) {
@@ -589,7 +665,8 @@ export function useLocalWorkspace() {
     }
   }
   return {
-    ...view, reload, refreshAfterIndicatorCommit, canCheckRevision, recoverSource,
+    ...view, reload, refreshAfterIndicatorCommit, canCheckRevision, recoverSource, refreshPublishedAccess, unconfirmedRevisions,
+    focus: focusView, hasConfirmedFocus,
     error: view.errorId && t(view.errorId),
     selectionNotice: view.selectionNotice && t(view.selectionNotice),
     sourceNotice: view.sourceNotice && t(view.sourceNotice),

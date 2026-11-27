@@ -46,9 +46,11 @@ function toggle<T>(current: Set<T>, value: T, checked: boolean) {
   return next;
 }
 
-export function FolderRefreshReview({ revisionId, result: staged, onPreview, ...controls }: PublicationControls & {
+export function FolderRefreshReview({ revisionId, staged, visible, onRevisionChange, onPreview, ...controls }: PublicationControls & {
   revisionId: string | undefined;
-  result: PreviewLocalFolderRefreshOutput | undefined;
+  staged: { result: PreviewLocalFolderRefreshOutput; requestId: string } | undefined;
+  visible: boolean;
+  onRevisionChange: () => void;
   onPreview: (revisionId: string) => void;
 }) {
   const [draft, setDraft] = useState<{ base: string | undefined; value: string }>();
@@ -57,7 +59,7 @@ export function FolderRefreshReview({ revisionId, result: staged, onPreview, ...
   const input = draft && draft.base === revisionId ? draft.value : revisionId ?? '';
   const id = input.trim().toLowerCase();
   const valid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(id);
-  const result = staged && (staged.folder_base?.revision_id ?? staged.base?.revision_id) === id ? staged : undefined;
+  const comparedRevision = staged?.result.folder_base?.revision_id ?? staged?.result.base?.revision_id;
 
   return <section className="local-import-card" aria-label={t('Folder refresh review')}>
     <h2>{t('Review folder refresh')}</h2>
@@ -70,18 +72,23 @@ export function FolderRefreshReview({ revisionId, result: staged, onPreview, ...
     }}>
       <div className="local-import-fields"><label className="local-import-wide">{t('Accepted revision ID')}
         <input value={input} maxLength={36} disabled={controls.busy}
-          onChange={event => setDraft({ base: revisionId, value: event.currentTarget.value })} autoComplete="off" spellCheck={false} />
+          onChange={event => {
+            const value = event.currentTarget.value;
+            if (value.trim().toLowerCase() !== id) onRevisionChange();
+            setDraft({ base: revisionId, value });
+          }} autoComplete="off" spellCheck={false} />
       </label></div>
       <button type="submit" className="secondary-button" disabled={controls.busy || !valid}>{t('Stage folder refresh')}</button>
     </form>
-    {result && <FolderComparison key={result.review_id ?? id} result={result} page={page} setPage={setPage}
-      changedOnly={changedOnly} setChangedOnly={setChangedOnly} {...controls} />}
+    {staged && <FolderComparison key={staged.requestId} result={staged.result} visible={visible && comparedRevision === id}
+      page={page} setPage={setPage} changedOnly={changedOnly} setChangedOnly={setChangedOnly} {...controls} />}
   </section>;
 }
 
-function FolderComparison({ result, page, setPage, changedOnly, setChangedOnly, busy, prepared, attempted, onPrepare, onPublish, onEdit }:
+function FolderComparison({ result, visible, page, setPage, changedOnly, setChangedOnly, busy, prepared, attempted, onPrepare, onPublish, onEdit }:
   PublicationControls & {
     result: PreviewLocalFolderRefreshOutput;
+    visible: boolean;
     page: number;
     setPage: (value: number) => void;
     changedOnly: boolean;
@@ -90,6 +97,8 @@ function FolderComparison({ result, page, setPage, changedOnly, setChangedOnly, 
   const [choices, setChoices] = useState(new Map<number, number>());
   const [withdrawBars, setWithdrawBars] = useState(new Set<number>());
   const [withdrawSources, setWithdrawSources] = useState(new Set<string>());
+  // Keep the choices for this stage while removing its contents and actions from the DOM.
+  if (!visible) return null;
   const { base, folder_base: folderBase } = result;
   const currentBase = folderBase ?? base;
   if (!currentBase) return null;

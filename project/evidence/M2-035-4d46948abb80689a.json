@@ -1,0 +1,132 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M2-035",
+  "task_definition_sha256": "b78183d85ae7060676d11a00a8bec584ba7ed05bda45f9e8b7d4fb3b810b38d8",
+  "run_id": "20261125T053237.628459Z-1a05d567",
+  "recorded_at": "2026-11-25T05:35:31.498020+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "b0e8c9c91e78f3927f617f6e30c264627288a60b698b6e431bd79d79d899530a",
+    "file_count": 598,
+    "git_head": "c295ac2db3cceccb33f546942845bcebe4cb189e",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "4d46948abb80689a5af784e1c86269e5ebec33f769054c31fc91700d7598e6a4",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/audit-desktop-recovery/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "71df8e564e2cc9963d31ed6f12dfb6137d45f8e9153af74e80c5abd86fe025ef"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "9fe7a7f9666550cc868e32e7ed02f430e6b2447ebfcb99df56f62bdbca5dcba4"
+    },
+    {
+      "id": "desktop-workspace-transport",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/desktop-workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f9ea35013156f64480bff26a43a5b668c1329d977fad7bca18822f54eeb2d038"
+    },
+    {
+      "id": "local-import-ui",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/local-import.playwright.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "31dbe5dc44602cd45afb65c575c128e96a9d377f555ecae37b134a8fe46091e6"
+    },
+    {
+      "id": "local-folder-refresh-preview",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-desktop-recovery/.venv/bin/python",
+        "scripts/check_local_import_publication.py",
+        "folder-refresh"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ebf5aa5aed8f5e57c0d02ec2834e87733c277addbae82a60f27cdfde0ab01373"
+    },
+    {
+      "id": "local-folder-import",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-desktop-recovery/.venv/bin/python",
+        "scripts/check_local_import_publication.py",
+        "folder-import"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a238d64879164d646af4c088225dec481a9f51680730eeee0708e441f4249be4"
+    },
+    {
+      "id": "workspace-timeframe",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "48e857039da18b79cce8e2841bf6465a595a2983f27d50689348c6e0f50fa306"
+    }
+  ],
+  "project_definition_sha256": "e9d45d516df073bbf3b447d62e9b31d6b824d27813fa76485cf1aa4c523d3d6b",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "0fc442883a5105a2eedcff195868eaf30aa09462b7e3a0bec8bb1d1ba9ec26a5"
+  ]
+}

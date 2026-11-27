@@ -53,14 +53,15 @@ function App() {
   const sample = localWorkspace ? Boolean(snapshot && (source?.kind === 'sample' || source == null && legacySample)) : legacySample;
   const { restored, retry } = useRestoredWorkspaceSource(localWorkspace, revisionAccess);
   const target = snapshot?.chart_evidence;
-  const targetRevoked = Boolean(target && 'revision_id' in target && revisionAccess.revoked.has(target.revision_id));
-  const displaySnapshot = useMemo(() => snapshot && targetRevoked
-    ? { ...snapshot, chart_evidence: { unavailable: true as const } } : snapshot, [snapshot, targetRevoked]);
+  const targetUnavailable = Boolean(target && 'revision_id' in target
+    && (!revisionAccess.canDisplay('csv', target.revision_id) || localWorkspace?.unconfirmedRevisions.has(target.revision_id)));
+  const displaySnapshot = useMemo(() => snapshot && targetUnavailable
+    ? { ...snapshot, chart_evidence: { unavailable: true as const } } : snapshot, [snapshot, targetUnavailable]);
   const workspace = localWorkspace && { ...localWorkspace, snapshot: displaySnapshot };
   const modelSelectionOutdated = modelSelection && observedSelectionSnapshot?.workspace.id === modelSelection.workspaceId
     && observedSelectionSnapshot.selection_revision >= modelSelection.selectionRevision
     && !matchesModelChartSelection(observedSelectionSnapshot, modelSelection);
-  const currentModelSelection = !local && !targetRevoked && !modelSelectionOutdated
+  const currentModelSelection = !local && !targetUnavailable && !modelSelectionOutdated
     && modelSelection?.selectionRevision === snapshot?.selection_revision
     ? modelSelection : undefined;
   const returnToAnswer = useCallback((unavailable = false) => {

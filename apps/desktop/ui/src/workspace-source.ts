@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import type { RestoredChartSource } from './chart-workspace';
 import { openAuthenticatedFrozenChart, type FrozenChartResult } from './frozen-evidence';
 import type { ChartHistory, Instrument } from './market';
-import { useWatchPublishedRevision, type PublishedRevisionAccess } from './published-revision-access';
+import { displayAccessDenied, useWatchPublishedRevision, type PublishedRevisionAccess } from './published-revision-access';
 import type { LocalWorkspace } from './use-local-workspace';
 
 function projectFrozenChart(result: FrozenChartResult): {
@@ -40,42 +40,63 @@ export function useRestoredWorkspaceSource(workspace: LocalWorkspace | undefined
   const source = workspace?.snapshot?.source;
   const id = source?.kind === 'frozen' ? source.revision_id : undefined;
   const status = source?.kind === 'frozen' ? source.status : undefined;
-  const revoked = id !== undefined && (status === 'revoked' || access.revoked.has(id));
-  const openable = id && status === 'available' && !revoked ? id : undefined;
+  const revoked = id !== undefined && (status === 'revoked' || access.withheldStatus('csv', id) === 'revoked');
+  const missing = id !== undefined && access.withheldStatus('csv', id) === 'unavailable';
+  const available = id && status === 'available' && !revoked && !missing ? id : undefined;
+  const focus = workspace?.focus;
+  const hasConfirmedFocus = workspace?.hasConfirmedFocus;
+  const openable = available && !focus?.pending && !workspace?.unconfirmedRevisions.has(available) ? available : undefined;
   const [loaded, setLoaded] = useState<RestoredChartSource>();
   const [attempt, setAttempt] = useState(0);
-  const canDisplay = access.canDisplay;
+  const { beginRead, withhold } = access;
+  const refreshAccess = useEffectEvent((revision: string) => {
+    workspace?.refreshPublishedAccess(revision);
+  });
 
-  useWatchPublishedRevision(loaded?.status === 'ready' && loaded.revision_id === openable ? openable : undefined, access.verify, workspace);
+  const ready = loaded?.status === 'ready' && loaded.revision_id === id;
+  const watched = id && !revoked && (missing || ready) ? id : undefined;
+  useWatchPublishedRevision(watched, 'csv', access.verify, workspace, missing ? 'checked-by-reader' : 'check');
+  const generation = focus?.generation;
   useEffect(() => {
-    if (!openable) {
+    const focusIsCurrent = () => generation !== undefined && hasConfirmedFocus?.(generation);
+    if (!openable || !focusIsCurrent()) {
       setLoaded(undefined);
       return;
     }
     const controller = new AbortController();
+    const allowed = beginRead('csv', openable);
+    const reading = () => focusIsCurrent() && allowed();
     setLoaded({ kind: 'frozen', revision_id: openable, status: 'loading' });
     void openAuthenticatedFrozenChart(openable, crypto.randomUUID(), controller.signal).then(result => {
       const chart = projectFrozenChart(result);
-      if (!controller.signal.aborted && canDisplay(openable)) setLoaded(chart ? {
+      if (!controller.signal.aborted && reading()) setLoaded(chart ? {
         kind: 'frozen', revision_id: openable, status: 'ready', chart, label: result.revision.relative_path,
       } : { kind: 'frozen', revision_id: openable, status: 'unavailable' });
-    }).catch(() => {
-      if (!controller.signal.aborted) setLoaded({ kind: 'frozen', revision_id: openable, status: 'unavailable' });
+    }).catch(error => {
+      if (controller.signal.aborted || !focusIsCurrent()) return;
+      setLoaded({ kind: 'frozen', revision_id: openable, status: 'unavailable' });
+      // The first read can lose access before the open chart's watcher starts.
+      // The current snapshot distinguishes a withdrawal from missing data.
+      if (reading() && displayAccessDenied(error)) {
+        withhold('csv', openable);
+        refreshAccess(openable);
+      }
     });
     return () => controller.abort();
-  }, [openable, canDisplay, attempt]);
+  }, [openable, beginRead, withhold, attempt, generation, hasConfirmedFocus]);
 
   const retry = () => {
-    if (openable) setAttempt(value => value + 1);
+    if (id && missing) void access.verify('csv', id);
+    else if (openable) setAttempt(value => value + 1);
     else workspace?.reload();
   };
   if (!id) return { retry, restored: undefined };
-  if (revoked || status === 'unavailable') return {
+  if (revoked || missing || status === 'unavailable') return {
     retry, restored: { kind: 'frozen', revision_id: id, status: revoked ? 'revoked' : 'unavailable' } satisfies RestoredChartSource,
   };
   return {
     retry,
-    restored: loaded?.revision_id === id ? loaded
+    restored: openable && loaded?.revision_id === id ? loaded
       : { kind: 'frozen', revision_id: id, status: 'loading' } satisfies RestoredChartSource,
   };
 }
