@@ -28,12 +28,15 @@ class Replay:
         self.thread = Thread(target=self.publish, args=(request, events, self.stop))
         self.thread.start()
 
+    def _wait_before_update(self, stop: Event, update: ReplayObservation) -> bool:
+        # Keep the development chart observations separately visible.
+        return stop.wait(0.6)
+
     def publish(self, request: MarketSubscriptionRequest, updates: list[ReplayObservation], stop: Event) -> None:
         source = request['payload']
         after = source['after']
         for sequence, update in enumerate(updates, after['sequence'] + 1):
-            # Keep both observations separately visible in the development chart.
-            if stop.wait(0.6):
+            if self._wait_before_update(stop, update):
                 return
             event: MarketBarUpdateEvent | MarketStreamGapEvent
             if isinstance(update, GapObservation):
