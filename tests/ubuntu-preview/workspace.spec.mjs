@@ -45,23 +45,26 @@ const indicatorGateModule = new URL('./workspace_indicator_gate.mjs', import.met
 const activeCacheSlots = new Set();
 const firstHistoryDisconnectHoldMs = 5_500;
 const service = `
-  const [entry, mode, port, cacheDir, faultEnabled, snapshotWriter, traceStartup, indicatorCarrier] = process.argv.slice(1);
+  const [entry, mode, port, cacheDir, faultEnabled, snapshotWriter, traceStartup, indicatorCarrier, holdDeletionBody] = process.argv.slice(1);
   const shutdown = Promise.withResolvers();
   let closing = !process.connected;
   let interrupted;
   let heldFirstDisconnect = false;
+  const deletionBodyRelease = Promise.withResolvers();
   function cutHistory() {
     interrupted?.destroy();
     interrupted = undefined;
   }
   function requestClose() {
     closing = true;
+    deletionBodyRelease.resolve();
     shutdown.resolve();
   }
   process.once('disconnect', requestClose);
   process.on('message', message => {
     if (message === 'close') requestClose();
     else if (message === 'cut-history') cutHistory();
+    else if (message === 'release-deletion-body') deletionBodyRelease.resolve();
     else if (message?.type === 'history-barrier') console.info('Preview history barrier ' + message.id);
   });
   const plugins = faultEnabled ? [{
@@ -109,6 +112,30 @@ const service = `
       });
     },
   }] : [];
+  if (holdDeletionBody) plugins.push({
+    name: 'scopehub-test-hold-deletion-body',
+    enforce: 'pre',
+    configureServer(server) {
+      server.middlewares.use((request, response, next) => {
+        if (request.url !== '${endpoint}') return next();
+        const end = response.end;
+        response.end = function (...args) {
+          if (response.statusCode === 200 && typeof args[0] === 'string') {
+            const { result } = JSON.parse(args[0]);
+            if (result?.outcome?.operation === 'decisionNote.delete' && result.outcome.state === 'committed') {
+              response.flushHeaders();
+              void deletionBodyRelease.promise.then(() => {
+                if (!response.destroyed) end.apply(response, args);
+              }).catch(error => { response.destroy(error); });
+              return response;
+            }
+          }
+          return end.apply(response, args);
+        };
+        next();
+      });
+    },
+  });
   const snapshotGate = snapshotWriter
     ? (await import('${snapshotGateModule}')).installSnapshotGate('${endpoint}', snapshotWriter)
     : undefined;
@@ -3439,15 +3466,80 @@ test('indicator-preview excludes points and markers outside the displayed chart 
 });
 
 test('private decision notes require consent and retain the dated original separately from outcomes', async ({ browser }, testInfo) => {
-  const profile = await makeProfile();
-  const other = await makeProfile();
-  const port = await freePort();
+  const directories = await exerciseDecisionNoteApprovalRecovery(browser, observation => attachDecisionNoteRecovery(testInfo, observation));
+  expect(directories).toHaveLength(2);
+  for (const directory of directories) await expect(stat(directory)).rejects.toMatchObject({ code: 'ENOENT' });
+  await testInfo.attach('decision-note-approval-recovery-profile-cleanup', {
+    body: JSON.stringify({ removedProfiles: directories.length }), contentType: 'application/json',
+  });
+});
+
+test('decision-note approval recovery releases both profiles after result attachment fails', async ({ browser }, testInfo) => {
+  const profiles = [];
+  const databaseSizes = [];
+  let attachmentError;
+  let recoveryObservation;
+  try {
+    const recovery = exerciseDecisionNoteApprovalRecovery(browser, async (observation, ownedProfiles) => {
+      recoveryObservation = observation;
+      profiles.push(...ownedProfiles);
+      for (const { root } of profiles) {
+        databaseSizes.push((await stat(join(root, 'workspace.sqlite3'))).size);
+      }
+      await mkdir(dirname(testInfo.outputDir), { recursive: true });
+      await writeFile(testInfo.outputDir, 'Block only this test result directory.', { flag: 'wx' });
+      try {
+        await attachDecisionNoteRecovery(testInfo, observation);
+      } catch (error) {
+        attachmentError = error;
+        throw error;
+      } finally {
+        await rm(testInfo.outputDir);
+      }
+    });
+    const failure = await recovery.then(() => undefined, error => error);
+    expect(attachmentError).toMatchObject({ path: testInfo.outputDir, syscall: 'mkdir' });
+    expect(['EEXIST', 'ENOTDIR']).toContain(attachmentError.code);
+    expect(failure).toBe(attachmentError);
+    expect(profiles).toHaveLength(2);
+    for (const size of databaseSizes) expect(size).toBeGreaterThan(0);
+    const directoryStatuses = await Promise.all(profiles.map(({ ownedDirectory }) =>
+      stat(ownedDirectory).then(() => 'present', error => error.code)));
+    expect(directoryStatuses, 'Both owned synthetic profile directories were removed').toEqual(['ENOENT', 'ENOENT']);
+    await testInfo.attach('decision-note-approval-recovery-attachment-failure', {
+      body: JSON.stringify({ recoveryObservation, databaseSizes, directoryStatuses,
+        attachmentError: { code: attachmentError.code, syscall: attachmentError.syscall } }),
+      contentType: 'application/json',
+    });
+  } catch (error) {
+    const cleanupAttempts = await Promise.allSettled(profiles.map(profile => profile.close()));
+    for (const attempt of cleanupAttempts) {
+      if (attempt.status === 'rejected') console.error('Decision-note cleanup control could not remove a profile.', attempt.reason);
+    }
+    throw error;
+  }
+});
+
+function attachDecisionNoteRecovery(testInfo, observation) {
+  return testInfo.attach('decision-note-approval-recovery', {
+    body: JSON.stringify(observation), contentType: 'application/json',
+  });
+}
+
+async function exerciseDecisionNoteApprovalRecovery(browser, attachRecovery) {
   const declinedThesis = 'Synthetic draft that should never be saved';
   const thesis = 'Synthetic thesis at decision time';
   const outcome = 'Synthetic later observation';
   const deletionRecovery = {};
+  const profiles = [];
+  const failures = [];
   let originalWriter;
   try {
+    const profile = await makeProfile();
+    profiles.push(profile);
+    const other = await makeProfile();
+    profiles.push(other);
+    const port = await freePort();
     await inService(port, profile, 'ubuntu-workspace', async server => {
       originalWriter = await writerPid(server);
       await inFreshBrowser(browser, server, async page => {
@@ -3614,13 +3706,28 @@ test('private decision notes require consent and retain the dated original separ
         await expect(notes.getByText('No saved decision notes.')).toBeVisible();
       });
     });
+  } catch (error) {
+    failures.push({ stage: 'recovery', error });
   } finally {
-    await testInfo.attach('decision-note-approval-recovery', {
-      body: JSON.stringify(deletionRecovery), contentType: 'application/json',
-    });
-    await Promise.all([profile.close(), other.close()]);
+    try {
+      await attachRecovery(deletionRecovery, profiles);
+    } catch (error) {
+      failures.push({ stage: 'result attachment', error });
+    } finally {
+      const cleanups = await Promise.allSettled(profiles.map(profile => profile.close()));
+      for (const [index, cleanup] of cleanups.entries()) {
+        if (cleanup.status === 'rejected') failures.push({ stage: `profile ${index + 1} cleanup`, error: cleanup.reason });
+      }
+    }
   }
-});
+  if (failures.length > 1) {
+    const summary = failures.map(({ stage, error }) => `${stage}: ${error instanceof Error ? error.message : String(error)}`);
+    throw new AggregateError(failures.map(failure => failure.error),
+      `Decision-note approval recovery reported multiple failures\n${summary.join('\n')}`, { cause: failures[0].error });
+  }
+  if (failures.length) throw failures[0].error;
+  return profiles.map(profile => profile.ownedDirectory);
+}
 
 test('decision-note backup restore previews known deletions and independent copies before apply', async ({ browser }) => {
   const profile = await makeProfile();
@@ -3884,6 +3991,87 @@ async function whilePeerHoldsNoteSnapshot(server, observer, deleting, observatio
     deleting.off('response', releaseAfterRefusal);
     await Promise.all([observer.unroute(url, holdObserver), deleting.unroute(url, deliverApproval)]);
   }
+}
+
+for (const holdDeletionBody of [false, true]) {
+  test(`decision-note deletion reports a missing notice with ${holdDeletionBody ? 'a held' : 'a complete'} response body`, async ({ browser }, testInfo) => {
+    const profile = await makeProfile();
+    const fixture = { date: '2026-02-03', thesis: 'Synthetic decision for a missing notice', choice: 'Wait', outcomes: [
+      { date: '2026-04-09', body: 'Synthetic outcome for the deleted decision' },
+    ] };
+    const observation = { holdDeletionBody, events: [] };
+    try {
+      await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+        await inFreshBrowser(browser, server, async page => {
+          await control(page, 'Decision notes').click();
+          const notes = page.getByRole('dialog', { name: 'Decision notes' });
+          await saveBackupTestNote(notes, fixture);
+          if (!holdDeletionBody) {
+            // Keep the real application state and receipt while suppressing only the visible notice.
+            await page.addStyleTag({ content: '.decision-dialog .note-status { display: none }' });
+          }
+          observation.before = decisionNoteStoredState(profile);
+          const [noteId] = observation.before.notes;
+          const revision = observation.before.workspace.revision;
+          expect(observation.before).toMatchObject({ notes: [expect.any(String)], outcomeCount: 1, deletions: [] });
+          const baseline = performance.now();
+          observeDecisionNoteWindow(page, 'deleting-window', observation.events, baseline);
+          const approvalEvents = () => observation.events.filter(row => row.operation === 'decisionNote.delete'
+            && row.confirmation === 'approve');
+          const notice = notes.getByText('Decision note deleted.', { exact: true });
+          const result = deleteBackupTestNote(page, notes, fixture.date).then(
+            () => ({ state: 'passed', elapsedMs: performance.now() - baseline }),
+            error => ({ state: 'failed', elapsedMs: performance.now() - baseline, message: error.message }),
+          );
+          const guard = new AbortController();
+          try {
+            observation.result = await Promise.race([
+              result, delay(8_000, { state: 'pending before body release' }, { signal: guard.signal }),
+            ]);
+            const [sent, reply] = approvalEvents();
+            const bodyObserved = reply?.state !== undefined;
+            observation.beforeRelease = { stored: decisionNoteStoredState(profile), drawer: await decisionNoteMode(page),
+              bodyObserved, noticeVisible: await notice.isVisible() };
+            expect(observation.result).toMatchObject({ state: 'failed', message: expect.stringContaining('toBeVisible') });
+            expect(observation.result.message).toContain('Decision note deleted.');
+            expect(observation.result.message).toMatch(/Timeout:\s*5000ms/);
+            expect(approvalEvents().map(row => row.stage)).toEqual(['request', 'response']);
+            expect(sent).toMatchObject({ target: noteId, expectedRevision: revision });
+            expect(reply).toMatchObject({ http: 200, requestId: sent.requestId, target: noteId });
+            expect(reply.elapsedMs).toBeLessThan(observation.result.elapsedMs);
+            expect(observation.beforeRelease).toMatchObject({ stored: { workspace: { revision: revision + 1 },
+              notes: [], outcomeCount: 0, deletions: [{ noteId, revision: revision + 1 }] },
+            bodyObserved: !holdDeletionBody, noticeVisible: false });
+            if (holdDeletionBody) expect(reply).not.toHaveProperty('readError');
+          } finally {
+            guard.abort();
+            try {
+              if (holdDeletionBody) await server.releaseDecisionNoteBody();
+            } finally {
+              const settled = await result;
+              if (settled !== observation.result) observation.settled = settled;
+            }
+          }
+          await expect.poll(() => approvalEvents().at(1)).toMatchObject({ state: 'committed',
+            replyRequestId: approvalEvents().at(0).requestId, receiptRevision: revision + 1 });
+          await expect(notes.getByRole('button', { name: 'New decision note' })).toBeVisible();
+          if (holdDeletionBody) await expect(notice).toBeVisible();
+          else await expect(notice).toBeHidden();
+          await expect(notes.getByText(fixture.thesis)).toHaveCount(0);
+          await expect(notes.getByText(fixture.outcomes[0].body)).toHaveCount(0);
+          observation.afterRelease = { drawer: await decisionNoteMode(page), stored: decisionNoteStoredState(profile),
+            noticeVisible: await notice.isVisible() };
+          expect(observation.afterRelease.stored).toEqual(observation.beforeRelease.stored);
+        });
+      }, { holdDeletionBody });
+    } finally {
+      try {
+        await testInfo.attach('decision-note-missing-notice', { body: JSON.stringify(observation), contentType: 'application/json' });
+      } finally {
+        await profile.close();
+      }
+    }
+  });
 }
 
 for (const holdPeer of [false, true]) {
@@ -5652,7 +5840,7 @@ test('ordinary and Ubuntu history startup do not open a writer or dispatch data 
 async function makeProfile(id = 'synthetic-' + randomUUID()) {
   if (process.platform === 'win32') {
     const root = await claimProfile(process.env.SCOPEHUB_WORKSPACE_TEST_PROFILE_POOL);
-    if (root) return { root, id, close: () => rm(root, { recursive: true, force: true, maxRetries: 3 }) };
+    if (root) return { root, id, ownedDirectory: root, close: () => rm(root, { recursive: true, force: true, maxRetries: 3 }) };
     // Large or repeated verification runs can still prepare additional profiles.
   }
   const directory = await mkdtemp(join(tmpdir(), 'scopehub-ubuntu-test-'));
@@ -5660,7 +5848,7 @@ async function makeProfile(id = 'synthetic-' + randomUUID()) {
   const close = () => rm(directory, { recursive: true, force: true });
   try {
     await exec(workspaceBridge, ['--prepare-profile-root', profile], { timeout: 12_000 });
-    return { root: profile, id, close };
+    return { root: profile, id, ownedDirectory: directory, close };
   } catch (error) {
     await close();
     throw error;
@@ -6014,7 +6202,9 @@ async function portAvailable(port) {
   }
 }
 
-function spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault, snapshotGate, indicatorGate, entry = vite, traceStartup }) {
+function spawnService(port, profile, mode, {
+  terminalSignal, historyTrace, historyFault, holdDeletionBody, snapshotGate, indicatorGate, entry = vite, traceStartup,
+}) {
   // Vite publishes its dependency cache by renaming directories. Reuse warm
   // caches across launches, but give every live server its own write path.
   let slot = 0;
@@ -6023,7 +6213,8 @@ function spawnService(port, profile, mode, { terminalSignal, historyTrace, histo
   const args = terminalSignal
     ? [viteCli, '--mode', mode, '--host', '127.0.0.1', '--port', String(port), '--strictPort']
     : ['--input-type=module', '--eval', service, entry, mode, String(port), cacheDir,
-      historyFault ? '1' : '', snapshotGate ? workspaceBridge : '', traceStartup ? '1' : '', indicatorGate ? indicatorCarrier : ''];
+      historyFault ? '1' : '', snapshotGate ? workspaceBridge : '', traceStartup ? '1' : '', indicatorGate ? indicatorCarrier : '',
+      holdDeletionBody ? '1' : ''];
   const child = spawn(process.execPath, args, {
     cwd: ui,
     env: {
@@ -6053,12 +6244,12 @@ async function reapService(child, done, onForcedKill) {
 
 async function inService(port, profile, mode, use, {
   expectHandoff = true, terminalSignal, historyTrace = false, historyFault = false,
-  snapshotGate = false, indicatorGate = false, entry, holdTimeoutMs,
+  holdDeletionBody = false, snapshotGate = false, indicatorGate = false, entry, holdTimeoutMs,
 } = {}) {
   const url = 'http://127.0.0.1:' + port;
   const startedAt = performance.now();
   const child = spawnService(port, profile, mode, {
-    terminalSignal, historyTrace, historyFault, snapshotGate, indicatorGate, entry, traceStartup: true,
+    terminalSignal, historyTrace, historyFault, holdDeletionBody, snapshotGate, indicatorGate, entry, traceStartup: true,
   });
   const carrierGate = indicatorGate ? observeIndicatorGate(child) : undefined;
   const startup = observeServiceStartup(child, { startedAt, mode, port });
@@ -6102,6 +6293,7 @@ async function inService(port, profile, mode, use, {
     },
     ...(snapshotGate && { tagSnapshot: observeSnapshotGate(child) }),
     ...(carrierGate && { carrierGate, stop: () => send('close') }),
+    ...(holdDeletionBody && { releaseDecisionNoteBody: () => send('release-deletion-body') }),
     cutHistoryResponse: () => send('cut-history'),
     disconnectOwner: writer => {
       expect(child.connected).toBe(true);
@@ -6423,24 +6615,21 @@ function onDecisionNoteDeleteApproval(page, action) {
 async function deleteBackupTestNote(page, notes, date) {
   await notes.getByRole('button', { name: new RegExp(date) }).click();
   await notes.getByRole('button', { name: 'Review deletion' }).click();
-  let notice;
-  let observedNotice;
-  try {
-    const reply = await onDecisionNoteDeleteApproval(page, async () => {
-      await notes.getByRole('button', { name: 'Delete decision note' }).click();
-      // Start the existing notice wait at the click, while observing approval delivery independently.
-      notice = Promise.allSettled([expect(notes.getByText('Decision note deleted.')).toBeVisible()]);
-    });
+  // Defer the click until the approval observer is installed. The notice and
+  // receipt run independently, and Promise.all observes either late failure.
+  const clicked = Promise.resolve().then(() => notes.getByRole('button', { name: 'Delete decision note' }).click());
+  const receipt = onDecisionNoteDeleteApproval(page, () => clicked).then(async reply => {
     const request = reply.request().postDataJSON();
+    expect(reply.status()).toBe(200);
     const frame = await reply.json();
-    expect(frame).toMatchObject({ ok: true, result: { request_id: request.request_id, outcome: {
-      state: 'committed', receipt: { target: request.scope.target, undoable: false,
-        workspace_id: request.scope.workspace_id, committed_workspace_revision: request.scope.expected_workspace_revision + 1 },
-    } } });
-  } finally {
-    [observedNotice] = await (notice ?? []);
-  }
-  if (observedNotice.status === 'rejected') throw observedNotice.reason;
+    expect(frame).toMatchObject({ ok: true, result: { protocol_version: '1.1', type: 'response', request_id: request.request_id,
+      outcome: { operation: 'decisionNote.delete', state: 'committed' } } });
+    expect(frame.result.outcome.receipt).toEqual({ operation_id: expect.stringMatching(/\S/),
+      target: request.scope.target, undoable: false, workspace_id: request.scope.workspace_id,
+      committed_workspace_revision: request.scope.expected_workspace_revision + 1 });
+  });
+  const notice = clicked.then(() => expect(notes.getByText('Decision note deleted.', { exact: true })).toBeVisible({ timeout: 5_000 }));
+  await Promise.all([notice, receipt]);
   await expect(notes.getByRole('button', { name: 'New decision note' })).toBeVisible();
   await expect(notes.getByRole('button', { name: new RegExp(date) })).toHaveCount(0);
 }

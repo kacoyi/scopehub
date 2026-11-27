@@ -659,7 +659,7 @@
     {
       "id": "workspace-timeframe",
       "status": "implemented",
-      "purpose": "Exercise the real opted-in local writer through staged browser startup, private handoff recovery, browser and process restart, timeframe undo, terminal cleanup, decision-note confirmation, deletion, backup and restore, private-record lifecycle and stale approval, and chart evidence selection and narrow projection of actual frozen profile data. Verify that the public CSV library keeps a withheld entry hidden after an invalid HTTP status reply and recovers it after a valid confirmation.",
+      "purpose": "Exercise the real opted-in local writer through staged browser startup, private handoff recovery, browser and process restart, timeframe undo, terminal cleanup, decision-note confirmation, deletion, backup and restore, private-record lifecycle and stale approval, and chart evidence selection and narrow projection of actual frozen profile data. Check deletion notice and approval receipt independently during a held response body and verify recovery fixture disposal after a rejected result attachment. Verify that the public CSV library keeps a withheld entry hidden after an invalid HTTP status reply and recovers it after a valid confirmation.",
       "platforms": "all",
       "command": [
         "pnpm",

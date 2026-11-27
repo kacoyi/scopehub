@@ -29427,7 +29427,7 @@
           "report_sha256": "ba89eebe0283ebbb75d909017c5552a45fb55d1dcb7c07f48c78cae6cf51302b"
         }
       ],
-      "next_action": "Correct the two independently confirmed fixture defects and retain normal and rejected controls on a clean local candidate. Obtain independent review, a matching ordinary Windows observation and protected verification before resolving the original finding or completing the task.",
+      "next_action": "Review the clean candidate and its retained normal and rejected browser controls for both fixture corrections. The coordinator obtains a matching ordinary Windows observation and protected verification before resolving the original finding or completing the task.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
