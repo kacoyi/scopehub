@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M3-008",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -29573,7 +29573,7 @@
       "id": "M3-008",
       "title": "Bind recovered indicator results to their frozen source",
       "milestone": "M3",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M3-007"
       ],
@@ -29607,10 +29607,19 @@
           "report_sha256": "0d96d171823dabd3aebc06893947edb08a9055a5015b735c6309484974bbf2dc"
         }
       ],
-      "next_action": "Verify the repaired public-entry controls and adjacent workflows. Hand the clean candidate and exact local observations to the coordinator for independent review and native verification.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
-      "evidence": [],
+      "closure_reason": "The independent decisions in contracts/reviews/task-decisions/M3-008.json#/events/1 and contracts/reviews/task-decisions/M3-007.json#/events/11 approved d412069b5baa15a9f5a03fb512eea911e82ba886. Their scope carries to the unchanged implementation on bd6ba42d4bd8e24174a8e04f81815280f8cd6d14. Guarded task dispatch 45976117388 attempt 1 on that exact candidate passed all five required checks, environment and project-state on Linux and Windows. The host rerun passed the same checks. After one lost status delivery, the ordinary chart displayed 3500.5 for the normal sample and Unknown for the gapped sample. Both reciprocal artifact swaps and the isolated dataset ID and revision changes failed with the original chart intact and one cancellation of the admitted task. Cancellation during a held recovery read, cancellation before the admission reply, the original polling deadline and zero volatility in the full and cropped equal-close CSV windows all passed. The guarded artifacts are bound by archives/observations/repo-hygiene-20261125/task-dispatch-m3-008-45976117388/manifest.json (SHA-256 30de42f59a8129d182174aa5c99c8c4adbeddd7bff62b47effbcb18f99097c69). The coordinator owns ordinary PR qualification 45976102937 and first protected verification. Physical Windows acceptance and integration are separate gates.",
+      "evidence": [
+        {
+          "path": "project/evidence/M3-008-13595e0d1458b6c5.json",
+          "sha256": "a4f15e8ea9c26853467f50d191bbf7d7ee75843389fc71d02e6556a54ecc702d"
+        },
+        {
+          "path": "project/evidence/M3-008-283b1f08645fc166.json",
+          "sha256": "78bfaeacb5a8dcab407b010bfdbef718c47f9313eb539156b9ad93fdce94e43c"
+        }
+      ],
       "plan": {
         "outcome": "The offline sample chart only displays indicator result provenance for its own frozen dataset and revision after recovery.",
         "change_types": [

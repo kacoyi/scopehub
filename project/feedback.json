@@ -9841,14 +9841,18 @@
       "source": "Independent Astra Standard (t1g9) component replay on 0c3e56b4c808427b89751ff6fdee49b91741e3e9. Review decision: contracts/reviews/task-decisions/M3-007.json#/events/9. Original transcript: .reports/M3-007/provenance/review/original-assistant-response.jsonl (SHA-256 84daf687a6cc95e6af4bfc40f1d96d55d3550ab0b732ad64bf11efd8ec69b8d9). Public Chromium and Rust writer reproduction: .reports/M3-007/provenance/before-product-fix/results.json at 96ab01aad5f1e75f1b30c1a81fcafe7f1c2a76d1 (SHA-256 9f1281cde93a172c87b89baae09a2744aa01b7be7fd9d202ed87c1fcd6b3174b).",
       "observation": "After one lost status delivery, changing only the admitted task\u2019s recovered ready artifact to the normal sample writer output displayed 3500.5 over the gapped chart, while the gapped artifact displayed Unknown. The reciprocal substitution also displayed the other source\u2019s result. A foreign result must fail with the chart still available and one cleanup of the originally admitted task.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M3-008"
       ],
       "regression_checks": [
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The ready-response consumer compared the task and event snapshot with the frozen source and omitted the inline result's own dataset ID and revision. A different writer artifact could pass the event checks.",
+        "correction": "Compare the inline result's dataset ID and revision with the frozen chart snapshot before displaying the preview. The existing failure path cleans up the original admitted task.",
+        "prevention": "The public workspace-timeframe regression used actual normal and gapped writer artifacts after one lost logical delivery. Both matching results displayed their expected values. Reciprocal swaps and isolated ID and revision changes failed with the original chart intact and exactly one cancellation of the admitted task. Both platform receipts from guarded task dispatch 45976117388 bind this finding and its regression."
+      },
       "deferral_reason": null
     }
   ]
