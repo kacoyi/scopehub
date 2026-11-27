@@ -543,12 +543,13 @@ class WindowsLaneTests(ProjectFixture):
         self.event = self.downloads.parent / f'{self.downloads.name}-event.json'
         self.addCleanup(self.event.unlink, missing_ok=True)
         self.event.write_bytes(json_bytes({'number': 1, 'pull_request': {'base': {'sha': base}, 'head': {'sha': head}}}))
+        # The workflow supplies SCOPEHUB_REVIEW_BASE only to its separate history step.
         self.enterContext(patch.dict(os.environ, {
             'GITHUB_ACTIONS': 'true', 'GITHUB_REPOSITORY': 'fixture/scopehub', 'GITHUB_RUN_ID': '10',
             'GITHUB_RUN_ATTEMPT': '2', 'GITHUB_EVENT_NAME': 'pull_request', 'GITHUB_SHA': merge,
             'GITHUB_REF': 'refs/pull/1/merge', 'GITHUB_EVENT_PATH': str(self.event), 'SCOPEHUB_SOURCE_HEAD': head,
             'GITHUB_JOB': 'windows_change', 'RUNNER_OS': 'Windows',
-            'SCOPEHUB_WINDOWS_LANE_RESULT': 'success', 'SCOPEHUB_REVIEW_BASE': base, 'GITHUB_OUTPUT': '',
+            'SCOPEHUB_WINDOWS_LANE_RESULT': 'success', 'GITHUB_OUTPUT': '',
         }))
         self.enterContext(patch.object(harness, 'ROOT', self.root))
         self.enterContext(patch.object(harness, 'REPORTS', self.reports))
