@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-178",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "1a3d482590f6ebe9771b10c58c155e79ecacffde",
+      "scope": "Independently verify the correction of the two demonstrated protected Python observation defects at the public integration entry.",
+      "supersedes": null,
+      "requested_at": "2026-11-27T10:07:23.818141+00:00",
+      "request_id": "335aa4d9494d09cb51018c49a40bb77cc047f77845db60dfcc0d9df8a11bf906",
+      "evidence_sha256": "9419cbde7d2fe86d74ae00aea7be8123331ec7cb06779a955838ec014309a365"
+    }
+  ]
+}
