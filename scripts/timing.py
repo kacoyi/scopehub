@@ -3811,7 +3811,7 @@ def update_timing_capture(path, repository, run, identity, samples, hosted):
                 if ci_key(row['ci'] or {}) == identity and row['platform'] in evidence.missing
             ]
         except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
-            issues.append({'run_id': run_id, 'source': 'compact_reports', 'error': input_error(error)})
+            issues.append({'run_id': run_id, 'error': f'Could not retrieve compact reports: {error}'})
     missing_failure_clock = run['conclusion'] != 'success' and not any(
         row['conclusion'] == run['conclusion'] and not row.get('authenticated_failure') for row in evidence.clocks
     )
@@ -3822,7 +3822,7 @@ def update_timing_capture(path, repository, run, identity, samples, hosted):
             if valid_clock(row) and ci_key(row) == identity:
                 new_clocks.append(row)
         except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
-            issues.append({'run_id': run_id, 'source': 'attempt_jobs', 'error': input_error(error)})
+            issues.append({'run_id': run_id, 'error': f'Could not retrieve attempt jobs: {error}'})
     captured = capture_observations(
         identity, [*evidence.samples, *new_samples], [*evidence.clocks, *new_clocks], issues, conclusion=run['conclusion'],
     )
@@ -4037,12 +4037,12 @@ def inspect_recent(repository, limit, samples, workflows, issues):
             (with_compact if compact else without_compact).append(run_id)
             samples.extend(compact)
         except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
-            issues.append({'run_id': run_id, 'error': f'Could not retrieve compact reports: {error}'})
+            issues.append({'run_id': run_id, 'source': 'compact_reports', 'error': input_error(error)})
         try:
             clock = inspect_jobs(run, repository)
             workflows.append(clock)
         except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
-            issues.append({'run_id': run_id, 'error': f'Could not retrieve attempt jobs: {error}'})
+            issues.append({'run_id': run_id, 'source': 'attempt_jobs', 'error': input_error(error)})
             continue
         try:
             identity = actions_attempt_identity(repository, run)
