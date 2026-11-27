@@ -503,6 +503,26 @@
       "requested_at": "2026-11-27T10:17:01.174066+00:00",
       "request_id": "d9b2c2a9309e6790f69f0e84e5ba77c9337b71e6c1a889e9a9060ff4dd04c9bc",
       "evidence_sha256": "7129f63abdabc8fc0cb7d30b20e381fa0624d2ff5e2b0d7ab5edd537ad88981c"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "17cd39cfc82e095f341f9b2f3a4c20022e36996d",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 17cd39cfc82e095f341f9b2f3a4c20022e36996d",
+      "scope": "CHANGES_REQUESTED M0-155 17cd39cfc82e095f341f9b2f3a4c20022e36996d",
+      "observation": "On run 45838575346, ordinary, offline weekly, and cold reads all lost the 1291-second Windows wall time when I added an aggregate job completion one second before its successful cleanup step finished.",
+      "reviewer": "Independent Astra Standard (t1hj)",
+      "original_sha256": "a6eaaad18ad6bf5f6e56c9ed65885d872179aba4ccb7db82e0ea3432ef6c8bb6",
+      "response_id": "8ad55186cd607406c5db60553a4c1ade0e6444c50c5b5626a7ca801e20e7214d",
+      "response_sha256": "c0167ebcd90ad8b0fe7954cd7b57d831f5e2efd5ca8360eb335b1a8b6733697c",
+      "legacy_response_sha256": "083edfe3c821e2cfdf2055eaa532ec391ce0610d51df1e988321d86a100cde8c",
+      "observation_body_sha256": "5a78e0d545b06d42ea69d5b3a835af5c7891c3aacd0b86c4d5e661728abd9fe3",
+      "event": {
+        "id": "msg_0c5ccd9219f6d9a0016b095a6bcffc87d0969cd2e7f9c73b21",
+        "timestamp": "2026-11-27T10:25:09.421Z"
+      },
+      "supersedes": "d9b2c2a9309e6790f69f0e84e5ba77c9337b71e6c1a889e9a9060ff4dd04c9bc",
+      "evidence_sha256": "5dd3f0fd34b31bdea2ed59eadc810d9504324489e7771733c77f03e761180abe"
     }
   ]
 }

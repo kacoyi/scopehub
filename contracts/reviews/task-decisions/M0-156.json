@@ -532,6 +532,26 @@
       "requested_at": "2026-11-27T10:17:02.042577+00:00",
       "request_id": "d2d34766f6aa540a52e4061ec6ee72e1d5f3d4875d7f84412a5631ad5d26ff0c",
       "evidence_sha256": "829a0106b0eb1abdedccae0b68a18ccd9fe80e02e492666a9fd8e25ebd88516a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "17cd39cfc82e095f341f9b2f3a4c20022e36996d",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 17cd39cfc82e095f341f9b2f3a4c20022e36996d",
+      "scope": "CHANGES_REQUESTED M0-156 17cd39cfc82e095f341f9b2f3a4c20022e36996d",
+      "observation": "On cold replay, the reader credited both copied PR 96 receipts to a collection that explicitly listed that run as missing its compact reports.",
+      "reviewer": "Independent Astra Standard (t1hm)",
+      "original_sha256": "98ace9685b498c19111767eaffbe8da5971f9c4f36199dbbdcfff5b29710efb4",
+      "response_id": "b31f0937dd8d9f6093ae44796940d9263d259ce4ef040e925a291b87961edef6",
+      "response_sha256": "b676aac1dc3ded7b2d1350fa225297cd20586d8a367077c08ece97564c4e3ba9",
+      "legacy_response_sha256": "f3657ef3b58e9787c530edca3b3ac7d573c4bdd502539e88cc48c620c4fbc4cf",
+      "observation_body_sha256": "51077a68d4f956b9d3c02035e72d7b3add98ff718dcaaf390c6ab0ddb2e99ad9",
+      "event": {
+        "id": "msg_0135b69668947560016b095b7f311c87d0ab078d2fb20bb0bd",
+        "timestamp": "2026-11-27T10:29:37.303Z"
+      },
+      "supersedes": "d2d34766f6aa540a52e4061ec6ee72e1d5f3d4875d7f84412a5631ad5d26ff0c",
+      "evidence_sha256": "dcd409f541f95ed6e81f4949ea81bbf09bc120b967e20bd0a1cae41001642259"
     }
   ]
 }
