@@ -1477,11 +1477,16 @@ def reconcile_job_clocks(by_id, attempt, layout, issues):
             job.pop('name', None)
         if producer:
             job['name'] = name
+        order_bounds = None
         if conclusion == 'skipped':
             job['seconds'] = dict.fromkeys((*ATTEMPT_SECONDS, *SPLIT_SECONDS))
             job.update(endpoints=dict.fromkeys(JOB_ENDPOINTS))
             job.pop('endpoint_choices', None)
             job.pop('endpoint_disputes', None)
+        elif projected and (setup := steps.get('Set up job')) and setup.succeeded:
+            order_bounds = {'setup_start': setup.endpoints['start']}
+        elif producer and (cleanup := steps.get('Complete job')) and cleanup.succeeded:
+            order_bounds = {'cleanup_end': cleanup.endpoints['end']}
         job.update(status=status, conclusion=conclusion, identity_issues={'missing': [], 'conflicts': []})
         if unplaced:
             timing_issue(issues, {**issue, 'endpoints': sorted(unplaced),
@@ -1492,11 +1497,6 @@ def reconcile_job_clocks(by_id, attempt, layout, issues):
             error = ('Conflicting Windows producer job measurements.' if producer
                      else 'Conflicting protected job measurements.')
             timing_issue(issues, {**issue, 'fields': list(disputed), 'error': error})
-        order_bounds = None
-        if projected and (setup := steps.get('Set up job')) and setup.succeeded:
-            order_bounds = {'setup_start': setup.endpoints['start']}
-        if producer and (cleanup := steps.get('Complete job')) and cleanup.succeeded:
-            order_bounds = {'cleanup_end': cleanup.endpoints['end']}
         observed[key] = JobClockEvidence(job, disputed, endpoint_disputes, order_bounds)
     return observed
 
