@@ -320,6 +320,15 @@
       },
       "supersedes": "133ca40065632598934aa3bf5b67829831156bdacda9775573bde244b16447ad",
       "evidence_sha256": "5f9ca3735c4a07b1112fe50cddbb5cb0619c35f97b2603d61aac5842504b451b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "4c4865fa8db31cd57c84a8061d8abc00e03d1a01",
+      "scope": "Independently qualify bound numbered Actions steps, absent and contrary endpoints, rotation and preserved independent clocks. Check nanosecond ambiguity, preserved provably-equal phase totals and unaffected independent clocks through ordinary and weekly intake. Use the previous rejection and the archived originals for PR 96 and the later actual first-attempt run 45838575346, with all seven original jobs. Verify both protected-parent semantics survived the composition and use an independent rejected control.",
+      "supersedes": "228b1bece5972835df5d2a2d46e8c83a04fabf46103931651e8f0c224cb79a10",
+      "requested_at": "2026-11-27T02:45:58.663395+00:00",
+      "request_id": "0cab0818acfccce0f2aa4f1b197e11cdd7ade0cc56b4f875c5d8bc2ee709157e",
+      "evidence_sha256": "b13d878c8690eaf1d4c9b23f664df0d952d3775e1b64c31a0e460d7161bbb0df"
     }
   ]
 }

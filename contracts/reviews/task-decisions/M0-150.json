@@ -340,6 +340,15 @@
       },
       "supersedes": "0a0ecad30c3da79d75c2c912e1e89d2e0aafa54f77d91168c5b5d8ae68e704b3",
       "evidence_sha256": "c08d578269c4ad822bf55e848a6dc1f1108e115bd5fb1ee8f17bd75860708bfa"
+    },
+    {
+      "kind": "request",
+      "source_commit": "4c4865fa8db31cd57c84a8061d8abc00e03d1a01",
+      "scope": "Independently qualify exact instants, the required native result, and result-derived raw summaries with historical publisher inputs. Check equivalent timezone offsets, exact instants and invalid publisher evidence parity on Linux and Windows through normal reads and reopened records. Use the previous rejection and the archived originals for PR 96 and the later actual first-attempt run 45838575346, with all seven original jobs. Verify both protected-parent semantics survived the composition and use an independent rejected control.",
+      "supersedes": "8cec27806783b38f670d7eb077d6a7bd5be7ed7db201c307c05fe6c5f79e20ab",
+      "requested_at": "2026-11-27T02:45:57.545806+00:00",
+      "request_id": "f87173c0d6c4e752acc507bfd9d6dc183935f249426ffdb81a97310e983c220b",
+      "evidence_sha256": "b3ce4abd35d83f30450cb6c1b7df3fc5175fe50f9578d4cc9ee9e710826837e1"
     }
   ]
 }

@@ -349,6 +349,15 @@
       },
       "supersedes": "e7e152d9a6654aaeb7ed7cef11bb57eef07e91f1d5dc0eede72c659e792fb63d",
       "evidence_sha256": "ea6e3c90becd35927e01771a0157dfa65330375ee8d6a09d23e78d84e62168d0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "4c4865fa8db31cd57c84a8061d8abc00e03d1a01",
+      "scope": "Independently qualify shallow checkout provenance, incomplete ancestry, retained proof and separately observed clocks. Check whether an excluded Linux producer can change Windows credit, compare proven parent and missing shallow histories, and verify independent observed clocks. Use the previous rejection and the archived originals for PR 96 and the later actual first-attempt run 45838575346, with all seven original jobs. Verify both protected-parent semantics survived the composition and use an independent rejected control.",
+      "supersedes": "8c1c9c071bacf253782f1f9d64df98e78cddaee41cc58fb4115ce4b4c4dec613",
+      "requested_at": "2026-11-27T02:45:59.584193+00:00",
+      "request_id": "bb1efc8f7d512ba4e5c8d143876dcd212336a2f02d8cf16bbec02b0c7a151d4d",
+      "evidence_sha256": "004f2ae5748fdc9e54d4d2954f0f2d850a046d8ca51a34a397768da99a3f0b9f"
     }
   ]
 }
