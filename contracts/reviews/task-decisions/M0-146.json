@@ -523,6 +523,15 @@
       },
       "supersedes": "35fbe9ee6e6f7fcbee17a47bbd1ff12a9103fe8f1536a82951c80e62010396fe",
       "evidence_sha256": "a6a13d8128d09cdf12fba5781ba48b2915edf4519d2d696c2d954c64e7941cb0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ad62ed0d49128539c309312c6f23bec137e9874a",
+      "scope": "Review removal of the redundant history-baseline override in the Windows scheduling fixture against the real workflow and the observed Git process burden.",
+      "supersedes": "9a7836a16d6b753989717041b20810b3e8e700edcc446bc90da49c48d9b93597",
+      "requested_at": "2026-11-27T07:10:26.912567+00:00",
+      "request_id": "9c96db1990052235268ef4708551292ee059c102ba12112f314fb6a107371aa5",
+      "evidence_sha256": "c1965ac2e7dd889ab7281676fe79fddf7b8312dfe472026f53c3d2a4e835aa45"
     }
   ]
 }

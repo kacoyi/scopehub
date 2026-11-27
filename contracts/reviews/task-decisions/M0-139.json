@@ -523,6 +523,15 @@
       },
       "supersedes": "7d811a4823cd4e180fa9eea85f87239f9f4ae87d8b0102e7d286db00e7e9893f",
       "evidence_sha256": "c62649136c14f390eae557b55192bb94905d902e46644ffdb45967961c8b6f2c"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ad62ed0d49128539c309312c6f23bec137e9874a",
+      "scope": "Requalify the executed-failure provenance decision on the changed scheduling test source, as the ordinary history check identifies the earlier decision as stale.",
+      "supersedes": "998961492c636830bec69af581f28cc634d19bc3d8f6b5b23e1d95b6054b31e1",
+      "requested_at": "2026-11-27T07:10:27.530369+00:00",
+      "request_id": "a538dfee0a9ab83a874f065cb041986b38ce97f265ac26615bc4dd97f94f7ac0",
+      "evidence_sha256": "d8e16bd9d7b56a1ce1e795bf3563fdfec1c83913aae51ba5ad765d6900a2489f"
     }
   ]
 }
