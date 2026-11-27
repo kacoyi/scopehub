@@ -42,7 +42,7 @@ try:
             FIELD_ACTIONS, RUN_OBSERVATION_CHECKS, collect_run_observation, field_observation,
             redacted_check_log, release_artifacts,
         )
-        from .verification_report import integration_validation
+        from .verification_report import STOP_REASONS, integration_gates, integration_validation, stops_after_check
         from .verification_scope import windows_native_satisfied
     else:
         from doctor import tool_version
@@ -57,7 +57,7 @@ try:
             FIELD_ACTIONS, RUN_OBSERVATION_CHECKS, collect_run_observation, field_observation,
             redacted_check_log, release_artifacts,
         )
-        from verification_report import integration_validation
+        from verification_report import STOP_REASONS, integration_gates, integration_validation, stops_after_check
         from verification_scope import windows_native_satisfied
 except Exception as error:
     if __name__ != '__main__':
@@ -84,7 +84,6 @@ def ci_provenance(source, env, root=ROOT):
 
 
 PRIVATE_CHECK_LOGS = RUN_OBSERVATION_CHECKS | set(FIELD_ACTIONS) | {'credential-boundaries'}
-STOP_REASONS = {'interrupted', 'cleanup_failed'}
 BUILD_CHECKS = {'typescript-contracts', 'ui-build', 'rust-format', 'rust-contracts-workers',
                 'rust-lints', 'windows-native-build'}
 CHECK_OUTPUT_LOCK = Lock()
@@ -511,8 +510,7 @@ def main():
                 except (OSError, KeyError, ValueError, TypeError) as error:
                     result.update(status='failed', reason_code='missing_acceptance_evidence', reason=str(error))
             results.append(result)
-            if result.get('reason_code') in STOP_REASONS or (
-                    result['status'] != 'passed' and (args.fail_fast or args.profile == 'fast' or check['id'] == 'environment')):
+            if stops_after_check(result, fail_fast=args.fail_fast or args.profile == 'fast'):
                 stopped = True
     final_source = source_identity(ROOT)
     source_unchanged = final_source['sha256'] == source['sha256']
@@ -533,11 +531,8 @@ def main():
         passed = False
     integration_requested = not args.ci_windows_lane and (
         args.require_windows or (not args.task and args.profile in {None, 'release'}))
-    required = project['catalog']['required_change_checks']
-    observations = {result['id']: result for result in results}
-    unverified = [key for key in required if observations.get(key, {}).get('status') != 'passed'
-                  or observations.get(key, {}).get('exit_code') != 0]
-    applicable_missing = [key for key in unverified
+    gates = integration_gates(results, project['catalog']['required_change_checks'], requested=integration_requested)
+    applicable_missing = [key for key in gates['unverified']
                           if project['checks'][key]['platforms'] == 'all' or windows_x64(environment)]
     integration_blocked = integration_requested and bool(applicable_missing)
     if integration_blocked:
@@ -554,8 +549,7 @@ def main():
         'project_state_error': state_error,
         'timing': {'elapsed_seconds': round(time.monotonic() - started, 3)},
         'native_requirement': {'requested': args.require_windows, 'satisfied': not native_blocked},
-        'integration_gates': {'requested': integration_requested, 'required': required, 'unverified': unverified,
-                              'status': ('blocked' if unverified else 'passed') if integration_requested else 'not_requested'},
+        'integration_gates': gates,
         'selection': {'profile': (f'ci-windows-{args.ci_windows_lane}' if args.ci_windows_lane
                                   else args.profile or ('task' if args.task else 'full')), 'task_id': args.task,
                       'checks': sorted(selected)},

@@ -205,6 +205,9 @@ def native_raw_fixture(test, report, catalog):
     report.update(report_version='2.0', source=source, source_end=source.copy(),
                   project_definition_sha256='d' * 64, task_definitions={},
                   native_requirement={'requested': report['selection']['profile'] == 'full', 'satisfied': True})
+    report['integration_gates'] = timing.integration_gates(
+        report['checks'], catalog['required_change_checks'], requested=report['selection']['profile'] == 'full'
+    )
     report['ci'].update(provider='github-actions', run_url='https://github.com/fixture/scopehub/actions/runs/11')
     report['environment']['python_executable'] = 'C:/fixture/python.exe'
     populate_raw_commands(report, catalog)
@@ -599,7 +602,7 @@ class HostedTimingTests(unittest.TestCase):
         report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(official))), 'checkout_sha': 'a' * 40}
         sample = timing.report_sample(report)
 
-        for finish, runner, workflow_runner in (('12:09', 1687, 2187), ('12:08', None, None)):
+        for finish, runner, workflow_runner in (('07:49', 1687, 2187), ('12:09', 1687, 2187), ('12:08', None, None)):
             with self.subTest(finish=finish):
                 alternate = dict(python, completed_at=f'2026-11-20T00:{finish}Z')
                 grouped = timing.hosted_timing(run, [alternate, *jobs])
@@ -612,6 +615,13 @@ class HostedTimingTests(unittest.TestCase):
                     windows, = timing.timing_view([sample], hosted=clocks)['samples']
                     self.assertEqual((765, runner, 695),
                                      tuple(windows['seconds'][field] for field in ('total', 'runner', 'harness_step')))
+
+        parent = dict(jobs[-1], started_at='2026-11-20T00:11:59Z')
+        competing = timing.hosted_timing(run, [*jobs[:-1], parent])
+        for clocks in ([official, competing], [competing, official]):
+            windows, = timing.timing_view([sample], hosted=clocks)['samples']
+            self.assertEqual((19, 8, 1687), tuple(
+                windows['seconds'][field] for field in ('aggregate_setup', 'queue', 'runner')))
 
     def test_recent_collection_only_credits_received_qualified_platform_report(self):
         run = hosted_run()

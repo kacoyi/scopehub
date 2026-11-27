@@ -56,6 +56,13 @@ class ArchivedSplitPublisherTests(unittest.TestCase):
             self.assertFalse(timing.native_report_issue(failed_sample, None, []))
             with self.assertRaisesRegex(timing.TimingError, 'differ from the publishing lane'):
                 timing.input_report_sample(dict(report, windows_python={}))
+            stopped = deepcopy(report)
+            stopped['status'] = 'failed'
+            stopped['windows_python']['python'] = {
+                key: stopped['windows_python']['python'][key] for key in ('id', 'command')
+            } | {'status': 'failed', 'reason_code': 'earlier_failure'}
+            with self.assertRaisesRegex(timing.TimingError, 'without a producer stop'):
+                timing.input_report_sample(stopped)
             for key, value, error in (
                 ('log', 'unbound.log', 'invalid Windows Python process reference'),
                 ('started_at', '2026-11-20T00:10:00Z', 'outside its harness interval'),
@@ -101,8 +108,15 @@ class ArchivedSplitPublisherTests(unittest.TestCase):
                      'split_recovery_checks': [], 'run_observations': timing.RUN_OBSERVATION_CHECKS}
         with patch.object(timing, 'committed_windows_publisher', return_value=publisher):
             self.assertEqual('passed', timing.input_report_sample(report)['report_status'])
+            invalid_gates = deepcopy(report)
+            invalid_gates['integration_gates'].update(status='blocked', unverified=[check['id']])
+            with self.assertRaisesRegex(timing.TimingError, 'integration gates.*contradict'):
+                timing.input_report_sample(invalid_gates)
             report['status'] = 'failed'
             combined.update(status='failed', exit_code=1)
+            report['integration_gates'] = timing.integration_gates(
+                report['checks'], catalog['required_change_checks'], requested=True
+            )
             with self.assertRaisesRegex(timing.TimingError, 'aggregate measurement.*differs from its parts'):
                 timing.input_report_sample(report)
             report['windows_python']['recovery'].update(status='failed', exit_code=1)

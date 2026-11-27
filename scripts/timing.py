@@ -28,14 +28,15 @@ if __package__:
         RUN_OBSERVATION_CHECKS, RUN_OBSERVATION_POLICIES, passed_observation_checks,
         WINDOWS_LANE_FAILED, WINDOWS_PYTHON_CHECK, WINDOWS_RECOVERY_INTERRUPTED,
         archived_windows_python_issue, archived_windows_python_lanes,
-        publishing_observation_checks, report_observation_issue, windows_publisher_status_issue,
+        integration_gates, publisher_sequence_issue, publishing_observation_checks, report_observation_issue,
+        windows_publisher_status_issue,
     )
     from .verification_scope import (
         LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit,
         decode_publishing_catalog, git, invalid_number, oid, publishing_check_catalog, require_complete_history,
         unique_object,
-        windows_lane_report_matches, windows_native_satisfied, windows_published_scope, windows_raw_timing_issue,
-        windows_result_issue, windows_x64,
+        windows_lane_checks, windows_lane_report_matches, windows_native_satisfied, windows_published_scope,
+        windows_raw_timing_issue, windows_result_issue, windows_x64,
     )
     from .worktree import WorktreeError, entry_info, exclusive_git_lock, git_path, reparse_point
 else:
@@ -49,14 +50,15 @@ else:
         RUN_OBSERVATION_CHECKS, RUN_OBSERVATION_POLICIES, passed_observation_checks,
         WINDOWS_LANE_FAILED, WINDOWS_PYTHON_CHECK, WINDOWS_RECOVERY_INTERRUPTED,
         archived_windows_python_issue, archived_windows_python_lanes,
-        publishing_observation_checks, report_observation_issue, windows_publisher_status_issue,
+        integration_gates, publisher_sequence_issue, publishing_observation_checks, report_observation_issue,
+        windows_publisher_status_issue,
     )
     from verification_scope import (
         LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit,
         decode_publishing_catalog, git, invalid_number, oid, publishing_check_catalog, require_complete_history,
         unique_object,
-        windows_lane_report_matches, windows_native_satisfied, windows_published_scope, windows_raw_timing_issue,
-        windows_result_issue, windows_x64,
+        windows_lane_checks, windows_lane_report_matches, windows_native_satisfied, windows_published_scope,
+        windows_raw_timing_issue, windows_result_issue, windows_x64,
     )
     from worktree import WorktreeError, entry_info, exclusive_git_lock, git_path, reparse_point
 
@@ -483,6 +485,11 @@ def input_report_sample(report):
         if definition is not None:
             selected = selection['checks']
             split_run = windows_lane_report_matches(ci, report['run_id'], report['environment'])
+            if profile == 'full' and split_run:
+                gates = integration_gates(report['checks'], catalog['required_change_checks'], requested=True)
+                if (report.get('integration_gates') != gates
+                        or report['integration_gates']['requested'] is not True):
+                    raise TimingError('Timing report has integration gates that contradict its check results.')
             lane_failed = profile == 'full' and split_run and WINDOWS_LANE_FAILED in report.get('limitations', ())
             interrupted = WINDOWS_RECOVERY_INTERRUPTED in report.get('limitations', ())
             if interrupted and ('recovery' not in parts or not publisher.get('split_recovery_interruptions')):
@@ -492,6 +499,11 @@ def input_report_sample(report):
             auxiliary_failure = lane_failed or interrupted or part_failed
             if issue := windows_publisher_status_issue(report['status'], report['checks'], selected, catalog,
                                                        scoped=scoped, auxiliary_failure=auxiliary_failure):
+                raise TimingError(f'Timing report has {issue}.')
+            if issue := native_publisher_sequence(
+                report['checks'], set(selected), profile, split_run, publisher, assignment, split_assignment,
+                parts=report.get('windows_python', {}),
+            ):
                 raise TimingError(f'Timing report has {issue}.')
     sample = report_sample(report)
     if native and (definition is None or any(report[key] != value for key, value in definition.items())):
@@ -730,11 +742,38 @@ def split_execution_bounds(parent, sources, active):
     return interval_bounds(executions)
 
 
+def independent_job_chains(choices):
+    # An inconsistent phase cannot constrain an otherwise measured job.
+    # Each admitted phase bounds the job interval independently.
+    for phase in (*STEP_KINDS, *ACTIONS_ORDER_STEPS.values()):
+        if choices.get(f'{phase}_start') or choices.get(f'{phase}_end'):
+            order = phase_order(phase)
+            if can_order(choices, order):
+                yield order
+
+
+def split_job_boundaries(choices, fields):
+    chains = tuple(independent_job_chains(choices))
+    for points in job_boundary_choices(choices, fields):
+        fixed = choices | {field: (point,) for field, point in zip(fields, points, strict=True)}
+        if all(can_order(fixed, chain) for chain in chains):
+            yield points
+
+
+def earliest_job_finish(choices, measured):
+    if choices.get('end'):
+        return min(measured, default=None)
+    boundaries = ('requested', 'start', 'end')
+    if not can_order(choices, boundaries):
+        return None
+    return max(ordered_limit(choices, chain, 'end') for chain in (boundaries, *independent_job_chains(choices)))
+
+
 def split_runner_bounds(parent, sources):
     # Condition every producer duration on the same aggregate start. Each
     # producer runs independently once that deadline is fixed.
-    pairs = [job_boundary_choices(source, ('start', 'end')) for source in sources.values()]
-    parents = job_boundary_choices(parent, ('start', 'end'))
+    pairs = [tuple(split_job_boundaries(source, ('start', 'end'))) for source in sources.values()]
+    parents = tuple(split_job_boundaries(parent, ('start', 'end')))
     if not parents or not all(pairs):
         return None
     lanes_by_deadline = {
@@ -792,9 +831,21 @@ def split_stage_intervals(parent, members, scoped):
                                     for inactive in extrema(inactive_starts, min)}
         stages['setup'] = interval_bounds(starts_and_harnesses)
 
-    ends = {lane: tuple(point for point, in job_boundary_choices(source, ('end',)))
+    ends = {lane: tuple(point for point, in split_job_boundaries(source, ('end',)))
             for lane, source in sources.items()}
-    parent_starts = tuple(point for point, in job_boundary_choices(parent, ('start',)))
+    earliest_finishes = [earliest_job_finish(source, ends[lane]) for lane, source in sources.items()]
+    parent_starts = {
+        point for point, in split_job_boundaries(parent, ('start',))
+        if all(finish is not None and finish <= point for finish in earliest_finishes)
+    }
+    if parent.get('start') and parent.get('harness_start'):
+        stages['aggregate_setup'] = interval_bounds(
+            (start, harness) for start, harness in ordered_choices(
+                parent, ('start', 'harness_start'), within=phase_order('harness')
+            ) if start in parent_starts
+        )
+        if stages['aggregate_setup'] is None:
+            blocked.add('aggregate_setup')
     if (parent.get('start') and not parent_starts
             or any(source.get('end') and not ends[lane] for lane, source in sources.items())):
         blocked.update(('queue', 'harness_step', 'runner'))
@@ -1404,6 +1455,7 @@ class JobClockEvidence(NamedTuple):
     endpoint_disputes: frozenset = frozenset()
     order_bounds: dict | None = None
     runner_bounds: tuple | None = None
+    successful_harness_steps: frozenset[str] = frozenset()
 
 
 class JobClaims(NamedTuple):
@@ -1570,7 +1622,10 @@ def reconcile_job_clocks(by_id, attempt, layout, issues):
             error = ('Conflicting Windows producer job measurements.' if producer
                      else 'Conflicting protected job measurements.')
             timing_issue(issues, {**issue, 'fields': list(disputed), 'error': error})
-        observed[key] = JobClockEvidence(job, disputed, endpoint_disputes, order_bounds)
+        successful_harnesses = frozenset(name for name in job_harness_steps(role) & steps.keys()
+                                         if conclusion != 'skipped' and steps[name].succeeded)
+        observed[key] = JobClockEvidence(job, disputed, endpoint_disputes, order_bounds,
+                                         successful_harness_steps=successful_harnesses)
     return observed
 
 
@@ -1777,6 +1832,13 @@ def project_windows_stages(evidence, attempt, run, fact, profile, issues):
     seconds = dict(fact.job['seconds'])
     derived, blocked = split_stage_intervals(fact, members, scoped)
     disputed = set()
+    if 'aggregate_setup' in blocked:
+        seconds['aggregate_setup'] = None
+    if 'aggregate_setup' in derived:
+        bounds = derived['aggregate_setup']
+        seconds['aggregate_setup'] = interval_seconds(bounds)
+        if bounds is not None and seconds['aggregate_setup'] is None:
+            disputed.add('aggregate_setup')
     for stage, inputs in WINDOWS_DERIVED_STAGES.items():
         if stage in blocked:
             seconds[stage] = None
@@ -1802,9 +1864,10 @@ def project_windows_stages(evidence, attempt, run, fact, profile, issues):
         timing_issue(issues, {'run_id': attempt[1], 'platform': 'Windows',
                               'fields': [stage for stage in (*ATTEMPT_SECONDS, *SPLIT_SECONDS) if stage in disputed],
                               'error': 'Conflicting Windows aggregate stage inputs.'})
-    disputes = tuple(field for field in (*fact.disputed, *sorted(disputed)) if field not in blocked)
-    return JobClockEvidence({**fact.job, 'seconds': seconds}, disputes, fact.endpoint_disputes,
-                            runner_bounds=derived['runner'] if seconds['runner'] is not None else None)
+    resolved = blocked | {field for field in ('aggregate_setup',) if field in derived}
+    disputes = (*[field for field in fact.disputed if field not in resolved], *sorted(disputed))
+    return fact._replace(job={**fact.job, 'seconds': seconds}, disputed=disputes,
+                         runner_bounds=derived['runner'] if seconds['runner'] is not None else None)
 
 
 def protected_profile_matches(run, platform, profile):
@@ -1904,7 +1967,7 @@ def report_clock_role(sample):
 
 
 def report_job_issue(sample, attempt, run, evidence):
-    """Reject a contradicted publishing time using the identified job's own bounds."""
+    """Check publishing claims against observations of the identified Actions job."""
     if evidence is None:
         return None
     role = report_clock_role(sample)
@@ -1912,11 +1975,21 @@ def report_job_issue(sample, attempt, run, evidence):
                         and not protected_profile_matches(run, sample['platform'], sample['profile'])):
         return None
     fact = evidence.jobs.get((attempt, role))
-    if fact and fact.job and sample_identity_complete(sample) and (
-            job_outside_report(fact.job, timestamp(sample['recorded_at']))):
-        return {'run_id': attempt[1], role[0]: role[1], 'job_id': fact.job['job_id'],
-                'error': 'The recorded report creation is outside the publishing job boundaries.'}
-    return None
+    if not fact or not fact.job or not sample_identity_complete(sample):
+        return None
+    profile = sample['profile']
+    step = (f'Verify the Windows {WINDOWS_PRODUCER_LANES[role[1]]} lane' if role[0] == 'producer'
+            else WINDOWS_FULL_STEP if profile == 'full' else f'Verify {profile} changes')
+    if job_outside_report(fact.job, timestamp(sample['recorded_at'])):
+        error = 'The recorded report creation is outside the publishing job boundaries.'
+    elif (sample['platform'] == 'Windows' and sample['ci']['event'] in NORMAL_EVENTS
+          and step in fact.successful_harness_steps
+          and sample.get('report_status') in ('failed', 'blocked')
+          and (role[0] == 'producer' or split_windows_clock(run) and split_windows_report(sample))):
+        error = 'The timing report status contradicts the successful verification step.'
+    else:
+        return None
+    return {'run_id': attempt[1], role[0]: role[1], 'job_id': fact.job['job_id'], 'error': error}
 
 
 def reconcile_timing_clocks(samples, hosted, issues, *, report_issues=None):
@@ -2279,6 +2352,32 @@ def archived_split_assignment(publisher, assignment, catalog, ci, profile):
     return {**assignment, 'browser': assignment['browser'] - moved, 'recovery': assignment['recovery'] | moved}
 
 
+def native_publisher_sequence(rows, selected, profile, split_run, publisher, assignment, split_assignment,
+                              *, parts=None):
+    # These historical publishers verified each producer's stop boundary.
+    if not publisher or publisher.get('split_recovery_checks') is None:
+        return None
+    ownership = split_assignment if split_assignment is not None else assignment
+    lanes = ('core', *ownership)
+    if profile == 'full':
+        if not split_run:
+            return None
+        if split_assignment is not None:
+            selected = selected - {WINDOWS_PYTHON_CHECK}
+        groups = {lane: windows_lane_checks(selected, lane, lanes, assignment=ownership) for lane in lanes}
+    else:
+        lane = 'core' if profile in SCOPED_PROFILES else profile.removeprefix('ci-windows-')
+        groups = {lane: selected}
+    recovery_overlap = split_assignment is not None and bool(publisher['split_recovery_checks'])
+    for lane, checks in groups.items():
+        if issue := publisher_sequence_issue(
+            rows, checks, lane, part=(parts or {}).get(lane), recovery_overlap=recovery_overlap,
+            compact=parts is None,
+        ):
+            return issue
+    return None
+
+
 def windows_full_summary_issue(sample, selected, catalog, platform):
     if sample['profile'] != 'full':
         return None
@@ -2311,7 +2410,7 @@ def report_attribution_issue(sample, evidence, issues):
         return True
     attempt = ci_key(ci or {})
     run = evidence.attempts.get(attempt) if evidence is not None else None
-    if native_report_issue(sample, run, issues):
+    if native_report_issue(sample, run, issues, evidence=evidence):
         return True
     if (ci and ci['event'] in NORMAL_EVENTS and sample['platform'] in PLATFORMS.values()
             and report_clock_role(sample) and sample_identity_complete(sample)
@@ -2328,7 +2427,7 @@ def report_attribution_issue(sample, evidence, issues):
     return False
 
 
-def native_report_issue(sample, run, issues):
+def native_report_issue(sample, run, issues, *, evidence=None):
     ci, profile = sample['ci'], sample['profile']
     producer = windows_producer_job_name(sample)
     if (sample['platform'] != 'Windows' or not ci or ci['event'] not in NORMAL_EVENTS
@@ -2367,14 +2466,26 @@ def native_report_issue(sample, run, issues):
                 and scope_matches):
             # Compacts omit part outcomes and the aggregate's independent lane
             # verdict. A recorded failure can depend on that omitted evidence.
-            auxiliary_failure = None if (
-                split_assignment is not None and archived_windows_python_lanes(profile)
-                or profile == 'full' and split_identity
-            ) else False
+            auxiliary_failure = False
+            if profile == 'full' and split_identity:
+                # The aggregate's auxiliary failures derive from its own
+                # prerequisite producers. A complete success observation can
+                # decide a claim even when the compact dropped their verdicts.
+                attempt = ci_key(ci)
+                producer_jobs = [evidence.jobs.get((attempt, ('producer', WINDOWS_PRODUCERS[lane])))
+                                 for lane in observed_lanes] if evidence else []
+                if (not producer_jobs or observed_lanes != expected_lanes
+                        or not all(fact and fact.job and fact.job['conclusion'] == 'success'
+                                   for fact in producer_jobs)):
+                    auxiliary_failure = None
+            elif split_assignment is not None and archived_windows_python_lanes(profile):
+                auxiliary_failure = None
             recovery_interruptions = (split_assignment['recovery'] if split_assignment is not None
                                       and publisher.get('split_recovery_interruptions') else ())
             result_issue = (windows_result_issue(sample['checks'], selected, catalog,
                                                  recovery_interruptions=recovery_interruptions)
+                            or native_publisher_sequence(sample['checks'], selected, profile, split_identity,
+                                                         publisher, assignment, split_assignment)
                             or windows_full_summary_issue(sample, selected, catalog, platform))
             if not result_issue:
                 result_issue = windows_publisher_status_issue(
@@ -3920,6 +4031,15 @@ def inspect_jobs(run, repository):
     return actions_clock(run, decode_timing_input(listing))
 
 
+def inspect_compact_reports(run, repository, issues):
+    run_id = str(run['id'])
+    try:
+        return download_timing(repository, run_id, str(run['run_attempt']), issues=issues)
+    except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
+        issues.append({'run_id': run_id, 'source': 'compact_reports', 'error': input_error(error)})
+        return []
+
+
 def inspect_hosted(run_id, attempt, repository, samples, issues):
     endpoint = f'repos/{repository}/actions/runs/{run_id}'
     if attempt:
@@ -3927,7 +4047,7 @@ def inspect_hosted(run_id, attempt, repository, samples, issues):
     run = decode_timing_input(command(['gh', 'api', endpoint]))
     if str(run['id']) != str(run_id) or run.get('path') != WORKFLOW:
         raise TimingError('Selected run is outside the repository verification workflow')
-    samples.extend(download_timing(repository, str(run_id), str(run['run_attempt']), issues=issues))
+    samples.extend(inspect_compact_reports(run, repository, issues))
     return inspect_jobs(run, repository)
 
 
@@ -3982,14 +4102,18 @@ def platform_report_receipts(samples):
                 yield platform_report_receipt(sample, input_sha256)
 
 
+def collected_receipts(collection):
+    received = collection.get('collected_samples', [])
+    if not isinstance(received, list) or len(received) > 192:
+        raise TimingError('Expected a bounded timing collection.')
+    return {json.dumps(row, sort_keys=True): row for row in received if isinstance(row, dict)}
+
+
 def qualified_collected_reports(samples, collection):
     """Use only exact acquired inputs still admitted by the ordinary timing review."""
     if not collection or collection.get('collection_order_uncertain') or not commit_id(collection.get('capture_source')):
         return []
-    received = collection.get('collected_samples', [])
-    if not isinstance(received, list) or len(received) > 192:
-        raise TimingError('Expected a bounded timing collection.')
-    keys = {json.dumps(row, sort_keys=True) for row in received if isinstance(row, dict)}
+    keys = collected_receipts(collection)
     if not keys:
         return []
     matches = {}
@@ -4000,23 +4124,44 @@ def qualified_collected_reports(samples, collection):
     return [matches[key] for key in sorted(matches)]
 
 
+def uncertain_collection(point):
+    # The version-one summary reader expects counts even when the latest
+    # observation cannot be selected. Zero counts and receipts claim no run.
+    return {'collected_at': encode_timestamp(point), 'capture_source': None, 'collection_order_uncertain': True,
+            'completed_runs_considered': 0, 'runs_with_compact': 0, 'runs_without_compact': 0,
+            'unsuccessful_runs': 0, 'cold_bootstrap': False, 'collected_samples': []}
+
+
+def empty_artifact_collection(collection):
+    return collection.get('artifact_collection_empty', collection.get('cold_bootstrap', False))
+
+
+def collection_facts(collection, point):
+    receipts = collected_receipts(collection)
+    return {**{key: value for key, value in collection.items() if key != 'artifact_collection_empty'},
+            'collected_at': encode_timestamp(point), 'cold_bootstrap': empty_artifact_collection(collection),
+            'collected_samples': [receipts[key] for key in sorted(receipts)]}
+
+
 def reconcile_collection_order(previous, observed):
     """Select by observed chronology, with unresolved ordering preserved across saves."""
     if not observed:
         return previous
+    after = timestamp(observed.get('collected_at'))
+    if observed.get('collection_order_uncertain'):
+        observed = uncertain_collection(after)
     if not previous or previous == observed:
         return observed
     before = timestamp(previous.get('collected_at'))
-    after = timestamp(observed.get('collected_at'))
     if before is not None and after is not None:
         if before != after:
             return previous if before > after else observed
-        if {**previous, 'collected_at': observed.get('collected_at')} == observed:
-            return {**previous, 'collected_at': encode_timestamp(before)}
+        prior = collection_facts(previous, before)
+        if prior == collection_facts(observed, after):
+            return prior
     # A later capture resolves an equal-time disagreement. Undated evidence
     # leaves the latest collection uncertain until a new observation is made.
-    return {'collected_at': encode_timestamp(before) if before == after else None,
-            'capture_source': None, 'collection_order_uncertain': True, 'collected_samples': []}
+    return uncertain_collection(before if before == after else None)
 
 
 def qualified_hosted_history(view):
@@ -4031,13 +4176,9 @@ def inspect_recent(repository, limit, samples, workflows, issues):
     collected_samples = []
     for run in runs:
         run_id, attempt = str(run['id']), str(run['run_attempt'])
-        compact = []
-        try:
-            compact = download_timing(repository, run_id, attempt, issues=issues)
-            (with_compact if compact else without_compact).append(run_id)
-            samples.extend(compact)
-        except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
-            issues.append({'run_id': run_id, 'source': 'compact_reports', 'error': input_error(error)})
+        compact = inspect_compact_reports(run, repository, issues)
+        (with_compact if compact else without_compact).append(run_id)
+        samples.extend(compact)
         try:
             clock = inspect_jobs(run, repository)
             workflows.append(clock)
@@ -4316,14 +4457,16 @@ def main():
         view = timing_view(samples, hosted=workflows, issues=list(issues))
         if recent is not None:
             recent = {**recent, 'collected_samples': qualified_collected_reports(view['samples'], recent)}
-        # Keep original collection facts on save. History can change when the
-        # archive is reopened with other reports and Actions jobs.
-        displayed_collection = recent
-        if recent and recent.get('cold_bootstrap') and qualified_hosted_history(view):
-            displayed_collection = {**recent, 'cold_bootstrap': False}
+        if recent and empty_artifact_collection(recent):
+            # Preserve acquisition separately so a future reopen can reevaluate
+            # history while older summary readers see the current verdict.
+            if qualified_hosted_history(view):
+                recent = {**recent, 'cold_bootstrap': False, 'artifact_collection_empty': True}
+            else:
+                recent = {**recent, 'cold_bootstrap': True}
         tasks = {task['id']: task for task in read_json(ROOT / 'project/tasks.json')['tasks']}
         feedback = read_json(ROOT / 'project/feedback.json')['items']
-        view.update(weekly_review=weekly_review(), recent_collection=displayed_collection,
+        view.update(weekly_review=weekly_review(), recent_collection=recent,
                     budget_follow_up=budget_follow_up(view, feedback, tasks))
         archive_identity = None
         if args.save:

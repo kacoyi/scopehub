@@ -8,6 +8,10 @@ WINDOWS_PYTHON_CHECK = 'python-contracts-workers'
 WINDOWS_PYTHON_PART_LANES = ('python', 'recovery')
 WINDOWS_LANE_FAILED = 'At least one Windows lane job did not succeed.'
 WINDOWS_RECOVERY_INTERRUPTED = 'The Windows recovery lane was interrupted.'
+STOP_REASONS = {'interrupted', 'cleanup_failed'}
+INTERRUPTED_BEFORE_START = 'interrupted_before_start'
+MANIFEST_INTERRUPTED = 'Interrupted while finalizing the Windows Python manifest.'
+PROCESS_FIELDS = {'log', 'log_sha256', 'exit_code', 'duration_seconds'}
 WINDOWS_PYTHON_PROCESS_REASONS = {
     'timeout', 'interrupted', 'launch_error', 'cleanup_failed', 'missing_acceptance_evidence',
 }
@@ -26,6 +30,57 @@ PHYSICAL_WINDOWS_CHECK = 'physical-windows-workspace'
 UBUNTU_WORKSPACE_CHECK = 'ubuntu-workspace-observation'
 FIELD_OBSERVATION_CHECKS = {PHYSICAL_WINDOWS_CHECK, UBUNTU_WORKSPACE_CHECK}
 OBSERVATION_CHECKS = RUN_OBSERVATION_CHECKS | FIELD_OBSERVATION_CHECKS
+
+
+def stops_after_check(result, *, fail_fast=False):
+    return (result.get('reason_code') in STOP_REASONS | {INTERRUPTED_BEFORE_START}
+            or result['status'] != 'passed' and (fail_fast or result['id'] == 'environment'))
+
+
+def publisher_sequence_issue(rows, selected, lane, *, part=None, recovery_overlap=False, compact=False):
+    """Check only the stop evidence retained by this publisher's report format."""
+    def stops(row):
+        if not stops_after_check(row):
+            return False
+        if row['status'] == 'blocked' and row.get('reason_code') == 'executable_unavailable' and 'log' not in row:
+            return True
+        if row['status'] != 'failed' or not compact and not PROCESS_FIELDS <= row.keys():
+            raise ValueError(f'a Windows {lane} producer stop without process evidence for {row["id"]}')
+        return True
+
+    parallel = recovery_overlap and lane == 'recovery'
+    try:
+        parallel_stop = (parallel and part and part.get('reason') != MANIFEST_INTERRUPTED and stops(part))
+        stopped = False
+        for row in rows:
+            key, reason = row['id'], row.get('reason_code')
+            if key not in selected:
+                continue
+            if reason == 'earlier_failure':
+                if not (stopped or parallel_stop or parallel and compact):
+                    return f'an earlier failure for {key} without a Windows {lane} producer stop'
+                stopped = True
+            elif stopped:
+                return f'a result for {key} after the Windows {lane} producer stopped'
+            elif reason == INTERRUPTED_BEFORE_START:
+                if not (parallel and (compact or part and not parallel_stop)):
+                    return f'an invalid interruption before {key} started'
+                stopped = True
+            else:
+                stopped = stops(row)
+        if part and part.get('reason_code') == 'earlier_failure' and (not stopped or 'log' in part):
+            return f'a Windows {lane} Python part with earlier failure without a producer stop'
+    except ValueError as error:
+        return str(error)
+    return None
+
+
+def integration_gates(results, required, *, requested):
+    rows = {row['id']: row for row in results}
+    unverified = [check for check in required if rows.get(check, {}).get('status') != 'passed'
+                  or rows.get(check, {}).get('exit_code') != 0]
+    return {'requested': requested, 'required': required, 'unverified': unverified,
+            'status': ('blocked' if unverified else 'passed') if requested else 'not_requested'}
 
 
 def integration_validation(results):

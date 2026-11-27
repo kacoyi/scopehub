@@ -27477,7 +27477,9 @@
         "tests/project/test_timing_publisher_observations.py",
         "contracts/decisions/0038-reconcile-qualified-timing-evidence.json",
         "scripts/ci_artifacts.py",
-        "tests/project/test_verification_scheduling.py"
+        "tests/project/test_verification_scheduling.py",
+        "contracts/decisions/0039-reuse-timing-source-semantics.json",
+        "scripts/check.py"
       ],
       "decision_refs": [
         "0004",
@@ -27489,7 +27491,8 @@
         "0035",
         "0036",
         "0037",
-        "0038"
+        "0038",
+        "0039"
       ],
       "acceptance": [
         "Retain the original independent rejection. Through the ordinary timing and budget-review entries, observe the browser-job and checkout conflicts both before and after twelve later captures rotate the original attempt out of the recent window.",
@@ -27541,7 +27544,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-150-e6f12373/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-155-e6f12373/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-e6f12373/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1h0/final-response.txt"
+          "archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1h0/final-response.txt",
+          "contracts/decisions/0039-reuse-timing-source-semantics.json"
         ],
         "hypotheses": [
           "Recent preload and historical linked reads can see different retained evidence when a conflict removes the platform index entry or an attempt is older than the routine window.",
@@ -27991,7 +27995,8 @@
         "contracts/decisions/0033-source-evidence-before-timing-attribution.json",
         "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json",
         "contracts/decisions/0036-qualify-timing-before-attempt-reduction.json",
-        "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json"
+        "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json",
+        "contracts/decisions/0039-reuse-timing-source-semantics.json"
       ],
       "decision_refs": [
         "0004",
@@ -28003,7 +28008,8 @@
         "0035",
         "0036",
         "0037",
-        "0038"
+        "0038",
+        "0039"
       ],
       "acceptance": [
         "Run the ordinary weekly timing CLI in the supported system Python environment with the archived full Windows selection, unavailable preview and a source-equivalent historical substitute. Confirm it writes the weekly summary and current comparison with the original clocks.",
@@ -28066,7 +28072,8 @@
           "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-b6cd4be5/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-e6f12373/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1h2/final-response.txt"
+          "archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1h2/final-response.txt",
+          "contracts/decisions/0039-reuse-timing-source-semantics.json"
         ],
         "hypotheses": [
           "The substitute Git fingerprint is computable with the standard library; importing the full project entry brings an unrelated parser into the weekly job.",
@@ -28315,7 +28322,8 @@
         "contracts/decisions/0033-source-evidence-before-timing-attribution.json",
         "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json",
         "contracts/decisions/0036-qualify-timing-before-attempt-reduction.json",
-        "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json"
+        "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json",
+        "contracts/decisions/0039-reuse-timing-source-semantics.json"
       ],
       "decision_refs": [
         "0004",
@@ -28327,7 +28335,8 @@
         "0034",
         "0036",
         "0037",
-        "0038"
+        "0038",
+        "0039"
       ],
       "checks": [
         "project-state",
@@ -28376,7 +28385,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-150-4c4865fa/original-assistant-response.jsonl",
           "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-150-e6f12373/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1h1/final-response.txt"
+          "archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1h1/final-response.txt",
+          "contracts/decisions/0039-reuse-timing-source-semantics.json"
         ],
         "hypotheses": [
           "The earlier and later sources had the same four Windows producer jobs and aggregate catalog. The browser and recovery assignments changed while the reader used one current mapping for both.",
