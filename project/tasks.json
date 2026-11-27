@@ -27444,6 +27444,13 @@
       "next_action": "Independently review the clean prepared-preview source and compare its first ordinary Windows public repair and held-module observation with the retained producer and protected control. Attach any matching full-run recurrence to the existing finding before evaluating closure.",
       "blocker": null,
       "closure_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45939423128-1",
+          "source_commit": "2c2dc471d5a9339e0278ea5de2b41bd672c31c8b",
+          "report_sha256": "b3b9ec298a949738d74f3c4d44e52840837a0239195673707ba3ea0e7df5ad59"
+        }
+      ],
       "plan": {
         "outcome": "Recover a reliably verifiable cold synthetic closed-bar repair after the document commits; retain the actual failing and passing boundaries.",
         "change_types": [
