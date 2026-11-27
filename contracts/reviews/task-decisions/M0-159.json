@@ -164,6 +164,26 @@
       "requested_at": "2026-11-27T10:07:22.549197+00:00",
       "request_id": "73e04044bbfea7bbe3ad7870d08759b950f1f39f0b75b66218bf02a30c34c7be",
       "evidence_sha256": "d43081e2e1025658721fe4c80d4a45da45cc850c4f7d3784ce934a6c553216f7"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "1a3d482590f6ebe9771b10c58c155e79ecacffde",
+      "verdict": "approved",
+      "decision": "APPROVE M0-159 1a3d482590f6ebe9771b10c58c155e79ecacffde",
+      "scope": "APPROVE M0-159 1a3d482590f6ebe9771b10c58c155e79ecacffde",
+      "observation": "In my offline replay of protected push 45747974114, the integration check passed with both original Windows reports in either order and blocked closure when either report was omitted.",
+      "reviewer": "Independent Astra Standard (t1hc)",
+      "original_sha256": "97eba3df2f9ba47bc933bdc5e3627c2563ddc7f548df63ba4d81839d89c43327",
+      "response_id": "46219e73cfb82642ca2a49116fd6763288ef17f351d666609bb2747a79e31a39",
+      "response_sha256": "0abd738c2f7ad6425ed998e1e947eabbc1fbdb2a85930ba2fd10ddb254d2185c",
+      "legacy_response_sha256": "85c90c92599c6ffd0f33af84a4c63a9cbfeeb393db96f58b517bb9b974e643e9",
+      "observation_body_sha256": "b760e35ce1a65ab5d0018c3739a54c7cb11093be05c891e2d4535d1c64928eb8",
+      "event": {
+        "id": "msg_047c232ccbeca6dc016b095729e23c87d0a1bf32adb04323cc",
+        "timestamp": "2026-11-27T10:11:07.283Z"
+      },
+      "supersedes": "73e04044bbfea7bbe3ad7870d08759b950f1f39f0b75b66218bf02a30c34c7be",
+      "evidence_sha256": "659863a6b16c114cb5abf72f9865596e572d03817747daea8eb8b34ad46b205f"
     }
   ]
 }
