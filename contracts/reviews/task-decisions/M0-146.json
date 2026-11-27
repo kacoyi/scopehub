@@ -581,6 +581,15 @@
       },
       "supersedes": "e75f0f982ba2f5e799bf60f54045fd3d9be927211626f75903106b96e7d0d264",
       "evidence_sha256": "108025ed0203f6fd93c33fe59d08d429a38968b1411a9d5889d75bef01451fb8"
+    },
+    {
+      "kind": "request",
+      "source_commit": "17cbf7c7dbe7290f3728eb6e4987a03df5aee973",
+      "scope": "Independently recheck the full Windows PR schedule and public verifier on this source. Recalculate the service and cost tradeoff against the four comparable originals and the separately failed clock. Verify selection, ordered Python case outcomes, failures, skips and recovery, the added workspace producer and what is required to publish. Inspect the normal full versus protected or scoped paths and retain the known 1028-second actual versus 887.950-second maximum projected estimate. Native 900-second acceptance still requires a genuine complete warm PR attempt.",
+      "supersedes": "4264765cb6db841b3c474f0a52f7a6bac4349cc3d48390204231f7c67ea34e34",
+      "requested_at": "2026-11-27T09:02:38.026653+00:00",
+      "request_id": "3b14b6eab5e5000c5660eade2eae1e0e768f4db5cfbf628115e5421e220019f7",
+      "evidence_sha256": "ee44db4851f2aa5b0ab1a1fb5d111feadf19cfc2207224bad710a378a8c5b15d"
     }
   ]
 }

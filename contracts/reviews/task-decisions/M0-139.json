@@ -581,6 +581,15 @@
       },
       "supersedes": "d4aefaedf3c40c4ef28e85b9623e78878c737278e90d1f54b0979e4c3aab0b78",
       "evidence_sha256": "a84f5320522d8c3bb3127dfe72362fc0b44d98dc64fe551aab44b8cab84a1530"
+    },
+    {
+      "kind": "request",
+      "source_commit": "17cbf7c7dbe7290f3728eb6e4987a03df5aee973",
+      "scope": "Independently review the compatibility of the changed Windows PR scheduler, public artifact producer identities and publishing rules. Bound full PR and protected push assignments separately. Compare actual covered browser/workspace/Python inputs, a normal genuine published sample and a missing, stale or inconsistent producer, including existing supported four-lane reports. Keep 900 seconds open pending measured native Windows.",
+      "supersedes": "c5ec81d98eb575a59c64a3d29d71eb97e49f0644fbe5905eb8d27424c5e616ad",
+      "requested_at": "2026-11-27T09:02:37.381312+00:00",
+      "request_id": "4a502457aacb7ff93e414618ab6ddeb45d081ce4612b934f4f4f39acef5ad775",
+      "evidence_sha256": "8ac89a74df29cbf6e8c4f4ddfa853032b7228e1a2e1884b16b85c5c8c1cd4057"
     }
   ]
 }
