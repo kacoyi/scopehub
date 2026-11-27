@@ -590,6 +590,26 @@
       "requested_at": "2026-11-27T09:02:38.026653+00:00",
       "request_id": "3b14b6eab5e5000c5660eade2eae1e0e768f4db5cfbf628115e5421e220019f7",
       "evidence_sha256": "ee44db4851f2aa5b0ab1a1fb5d111feadf19cfc2207224bad710a378a8c5b15d"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "17cbf7c7dbe7290f3728eb6e4987a03df5aee973",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 17cbf7c7dbe7290f3728eb6e4987a03df5aee973",
+      "scope": "CHANGES_REQUESTED M0-146 17cbf7c7dbe7290f3728eb6e4987a03df5aee973",
+      "observation": "The recovery producer exited with code 1 and wrote two passing reports when I delivered SIGINT during report publication.",
+      "reviewer": "Independent Astra Standard (t1fz)",
+      "original_sha256": "bf35c8b51886624f0c2c81475f4b3c0cc7c1d8e88e86e8723e3281e765b68ef4",
+      "response_id": "a0f3283a3e7f53611f7edaec7becda97ef6932b847566c3e56699f7f5d652c4f",
+      "response_sha256": "182844d2af614c6de7f02eac2601c7751282586fb74516a6de0c92e36b51636f",
+      "legacy_response_sha256": "60e3717748fb7f5d8191d2f3476934b88cac1ae4c2f5de15d7111f6477c810c2",
+      "observation_body_sha256": "a8f6c0834e5071445ebe04054f6c05adc94703dc0ca5db11da497b7cfa3ff115",
+      "event": {
+        "id": "msg_0ed488c40984c2c8016b0948c74f3887d085af410e77a4b99e",
+        "timestamp": "2026-11-27T09:09:50.461Z"
+      },
+      "supersedes": "3b14b6eab5e5000c5660eade2eae1e0e768f4db5cfbf628115e5421e220019f7",
+      "evidence_sha256": "556fd6bc0c0ed74abf2f39b086a98e35a91808385453b29d6d39a20dc98f674e"
     }
   ]
 }

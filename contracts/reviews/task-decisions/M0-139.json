@@ -590,6 +590,26 @@
       "requested_at": "2026-11-27T09:02:37.381312+00:00",
       "request_id": "4a502457aacb7ff93e414618ab6ddeb45d081ce4612b934f4f4f39acef5ad775",
       "evidence_sha256": "8ac89a74df29cbf6e8c4f4ddfa853032b7228e1a2e1884b16b85c5c8c1cd4057"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "17cbf7c7dbe7290f3728eb6e4987a03df5aee973",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-139 17cbf7c7dbe7290f3728eb6e4987a03df5aee973",
+      "scope": "CHANGES_REQUESTED M0-139 17cbf7c7dbe7290f3728eb6e4987a03df5aee973",
+      "observation": "In an offline replay with four Windows producers, the integration check changed from blocked to passed when only the local lookup of the tested merge workflow became unavailable.",
+      "reviewer": "Independent Astra Standard (t1fy)",
+      "original_sha256": "43bc5e3fb64b1ce3594117eeb6f86e73ade66e8159814533dab984f7dea0bd07",
+      "response_id": "d1d9e40737b0dd9493e01af5ce41aecb898beba4c7eeda2914e5e02e6c980096",
+      "response_sha256": "266d38c2c243b48c68146160e1d323eefd30d25d5f8b7f23517e4adbaa8d5714",
+      "legacy_response_sha256": "6e725f88e21ee1896477601506cf06acdb484a8cca53153c3b3bf75dd46e46a1",
+      "observation_body_sha256": "ab2aa603a94297f151ae63546b52bd0d5b1399636e41331e15e2c29bf4511364",
+      "event": {
+        "id": "msg_0a502667f9727782016b0948916ca887d09401e08f14308c23",
+        "timestamp": "2026-11-27T09:08:51.505Z"
+      },
+      "supersedes": "4a502457aacb7ff93e414618ab6ddeb45d081ce4612b934f4f4f39acef5ad775",
+      "evidence_sha256": "753de93e269e6dc1f82df8e5ef2cdee49a73311e11ed8fef33a615ba35c3037a"
     }
   ]
 }
