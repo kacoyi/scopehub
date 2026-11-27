@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-178",
   "tasks": [
     {
       "id": "M0-001",
@@ -29485,6 +29485,281 @@
           ],
           "data_plan": "Engineering metadata only. Use synthetic controls and preserve historical records.",
           "cleanup": "Correct the authoritative inventory in place and avoid a parallel catalog."
+        }
+      }
+    },
+    {
+      "id": "M0-159",
+      "title": "Qualify the handoff for the first protected Windows Python observation",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-142"
+      ],
+      "scope": [
+        "scripts/integration.py",
+        "scripts/protected_python.py",
+        "tests/project/test_integration.py",
+        "tests/project/test_protected_python.py",
+        "contracts/schemas/project.schema.json",
+        "project/delivery.json",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Reproduce the decision for the M0-153 protected push incident using the actual ordinary and guarded Windows observations. Identify the part that can be accepted before integration and the part that requires the first actual protected main push.",
+        "Verify a supported handoff through the normal integration entry or demonstrate an existing route that does so. Bind the reviewed correction and complete native evidence to the same delivery, keep the finding open and assign the first protected push to a discoverable owner. Require the protected policy independently of the candidate using it.",
+        "Verify rejection for an unqualified repair, missing or incomplete case outcomes, substituted source or event, a self-granted exception, and premature closure. Other product and timing findings keep their existing checks. Verify follow-through for a failed, missing and successful first protected observation."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-159-a77770791906a3a2.json",
+          "sha256": "e3be3642364f4e1b764232feed9a6cd1c436efd74e94139f662d7b0360684276"
+        },
+        {
+          "path": "project/evidence/M0-159-f919038561592227.json",
+          "sha256": "6ab273a389a5cdd89cb26e84a2143529224b7a9a14e9fd9ea6789598f823b9b9"
+        },
+        {
+          "path": "project/evidence/M0-159-ff7d6e73923c1443.json",
+          "sha256": "867df7b45662b1beb835c8b54388ce3f2474b6db359710d490f037f412242ca1"
+        },
+        {
+          "path": "project/evidence/M0-159-710f9c23bae852f2.json",
+          "sha256": "7fdaeff773d502f3263669160328c74342e0e23e07a44247cc72da795c9f68f8"
+        },
+        {
+          "path": "project/evidence/M0-159-83c55a44362e5aa1.json",
+          "sha256": "d6172d0500d2eb48b75e74644f5f5b76c5b1e431d867e499ad2f2737c00b4dcc"
+        },
+        {
+          "path": "project/evidence/M0-159-8503f3a73d05649b.json",
+          "sha256": "228b7d780e21cc6f2efb3a0c79e2248f6cf3ddbed9cf3588630d0e5352bb7eff"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The independent approval of 94609e1ecaafdc0c77ad4bd3a3db4bf1abf407ef applies to reconciled source 8a9c92744dfa04673b5fac798539992aa0cfa04a. Ordinary PR 138 run 45972325368 attempt 1 tested same-tree merge preview 715e673bfc8e4a218f82f42abe903a114dbf7ea7. Both required checks and all fourteen named integration and serial observation controls passed on Linux and Windows. The serial suite ran 937 cases in 217.632 seconds on Linux and 1169.170 seconds on Windows. The Linux report retains its overall blocked status for the Windows-only native build. The controls preserve rejection of missing or incomplete evidence, premature closure and self-adoption. Prior false decisions and failed observations remain retained. The integration coordinator owns publication and separate protected adoption. The M0-153 correction and M0-160 observer require that adoption. Closure of the original protected Python deadline finding requires the verified first protected main push containing M0-153.",
+      "plan": {
+        "outcome": "An independently accepted Python process repair has a defensible path to its first protected push and a discoverable owner for the outcome.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/integration.py",
+          "scripts/protected_python.py",
+          "tests/project/test_integration.py",
+          "tests/project/test_protected_python.py",
+          "project/delivery.json",
+          "project/checks.json",
+          "archives/observations/repo-hygiene-20261125/m0-159-protected-handoff-intake/observations.json (SHA-256 650f6772d64fce5c463905a28279ffdae103e0334b2930d098ae5d04213c0735)",
+          ".reports/audit-20261125/m0-159-protected-observation/current-red.json (SHA-256 a7f22be8c10ea5f9ec4bc480fd4480e68c4ec977a5dc36d9f1fb2e223b350eac)",
+          ".reports/audit-20261125/m0-159-protected-observation/native-comparison.json (SHA-256 2e47d5de216a986c67ed171efaf4724f16aff25c4b1c803c966f8f100c1538d7)",
+          ".reports/audit-20261125/m0-159-protected-observation/renewed/public-delivery-scope-red.log (SHA-256 21a611101c9c54874b78b5f3b032ac515db94ed5243219b65ed401b76575fa36)",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-159-5a542187/original-assistant-response.jsonl (SHA-256 51926b3d40a69aa4969eae244dab01b7054823902c0f9f9eb83f3b701c678ac7)",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-159-10104031/original-assistant-response.jsonl (SHA-256 256f6c5fb291e33055614d0bb9cfc6542fb6a031909451ad4faade688a18c071)"
+        ],
+        "hypotheses": [
+          "The retained PR 131 assessment at 109c6a051e42df7dab31ca3c0dcb36ecab42ec22 reproduces the unfinished task and open major feedback blockers. A completed delivery with the original finding would still block through ordinary task ownership. The separately adopted M0-142 warm-workflow handoff governs a different finding and measures the 900-second Windows job objective.",
+          "Native ordinary PR run 45750690146 and guarded task run 45750708557 match all 838 ordered cases and 72 skips with terminal serial times of 708.843 and 860.734 seconds. The ordinary Windows full harness alone took 904.508 seconds. These runs precede the reconciled repair checkpoint 68847f66d160e50dc057b4a8916a126c7dd6a535 and require renewed verification for its eventual integration head.",
+          "The independent decision and exact public reproduction on ff71dc66409852b24121590b88aa512cada2e3e4 against its first parent confirm that the timing loop overwrites prior task state. Exercise the combined policies with both prior feedback states and distinguish reuse of evidence intake from reuse of the Python deadline policy.",
+          "PR 131 ordinary run 45769694690 and guarded run 45769715154 preserved 843 ordered Python outcomes and 72 skips. The Python timings were 1138.859 and 1169.422 seconds and the ordinary Windows harness alone took 1192.299 seconds. The existing protected workflow timing rules cannot qualify that process result. PR 127 reproduced the same Python inventory on different exact inputs while its M0-147 native acceptance measured the private startup handoff in workspace-timeframe.",
+          "The independent decision on 1010403186cc9004da907cbdf90774b4ad271a20 shows that the same nominated conflict can authorize closure after an interruption. Verify that relevance is proved before excluding any same-commit nomination and that unresolved nominations survive order changes and reopening."
+        ],
+        "risks": [
+          {
+            "failure": "A repair can admit itself, hide unresolved major findings, lose the first push or claim Windows coverage from a different event, checkout or case list.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The separate 900-second full-workflow objective is lost when serial Python satisfies its 1200-second deadline. A later unsuccessful push fails to restore accountable corrective work.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An absent or present prior timing finding replaces the prior task ledger and prevents the protected Python observation from reaching its accountable owner.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A second guarded receipt substitutes for the ordered inventory selected by the pre-merge decision and permits premature closure.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An ineligible same-push diagnostic or a second agreeing Windows report conceals the first Windows result. Contradictory eligible evidence can be mistaken for agreement.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An unreadable or ambiguous nomination is discarded and turns a blocked first-push observation into closure after reopening. A proven unrelated diagnostic can also be mistaken for a Windows conflict.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Preserve the original incident, active repair and protected integration blocks if the qualified route cannot be verified.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/integration.py",
+            "tests/project/test_integration.py",
+            "tests/project/test_protected_python.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/integration"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/protected_python_observation"
+            }
+          ],
+          "non_goals": [
+            "Changing product behavior, native process timeouts, verification budgets, GitHub protection or release permissions."
+          ],
+          "open_questions": [
+            "Will the separately qualified repair deliver the same serial inventory on its first actual protected main push?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Protected source binding, the two existing workflow timing rules, ordinary receipts, independent reviews and feedback outside M0-153."
+          ],
+          "change": [
+            "Share the exact full PR and required-job checks. Keep the additional binding specific to the Python process deadline, its exact native evidence and the planned observer.",
+            "Keep the chosen receipt reference and ordered inventory digest as evidence state on the observer. Require the public pre-merge decision to match that committed record and recover it from the first protected commit for ordinary closure. Resolve the Windows producer and aggregate before interpreting agreement.",
+            "Classify each nominated first-commit original before reducing the observation. A nomination can be excluded only while its verified content establishes an unrelated context, so losing archive bytes cannot authorize closure. Keep verified failure actionable when the aggregate is unavailable."
+          ],
+          "data_plan": "Keep the native originals in the development archive and preserve checkout-local reproductions for independent review. Bind the original feedback, both native originals and the guarded receipt to the separate adoption. Record the first protected observation using its report locator on M0-160, including a verified producer failure if the aggregate is unavailable.",
+        "cleanup": "Keep the original finding open while the observation is unavailable or failed. Preserve the exact first attempt and assign corrective work after a failure. Close the finding and observer together after verified serial success, with separate whole-workflow timing follow-through."
+        }
+      }
+    },
+    {
+      "id": "M0-178",
+      "title": "Correct the reviewed protected Windows Python observation policy",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-159"
+      ],
+      "scope": [
+        "project/delivery.json",
+        "scripts/integration.py",
+        "tests/fixtures/project/m0-153-reviewed-python-finding.json",
+        "tests/project/test_integration.py",
+        "tests/project/test_protected_python.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "On the public integration decision, accept the exact current reviewed M0-153 feedback identity with all three diagnostic locators, including protected push 45969084025. Reject the older and substituted records.",
+        "Replay the real first-attempt protected Windows producer and aggregate from push 45747974114 through the ordinary closure decision. Require both originals for matched success and refuse success with either original absent. Keep the independently verified producer-only timeout actionable with the original finding open.",
+        "Retain the independent review original, the positive and rejected replay results and their exact code and input provenance. Obtain independent review and matching project-state and python-contracts-workers verification on native Linux and Windows before completion and separate protected policy adoption."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "The integration coordinator uses .reports/audit-20261127/m0-159-policy-correction/handoff.json to arrange independent review and matching native Linux and Windows checks for this candidate before separate protected policy adoption.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The M0-159 policy can qualify the reviewed M0-153 feedback and requires agreement of both first-push originals to close the deadline finding.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/delivery.json",
+          "scripts/integration.py",
+          "scripts/protected_python.py",
+          "tests/project/test_integration.py",
+          "tests/project/test_protected_python.py",
+          "contracts/reviews/task-decisions/M0-159.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-159-aec0118d/original-assistant-response.jsonl (SHA-256 ea3c086c84fd932d7037b1db525c9efaffc08016776f3b17006c1363c4c927a9)"
+        ],
+        "hypotheses": [
+          "The exact reviewed M0-153 feedback at 2cac22b85efa33304594d339246284038408b7ee retains the earlier two diagnostics and the protected Windows producer timeout from 45969084025. Its canonical protected feedback identity supersedes the two-diagnostic identity in the unadopted policy.",
+          "The Windows aggregate imports the Python producer row and log. Its own existence alone does not establish retention of the producer report. Requiring both validated report profiles after the failure branch preserves actionable producer-only failures."
+        ],
+        "risks": [
+          {
+            "failure": "The independently reviewed repair fails at the protected feedback identity check, or a stale or substituted diagnostic record qualifies it.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The first protected observation closes on a missing producer or aggregate original, or incomplete evidence prevents recording a verified producer timeout while the finding stays open.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Preserve the original review, rejected decisions and native reports. Withhold policy adoption if the corrected binding or closure decision fails verification.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/integration.py",
+            "tests/project/test_integration.py",
+            "tests/project/test_protected_python.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/integration"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/protected_python_observation"
+            }
+          ],
+          "non_goals": [
+            "Change the M0-153 repair, activate M0-160, record a future protected success, or change Windows process and whole-workflow deadlines."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "replacement",
+          "preserve": [
+            "Keep accepted M0-159 definitions and evidence immutable, keep M0-153 and M0-160 separate, and preserve protected adoption order and producer-only failure recording."
+          ],
+          "change": [
+            "Pin the current reviewed finding and require both verified Windows originals for success under the same protected observation policy."
+          ],
+          "data_plan": "Retain the independent response and historical control inputs with source and digest provenance in the assigned checkout. Use the historical pushes only as offline controls.",
+          "cleanup": "Hand off the exact reviewed candidate path and keep native verification and the future protected observation explicit until their own evidence exists."
         }
       }
     }

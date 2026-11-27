@@ -1,0 +1,32 @@
+{
+  "id": "windows-main-python-discovery-process-deadline",
+  "status": "open",
+  "severity": "major",
+  "source": "Protected Windows main push 45702463807, attempt 1. Original report archives/runs/windows-change-45702463807-1/test-report.json. The separately retained producer reports, logs and identical-tree PR control are indexed by archives/observations/repo-hygiene-20261125/main-python-and-indicator-45702463807/observations.json, SHA-256 31ae8c90aff05cae6779e17f0603ac4fe4431e00ff6adefcb02372146d669ae9. Local ordinary focused Git trace and exact native comparison: archives/observations/repo-hygiene-20261125/m0-153-fixture-baseline-60d80696/SHA256SUMS (SHA-256 31c54d95a8181caef2c1ffd905baa6e27898893278464ded3ebecf78aa94132a). The separate M0-151 guarded Windows serial timeout, both chart journeys from both platforms and the same-tree ordinary control are retained in archives/observations/repo-hygiene-20261125/m0-151-python-timeout-45704298377/observation.json (SHA-256 69a659d220229267f9d93c56cb3e8289895325b1e7707653876e82ff6f86564c). Protected push 45969084025 attempt 1 is retained at archives/observations/repo-hygiene-20261125/main-producer-45969084025-python/observation.json (SHA-256 4dd3981a3f8a6eea69a44f9b2fe6355974cd62db36ef8de5e97c87e359008682). The canonical Windows aggregate is archives/runs/windows-change-45969084025-1/test-report.json. Its manifest is archives/observations/repo-hygiene-20261125/main-native-original-45969084025/manifest.json (SHA-256 3970dbc82db9bee7d4f2e9206aac028f280b50d145c373f89b1f4089b72ef1fe). The aggregate binds the identical Python timeout log. The ordinary PR control is indexed at archives/observations/repo-hygiene-20261125/pr143-native-original-45966576424/manifest.json. The original comparison and verified copies are retained under .reports/audit-20261127/m0-153-reconcile-770b2481/originals.",
+  "observation": "Ordinary Windows Python discovery stopped at the 1200-second process limit after 1200.047 seconds. The unittest process printed the start of test_scoped_pnpm_projection_requires_a_local_lock_and_package_identity without a terminal outcome or suite summary. The preceding PR preview of the identical Git tree passed all 831 discovered cases, including 65 expected skips, in 1171.172 seconds at the check boundary. That individual case took 5.771 seconds in the passing execution. The failed process supplied no per-case durations. The concurrent browser failure has a separate indicator-status owner. The passing native suite timed 47 worktree-retirement cases at 161.612 seconds in total. A separate six-case local baseline showed six repeated standalone repository bootstraps with 36 Git launches. The ordinary retirement checks and case mutations run separately from this setup. The observation does not explain the duration of the unfinished native case or establish Windows recovery. A later guarded M0-151 Windows workflow also reached the 1,200-second serial Python process deadline. Its last started case, test_unknown_cargo_intermediate_files_hold_retirement_and_review_intake, differs from the protected run. The ordinary PR on the same Git tree finished all 838 tests. The case took 6.805 seconds in the successful execution. The guarded run supplies no individual case duration. Both grouped and ordinary market interruption passed on the two platforms at both entries. At protected source 770b2481d79de4801d644e711beecfe68adb5195, first ordinary push 45969084025 timed out at 1200.047 seconds after printing the start of test_private_refs_and_fetch_head_require_shared_recoverability and supplied no terminal suite result. Ordinary PR 45966576424 at preview d207e059ae85e6f6bbdfb57781d961462568ee89 passed serial Python in 919.625 seconds with all 923 discovered cases. The sources share Git tree 55a3d6e1f80aca2a636104dbb45495a4dd79a975 and the same digest over 639 execution inputs. The incomplete output supplies no per-case durations or attribution of the elapsed cost.",
+  "task_ids": [
+    "M0-153"
+  ],
+  "regression_checks": [
+    "python-contracts-workers"
+  ],
+  "diagnostic_reports": [
+    {
+      "run_id": "windows-change-45702463807-1",
+      "source_commit": "beb6fa11cee8923675f9fdbcc327b24f8fede2e9",
+      "report_sha256": "291ada56b3627513814fcaeb478508b97e6874ea4cc0ff234b7db221ce9161a0"
+    },
+    {
+      "run_id": "20261125T212742.962266Z-3ed42067",
+      "source_commit": "e88bbef8f302d785fc1075f760e4786bbca4567d",
+      "report_sha256": "402b254a10b4c31621490f12658803f9f42553e7d1023dfdcaac41cbbd2bb557"
+    },
+    {
+      "run_id": "windows-change-45969084025-1",
+      "source_commit": "770b2481d79de4801d644e711beecfe68adb5195",
+      "report_sha256": "5a4df558d52ae6ae90844c794664585ed7a13f3c8b74a0ddbd7b3405214d2adf"
+    }
+  ],
+  "resolution": null,
+  "deferral_reason": null
+}

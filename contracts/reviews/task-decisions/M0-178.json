@@ -1,0 +1,35 @@
+{
+  "version": 3,
+  "task_id": "M0-178",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "1a3d482590f6ebe9771b10c58c155e79ecacffde",
+      "scope": "Independently verify the correction of the two demonstrated protected Python observation defects at the public integration entry.",
+      "supersedes": null,
+      "requested_at": "2026-11-27T10:07:23.818141+00:00",
+      "request_id": "335aa4d9494d09cb51018c49a40bb77cc047f77845db60dfcc0d9df8a11bf906",
+      "evidence_sha256": "9419cbde7d2fe86d74ae00aea7be8123331ec7cb06779a955838ec014309a365"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "1a3d482590f6ebe9771b10c58c155e79ecacffde",
+      "verdict": "approved",
+      "decision": "APPROVE M0-178 1a3d482590f6ebe9771b10c58c155e79ecacffde",
+      "scope": "APPROVE M0-178 1a3d482590f6ebe9771b10c58c155e79ecacffde",
+      "observation": "The public integration decision accepted the reviewed three-diagnostic finding and required both matching Windows reports to close the historical success case.",
+      "reviewer": "Independent Astra Standard (t1hd)",
+      "original_sha256": "56248aa981b742c959dcbf0404fbc0dcae879190c697d78af95711f79ff92585",
+      "response_id": "97538281ba66fe220c42abb15c7bad651de0a293b2d59113cd89c40857537e27",
+      "response_sha256": "8683b2d1b7178a06eb7fa8f88ddffbd2df056cea007e26db546656429669d47f",
+      "legacy_response_sha256": "4752d0ea758805ebddfa199a9104d61940626f5c3498d173aae7c9d406c65f3d",
+      "observation_body_sha256": "12beb52d5b44d38a901840db652f221c5b07c256210db801ceaf6c9f2044ec8e",
+      "event": {
+        "id": "msg_09c9b53a9211066b016b095718bee887d09ea6766e7a89d332",
+        "timestamp": "2026-11-27T10:10:46.245Z"
+      },
+      "supersedes": "335aa4d9494d09cb51018c49a40bb77cc047f77845db60dfcc0d9df8a11bf906",
+      "evidence_sha256": "bddabe8d2de2a3d88d8953a01459a6f1460d29516681af23d69a269fd956d3b9"
+    }
+  ]
+}

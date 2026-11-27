@@ -1,0 +1,189 @@
+{
+  "version": 3,
+  "task_id": "M0-159",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "f54b00ce0e470a589031eac5d93a4ff6f9c14a9a",
+      "scope": "Exercise the normal integration decision against the retained PR 131 incident. Compare accountable first-push handoff with incorrect source, event or serial inventory, missing ownership, self-approval and premature closure. Check historical policy and another affected or unaffected finding. Retain independent evidence for the decision and distinguish the Python deadline and complete-workflow timing.",
+      "supersedes": null,
+      "requested_at": "2026-11-26T06:38:54.801943+00:00",
+      "request_id": "766e35e7b992b20c190e4b41b9920eb04592fed33adf5108c6d0792e53db6440",
+      "evidence_sha256": "bd0b3d77007d88617db45edc4de1497bd217d4ee50fc102195d6c242d5dfc5d3"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ff71dc66409852b24121590b88aa512cada2e3e4",
+      "scope": "Exercise the normal integration decision against the retained PR 131 incident. Compare accountable first-push handoff with incorrect source, event or serial inventory, missing ownership, self-approval and premature closure. Check historical policy and another affected or unaffected finding. Retain independent evidence for the decision and distinguish the Python deadline and complete-workflow timing.",
+      "supersedes": "766e35e7b992b20c190e4b41b9920eb04592fed33adf5108c6d0792e53db6440",
+      "requested_at": "2026-11-26T07:13:15.754412+00:00",
+      "request_id": "c3af62e4333327cb208f0ff69e641711579e7a4235bf7e567a37c964e1b0db9a",
+      "evidence_sha256": "7034c90e673a655492fc570c4a6073ec9986022894f0eb9cee3f429a8dfd23ba"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ff71dc66409852b24121590b88aa512cada2e3e4",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-159 ff71dc66409852b24121590b88aa512cada2e3e4",
+      "scope": "CHANGES_REQUESTED M0-159 ff71dc66409852b24121590b88aa512cada2e3e4",
+      "observation": "The integration decision raised an AttributeError when the recurring timing rule supplied no prior finding and the Python handoff tried to read the prior task ledger.",
+      "reviewer": "Independent Astra Standard (t14w)",
+      "original_sha256": "f36de017e36a06c4be70df990c52409d3a35e497c5c910afd8413b7aa63ad88d",
+      "response_id": "a79d95a3e19c74170edd4c9cb6bc463df5eb12b7320f3970182fdfef39375832",
+      "response_sha256": "3e949db221bd963c185310f76b20d5176cfaf9cb079f42e88bf37fb0a23976ce",
+      "legacy_response_sha256": "18c6853c1426a7191fe2b72dd679014a33b102bb0c311dc30d114e0c0f8993a7",
+      "observation_body_sha256": "bc875be0e5485a1ce9a5150d843997ed302fd6a46a6170c0e32a2cbd1c65cada",
+      "event": {
+        "id": "msg_0bb87c19e5588385016b07e0270d8887d193c25093cb79610f",
+        "timestamp": "2026-11-26T07:31:14.711Z"
+      },
+      "supersedes": "c3af62e4333327cb208f0ff69e641711579e7a4235bf7e567a37c964e1b0db9a",
+      "evidence_sha256": "95e997aefd4562f11b8ee4057eb801737f6e0949819a0e3e6852fa0f9a0d0f2d"
+    },
+    {
+      "kind": "request",
+      "source_commit": "5a542187023202b74d128acaefed4ebee32da8a8",
+      "scope": "Exercise the integration decision with all three protected policies, absent and present prior findings, and the PR 131 native originals. Check qualified pre-merge evidence, explicit ownership of the first matching protected push, source and ordered case identity, rejected substitutions and actual success before closure.",
+      "supersedes": "a79d95a3e19c74170edd4c9cb6bc463df5eb12b7320f3970182fdfef39375832",
+      "requested_at": "2026-11-26T12:39:51.069261+00:00",
+      "request_id": "eb97fb1bd3a4aca1bcc8f811ba0738f16b6a771b3420b4acb87cb557eb9cb347",
+      "evidence_sha256": "1e8a4cf17f747eef47b609e54b0d4614dd850f32fb7ae391e02838684a3ae7b6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5a542187023202b74d128acaefed4ebee32da8a8",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-159 5a542187023202b74d128acaefed4ebee32da8a8",
+      "scope": "CHANGES_REQUESTED M0-159 5a542187023202b74d128acaefed4ebee32da8a8",
+      "observation": "Adding the retained Linux report from the same protected push changed the Windows Python observation from passed to missing.",
+      "reviewer": "Independent Astra Standard (t15s)",
+      "original_sha256": "51926b3d40a69aa4969eae244dab01b7054823902c0f9f9eb83f3b701c678ac7",
+      "response_id": "5252d6ab940a43a5941492ba3ef62620ff44e215640453ad489b4aeb3c43dcea",
+      "response_sha256": "7b8e8da844a3253a87df8099519c19ea75084c0177beae625b0a5f920100de5f",
+      "legacy_response_sha256": "2ba7403acc4ae2c1772a35ce4b320cbd16c67df5d2654c507ecf9f83853a6686",
+      "observation_body_sha256": "708a15a135f3533d1abf4ae0f3a0681cf8eae7c39ff243e70987b7c783a3a89f",
+      "event": {
+        "id": "msg_04f49894f13ad060016b082a5fd96c87d18a586e55afa33829",
+        "timestamp": "2026-11-26T12:47:50.719Z"
+      },
+      "supersedes": "eb97fb1bd3a4aca1bcc8f811ba0738f16b6a771b3420b4acb87cb557eb9cb347",
+      "evidence_sha256": "154bbf7eb76864eed1a793d5d30edb6ecc505aab56b21a8e5cfc45a10f27b6f7"
+    },
+    {
+      "kind": "request",
+      "source_commit": "1010403186cc9004da907cbdf90774b4ad271a20",
+      "scope": "Recheck M0-159 first protected-push observation and closure against the actual pre-merge selected receipt. Exercise mixed Linux/Windows evidence from the same run, coherent Windows aggregate/job observations, known timeout and conflicting records. Keep M0-153, M0-147 and the separate 900-second timing obligation distinct.",
+      "supersedes": "5252d6ab940a43a5941492ba3ef62620ff44e215640453ad489b4aeb3c43dcea",
+      "requested_at": "2026-11-26T13:00:34.937647+00:00",
+      "request_id": "e899c83275dd1f36594dbcb69e8f83506122df0730d2b8898d04ddcc074a73a3",
+      "evidence_sha256": "70992823be58f3e7dbfe06645eef56e96b52a4cf08079f2053318e93acc42220"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "1010403186cc9004da907cbdf90774b4ad271a20",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-159 1010403186cc9004da907cbdf90774b4ad271a20",
+      "scope": "CHANGES_REQUESTED M0-159 1010403186cc9004da907cbdf90774b4ad271a20",
+      "observation": "In the offline replay, making one conflicting Windows report unreadable changed the first-push observation from missing to passed with both diagnostic references unchanged.",
+      "reviewer": "Independent Astra Standard (t16g)",
+      "original_sha256": "256f6c5fb291e33055614d0bb9cfc6542fb6a031909451ad4faade688a18c071",
+      "response_id": "2c25946094e05b12b97d75802953cf7bf56438bafcf4346b5d5f0cf3b635bde3",
+      "response_sha256": "7a08b25c90e5d6d09339918b3add9de80ab6f91769d888d5791e2d2ac666c4a0",
+      "legacy_response_sha256": "ffec9d22e22e19a6b151648c51641416d09d15dc2324c9f4078423c78f456245",
+      "observation_body_sha256": "3d7a74493e345dfe0b859ee9114229e176ed66c06137b16fa409b2da2adcc14b",
+      "event": {
+        "id": "msg_0a1f88153a24af98016b082fc9cbdc87d2b16ee40d999dc79d",
+        "timestamp": "2026-11-26T13:10:51.823Z"
+      },
+      "supersedes": "e899c83275dd1f36594dbcb69e8f83506122df0730d2b8898d04ddcc074a73a3",
+      "evidence_sha256": "643588382550bf5c93d2b11447f22b14ebd65800063a3d2be5ff0c1befe7e109"
+    },
+    {
+      "kind": "request",
+      "source_commit": "94609e1ecaafdc0c77ad4bd3a3db4bf1abf407ef",
+      "scope": "Review whether reopening or losing access to a nominated original can turn an unresolved conflict into a pass. Exercise the ordinary integration decision with the actual selected receipt, conflicting reports and proven independent evidence across interruption.",
+      "supersedes": "2c25946094e05b12b97d75802953cf7bf56438bafcf4346b5d5f0cf3b635bde3",
+      "requested_at": "2026-11-26T13:23:48.576096+00:00",
+      "request_id": "9712969eb971c6a00ae508b4f172df8a63bab3996430f94e8a2b8ec2da311b6a",
+      "evidence_sha256": "e76970e05a0b4cdc786e68e99f44c2729022efa22c76ced2cb612b333da470da"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "94609e1ecaafdc0c77ad4bd3a3db4bf1abf407ef",
+      "verdict": "approved",
+      "decision": "APPROVE M0-159 94609e1ecaafdc0c77ad4bd3a3db4bf1abf407ef",
+      "scope": "APPROVE M0-159 94609e1ecaafdc0c77ad4bd3a3db4bf1abf407ef",
+      "observation": "With the selected receipt and all three diagnostic references unchanged, the integration decision blocked closure while the conflicting Windows report was readable, unavailable, and restored in either nomination order.",
+      "reviewer": "Independent Astra Standard (t178)",
+      "original_sha256": "e54173c1c5ad07d50500132df7cb57ade989ca1909b471bb29de16d96708dea1",
+      "response_id": "de38ba2913ed2db2c5af298dcd87dc41ca6291aeafc00fdd792a5331ba0d128b",
+      "response_sha256": "cd3bdeeaf69fa2cbf3152c40fd59519752c613ca97b742c8fc0419f84ef54cb6",
+      "legacy_response_sha256": "76795bec526ff589a5b92d104a94b92a404eacda290e6377c44e453e488a11fc",
+      "observation_body_sha256": "55807fd6df0f1e5f2aa45d3391e6824716b4ce1f9be2876185158bce7de4de6b",
+      "event": {
+        "id": "msg_0c128c1f683c7ce7016b083433b7e087d2be7ad4495fd742bd",
+        "timestamp": "2026-11-26T13:29:43.471Z"
+      },
+      "supersedes": "9712969eb971c6a00ae508b4f172df8a63bab3996430f94e8a2b8ec2da311b6a",
+      "evidence_sha256": "90bd6e1934a739ba9fcaa8f5faca15daa1c59673476441a1ded6f5c607b51a0a"
+    },
+    {
+      "kind": "request",
+      "source_commit": "aec0118d0573ccc949e4e44a71c379c8b9b29d17",
+      "scope": "Review the completed protected-observation policy on the current protected maintenance-navigation source, including the combined project/delivery.json, registered evidence closure and independently enforced adoption order.",
+      "supersedes": "de38ba2913ed2db2c5af298dcd87dc41ca6291aeafc00fdd792a5331ba0d128b",
+      "requested_at": "2026-11-27T09:48:47.479944+00:00",
+      "request_id": "87eeae618015efe541b96e91f510f082ae74bd11acbc461855a689726d393b2e",
+      "evidence_sha256": "53c4f0ed70907c8928e5093d70351d12452aa243f0643ce0642d4cc91bb25af4"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "aec0118d0573ccc949e4e44a71c379c8b9b29d17",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-159 aec0118d0573ccc949e4e44a71c379c8b9b29d17",
+      "scope": "CHANGES_REQUESTED M0-159 aec0118d0573ccc949e4e44a71c379c8b9b29d17",
+      "observation": "In an offline replay of protected push 45747974114, the closure check returned `passed` with only the Windows aggregate report linked to the observer.",
+      "reviewer": "Independent Astra Standard (t1gz)",
+      "original_sha256": "ea3c086c84fd932d7037b1db525c9efaffc08016776f3b17006c1363c4c927a9",
+      "response_id": "466a280b4d4459fdf15cf8eb1a14b559fb6ab014fff9b739b6718e486146a707",
+      "response_sha256": "0fec3e1a817da6156cfae766f49b9e94ef43dc8545dd91373db8cd0011db77de",
+      "legacy_response_sha256": "f928db13cbbfc9d396792d610f454413ea81e08905d5fbe80a587eb1d4911096",
+      "observation_body_sha256": "7ac2298ef03f25a72d0eb7b08e64cf12dd3d5a3e9b8080129f724537d0179a3c",
+      "event": {
+        "id": "msg_09137b56e19ef395016b09532317fc87d0a536c47e381998cc",
+        "timestamp": "2026-11-27T09:53:57.633Z"
+      },
+      "supersedes": "87eeae618015efe541b96e91f510f082ae74bd11acbc461855a689726d393b2e",
+      "evidence_sha256": "f1d520394a3e611f36bb40273158632c15542d077a4c1acd2e44dda96a6642e1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "1a3d482590f6ebe9771b10c58c155e79ecacffde",
+      "scope": "Verify the historical protected-observation policy on the current source, the completed M0-159 definition, six unchanged receipts, separate adoption, eligible feedback and neighboring ordinary closure.",
+      "supersedes": "466a280b4d4459fdf15cf8eb1a14b559fb6ab014fff9b739b6718e486146a707",
+      "requested_at": "2026-11-27T10:07:22.549197+00:00",
+      "request_id": "73e04044bbfea7bbe3ad7870d08759b950f1f39f0b75b66218bf02a30c34c7be",
+      "evidence_sha256": "d43081e2e1025658721fe4c80d4a45da45cc850c4f7d3784ce934a6c553216f7"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "1a3d482590f6ebe9771b10c58c155e79ecacffde",
+      "verdict": "approved",
+      "decision": "APPROVE M0-159 1a3d482590f6ebe9771b10c58c155e79ecacffde",
+      "scope": "APPROVE M0-159 1a3d482590f6ebe9771b10c58c155e79ecacffde",
+      "observation": "In my offline replay of protected push 45747974114, the integration check passed with both original Windows reports in either order and blocked closure when either report was omitted.",
+      "reviewer": "Independent Astra Standard (t1hc)",
+      "original_sha256": "97eba3df2f9ba47bc933bdc5e3627c2563ddc7f548df63ba4d81839d89c43327",
+      "response_id": "46219e73cfb82642ca2a49116fd6763288ef17f351d666609bb2747a79e31a39",
+      "response_sha256": "0abd738c2f7ad6425ed998e1e947eabbc1fbdb2a85930ba2fd10ddb254d2185c",
+      "legacy_response_sha256": "85c90c92599c6ffd0f33af84a4c63a9cbfeeb393db96f58b517bb9b974e643e9",
+      "observation_body_sha256": "b760e35ce1a65ab5d0018c3739a54c7cb11093be05c891e2d4535d1c64928eb8",
+      "event": {
+        "id": "msg_047c232ccbeca6dc016b095729e23c87d0a1bf32adb04323cc",
+        "timestamp": "2026-11-27T10:11:07.283Z"
+      },
+      "supersedes": "73e04044bbfea7bbe3ad7870d08759b950f1f39f0b75b66218bf02a30c34c7be",
+      "evidence_sha256": "659863a6b16c114cb5abf72f9865596e572d03817747daea8eb8b34ad46b205f"
+    }
+  ]
+}
