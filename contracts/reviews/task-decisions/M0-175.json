@@ -10,6 +10,26 @@
       "requested_at": "2026-11-27T06:26:22.335294+00:00",
       "request_id": "57b83c3fe5367736dffaff0ec05ec943b32bf9ab37b6a3d6472756d8a73347a0",
       "evidence_sha256": "1b9786e0f213f2a258d4c021e6a69a29506c9574981055eedf774cb814b80eb1"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "2d2e9522570a635dbe72ab7d555ff7d0c2e19a53",
+      "verdict": "approved",
+      "decision": "APPROVE M0-175 2d2e9522570a635dbe72ab7d555ff7d0c2e19a53",
+      "scope": "APPROVE M0-175 2d2e9522570a635dbe72ab7d555ff7d0c2e19a53",
+      "observation": "The retained Linux control returned CANCELLED while its scratch file was still readable and observed NotFound on the same directory after release.",
+      "reviewer": "Independent Astra Standard (t1dx)",
+      "original_sha256": "3263676fb46d047a9b369c777e09c35d5ecf6b156f6e07f7ee06aee2e53e217f",
+      "response_id": "04d24470332e569b5fdb72e44974a65ec93f68a0a5fe57897ac22800d70820a7",
+      "response_sha256": "6cb915b29537021014a765e8fd84fafdb3bfe8b1f4a8464669e0c6a74fa9bc27",
+      "legacy_response_sha256": "bbf3ce42ad18ead43caee5a19e2b8d84783d886fe751b01fb3a24a79976a3448",
+      "observation_body_sha256": "fc0e9cfc2b1bbde6f71bc5b2797154dc48644d9c7d44ab2b0d3d33eb7715a235",
+      "event": {
+        "id": "msg_05047119bcb523aa016b0922e7e46c87d0912cf863b2c3b7dc",
+        "timestamp": "2026-11-27T06:28:11.133Z"
+      },
+      "supersedes": "57b83c3fe5367736dffaff0ec05ec943b32bf9ab37b6a3d6472756d8a73347a0",
+      "evidence_sha256": "ed1e04af3aa0f51347a7bf857473c31d86c22aad5eaa50d31064b1884a3c6efd"
     }
   ]
 }
