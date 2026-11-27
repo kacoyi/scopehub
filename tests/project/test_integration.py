@@ -33,7 +33,39 @@ def step(name, *, status='completed', conclusion='success'):
 
 
 CHECKOUT_ACTION = 'actions/checkout@' + '1' * 40
-CHECKOUT_STEP = step(f'Run {CHECKOUT_ACTION}')
+UPLOAD_ACTION = 'actions/upload-artifact@' + '2' * 40
+DOWNLOAD_ACTION = 'actions/download-artifact@' + '3' * 40
+CHECKOUT = {'uses': CHECKOUT_ACTION}
+CHECKOUT_STEP = dict(step(f'Run {CHECKOUT_ACTION}'), number=2)
+PREPARE = {'id': 'reports', 'name': 'Initialize CI verification reports'}
+STAGE_NAME = 'Stage current verification evidence'
+PUBLICATION = [
+    {'id': 'artifacts', 'name': STAGE_NAME},
+    {'uses': UPLOAD_ACTION, 'with': {'path': '${{ steps.artifacts.outputs.path }}'}},
+    {'uses': UPLOAD_ACTION, 'continue-on-error': True, 'with': {'path': '${{ steps.artifacts.outputs.timing_path }}'}},
+]
+DOWNLOADS = [
+    {'uses': DOWNLOAD_ACTION, 'with': {'pattern': 'verification-windows-${{ github.run_attempt }}-*'}},
+    {'uses': DOWNLOAD_ACTION, 'with': {'name': 'verification-windows-${{ github.run_attempt }}-core'}},
+]
+
+
+def publication_steps(*, aggregated=False, profile='full', producer=False):
+    stages = [
+        step(STAGE_NAME),
+        step(f'Run {UPLOAD_ACTION}'),
+        step(f'Run {UPLOAD_ACTION}', conclusion='skipped' if producer else 'success'),
+    ]
+    if aggregated:
+        stages[:0] = [
+            step(f'Run {DOWNLOAD_ACTION}', conclusion='success' if profile == 'full' else 'skipped'),
+            step(f'Run {DOWNLOAD_ACTION}', conclusion='skipped' if profile == 'full' else 'success'),
+        ]
+    stages.insert(0, step(PREPARE['name']))
+    numbers = (3, 4, 5, 7, 8, 9) if aggregated else (3, 5, 6, 7)
+    if producer and profile != 'full':
+        stages = [dict(item, conclusion='skipped') for item in stages]
+    return [dict(item, number=number) for item, number in zip(stages, numbers)]
 
 
 def observations():
@@ -55,7 +87,7 @@ def observations():
             'base_current': True, 'workflow': {'status': 'passed', 'reason': 'Observed success.',
                                              'run': {'id': 1, 'run_attempt': 2}},
             'jobs': [{'name': name, 'status': 'completed', 'conclusion': 'success', 'head_sha': 'a' * 40,
-                      'steps': [CHECKOUT_STEP, step(harness)]}
+                      'steps': [CHECKOUT_STEP, step(harness), *(publication_steps() if name == WINDOWS else ())]}
                      for name, harness in [(UBUNTU, UBUNTU_FULL), (WINDOWS, WINDOWS_FULL)]],
             'policy': policy, 'protection': protection,
             'scope': {'completed_task_ids': ['M0-001'], 'blockers': []}, 'observations_stable': True}
@@ -74,7 +106,8 @@ def checkout_log(pr, commit, git='/usr/bin/git'):
 
 
 def attempt_job(job, run, job_id):
-    return dict(job, id=job_id, run_id=run['id'], run_attempt=run['run_attempt'], head_sha=run['head_sha'],
+    return dict({'head_branch': run.get('head_branch'), **job},
+                id=job_id, run_id=run['id'], run_attempt=run['run_attempt'], head_sha=run['head_sha'],
                 run_url=f"https://api.github.com/repos/fixture/project/actions/runs/{run['id']}")
 
 
@@ -198,7 +231,9 @@ class IntegrationFixture(ProjectFixture):
         super().setUp()
         workflow = self.root / timing.WORKFLOW
         workflow.parent.mkdir(parents=True)
-        workflow.write_bytes(json_bytes({'jobs': {'verify': {'steps': [{'uses': CHECKOUT_ACTION}]}}}))
+        workflow.write_bytes(json_bytes({'jobs': {'verify': {'steps': [
+            CHECKOUT, PREPARE, {'name': WINDOWS_FULL}, *PUBLICATION,
+        ]}}}))
 
     def git(self, *args):
         return subprocess.run(['git', '-c', 'user.name=Test Fixture', '-c', 'user.email=fixture@example.invalid',
@@ -330,7 +365,7 @@ class IntegrationHistoryTests(IntegrationFixture):
         jobs = [attempt_job(job, run, index) for index, job in enumerate(args['jobs'], 1000)]
         if records:
             for job in jobs:
-                job['steps'] = [CHECKOUT_STEP, step('Verify records changes')]
+                job['steps'] = [CHECKOUT_STEP, step('Verify records changes'), *job['steps'][2:]]
         if omit_windows:
             jobs.pop()
         elif fail_windows:
@@ -618,13 +653,17 @@ class IntegrationHistoryTests(IntegrationFixture):
         self.assertIn(f'Unresolved major feedback: {PUSH_BUDGET}', result['blockers'])
 
     def observe_harness(self, base, head, ubuntu_steps, windows_steps, *, tested=None, producer_jobs=(),
-                        checkout_refs=None):
+                        checkout_refs=None, windows_publication=None):
         fixture = observations()
         pr = dict(fixture['pr'], baseRefOid=base, headRefOid=head)
         run = {'id': 100, 'run_attempt': 2, 'head_sha': head, 'status': 'completed', 'conclusion': 'success',
-               'path': '.github/workflows/verify.yml', 'event': 'pull_request'}
+               'path': '.github/workflows/verify.yml', 'event': 'pull_request', 'head_branch': pr['headRefName']}
+        if windows_publication is None:
+            profile = integration.job_verification_profile({'name': WINDOWS, 'steps': windows_steps})
+            windows_publication = publication_steps(
+                aggregated=any(item['name'] in timing.WINDOWS_MARKERS for item in windows_steps), profile=profile)
         protected = [dict(job, steps=[CHECKOUT_STEP, *steps])
-                     for job, steps in zip(fixture['jobs'], [ubuntu_steps, windows_steps])]
+                     for job, steps in zip(fixture['jobs'], (ubuntu_steps, [*windows_steps, *windows_publication]))]
         jobs = [attempt_job(job, run, job_id) for job_id, job in enumerate([*protected, *producer_jobs], 1000)]
         if tested is None:
             tested = self.merge_observation(base, head)
@@ -640,11 +679,14 @@ class IntegrationHistoryTests(IntegrationFixture):
             return integration.verified_pr_run(self.root, 'fixture/project', pr, [run], False, [UBUNTU, WINDOWS])
 
     def declare_windows_producers(self, marker, lanes):
-        checkout = {'uses': CHECKOUT_ACTION}
         producers = {f'windows_{lane}': {'name': timing.WINDOWS_PRODUCERS[lane], 'runs-on': 'windows-latest',
-                                        'strategy': {'matrix': {'lane': [lane]}}, 'steps': [checkout]} for lane in lanes}
-        workflow = {'jobs': {'verify': {'steps': [checkout]}, **producers,
-                             'windows_change': {'needs': list(producers), 'steps': [checkout, {'name': marker}]}}}
+                                        'strategy': {'matrix': {'lane': [lane]}}, 'steps': [
+                                            CHECKOUT, PREPARE, {'name': f'Verify the Windows {lane} lane'}, *PUBLICATION,
+                                        ]} for lane in lanes}
+        workflow = {'jobs': {'verify': {'steps': [CHECKOUT]}, **producers, 'windows_change': {
+            'needs': list(producers),
+            'steps': [CHECKOUT, PREPARE, *DOWNLOADS, {'name': WINDOWS_FULL}, *PUBLICATION, {'name': marker}],
+        }}}
         (self.root / timing.WORKFLOW).write_bytes(json_bytes(workflow))
         return workflow
 
@@ -652,7 +694,9 @@ class IntegrationHistoryTests(IntegrationFixture):
         return [dict(name=timing.WINDOWS_PRODUCERS[lane], status='completed', conclusion='success',
                      steps=[CHECKOUT_STEP, step(f'Verify the Windows {lane} lane' if profile == 'full' else
                                                f'Verify {profile} changes' if lane == 'core'
-                                               else 'Select the Windows lane work')]) for lane in lanes]
+                                               else 'Select the Windows lane work'),
+                            *publication_steps(profile='full' if lane == 'core' else profile, producer=True)])
+                for lane in lanes]
 
     def test_current_pr_requires_the_committed_workspace_producer_layout(self):
         records = self.root / 'README.md'
@@ -690,6 +734,81 @@ class IntegrationHistoryTests(IntegrationFixture):
                                          producer_jobs=[*scoped_jobs[:-1], wrongly_executed])
         self.assertEqual('blocked', result['status'])
         self.assertIn('committed Windows producer layout', result['reason'])
+
+    def test_windows_publication_and_branch_must_match_the_tested_run(self):
+        base = self.commit()
+        for marker, lanes in ((timing.WINDOWS_RECOVERY_MARKER, timing.WINDOWS_RECOVERY_LANES),
+                              (timing.WINDOWS_WORKSPACE_MARKER, timing.WINDOWS_WORKSPACE_LANES)):
+            self.declare_windows_producers(marker, lanes)
+            head = self.commit()
+            producers = self.producer_jobs(lanes)
+            publisher = publication_steps(aggregated=True)
+
+            def observe(jobs=producers, publication=publisher):
+                result, _ = self.observe_harness(
+                    base, head, [step(UBUNTU_FULL)], [step(WINDOWS_FULL), step(marker)],
+                    producer_jobs=jobs, windows_publication=publication,
+                )
+                return result
+
+            with self.subTest(marker=marker):
+                self.assertEqual('passed', observe()['status'])
+                self.assertEqual('passed', observe(publication=publisher[:-1])['status'])
+                for optional_result in ('skipped', 'failure'):
+                    self.assertEqual('passed', observe(publication=[
+                        *publisher[:-1], dict(publisher[-1], conclusion=optional_result),
+                    ])['status'])
+                for required_index in (0, 1, 3, 4):
+                    skipped = [dict(item, conclusion='skipped') if index == required_index else item
+                               for index, item in enumerate(publisher)]
+                    result = observe(publication=skipped)
+                    self.assertEqual('blocked', result['status'])
+                    self.assertIn('evidence step', result['reason'])
+                result = observe(publication=[*publisher[:-2], publisher[-1]])
+                self.assertEqual('blocked', result['status'])
+                self.assertIn('evidence step', result['reason'])
+                for index, producer in enumerate(producers):
+                    with self.subTest(lane=producer['name']):
+                        mismatched = dict(producer, head_branch='other-task')
+                        result = observe(jobs=[*producers[:index], mismatched, *producers[index + 1:]])
+                        self.assertEqual('blocked', result['status'])
+                        steps = producer['steps']
+                        skipped = dict(producer, steps=[*steps[:-2], dict(steps[-2], conclusion='skipped'), steps[-1]])
+                        result = observe(jobs=[*producers[:index], skipped, *producers[index + 1:]])
+                        self.assertEqual('blocked', result['status'])
+                        self.assertIn(producer['name'], result['reason'])
+                        missing = dict(producer, steps=[*steps[:-2], dict(steps[-1], conclusion='success')])
+                        result = observe(jobs=[*producers[:index], missing, *producers[index + 1:]])
+                        self.assertEqual('blocked', result['status'])
+                        self.assertIn(producer['name'], result['reason'])
+            base = head
+
+    def test_scoped_windows_publication_requires_the_core_transfer(self):
+        marker = timing.WINDOWS_WORKSPACE_MARKER
+        lanes = timing.WINDOWS_WORKSPACE_LANES
+        self.declare_windows_producers(marker, lanes)
+        base = self.commit()
+        (self.root / 'README.md').write_text('Updated fixture summary.\n', encoding='utf-8')
+        head = self.commit()
+        producers = self.producer_jobs(lanes, 'records')
+        scoped = step('Verify records changes')
+        publisher = publication_steps(aggregated=True, profile='records')
+
+        def observe(jobs, publication):
+            result, _ = self.observe_harness(
+                base, head, [scoped], [scoped, step(marker)],
+                producer_jobs=jobs, windows_publication=publication,
+            )
+            self.assertEqual('records', result['expected_profile'])
+            return result
+
+        self.assertEqual('passed', observe(producers, publisher)['status'])
+        self.assertEqual('blocked', observe(producers, publication_steps(aggregated=True))['status'])
+        core, *siblings = producers
+        missing_core = dict(core, steps=[*core['steps'][:-2], core['steps'][-1]])
+        result = observe([missing_core, *siblings], publisher)
+        self.assertEqual('blocked', result['status'])
+        self.assertIn(core['name'], result['reason'])
 
     def test_split_producers_require_their_checked_source(self):
         base = self.commit()

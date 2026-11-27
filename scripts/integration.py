@@ -43,6 +43,7 @@ FULL_HARNESS_STEPS = {
     'verify (windows-latest)': 'Run uv run python scripts/check.py --require-windows',
 }
 SCOPED_HARNESS_STEPS = {f'Verify {profile} changes': profile for profile in SCOPED_PROFILES}
+WINDOWS_PUBLISHER = 'verify (windows-latest)'
 WINDOWS_PRODUCER_LAYOUTS = {
     timing.WINDOWS_AGGREGATE_MARKER: timing.LEGACY_WINDOWS_LANES,
     timing.WINDOWS_RECOVERY_MARKER: timing.WINDOWS_RECOVERY_LANES,
@@ -205,15 +206,15 @@ def committed_producers(root, tree):
             needs = publisher['needs']
             if not isinstance(needs, list) or len(needs) != len(lanes) or set(needs) != lanes.keys():
                 raise ValueError('The publisher dependencies disagree with the Windows producer layout.')
-        checkouts = {'verify (ubuntu-latest)': declared_checkout(verify),
-                     'verify (windows-latest)': declared_checkout(publisher)}
+        declarations = {'verify (ubuntu-latest)': verify, WINDOWS_PUBLISHER: publisher}
         for job_id, lane in lanes.items():
             producer = jobs[job_id]
             name = timing.WINDOWS_PRODUCERS[lane]
             if (producer['strategy']['matrix']['lane'] != [lane] or producer['runs-on'] != 'windows-latest'
                     or producer['name'] not in ('Windows change checks (${{ matrix.lane }})', name)):
                 raise ValueError('The Windows producer declaration disagrees with its expected lane.')
-            checkouts[name] = declared_checkout(producer)
+            declarations[name] = producer
+        declared = {name: (declared_checkout(job), job['steps']) for name, job in declarations.items()}
         # Historical workflows can report skipped administrative jobs outside the PR verification matrix.
         inactive = {job['name'] for job_id, job in jobs.items()
                     if job_id not in {'verify', 'windows_change', *lanes} and 'if' in job
@@ -221,11 +222,11 @@ def committed_producers(root, tree):
     except (ScopeError, OSError, subprocess.SubprocessError, yaml.YAMLError, RecursionError,
             AttributeError, KeyError, TypeError, ValueError) as error:
         raise ProjectError('The Windows producer layout could not be verified from the tested merge tree.') from error
-    return marker, checkouts, inactive
+    return marker, declared, inactive
 
 
 def verified_windows_producers(run, repository, jobs, marker):
-    windows, = (row for row in jobs if row.get('name') == 'verify (windows-latest)')
+    windows, = (row for row in jobs if row.get('name') == WINDOWS_PUBLISHER)
     guards = [step for step in windows.get('steps', ()) if step.get('name') in timing.WINDOWS_MARKERS]
     result = timing.hosted_timing({**run, 'repository': {'full_name': repository}}, jobs)
     workflow = result['workflow']
@@ -251,6 +252,70 @@ def verified_windows_producers(run, repository, jobs, marker):
     return True
 
 
+def declared_artifact_step(steps, action, field, value):
+    step, = (step for step in steps
+             if re.fullmatch(rf'actions/{action}-artifact@[0-9a-f]{{40}}', step.get('uses', ''))
+             and step.get('with', {}).get(field) == value
+             and step.get('continue-on-error', False) is False)
+    return step
+
+
+def declared_publication_step(steps, step_id):
+    step, = (step for step in steps if step.get('id') == step_id and step.get('name')
+             and step.get('continue-on-error', False) is False)
+    return step
+
+
+def workflow_step_name(step):
+    if 'name' in step:
+        return step['name']
+    if 'uses' in step:
+        return f"Run {step['uses']}"
+    return None
+
+
+def require_completed_steps(job, steps, checkout, required):
+    checkout_index, = (index for index, step in enumerate(steps) if workflow_step_name(step) == checkout)
+    checkout_observed, = (step for step in job['steps'] if step.get('name') == checkout)
+    names = [workflow_step_name(step) for step in steps]
+    for declaration in required:
+        name = workflow_step_name(declaration)
+        matches = [step for step in job['steps'] if step.get('name') == name]
+        # GitHub gives identically named actions separate numbers, including when one is skipped.
+        # Anchor their declared positions at the verified checkout to distinguish the required transfer.
+        if names.count(name) > 1:
+            number = checkout_observed.get('number')
+            if type(number) is not int:
+                raise ProjectError(f"Required job {job['name']} has no numbered evidence for {name}.")
+            expected = number + steps.index(declaration) - checkout_index
+            matches = [step for step in matches if step.get('number') == expected]
+        if len(matches) != 1 or matches[0].get('status') != 'completed' or matches[0].get('conclusion') != 'success':
+            raise ProjectError(f"Required job {job['name']} has no successful {name} evidence step.")
+
+
+def require_windows_publication(jobs, declared, marker):
+    by_name = {job['name']: job for job in jobs}
+    profile = by_name[WINDOWS_PUBLISHER]['verification_profile']
+    publishers = [WINDOWS_PUBLISHER]
+    if marker:
+        lanes = WINDOWS_PRODUCER_LAYOUTS[marker] if profile == 'full' else ('core',)
+        publishers.extend(timing.WINDOWS_PRODUCERS[lane] for lane in lanes)
+    for name in publishers:
+        checkout, steps = declared[name]
+        try:
+            preparation = declared_publication_step(steps, 'reports')
+            staging = declared_publication_step(steps, 'artifacts')
+            upload = declared_artifact_step(steps, 'upload', 'path', '${{ steps.artifacts.outputs.path }}')
+            required = [preparation, staging, upload]
+            if marker and name == WINDOWS_PUBLISHER:
+                field, value = ('pattern', 'verification-windows-${{ github.run_attempt }}-*') if profile == 'full' else (
+                    'name', 'verification-windows-${{ github.run_attempt }}-core')
+                required.append(declared_artifact_step(steps, 'download', field, value))
+        except (AttributeError, TypeError, ValueError) as error:
+            raise ProjectError(f"The tested workflow does not declare the required evidence steps for {name}.") from error
+        require_completed_steps(by_name[name], steps, checkout, required)
+
+
 def qualified_producer_checkouts(root, repository, jobs, run, tree, observed):
     marker, declared, inactive = committed_producers(root, tree)
     active = [job['name'] for job in jobs if not (
@@ -267,8 +332,9 @@ def qualified_producer_checkouts(root, repository, jobs, run, tree, observed):
             or len({(row['pull_request'], row['commit']) for row in observed}) != 1):
         raise ProjectError('Required jobs checked different pull requests or merge commits.')
     for row in observed:
-        if row['step'] != declared[row['name']]:
+        if row['step'] != declared[row['name']][0]:
             raise ProjectError(f"Required job {row['name']} used a different pinned checkout than the tested workflow.")
+    require_windows_publication(jobs, declared, marker)
     return observed
 
 

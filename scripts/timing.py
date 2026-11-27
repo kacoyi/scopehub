@@ -310,7 +310,7 @@ def active_step(steps, names):
     return timestamp(matches[0].get('started_at')), timestamp(matches[0].get('completed_at'))
 
 
-def job_identity(run_id, attempt, head_sha, repository, job):
+def job_identity(run_id, attempt, head_sha, repository, head_branch, job):
     missing, conflicts = [], []
     repository_field = job.get('repository')
     if isinstance(repository_field, dict):
@@ -330,6 +330,12 @@ def job_identity(run_id, attempt, head_sha, repository, job):
             missing.append(field)
         elif str(observed) != str(expected):
             conflicts.append(field)
+    branch = job.get('head_branch')
+    if branch is not None:
+        if head_branch is None:
+            missing.append('head_branch')
+        elif branch != head_branch:
+            conflicts.append('head_branch')
     if not positive_id(job.get('id')):
         missing.append('job_id')
     return missing, conflicts
@@ -428,7 +434,7 @@ def hosted_timing(run, jobs):
     attempt = str(run['run_attempt']) if run.get('run_attempt') is not None else None
     run_id = str(run['id'])
     requested = timestamp(run.get('created_at')) if attempt == '1' else None
-    identity = (run_id, attempt, run.get('head_sha'), repository)
+    identity = (run_id, attempt, run.get('head_sha'), repository, run.get('head_branch'))
     jobs = list(jobs)
     event = run.get('event')
     markers = [step['name'] for job in jobs if job.get('name') == 'verify (windows-latest)'

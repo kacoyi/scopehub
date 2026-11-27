@@ -18,7 +18,7 @@ if __package__:
                         check_failed, check_timeout, ci_provenance, redacted_check_log, select_checks,
                         stops_after_check, windows_lane_checks, windows_lanes_run_id, windows_producer_interruption,
                         windows_producer_interruptions)
-    from .project import (ProjectError, digest, file_digest, json_bytes, load_project,
+    from .project import (ProjectError, committed_source_identity, digest, file_digest, json_bytes, load_project,
                           project_definition_hash, read_json, source_identity, task_definition_hash, validate_model, windows_x64)
     from .review_tree import CommittedPath
     from .timing import (TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample,
@@ -29,7 +29,7 @@ if __package__:
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, integration_validation, release_artifacts, validate_notice,
     )
-    from .verification_scope import SCOPED_PROFILES, ci_base, ci_event_checkout, require_ancestor
+    from .verification_scope import SCOPED_PROFILES, ScopeError, ci_base, ci_event_checkout, exact_commit, require_ancestor
 else:
     import windows_python
     from check import (ALL_WINDOWS_LANES, BROWSER_RESULTS_DIGEST, INTERRUPTED_BEFORE_START, PRIVATE_CHECK_LOGS,
@@ -38,7 +38,7 @@ else:
                        check_failed, check_timeout, ci_provenance, redacted_check_log, select_checks,
                        stops_after_check, windows_lane_checks, windows_lanes_run_id, windows_producer_interruption,
                        windows_producer_interruptions)
-    from project import (ProjectError, digest, file_digest, json_bytes, load_project,
+    from project import (ProjectError, committed_source_identity, digest, file_digest, json_bytes, load_project,
                          project_definition_hash, read_json, source_identity, task_definition_hash, validate_model, windows_x64)
     from review_tree import CommittedPath
     from timing import (TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample,
@@ -49,7 +49,7 @@ else:
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, integration_validation, release_artifacts, validate_notice,
     )
-    from verification_scope import SCOPED_PROFILES, ci_base, ci_event_checkout, require_ancestor
+    from verification_scope import SCOPED_PROFILES, ScopeError, ci_base, ci_event_checkout, exact_commit, require_ancestor
 
 ROOT = Path(__file__).resolve().parents[1]
 SCOPE_FILE = 'verification-scope.json'
@@ -654,7 +654,8 @@ def validate_recorded_windows_evidence(root, project, reports, report, *, platfo
         validate_model(root, 'HostedHarnessReport', report)
         if lanes_run:
             validate_windows_run_id(report)
-        check_scoped_windows_aggregate(project, report, profile, source=source)
+        validate_scoped_windows_evidence(root, project, reports, report, profile,
+                                         source=source, destination=destination)
         return
     if aggregate_profile or lanes_run:
         validate_model(root, 'HostedHarnessReport', report)
@@ -666,33 +667,70 @@ def validate_recorded_windows_evidence(root, project, reports, report, *, platfo
     if (report['report_version'] != '2.0' or 'windows_python' in report or WINDOWS_PRODUCERS in report):
         raise PublicationError('The recorded source and run do not schedule Windows producer bindings.')
     if ci and windows_x64(report['environment']) and ci['event'] in {'push', 'pull_request'}:
-        committed = CommittedPath.at(root, ci['head_sha'])
+        committed = (scoped_windows_source(root, report) if profile in SCOPED_PROFILES
+                     else CommittedPath.at(root, ci['head_sha']))
         producer_reports, _, _ = source_producer_bindings(committed)
         source_aggregate = source_uses_windows_aggregate(committed)
         if (producer_reports or source_aggregate) and profile in SCOPED_PROFILES:
-            check_scoped_windows_aggregate(project, report, profile)
+            validate_scoped_windows_evidence(root, project, reports, report, profile,
+                                             committed=committed, destination=destination)
         elif producer_reports or source_aggregate:
             raise PublicationError('The recorded Windows run lacks its aggregate identifier.')
 
 
-def check_scoped_windows_aggregate(project, report, profile, *, source=None):
+def scoped_windows_source(root, report):
+    ci = report['ci']
+    checkout = ci['checkout_sha']
+    try:
+        exact_commit(root, checkout)
+    except ScopeError as error:
+        # A CI merge object may be absent during offline import. Use the
+        # retained head only when it reproduces the tested execution inputs.
+        head = ci['head_sha']
+        fallback = committed_source_identity(root, head)
+        if {**fallback, 'git_head': checkout} != report['source']:
+            raise PublicationError('The available head differs from the scoped Windows checkout.') from error
+        checkout = head
+    return CommittedPath.at(root, checkout)
+
+
+def validate_scoped_windows_evidence(root, project, reports, report, profile, *, source=None, committed=None,
+                                     destination=None):
     if report['report_version'] != '2.0' or 'windows_python' in report or WINDOWS_PRODUCERS in report:
         raise PublicationError('A scoped Windows run cannot declare full producer bindings.')
     selected = select_checks(project, profile=profile)
     validate_windows_lane(project, report, source or report['source'], report['ci'], selected, 'core', profile)
+    if committed is None:
+        committed = CommittedPath.at(root, source['git_head']) if source is not None else scoped_windows_source(root, report)
+    try:
+        declarations = committed_scheduler_declarations(committed) or {}
+        declaration = declarations.get('WINDOWS_SCOPED_BROWSER_RESULT_PROFILES')
+        profiles = ast.literal_eval(declaration) if declaration is not None else set()
+        if not isinstance(profiles, set) or not profiles <= SCOPED_PROFILES:
+            raise ValueError('Invalid scoped browser results profiles.')
+    except (SyntaxError, TypeError, ValueError) as error:
+        raise PublicationError('Unrecognized scoped browser results policy in the recorded source.') from error
+    validate_workspace_results(reports, f"runs/{report['run_id']}", report['checks'],
+                               required=profile in profiles, destination=destination)
+
+
+def committed_scheduler_declarations(source):
+    path = source / 'scripts/check.py'
+    if not path.is_file():
+        return None
+    return {
+        node.targets[0].id: node.value
+        for node in ast.parse(path.read_text(encoding='utf-8')).body
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name)
+    }
 
 
 def committed_lane_ownership(source, *, event):
-    path = source / 'scripts/check.py'
-    if not path.is_file():
-        return None, {}
     # Read the scheduler declarations without executing historical source.
     try:
-        declarations = {
-            node.targets[0].id: node.value
-            for node in ast.parse(path.read_text(encoding='utf-8')).body
-            if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name)
-        }
+        declarations = committed_scheduler_declarations(source)
+        if declarations is None:
+            return None, {}
         lanes = declarations.get('WINDOWS_LANE_CHECKS')
         if lanes is None:
             ownership = {
@@ -875,7 +913,8 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=None, collecti
             raise PublicationError('The Windows producer job requires its configured lane or scoped selection.')
         if report['selection']['profile'] != profile:
             raise PublicationError('The Windows core producer has a different scoped selection.')
-        check_scoped_windows_aggregate(project, report, profile, source=source or source_identity(root))
+        validate_scoped_windows_evidence(root, project, reports, report, profile,
+                                         source=source or source_identity(root), destination=destination)
     else:
         validate_recorded_windows_evidence(root, project, reports, report, destination=destination)
     executed = {}
@@ -954,7 +993,7 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=None, collecti
 def validate_windows_lane(project, report, source, ci, selected, lane, profile, *, native_requirement=None,
                           recovery_overlap=False):
     check_ids = [check['id'] for check in project['catalog']['checks']]
-    if (report['ci'] != ci or report['source'] != source or report['source_end'] != source
+    if (report['ci'] != ci or report['source'] != source or report.get('source_end') != source
             or not report['source_unchanged'] or not report['project_unchanged']
             or report['project_definition_sha256'] != project_definition_hash(project)
             or report['task_definitions'] != {key: task_definition_hash(task) for key, task in project['tasks'].items()}

@@ -483,14 +483,18 @@ class HostedTimingTests(unittest.TestCase):
         linux = hosted_job(31, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50')
         windows = hosted_job(32, 'windows', '00:20', '06:00',
                              'Run uv run python scripts/check.py --require-windows', '00:50', '05:20')
+        run = dict(hosted_run(), head_branch='repair')
+        consistent = timing.hosted_timing(run, [dict(linux, head_branch='repair'), windows])
+        self.assertTrue(consistent['workflow']['identity_complete'])
         for conflicting in (
             {'run_id': 12},
             {'run_attempt': 2},
             {'head_sha': 'b' * 40},
+            {'head_branch': 'other-branch'},
             {'run_url': 'https://api.github.com/repos/another/scopehub/actions/runs/11'},
         ):
             with self.subTest(conflicting=conflicting):
-                workflow = timing.hosted_timing(hosted_run(), [dict(linux, **conflicting), windows])
+                workflow = timing.hosted_timing(run, [dict(linux, **conflicting), windows])
                 self.assertFalse(workflow['workflow']['identity_complete'])
                 self.assertFalse(workflow['workflow']['matrix_complete'])
                 job = next(job for job in workflow['jobs'] if job['platform'] == 'Linux')

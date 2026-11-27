@@ -577,6 +577,61 @@ class WindowsLaneTests(ProjectFixture):
             harness.main()
         return exit.exception.code, read_json(self.reports / 'test-report.json')
 
+    def run_harness_with_interrupted_git(self, lane, directory):
+        """Send SIGINT to both the verifier and its waiting Git child on Linux."""
+        repository = Path(__file__).resolve().parents[2]
+        ready = directory / 'final-git-ready'
+        git = directory / 'git'
+        real_git = shutil.which('git')
+        git.write_text(f'#!{sys.executable}\n' + dedent(f'''\
+            import os, signal, sys, time
+            from pathlib import Path
+
+            ready = Path({str(ready)!r})
+            if '--no-optional-locks' in sys.argv and 'ls-files' in sys.argv:
+                first = ready.with_name('first-git-read')
+                if first.exists() and not ready.exists():
+                    signal.signal(signal.SIGINT, signal.SIG_DFL)
+                    ready.write_text(str(os.getpid()), encoding='ascii')
+                    time.sleep(30)
+                first.touch()
+            os.execv({real_git!r}, [{real_git!r}, *sys.argv[1:]])
+            '''), encoding='utf-8')
+        git.chmod(0o755)
+        runner = dedent(f'''\
+            import sys
+            from pathlib import Path
+            from unittest.mock import patch
+            from scripts import check
+
+            check.ROOT = Path({str(self.root)!r})
+            check.REPORTS = check.ROOT / '.reports'
+            sys.argv = ['check.py', '--ci-windows-lane', {lane!r}]
+            with (patch.object(check.platform, 'system', return_value='Windows'),
+                  patch.object(check.platform, 'machine', return_value='AMD64'),
+                  patch.object(check, 'maintain_automatically'),
+                  patch.object(check, 'tool_version', return_value='fixture')):
+                check.main()
+            ''')
+        environment = {**os.environ, 'PATH': os.pathsep.join((str(directory), os.environ['PATH']))}
+        with subprocess.Popen([sys.executable, '-B', '-c', runner], cwd=repository, env=environment,
+                              start_new_session=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as process:
+            try:
+                deadline = time.monotonic() + 10
+                while not ready.exists() or not ready.stat().st_size:
+                    if process.poll() is not None:
+                        stdout, stderr = process.communicate()
+                        self.fail(f'The producer exited before the final Git read: {stdout!r}, {stderr!r}')
+                    self.assertLess(time.monotonic(), deadline, 'The final Git read did not start.')
+                    time.sleep(.01)
+                self.assertEqual(process.pid, os.getpgid(int(ready.read_text(encoding='ascii'))))
+                os.killpg(process.pid, signal.SIGINT)
+                stdout, stderr = process.communicate(timeout=12)
+            finally:
+                if process.poll() is None:
+                    os.killpg(process.pid, signal.SIGKILL)
+        return process.returncode, stdout, stderr
+
     def use_native_report_line_endings(self):
         write_text = Path.write_text
 
@@ -1064,7 +1119,7 @@ class WindowsLaneTests(ProjectFixture):
         subprocess.run(['git', 'remote', 'add', 'origin', 'https://github.com/fixture/scopehub'],
                        cwd=self.root, check=True)
 
-    def use_current_workspace_layout(self):
+    def use_current_workspace_layout(self, *, scoped_catalog=False):
         self.enterContext(patch.object(harness, 'WINDOWS_PR_CHECK_TRANSFERS', self.current_transfers))
         self.enterContext(patch.object(harness, 'WINDOWS_WORKSPACE_RESULT_CHECKS', self.current_workspace_result_checks))
         self.enterContext(patch.object(windows_python, 'RECOVERY_PR_CHECKS', set()))
@@ -1089,6 +1144,8 @@ class WindowsLaneTests(ProjectFixture):
                 report.write_text(json.dumps({'fixture': name}), encoding='utf-8')
             if name == 'workspace-timeframe':
                 sys.exit(int(os.environ.get('SCOPEHUB_FIXTURE_WORKSPACE_EXIT', 0)))
+            if name == 'desktop-localization':
+                sys.exit(int(os.environ.get('SCOPEHUB_FIXTURE_LOCALIZATION_EXIT', 0)))
             ''')
         for check in catalog['checks']:
             if check['id'] in workspace | {'market-workflow'}:
@@ -1097,7 +1154,8 @@ class WindowsLaneTests(ProjectFixture):
         ledger = self.ledger()
         task_by_id(ledger, 'M0-001')['checks'].append('workspace-timeframe')
         self.save_ledger(ledger)
-        self.partition_fixture(cutoff_cases=True, receipt_scope=True, workspace_layout=True)
+        self.partition_fixture(cutoff_cases=True, receipt_scope=True, workspace_layout=True,
+                               scoped_catalog=scoped_catalog)
 
     def stage_workspace_producer(self, destination):
         with tempfile.TemporaryDirectory() as directory:
@@ -2190,6 +2248,36 @@ class WindowsLaneTests(ProjectFixture):
                                                          os.environ, lane='workspace')
                 shutil.rmtree(self.reports)
 
+        if sys.platform == 'linux':
+            subprocess.run(['git', 'restore', '--', 'implementation.py'], cwd=self.root, check=True)
+            for lane in ('python', 'workspace'):
+                with self.subTest(lane=lane, signal='process group'):
+                    directory = self.downloads / f'{lane}-git'
+                    directory.mkdir()
+                    code, stdout, stderr = self.run_harness_with_interrupted_git(lane, directory)
+                    self.assertEqual((1, b''), (code, stderr), stdout)
+                    latest = self.reports / 'test-report.json'
+                    producer = read_json(latest)
+                    run = self.reports / 'runs' / producer['run_id']
+                    self.assertEqual(latest.read_bytes(), (run / latest.name).read_bytes())
+                    self.assertEqual('failed', producer['status'])
+                    self.assertIn(harness.WINDOWS_PRODUCER_INTERRUPTION[lane], producer['limitations'])
+                    self.assertTrue(producer['source_unchanged'])
+                    self.assertEqual(producer['source'], producer['source_end'])
+                    if lane == 'python':
+                        self.assertEqual('passed', producer['windows_python'][lane]['status'])
+                        attachments = {'windows-python-python.json', 'windows-python-python.log'}
+                    else:
+                        completed = {row['id'] for row in producer['checks'] if row['status'] == 'passed'}
+                        self.assertEqual(self.current_workspace_result_checks, completed)
+                        attachments = {f'{check}/results.json' for check in completed}
+                    destination = self.downloads / f'{lane}-group-stop'
+                    self.assertTrue(ci_artifacts.stage_artifacts(self.root, destination, os.environ, lane=lane))
+                    observed = resolve_diagnostic(diagnostic_locator(destination / latest.name), destination)
+                    self.assertEqual('failed', observed['recorded_status'])
+                    self.assertLessEqual(attachments, set(observed['verified_observations']))
+                    shutil.rmtree(self.reports)
+
     def assert_market_workflow_producer(self, owner, *, legacy=False):
         catalog_path = self.root / 'project/checks.json'
         catalog = read_json(catalog_path)
@@ -3003,8 +3091,7 @@ class WindowsLaneTests(ProjectFixture):
                     shutil.rmtree(self.reports, ignore_errors=True)
 
     def test_scoped_producer_retains_interrupted_result_and_rejects_incomplete_report_publication(self):
-        self.partition_fixture(scoped_catalog=True)
-        self.enterContext(patch.object(harness, 'WINDOWS_WORKSPACE_RESULT_CHECKS', self.current_workspace_result_checks))
+        self.use_current_workspace_layout(scoped_catalog=True)
         previous = signal.signal(signal.SIGINT, signal.default_int_handler)
         self.addCleanup(signal.signal, signal.SIGINT, previous)
         replace = Path.replace
@@ -3012,7 +3099,7 @@ class WindowsLaneTests(ProjectFixture):
         marker = harness.WINDOWS_PRODUCER_INTERRUPTION['core']
         latest = Path('test-report.json')
         producer_dir = self.downloads / 'verification-windows-2-core'
-        for phase, expected in (('normal', 'passed'), ('interrupt', 'failed'), ('write-error', None)):
+        for phase, expected in (('normal', 'passed'), ('rejected', 'failed'), ('interrupt', 'failed'), ('write-error', None)):
             with self.subTest(phase=phase):
                 replaced = []
 
@@ -3025,7 +3112,8 @@ class WindowsLaneTests(ProjectFixture):
                             raise OSError('Injected failure replacing the latest report.')
                     return replace(path, target)
 
-                with (patch.dict(os.environ, {'GITHUB_JOB': 'windows_core', **self.scope_environment(profile)}),
+                with (patch.dict(os.environ, {'GITHUB_JOB': 'windows_core', **self.scope_environment(profile),
+                                              'SCOPEHUB_FIXTURE_LOCALIZATION_EXIT': '7' if phase == 'rejected' else '0'}),
                       patch.object(Path, 'replace', replace_report)):
                     if phase == 'write-error':
                         with self.assertRaisesRegex(OSError, 'Incomplete Windows producer report publication'):
@@ -3036,21 +3124,51 @@ class WindowsLaneTests(ProjectFixture):
                         continue
                     code, report = self.run_harness('--profile', profile)
                     self.assertEqual((int(expected == 'failed'), expected), (code, report['status']))
-                    self.assertEqual(expected == 'failed', marker in report['limitations'])
+                    self.assertEqual(phase == 'interrupt', marker in report['limitations'])
                     self.assertTrue(ci_artifacts.stage_artifacts(self.root, producer_dir, os.environ))
                 selected = harness.select_checks(harness.load_project(self.root), profile=profile)
                 self.assertEqual(sorted(selected), report['selection']['checks'])
-                self.assertTrue(all(row['status'] == 'passed' for row in report['checks'] if row['id'] in selected))
+                check = next(row for row in report['checks'] if row['id'] == 'desktop-localization')
+                self.assertEqual(('failed', 7) if phase == 'rejected' else ('passed', 0),
+                                 (check['status'], check['exit_code']))
+                run = Path('runs', report['run_id'])
+                attachment = run / 'desktop-localization' / 'results.json'
+                contents = (self.reports / attachment).read_bytes()
+                self.assertEqual(project.digest(contents), check[harness.BROWSER_RESULTS_DIGEST])
+                self.assertEqual(contents, (producer_dir / attachment).read_bytes())
                 original = (producer_dir / latest).read_bytes()
-                self.assertEqual(original, (producer_dir / 'runs' / report['run_id'] / latest).read_bytes())
+                self.assertEqual(original, (producer_dir / run / latest).read_bytes())
                 shutil.rmtree(self.reports)
-                with patch.dict(os.environ, {'SCOPEHUB_WINDOWS_LANE_RESULT': 'failure' if code else 'success'}):
-                    aggregate_code, aggregate = self.run_harness('--profile', profile, '--ci-windows-aggregate',
-                                                                str(self.downloads))
+                aggregate_args = ('--profile', profile, '--ci-windows-aggregate', str(self.downloads))
+                published = Path(self.enterContext(tempfile.TemporaryDirectory())) / 'localization-published'
+                with patch.dict(os.environ, {'SCOPEHUB_WINDOWS_LANE_RESULT': 'failure' if code else 'success',
+                                             **self.scope_environment(profile)}):
+                    aggregate_code, aggregate = self.run_harness(*aggregate_args)
+                    self.assertTrue(ci_artifacts.stage_artifacts(self.root, published, os.environ))
                 self.assertEqual((code, report), (aggregate_code, aggregate))
                 self.assertEqual(original, (self.reports / latest).read_bytes())
+                self.assertEqual(original, (published / latest).read_bytes())
+                self.assertEqual(contents, (published / attachment).read_bytes())
+                locator = diagnostic_locator(published / latest)
+                observed = resolve_diagnostic(locator, published)
+                self.assertEqual(expected, observed['recorded_status'])
+                self.assertIn('desktop-localization/results.json', observed['verified_observations'])
+                with self.replace_artifact_bytes(published, {attachment: b'changed\n'}):
+                    with self.assertRaisesRegex(DiagnosticArchiveError, 'desktop-localization/results.json'):
+                        resolve_diagnostic(locator, published)
                 shutil.rmtree(self.reports)
+                if phase == 'normal':
+                    changed = deepcopy(report)
+                    changed_check = next(row for row in changed['checks'] if row['id'] == check['id'])
+                    del changed_check[harness.BROWSER_RESULTS_DIGEST]
+                    altered = json_bytes(changed)
+                    with self.replace_artifact_bytes(producer_dir, dict.fromkeys((latest, run / latest), altered)):
+                        with self.assertRaisesRegex(ci_artifacts.PublicationError, 'Missing or unexpected browser results binding'):
+                            self.run_harness(*aggregate_args)
+                    self.assertFalse((self.reports / latest).exists())
+                    shutil.rmtree(self.reports, ignore_errors=True)
                 shutil.rmtree(producer_dir)
+                shutil.rmtree(published)
 
     def test_protected_python_producer_retains_interrupted_serial_original(self):
         self.use_current_workspace_layout()

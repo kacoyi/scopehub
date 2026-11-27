@@ -115,6 +115,7 @@ WINDOWS_PR_CHECK_TRANSFERS = {
                   'market-recovery-ui', 'desktop-localization'},
 }
 WINDOWS_WORKSPACE_RESULT_CHECKS = WINDOWS_PR_CHECK_TRANSFERS[WINDOWS_WORKSPACE_LANE]
+WINDOWS_SCOPED_BROWSER_RESULT_PROFILES = {'localization'}
 BROWSER_RESULTS_DIGEST = 'browser_results_sha256'
 WINDOWS_LANES_RUN_PREFIX = 'windows-change-'
 CHECK_OUTPUT_LOCK = Lock()
@@ -564,6 +565,20 @@ def retain_python_manifest(runner, manifest, record):
         record['reason'] = f"{record['reason']} {reason}" if 'reason' in record else reason
 
 
+def final_git_read(read, stop_requested):
+    try:
+        return read()
+    except subprocess.CalledProcessError:
+        if not stop_requested or not stop_requested():
+            raise
+    # A process-group stop can kill a Git child while the producer is
+    # cooperating. Recheck the actual source before publishing the failure.
+    try:
+        return read()
+    except subprocess.CalledProcessError:
+        return None
+
+
 def run_verification(producer_signals):
     started = time.monotonic()
     parser = argparse.ArgumentParser()
@@ -650,6 +665,7 @@ def run_verification(producer_signals):
     producer_stop_requested = (producer_signals.enter_context(cooperative_stop_requests(CHECK_CONSOLE.get()))
                                if producer_interruption else None)
     producer_cancellation = {'cancel': producer_stop_requested} if producer_stop_requested else {}
+    bind_browser_results = bool(lane or (producer_lane == 'core' and args.profile in WINDOWS_SCOPED_BROWSER_RESULT_PROFILES))
     recovery_window = []
     part_check = None
     if python_part:
@@ -719,7 +735,7 @@ def run_verification(producer_signals):
                     check_env = {**env, 'SCOPEHUB_REUSE_OPERATIONS_BUILD': '1'}
                 result = execute(check['id'], command, check_env, run_dir, check_timeout(check, environment['system']),
                                  **producer_cancellation)
-            if lane and check['id'] in WINDOWS_WORKSPACE_RESULT_CHECKS and 'log' in result:
+            if bind_browser_results and check['id'] in WINDOWS_WORKSPACE_RESULT_CHECKS and 'log' in result:
                 result[BROWSER_RESULTS_DIGEST] = None
                 try:
                     artifact = hosted_artifact_path(run_dir, f"{check['id']}/results.json")
@@ -765,10 +781,10 @@ def run_verification(producer_signals):
                               reason=f'{PYTHON_MANIFEST_INTERRUPTED} {reason}' if reason else PYTHON_MANIFEST_INTERRUPTED)
         python_parts[lane] = record
         part_failed = record['status'] != 'passed'
-    final_source = source_identity(ROOT)
-    source_unchanged = final_source['sha256'] == source['sha256']
-    if ci:
-        source_unchanged = source_unchanged and not final_source['working_tree_dirty'] and final_source['git_head'] == source['git_head']
+    final_source = final_git_read(lambda: source_identity(ROOT), producer_stop_requested)
+    source_unchanged = final_source is not None and final_source['sha256'] == source['sha256']
+    if ci and source_unchanged:
+        source_unchanged = not final_source['working_tree_dirty'] and final_source['git_head'] == source['git_head']
     state_error = None
     try:
         project_unchanged = project_definition_hash(load_project(ROOT)) == project_hash
@@ -801,7 +817,6 @@ def run_verification(producer_signals):
     report = {
         'report_version': windows_python.REPORT_VERSION if python_parts else '2.0', 'run_id': run_id, 'generated_at': datetime.now(timezone.utc).isoformat(),
         'environment': environment, 'source': source, 'source_unchanged': source_unchanged,
-        'source_end': final_source,
         'project_definition_sha256': project_hash, 'project_unchanged': project_unchanged,
         'project_state_error': state_error,
         'timing': {'elapsed_seconds': round(time.monotonic() - started, 3)},
@@ -845,12 +860,20 @@ def run_verification(producer_signals):
         report['observed_feedback'] = findings
     if ci:
         report['ci'] = ci
-    if not source_unchanged:
+    if final_source is not None:
+        report['source_end'] = final_source
+    else:
+        report['limitations'].append('The final source snapshot could not be read after interruption.')
+    if final_source is not None and not source_unchanged:
         # Retain changed paths, not file contents, to diagnose unexpected build writes.
-        report['worktree_changes'] = subprocess.run(
+        changes = final_git_read(lambda: subprocess.run(
             ['git', 'status', '--short'], cwd=ROOT, env=env, capture_output=True, check=True,
             text=True, encoding='utf-8', errors='replace',
-        ).stdout.splitlines()
+        ), producer_stop_requested)
+        if changes is None:
+            report['limitations'].append('The final list of changed paths could not be read after interruption.')
+        else:
+            report['worktree_changes'] = changes.stdout.splitlines()
     console = CHECK_CONSOLE.get()
 
     if producer_stop_requested:
