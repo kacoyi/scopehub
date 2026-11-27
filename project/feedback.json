@@ -8574,7 +8574,7 @@
       "resolution": {
         "cause": "The folder stage used the single-revision read deadline even though staging owns serial per-file validation.",
         "correction": "Use the folder staging path with a user-controlled stop and ignore late or rejected results.",
-        "prevention": "Both guarded folder lanes staged 64 compatible files, accepted the authorized result after controlled 15,100 ms delivery and kept cancelled or unverified comparisons hidden."
+        "prevention": "The retained local capacity trial on e8789cfe2dbc695f8080daabaaf491ac62b29bdc recorded one native stage with 64 valid files and rendered the comparison after 15,100 ms of controlled UI delivery (.reports/m2-039-native-followup/capacity-corrected/browser-results.json, SHA-256 6f93f3fb0bb8868189c9747b985ae67f2782c4520f072444bf749839b24b7f34). Guarded run 45935930896 at 3d97a77a08fb53925edd89f4a4ac5becf74a505c passed the distinct 15-CSV comparison with 13 conflicting inputs on both Windows and Linux. The passing case rendered only after the controlled 15,100 ms delivery, showed the unavailable-revision rejection without a comparison, and let the user stop waiting for a missing reply or a completed native reply held in transit. Delivering the held reply after cancellation left the comparison hidden. The original local-folder-refresh-preview.log digests are Windows SHA-256 29535edf54a700dbd6b0b1d1357ebb9d37e8992a3d4ccc07f0cf8948b180d508 and Linux SHA-256 85c0c055308781ea9064d46a53acc2e4d6115975daa9a2ef22893af256f1c392."
       },
       "deferral_reason": null
     },
