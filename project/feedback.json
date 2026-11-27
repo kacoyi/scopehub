@@ -8314,7 +8314,7 @@
     },
     {
       "id": "windows-handoff-calibration-expires-before-file-comparison",
-      "status": "open",
+      "status": "addressed",
       "severity": "major",
       "source": "First native observation archives/observations/repo-hygiene-20261125/pr123-native-original-45933801256/manifest.json (SHA-256 1c7999a4d37d4976091603fa5272d322c77bed4270fbf00c33aa4c7e9a8c294e).",
       "observation": "The first ordinary PR 123 Windows browser job 140292229420 failed while preparing the test-owned file matrix in the private launcher handoff case. The case took 15362 ms. The workspace suite recorded 97 passed, one failed and two skipped. The bounded subprocess diagnostic identified expiration before the subsequent file comparisons. Its last internal stage and the reason for its elapsed time are unknown. The earlier M0-147 first protected case passed in 8646 ms including its other work.",
@@ -8333,7 +8333,11 @@
           "report_sha256": "2b4e4c9dce03a68efcfe32ed9dd49a0efdb48287a8f9a9195f55c689d4cb0657"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The bounded subprocess expired during test-owned leaf ACL matrix preparation, before the 24 native witness comparisons. The historical last internal stage and cause of the elapsed time remain unknown.",
+        "correction": "Compile the existing C# fixture helper once in Windows workspace setup and load the run-owned assembly in the leaf preparation subprocess. Keep the existing subprocess deadline, comparison outcomes and owned-file cleanup. Record setup compilation and the script, helper and matrix milestones.",
+        "prevention": "Guarded run 45941768345 passed environment and all M0-171 checks on Linux and Windows. The workspace suites exercised bounded preparation and cleanup, interruption before native witness comparison, actual deadline expiry and the ordinary private launcher. The ordinary PR 146 Windows workspace producer also passed with observed compilation and matrix timings. The earlier failed report and passing controls are retained."
+      },
       "deferral_reason": null
     }
   ]

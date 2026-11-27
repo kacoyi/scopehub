@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-171",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -27414,7 +27414,7 @@
       "id": "M0-171",
       "title": "Recover Windows handoff fixture preparation after its subprocess deadline",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-147"
       ],
@@ -27438,7 +27438,16 @@
         "python-contracts-workers",
         "workspace-timeframe"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-171-e321cc9ce9f14d5a.json",
+          "sha256": "6c92ba4502f42cea3b2ae2d4a9b50962b74683d33f1a02a13e32ad23474d044b"
+        },
+        {
+          "path": "project/evidence/M0-171-16a14bd6ef14ef60.json",
+          "sha256": "400f80c1958d449d4637a062c2ce53a2434a11532568777b8de3b70f4c6cf715"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "windows-change-45933801256-1",
@@ -27446,9 +27455,9 @@
           "report_sha256": "2b4e4c9dce03a68efcfe32ed9dd49a0efdb48287a8f9a9195f55c689d4cb0657"
         }
       ],
-      "next_action": "Independently review the clean candidate, then retain an ordinary Windows workspace-timeframe run with the helper compilation and leaf matrix phase observations. Verify the integrated revision and keep the historical inner stage and cause open.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Scoped pre-integration qualification passed. Independent approval of 6074628d8343c1e7b70dd084c53e3901ac896c04 applies to ddd83e28f7ff37366912a4f70aeae67824c61137 with its review records. Guarded PR 146 run 45941768345 passed environment and every task check on Linux and Windows. The workspace suites passed 100 Linux and 99 Windows cases with two Windows skips for POSIX signal behavior. Both passed bounded preparation and cleanup, interruption before comparison, deadline expiry and the ordinary private launcher. Ordinary PR 146 run 45939423128 passed the Windows workspace suite on preview 2c2dc471d5a9339e0278ea5de2b41bd672c31c8b. It recorded 1988 ms for setup compilation and 1818 ms for native preparation, including 14 ms to load the helper and 1544 ms for the matrix. The earlier protected pass and same-fixture Windows controls are retained with the original PR 123 failure. The historical last internal stage and cause of the elapsed time remain unknown. The ordinary aggregate retains a separate cold market-recovery failure assigned to M0-173 and PR 147. The coordinator owns reconciliation with protected main and retention of the first integrated Windows workspace result.",
       "plan": {
         "outcome": "Retain the failed first-attempt native test, the previously passing protected comparison and the current same-fixture control. Name the failing preparation phase and preserve any unknown inner stage. Use the existing fixture at its normal entry to distinguish successful preparation from real expiration or interruption. Preserve its established comparison outcomes, bounded diagnostics and cleanup. Correct the verified cost or fixture isolation issue once.",
         "change_types": [
