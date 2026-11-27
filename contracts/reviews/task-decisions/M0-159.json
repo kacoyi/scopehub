@@ -126,6 +126,15 @@
       },
       "supersedes": "9712969eb971c6a00ae508b4f172df8a63bab3996430f94e8a2b8ec2da311b6a",
       "evidence_sha256": "90bd6e1934a739ba9fcaa8f5faca15daa1c59673476441a1ded6f5c607b51a0a"
+    },
+    {
+      "kind": "request",
+      "source_commit": "aec0118d0573ccc949e4e44a71c379c8b9b29d17",
+      "scope": "Review the completed protected-observation policy on the current protected maintenance-navigation source, including the combined project/delivery.json, registered evidence closure and independently enforced adoption order.",
+      "supersedes": "de38ba2913ed2db2c5af298dcd87dc41ca6291aeafc00fdd792a5331ba0d128b",
+      "requested_at": "2026-11-27T09:48:47.479944+00:00",
+      "request_id": "87eeae618015efe541b96e91f510f082ae74bd11acbc461855a689726d393b2e",
+      "evidence_sha256": "53c4f0ed70907c8928e5093d70351d12452aa243f0643ce0642d4cc91bb25af4"
     }
   ]
 }
