@@ -27077,7 +27077,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Have the coordinator obtain both independent decisions on the exact clean repair using the retained public controls in .reports/audit-20261127/m0-146-3f5485af-repair/handoff.json. Then retain an ordinary full warm Windows PR with all five producer clocks, final publisher time, all 35 selections, original attachments and ordered Python outcomes before qualifying the five-job layout against the 900-second objective.",
+      "next_action": "Have the coordinator obtain both independent decisions on the exact clean repair using the retained public controls in .reports/audit-20261127/m0-146-f5ba8771-repair/handoff.json. Then retain an ordinary full warm Windows PR with all five producer clocks, final publisher time, all 35 selections, original attachments and ordered Python outcomes before qualifying the five-job layout against the 900-second objective.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -27173,6 +27173,7 @@
           "tooling"
         ],
         "context": [
+          "Both independent changes-requested decisions on f5ba8771 and their verified original responses are indexed in .reports/audit-20261127/m0-146-f5ba8771-repair/originals/manifest.json (SHA-256 0946872aab346f2aa880b3338b4990fc9e79ca4d9d42c09ce110b749a8394f51). M0-146 owns the four registered regressions through project-state and python-contracts-workers.",
           "Both actual 3f5485af changes-requested responses, their digest-verified originals, and the coordinator decision index are retained in .reports/audit-20261127/m0-146-3f5485af-repair/originals. M0-146 owns the five registered regressions with project-state and python-contracts-workers without reopening completed M0-139.",
           "The exact M0-139 and M0-146 changes-requested decisions on 17cbf7c7, authenticated successful 45965137241 and failed workspace 45933801256 inputs are retained in .reports/audit-20261127/m0-146-17cbf7c7-repair/originals (manifest SHA-256 2caf29aa00a021f348ee3fbce0fd85bed043829e9006acdfd68fe9c830864ad2). M0-146 owns their joint repair without altering completed M0-139.",
           "Five-run original Windows producer comparison: archives/observations/repo-hygiene-20261125/pr123-warm-comparison-45965137241/lanes.json (SHA-256 6206f9265667be23e48c2c07db5bad6e26cba3b052f4eff980ab07a8641b8645). Checkout-local original copies, first-attempt job clocks, per-case and per-check data, producer and publisher evidence and both actual task receipts are indexed by .reports/audit-20261127/m0-146-windows-path/originals-sha256.json (SHA-256 1196fed139939e5b4097030bb11dcbbc34638bccba396febda2f639b3565eb8f).",
@@ -27248,6 +27249,18 @@
           "A contiguous transfer of whole discovery modules to the shorter Python job may reduce the measured recovery critical path. Four native samples expose variable host costs; compare the alternatives, original ordering, older partition boundaries and all producer intervals before choosing. Treat modeled gains as estimates pending the next full native observation."
         ],
         "risks": [
+          {
+            "failure": "Windows integration reports readiness when a required producer upload, publisher download or final report upload is skipped, or an explicit job branch conflicts with its run. Exercise the tested-workflow matching completed and qualified failed four- and five-producer controls, independent skipped and branch mutations, and optional timing publication.",
+            "checks": ["project-state", "python-contracts-workers"]
+          },
+          {
+            "failure": "A real process-group SIGINT at the final source Git subprocess escapes before writing both producer reports. Exercise the last metadata and source reads through both report writes on Python and workspace producers, preserving completed ordered events and binding the terminal verdict and original artifacts through publication and cold reopen.",
+            "checks": ["project-state", "python-contracts-workers"]
+          },
+          {
+            "failure": "The scoped localization producer publishes without its generated Playwright attachment. Exercise qualified successful and failed scoped and ordinary workspace cases with the original attachment, and reject inconsistent or missing evidence at the owning publication boundary.",
+            "checks": ["project-state", "python-contracts-workers"]
+          },
           {
             "failure": "Integration can accept a reported tree that conflicts with the known tested commit, split producer records under a single-job workflow, or a skipped checkout. Replay matched and conflicting controls against the declared historical workflow, including the verified tree-only route when the local commit is unavailable.",
             "checks": ["project-state", "python-contracts-workers"]

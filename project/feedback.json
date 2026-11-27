@@ -10496,6 +10496,70 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-integration-required-artifact-steps-skipped",
+      "source": "Independent M0-139 changes-requested decision on f5ba8771b485118ef017c75f5b184bb61991a90e, final event in contracts/reviews/task-decisions/M0-139.json. Original archives/observations/repo-hygiene-20261125/independent-final-m0-139-f5ba8771/original-assistant-response.jsonl (SHA-256 e3123160d43a8ff0a835a36148c1492491f917d738c4ea390ddcbbc30843fa4d).",
+      "observation": "The exact f5ba8771 public integration replay qualified the native four-producer Windows run 45965137241 and the candidate five-producer route after separately changing the required browser artifact upload, full producer artifact download or final verification report upload to skipped. A skipped browser check was rejected. Regress all required artifact transfers as declared by the tested workflow and preserve the legitimately optional timing artifact.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-integration-producer-branch-conflict",
+      "source": "Independent M0-139 changes-requested decision on f5ba8771b485118ef017c75f5b184bb61991a90e, final event in contracts/reviews/task-decisions/M0-139.json. Original archives/observations/repo-hygiene-20261125/independent-final-m0-139-f5ba8771/original-assistant-response.jsonl (SHA-256 e3123160d43a8ff0a835a36148c1492491f917d738c4ea390ddcbbc30843fa4d).",
+      "observation": "The exact f5ba8771 public integration replay qualified both Windows routes after changing only the browser job head_branch to the unrelated branch in PR 112. The same replay rejected an unrelated job run_id. Qualify explicit job branch identity with its run and tested checkout.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-producer-final-git-interruption-loses-reports",
+      "source": "Independent M0-146 changes-requested decision on f5ba8771b485118ef017c75f5b184bb61991a90e, final event in contracts/reviews/task-decisions/M0-146.json. Original archives/observations/repo-hygiene-20261125/independent-final-m0-146-f5ba8771/original-assistant-response.jsonl (SHA-256 93c291a708386d5154604f9d50436e99077f9f18c3180991a791b330708db592).",
+      "observation": "A process-group SIGINT during the last git ls-files caused the final source read to exit -2 and raise CalledProcessError on f5ba8771. The Python and workspace producers completed their checks and wrote logs and attachments but wrote neither per-run nor latest report. Regress final metadata, the child process exit and both atomic report boundaries through real process-group interruption, retaining completed results and their failed verdict through publication and cold reopen.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-scoped-localization-publication-drops-results",
+      "source": "Independent M0-146 changes-requested decision on f5ba8771b485118ef017c75f5b184bb61991a90e, final event in contracts/reviews/task-decisions/M0-146.json. Original archives/observations/repo-hygiene-20261125/independent-final-m0-146-f5ba8771/original-assistant-response.jsonl (SHA-256 93c291a708386d5154604f9d50436e99077f9f18c3180991a791b330708db592).",
+      "observation": "The exact f5ba8771 full workspace producer published and reopened the original 25323-byte localization artifact with 16 passing cases on normal and interrupted runs. The scoped core producer invoked with --profile localization published only its log for both a passed and a qualified failed replay. Regress source-owned attachment binding and exact bytes through actual workspace and scoped localization producer, publisher and cold reopen entries.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
