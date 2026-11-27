@@ -1,0 +1,151 @@
+{
+  "version": 3,
+  "task_id": "M0-161",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "727b4fb34ba87a731a159123e39f9531ba9ffb7c",
+      "scope": "Follow the first public action on an ordinary and read-only clean checkout. Test open, ended and absent engagements alongside actionable failures and unrelated product focus. Inspect historical compatibility and the effective command a new agent actually receives.",
+      "supersedes": null,
+      "requested_at": "2026-11-26T07:24:22.653438+00:00",
+      "request_id": "997734e91648f8261344d4e0ee1bed27bec028fecf2099f3b3e4cc28521fc0c3",
+      "evidence_sha256": "bfa37a796b26425d6e0b9ffcb558b1d0163e67d986e293d9dffee49cac5fd267"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "727b4fb34ba87a731a159123e39f9531ba9ffb7c",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-161 727b4fb34ba87a731a159123e39f9531ba9ffb7c",
+      "scope": "CHANGES_REQUESTED M0-161 727b4fb34ba87a731a159123e39f9531ba9ffb7c",
+      "observation": "With one unassigned major finding and both workstreams accepted, the candidate’s first action directed the coordinator to stop assigning work.",
+      "reviewer": "Independent Astra Standard (t14y)",
+      "original_sha256": "e49daf361b45b1117381d732477d3b7b6252ca9a99924932f2daf601ef00cbf5",
+      "response_id": "167670508d7dd87418fc69a9580a40b9f70cf54a8173d0dc35c0ee5f7444dd8d",
+      "response_sha256": "e3a5048bc41c39626181ff47a0e6250f74d2f7a5f04e8a4559d7509f2bd3b8e1",
+      "legacy_response_sha256": "e09662314255fbaf8d497c5404ed4071cd97eaeccbf531e538faf15a54b835fc",
+      "observation_body_sha256": "f8d090c805e8ac4e84d4ccc6072775f9e0f8e8d05b1505b8b273e8a8d3801f0c",
+      "event": {
+        "id": "msg_04484f5e519cb17b016b07e185af8887d28820616235126bb0",
+        "timestamp": "2026-11-26T07:36:50.580Z"
+      },
+      "supersedes": "997734e91648f8261344d4e0ee1bed27bec028fecf2099f3b3e4cc28521fc0c3",
+      "evidence_sha256": "7020d55265f08f5020ee5e4203e3647559b16b490eb5af1271399aab888b0f9c"
+    },
+    {
+      "kind": "request",
+      "source_commit": "17a0365fbc1462e6154806c18020b654dbbc39ef",
+      "scope": "Follow the first public action on an ordinary and read-only clean checkout. Test open, ended and absent engagements alongside actionable failures and unrelated product focus. Inspect historical compatibility and the effective command a new agent actually receives. Recheck the original decision on 727b4fb3.",
+      "supersedes": "167670508d7dd87418fc69a9580a40b9f70cf54a8173d0dc35c0ee5f7444dd8d",
+      "requested_at": "2026-11-26T12:29:03.886255+00:00",
+      "request_id": "15d08b5440bb806fb5bfd3a3ee7b019bb349a9e7acd99132a9ee56db42197096",
+      "evidence_sha256": "e4e1a0c04c998ea78bc1ec1fcf1ae4c48dd007898e2a59ead3f1bd26cadf9af3"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "17a0365fbc1462e6154806c18020b654dbbc39ef",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-161 17a0365fbc1462e6154806c18020b654dbbc39ef",
+      "scope": "CHANGES_REQUESTED M0-161 17a0365fbc1462e6154806c18020b654dbbc39ef",
+      "observation": "After both workstreams were accepted, the first action opened the major finding and instructed the coordinator to link it to an unfinished corrective task and verify its checks.",
+      "reviewer": "Independent Astra Standard (t15b)",
+      "original_sha256": "fc5918f012832f1c3aca7a1e03c86f6c2360320aa7aa289acce87ef20035c538",
+      "response_id": "f1d0f8f3977c33a0cfda3b3e5b9e5b6ccc565d4d578c72678bf2dc12cd65d60e",
+      "response_sha256": "944e2ea5b54a7dc1458a20d23c0d71fa921a2f9e2108a1022ea87910338b7bd4",
+      "legacy_response_sha256": "fbb2580ceca658651d7ce1f5a7b0b99f4147e42302f996e2e3d12ffcbc9899a0",
+      "observation_body_sha256": "a1187665ae362512cb0244cc8dc5aca4a539a092cba38fe386fde70e914e4732",
+      "event": {
+        "id": "msg_06ec46250577aa7b016b082741f3dc87d289b234dd526d2b2b",
+        "timestamp": "2026-11-26T12:34:26.759Z"
+      },
+      "supersedes": "15d08b5440bb806fb5bfd3a3ee7b019bb349a9e7acd99132a9ee56db42197096",
+      "evidence_sha256": "1aaed071e3e7c593b54b7eebf64a5647f2b37979502ba23c065243a0a6715769"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e69bd4ca85a59130afe6e276391275ec9d9efbc1",
+      "scope": "Recheck ordinary and read-only project startup with an active major incident, partial and full maintenance acceptance, no engagement, and an unrelated minor item. Preserve the stop rule and accessible feedback details. Exercise major finding ordering after independent 17a0365f rejection.",
+      "supersedes": "f1d0f8f3977c33a0cfda3b3e5b9e5b6ccc565d4d578c72678bf2dc12cd65d60e",
+      "requested_at": "2026-11-26T12:46:02.674622+00:00",
+      "request_id": "0d047910015badc6ef681e673655ad308b13d06028afe1a42a79d2e742a64dea",
+      "evidence_sha256": "ba7c9fbc974fb8151ab1edf0e3a9d0bdffeedff838acc4c89d2e911d5fc4ada2"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e69bd4ca85a59130afe6e276391275ec9d9efbc1",
+      "verdict": "approved",
+      "decision": "APPROVE M0-161 e69bd4ca85a59130afe6e276391275ec9d9efbc1",
+      "scope": "APPROVE M0-161 e69bd4ca85a59130afe6e276391275ec9d9efbc1",
+      "observation": "After both workstreams were accepted, the first action in both startup modes opened the major finding and displayed the instruction to stop assigning work.",
+      "reviewer": "Independent Astra Standard (t15z)",
+      "original_sha256": "17240b8d72272acdd28b02649248a98434c2e3e070032457053a946f7f7bf4a3",
+      "response_id": "501f49aad7b3b4d2e6df091cb1a336bfc920b3f9a42c5e469201d3f2dcfb9a08",
+      "response_sha256": "7d9d33c7f6b1a59eac8653ebe17a75458d708cae1e1be276d941ce5423f2e103",
+      "legacy_response_sha256": "d6f2c7c25ac49605b1bc68bc5eff666369a370c1af0e7a02bba2ed5e1f759574",
+      "observation_body_sha256": "44ac800db58e121a052df0cd121cda2a3e9baf6cc1f2490ae6965e216dd3c444",
+      "event": {
+        "id": "msg_0a0379c3abf71c9f016b082b65363087d18dd88137263ee14a",
+        "timestamp": "2026-11-26T12:52:05.357Z"
+      },
+      "supersedes": "0d047910015badc6ef681e673655ad308b13d06028afe1a42a79d2e742a64dea",
+      "evidence_sha256": "9d7710ef022a8666eafcbdee0a16e23177843625a29ffab2831534def87669b3"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ab6355e343569d7a55e6b3d617a0598606e9adbf",
+      "scope": "Review the combined ordinary and read-only navigation after integrating PR 135. Verify the shared development test file preserves both the authoritative first-test guidance and the two-workstream priority and stop rules.",
+      "supersedes": "501f49aad7b3b4d2e6df091cb1a336bfc920b3f9a42c5e469201d3f2dcfb9a08",
+      "requested_at": "2026-11-26T13:29:28.252401+00:00",
+      "request_id": "c59b8162de6c918263468ebff2f3d35568c1935096cbe362f1233346670e1407",
+      "evidence_sha256": "4333849a8de9fb43e273ab748efd70b7330ff1a25ea2dcd607389e02a5eb59f0"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ab6355e343569d7a55e6b3d617a0598606e9adbf",
+      "verdict": "approved",
+      "decision": "APPROVE M0-161 ab6355e343569d7a55e6b3d617a0598606e9adbf",
+      "scope": "APPROVE M0-161 ab6355e343569d7a55e6b3d617a0598606e9adbf",
+      "observation": "With both workstreams accepted in the controlled case, ordinary and read-only navigation kept the unassigned major finding inspectable and directed the coordinator to stop assigning work.",
+      "reviewer": "Independent Astra Standard (t17d)",
+      "original_sha256": "9a921df7f71d9bd02b06f976c0b2095674a19b982d69e4f063d1a26c63cb6eed",
+      "response_id": "e7abf2057200849ef9f488aa0cfabf78b31f7ac6e5bef1324519da01f06f5f4e",
+      "response_sha256": "4dfe12ea5228f98ef751f7a2f6aeb587affc842e0f8f1dd2ed371acb1347043a",
+      "legacy_response_sha256": "67f9321814bad6d00f55366d62c3d2f4cf8bf28d5141b83cc12768af28995be3",
+      "observation_body_sha256": "6a54c72e6a784e4eabbe2fa9039fb567069493567359ca7cdd33b9140b11d0bd",
+      "event": {
+        "id": "msg_01a98471c0fb6924016b0834dd895c87d2835ef9e8841d10f2",
+        "timestamp": "2026-11-26T13:32:28.464Z"
+      },
+      "supersedes": "c59b8162de6c918263468ebff2f3d35568c1935096cbe362f1233346670e1407",
+      "evidence_sha256": "13f7c41b0622f9cfffdabe5eaffeb05ff21b03e5560ec24dc9411b4e679ffae3"
+    },
+    {
+      "kind": "request",
+      "source_commit": "cf795dd4694a6c54db70ec9f336d9ee373f201c2",
+      "scope": "Reassess the current ordinary and read-only routing on the protected composition at cf795dd4, preserving the previous M0-161 acceptance and the two-workstream stop.",
+      "supersedes": "e7abf2057200849ef9f488aa0cfabf78b31f7ac6e5bef1324519da01f06f5f4e",
+      "requested_at": "2026-11-27T04:22:29.044208+00:00",
+      "request_id": "f6bcf47451f091854be81c8d1f0eaa6c46a3f0c0dd72f0c2c40d9a976224c75c",
+      "evidence_sha256": "6c8186f8bae3f02fcf4eb5636d0e3df88cb05ef464d5da0f204c35e3cf9abd1f"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "cf795dd4694a6c54db70ec9f336d9ee373f201c2",
+      "verdict": "approved",
+      "decision": "APPROVE M0-161 cf795dd4694a6c54db70ec9f336d9ee373f201c2",
+      "scope": "APPROVE M0-161 cf795dd4694a6c54db70ec9f336d9ee373f201c2",
+      "observation": "With both workstreams accepted in the retained control, ordinary and read-only startup opened the unassigned major finding, and its destination instructed the coordinator to stop assigning work.",
+      "reviewer": "Independent Astra Standard (t1cs)",
+      "original_sha256": "6284d3ae442d25d52e578dbecfb9f35b56cc6a86dd63eb49263b4637f494b6a4",
+      "response_id": "8b17199d5b9a40fb74a725d5bd7203b9aa955f0d8de42ff745d02d62e72b53ad",
+      "response_sha256": "8d2ca92621d271bc1b0530a1b86ab479206c2e8064cd9a661c2e8a35f237788b",
+      "legacy_response_sha256": "c020fbbb15647b239141d823b8bc2b179de8172bedcc1e64d2d4d2a066e218eb",
+      "observation_body_sha256": "b075dfdd10ed87c7dfe13b598b405e8202d9d6929ec6efaa65a930133df5d97e",
+      "event": {
+        "id": "msg_0b72084d7fa047d2016b0908fae58c87d08c0d7ca8e8e4d045",
+        "timestamp": "2026-11-27T04:37:31.634Z"
+      },
+      "supersedes": "f6bcf47451f091854be81c8d1f0eaa6c46a3f0c0dd72f0c2c40d9a976224c75c",
+      "evidence_sha256": "e3d32334ecabef9543363f0d7bd10fab67901d410a40efe41f6da777d0d53b72"
+    }
+  ]
+}

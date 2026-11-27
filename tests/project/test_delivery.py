@@ -1042,7 +1042,13 @@ class DeliveryTests(ProjectFixture):
                  'task_ids': ['M0-001'], 'regression_checks': ['project-state'],
                  'resolution': None, 'deferral_reason': None} for index in range(7)]
         path.write_bytes(json_bytes({**feedback, 'items': list(reversed(rows))}))
+        delivery_path = self.root / 'project/delivery.json'
+        current_delivery = delivery_path.read_bytes()
+        historical_delivery = json.loads(current_delivery)
+        del historical_delivery['scaffold_maintenance']
+        delivery_path.write_bytes(json_bytes(historical_delivery))
         reviewed = self.commit_fixture()
+        delivery_path.write_bytes(current_delivery)
         args = ('source', 'project/feedback.json')
         live_args = (*args, '--unassigned')
         bound_args = (*live_args, '--source', reviewed)
@@ -1065,6 +1071,8 @@ class DeliveryTests(ProjectFixture):
             detail = self.project_command(*shlex.split(queue['items'][0]['command'])[3:])
             self.assertEqual(reviewed, detail['source_commit'])
             self.assertEqual(rows[0], detail['value'])
+            self.assertEqual('Link this existing finding to an unfinished corrective task and verify its assigned checks.',
+                             detail['follow_through'])
         dirty = self.project_command('context', 'M0-002', '--phase', 'verify', '--source', reviewed)
         self.assertIn('requires a clean checkout', dirty['error'])
         self.commit_fixture()
