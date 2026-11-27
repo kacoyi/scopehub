@@ -649,6 +649,7 @@ def run_verification(producer_signals):
     producer_interruption = windows_producer_interruption(producer_lane, selected, python_part=python_part)
     producer_stop_requested = (producer_signals.enter_context(cooperative_stop_requests(CHECK_CONSOLE.get()))
                                if producer_interruption else None)
+    producer_cancellation = {'cancel': producer_stop_requested} if producer_stop_requested else {}
     recovery_window = []
     part_check = None
     if python_part:
@@ -717,7 +718,7 @@ def run_verification(producer_signals):
                         for row in results):
                     check_env = {**env, 'SCOPEHUB_REUSE_OPERATIONS_BUILD': '1'}
                 result = execute(check['id'], command, check_env, run_dir, check_timeout(check, environment['system']),
-                                 cancel=producer_stop_requested)
+                                 **producer_cancellation)
             if lane and check['id'] in WINDOWS_WORKSPACE_RESULT_CHECKS and 'log' in result:
                 result[BROWSER_RESULTS_DIGEST] = None
                 try:
