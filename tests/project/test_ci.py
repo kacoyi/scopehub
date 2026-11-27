@@ -562,7 +562,7 @@ class HostedEvidenceTests(ProjectFixture):
         local_report = self.report()
         report = read_json(local_report)
         report['ci'] = self.provenance(head)
-        directory = self.root / '.reports/ci/10/windows'
+        directory = self.root / '.reports/ci/10/linux'
         directory.mkdir(parents=True)
         shutil.copytree(self.root / '.reports/runs', directory / 'runs')
         path = directory / 'test-report.json'
