@@ -726,6 +726,15 @@
       },
       "supersedes": "19d70a60e9090f00526d669a9043789cf122f1b1ce8c4e747e5635ca85372c78",
       "evidence_sha256": "969420d5c07fbb5758ff85d3890c579e11809e2e9d481081f18d2a22e84bf2ad"
+    },
+    {
+      "kind": "request",
+      "source_commit": "6c851d7271ea97db2fbef0ccf18bbbc32e5f067c",
+      "scope": "Independently qualify actual ownership and consistency of each required Ubuntu and Windows report at the ordinary integration command. Verify the two previously observed false-ready cases and supported historical and current release formats.",
+      "supersedes": "d5da0080968b6b48c6e5f2aad246a5d3b335fa41a09c6329d44120d112be90af",
+      "requested_at": "2026-11-27T11:41:55.354288+00:00",
+      "request_id": "7e652d2d29d5223d6503b9c2637104dfb95251fd000c6f899bff3330f8ec1490",
+      "evidence_sha256": "73b1d971b6d147ba1932b76884314b82b705fa1ec4eb29aca697e41d00bd3372"
     }
   ]
 }

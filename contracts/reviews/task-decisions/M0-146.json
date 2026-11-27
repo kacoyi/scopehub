@@ -726,6 +726,15 @@
       },
       "supersedes": "a61fd9eb0273d17738a2c1d2a5117ef277b2528f84853d699a6dcfa99c0e6ba5",
       "evidence_sha256": "785bb31a566620ccf98e4bdd64e2c3829641019e9c01dd1e39bb46d309b5f37b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "6c851d7271ea97db2fbef0ccf18bbbc32e5f067c",
+      "scope": "Independently qualify the five-producer warm PR Python distribution, ordered results, retained report evidence and costs on this corrected source with the shared integration entry.",
+      "supersedes": "c291fe63fc9b90839ba82f5db0506d39f40c679bdb9768cb444421c80c01d551",
+      "requested_at": "2026-11-27T11:41:56.010995+00:00",
+      "request_id": "f0a56eba5ccc468e488e15319b74322c63bda10981d26c08131d38ab3a2e44e2",
+      "evidence_sha256": "be9878123e94b6449ce7a1a707866ad6f12b4922615e15ef79c909e0927a7235"
     }
   ]
 }
