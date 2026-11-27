@@ -668,6 +668,15 @@
       },
       "supersedes": "7085a4a9b96551dd3f515761de94fe6ab6e07f56da1431be6cb18be0404e20bb",
       "evidence_sha256": "f72ac004e5e56a39e3d0298ea3c9aed2510efeaced6727cb4d6d4398e5342a59"
+    },
+    {
+      "kind": "request",
+      "source_commit": "215952297bc76e1b5459a2a94bb24d3637a78cb8",
+      "scope": "Independently verify the complete four- and five-producer delivery boundary, attachment provenance, and interruption persistence on the composed source.",
+      "supersedes": "77a21fc2db688bec28e3dd68c8eaa97202761e2f3c0e31211289ae1a41a56719",
+      "requested_at": "2026-11-27T10:14:36.891752+00:00",
+      "request_id": "8d78e0a315f2a189e63fe8a94d501fe69a39bb1726d5974f6e71dc1427b68aa4",
+      "evidence_sha256": "4e66de7b1e9adf2ecf8f2dfe58db0511ef3f3f9d567618d621e2b668bbc1c423"
     }
   ]
 }

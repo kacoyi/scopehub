@@ -668,6 +668,15 @@
       },
       "supersedes": "b9fba548a9e2ddbe19b5b42a7920a38a80af21975eaffe4de7328cd4ee8923f6",
       "evidence_sha256": "216b9a0fd8095a65f98e68b52ca7d635011008e0c122662b9e51714eb86556bb"
+    },
+    {
+      "kind": "request",
+      "source_commit": "215952297bc76e1b5459a2a94bb24d3637a78cb8",
+      "scope": "Independently evaluate the warm Windows Python topology, verification transport, serial/partition parity and actual timing eligibility.",
+      "supersedes": "31de753014209d81b3f2ad817c891aaae867dbfeb159156d1d3df0ef71814ae6",
+      "requested_at": "2026-11-27T10:14:37.565888+00:00",
+      "request_id": "a3f9f4613ab9895590b8bd2840c4e28df335de0524fc34715eac95a34ce4148f",
+      "evidence_sha256": "69b7e286045c0a59c0023611a83eb6cf1a3ea5c8cb57ae76a787ebeededf4a44"
     }
   ]
 }
