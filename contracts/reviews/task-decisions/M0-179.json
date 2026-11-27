@@ -10,6 +10,26 @@
       "requested_at": "2026-11-27T10:50:29.648880+00:00",
       "request_id": "7fa8c3b738b7e9621d8b78fcb78753deee60197e422d7adf157583347fd7dca3",
       "evidence_sha256": "b5f6d836c68b0f4a9070fd68ececa1dcc3fd51cc28d2e5dae1a5ecba23350534"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "1d40f033623fa809d9be68fa09f76485035d11bc",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-179 1d40f033623fa809d9be68fa09f76485035d11bc",
+      "scope": "CHANGES_REQUESTED M0-179 1d40f033623fa809d9be68fa09f76485035d11bc",
+      "observation": "The original Windows log for run 45980070684 identifies the first service visit as the one that timed out waiting for the private handoff.",
+      "reviewer": "Independent Astra Standard (t1hw)",
+      "original_sha256": "073df63482a8a2dc5e3ac53d0b56fb1054fed186b84108073361a64bb23e191e",
+      "response_id": "ddec97ae0b155975f085479603ec32a877bfbf9c97ffb40d4b8a74b78c6c2c6c",
+      "response_sha256": "0e03f0d6178e59684519da70d5c735c2535660c9fa4743a0f61586223d8903d8",
+      "legacy_response_sha256": "f74485496ddef59257ddf3fa91b84422824e45231a2d6f6a0b950590f12587f8",
+      "observation_body_sha256": "18bb8d3486505ecbb8ddceb04063011ef07c0a88ab7ecbbb04cc602bd606fd18",
+      "event": {
+        "id": "msg_0f583f743b639064016b0962379ed887d096c1ecbc6c9f4fd4",
+        "timestamp": "2026-11-27T10:58:19.234Z"
+      },
+      "supersedes": "7fa8c3b738b7e9621d8b78fcb78753deee60197e422d7adf157583347fd7dca3",
+      "evidence_sha256": "9e71731dc3b3419959fdcf234a09192e0d4fbd83c5335fb9370582a361e1f87e"
     }
   ]
 }
