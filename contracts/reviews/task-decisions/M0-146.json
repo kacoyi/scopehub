@@ -619,6 +619,26 @@
       "requested_at": "2026-11-27T09:26:59.241360+00:00",
       "request_id": "2d747b05a66c3c8307a6905efa1eafe6303d3d28ee9a086d9a0e5657927aaabd",
       "evidence_sha256": "df0eed3ba0db2d2a05ab0fcf1623c8cb8c5d6a1a0430d34858cd15ea20b6b0c8"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "3f5485af1e44cf9e85ed60bd024d182755a47f72",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 3f5485af1e44cf9e85ed60bd024d182755a47f72",
+      "scope": "CHANGES_REQUESTED M0-146 3f5485af1e44cf9e85ed60bd024d182755a47f72",
+      "observation": "During my local replay, the workspace producer exited with code 1 after SIGINT, yet both published reports reopened as passed.",
+      "reviewer": "Independent Astra Standard (t1gh)",
+      "original_sha256": "f0243522ddfb59ffe232a731d9b4041fed7254abd4ba710c9ad511d78fe9389b",
+      "response_id": "e1931f32cfebb5be7637b872923e6ae9a3deca7e5787b21c46cd6694b9192692",
+      "response_sha256": "1ed63131668c76144a8d1c8793df9dc7d22d488fe899567eade37b188719ffe5",
+      "legacy_response_sha256": "15c7834ab8715b1a76c8a22009438af67ff4c5e199da5995a3a4999c9a0837f6",
+      "observation_body_sha256": "2682037f75ec24083098249fa5abc19352f4a21dd0fd39dd969f1039d162c2f4",
+      "event": {
+        "id": "msg_0171721e012949d4016b094f038e1887d0894daa9e854516bf",
+        "timestamp": "2026-11-27T09:36:26.866Z"
+      },
+      "supersedes": "2d747b05a66c3c8307a6905efa1eafe6303d3d28ee9a086d9a0e5657927aaabd",
+      "evidence_sha256": "60e3f9ed99c45f79301834d74da65ec6af1acdb7c9485349ba83ebee242952e9"
     }
   ]
 }

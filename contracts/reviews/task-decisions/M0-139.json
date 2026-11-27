@@ -619,6 +619,26 @@
       "requested_at": "2026-11-27T09:26:58.553856+00:00",
       "request_id": "ddf63bf3061ab7bad048901e2d06afbde6e34e7675e7efa26aa495f9b650a451",
       "evidence_sha256": "98f6544f853ebfd2049eea2f588b10aaa58043c5a79e0b3c09f55a87af57de49"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "3f5485af1e44cf9e85ed60bd024d182755a47f72",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-139 3f5485af1e44cf9e85ed60bd024d182755a47f72",
+      "scope": "CHANGES_REQUESTED M0-139 3f5485af1e44cf9e85ed60bd024d182755a47f72",
+      "observation": "With the checkout commit and three observed Windows producers held fixed, changing only the reported tree of merge 770b2481 changed the offline integration command from exit code 1 to exit code 0.",
+      "reviewer": "Independent Astra Standard (t1gg)",
+      "original_sha256": "264ea9573a5e289a02de94c021d12f9be00ab94db6fa8f018a824bda33cfa193",
+      "response_id": "71aaa8cc13afa42a08d427a92423cded784bf776ac7e90e220a4f99c2557db76",
+      "response_sha256": "155a31480e65850e3aaaf23f2ecd5fd641aab7a4cfe7af145134bd8b2fe02ed4",
+      "legacy_response_sha256": "81e4472bf1025d386a7fc3512f9941b33c3833268f13d9d96166170c2352d76e",
+      "observation_body_sha256": "0e9b8143c8985865074a05ee77a7bd0e561b7e6648246f1a0b4d51a502524227",
+      "event": {
+        "id": "msg_0bd09ec51abe1247016b094ec3e29887d0a370322c584d0cd6",
+        "timestamp": "2026-11-27T09:35:23.643Z"
+      },
+      "supersedes": "ddf63bf3061ab7bad048901e2d06afbde6e34e7675e7efa26aa495f9b650a451",
+      "evidence_sha256": "6ea17f9059e1687ec8b3c453172a873aac709c3fd270b87ee1bce258cc9cdea3"
     }
   ]
 }
