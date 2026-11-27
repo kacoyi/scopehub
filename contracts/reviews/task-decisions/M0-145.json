@@ -312,6 +312,15 @@
       "requested_at": "2026-11-27T10:49:15.094757+00:00",
       "request_id": "734312395b92e689d206409b3071bb502cff5ba087968f5889228407e828f612",
       "evidence_sha256": "bdaa596216d96764078b6efc12c4ff46b41050f400c98dcce5e00c1bb9286427"
+    },
+    {
+      "kind": "request",
+      "source_commit": "343bb62e8ef179abf4fa9f98bd960e3066070a19",
+      "scope": "Exact current artifact receipt and weekly freshness, including missing downloads, partial job matrices and withheld promotion.",
+      "supersedes": "734312395b92e689d206409b3071bb502cff5ba087968f5889228407e828f612",
+      "requested_at": "2026-11-27T11:13:02.565107+00:00",
+      "request_id": "2175594a121ab07e78c8900b37050cef9b4f4997ce24834ac8dcdc92b1ab5ceb",
+      "evidence_sha256": "1a95e2ee99c5d65bc17f2a419e7fe84691e02c2b84c9aa9c8bebc320655e4a6b"
     }
   ]
 }

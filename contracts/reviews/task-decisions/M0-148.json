@@ -312,6 +312,15 @@
       "requested_at": "2026-11-27T10:49:15.967643+00:00",
       "request_id": "1791485b9ddf6732279ffc54dd3aeaf141e854fd02ece74afffe2dc243cd2a99",
       "evidence_sha256": "550f930289586d53b5cddb383f0a145607d371a2cc67d9b5b7396628497a176a"
+    },
+    {
+      "kind": "request",
+      "source_commit": "343bb62e8ef179abf4fa9f98bd960e3066070a19",
+      "scope": "Immutable historical source closure, committed catalog and execution inputs, exact report selection, and coverage qualification.",
+      "supersedes": "1791485b9ddf6732279ffc54dd3aeaf141e854fd02ece74afffe2dc243cd2a99",
+      "requested_at": "2026-11-27T11:13:03.423311+00:00",
+      "request_id": "61c39c11034b092e084f25e26ab7bd09819468d84fc04cc46fea8d4e95ad0a98",
+      "evidence_sha256": "33e668ccc5dceccb23cac8caa7f76bc80c5e05a90b2290b4f92eb51564fec975"
     }
   ]
 }
