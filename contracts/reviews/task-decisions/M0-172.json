@@ -10,6 +10,26 @@
       "requested_at": "2026-11-27T04:22:28.348256+00:00",
       "request_id": "06440e5f75c0569f6994c34f3e90af2d594911b6eeae616c08f52762aba4bd04",
       "evidence_sha256": "4a75a39bc7d4082466b64d508a643910acbed1ae03c4f75e8aadd622fbb22829"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "cf795dd4694a6c54db70ec9f336d9ee373f201c2",
+      "verdict": "approved",
+      "decision": "APPROVE M0-172 cf795dd4694a6c54db70ec9f336d9ee373f201c2",
+      "scope": "APPROVE M0-172 cf795dd4694a6c54db70ec9f336d9ee373f201c2",
+      "observation": "The ordinary maintenance handoff stated the engineering objective, identified M0-163 as an accepted example, and gave separate criteria for admitting Windows execution time and wall time for run 45838575346.",
+      "reviewer": "Independent Astra Standard (t1cq)",
+      "original_sha256": "89fb8c6bcbf7836bac7b773da3b43b489ae734710076051cbb6b2ebb2ea3c80b",
+      "response_id": "761ffa33095671107245b32364ec04cb10276d39f82b29fde3b899022c540cef",
+      "response_sha256": "550ff763bb8a8616bc496e78f1f5543f43a0a6d4f090d6b2883c777176fff934",
+      "legacy_response_sha256": "6498b4a5fefe04775290416842dfe78f1e7be9c6a86c19c4ab15601505f97ce9",
+      "observation_body_sha256": "3940735d53db4095f0136393a83530bc5f4da476cbc38d51b057e9bb0e950af1",
+      "event": {
+        "id": "msg_0a740ea07ebd0c85016b09062269b087d0b3b358b651fabc9c",
+        "timestamp": "2026-11-27T04:25:33.238Z"
+      },
+      "supersedes": "06440e5f75c0569f6994c34f3e90af2d594911b6eeae616c08f52762aba4bd04",
+      "evidence_sha256": "74e0bf68ec7d8a8ccf40a7af06bc47b67c9569d27f119feca5a429788f00d8ea"
     }
   ]
 }
