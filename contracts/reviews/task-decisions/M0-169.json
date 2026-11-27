@@ -68,6 +68,26 @@
       "requested_at": "2026-11-27T02:53:37.963793+00:00",
       "request_id": "5fd59b6a4d3ef8d1967b3d4c0d08286a1b60844fe55fe8cb6e23a5c2bf1264dc",
       "evidence_sha256": "b1e63180f49c2546e2668c5d7c2ffc49551e36ccab4ae643484bce1db42db428"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b767732ad317bb4f1fd7e1646ba9aeb0e0c00513",
+      "verdict": "approved",
+      "decision": "APPROVE M0-169 b767732ad317bb4f1fd7e1646ba9aeb0e0c00513",
+      "scope": "APPROVE M0-169 b767732ad317bb4f1fd7e1646ba9aeb0e0c00513",
+      "observation": "On Linux, I observed the candidate’s process observer return false with two children still alive, false with one still alive, and true after all three exited.",
+      "reviewer": "Independent Astra Standard (t1bf)",
+      "original_sha256": "90ddcfb897abd0231bd8de1b9385fb9aacb5724bd20d8c85b687d83340a98b6e",
+      "response_id": "2d8a5781a4b6ff0ac3d240d6abc0bd71276b7dead303bbba0baf4a6fb92d5b1c",
+      "response_sha256": "f379275f3f95036285a32c38c68fd98c494b0b67545c0a59d3be1c2f5167bc23",
+      "legacy_response_sha256": "edac210bac367a315a3236948e4473d39e7bc1ccfc4f9d10cb75d5aea7c74aa9",
+      "observation_body_sha256": "fdbf8c60965bc52854874827d63a4c019ccf42399f02be2e42dbc8c5a8397103",
+      "event": {
+        "id": "msg_0f9e33fd1d44a6da016b08f13d14c887d0b35c6877d26d50ee",
+        "timestamp": "2026-11-27T02:56:17.149Z"
+      },
+      "supersedes": "5fd59b6a4d3ef8d1967b3d4c0d08286a1b60844fe55fe8cb6e23a5c2bf1264dc",
+      "evidence_sha256": "990246fc28a015999bf93e0f2dd0fa012cdeb4f56e1c76846e0877279ba11181"
     }
   ]
 }
