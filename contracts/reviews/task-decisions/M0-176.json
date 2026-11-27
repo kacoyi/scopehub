@@ -30,6 +30,15 @@
       },
       "supersedes": "1bfbea2d83552ac89d9436afe4984ef202c3fc4104f5e7d852e46c41022528c4",
       "evidence_sha256": "a2cb23192f3520c9eecef9489439ad1b6b555cdceee3f0058a8090c204c9180b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ca0d16eb5aa8d5f05d9e0b8f369c297c2a959c09",
+      "scope": "Independently recheck the three genuine changes requested on c494a94b. Confirm selected real CSV workflows prepare the actual Cargo-emitted image once, unrelated 17 and 3 indicator selections can succeed with CSV build rejection armed, and early port and service failure reclaim the live child and temporary fixture. Check the successful, rejected and concurrent cases via the public workspace entry. Keep the original Windows LNK1104 cause and future native evidence at their observed scope.",
+      "supersedes": "a98edd3cd7ac5d92baf0eaba5ac4f0d9ec9e3b06930f019b91286a4837ee609e",
+      "requested_at": "2026-11-27T09:02:36.142494+00:00",
+      "request_id": "6946b2fd8443e2bce34bbdf96298b75016086c83db100e9e23382ed5789ff8d7",
+      "evidence_sha256": "aa3ffeebb0e40d9b2342d7b2c1d456269c935438881cd81a6b4e586c1236a1f7"
     }
   ]
 }
