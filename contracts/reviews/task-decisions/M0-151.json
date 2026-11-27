@@ -1,0 +1,113 @@
+{
+  "version": 3,
+  "task_id": "M0-151",
+  "events": [
+    {
+      "kind": "decision",
+      "source_commit": "793c179994333b3c6f4fab6771fa6f4c31901940",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-151 793c179994333b3c6f4fab6771fa6f4c31901940",
+      "scope": "CHANGES_REQUESTED M0-151 793c179994333b3c6f4fab6771fa6f4c31901940",
+      "observation": "With two live, UUID-matched Linux workers, I observed the selector reject the stable pair but return one worker after I inserted a single expired child entry into the second bridge’s process listing.",
+      "reviewer": "Independent Astra Standard (t10k)",
+      "original_sha256": "916b2c73ab7db14c964200b0d4832668cb457c2374e5a01872dad6553176d03d",
+      "response_id": "536205346579327a5fe5507d9f086f58a06ceb1a0c76a1df10814d713625ba84",
+      "response_sha256": "00f32ff55d3d22dc76a0e1dddbe91a4dcfcec25b94fc29a2f4c42c63b81968ca",
+      "legacy_response_sha256": "b0053d10f6b05afc5f6b308a72b537a5da2e5f801da7bbe203f725bb6797c8f5",
+      "observation_body_sha256": "3f4e8ac6783e75fc80cd79d602bbc7a3f047932418cc2d210b38c2929a2a94da",
+      "event": {
+        "id": "msg_0726944a1ab7b47d016b074af0b91487d08b365f78fb358a63",
+        "timestamp": "2026-11-25T20:54:22.616Z"
+      },
+      "supersedes": null,
+      "evidence_sha256": "70dbea56a84effbcd4a6944761e333f6919d24605bdba9e5e0635dd47e194cb2"
+    },
+    {
+      "kind": "request",
+      "source_commit": "335a42fb02c8027af2550e05230a04f62d4c236c",
+      "scope": "Recheck the previously rejected owned worker selection and the default Rust consumer boundary, including a stale enumerated child with two live siblings, denied identity, finite replay, the feature-selected bridge and both actual browser journeys. Review the combined source with the accepted observer recovery and the difference between Linux and Windows evidence.",
+      "supersedes": "536205346579327a5fe5507d9f086f58a06ceb1a0c76a1df10814d713625ba84",
+      "requested_at": "2026-11-25T21:15:17.656493+00:00",
+      "request_id": "3b4ab6e1b65345ba6408d5be84c560e3e8dc4e8260e4299a19ac06211daea08c",
+      "evidence_sha256": "64eefadb7b8aa1bf536f7ccfd5eae468a1579b9929a149ec9b32a6a17603d5e6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "335a42fb02c8027af2550e05230a04f62d4c236c",
+      "verdict": "approved",
+      "decision": "APPROVE M0-151 335a42fb02c8027af2550e05230a04f62d4c236c",
+      "scope": "APPROVE M0-151 335a42fb02c8027af2550e05230a04f62d4c236c",
+      "observation": "With two live workers sharing a UUID, I observed the corrected selector count both after an expired entry and refuse selection when I made the second worker’s identity unreadable.",
+      "reviewer": "Independent Astra Standard (t10k)",
+      "original_sha256": "c81c75d0f3e4bb58e8a9ca3822de6fda03a5c457e9ec0c1af233b880ffec1541",
+      "response_id": "eb0041c3e73dca49bd7e7622d3d35b9eea4a5d4fcf88580a84b6910ce5bc0d87",
+      "response_sha256": "cf7f0acbabc6d75bbfa5244ea500a72123997e26da92a7db75430ad7e488aeaa",
+      "legacy_response_sha256": "aa355d680d18ba21569d5c1fbb61edb86987d81d2bffaa59c17963b4ec8026a9",
+      "observation_body_sha256": "2b560ed4f14fc61fa811ebd6b9c0ee6587cd4b3a75729be31350e47aee534f03",
+      "event": {
+        "id": "msg_0726944a1ab7b47d016b0751a619e487d089052e229dafc01a",
+        "timestamp": "2026-11-25T21:22:57.750Z"
+      },
+      "supersedes": "3b4ab6e1b65345ba6408d5be84c560e3e8dc4e8260e4299a19ac06211daea08c",
+      "evidence_sha256": "3a24bd3869acffa39b15095aa135e7e5167fe3ba632dafa7ffbe79d49598dff7"
+    },
+    {
+      "kind": "request",
+      "source_commit": "3292bcd9bb6d125108453595c266af199ed77ae4",
+      "scope": "Review the existing owned synthetic worker interruption and recovery repair as composed on protected main 7bc0df5f. Bind the exact PR 143 Windows recurrence, the previous qualified M0-151 implementation and the narrowly changed PR 144 save-preview test to the reviewed source.",
+      "supersedes": "eb0041c3e73dca49bd7e7622d3d35b9eea4a5d4fcf88580a84b6910ce5bc0d87",
+      "requested_at": "2026-11-27T03:59:09.450143+00:00",
+      "request_id": "c183725d7a1ce867409ad2b60cdb7673f4dde19d76df78616b3e14fdf4234a2a",
+      "evidence_sha256": "f689a1a22878d84df78894b87ed6c8879e25fec2004814a1beeec45bbfba1501"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "3292bcd9bb6d125108453595c266af199ed77ae4",
+      "verdict": "approved",
+      "decision": "APPROVE M0-151 3292bcd9bb6d125108453595c266af199ed77ae4",
+      "scope": "APPROVE M0-151 3292bcd9bb6d125108453595c266af199ed77ae4",
+      "observation": "I verified that all eleven M0-151 implementation and test files and the browser configuration match the previously approved Git blobs.",
+      "reviewer": "Independent Astra Standard (t1cd)",
+      "original_sha256": "7c40dd417a50c8ef214e1dae5a4df63b3c1310bb202a36ab5221a90a2afa75cc",
+      "response_id": "96fb57ee6d39427cd77968396dfbd64d3101261963e9b71cc03d6838b8425d9c",
+      "response_sha256": "6ffc3f83012981f191eef44129daf1b2871fe7fd44c4ffbe3cb770be696ca745",
+      "legacy_response_sha256": "5a71d11e19be4b55b925a52adc3cbe1e498f34feac2b77049401cf2a6fa90e90",
+      "observation_body_sha256": "ac2860b7ccf287b0f4535bc2bb5d102f32b3477cb3f70d99cb207530ac4cc523",
+      "event": {
+        "id": "msg_0d8fe2b1a4ed6955016b0900d8a56087d09b2f7e143fe0ceb6",
+        "timestamp": "2026-11-27T04:02:54.280Z"
+      },
+      "supersedes": "c183725d7a1ce867409ad2b60cdb7673f4dde19d76df78616b3e14fdf4234a2a",
+      "evidence_sha256": "747e630822edcc391bd420b031932d3eb8df5342627554a04c124a4caa989cc0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a6c7aa2239de14d973a1fecd24874c7517d0de61",
+      "scope": "Review the real market interruption use cases on the combined candidate a6c7aa22 and their interaction with the worker-host changes.",
+      "supersedes": "96fb57ee6d39427cd77968396dfbd64d3101261963e9b71cc03d6838b8425d9c",
+      "requested_at": "2026-11-27T08:22:42.048922+00:00",
+      "request_id": "d2d5b7a667d8c901743e56344b1ebf095e1059acda2b4e4b090cc635724c36da",
+      "evidence_sha256": "194d4c6aae7331e67db3c025d411cefd00f9572c0d51951ffe3540aee8d37651"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a6c7aa2239de14d973a1fecd24874c7517d0de61",
+      "verdict": "approved",
+      "decision": "APPROVE M0-151 a6c7aa2239de14d973a1fecd24874c7517d0de61",
+      "scope": "APPROVE M0-151 a6c7aa2239de14d973a1fecd24874c7517d0de61",
+      "observation": "In the candidate’s Linux browser replay, the chart issued one subscription and displayed “Market worker reconnecting…” followed by “Market worker resumed” at confirmed sequence 1, including when both recovery frames arrived in one read.",
+      "reviewer": "Independent Astra Standard (t1fm)",
+      "original_sha256": "c8a72c9aae55655c57e63d7c6132cfa18d2019b434344a50ce32fbd3237a9177",
+      "response_id": "01127459e8ee11a72523ff89e2d77c5afa8d0f6531f5f5cf67d1572e6b834215",
+      "response_sha256": "8412137266c71da9224428af5f1c1c4beadefe8862bd214645b364532de67dea",
+      "legacy_response_sha256": "377b1ed99f2b511477290449e6fc58625f9d734c4a50eeac32dd97a454a98937",
+      "observation_body_sha256": "27a83b74f6892b34f58258eab0fbfcfe6dc88182c44b9def46f0c0bca78cb050",
+      "event": {
+        "id": "msg_0e9140820e8c7cec016b093fbf504c87d0997aece6aa8824ff",
+        "timestamp": "2026-11-27T08:31:15.701Z"
+      },
+      "supersedes": "d2d5b7a667d8c901743e56344b1ebf095e1059acda2b4e4b090cc635724c36da",
+      "evidence_sha256": "517665c00102066e6cef29b09e23c7ff06ebdd82d615db516e6498bb08b44007"
+    }
+  ]
+}
