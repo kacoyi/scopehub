@@ -494,6 +494,26 @@
       "requested_at": "2026-11-27T09:51:07.900761+00:00",
       "request_id": "9c111b704756262e59b5da12ba9654487a4f45441a0e6778a8db8cbafe854855",
       "evidence_sha256": "eaeae3f77be975d105b45b3f339f502adc6b6e64e2876c382bf0b4bf6055ca40"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "1024b35f34c1065dc4f75389e78a4d699d32627b",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 1024b35f34c1065dc4f75389e78a4d699d32627b",
+      "scope": "CHANGES_REQUESTED M0-150 1024b35f34c1065dc4f75389e78a4d699d32627b",
+      "observation": "The reader attributed 678 runner seconds to a modified PR 123 browser report that its historical publisher rejected for recording a check after interruption.",
+      "reviewer": "Independent Astra Standard (t1h1)",
+      "original_sha256": "05a80cb038a260cc329b6859db471ac25cbc36e9bb4a56f348263c21b8b33533",
+      "response_id": "039a70f2757956b2f15fe4135454a694a5c811b5af49bf5aa8fab7324e986161",
+      "response_sha256": "c22a0d36a520eb177a637e65733fbe6c4e2c63bd24727633b5512c663d39e365",
+      "legacy_response_sha256": "9fd51eb57e0c5b9f336ff837edef6b2305a5da614bc9333e3bd166e3a9341d71",
+      "observation_body_sha256": "f3d5e400ac872a5427e681dc47edbade8ccfbac261102210f4ff5345f85057f5",
+      "event": {
+        "id": "msg_085e902a036ae304016b095442abf487d0962fb64345922c14",
+        "timestamp": "2026-11-27T09:58:45.118Z"
+      },
+      "supersedes": "9c111b704756262e59b5da12ba9654487a4f45441a0e6778a8db8cbafe854855",
+      "evidence_sha256": "21b19fe6246fc34f99f95961d2ff5699dd0ce64195d6b4f8b5fedd2a9c1f1256"
     }
   ]
 }

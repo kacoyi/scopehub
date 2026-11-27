@@ -474,6 +474,26 @@
       "requested_at": "2026-11-27T09:51:08.751950+00:00",
       "request_id": "8ccea605d97169e26d8fb8719f48187f2445a66f181b3ddbc515a3834d0f012d",
       "evidence_sha256": "6fe00ce933d1f2d5244ad57662e7449f28e794be254d2895efc97245de6a3d96"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "1024b35f34c1065dc4f75389e78a4d699d32627b",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 1024b35f34c1065dc4f75389e78a4d699d32627b",
+      "scope": "CHANGES_REQUESTED M0-155 1024b35f34c1065dc4f75389e78a4d699d32627b",
+      "observation": "On run 45838575346, ordinary, offline weekly, and cold reads all lost the 24-second aggregate setup time when I added a candidate start one second before the last prerequisite finished.",
+      "reviewer": "Independent Astra Standard (t1h0)",
+      "original_sha256": "1d721d2595e4837f70ebed644e874a52d78c5cba2bb6405e6466130a8170555b",
+      "response_id": "f8d97e840d9425351fe2bf54f8d509470b472088015d13cd11734277ed02a7ad",
+      "response_sha256": "291c073943515c32dd4ba8a6b592a3c292e1852b37de6c6ca980ec85880a986f",
+      "legacy_response_sha256": "ffb030b99be87156f5d96d00778c87e87f7ef4c621403787c72569c5389a364c",
+      "observation_body_sha256": "c8ce54945c54d5775c20b4954c58709225bd3d0740beb6dead0610a7340c5104",
+      "event": {
+        "id": "msg_0eabb0a7bd3b4acf016b0954e8dd6487d0a307ccdbbea09f90",
+        "timestamp": "2026-11-27T10:01:34.320Z"
+      },
+      "supersedes": "8ccea605d97169e26d8fb8719f48187f2445a66f181b3ddbc515a3834d0f012d",
+      "evidence_sha256": "6f106cf19b1d579d2ea23d80fe8eb3ec43b21c47324acdc71e6719a2f151dc2b"
     }
   ]
 }
