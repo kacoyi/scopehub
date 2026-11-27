@@ -10628,6 +10628,38 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "integration-required-ubuntu-report-ownership",
+      "source": "Independent M0-139 changes-requested decision on d38d2fe205d98f92cfc71c3d9be33c070fd5e08a, contracts/reviews/task-decisions/M0-139.json#/events/49. Original archives/observations/repo-hygiene-20261125/independent-final-m0-139-d38d2fe2/original-assistant-response.jsonl (SHA-256 26a7b1280236902e6584860b118a80e3b5c7ea98290b6e9c363eb9e7776647cd). Both decisions and the original task report are indexed in .reports/audit-20261127/m0-146-d38d2fe2-repair/originals/manifest.json.",
+      "observation": "In the public PR 112 integration replay, removing the required verification-ubuntu-latest artifact 15018613291 or substituting the same-attempt Windows publisher log for the Ubuntu job 139179473440 still gave technical_ready true. The earliest direct upload, later staged upload and controlled five-producer workflow also admitted missing or misattributed Ubuntu evidence. A genuinely skipped optional timing upload qualified, as did an incorrectly skipped required upload with the report missing. Bind required report steps, artifacts and producer identities for both platforms through the public entry.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "integration-required-report-digest-conflict",
+      "source": "Independent M0-139 changes-requested decision on d38d2fe205d98f92cfc71c3d9be33c070fd5e08a, contracts/reviews/task-decisions/M0-139.json#/events/49. Original archives/observations/repo-hygiene-20261125/independent-final-m0-139-d38d2fe2/original-assistant-response.jsonl (SHA-256 26a7b1280236902e6584860b118a80e3b5c7ea98290b6e9c363eb9e7776647cd). Both decisions and the original task report are indexed in .reports/audit-20261127/m0-146-d38d2fe2-repair/originals/manifest.json.",
+      "observation": "The public PR 112 integration replay qualified the Windows aggregate after changing only its inventory digest to the genuine browser ZIP digest f3c7859ed811b3db0f3ea94dd426694329206aeb8bac1c5556622639e269eb8f. The aggregate ZIP and its publisher log both record c5aa02f3fdb95a8c135d4543fb402827024d57bf1144d6723cb083cafa337e9c. Name, ID, size and URL stayed genuine. Require consistent observed digests for each required report and preserve producer ownership checks and supported partial historical records.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

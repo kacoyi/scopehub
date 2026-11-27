@@ -27077,7 +27077,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Have the coordinator obtain independent M0-139 and M0-146 decisions on the exact clean repair using .reports/audit-20261127/m0-146-21595229-repair/handoff.json. Retain a new ordinary full warm Windows PR with all five producer clocks, the final publisher clock, all 35 selections, original attachments and ordered Python outcomes. Compare the observed full span against 900 seconds. Compare guarded and protected evidence separately.",
+      "next_action": "Have the coordinator obtain independent M0-139 and M0-146 decisions on the exact clean repair using .reports/audit-20261127/m0-146-d38d2fe2-repair/handoff.json. Retain a new ordinary full warm Windows PR with all five producer clocks, the final publisher clock, all 35 selections, original attachments and ordered Python outcomes. Compare the observed full span against 900 seconds. Compare guarded and protected evidence separately.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -27188,6 +27188,7 @@
           "tooling"
         ],
         "context": [
+          "The exact d38d2fe2 decisions cover separate scopes. M0-146 approved the five-producer work allocation and measured controls. M0-139 reproduced false-ready required report evidence in the public integration command. Both verified original responses, the original task report and the prior handoff are indexed at .reports/audit-20261127/m0-146-d38d2fe2-repair/originals/manifest.json (SHA-256 3d64e61d74039cbb6f741334a3d52b9a4d79bb95e483e5413ca57d83d281489d). M0-146 owns both regressions through project-state and python-contracts-workers. The accepted M0-139 task and receipt remain historical evidence.",
           "Both independent changes-requested decisions on f5ba8771 and their verified original responses are indexed in .reports/audit-20261127/m0-146-f5ba8771-repair/originals/manifest.json (SHA-256 0946872aab346f2aa880b3338b4990fc9e79ca4d9d42c09ce110b749a8394f51). M0-146 owns the four registered regressions through project-state and python-contracts-workers.",
           "Both actual 3f5485af changes-requested responses, their digest-verified originals, and the coordinator decision index are retained in .reports/audit-20261127/m0-146-3f5485af-repair/originals. M0-146 owns the five registered regressions with project-state and python-contracts-workers without reopening completed M0-139.",
           "The exact M0-139 and M0-146 changes-requested decisions on 17cbf7c7, authenticated successful 45965137241 and failed workspace 45933801256 inputs are retained in .reports/audit-20261127/m0-146-17cbf7c7-repair/originals (manifest SHA-256 2caf29aa00a021f348ee3fbce0fd85bed043829e9006acdfd68fe9c830864ad2). M0-146 owns their joint repair without altering completed M0-139.",
@@ -27248,6 +27249,7 @@
           "The independent decisions on 215952297bc76e1b5459a2a94bb24d3637a78cb8 cover separate scopes. M0-146 approved the observed work allocation and report delivery controls with the 900-second objective open. M0-139 requested changes to asset ownership and historical direct delivery admission. Retain both complete original responses, the delivery intake and the authenticated PR147 and PR138 timeout indexes."
         ],
         "hypotheses": [
+          "A single source-declared publication decision can qualify both platform reports and Windows producer reports by run, job, required steps and available digests. Use comparable public controls for genuine uploads, absent optional evidence and missing or contradictory mandatory evidence across the earliest direct, staged and split formats.",
           "One terminal publication rule for workspace and Python producers can preserve the same executed rows, reports and generated manifests across normal, failed and interrupted exits. Compare the maintenance surface with lane-specific finalization and keep the supported historical workflow and existing selection and timing budgets.",
           "A dedicated PR workspace runner can absorb the long native workspace and desktop checks while letting both Python parts use a light toolchain runner. Compare work placement, startup reuse and more on-runner workers against five isolated producers with observed setup and publication costs.",
           "The Python producer finished last before aggregation on all three ordinary warm PRs. Individual test durations and process traces can separate repeated fixture or immutable repository reads from native runtime variation.",
@@ -27599,6 +27601,20 @@
             "checks": [
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "In the public PR 112 integration replay, removing the required verification-ubuntu-latest artifact 15018613291 or substituting the same-attempt Windows publisher log for the Ubuntu job 139179473440 still gave technical_ready true. The earliest direct upload, later staged upload and controlled five-producer workflow also admitted missing or misattributed Ubuntu evidence. A genuinely skipped optional timing upload qualified, as did an incorrectly skipped required upload with the report missing. Bind required report steps, artifacts and producer identities for both platforms through the public entry.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The public PR 112 integration replay qualified the Windows aggregate after changing only its inventory digest to the genuine browser ZIP digest f3c7859ed811b3db0f3ea94dd426694329206aeb8bac1c5556622639e269eb8f. The aggregate ZIP and its publisher log both record c5aa02f3fdb95a8c135d4543fb402827024d57bf1144d6723cb083cafa337e9c. Name, ID, size and URL stayed genuine. Require consistent observed digests for each required report and preserve producer ownership checks and supported partial historical records.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain the original reports, revert a change that loses coverage or increases measured cost, and keep the open budget finding assigned until a qualifying observation is available.",
@@ -27649,9 +27665,10 @@
           "preserve": [
             "The original 35 selected checks, individual Python test outcomes, accurate native artifact imports and failures, and the complete M0-143 status behavior.",
             "The full production storage eligibility and revalidation path, Linux fixture case IDs and original Windows clock and schema boundaries.",
-            "Keep the accepted M0-139 task and receipts, 57 existing workflow control outcomes, 992 ordered Python outcomes, and the original browser and localization attachment bytes, interruption results and cleanup."
+            "Keep the accepted M0-139 task and receipts, 73 existing workflow control outcomes, 992 ordered Python outcomes, and the original browser and localization attachment bytes, interruption results and cleanup. Preserve historical direct uploads without optional steps, optional timing uploads and permitted partial historical evidence."
           ],
           "change": [
+          "Qualify the required Ubuntu and Windows reports and required Windows producer artifacts through the same source-specific publication decision. Bind the actual upload and available digest to the originating job and report artifact.",
           "Match downloadable Windows reports to the exact committed delivery declaration and the authenticated run and job publication. Admit the pinned historical direct upload and the later staged format using their respective completed steps.",
           "Reuse the independently reviewed retirement-test Git seed by copying it before creating each case-specific linked worktree. Keep copy isolation, failure recovery, test discovery, results and cleanup.",
             "Read the project schema once per project load and reuse only the fixed legacy predecessor after proving ancestry. Reinitialize after hosted recovery.",
