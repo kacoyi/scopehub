@@ -906,7 +906,7 @@
           "next_action": "Reconcile the implemented component, consumer, platform and repository hygiene inventory against the current integrated source. Record uncovered boundaries and assign verified in-scope findings to corrective tasks."
         },
         "ongoing-maintenance": {
-          "next_action": "Reconcile the timing provenance corrections against their producer originals. Use project:status to identify the next due review and retain its actual observation. The baseline verification-timing review is due November 28."
+          "next_action": "Start with the M0-133 reader decision for Actions run 45838575346. Read it with project:source contracts/reviews/task-decisions/M0-133.json /events/19 --source 47d68773e3e0bcb5a0a8b53682d9d25487e15dcc from the retained PR 145 history. At the timing reader, compare a matching producer sample with the retained run and job records for the conflicting setup. The matching sample should qualify. The conflict should withhold Windows execution while preserving independently supported wall time. Keep missing originals and integrated rechecks pending. Find the verification-timing due date in review status and retain the actual observation when due."
         }
       }
     },
