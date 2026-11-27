@@ -68,6 +68,26 @@
       "requested_at": "2026-11-27T07:34:14.361518+00:00",
       "request_id": "510f3829e78d1c861a3aba72fe427dfed7bc2741664050335d33636530eb551d",
       "evidence_sha256": "b5a9aed3bf346b00b5f83cf92ba7ae5dea48ae3cb8a398231200e7d342e6cf89"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "1f2e78aed866734f066fb64b16b14cea8a87816a",
+      "verdict": "approved",
+      "decision": "APPROVE M0-175 1f2e78aed866734f066fb64b16b14cea8a87816a",
+      "scope": "APPROVE M0-175 1f2e78aed866734f066fb64b16b14cea8a87816a",
+      "observation": "The archived Linux run recorded one invocation, removal of the witnessed scratch directory, and absence of both witnessed processes after the supervisor acknowledged release.",
+      "reviewer": "Independent Astra Standard (t1f8)",
+      "original_sha256": "e0670fceeb68e5146099a9c4557a7e72b7f8fff0f085b84a149ee2bc0e653c95",
+      "response_id": "c2b63662f24a2108a551e7cb33692d39156c7125a49be23cf713d71e7ca7e454",
+      "response_sha256": "4a16cca77db775748350059fd3c980336c3c287068fd32b7a7890b1a0038727e",
+      "legacy_response_sha256": "f6ef615de851db94881b393afb9473cd39f5f7184579d3a0eec423727cdcd538",
+      "observation_body_sha256": "c52c86299bee99eafd9dcbda4f319c6cb3edee7609617dfb54d5b1d581d51464",
+      "event": {
+        "id": "msg_0467f20ff6e46459016b0932dcf0ac87d08c2afcaa2a44a7f9",
+        "timestamp": "2026-11-27T07:36:14.422Z"
+      },
+      "supersedes": "510f3829e78d1c861a3aba72fe427dfed7bc2741664050335d33636530eb551d",
+      "evidence_sha256": "f487870c86996f7257ca2c1a6f70bf111843dee350dc5fe4c86c7bed63a8b1bb"
     }
   ]
 }
