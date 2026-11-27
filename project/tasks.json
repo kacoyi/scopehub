@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-039",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -26084,7 +26084,7 @@
       "id": "M2-039",
       "title": "Reconcile the first saved chart on focus and recover temporarily hidden folder revisions",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-035"
       ],
@@ -26171,11 +26171,15 @@
         {
           "path": "project/evidence/M2-039-5ed8b51da0d9bdbe.json",
           "sha256": "8160dbb420574d8925b09a9f12be2168b0ed539cd696ce384203b6074c421b76"
+        },
+        {
+          "path": "project/evidence/M2-039-fed6cc1bb3eb031d.json",
+          "sha256": "9721513f9cd66e68a8804fc956d1a7888f0299f25495bd81b07a1a859ba98e9b"
         }
       ],
-      "next_action": "The coordinator obtains scoped decisions on native snapshot admission and its affected startup, focus, selection clear and readback flows. Use the M2-034 and M2-039 approvals and their original frozen-chart and first-reopen observations for the prior source. The coordinator owns PR 97 publication and guarded verification of the exact correction, including the Windows published-revision journey and matching executable. Keep physical and packaged Windows qualification separate.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The scoped approvals for f636dcdd382340e453dd29b91cfff01c2413929f qualify the identical execution inputs at 3d97a77a08fb53925edd89f4a4ac5becf74a505c. Guarded run 45935930896 passed all thirteen required checks and environment on hosted Windows. Its Linux report passed all twelve supported task checks and environment with zero failed checks, and was blocked only because windows-published-revision-access requires native Windows x64. Ordinary PR 97 run 45935806747 passed the first saved-chart reopen and native snapshot classification cases in both platforms' desktop transport logs at matching execution inputs. The original hosted Windows observation binds the compiled executable, owned WebView2 runtime and first native revision status to the guarded source, then verifies the public CSV and folder discovery, row and bar recovery, and confirmed withdrawal. The earlier receipts and diagnostic observations retain their original scopes. Physical Windows and installer qualification remain separate and pending. Protected integration remains pending for the coordinator, including fresh review of the composed source and its ordinary and guarded verification.",
       "plan": {
         "outcome": "Reconcile first chart restore and CSV and folder revision discovery against current access. The public dialog recovers eligible entries after a matching serialized status read and explains temporary unavailability separately from confirmed withdrawal.",
         "change_types": [
