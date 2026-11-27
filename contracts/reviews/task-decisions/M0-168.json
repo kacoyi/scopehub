@@ -1,0 +1,35 @@
+{
+  "version": 3,
+  "task_id": "M0-168",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "a216dd82fa7065cd7761d8a0f05e3343a3d90cb8",
+      "scope": "Independently review Windows portability of the normal Herdr return collector and transport capability check on this clean source. Use the actual first Windows failure and retained controls from .reports/observations/M0-168/handoff.json, inspect LF and CRLF original bytes through the consumer, a changed original and a different valid review subject. Verify bounded supported/unsupported host behavior and the observed limits of local Linux versus native Windows.",
+      "supersedes": null,
+      "requested_at": "2026-11-26T15:16:44.219707+00:00",
+      "request_id": "e9d7af7703a2d0d65690c4dfadd7068b074d8840153647795454cd1e632051ad",
+      "evidence_sha256": "242df1121e4c1461c83615fe3e48a725fcb5c7e65ee29bac4e79deac090d3830"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a216dd82fa7065cd7761d8a0f05e3343a3d90cb8",
+      "verdict": "approved",
+      "decision": "APPROVE M0-168 a216dd82fa7065cd7761d8a0f05e3343a3d90cb8",
+      "scope": "APPROVE M0-168 a216dd82fa7065cd7761d8a0f05e3343a3d90cb8",
+      "observation": "The collector preserved both events byte for byte in LF and CRLF replay and returned archive_changed when only the archived reply’s line ending changed.",
+      "reviewer": "Independent Astra Standard (t19c)",
+      "original_sha256": "dece58229bf884d533e45a0f12e572936b6c87e1eb757bd0b761917b876433fc",
+      "response_id": "a2be4ca68d23735caeef6a238b5ddda21c93157e0388662036bfcb25fb3577bd",
+      "response_sha256": "67721ae6d47b578945766a8b286c80c5adb26e182b93c3eea6f805b008ce5665",
+      "legacy_response_sha256": "89659cd0949d9dffb05356ac96a9ec4d521eabfab9b33491d391d9239382393a",
+      "observation_body_sha256": "81ba0e732e9769ea396e25100c8bfbd2630c61cc2b65e6445bc1f52e97eb6aa3",
+      "event": {
+        "id": "msg_02b6f593d00dfe44016b084e44925087d19c006b43292c357d",
+        "timestamp": "2026-11-26T15:20:55.110Z"
+      },
+      "supersedes": "e9d7af7703a2d0d65690c4dfadd7068b074d8840153647795454cd1e632051ad",
+      "evidence_sha256": "0210f75d531e7b68399923d79af3afa91c46790f5f8d2fda6c73cf3f6daa3f08"
+    }
+  ]
+}

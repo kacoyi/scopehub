@@ -1,7 +1,8 @@
 """Exercise the Herdr launch boundary without a running core or model."""
 
-from contextlib import redirect_stderr, redirect_stdout
-from io import StringIO
+from contextlib import ExitStack, contextmanager, nullcontext, redirect_stderr, redirect_stdout
+from hashlib import sha256
+from io import BytesIO, StringIO, TextIOWrapper
 import json
 import os
 from pathlib import Path
@@ -13,7 +14,9 @@ import tempfile
 import unittest
 from unittest.mock import Mock, call, patch
 
-from scripts import herdr
+from scripts import herdr, herdr_lifecycle
+from scripts.herdr_returns import Proof
+from scripts.worktree import exclusive_git_lock
 
 
 SCRIPT = Path(__file__).resolve().parents[2] / 'scripts/herdr.py'
@@ -40,6 +43,413 @@ FUTURE_CATALOG = {'models': [
     catalog_model('gpt-95-sol\n', *EFFORTS),
     catalog_model('gpt-30.1-astra', *EFFORTS),
 ]}
+
+
+class RunnerHeld(Exception):
+    """Stop at the public owned runner's inspection wait."""
+
+
+@unittest.skipUnless(sys.platform == 'linux', 'Local Herdr lifecycle requires Linux.')
+class HerdrOwnedEntryTests(unittest.TestCase):
+    def setUp(self):
+        directory = self.enterContext(tempfile.TemporaryDirectory())
+        self.root = Path(directory).resolve()
+        self.state = self.root / 'state'
+        self.parent, self.assignment, self.prompt = 't42', 'one-shot', 'Synthetic assignment.'
+        self.args = ['--state-dir', str(self.state), '--parent', self.parent, '--assignment-id', self.assignment]
+        self.binding = {'id': self.assignment, 'parent': self.parent, 'mode': 'one-shot',
+                        'task': 'M0-162', 'role': 'implement', 'checkout': str(self.root),
+                        'source': '1' * 40, 'prompt_sha256': sha256(self.prompt.encode()).hexdigest(),
+                        'model': 'gpt-fixture-sol', 'effort': 'medium', 'sessions': str(self.root / 'sessions'),
+                        'codex_home': str(self.root), 'codex_argv': ['codex', 'exec', '--json']}
+        self.terminal = {'address': 't43', 'created_ms': 345, 'pid': os.getpid(),
+                         'tab': {'id': 'tab-43', 'pane': 'pane-43'}}
+        self.session = '01a21690-93a0-79f3-b020-ab4c007f0531'
+        self.rollout = str(self.root / 'sessions' / f'rollout-fixture-{self.session}.jsonl')
+        self.execution = dict(self.terminal, session_id=self.session, rollout_path=self.rollout)
+        self.native = Mock()
+        self.native.own_process.return_value = self.terminal
+        self.native.observe.side_effect = self.observe
+        self.original = b'{"text":"The synthetic return is complete."}\n'
+        self.completion = b'{"turn_id":"bound","type":"task_complete"}\n'
+        self.probe = Mock(return_value=Proof(self.original, {
+            'session_id': self.session, 'rollout_path': self.rollout,
+            'completion_sha256': sha256(self.completion).hexdigest(),
+        }, self.completion))
+        self.lifecycle = self.new_lifecycle()
+        self.lifecycle.register(self.binding)
+        self.pending = self.lifecycle.pending / self.assignment
+        self.archived = self.lifecycle.archived / self.assignment
+        self.child = Mock(pid=123)
+        self.child.wait.return_value = 0
+        self.thread_started = (json.dumps({'type': 'thread.started', 'thread_id': self.session}) + '\n').encode()
+        self.stderr = StringIO()
+        self.stdout = BytesIO()
+        self.enterContext(patch.object(herdr, 'collector', side_effect=lambda *_: (self.new_lifecycle(), self.native)))
+        self.enterContext(patch.object(herdr, 'find_worktree', return_value=self.root))
+        self.enterContext(patch.object(herdr, 'inherited_parent', return_value=self.terminal['address']))
+        self.enterContext(patch.object(herdr, 'check_review_source'))
+        self.rollout_probe = self.enterContext(patch.object(herdr, 'exec_rollout', return_value=self.rollout))
+        self.inspection_hold = self.enterContext(patch.object(herdr.signal, 'pause', side_effect=RunnerHeld))
+
+    def new_lifecycle(self):
+        return herdr_lifecycle.Lifecycle(self.state, self.parent, observe=self.native.observe, probe=self.probe)
+
+    def observe(self, binding, *, retiring):
+        self.assertEqual(binding, self.binding)
+        execution = self.lifecycle.execution(self.assignment)
+        if retiring is not None:
+            self.assertEqual(retiring, execution)
+            raise herdr_lifecycle.LifecycleHold('one_shot_awaiting_exit')
+        return execution
+
+    def run_owned(self, output=None):
+        self.child.stdout = BytesIO(self.thread_started if output is None else output)
+        argv = ['herdr.py', 'run-owned', *self.args, '--', self.prompt]
+        with (patch.object(sys, 'argv', argv),
+              patch.object(herdr.subprocess, 'Popen', return_value=nullcontext(self.child)) as start_child,
+              redirect_stdout(TextIOWrapper(self.stdout, write_through=True)) as out, redirect_stderr(self.stderr)):
+            self.start_child = start_child
+            try:
+                return herdr.main()
+            finally:
+                out.detach()
+
+    def collect(self):
+        with (patch.object(sys, 'argv', ['herdr.py', 'collect', *self.args]), redirect_stdout(StringIO()) as out):
+            self.assertEqual(herdr.main(), 0)
+        return json.loads(out.getvalue())['assignments'][0]
+
+    def assert_saved_pair(self):
+        receipt = self.collect()
+        self.assertEqual(receipt['reason'], 'one_shot_awaiting_exit')
+        self.assertEqual(Path(receipt['original']).read_bytes(), self.original)
+        self.assertEqual(Path(receipt['completion']).read_bytes(), self.completion)
+
+    def lock_at_start(self):
+        lock = self.enterContext(ExitStack())
+
+        def capture(*_):
+            lock.enter_context(exclusive_git_lock(self.pending / 'operation.lock'))
+            return self.rollout
+
+        self.rollout_probe.side_effect = capture
+        return lock
+
+    def write_execution(self, execution):
+        path = self.pending / 'execution.json'
+        path.touch(mode=0o600)
+        path.write_text(json.dumps(execution, sort_keys=True) + '\n', encoding='utf-8')
+
+    def lock_at_completion(self):
+        lock = self.enterContext(ExitStack())
+
+        def finished_child():
+            lock.enter_context(exclusive_git_lock(self.pending / 'operation.lock'))
+            return 0
+
+        self.child.wait.side_effect = finished_child
+        return lock
+
+    def compete(self, *, after_lock=None, interrupt=None):
+        lock = self.lock_at_completion()
+
+        def publish(_):
+            self.assertEqual(self.collect()['reason'], 'assignment_busy')
+            lock.close()
+            if interrupt is not None:
+                with patch.object(herdr_lifecycle, '_write_record', side_effect=interrupt):
+                    with self.assertRaises(KeyboardInterrupt):
+                        self.collect()
+            else:
+                self.assertEqual(self.collect()['status'], 'archived')
+            if after_lock:
+                after_lock()
+
+        return patch.object(herdr.time, 'sleep', side_effect=publish)
+
+    @contextmanager
+    def past_lock_budget(self, release):
+        elapsed = 0
+        released = False
+
+        def release_once():
+            nonlocal released
+            if not released:
+                release()
+                released = True
+
+        def advance(seconds):
+            nonlocal elapsed
+            self.assertGreater(seconds, 0)
+            self.assertLessEqual(seconds, herdr.ONE_SHOT_LOCK_SECONDS)
+            elapsed += seconds
+            self.assertLessEqual(elapsed, 3 * herdr.ONE_SHOT_LOCK_SECONDS)
+            if elapsed > herdr.ONE_SHOT_LOCK_SECONDS:
+                release_once()
+
+        def paused():
+            # Observe the gate reopening even if the runner entered the permanent inspection hold.
+            self.assertGreaterEqual(elapsed, herdr.ONE_SHOT_LOCK_SECONDS)
+            release_once()
+            raise RunnerHeld
+
+        with (patch.object(herdr.time, 'monotonic', side_effect=lambda: elapsed),
+              patch.object(herdr.time, 'sleep', side_effect=advance),
+              patch.object(herdr.signal, 'pause', side_effect=paused)):
+            yield
+        self.assertTrue(released)
+        self.assertGreater(elapsed, herdr.ONE_SHOT_LOCK_SECONDS)
+
+    def test_run_owned_without_competition_recovers_its_exact_pair(self):
+        self.assertEqual(self.run_owned(), 0)
+        self.assert_saved_pair()
+        self.assertIn(b'Verified assignment return archived', self.stdout.getvalue())
+
+    def test_run_owned_cannot_launch_another_child_for_a_previously_started_assignment(self):
+        self.write_execution(self.execution)
+
+        with self.assertRaises(RunnerHeld):
+            self.run_owned()
+
+        self.start_child.assert_not_called()
+        self.rollout_probe.assert_not_called()
+        self.assertIn('assignment_execution_changed', self.stderr.getvalue())
+        self.assertEqual(self.lifecycle.execution(self.assignment), self.execution)
+        self.assertFalse(self.archived.exists())
+        self.probe.assert_not_called()
+
+    def test_run_owned_retries_the_same_captured_start_after_competing_collection(self):
+        lock = self.lock_at_start()
+
+        def release(_):
+            self.assertEqual(self.collect()['reason'], 'assignment_busy')
+            lock.close()
+            self.assertEqual(self.collect()['reason'], 'one_shot_start_unobserved')
+
+        with patch.object(herdr.time, 'sleep', side_effect=release) as retry:
+            self.assertEqual(self.run_owned(), 0)
+
+        retry.assert_called_once()
+        self.rollout_probe.assert_called_once_with(self.child.pid, Path(self.binding['sessions']), self.session)
+        self.assertEqual(self.lifecycle.execution(self.assignment), self.execution)
+        self.assert_saved_pair()
+        self.assertEqual(self.stdout.getvalue().splitlines(keepends=True)[0], self.thread_started)
+
+    def test_run_owned_saves_the_same_captured_start_after_the_lock_budget(self):
+        lock = self.lock_at_start()
+
+        def release():
+            self.assertEqual(self.collect()['reason'], 'assignment_busy')
+            lock.close()
+            self.assertEqual(self.collect()['reason'], 'one_shot_start_unobserved')
+
+        with self.past_lock_budget(release):
+            self.assertEqual(self.run_owned(), 0)
+
+        self.start_child.assert_called_once()
+        self.rollout_probe.assert_called_once_with(self.child.pid, Path(self.binding['sessions']), self.session)
+        self.assertEqual(self.lifecycle.execution(self.assignment), self.execution)
+        self.assert_saved_pair()
+        self.assertEqual(self.stdout.getvalue().splitlines(keepends=True)[0], self.thread_started)
+
+    def test_run_owned_accepts_identical_committed_start_and_competing_archive(self):
+        lock = self.lock_at_start()
+
+        def publish(_):
+            self.write_execution(self.execution)
+            lock.close()
+            self.assertEqual(self.collect()['status'], 'archived')
+
+        with patch.object(herdr.time, 'sleep', side_effect=publish) as retry:
+            self.assertEqual(self.run_owned(), 0)
+
+        retry.assert_called_once()
+        self.rollout_probe.assert_called_once()
+        self.probe.assert_called_once_with(self.binding, self.execution)
+        self.assert_saved_pair()
+
+    def test_run_owned_preserves_conflicting_committed_start(self):
+        lock = self.lock_at_start()
+        different = dict(self.execution, pid=self.terminal['pid'] + 1)
+
+        def publish(_):
+            self.write_execution(different)
+            lock.close()
+
+        with (patch.object(herdr.time, 'sleep', side_effect=publish) as retry,
+              self.assertRaises(RunnerHeld)):
+            self.run_owned()
+
+        retry.assert_called_once()
+        self.rollout_probe.assert_called_once()
+        self.assertIn('assignment_execution_changed', self.stderr.getvalue())
+        self.assertEqual(self.lifecycle.execution(self.assignment), different)
+        self.assertFalse((self.pending / 'return').exists())
+        self.assertFalse(self.archived.exists())
+        self.probe.assert_not_called()
+
+    def test_run_owned_paces_a_persistently_locked_captured_start(self):
+        self.lock_at_start()
+        budget = herdr.ONE_SHOT_LOCK_SECONDS
+        elapsed = 0
+        slow_delays = []
+
+        def advance(seconds):
+            nonlocal elapsed
+            self.assertGreater(seconds, 0)
+            self.assertLessEqual(seconds, budget)
+            if elapsed >= budget:
+                self.assertGreaterEqual(seconds, 1)
+                slow_delays.append(seconds)
+            elapsed += seconds
+            if elapsed > 3 * budget:
+                raise RunnerHeld
+
+        with (patch.object(herdr.time, 'monotonic', side_effect=lambda: elapsed),
+              patch.object(herdr.time, 'sleep', side_effect=advance),
+              self.assertRaises(RunnerHeld)):
+            self.run_owned()
+
+        self.assertGreater(len(slow_delays), 1)
+        self.assertEqual(self.stderr.getvalue().count('assignment_busy'), 1)
+        self.inspection_hold.assert_not_called()
+        self.start_child.assert_called_once()
+        self.rollout_probe.assert_called_once()
+        self.assertFalse((self.pending / 'execution.json').exists())
+        self.assertFalse(self.archived.exists())
+        self.probe.assert_not_called()
+
+    def test_run_owned_bounds_a_busy_admission_before_starting_a_child(self):
+        elapsed = 0
+
+        def advance(_):
+            nonlocal elapsed
+            elapsed += 30
+            self.assertLessEqual(elapsed, 30)
+
+        with (exclusive_git_lock(self.pending / 'operation.lock'),
+              patch.object(herdr.time, 'monotonic', side_effect=lambda: elapsed),
+              patch.object(herdr.time, 'sleep', side_effect=advance) as retry,
+              self.assertRaises(RunnerHeld)):
+            self.run_owned()
+
+        retry.assert_called_once()
+        self.assertIn('assignment_busy', self.stderr.getvalue())
+        self.inspection_hold.assert_called_once()
+        self.start_child.assert_not_called()
+        self.rollout_probe.assert_not_called()
+        self.assertFalse((self.pending / 'execution.json').exists())
+        self.assertFalse(self.archived.exists())
+        self.probe.assert_not_called()
+
+    def test_run_owned_waits_for_competing_public_collector_then_exits(self):
+        with self.compete() as retry:
+            self.assertEqual(self.run_owned(), 0)
+        retry.assert_called_once()
+        self.child.wait.assert_called_once()
+        self.probe.assert_called_once_with(self.binding, self.execution)
+        self.assert_saved_pair()
+
+    def test_run_owned_exits_after_a_competing_archive_commits_past_the_lock_budget(self):
+        lock = self.lock_at_completion()
+
+        def publish():
+            self.assertEqual(self.collect()['reason'], 'assignment_busy')
+            lock.close()
+            self.assert_saved_pair()
+
+        with self.past_lock_budget(publish):
+            self.assertEqual(self.run_owned(), 0)
+
+        self.child.wait.assert_called_once()
+        self.probe.assert_called_once_with(self.binding, self.execution)
+        self.assertEqual(self.lifecycle.execution(self.assignment), self.execution)
+        self.assertEqual(list(self.archived.parent.iterdir()), [self.archived])
+        self.assertFalse(self.pending.exists())
+        self.assert_saved_pair()
+
+    def test_run_owned_recovers_pair_after_competing_collector_interrupts(self):
+        with self.compete(interrupt=KeyboardInterrupt) as retry:
+            self.assertEqual(self.run_owned(), 0)
+        retry.assert_called_once()
+        self.probe.assert_called_once_with(self.binding, self.execution)
+        self.assert_saved_pair()
+
+    def test_run_owned_recovers_when_competitor_moves_the_lane_before_lock_acquisition(self):
+        # Run a separate public collect between finding the pending lane and opening its lock.
+        def acquire(path):
+            if self.pending.exists() and (self.pending / 'execution.json').exists():
+                with patch.object(herdr_lifecycle, 'exclusive_git_lock', exclusive_git_lock):
+                    self.assertEqual(self.collect()['status'], 'archived')
+            return exclusive_git_lock(path)
+
+        with (patch.object(herdr_lifecycle, 'exclusive_git_lock', side_effect=acquire),
+              patch.object(herdr.time, 'sleep') as retry):
+            self.assertEqual(self.run_owned(), 0)
+        retry.assert_called_once()
+        self.probe.assert_called_once_with(self.binding, self.execution)
+        self.assert_saved_pair()
+
+    def test_run_owned_preserves_corrupt_competing_completion(self):
+        completion = self.archived / 'return/completion.jsonl'
+        with self.compete(after_lock=lambda: completion.write_bytes(b'changed')), self.assertRaises(RunnerHeld):
+            self.run_owned()
+        self.assertIn('archive_changed', self.stderr.getvalue())
+        self.assertEqual(completion.read_bytes(), b'changed')
+        self.assertEqual((self.archived / 'return/original.jsonl').read_bytes(), self.original)
+        self.assertNotIn(b'Verified assignment return archived', self.stdout.getvalue())
+
+    def test_run_owned_rejects_a_different_execution_after_the_lock_budget(self):
+        lock = self.lock_at_completion()
+
+        def change_execution():
+            lock.close()
+            self.assert_saved_pair()
+            (self.archived / 'execution.json').write_text(json.dumps(dict(self.execution, pid=1)), encoding='utf-8')
+
+        with self.past_lock_budget(change_execution), self.assertRaises(RunnerHeld):
+            self.run_owned()
+        self.assertIn('assignment_execution_changed', self.stderr.getvalue())
+        self.assertEqual((self.archived / 'return/completion.jsonl').read_bytes(), self.completion)
+        self.assertNotIn(b'Verified assignment return archived', self.stdout.getvalue())
+
+    def test_run_owned_cannot_recreate_a_missing_start_identity_after_the_lock_budget(self):
+        lock = self.lock_at_completion()
+
+        def lose_start():
+            (self.pending / 'execution.json').unlink()
+            lock.close()
+            self.assertEqual(self.collect()['reason'], 'one_shot_start_unobserved')
+
+        with self.past_lock_budget(lose_start), self.assertRaises(RunnerHeld):
+            self.run_owned()
+
+        self.assertIn('one_shot_start_unobserved', self.stderr.getvalue())
+        self.assertFalse((self.pending / 'execution.json').exists())
+        self.assertFalse(self.archived.exists())
+        self.probe.assert_not_called()
+
+    def test_run_owned_later_start_event_cannot_replace_the_first_identity(self):
+        later = json.dumps({'type': 'thread.started', 'thread_id': 'other'}).encode() + b'\n'
+        with self.assertRaises(RunnerHeld):
+            self.run_owned(self.thread_started + later)
+
+        self.rollout_probe.assert_called_once()
+        self.assertIn('assignment_execution_changed', self.stderr.getvalue())
+        self.assertEqual(self.lifecycle.execution(self.assignment), self.execution)
+        self.assertFalse(self.archived.exists())
+        self.probe.assert_not_called()
+
+    def test_run_owned_corrupt_output_never_unwinds_the_inspection_hold(self):
+        for output in (b'{}', b'{\n', b'[]\n', b'\xff\n', b'{"deep":' + b'[' * 10000 + b']' * 10000 + b'}\n'):
+            with self.subTest(length=len(output)), self.assertRaises(RunnerHeld):
+                self.run_owned(output)
+        self.assertNotIn(b'Verified assignment return archived', self.stdout.getvalue())
+        self.assertEqual(self.stderr.getvalue().count('invalid_one_shot_output'), 5)
+        self.assertFalse((self.pending / 'return').exists())
+        self.assertFalse(self.archived.exists())
+        self.probe.assert_not_called()
 
 MOCK_PROGRAM = """\
 import json
@@ -103,6 +513,8 @@ class WorktreeFixture(unittest.TestCase):
                 'recent': [{'id': 's-recent', 'machine': None}],
             }),
         }
+        for key in ('HC_TERMINAL_ID', 'HC_TERMINAL_SOCKET'):
+            self.env.pop(key, None)
 
     def write_records(self, root, task_id, *, implement=IMPLEMENT, supervise=SUPERVISE, efforts=None):
         project = root / 'project'
@@ -129,6 +541,156 @@ class WorktreeFixture(unittest.TestCase):
 
 
 class DryRunTests(WorktreeFixture):
+    def local_native_context(self):
+        socket = str(self.root / 'native.sock')
+        self.env.update(HC_SOCKET=socket, HC_TERMINAL_ID='t25', HC_TERMINAL_SOCKET=socket)
+
+    @unittest.skipUnless(sys.platform == 'linux', 'Managed sockets are local Linux only')
+    def test_ordinary_visible_launch_adopts_its_native_owner_without_side_effects(self):
+        self.local_native_context()
+        self.use_family_profiles()
+        (self.codex_home / 'models_cache.json').write_text(json.dumps(FUTURE_CATALOG), encoding='utf-8')
+        state = self.root / 'absent private state'
+        result = self.cli('M0-025', 'implement', '--assignment', 'One bounded return', '--space', 's-local',
+                          '--effort', 'ultra', '--state-dir', str(state), '--dry-run')
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        plan = json.loads(result.stdout)
+        self.assertNotIn('--parent', plan['argv'])
+        self.assertFalse(any(item.startswith('scopehub.assignment=') for item in plan['argv']))
+        argv = plan['managed_argv']
+        self.assertEqual(plan['lifecycle']['parent'], 't25')
+        self.assertEqual(plan['lifecycle']['tier'], 'priority')
+        self.assertEqual(argv[argv.index('--parent') + 1], 't25')
+        self.assertIn('herdr.space=s-local', argv)
+        self.assertIn('model_reasoning_effort="ultra"', argv)
+        self.assertIn('service_tier="priority"', argv)
+        self.assertEqual(argv[argv.index('--model') + 1], 'gpt-10.9-sol')
+        self.assertFalse(state.exists())
+        self.assertFalse(Path(self.env['HC_SOCKET']).exists())
+        self.assertFalse(self.log.exists())
+
+    def test_explicit_standalone_preserves_ordinary_visible_launch_inside_native_owner(self):
+        self.local_native_context()
+        result = self.cli('M0-025', 'implement', '--assignment', 'An interactive terminal', '--space', 's-local',
+                          '--standalone', '--dry-run')
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        plan = json.loads(result.stdout)
+        self.assertNotIn('lifecycle', plan)
+        self.assertNotIn('managed_argv', plan)
+        self.assertNotIn('--parent', plan['argv'])
+        self.assertFalse(any(item.startswith('scopehub.assignment=') for item in plan['argv']))
+        self.assertIn('herdr.space=s-local', plan['argv'])
+        self.assertEqual(plan['argv'][plan['argv'].index('--') + 1:][:2], ['codex', '--no-daemon'])
+        self.assertFalse(self.log.exists())
+
+    @unittest.skipUnless(sys.platform == 'linux', 'Managed sockets are local Linux only')
+    def test_one_shot_dry_run_binds_an_owned_visible_implementation_to_codex_exec(self):
+        self.local_native_context()
+        state = self.root / 'absent private state'
+        result = self.cli('M0-025', 'implement', '--assignment', 'Complete one bounded turn', '--space', 's-local',
+                          '--one-shot', '--state-dir', str(state), '--dry-run')
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        plan = json.loads(result.stdout)
+        self.assertEqual(plan['lifecycle'], {'version': 1, 'managed_entry_required': True, 'parent': 't25',
+                                             'tier': 'priority', 'host': 'linux', 'mode': 'one-shot'})
+        argv = plan['argv']
+        self.assertIn('herdr.space=s-local', argv)
+        self.assertEqual(argv[argv.index('--parent') + 1], 't25')
+        self.assertEqual(argv[argv.index('--') + 1:][:3], ['codex', 'exec', '--json'])
+        self.assertNotIn('--no-daemon', argv)
+        self.assertIn('--approve-for-me', argv)
+        self.assertTrue(argv[-1].endswith('\nComplete one bounded turn'))
+        self.assertFalse(state.exists())
+        self.assertFalse(self.log.exists())
+
+    @unittest.skipUnless(sys.platform == 'linux', 'Managed sockets are local Linux only')
+    def test_one_shot_rejects_an_unowned_hidden_standalone_or_nonimplementation_launch(self):
+        arguments = ('--assignment', 'Complete one bounded turn', '--one-shot', '--dry-run')
+        for role, options, owned in (
+            ('implement', ('--space', 's-local'), False),
+            ('implement', ('--managed', '--parent', 't25'), True),
+            ('implement', ('--space', 's-local', '--standalone'), True),
+            ('coordinate', ('--space', 's-local'), True),
+            ('review', ('--space', 's-local'), True),
+        ):
+            with self.subTest(role=role, options=options, owned=owned):
+                if owned:
+                    self.local_native_context()
+                result = self.cli('M0-025', role, *arguments, *options)
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertIn('--one-shot requires a managed implementation with a visible local space', result.stderr)
+                self.assertEqual(result.stdout, '')
+        self.assertFalse(self.log.exists())
+
+    def test_absent_incomplete_or_other_core_context_does_not_adopt_a_native_owner(self):
+        arguments = ('M0-025', 'implement', '--assignment', 'An unowned terminal', '--space', 's-local', '--dry-run')
+        for scenario in ('absent', 'unowned', 'incomplete', 'other-core'):
+            with self.subTest(context=scenario):
+                self.local_native_context()
+                if scenario == 'absent':
+                    self.env.pop('HC_TERMINAL_ID')
+                    self.env.pop('HC_TERMINAL_SOCKET')
+                elif scenario == 'unowned':
+                    self.env['HC_TERMINAL_ID'] = 'virtual-terminal'
+                elif scenario == 'incomplete':
+                    self.env.pop('HC_TERMINAL_SOCKET')
+                else:
+                    self.env['HC_TERMINAL_SOCKET'] = str(self.root / 'other-core.sock')
+                result = self.cli(*arguments)
+                self.assertEqual(0, result.returncode, result.stderr)
+                plan = json.loads(result.stdout)
+                self.assertNotIn('lifecycle', plan)
+                self.assertNotIn('managed_argv', plan)
+                self.assertNotIn('--parent', plan['argv'])
+        self.assertFalse(self.log.exists())
+
+    def test_coordination_and_review_without_bound_source_stay_usable_in_a_native_owner(self):
+        self.local_native_context()
+        for role in ('coordinate', 'review'):
+            with self.subTest(role=role):
+                result = self.cli('M0-025', role, '--assignment', 'Inspect one file', '--space', 's-local', '--dry-run')
+                self.assertEqual(0, result.returncode, result.stderr)
+                plan = json.loads(result.stdout)
+                self.assertNotIn('lifecycle', plan)
+                self.assertNotIn('managed_argv', plan)
+                self.assertNotIn('--parent', plan['argv'])
+        self.assertFalse(self.log.exists())
+
+    def test_managed_plan_serves_the_explicit_native_coordinator_launch(self):
+        self.use_family_profiles()
+        (self.codex_home / 'models_cache.json').write_text(json.dumps(FUTURE_CATALOG), encoding='utf-8')
+        state = self.root / 'absent private state'
+        result = self.cli('M0-025', 'implement', '--assignment', 'One bounded return', '--space', 's-local',
+                          '--parent', 't25', '--no-notify', '--tier', 'priority', '--effort', 'ultra',
+                          '--state-dir', str(state), '--managed', '--dry-run')
+        self.assertEqual(0, result.returncode, result.stderr)
+        plan = json.loads(result.stdout)
+        argv = plan['argv']
+        self.assertEqual(argv[:3], ['hc', 'run', '--bg'])
+        self.assertEqual(argv[argv.index('--parent') + 1], 't25')
+        self.assertIn('--no-notify', argv)
+        self.assertIn('herdr.space=s-local', argv)
+        self.assertIn('model_reasoning_effort="ultra"', argv)
+        self.assertIn('service_tier="priority"', argv)
+        self.assertEqual(argv[argv.index('--model') + 1], 'gpt-10.9-sol')
+        self.assertTrue(plan['lifecycle']['managed_entry_required'])
+        self.assertFalse(state.exists())
+        self.assertFalse(self.log.exists())
+
+    @unittest.skipUnless(sys.platform == 'linux', 'Managed sockets are local Linux only')
+    def test_collection_dry_run_neither_starts_a_core_nor_creates_state(self):
+        state = self.root / 'absent private state'
+        self.env['HC_SOCKET'] = str(self.root / 'absent-core.sock')
+        result = self.cli('collect', '--parent', 't25', '--state-dir', str(state), '--dry-run')
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual({'version': 1, 'parent': 't25', 'dry_run': True, 'assignments': []},
+                         json.loads(result.stdout))
+        self.assertFalse(state.exists())
+        self.assertFalse(self.log.exists())
+
     def test_reads_linked_worktree_records_and_needs_no_executables(self):
         self.write_records(self.worktree, 'M0-025', implement={'model': 'fixture-model', 'reasoning_effort': 'high'})
         result = self.cli('M0-025', 'implement', '--assignment', 'Inspect one file', '--space', 's-local', '--dry-run')
