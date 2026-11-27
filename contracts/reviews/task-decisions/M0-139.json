@@ -407,6 +407,15 @@
       },
       "supersedes": "e4d77b92f9b855ed3486ca9adfde1a7bf092c80b7af468d0dba20b4333e7db9c",
       "evidence_sha256": "556b2106cd87ebd844d08bd889501a4960138c1cd37d1c174887b1cf5c7ab034"
+    },
+    {
+      "kind": "request",
+      "source_commit": "1d7e14978847af2a74af4fc02087d4e55cfb5b1b",
+      "scope": "Review the effect of 1d7e1497 on the already accepted main timing and original publication eligibility used by M0-139.",
+      "supersedes": "6222c15d1854b703f245197eb8cab1bfa4f69df103041c313fef1d0d389cef57",
+      "requested_at": "2026-11-27T04:17:45.064173+00:00",
+      "request_id": "b6b8ad5d23c7a9629db123382ffefb0bf82e42cf6a12c9b6c89d666d89c061a3",
+      "evidence_sha256": "034969b83fe16a37e2ba3b1bc4a40bb3e03a3692ae29ca1b4b0c59c13e2a2d60"
     }
   ]
 }

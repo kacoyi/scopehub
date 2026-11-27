@@ -407,6 +407,15 @@
       },
       "supersedes": "3466d977e31fca07610f5b0857fc36a80f52d556bad96c0e8736cb1aa632eadf",
       "evidence_sha256": "be6beb25ba66b480737ee19c7727f9f426223176bb299453f0cdb3778f20a45a"
+    },
+    {
+      "kind": "request",
+      "source_commit": "1d7e14978847af2a74af4fc02087d4e55cfb5b1b",
+      "scope": "Review the single shared Windows PR publication/cost change on 1d7e1497. Judge the observed cost reduction and continued admission of each original producer, including the recovery job that finished last in PR 123.",
+      "supersedes": "d7d6d7aa0917dc5dc14b3d79f2f18045a5cf3e34332ac3973609075271fb382f",
+      "requested_at": "2026-11-27T04:17:44.465232+00:00",
+      "request_id": "0cc41629101bba8c9fb124e8d5e2953f41e05d1191cd78abdd523d2a434b04da",
+      "evidence_sha256": "c093c9a3cb117a33fce3816833e5d394c43d7aac14a03577373ca13234494df6"
     }
   ]
 }
