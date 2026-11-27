@@ -561,6 +561,26 @@
       "requested_at": "2026-11-27T08:01:57.221828+00:00",
       "request_id": "e75f0f982ba2f5e799bf60f54045fd3d9be927211626f75903106b96e7d0d264",
       "evidence_sha256": "f30fdcef005c297a9ae8e8de4eb77bf54ef2051b9188751ec049331c0849eec7"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ce6c2b3e3f8ba091378a7161fc77bf18cb20053d",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 ce6c2b3e3f8ba091378a7161fc77bf18cb20053d",
+      "scope": "APPROVE M0-146 ce6c2b3e3f8ba091378a7161fc77bf18cb20053d",
+      "observation": "I verified that moving 146 consecutive cases from recovery to Python preserved the order and unique ownership of all 965 discovered tests.",
+      "reviewer": "Independent Astra Standard (t1fd)",
+      "original_sha256": "461f7f743eadc7721c8c130a02e4e0eb6702ad00b5b148edc7a0f4d31f5d6158",
+      "response_id": "4264765cb6db841b3c474f0a52f7a6bac4349cc3d48390204231f7c67ea34e34",
+      "response_sha256": "1d485d866d2ec555bb12f8ebbf3e6ce01c0c51b83d40991622204e14f66921f3",
+      "legacy_response_sha256": "14e69bba5302c0479873d4081cf97de2fd4e12795fbe75be26553286ef78098c",
+      "observation_body_sha256": "8f2937c8baa36fa37ac830b61e7aec003d1eebb9a088822084b0c87017489293",
+      "event": {
+        "id": "msg_002c36a150154492016b093a4c421c87d084b1c367f0a7fc0c",
+        "timestamp": "2026-11-27T08:08:12.409Z"
+      },
+      "supersedes": "e75f0f982ba2f5e799bf60f54045fd3d9be927211626f75903106b96e7d0d264",
+      "evidence_sha256": "108025ed0203f6fd93c33fe59d08d429a38968b1411a9d5889d75bef01451fb8"
     }
   ]
 }
