@@ -1,0 +1,122 @@
+{
+  "version": 3,
+  "task_id": "M0-177",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "59c57475671aaca62f097fcf92a3ff668cd4a5a1",
+      "scope": "Independently review the normal initiating decision-note UI after an admitted peer deletion with a missing or late approval reply, and the actual observer fallback on disposable synthetic records. Compare the original Windows journal/storage marker, same-preview Linux, the current positive and refusal and the existing authorized recovery behavior.",
+      "supersedes": null,
+      "requested_at": "2026-11-27T09:37:43.143686+00:00",
+      "request_id": "f8ff98ef00ae344c6f85963c175650e701e61ca7cb9d41a4353483c34cf165d3",
+      "evidence_sha256": "52b6c5eb7f298fe882e346be06f3adbd983e8d4c18921d7de2efa3baf143b5d2"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "59c57475671aaca62f097fcf92a3ff668cd4a5a1",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-177 59c57475671aaca62f097fcf92a3ff668cd4a5a1",
+      "scope": "CHANGES_REQUESTED M0-177 59c57475671aaca62f097fcf92a3ff668cd4a5a1",
+      "observation": "In a controlled replay with the approval response body held back, the candidate helper was still pending at 5.3 seconds after the click, while the baseline helper had already reported the missing deletion notice.",
+      "reviewer": "Independent Astra Standard (t1gt)",
+      "original_sha256": "b39821aa6397383ca595491f118fb98face995b9771a1c78b1535c723ab35104",
+      "response_id": "d86b525c30abee7596450ef122f1ac45bfa562b6eaaee70c6c55175586af377c",
+      "response_sha256": "35dcd0da9b524efbcf297e5e7bc0ab8c17dd0a55a5ca8a7e8395964d051da660",
+      "legacy_response_sha256": "02aa0c49a9fe9dc214d7b5eab6b13f017620bbdefbd3126190479f169fe4e46a",
+      "observation_body_sha256": "3552d95e6227ee3205d18d08ef72897aec983edf4ee882dfc2e7d59d3b2cbb7d",
+      "event": {
+        "id": "msg_048239ce0957f20a016b09505c263487d093d3dfeae7797214",
+        "timestamp": "2026-11-27T09:42:12.918Z"
+      },
+      "supersedes": "f8ff98ef00ae344c6f85963c175650e701e61ca7cb9d41a4353483c34cf165d3",
+      "evidence_sha256": "f7c165b4a179584345fc2cfdecbdc7da1dd195627083cae61b343169beb86c14"
+    },
+    {
+      "kind": "request",
+      "source_commit": "3475ae4144d5e27d37b2ce379996e922e1d5ddad",
+      "scope": "Independently review the normal initiating decision-note UI after an admitted peer deletion with a missing or late approval reply, and the actual observer fallback on disposable synthetic records. Compare the original Windows journal/storage marker, same-preview Linux, the current positive and refusal and the existing authorized recovery behavior.",
+      "supersedes": "d86b525c30abee7596450ef122f1ac45bfa562b6eaaee70c6c55175586af377c",
+      "requested_at": "2026-11-27T09:53:41.831756+00:00",
+      "request_id": "d68ba9dfb281706bb78759e7ac4a8d13f5546283a674d7baf404e6025dc470bf",
+      "evidence_sha256": "6ad21334321e7403b996a40460e77f9669956080a4e9a40ca8ecc1c9d0fe7983"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "3475ae4144d5e27d37b2ce379996e922e1d5ddad",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-177 3475ae4144d5e27d37b2ce379996e922e1d5ddad",
+      "scope": "CHANGES_REQUESTED M0-177 3475ae4144d5e27d37b2ce379996e922e1d5ddad",
+      "observation": "In an in-memory replay of a retained deletion receipt, changing only its operation ID to `x` still triggered the initiating success notice and passed the candidate fixture’s receipt check.",
+      "reviewer": "Independent Astra Standard (t1h5)",
+      "original_sha256": "0433114996e8f103c6770cb28a630f24958e7953f19b0373c44d00ecd127910c",
+      "response_id": "30cac65b59e435f4bd002ae1968c27244889e4babebe663b7e9576fccf811c02",
+      "response_sha256": "29aba95a2d78717a4aa45812e230e63f7847f0d3a7ba96f654d64d9f7a0905f8",
+      "legacy_response_sha256": "73f37a7145b3dd6d272a1e1317e4c77518f26a5038af947edec7702c7d475846",
+      "observation_body_sha256": "193b294bc835bc122aa149083aa641c6fea49b5c481e25b33d784db80931116b",
+      "event": {
+        "id": "msg_08f87e6042829856016b09542fe29c87d0a66f709bc13d8269",
+        "timestamp": "2026-11-27T09:58:32.270Z"
+      },
+      "supersedes": "d68ba9dfb281706bb78759e7ac4a8d13f5546283a674d7baf404e6025dc470bf",
+      "evidence_sha256": "878609efc14be93a8de9494a2b3e6bcdb6ee5060e73c85ed98d1a217f0424913"
+    },
+    {
+      "kind": "request",
+      "source_commit": "c845c2bf670bda28f94eda2387378e53bc1ec2bf",
+      "scope": "Independently evaluate the initiating approval receipt and real pre-admission refusal, preserving the separate post-commit no-reply case.",
+      "supersedes": "30cac65b59e435f4bd002ae1968c27244889e4babebe663b7e9576fccf811c02",
+      "requested_at": "2026-11-27T10:12:28.352140+00:00",
+      "request_id": "918b92a994864bb47cdbf993b8231bdf25bbfccd5b48bbbf90ed491e323677d7",
+      "evidence_sha256": "64331954e99772249dc38d7248de98e064fffad655cfccf5d2a81bc0950bfe83"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c845c2bf670bda28f94eda2387378e53bc1ec2bf",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-177 c845c2bf670bda28f94eda2387378e53bc1ec2bf",
+      "scope": "CHANGES_REQUESTED M0-177 c845c2bf670bda28f94eda2387378e53bc1ec2bf",
+      "observation": "In my in-memory replay, adding a synthetic note body under `outcome.result` to a retained deletion reply still produced the initiating success notice and passed the fixture’s receipt check.",
+      "reviewer": "Independent Astra Standard (t1hf)",
+      "original_sha256": "183ebf6821b7c9b83b3925369b859f5b0ee090f2867b35774f5ea41e67fbe660",
+      "response_id": "af5348d4065a5d11c4303bcc118020a78c1417d42f0bee610d8bf812da1a2a04",
+      "response_sha256": "00b1409c5a310592dc2004b9411382298c09e2bc3ad5c9dbb7384cbe6d56f3c2",
+      "legacy_response_sha256": "f3dda11b6be48d8d12a885d44dbaf1f028c1461c35eb99127bc2fcb697659e72",
+      "observation_body_sha256": "11779e3310f71c66a0a5591e3a367ff0d8a5b4b2e74ada6220895a592e45ce6d",
+      "event": {
+        "id": "msg_0eece4ba6abdc944016b09588622a887d0a0935420f121e7c4",
+        "timestamp": "2026-11-27T10:17:00.344Z"
+      },
+      "supersedes": "918b92a994864bb47cdbf993b8231bdf25bbfccd5b48bbbf90ed491e323677d7",
+      "evidence_sha256": "d14c6e927783833e8a0b2094305f5c81dde3b2e9270e79b13fb2f800ed0ad286"
+    },
+    {
+      "kind": "request",
+      "source_commit": "23ea59440819f3ce7c5b31901819c94a68c8deb2",
+      "scope": "Independently qualify the normal deletion confirmation against the complete committed-result and receipt contracts and the authorized operation, including explicit recovery.",
+      "supersedes": "af5348d4065a5d11c4303bcc118020a78c1417d42f0bee610d8bf812da1a2a04",
+      "requested_at": "2026-11-27T10:27:52.160977+00:00",
+      "request_id": "c26fd494e7a5afab60953d3042fac7aa26fac63535c10aa959bb530db4f81759",
+      "evidence_sha256": "f0c24978de4ac358e54ac389d59c1bfd3e29db5c2ac3d2255095cfeb39aeb662"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "23ea59440819f3ce7c5b31901819c94a68c8deb2",
+      "verdict": "approved",
+      "decision": "APPROVE M0-177 23ea59440819f3ce7c5b31901819c94a68c8deb2",
+      "scope": "APPROVE M0-177 23ea59440819f3ce7c5b31901819c94a68c8deb2",
+      "observation": "In my replay of the initiating deletion action, both extra-field replies left the result unverified, and the success notice appeared only after an explicit retry returned the original receipt.",
+      "reviewer": "Independent Astra Standard (t1hp)",
+      "original_sha256": "c6c55eed3744a7d7e6582e7770469387a373276b3484c0aa1441f6ed1b6ddd48",
+      "response_id": "8dde226c4563d30a6295e83761d06827e93ea87cd4b60b758459c9e0ae3c1626",
+      "response_sha256": "277830c158a3a675a48a140b6084dd2136f510f81d08c3e63812ab3ee1397023",
+      "legacy_response_sha256": "4dd51619858cf3b484ea10210d5e2dfd1f107f4d9e83e3256a8bd125b70265db",
+      "observation_body_sha256": "5a71770c8ad077a82cc27d4db1e7f460cdbf6190f59bdaf2cf9e23229af40e5b",
+      "event": {
+        "id": "msg_09b35f040a86c00c016b095c25c48487d0a63f827669f03c6c",
+        "timestamp": "2026-11-27T10:32:25.446Z"
+      },
+      "supersedes": "c26fd494e7a5afab60953d3042fac7aa26fac63535c10aa959bb530db4f81759",
+      "evidence_sha256": "e1e35a9ab0b275ac1afe99e56a35fe03bf0b48ab891b929385b48c906c286e0b"
+    }
+  ]
+}

@@ -10665,6 +10665,137 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "verified-peer-note-deletion-missing-approval-delivery",
+      "status": "addressed",
+      "severity": "major",
+      "source": "First native observation archives/observations/repo-hygiene-20261125/pr150-native-original-45971216845/manifest.json (SHA-256 5f9118902b0a50be1978fd5c3231b750aa9cbbb52a540f495b113a817d92e6a1).",
+      "observation": "The first ordinary PR 150 Windows workspace report timed out at the initiating note-deletion notice after five seconds. Its own journal records one approval sent, a single matching stored deletion marker at revision 5, the missing note and outcome, no correlated approval response, and zero observer fallback attempts. On Linux the identical preview received committed and exercised two fallback attempts. Both CSV consumers passed on both platforms. The location and cause of the missing Windows observation are unknown.",
+      "task_ids": [
+        "M0-177"
+      ],
+      "regression_checks": [
+        "project-state",
+        "workspace-timeframe",
+        "market-workflow",
+        "ui-build"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45971216845-1",
+          "source_commit": "0d444941b5b5082486c0607223179a22cae77a3c",
+          "report_sha256": "ba89eebe0283ebbb75d909017c5552a45fb55d1dcb7c07f48c78cae6cf51302b"
+        }
+      ],
+      "resolution": {
+        "cause": "The original Windows journal records one approval with no correlated response and no observer fallback. The last successful observer snapshot showed revision 4. Teardown showed revision 5, the absent note and outcome, and one matching marker. The exact commit time relative to the last snapshot and five-second assertion, the generation or delivery of the approval response, and the reason for the missing observation remain unknown.",
+        "correction": "Observe approval delivery, the initiating drawer, the peer window and the durable marker independently. A verified committed receipt authorizes success. An unresolved reply preserves the original approval for explicit recovery of the existing receipt.",
+        "prevention": "Ordinary PR 151 run 45983202750 on Linux and Windows passed the interrupted committed-reply recovery and retained the separate normal committed deletion and observer-abort controls. Recovery returned the original receipt after one explicit retry with one durable marker. The original PR 150 Windows failure and its same-preview Linux positive control remain retained. Protected observation is outstanding with the coordinator."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "peer-note-deletion-fixture-blocks-notice-failure-on-approval-body",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent Astra Standard (t1gt) on 59c57475671aaca62f097fcf92a3ff668cd4a5a1. The review replayed the fixture in memory using a retained real approval receipt. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-177-59c57475/original-assistant-response.jsonl (SHA-256 b39821aa6397383ca595491f118fb98face995b9771a1c78b1535c723ab35104), recorded via project:review in 6b1ecf077cd31cb2109bd950b315bfebf1729750.",
+      "observation": "With real approval headers available and the response body held in a controlled replay, the reviewed fixture remained pending 5.3 seconds after the click and reported the missing notice only after the body was released. The baseline already reported the missing notice, the normal notice control passed, and the missing-notice control with a delivered body failed on time. The original Windows timing cause remains unknown.",
+      "task_ids": [
+        "M0-177"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The fixture awaited approval body parsing before observing the already failed notice assertion.",
+        "correction": "Observe receipt and notice independently within the existing five-second assertion and await both for success.",
+        "prevention": "The original Linux and Windows browser journals for ordinary PR 151 run 45983202750 show the missing-notice assertion completing on its five-second budget with complete and held bodies. In the held trial, approval headers had arrived and the body remained pending until release. Separate normal deletion controls observed both the matching committed receipt and visible notice."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "peer-note-deletion-recovery-fixture-skips-profile-cleanup-on-attachment-failure",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent Astra Standard (t1gt) on 59c57475671aaca62f097fcf92a3ff668cd4a5a1. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-177-59c57475/original-assistant-response.jsonl (SHA-256 b39821aa6397383ca595491f118fb98face995b9771a1c78b1535c723ab35104), recorded via project:review in 6b1ecf077cd31cb2109bd950b315bfebf1729750.",
+      "observation": "The independent review found that the recovery fixture awaited report attachment in the same sequential teardown block as the two profile closes. A rejected attachment exits that block before either owned temporary synthetic SQLite profile is closed.",
+      "task_ids": [
+        "M0-177"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "A rejected report attachment bypassed both sequential profile closes.",
+        "correction": "Ensure both owned profile disposals execute when result attachment rejects and preserve the attachment error.",
+        "prevention": "Ordinary PR 151 run 45983202750 retained the injected attachment error and verified both populated synthetic profile directories were removed on Linux and Windows."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "peer-note-deletion-accepts-invalid-operation-receipt-id",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent Astra Standard (t1h5) on 3475ae4144d5e27d37b2ce379996e922e1d5ddad. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-177-3475ae41/original-assistant-response.jsonl (SHA-256 0433114996e8f103c6770cb28a630f24958e7953f19b0373c44d00ecd127910c), recorded via project:review in 883809a692b5c433cfcc71447c86caf96d171f65.",
+      "observation": "Replaying a retained real deletion receipt with only the operation ID changed to x produced the initiating success notice and passed the fixture receipt assertion. Omitting the operation ID also produced the success notice in the UI, while the fixture rejected it. The valid receipt passed and wrong target and revision controls were rejected. The receipt schema requires a UUID operation ID.",
+      "task_ids": [
+        "M0-177"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "Selected receipt fields could match the prepared approval even when its operation ID was absent or malformed.",
+        "correction": "Require the canonical deletion receipt with a UUID operation ID before publishing the initiating success notice.",
+        "prevention": "On Linux and Windows in ordinary PR 151 run 45983202750, the initiating action rejected missing and malformed operation IDs, remained unverified with one approval sent, and recovered the original valid UUID receipt on explicit retry with one durable marker. The unmodified committed receipt passed separately."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "peer-note-deletion-fixture-assumes-admission-during-read-contention",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Ordinary PR 131 run 45974954433, attempt 1, both platforms on fdd76d08d6b3d144ab7daea803867df9d58c46ec. Original at archives/observations/repo-hygiene-20261125/pr131-native-original-45974954433/manifest.json (SHA-256 89b7239d39e28b4511fc7971f582f5527925e290d86a075bb093f71ae032033f).",
+      "observation": "The Linux decision-note draft fixture waited for a committed notice after its initiating approval was explicitly refused with HTTP 429 BUSY and retryable true. The UI showed the correct busy message. The note and its outcome remained at workspace revision 4 with no deletion marker. The same preview on Windows committed one matching marker at revision 5. The original lock holder and duration remain unknown.",
+      "task_ids": [
+        "M0-177"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261127T093622.092577Z-aa46385c",
+          "source_commit": "fdd76d08d6b3d144ab7daea803867df9d58c46ec",
+          "report_sha256": "fe340f34a7d37d598dd354882df3d3d5efa8d86a4626d24c9b1e99d5b1fd4599"
+        }
+      ],
+      "resolution": {
+        "cause": "The peer draft fixture required a committed notice after a definite retryable pre-admission refusal. The original PR 131 lock holder and duration remain unknown.",
+        "correction": "Drain and park competing observation reads for the durable peer deletion control. Exercise an explicit refusal separately under observed writer contention.",
+        "prevention": "Both ordinary PR 151 browser journals show HTTP 429 BUSY with retryable true, the busy notice and unchanged revision, note, outcome and marker inventory. The separate ordinary peer draft and post-commit contention controls each delivered a correlated committed receipt and the success notice with one matching marker."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "peer-note-deletion-accepts-noncanonical-committed-approval",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent Astra Standard (t1hf) on c845c2bf670bda28f94eda2387378e53bc1ec2bf. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-177-c845c2bf/original-assistant-response.jsonl (SHA-256 183ebf6821b7c9b83b3925369b859f5b0ee090f2867b35774f5ea41e67fbe660), recorded via project:review in 32e128eb34daad0f9974836ce8ac845a3a9d6e4e.",
+      "observation": "An independent replay of a retained committed deletion produced the initiating success notice when synthetic note content was added to outcome.result or to receipt.deleted_note_body. Both canonical objects prohibit additional fields. The fixture accepted the extra outcome field and rejected the extra receipt field. Neither replay displayed the synthetic content.",
+      "task_ids": [
+        "M0-177"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The initiating confirmation verified selected receipt values while accepting extra properties in the committed outcome and its receipt.",
+        "correction": "Validate the complete canonical committed deletion and nested receipt, then bind them to the prepared workspace, target and next revision before showing success.",
+        "prevention": "Independent review verified the two original extra-field cases. Ordinary PR 151 run 45983202750 passed nine rejected replies on both platforms, including extra properties in the outcome, receipt and target, invalid values and mismatched bindings. Each trial stayed unverified until the explicit same-approval retry recovered the original receipt. The note and outcome stayed removed with one durable marker. Canonical peer deletion passed separately."
+      },
+      "deferral_reason": null
     }
   ]
 }

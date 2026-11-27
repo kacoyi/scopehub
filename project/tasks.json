@@ -27077,7 +27077,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Have the coordinator obtain independent M0-139 and M0-146 decisions on the exact clean repair using .reports/audit-20261127/m0-146-d38d2fe2-repair/handoff.json. Retain a new ordinary full warm Windows PR with all five producer clocks, the final publisher clock, all 35 selections, original attachments and ordered Python outcomes. Compare the observed full span against 900 seconds. Compare guarded and protected evidence separately.",
+      "next_action": "Have the coordinator obtain a scoped independent M0-146 decision on the clean reconciled source with the fourth native timeout retained. Retain a new ordinary full warm Windows PR with all five producer clocks, the final publisher clock, all 35 selections, original attachments and ordered Python outcomes. Compare the observed full span against 900 seconds. Compare guarded and protected evidence separately.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -30383,6 +30383,206 @@
           ],
           "data_plan": "Engineering metadata only. Use synthetic controls and preserve historical records.",
           "cleanup": "Correct the authoritative inventory in place and avoid a parallel catalog."
+        }
+      }
+    },
+    {
+      "id": "M0-177",
+      "title": "Recover the verified decision-note outcome when approval delivery is interrupted",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M2-038",
+        "M2-040"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "contracts/generated",
+        "scripts",
+        "tests/ubuntu-preview",
+        "tests/ui",
+        "project/checks.json",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Bind the first Windows failure and the same-preview Linux control to the original browser journals, storage marker, approval and ordinary observable outcome. Record what remained unknown in the first failure.",
+        "Reconcile the existing operation and fixture contract for a missing approval reply. Use synthetic committed, unresolved and refusal controls with actual transport and stored marker identity. Check the documented recovery action for the existing result without repeating a deletion or exposing deleted note content.",
+        "At the ordinary verification entries, observe the five-second missing-notice result with approval headers received and the body still pending. Require the complete matching receipt and notice for success, and verify both owned synthetic profiles are removed when result attachment rejects.",
+        "Use the initiating note approval path to accept the original valid UUID receipt and reject both a missing ID and a malformed nonempty ID, retaining the existing unverified outcome and recovery path.",
+        "At the ordinary initiating deletion action, require a canonical committed outcome and nested receipt bound to the prepared workspace, target and next revision before showing success. Exercise extra fields at both reviewed placements, invalid values and mismatched bindings; retain the unverified notice and explicit same-approval recovery with one durable marker and no automatic repeat.",
+        "At the peer draft fixture, prove an explicit pre-admission retryable BUSY leaves the note and outcome unchanged and separately observe a successful approval with one matching durable marker and the ordinary success notice.",
+        "Independently review the smallest evidenced repair or contract-aligned verification correction, preserve adjacent normal and observer-abort behavior and obtain ordinary native and protected observations."
+      ],
+      "checks": [
+        "project-state",
+        "generated-contracts",
+        "workspace-timeframe",
+        "market-workflow",
+        "ui-build"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-177-ff3dbea57f3bcc4b.json",
+          "sha256": "388df203f75ecfa6dcd0fc4bb2447ce048494ad86e1ce7851e7bb5f559da35ae"
+        },
+        {
+          "path": "project/evidence/M0-177-4334755e67b89f68.json",
+          "sha256": "346d1a8353ccd8c604132959ef6c3fb9202c7b955fadd0c9c9d63260b305c21c"
+        },
+        {
+          "path": "project/evidence/M0-177-6be1f3691fc7832f.json",
+          "sha256": "b733869567aa184ff624f9ce88780033540b6a3e354d61be889ab0c4307f2b4b"
+        },
+        {
+          "path": "project/evidence/M0-177-aaeb0482f8e9da04.json",
+          "sha256": "a662675d8b92045bb517e3f184ddbe2062eecd3c1224025c509cb2703984144b"
+        },
+        {
+          "path": "project/evidence/M0-177-86159505eb2cbc9c.json",
+          "sha256": "983cb745144ee28981f54539998da36efb5467e9b3cd4a3e5f17e17e403e691c"
+        },
+        {
+          "path": "project/evidence/M0-177-a7e1ad0848b7abc7.json",
+          "sha256": "ff607d2035431181e190185eaa337d986f59af57aea995c2c96af8972ccd32f2"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45971216845-1",
+          "source_commit": "0d444941b5b5082486c0607223179a22cae77a3c",
+          "report_sha256": "ba89eebe0283ebbb75d909017c5552a45fb55d1dcb7c07f48c78cae6cf51302b"
+        },
+        {
+          "run_id": "20261127T093622.092577Z-aa46385c",
+          "source_commit": "fdd76d08d6b3d144ab7daea803867df9d58c46ec",
+          "report_sha256": "fe340f34a7d37d598dd354882df3d3d5efa8d86a4626d24c9b1e99d5b1fd4599"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Scoped pre-integration delivery verified. Independent approval on 23ea59440819f3ce7c5b31901819c94a68c8deb2 applies to the unchanged implementation submitted as 1110192f3ff86d82ae925540a1955df134e30852. Ordinary PR 151 run 45983202750 attempt 1 tested the matching merge preview 56b2a811d03d1e0c43a08432b93cb51edc536b59. All five task checks passed on Linux and Windows. The Linux aggregate remains blocked on the Windows-only native build. Its workspace suite had 116 expected and zero skipped results. Windows passed its aggregate and had 115 expected results with two POSIX-only browser termination controls skipped. Both runs retained checks omitted by the ordinary profile and seven selected planned checks. Each original browser report records nine rejected replies with explicit same-approval recovery and one durable marker per trial, a retryable pre-admission refusal with unchanged storage, five-second missing notice with both held and complete response bodies, and removal of both owned profiles after attachment rejection. Separate successful controls observed a canonical receipt, one durable peer deletion and the ordinary notice, as well as observer abort after verified commit. The original PR 150 Windows failure and its same-preview Linux positive control remain retained. The historical approval-response timing and cause and the commit timing relative to the assertion remain unknown. The protected observation required by the last acceptance item remains outstanding. The coordinator owns protected integration and the first genuine main recheck.",
+      "plan": {
+        "outcome": "Bind the first Windows failure and the same-preview Linux control to the original browser journals, storage marker, approval and ordinary observable outcome. Record what remained unknown in the first failure. Reconcile the existing operation and fixture contract for a missing approval reply. Use synthetic committed, unresolved and refusal controls with actual transport and stored marker identity. Check the documented recovery action for the existing result without repeating a deletion or exposing deleted note content.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "apps/desktop/ui/src/decision-notes.tsx",
+          "apps/desktop/ui/src/decision-note-transport.ts",
+        "scripts/generate_output_validators.mjs",
+          "project/checks.json",
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json"
+        ],
+        "hypotheses": [
+          "The first Windows journal observes one approval without a correlated response before the initiating assertion fails. The stored marker establishes commit by teardown, while the observer still reads revision 4 within the assertion window. A controlled browser delivery interruption exercises the existing recovery path without attributing the original failure.",
+          "Sequential receipt parsing delays reporting an already failed notice assertion while the body remains pending. Sequential attachment and teardown prevent both closes when attachment rejects. Exercise each distinction at its ordinary fixture entry.",
+          "Decision-note receipt consumers can accept a matching target and revision with an absent or malformed operation ID. Apply the existing receipt validation at the shared boundary and exercise the normal initiating approval.",
+        "The initiating action verifies selected receipt values but can accept additional fields at the outcome or receipt level. Decode the closed canonical committed outcome and its nested receipt before evaluating the prepared approval binding.",
+          "PR 131 received an explicit retryable BUSY before a write, while its fixture unconditionally expected a commit. Inspect owned reads and distinguish a proved refusal from ambiguous delivery before any repeat of approval."
+        ],
+        "risks": [
+          {
+            "failure": "A notice-first failure can conceal whether the browser received a valid receipt. Treating an unresolved commit as a refusal or success can also duplicate a write or disclose deleted content. Check the observed reply, drawer and marker independently within the existing budgets.",
+            "checks": [
+              "project-state",
+              "workspace-timeframe",
+              "market-workflow",
+              "ui-build"
+            ]
+          },
+          {
+            "failure": "Pending receipt parsing can hold the notice failure past five seconds, or early notice success can accept an incomplete or mismatched receipt. Observe notice and complete receipt concurrently and settle or observe remaining work after failure.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A rejected result attachment or profile close can skip disposal of owned synthetic data or hide the original failure. Exercise the attachment refusal and both profile disposals at the recovery fixture teardown entry.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+        },
+        {
+          "failure": "A missing or malformed operation ID can produce a false success notice. Check the original valid receipt and rejected variants at the public initiating approval, preserving its unverified state and same-approval recovery.",
+          "checks": [
+            "workspace-timeframe"
+          ]
+        },
+        {
+          "failure": "A malformed committed outcome, malformed nested receipt or mismatched approval binding can produce a false success notice. At the initiating deletion exercise a canonical success and representative rejected replies, including each independently observed extra-field placement, and check an explicit recovery returns the same receipt with one durable marker and no automatic repeat.",
+          "checks": [
+            "workspace-timeframe",
+            "generated-contracts"
+          ]
+        },
+        {
+          "failure": "A real pre-admission refusal can be mistaken for a commit or an ambiguous mutation can be repeated. Observe the BUSY response, unchanged revision and rows, and a separate single durable commit at the public peer draft workflow.",
+          "checks": [
+            "workspace-timeframe"
+          ]
+          }
+        ],
+        "rollback": "Restore the preceding implementation and retain the diagnosed failures and controls if the ordinary contract changes.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "ui",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "apps/desktop/ui/src/decision-notes.tsx",
+            "apps/desktop/ui/src/decision-note-transport.ts"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "contracts/contract.json",
+              "pointer": "/operation_authorization/replay"
+            },
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/DecisionNoteReceipt11"
+            },
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/DecisionNoteDeleteCommitted11"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/0"
+            }
+          ],
+          "non_goals": [
+            "Use disposable local synthetic profiles. Preserve owner confirmation, current time budgets, private data handling, recovery semantics and historical task definitions. Keep the independent CSV bridge preparation outcome with M0-176."
+          ],
+          "open_questions": [
+            "The first Windows run does not locate the missing browser observation or establish when SQLite committed relative to the initiating assertion. The archived preview identity is recorded in both reports, but the transient preview commit object is unavailable in this checkout.",
+            "The first PR 131 Linux journal establishes a retryable pre-admission refusal and unchanged storage. It does not identify the lock holder or the duration of its contention."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Use disposable local synthetic profiles. Preserve owner confirmation, current time budgets, private data handling, recovery semantics and historical task definitions. Keep the independent CSV bridge preparation outcome with M0-176."
+          ],
+          "change": [
+            "Observe approval delivery and the initiating notice within their original windows. Retain the initiator drawer state beside the observer and durable marker. In the existing consent case, distinguish a locally committed approval whose reply is interrupted from an explicit stale refusal, and verify that the same approval recovers the original receipt without another deletion.",
+            "Keep receipt parsing and the notice assertion independent. Release both owned profile directories even if attaching the recovery observation fails.",
+            "Require the canonical committed deletion outcome and nested receipt, including the approval binding, before authorizing the initiating success notice. Preserve unresolved approval recovery and distinguish proved pre-admission refusal from the successful single-commit peer draft control."
+          ],
+          "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
+          "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
         }
       }
     }
