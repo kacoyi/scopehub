@@ -697,6 +697,15 @@
       },
       "supersedes": "a3f9f4613ab9895590b8bd2840c4e28df335de0524fc34715eac95a34ce4148f",
       "evidence_sha256": "d80353681ad0be8a45ae267dd9fb4e2889127db2579d9ec2d3879e7194fb2493"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d38d2fe205d98f92cfc71c3d9be33c070fd5e08a",
+      "scope": "Independently assess the five-job Windows warm Python verification change on the current candidate, including stable behavior across artifact ownership repair and the scope of its observed costs.",
+      "supersedes": "afc7fcb8ae64ba493dfcf8f7ec5bbade2fcd1f495fae83b14b6ff66893e3cc48",
+      "requested_at": "2026-11-27T11:19:12.977924+00:00",
+      "request_id": "a61fd9eb0273d17738a2c1d2a5117ef277b2528f84853d699a6dcfa99c0e6ba5",
+      "evidence_sha256": "bb8f8996823105168873539b396155edd9c1f8e3999282a9a8b44f8d6b442af4"
     }
   ]
 }

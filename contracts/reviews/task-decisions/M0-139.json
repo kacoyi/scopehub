@@ -697,6 +697,15 @@
       },
       "supersedes": "8d78e0a315f2a189e63fe8a94d501fe69a39bb1726d5974f6e71dc1427b68aa4",
       "evidence_sha256": "1241d88bb45f28f6e23a185740bc488313b62502a7dcfb71335ca587f43a734c"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d38d2fe205d98f92cfc71c3d9be33c070fd5e08a",
+      "scope": "Independently qualify artifact-to-producing-job ownership on the ordinary integration entry and its supported historical direct and staged uploads. Verify that the correction preserves the earlier accepted contract and the M0-139 task history.",
+      "supersedes": "3d655e82ca97d7e98bf8788c8118d644b6caf26eee245a8ce7965e73ebf29c53",
+      "requested_at": "2026-11-27T11:19:12.290334+00:00",
+      "request_id": "19d70a60e9090f00526d669a9043789cf122f1b1ce8c4e747e5635ca85372c78",
+      "evidence_sha256": "908095ffa8107decc7188315c6886b4f2f42a2a3d6998af4926010f53bffec89"
     }
   ]
 }
