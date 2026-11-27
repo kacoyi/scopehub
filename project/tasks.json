@@ -26193,10 +26193,20 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Use .reports/audit-20261127/m0-146-browser-scheduling/implementation-handoff.json for the desktop localization scheduling candidate, authenticated Windows comparison and local checks. The coordinator owns independent M0-139 and M0-146 decisions and qualification on a comparable ordinary full warm Windows PR. Retain the 900-second objective, the 1200-second Python deadline and the separately owned browser, cold-start and protected-push observations.",
+      "next_action": "Use .reports/audit-20261127/m0-146-review-corrections/implementation-handoff.json for the two reviewed corrections and their local comparisons. The coordinator owns source-bound review, publication and comparable ordinary full warm Windows PR qualification against 900 seconds. Keep PR145 and PR147 unsplit Python timeout originals separate from the browser scheduling and market recovery observations.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45940565728-1",
+          "source_commit": "4b435d43721da4b2faee596f270a8793d934b89a",
+          "report_sha256": "18e18aebd254c646b048545b9bfc5d5e8771ef73006d729854bc6d824e9a17e3"
+        },
+        {
+          "run_id": "windows-change-45943406153-1",
+          "source_commit": "8a2608c39274b7da7663223969822b42bd48a391",
+          "report_sha256": "df3e0a38a40090cce666b4ba9b5ce1a2f0f82413ac178600d237aaa49c36c8a6"
+        },
         {
           "run_id": "windows-change-45665595957-1",
           "source_commit": "e5616997231794386ccf8a0a0966e7d9c3bfe263",
@@ -26325,6 +26335,20 @@
           "On PR123 run 45939870623, browser finished at 877 seconds, recovery at 834 and publishing at 922. Desktop localization took 28.922 seconds on browser and passed all 16 cases. Recovery ran 266.328 seconds of serial browser checks alongside 622.031 seconds of Python verification. Transfer desktop localization after those browser checks. With other observed clocks fixed, the end moves to about 893 seconds."
         ],
         "risks": [
+          {
+            "failure": "Both Windows artifact boundaries accepted the executed workspace-timeframe failure after removal of its log binding and silently lost the original log and Playwright results. Replay the authentic failed and passed reports at both boundaries and reject a copy that removes the failed process evidence while preserving its status.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A real SIGINT between completed recovery work and desktop-localization discarded both harness reports. Exercise the ordinary recovery entry and its publication with the signal at that boundary. Verify exact completed rows and logs, the unstarted localization row, and unsuccessful producer and aggregate results.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
           {
             "failure": "The full Windows publisher relies on report-controlled routing and accepts an unchanged artifact from another platform in the same hosted run. Verify trusted stage and import identity, the genuine same-attempt Linux and Windows pair, and historical and current receipt reopen.",
             "checks": [

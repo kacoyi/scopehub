@@ -12,8 +12,8 @@ import tempfile
 
 if __package__:
     from . import windows_python
-    from .check import (PRIVATE_CHECK_LOGS, PYTHON_MANIFEST_INTERRUPTED, WINDOWS_LANES,
-                        WINDOWS_LANES_RUN_PREFIX, check_timeout, ci_provenance, redacted_check_log, select_checks,
+    from .check import (INTERRUPTED_BEFORE_START, PRIVATE_CHECK_LOGS, PYTHON_MANIFEST_INTERRUPTED, WINDOWS_LANES,
+                        WINDOWS_LANES_RUN_PREFIX, check_failed, check_timeout, ci_provenance, redacted_check_log, select_checks,
                         stops_after_check, windows_lane_checks, windows_lanes_run_id)
     from .project import (ProjectError, digest, file_digest, json_bytes, load_project,
                           project_definition_hash, read_json, source_identity, task_definition_hash, validate_model, windows_x64)
@@ -29,8 +29,8 @@ if __package__:
     from .verification_scope import SCOPED_PROFILES, ci_base, ci_event_checkout, require_ancestor
 else:
     import windows_python
-    from check import (PRIVATE_CHECK_LOGS, PYTHON_MANIFEST_INTERRUPTED, WINDOWS_LANES,
-                       WINDOWS_LANES_RUN_PREFIX, check_timeout, ci_provenance, redacted_check_log, select_checks,
+    from check import (INTERRUPTED_BEFORE_START, PRIVATE_CHECK_LOGS, PYTHON_MANIFEST_INTERRUPTED, WINDOWS_LANES,
+                       WINDOWS_LANES_RUN_PREFIX, check_failed, check_timeout, ci_provenance, redacted_check_log, select_checks,
                        stops_after_check, windows_lane_checks, windows_lanes_run_id)
     from project import (ProjectError, digest, file_digest, json_bytes, load_project,
                          project_definition_hash, read_json, source_identity, task_definition_hash, validate_model, windows_x64)
@@ -54,6 +54,7 @@ RUN_ID = re.compile(r'[a-zA-Z0-9_-][a-zA-Z0-9._-]*')
 PRODUCER_REPORT_DIGEST = 'producer_report_sha256'
 WINDOWS_PRODUCERS = 'windows_producers'
 WINDOWS_PRODUCER_JOBS = {f'windows_{lane}': lane for lane in WINDOWS_LANES}
+PROCESS_FIELDS = {'log', 'log_sha256', 'exit_code', 'duration_seconds'}
 DOWNLOAD_PLATFORMS = {'windows': 'Windows', 'windows-latest': 'Windows', 'linux': 'Linux', 'ubuntu-latest': 'Linux'}
 BROWSER_OUTPUTS = {
     'market-live-stream': ('results.json', 'market-stream-', ('synthetic-replay-final.png',)),
@@ -100,6 +101,20 @@ def optional_path(root, relative, *, directory=False):
         return checked_path(root, relative, directory=directory)
     except FileNotFoundError:
         return None
+
+
+def check_log_path(run, row):
+    key = row['id']
+    if 'log' not in row:
+        if row['status'] != 'blocked' or PROCESS_FIELDS.intersection(row):
+            raise PublicationError(f'The {key} result is missing its process log.')
+        return None
+    relative = f'{run}/{key}.log'
+    if row['log'] != '.reports/' + relative:
+        raise PublicationError('Check log is outside the current verification run.')
+    if 'log_sha256' not in row:
+        raise PublicationError(f'The {key} result is missing its process log digest.')
+    return relative
 
 
 def browser_artifacts(reports, relative, check):
@@ -293,9 +308,9 @@ def validate_original_producer(root, project, reports, report, rows, lane, selec
             continue
         if row != rows[key]:
             raise PublicationError(f'The Windows {key} result differs from its original {lane} producer report.')
-        if destination is None and 'log' in row:
-            log = f"runs/{report['run_id']}/{key}.log"
-            if (row['log'] != '.reports/' + log or file_digest(checked_path(reports, log)) != row.get('log_sha256')):
+        if destination is None:
+            log = check_log_path(f"runs/{report['run_id']}", row)
+            if log and file_digest(checked_path(reports, log)) != row['log_sha256']:
                 raise PublicationError(f'The Windows {key} log differs from its original {lane} producer report.')
     if part and 'log' in part:
         validate_python_process_clock(part, producer)
@@ -632,11 +647,11 @@ def validate_windows_aggregate(root, project, reports, report, source, source_co
     unverified = [key for key in required if rows[key]['status'] != 'passed' or rows[key].get('exit_code') != 0]
     expected_gates = {'requested': True, 'required': required, 'unverified': unverified,
                       'status': 'blocked' if unverified else 'passed'}
-    actual_selected = [rows[key]['status'] for key in selected if project['checks'][key]['status'] == 'implemented']
+    actual_selected = [rows[key] for key in selected if project['checks'][key]['status'] == 'implemented']
     lane_failed = (lane_result != 'success' if lane_result is not None
                    else 'At least one Windows lane job did not succeed.' in report.get('limitations', ()))
-    failed = 'failed' in actual_selected or lane_failed
-    blocked = unverified or not native_ok or 'blocked' in actual_selected
+    failed = lane_failed or any(check_failed(row) for row in actual_selected)
+    blocked = unverified or not native_ok or any(row['status'] == 'blocked' for row in actual_selected)
     verdict = 'failed' if failed else 'blocked' if blocked else 'passed'
     if report['status'] != verdict or report.get('integration_gates') != expected_gates:
         raise PublicationError('The Windows aggregate verdict differs from its selected check results.')
@@ -745,13 +760,11 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=None, collecti
         if (('observation' in result and (check not in RUN_OBSERVATION_CHECKS or not passed))
                 or ('field_observation' in result and (check not in FIELD_ACTIONS or not passed))):
             raise PublicationError('The check has an unexpected observation.')
-        if 'log' not in result:
+        relative = check_log_path(run, result)
+        if relative is None:
             continue
         if project['checks'].get(check, {}).get('status') != 'implemented' or check in executed:
             raise PublicationError('A check log is absent from the active catalog or duplicated.')
-        relative = f'{run}/{check}.log'
-        if result['log'] != '.reports/' + relative:
-            raise PublicationError('Check log is outside the current verification run.')
         log = checked_path(reports, relative)
         if check in PRIVATE_CHECK_LOGS:
             data = bound_bytes(log, result['log_sha256'])
@@ -830,13 +843,13 @@ def validate_windows_lane(project, report, source, ci, selected, lane, profile, 
                 'not_implemented' if check['status'] == 'planned' else 'retired', 'earlier_failure',
             }
             if (row['status'] != 'blocked' or row.get('reason_code') not in reasons
-                    or {'log', 'log_sha256', 'exit_code'}.intersection(row)):
+                    or PROCESS_FIELDS.intersection(row)):
                 raise PublicationError(f'Windows {lane} lane has an unexpected result for {key}.')
         elif row.get('reason_code') in {'not_selected', 'not_implemented', 'retired'}:
             raise PublicationError(f'Windows {lane} lane has an unexpected omission for selected check {key}.')
         elif row['status'] == 'blocked' and 'log' not in row:
-            if (row.get('reason_code') not in {'earlier_failure', 'executable_unavailable'}
-                    or {'log_sha256', 'exit_code', 'duration_seconds'}.intersection(row)):
+            if (row.get('reason_code') not in {'earlier_failure', 'executable_unavailable', INTERRUPTED_BEFORE_START}
+                    or PROCESS_FIELDS.intersection(row)):
                 raise PublicationError(f'Windows {lane} lane has an unexpected blocked result for {key}.')
         elif row['status'] == 'passed' and (row.get('reason_code') or duration(row.get('duration_seconds')) is None):
             raise PublicationError(f'Windows {lane} lane has an incomplete passing result for {key}.')
@@ -850,7 +863,7 @@ def producer_stopped(row):
         return False
     if row['status'] == 'blocked' and row.get('reason_code') == 'executable_unavailable' and 'log' not in row:
         return True
-    if row['status'] != 'failed' or not {'log', 'log_sha256', 'exit_code', 'duration_seconds'} <= row.keys():
+    if row['status'] != 'failed' or not PROCESS_FIELDS <= row.keys():
         raise PublicationError(f"Windows producer stop for {row['id']} has no executed process evidence.")
     return True
 
@@ -866,12 +879,17 @@ def validate_producer_outcomes(report, selected, lane, *, recovery_overlap=False
         if key not in selected:
             continue
         if row.get('reason_code') == 'earlier_failure':
-            if (row['status'] != 'blocked' or {'log', 'log_sha256', 'exit_code', 'duration_seconds'}.intersection(row)
+            if (row['status'] != 'blocked' or PROCESS_FIELDS.intersection(row)
                     or not (stopped or parallel_stop)):
                 raise PublicationError(f'Windows {lane} has earlier_failure for {key} without a producer stop.')
             stopped = True
         elif stopped:
             raise PublicationError(f'Windows {lane} has a result for {key} after its producer stopped.')
+        elif row.get('reason_code') == INTERRUPTED_BEFORE_START:
+            if not (recovery_overlap and lane == 'recovery' and part and not parallel_stop
+                    and row['status'] == 'blocked' and not PROCESS_FIELDS.intersection(row)):
+                raise PublicationError(f'Windows {lane} has an invalid interruption before {key} started.')
+            stopped = True
         else:
             stopped = producer_stopped(row)
     if part and part.get('reason_code') == 'earlier_failure' and (not stopped or 'log' in part):
@@ -879,7 +897,7 @@ def validate_producer_outcomes(report, selected, lane, *, recovery_overlap=False
 
 
 def validate_lane_verdict(project, report, selected, lane, profile):
-    statuses = {row['status'] for row in report['checks'] if row['id'] in selected
+    statuses = {'failed' if check_failed(row) else row['status'] for row in report['checks'] if row['id'] in selected
                 and (profile in SCOPED_PROFILES or project['checks'][row['id']]['status'] == 'implemented')}
     if (not report['source_unchanged'] or not report['project_unchanged']
             or any(part['status'] != 'passed' for part in report.get('windows_python', {}).values())):

@@ -81,6 +81,7 @@ def ci_provenance(source, env, root=ROOT):
 
 PRIVATE_CHECK_LOGS = RUN_OBSERVATION_CHECKS | set(FIELD_ACTIONS) | {'credential-boundaries'}
 STOP_REASONS = {'interrupted', 'cleanup_failed'}
+INTERRUPTED_BEFORE_START = 'interrupted_before_start'
 PYTHON_MANIFEST_INTERRUPTED = 'Interrupted while finalizing the Windows Python manifest.'
 BUILD_CHECKS = {'typescript-contracts', 'ui-build', 'rust-format', 'rust-contracts-workers',
                 'rust-lints', 'windows-native-build'}
@@ -268,7 +269,12 @@ def check_timeout(check, system):
 
 def stops_after_check(result, *, fail_fast=False):
     return (result.get('reason_code') in STOP_REASONS
+            or result.get('reason_code') == INTERRUPTED_BEFORE_START
             or (result['status'] != 'passed' and (fail_fast or result['id'] == 'environment')))
+
+
+def check_failed(result):
+    return result['status'] == 'failed' or result.get('reason_code') == INTERRUPTED_BEFORE_START
 
 
 def windows_lane_checks(selected, lane, *, python_split=False, recovery_checks=frozenset(), ownership=None):
@@ -304,7 +310,7 @@ def build_window(catalog, selected, environment, index):
     return window
 
 
-def run_overlapped(checks, env, run_dir, *, system, timed_first=False):
+def run_overlapped(checks, env, run_dir, *, system, timed_first=False, retain_between_checks=False):
     cancel = Event()
     console = CHECK_CONSOLE.get() or CheckConsole()
     interrupted = False
@@ -338,6 +344,7 @@ def run_overlapped(checks, env, run_dir, *, system, timed_first=False):
         return result
 
     results = {}
+    unstarted = None
     handlers = {signum: signal.signal(signum, request_stop) for signum in (signal.SIGINT, signal.SIGTERM)}
     token = CHECK_CONSOLE.set(console)
     console.cooperative = True
@@ -354,6 +361,7 @@ def run_overlapped(checks, env, run_dir, *, system, timed_first=False):
             try:
                 for check in checks[1:]:
                     if cancelled():
+                        unstarted = check
                         break
                     results[check['id']] = run(check)
                 try:
@@ -367,7 +375,12 @@ def run_overlapped(checks, env, run_dir, *, system, timed_first=False):
             finally:
                 cancel.set()
         if interrupted and not any(result.get('reason_code') in STOP_REASONS for result in results.values()):
-            raise KeyboardInterrupt
+            if unstarted is None or not retain_between_checks:
+                raise KeyboardInterrupt
+            results[unstarted['id']] = {
+                'id': unstarted['id'], 'status': 'blocked', 'command': check_command(unstarted),
+                'reason_code': INTERRUPTED_BEFORE_START, 'reason': 'Interrupted before this check was started.',
+            }
     finally:
         console.cooperative = False
         CHECK_CONSOLE.reset(token)
@@ -535,7 +548,8 @@ def main():
         command = check_command(check)
         if not stopped and recovery_window and check['id'] == recovery_window[0]['id']:
             concurrent_results = run_overlapped([part_check, *recovery_window], env, run_dir,
-                                                system=environment['system'], timed_first=True)
+                                                system=environment['system'], timed_first=True,
+                                                retain_between_checks=True)
             stopped = concurrent_results[part_check['id']].get('reason_code') in STOP_REASONS
         if check['id'] not in concurrent_results and (check['id'] not in selected or stopped):
             results.append({'id': check['id'], 'status': 'blocked', 'command': command,
@@ -637,7 +651,7 @@ def main():
     if integration_blocked:
         passed = False
     lane_failure = bool(args.ci_windows_aggregate and os.environ.get('SCOPEHUB_WINDOWS_LANE_RESULT') != 'success')
-    failed = (any(result['status'] == 'failed' for result in implemented) or lane_failure or part_failed
+    failed = (any(check_failed(result) for result in implemented) or lane_failure or part_failed
               or not source_unchanged or not project_unchanged)
     milestones, acceptance = product_progress(project, results)
     report = {

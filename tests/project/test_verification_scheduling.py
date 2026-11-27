@@ -25,6 +25,7 @@ from scripts import ci_artifacts, project, windows_python
 from scripts.diagnostic_archive import diagnostic_locator, resolve_diagnostic
 from scripts.process_tree import running_group
 from scripts.project import json_bytes, read_json
+from scripts.recovery import diagnose
 from scripts.timing import windows_aggregate_cache
 from scripts.verification_scope import ScopeError, preview
 from tests.project.fixtures import task_by_id
@@ -1681,6 +1682,107 @@ class WindowsLaneTests(ProjectFixture):
                 with self.assertRaisesRegex(ci_artifacts.PublicationError, 'stop for environment'):
                     ci_artifacts.stage_artifacts(self.root, rejected, os.environ, lane='core')
             self.assertFalse((rejected / latest).exists())
+
+    def test_executed_browser_failure_requires_its_original_log_at_both_boundaries(self):
+        self.partition_fixture()
+        producers = self.produce(browser_exit=1)
+        browser = self.downloads / 'verification-windows-2-browser'
+        producer = producers['browser']
+        run = f"runs/{producer['run_id']}"
+        latest, per_run = 'test-report.json', f'{run}/test-report.json'
+        producer_path = f'{run}/windows-browser.producer.json'
+
+        def without_log(report):
+            edited = deepcopy(report)
+            row = next(row for row in edited['checks'] if row['id'] == 'workspace-timeframe')
+            self.assertEqual(('failed', 1), (row['status'], row['exit_code']))
+            del row['log'], row['log_sha256']
+            return edited
+
+        with patch.dict(os.environ, {'SCOPEHUB_WINDOWS_LANE_RESULT': 'failure'}):
+            code, aggregate = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+            self.assertEqual((1, 'failed'), (code, aggregate['status']))
+            staged = self.downloads / 'published-failure'
+            self.assertTrue(ci_artifacts.stage_artifacts(self.root, staged, os.environ))
+            for relative in (f'{run}/workspace-timeframe.log', f'{run}/workspace-timeframe/results.json'):
+                self.assertEqual((browser / relative).read_bytes(), (staged / relative).read_bytes())
+
+            altered_producer = json_bytes(without_log(producer))
+            rejected_producer = self.downloads / 'rejected-producer'
+            with self.replace_artifact_bytes(browser, dict.fromkeys((latest, per_run), altered_producer)):
+                with self.assertRaisesRegex(ci_artifacts.PublicationError, 'workspace-timeframe.*log'):
+                    ci_artifacts.stage_artifacts(self.root, rejected_producer, os.environ, reports=browser, lane='browser')
+            self.assertFalse((rejected_producer / latest).exists())
+
+            altered = without_log(aggregate)
+            altered['windows_producers']['browser'] = project.digest(altered_producer)
+            replacements = {**dict.fromkeys((latest, per_run), json_bytes(altered)), producer_path: altered_producer}
+            rejected = self.downloads / 'rejected-aggregate'
+            with self.replace_artifact_bytes(self.reports, replacements):
+                with self.assertRaisesRegex(ci_artifacts.PublicationError, 'workspace-timeframe.*log'):
+                    ci_artifacts.stage_artifacts(self.root, rejected, os.environ)
+            self.assertFalse((rejected / latest).exists())
+
+    def test_recovery_interrupt_before_localization_retains_completed_results(self):
+        catalog_path = self.root / 'project/checks.json'
+        catalog = read_json(catalog_path)
+        localization = 'desktop-localization'
+        catalog['checks'].append(dict(catalog['checks'][0], id=localization))
+        catalog['required_change_checks'].append(localization)
+        catalog_path.write_bytes(json_bytes(catalog))
+        self.partition_fixture()
+        self.produce(lanes=('core', 'browser', 'python'))
+        python_done = Event()
+        execute = harness.execute
+        completed = {}
+
+        def interrupt_after_recovery_ui(name, command, env, run_dir, timeout, *, cancel=None):
+            self.assertNotEqual(localization, name)
+            result = execute(name, command, env, run_dir, timeout, cancel=cancel)
+            completed[name] = deepcopy(result)
+            if name == 'windows-python-recovery':
+                python_done.set()
+            if name == 'market-recovery-ui':
+                self.assertTrue(python_done.wait(8))
+                signal.raise_signal(signal.SIGINT)
+            return result
+
+        with patch.object(harness, 'execute', side_effect=interrupt_after_recovery_ui):
+            code, producer = self.run_harness('--ci-windows-lane', 'recovery')
+        self.assertEqual((1, 'failed'), (code, producer['status']))
+        rows = {row['id']: row for row in producer['checks']}
+        unstarted = rows[localization]
+        self.assertEqual(('blocked', 'interrupted_before_start'), (unstarted['status'], unstarted['reason_code']))
+        self.assertFalse({'log', 'log_sha256', 'exit_code', 'duration_seconds'} & unstarted.keys())
+        for name in ('market-recovery', 'market-recovery-ui'):
+            self.assertEqual(completed[name], rows[name])
+            self.assertEqual('passed', rows[name]['status'])
+        part = producer['windows_python']['recovery']
+        self.assertEqual('passed', part['status'])
+        self.assertEqual(completed[part['id']]['log_sha256'], part['log_sha256'])
+        run = f"runs/{producer['run_id']}"
+        self.assertEqual((self.reports / 'test-report.json').read_bytes(),
+                         (self.reports / run / 'test-report.json').read_bytes())
+        self.assertFalse((self.reports / run / f'{localization}.log').exists())
+        diagnostic = diagnose(self.root, task_id='M0-001', save=True)
+        self.assertEqual('failed', diagnostic['recorded_run']['status'])
+        self.assertIn({'kind': 'recorded_check_failure', **{key: unstarted.get(key) for key in
+                       ('id', 'status', 'reason_code', 'reason', 'log')}}, diagnostic['signals'])
+        snapshot = (self.root / diagnostic['snapshot']).parent / 'originals/.reports/test-report.json'
+        self.assertEqual((self.reports / 'test-report.json').read_bytes(), snapshot.read_bytes())
+        recovery = self.downloads / 'verification-windows-2-recovery'
+        self.assertTrue(ci_artifacts.stage_artifacts(self.root, recovery, os.environ, lane='recovery'))
+        shutil.rmtree(self.reports)
+
+        with patch.dict(os.environ, {'SCOPEHUB_WINDOWS_LANE_RESULT': 'failure'}):
+            code, aggregate = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+            self.assertEqual((1, 'failed'), (code, aggregate['status']))
+            self.assertIn(unstarted, aggregate['checks'])
+            self.assertEqual(part['log_sha256'], aggregate['windows_python']['recovery']['log_sha256'])
+            staged = self.downloads / 'published-interrupted'
+            self.assertTrue(ci_artifacts.stage_artifacts(self.root, staged, os.environ))
+        for row in (part, rows['market-recovery'], rows['market-recovery-ui']):
+            self.assertEqual(row['log_sha256'], project.file_digest(staged / row['log'].removeprefix('.reports/')))
 
     def test_recovery_overlap_does_not_restart_checks_after_python_cleanup_failure(self):
         catalog_path = self.root / 'project/checks.json'
