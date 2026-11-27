@@ -276,6 +276,15 @@
       },
       "supersedes": "fa97b3bd9cadb7ba910bd709dc8de83538604d9c0d9cf137d16eec880603b69c",
       "evidence_sha256": "a8d2c1c9805348a04c27c0f44f445eb24008834113840576bf1b468296be549f"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e6f12373277d8aa05a734a1a1c9648f0cf489577",
+      "scope": "Producer and platform job identity, historical ownership, timed step and cache attribution, and independently usable clocks after a dispute.",
+      "supersedes": "70424acedb89667ba0488d17b1e13d101943d7a3c0dd4908904809d0a69d2e7e",
+      "requested_at": "2026-11-27T09:24:36.679315+00:00",
+      "request_id": "a953e3844d5b45842ea0d3c322edf005fdd9ebddd8a3f2dfbd43def8b746f802",
+      "evidence_sha256": "f931ee6fee37ca72e6762caa84c75f7d4646110496c7991e0ddecf4ab6cbb9d9"
     }
   ]
 }

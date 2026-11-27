@@ -465,6 +465,15 @@
       },
       "supersedes": "aeb166d0203edd6c15d88b4f598162ba61cb09f6f7b9fac5d3461f30aa2872ac",
       "evidence_sha256": "2edd832c5ee3da1a47b4fd3f28b50892eca794db03c4b99b07aad376317d3fb0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e6f12373277d8aa05a734a1a1c9648f0cf489577",
+      "scope": "Weekly standard-library reader, portable historical checkout resolution, and observation freshness and receipts.",
+      "supersedes": "3d2549896545b4b94a57f737c770d79612d500c6022ee299d62d63c6c68164d3",
+      "requested_at": "2026-11-27T09:24:41.767140+00:00",
+      "request_id": "afa8fe743b9655e095c7ce479b2ef65b08ee61ec7ebce820ce31aa9a2453d853",
+      "evidence_sha256": "eaebaad740ce69135af2c603d5ab2586d4ea6731dc87324e410b49fb30e9aa0a"
     }
   ]
 }
