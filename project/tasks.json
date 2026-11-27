@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-174",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -27708,7 +27708,7 @@
       "id": "M0-174",
       "title": "Preserve and handle the observed preparation outcomes in two workspace journeys",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-093",
         "M0-101"
@@ -27733,7 +27733,16 @@
         "python-contracts-workers",
         "workspace-timeframe"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-174-6e96cf31c96cf5b8.json",
+          "sha256": "124f9c4bef418be67342164794e557de7fa80e8b51bc9a220d8bb05b4cfd5507"
+        },
+        {
+          "path": "project/evidence/M0-174-26b056261f8be6dc.json",
+          "sha256": "ce8059043f2173f8c7ac352da61c311c2660cff1fa52ae7a7bfe718afa5ab249"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "windows-change-45943186660-1",
@@ -27746,9 +27755,9 @@
           "report_sha256": "c57aa800844bea9590b755bec466727728fb6036b9bcacca4e9ae24a9d676b7a"
         }
       ],
-      "next_action": "Review the clean fixture changes and the retained local ordinary and refused workspace observations independently. Verify the affected journeys on the native and integrated revisions.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Independent approval of 90ab2fff33bfb034dc756700688f79782d7f6036 applies to candidate 621f023707d1c830d0059bff49a8513927005d75. Ordinary PR 148 run 45947862031 attempt 1 tested merge preview 694f8156383c1a3bc13ade28893b682e208c7cda with the same tree. All three required task checks and all six named workspace controls passed on Linux and Windows. Linux passed 100 workspace cases and has an overall blocked report outside the task scope. Windows passed 99 workspace cases and skipped two POSIX signal cases. The separate first-attempt PR 130 Windows and PR 97 Linux failures, and their separate passing controls, remain archived. The owner of the original Windows busy slot and the original Linux HTTP response and typed reason remain unknown. The coordinator owns publication and the protected integrated-source recheck.",
       "plan": {
         "outcome": "Two ordinary synthetic workspace journeys reach their intended assertions or retain the original typed preparation failure at the public boundary.",
         "change_types": [
