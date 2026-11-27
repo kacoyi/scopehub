@@ -619,6 +619,26 @@
       "requested_at": "2026-11-27T11:41:34.751932+00:00",
       "request_id": "d2ea0e5de0e374dd0017e3d57b042aa2b35052d3f8876234f56f0a211b6aa176",
       "evidence_sha256": "7c2a2dbc659a45ff6ff8cc5292065ee3465ce76e3810ca7d849fcaa172211e7d"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "fea9a19095db891b76a2f30d8ee65763c2e880fe",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 fea9a19095db891b76a2f30d8ee65763c2e880fe",
+      "scope": "CHANGES_REQUESTED M0-156 fea9a19095db891b76a2f30d8ee65763c2e880fe",
+      "observation": "Changing only the unsuccessful run count from zero to two in a copy of the PR 96 and push capture caused both input orders to lose all four receipts after a cold reopen.",
+      "reviewer": "Independent Astra Standard (t1jp)",
+      "original_sha256": "19cf6121416c1c112ca4b1654eab7b6ca2aa1fd8eb80e2d0a27099515b174d2a",
+      "response_id": "62174a56e2a216b46346893fcb5b8c3ae0e46049001806a8d64496a42850575f",
+      "response_sha256": "d589553e7d74e66a4eb234d0e7abb197d9aff2a9e7975f87cfb5f1cd984013e6",
+      "legacy_response_sha256": "92962835812eaec9b54d5850e417ee640d5a9bddbeae6d3bd8bfff1cbac54ccb",
+      "observation_body_sha256": "ce6519abc0efedf87cdda4dc19f8621389f7d55ead3019de7aed468b5b5d9ceb",
+      "event": {
+        "id": "msg_067250e2bfc29cbb016b096ea0deb487d0b595403655f24618",
+        "timestamp": "2026-11-27T11:51:27.355Z"
+      },
+      "supersedes": "d2ea0e5de0e374dd0017e3d57b042aa2b35052d3f8876234f56f0a211b6aa176",
+      "evidence_sha256": "1c697eff89b3f3845b77a3f332b4c75156dcae701d3cee180556be70d28416d0"
     }
   ]
 }

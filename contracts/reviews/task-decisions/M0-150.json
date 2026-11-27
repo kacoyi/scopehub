@@ -610,6 +610,26 @@
       "requested_at": "2026-11-27T11:41:32.996697+00:00",
       "request_id": "fd03b23f579021a6e894786f48970685bc7a801efe492103ec0db9fee41d4a6e",
       "evidence_sha256": "e55afce2f0b6d97b38c30bce9907e58f89f43516da3eeed76102d2284c1d190a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "fea9a19095db891b76a2f30d8ee65763c2e880fe",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 fea9a19095db891b76a2f30d8ee65763c2e880fe",
+      "scope": "CHANGES_REQUESTED M0-150 fea9a19095db891b76a2f30d8ee65763c2e880fe",
+      "observation": "On PR 123 run 45965137241, a browser report dated three seconds after verification ended received 983 runner-seconds and displaced the genuine browser sample in both input orders.",
+      "reviewer": "Independent Astra Standard (t1jn)",
+      "original_sha256": "4ddf5de57dc401f6a8e649e6d4f6ee60e40b45ed6da0c968980b83f94ecdbb65",
+      "response_id": "a89eaeb169775281e9f8a54a30f55798adda794c79b7f34e5fd4b47e8852a5bf",
+      "response_sha256": "0ab1b444d5faa79d6abc83f77e464debc3cb7d83793d89749f051e7274a474d2",
+      "legacy_response_sha256": "db9249bfa8614a50a7b5c6344056a445101b18bf1c8cdc5870ee1b241c409232",
+      "observation_body_sha256": "72d434d5742ecc3e01a0cfc4bcae22fb3527372be954b8b0370e0632ada52c79",
+      "event": {
+        "id": "msg_08f0704427706d0a016b096e4ae20c87d0843528427e94d648",
+        "timestamp": "2026-11-27T11:49:57.332Z"
+      },
+      "supersedes": "fd03b23f579021a6e894786f48970685bc7a801efe492103ec0db9fee41d4a6e",
+      "evidence_sha256": "49c50b7878ee6b6948d6b8d33f802a59a2e3c787f91c4592ff3e00eb90d03b01"
     }
   ]
 }

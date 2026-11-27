@@ -590,6 +590,26 @@
       "requested_at": "2026-11-27T11:41:33.884802+00:00",
       "request_id": "58efb7defd8a85a98809585d1cf6f54e9bfa5b4ee18977177efb3f6c2c3bc832",
       "evidence_sha256": "2817f1c3f88bb98dce8afc821148ae86d7092910ba1362cbbad3dd4a5fd60cbc"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "fea9a19095db891b76a2f30d8ee65763c2e880fe",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 fea9a19095db891b76a2f30d8ee65763c2e880fe",
+      "scope": "CHANGES_REQUESTED M0-155 fea9a19095db891b76a2f30d8ee65763c2e880fe",
+      "observation": "With only the browser setup step number omitted, ordinary, offline weekly, and cold reads credited 983 runner-seconds to a PR 123 report dated one second after staging finished.",
+      "reviewer": "Independent Astra Standard (t1jm)",
+      "original_sha256": "31d43c7f17ba166555ddf4c0fa39f68efa30769a7238a658d58eeabab8eb4ed8",
+      "response_id": "764fea6499522bf4064023d44008e6b652eb35d7cf11ee57ae5d1fa25e471dbd",
+      "response_sha256": "0b47c70ea0522eb567b9d21b20d09dcf73c8ac56f3a7653746b26e306228d142",
+      "legacy_response_sha256": "a1ea2efb20b6182c5938a99309f3989270da17a2efa5ff9dbe4ebd8637f2c913",
+      "observation_body_sha256": "09be94785cff6ea7af9bf33ffe3208d7b0962ebece8b12329d9674e0487c656a",
+      "event": {
+        "id": "msg_06456fbb53d914e5016b096e1d77d887d08784d6fdddab6054",
+        "timestamp": "2026-11-27T11:49:07.928Z"
+      },
+      "supersedes": "58efb7defd8a85a98809585d1cf6f54e9bfa5b4ee18977177efb3f6c2c3bc832",
+      "evidence_sha256": "d0e4b1cf03f2dd33054f2316e6d3b17ffc8e05153281856cf3b1ca7d678794c9"
     }
   ]
 }
