@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-172",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -27540,7 +27540,7 @@
       "id": "M0-172",
       "milestone": "M0",
       "title": "Give the next development AI the engineering objective and evidence at handoff",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-161"
       ],
@@ -27566,10 +27566,19 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Independently read the ordinary maintenance handoff on the clean candidate. Follow the accepted example and first-test rule, distinguish the open timing decision from the engineering objective, and check the two-workstream stop before recording review.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-172-cda8949b4b590c45.json",
+          "sha256": "5554f766859851184d02b2454388c48faf447b5500d269fcd28b337b7f449833"
+        },
+        {
+          "path": "project/evidence/M0-172-b26b6d22823bb30d.json",
+          "sha256": "d3fa4f49b038885ecb7f2f6c1993a6c49c37710006387efdb506c7c767f0769a"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Scoped pre-integration qualification of the engineering-quality handoff. On cf795dd4694a6c54db70ec9f336d9ee373f201c2, independent reviewer t1cq used ordinary read-only startup and handoff and directly recovered the sustained engineering objective, the accepted M0-163 example, and the distinct open timing decision for run 45838575346. The first-test rule and receipts were available through follow-up lookups. The exact M0-133 timing decision requires the retained PR 145 history. Independent reviewer t1cs approved the M0-161 routing composition, including the ordinary and read-only urgent route and the stop after both workstreams are accepted. First ordinary PR 134 run 45941621830 passed both required checks and all six named public navigation controls on Linux and Windows on preview 9b948290de688a22c3eb8be1d961e12a2d2db572, whose tree matched submitted head a8e9118ec3c97c70b6cd9ae0a79976f1a20fe3fa. The Linux aggregate reported omissions outside this task. Both engagement workstreams remain open. Protected integration acceptance and actual due periodic follow-through remain pending.",
       "plan": {
         "outcome": "The receiving development AI gets enough precise context at the point of handoff to explain the engineering objective and act on its current state.",
         "change_types": [

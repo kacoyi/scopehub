@@ -8413,7 +8413,7 @@
     },
     {
       "id": "handoff-reduces-engineering-objective-to-timing-follow-up",
-      "status": "open",
+      "status": "addressed",
       "severity": "minor",
       "source": "Owner clarification on November 27 and the standard project:context --phase handoff output on protected 7bc0df5f6252a03d53519c27e19efca20a4d45b1 and PR 134 at 1b42eec2b3c9be56fee9a9329c3960095b145e4f.",
       "observation": "The focused row supplies a coordinator, status and timing assignment on both sources. The PR also exposes the existing acceptance conditions. Neither row delivers the intent from the referenced owner terms. The owner asked to recover the second goal as sustained engineering quality across product development and iteration and to account for capabilities already delivered.",
@@ -8424,7 +8424,11 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The focused handoff projected workstream ownership, state and the current timing action, while the sustained engineering objective was present only in the referenced owner terms.",
+        "correction": "Project the authoritative objective and acceptance through the ordinary and read-only handoff. Surface M0-163 with historical evidence, the first-test rule and the open timing decision with separate criteria for Windows execution and wall time. Preserve urgent routing and the owner stop.",
+        "prevention": "Independent reviewer t1cq recovered the objective from the public handoff on cf795dd4. The first ordinary PR 134 run 45941621830 passed both required checks and all six named public navigation controls on Linux and Windows. The coordinator retains protected integration and actual due periodic follow-through as separate observations."
+      },
       "deferral_reason": null
     }
   ]
