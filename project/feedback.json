@@ -8311,6 +8311,23 @@
         "prevention": "Guarded run 45930637026 passed all required checks on native Windows and Linux. The public bridge controls assert a completed preview, rejection of a save after a controlled preview interruption, cancellation after proven save admission, and an ordinary subsequent load with not_saved and no profile directory. The protected integration recheck remains with the coordinator."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-cold-repair-script-pending-after-document-commit",
+      "status": "open",
+      "severity": "major",
+      "source": "Original Windows PR 146 attempt 1, run 45939423128, staged producer and protected comparison in archives/observations/repo-hygiene-20261125/pr146-producer-45939423128-recovery/cold-start-recurrence.json (SHA-256 55c4b69f0351c8ec55952597d2c580b4ee4fea96453ddff132142846362e2d51).",
+      "observation": "The first public closed-bar repair stopped before its chart assertions. At 10016 ms the document had returned HTTP 200, committed at 23 ms and finished at 31 ms; one unnamed script requested at 7026 ms was still pending. The other 40 cases passed. The same public test on the protected base passed in 6.3 seconds. The initial observation does not identify a script route or cause of the delay.",
+      "task_ids": [
+        "M0-173"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers",
+        "market-recovery"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

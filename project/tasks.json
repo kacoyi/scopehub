@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-173",
   "tasks": [
     {
       "id": "M0-001",
@@ -27407,6 +27407,107 @@
           ],
           "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
           "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
+        }
+      }
+    },
+    {
+      "id": "M0-173",
+      "title": "Resolve the observed cold Windows repair preview stall after document commit",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-154"
+      ],
+      "scope": [
+        "tests/ubuntu-preview",
+        "tests/ui/sample-startup.mjs",
+        "apps/desktop/ui",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain the first ordinary Windows producer and its protected comparison. Distinguish the genuinely stalled first public repair from the intentional held-script control and the separate handoff-preparation fixture.",
+        "Demonstrate the applicable bounded correction at the ordinary first public consumer. Confirm a genuinely delayed required module is still rejected and preserve the established data and readiness assertions. State what remains unknown about the historical script.",
+        "Obtain a source-bound independent decision and an actual hosted Windows cold repair run, retain the scoped report and verify the integrated revision."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "market-recovery"
+      ],
+      "evidence": [],
+      "next_action": "Compare the failing first cold public repair against the same protected Windows case and the existing held-document and held-module controls. Measure or classify the first costly consumer-visible stage and choose one correction supported by it.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Recover a reliably verifiable cold synthetic closed-bar repair after the document commits; retain the actual failing and passing boundaries.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/market-closed-bar-repair.spec.mjs",
+          "tests/ubuntu-preview/market-preview-config.mjs",
+          "tests/ui/sample-startup.mjs",
+          "project/checks.json",
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json"
+        ],
+        "hypotheses": [
+          "The retained observer narrows the failure to a committed document with one pending script. Compare preview preparation, delivery and browser timing before attributing the cause."
+        ],
+        "risks": [
+          {
+            "failure": "A warmed page, widened timeout, hidden retry or looser chart assertion could pass without observing the original cold user entry.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "market-recovery"
+            ]
+          }
+        ],
+        "rollback": "Restore the prior preview behavior and keep the original diagnosis if the correction changes the public sample, hides a genuine deadline, or fails the affected comparison.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "ui"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/market-closed-bar-repair.spec.mjs",
+            "tests/ubuntu-preview/market-preview-config.mjs",
+            "tests/ui/sample-startup.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/0"
+            }
+          ],
+          "non_goals": [
+            "Product feature changes, user data, unrelated Windows matrix preparation and a blanket timeout change."
+          ],
+          "open_questions": [
+            "Which observed preparation or delivery cost explains the pending script in comparable trials? The old response does not identify its route."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Keep the public cold path, 10000 ms navigation bound, original synthetic chart and source-row assertions, held-asset controls, privacy of diagnostic paths, and classification of genuine failures."
+          ],
+          "change": [
+            "Compare the failing first cold public repair against the same protected Windows case and the existing held-document and held-module controls. Measure or classify the first costly consumer-visible stage and choose one correction supported by it."
+          ],
+          "data_plan": "Use the existing synthetic chart, per-run test data and disposable local verification outputs. No user-data changes.",
+          "cleanup": "Retain authenticated first-attempt originals and remove any superseded verification path when its replacement is qualified."
         }
       }
     }
