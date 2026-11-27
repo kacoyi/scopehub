@@ -39,6 +39,26 @@
       "requested_at": "2026-11-27T07:20:45.843136+00:00",
       "request_id": "1c8567985e8a6fb4301a620e6feebc4c91c1bb82ed80aaeaaf85c8354ee9eec6",
       "evidence_sha256": "10e0152658b3291bcd91ab493b612eafa2c328abaa6bbfcd63c74d2ab91832a0"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "dcca5388ee1c3f0c183579c90174ad48eba06765",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-175 dcca5388ee1c3f0c183579c90174ad48eba06765",
+      "scope": "CHANGES_REQUESTED M0-175 dcca5388ee1c3f0c183579c90174ad48eba06765",
+      "observation": "The held-cleanup test now discards both witnessed process IDs and finishes without checking whether the interpreter and supervisor exited.",
+      "reviewer": "Independent Astra Standard (t1f5)",
+      "original_sha256": "77b7af05f8b21f0e48c0d4a6a13009d6ab2dc3874267b29d046eefe349b7e439",
+      "response_id": "32ca369f8b1eb7ad6492a3588866421265a44b7671fe1a046d2b4346c0114e32",
+      "response_sha256": "9063da3a85af824c493119a5df1ab78937b00d052fd593d37c5e9b0cb671eb60",
+      "legacy_response_sha256": "19e91d77d21942b3089df4df22286325678e8c53dda30e7c05d96ffe0f753bb0",
+      "observation_body_sha256": "818a5835753a019004b8ede1cc6713f4109122278f8835677531bf7647707814",
+      "event": {
+        "id": "msg_0098e323dd2515d2016b092fd280d487d097352573799f4401",
+        "timestamp": "2026-11-27T07:23:25.923Z"
+      },
+      "supersedes": "1c8567985e8a6fb4301a620e6feebc4c91c1bb82ed80aaeaaf85c8354ee9eec6",
+      "evidence_sha256": "d8f29cc7745167645aa137a62a8b398cf1060a6462d15d164df3f9d88029ea3f"
     }
   ]
 }
