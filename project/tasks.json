@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-175",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -27830,7 +27830,7 @@
       "id": "M0-175",
       "title": "Verify terminal cancellation and subsequent owned indicator scratch cleanup after a bounded wait",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-167"
       ],
@@ -27852,7 +27852,16 @@
         "rust-contracts-workers",
         "indicator-workflow"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-175-3cc980281a8b78d9.json",
+          "sha256": "9706aa2fb2582922acc102e9bcdf8717c4c17195843ab43737f55cdb37564acd"
+        },
+        {
+          "path": "project/evidence/M0-175-badbc601ee756be9.json",
+          "sha256": "dc2e37bd17e91fd89cc2f7ba1ea10259609fa30709da36720f3131cb5fdadc9e"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "windows-change-45946774981-1",
@@ -27870,9 +27879,9 @@
           "report_sha256": "fbe1d3c9c91c97cdc4122f6c39e6b25facc8ede80f1241a6e3d976b2f46381fe"
         }
       ],
-      "next_action": "Obtain independent review of the held cleanup and missing entry witness regressions on the clean candidate. The coordinator owns supported Windows and Linux qualification, matching evidence archival and the integrated revision recheck.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Branch qualification is complete. Independent approval of 1f2e78aed866734f066fb64b16b14cea8a87816a applies to the unchanged implementation on 88eec308aa5abf7e1ed0126c61195cc505c4a950. Guarded PR 149 task run 45959844599 attempt 1 tested that exact clean branch commit on Linux x64 and Windows x64. Environment and all three required checks passed on each platform. The six named Rust controls covered held cleanup, discarding a correlated result before child exit, adjacent scratch and result isolation, private CLI EOF without a persistable result, independent positive values and cleanup after a missing entry witness. The three browser interactions covered a second approved task during pending cleanup, approved output restoration and region-only restoration. The guarded originals are bound by archives/observations/repo-hygiene-20261125/task-dispatch-m0-175-45959844599/manifest.json (SHA-256 4b94d54bef39ca0578d75d1ab1958aae595135de98d593e8090cbcb6eab345be). The separate Linux withheld-release mutation failed at the bounded disposal assertion before fixture recovery. Process absence was sampled for the two witnessed PIDs within the fixture windows. Later scratch state and the delay cause in the original PR 134 Windows cases remain unknown, as does the stalled stage in both earlier PR 149 Windows timeouts. The coordinator owns observation of the ordinary PR 149 merge-preview run and the separate recheck on the finally integrated protected revision. Both are pending for this handoff.",
       "plan": {
         "outcome": "The cancellation caller receives its documented terminal result, and task-owned scratch disposal and adjacent work are verified at the boundaries their owners actually guarantee.",
         "change_types": [
