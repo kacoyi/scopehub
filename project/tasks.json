@@ -28711,6 +28711,244 @@
       }
     },
     {
+      "id": "M0-161",
+      "milestone": "M0",
+      "title": "Route the coordinator to the accepted maintenance engagement from ordinary startup",
+      "status": "done",
+      "depends_on": [
+        "M0-158"
+      ],
+      "scope": [
+        "scripts/development.py",
+        "scripts/project.py",
+        "tests/project/test_development.py",
+        "tests/project/test_delivery.py",
+        "project/evidence",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0030"
+      ],
+      "acceptance": [
+        "On a clean checkout with the two currently open workstreams and an unrelated planned product focus, following the ordinary overview next action recovers their owners, acceptance and next actions without private evidence or conversation memory.",
+        "Preserve higher-priority actionable failures and legitimate ongoing work. An ordinary product checkout without an engagement keeps its existing navigation. One accepted workstream leaves the other actionable, and the ended engagement communicates its stop and permits a later separately authorized product session.",
+        "Exercise default and read-only public CLI navigation, executed continuation commands, missing focus, and relevant routine or urgent controls. Exact-source feedback lookup supports historical records predating scaffold maintenance. Keep the overview concise; preserve the product focus as context.",
+        "With a valid startup ledger and no higher-priority action, the first overview action opens an unassigned major finding linked only to completed work with an open, ended or absent engagement. With no engagement, precedence over an unassigned minor finding is independent of ledger insertion order. The complete feedback destination and handoff preserve the owner stop after both workstreams are accepted while the finding remains inspectable. Later feature work still requires separate owner authorization."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-161-6be0d4e058e4d35a.json",
+          "sha256": "79409043d1f6f8d5c5b4b1573b340a2aa36e48c23400e0cf9881e7fbb0a30ca7"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The independent review approved e69bd4ca85a59130afe6e276391275ec9d9efbc1 after both earlier rejections. The matching Linux task report passed and the retained ordinary and read-only CLI controls followed the first action to its destination, exercised urgent precedence and the owner stop, and recovered historical feedback. Synthetic full acceptance exercised the stop behavior. The repository-cleanup and ongoing-maintenance workstreams remain open. Protected integration remains with the coordinator.",
+      "plan": {
+        "outcome": "A fresh coordinator taking the first displayed action follows the present mandate.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+          "contracts/reviews/task-decisions/M0-161.json",
+          "project/delivery.json",
+          "project/development.json",
+          "scripts/development.py",
+        "scripts/project.py",
+        "tests/project/test_development.py",
+        "tests/project/test_delivery.py"
+        ],
+        "hypotheses": [
+          "The overview computes its first action before considering the engagement. A detached summary presents the correct authority but leaves the fallback action on the unrelated product plan.",
+        "The engagement takes priority over pending assignment, while the major feedback route before the engagement only considers findings linked to active work. This can hide the finding from the first command even when the overview counts it.",
+        "The feedback destination supplies assignment instructions independently of the verified engagement state. The ordinary fallback also discards the severity order already used by unassigned feedback lookup."
+        ],
+        "risks": [
+          {
+          "failure": "A global priority change could hide real critical failures, actual task work, or later authorized product work. A package-managed continuation could break read-only use. Reading the engagement for a historical finding could incorrectly require a policy that did not exist at its source.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+          "failure": "A major finding awaiting assignment can lose its route to engagement handoff or to an earlier minor row when no engagement exists. Following the emitted record command could also instruct a coordinator to assign work after the engagement has ended. Execute the complete destination in both CLI modes and compare open, partially accepted, ended and absent engagements, both insertion orders, and urgent controls.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Restore the prior command-selection implementation and retain explicit engagement handoff and the failing public entry for diagnosis.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/development.py",
+            "scripts/project.py",
+            "tests/project/test_development.py",
+            "tests/project/test_delivery.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/engagement"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/engagement"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/collaboration"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            }
+          ],
+          "non_goals": [
+            "Change product runtime behavior, expand owner authorization, or publish private evidence."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The registered product focus, targeted task contexts, urgent diagnostics, source-bound accepted closures, command quoting and no-engagement behavior."
+          ],
+          "change": [
+            "Route the autonomous coordinator to its applicable next action using existing engagement state and navigation.",
+          "Use the existing unassigned feedback order for navigation and show the same verified owner stop in the feedback destination and handoff. Preserve direct inspection of the finding."
+          ],
+          "data_plan": "Development records only. Keep task originals private and preserve existing product data and permissions.",
+          "cleanup": "Use the supported repository entry for the corrected behavior. Retire superseded local workarounds after matched verification and preserve originals required for audit."
+        }
+      }
+    },
+    {
+      "id": "M0-172",
+      "milestone": "M0",
+      "title": "Give the next development AI the engineering objective and evidence at handoff",
+      "status": "done",
+      "depends_on": [
+        "M0-161"
+      ],
+      "scope": [
+        "scripts/development.py",
+        "scripts/project.py",
+        "project/delivery.json",
+        "tests/project/test_development.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0030"
+      ],
+      "acceptance": [
+        "From the normal maintenance handoff, a fresh development AI can state the purpose of sustained high-quality implementation and iteration, identify an already accepted engineering capability and the evidence for it, and distinguish the next outstanding decision from the overall objective. The initial observation and results remain attributable to their own sources.",
+        "Use the existing checkout sources and delivery path. The concise overview continues to route a user to the applicable action. The underlying engineering decision and accepted history remain recoverable, and completion of both workstreams retains the existing stop."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-172-cda8949b4b590c45.json",
+          "sha256": "5554f766859851184d02b2454388c48faf447b5500d269fcd28b337b7f449833"
+        },
+        {
+          "path": "project/evidence/M0-172-b26b6d22823bb30d.json",
+          "sha256": "d3fa4f49b038885ecb7f2f6c1993a6c49c37710006387efdb506c7c767f0769a"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Scoped pre-integration qualification of the engineering-quality handoff. On cf795dd4694a6c54db70ec9f336d9ee373f201c2, independent reviewer t1cq used ordinary read-only startup and handoff and directly recovered the sustained engineering objective, the accepted M0-163 example, and the distinct open timing decision for run 45838575346. The first-test rule and receipts were available through follow-up lookups. The exact M0-133 timing decision requires the retained PR 145 history. Independent reviewer t1cs approved the M0-161 routing composition, including the ordinary and read-only urgent route and the stop after both workstreams are accepted. First ordinary PR 134 run 45941621830 passed both required checks and all six named public navigation controls on Linux and Windows on preview 9b948290de688a22c3eb8be1d961e12a2d2db572, whose tree matched submitted head a8e9118ec3c97c70b6cd9ae0a79976f1a20fe3fa. The Linux aggregate reported omissions outside this task. Both engagement workstreams remain open. Protected integration acceptance and actual due periodic follow-through remain pending.",
+      "plan": {
+        "outcome": "The receiving development AI gets enough precise context at the point of handoff to explain the engineering objective and act on its current state.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+          "project/delivery.json",
+          "project/development.json",
+          "scripts/development.py",
+          "scripts/project.py",
+          "tests/project/test_development.py"
+        ],
+        "hypotheses": [
+          "Both the protected handoff and the proposed navigation repair give the timing follow-up without projecting the existing authoritative overall purpose. This favors interpreting the next check as the whole outcome."
+        ],
+        "risks": [
+          {
+            "failure": "Duplicated summaries could drift from the owner decision or represent an accepted example or a pending native or calendar observation as proof of long-term engineering quality.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Restore the preceding handoff projection and current next action if it obscures source ownership, scope or the established stop.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/development.py",
+            "scripts/project.py",
+            "project/delivery.json",
+            "tests/project/test_development.py"
+          ],
+          "rules": [
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/1"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/engagement"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/evolution"
+            }
+          ],
+          "non_goals": [
+            "New product work, a reporting system, repeated status broadcasts, changes to the historical owner decision, or a guarantee of future engineering quality."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Authoritative owner terms, accepted historical task definitions and review evidence, supported startup and handoff routes, and the two-outcome stop."
+          ],
+          "change": [
+            "Carry the actual objective into the existing handoff and make relevant completed evidence and the immediate open work findable at the decision point."
+          ],
+          "data_plan": "Development control records only. The public entry uses checkout sources; private transcripts and product data remain on their existing paths.",
+          "cleanup": "Use the same existing source and command. Check the ordinary and read-only routes and remove unnecessary duplicate instructions introduced by this change."
+        }
+      }
+    },
+    {
       "id": "M0-151",
       "title": "Synchronize the owned market worker interruption witness",
       "milestone": "M0",
