@@ -59,6 +59,15 @@
       },
       "supersedes": "1c8567985e8a6fb4301a620e6feebc4c91c1bb82ed80aaeaaf85c8354ee9eec6",
       "evidence_sha256": "d8f29cc7745167645aa137a62a8b398cf1060a6462d15d164df3f9d88029ea3f"
+    },
+    {
+      "kind": "request",
+      "source_commit": "1f2e78aed866734f066fb64b16b14cea8a87816a",
+      "scope": "Review the correction for the two specific findings on deferred disposal of a cancelled, synthetic indicator and the rejected entry-witness fixture on source 1f2e78ae.",
+      "supersedes": "32ca369f8b1eb7ad6492a3588866421265a44b7671fe1a046d2b4346c0114e32",
+      "requested_at": "2026-11-27T07:34:14.361518+00:00",
+      "request_id": "510f3829e78d1c861a3aba72fe427dfed7bc2741664050335d33636530eb551d",
+      "evidence_sha256": "b5a9aed3bf346b00b5f83cf92ba7ae5dea48ae3cb8a398231200e7d342e6cf89"
     }
   ]
 }
