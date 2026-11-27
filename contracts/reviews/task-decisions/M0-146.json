@@ -532,6 +532,26 @@
       "requested_at": "2026-11-27T07:10:26.912567+00:00",
       "request_id": "9c96db1990052235268ef4708551292ee059c102ba12112f314fb6a107371aa5",
       "evidence_sha256": "c1965ac2e7dd889ab7281676fe79fddf7b8312dfe472026f53c3d2a4e835aa45"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ad62ed0d49128539c309312c6f23bec137e9874a",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 ad62ed0d49128539c309312c6f23bec137e9874a",
+      "scope": "APPROVE M0-146 ad62ed0d49128539c309312c6f23bec137e9874a",
+      "observation": "With and without an inherited review-base override, I observed four fewer Git subprocesses in the fixture preflight and rejection of reversed pull request parents.",
+      "reviewer": "Independent Astra Standard (t1f0)",
+      "original_sha256": "94b10e0ab2c5348a4a1cc5ca7892131222becfa1787e07f985e380964d2d1ffe",
+      "response_id": "85ceaafe55631d8a72f54743a0d3197c7fe9df8c1ca307616135d0860c31c817",
+      "response_sha256": "62b3cd18e0a1f53db7435f86c34d27e923442f2af710aa5fe22c7c24ca4225f9",
+      "legacy_response_sha256": "dc5c3e6e9e41d8628c45b12bac8a865f74089780254653019b2fa9b9606b04d3",
+      "observation_body_sha256": "b5f1d6baad8a6d8f87e6ee06f5432a7ab991eebbcee364629f2f0d029163f7a0",
+      "event": {
+        "id": "msg_0fc3f1efeb4f447a016b092e56206487d0a97c2c6169072bfa",
+        "timestamp": "2026-11-27T07:16:55.991Z"
+      },
+      "supersedes": "9c96db1990052235268ef4708551292ee059c102ba12112f314fb6a107371aa5",
+      "evidence_sha256": "939215547689df33f686cc32d39db03e04f0408afa394a639e47bffba1c1258a"
     }
   ]
 }
