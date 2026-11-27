@@ -393,11 +393,11 @@
     },
     {
       "id": "indicators",
-      "status": "planned",
+      "status": "implemented",
       "paths": [
         "python/indicators"
       ],
-      "responsibility": "Declarative computation and explicitly authorized trusted Python.",
+      "responsibility": "Evaluate explicitly authorized trusted Python indicator source for the indicator worker.",
       "public_entries": [
         "python/indicators/trusted.py"
       ],
@@ -405,10 +405,10 @@
         "domain"
       ],
       "owns": [
-        "Calculation state and output semantics"
+        "Trusted Python source evaluation and invocation of compute(bars, params)"
       ],
       "invariants": [
-        "Failed preview cannot overwrite accepted results"
+        "The caller supplies source already admitted and confirmed by the native application."
       ],
       "checks": [
         "indicator-workflow"
