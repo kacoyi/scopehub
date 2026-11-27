@@ -358,6 +358,26 @@
       "requested_at": "2026-11-26T16:05:03.649605+00:00",
       "request_id": "2e964e2aca8cec6efbe7714c9176ae0455020227da810c1695ae485991bd5ebd",
       "evidence_sha256": "825d6e03f67e95b8618b5bae8b5bc4fd456461feceeb0f0ee8aaed952cb278bc"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "fd02515180726e0b843e590b62d0aeef404aed48",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-139 fd02515180726e0b843e590b62d0aeef404aed48",
+      "scope": "CHANGES_REQUESTED M0-139 fd02515180726e0b843e590b62d0aeef404aed48",
+      "observation": "For run 45839731781 attempt 1, the candidate’s Windows aggregate publisher staged all 57 files from the unchanged Linux artifact, while the previous implementation rejected that same input.",
+      "reviewer": "Independent Astra Standard (t1b1)",
+      "original_sha256": "281f1f603d7eb47717aa318a3bee177f8a64cf2b75592057b9bfff3931f1539f",
+      "response_id": "4687bd3f1b0684f7b967f2df2ed2dcfae7a04616e233a6ecf333460aa20c2bb0",
+      "response_sha256": "432228fa210b8682bc73783da78df90ea315ed8658b5c2969be4220c1361dd85",
+      "legacy_response_sha256": "2484497f4871bba8e2cb9a93da9c0eeac3798c9351f912d7e32251489e3aa422",
+      "observation_body_sha256": "8c4ee94e1d22a14f0a50647e63234300ed33ab59effb28919c733e06149a2d07",
+      "event": {
+        "id": "msg_026f1acdacd66064016b08f0930e9487d082a8843b0766323b",
+        "timestamp": "2026-11-27T02:53:21.824Z"
+      },
+      "supersedes": "2e964e2aca8cec6efbe7714c9176ae0455020227da810c1695ae485991bd5ebd",
+      "evidence_sha256": "d58edbb7217ce791d52c00e091e3f33bfa319c266ab4c6ab39e6dc8ca232840a"
     }
   ]
 }

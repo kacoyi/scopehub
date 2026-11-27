@@ -358,6 +358,26 @@
       "requested_at": "2026-11-26T16:05:04.511995+00:00",
       "request_id": "bdee55a93bd4f8b9500ca23e8b4b515acc991bb418fe0c0c1ed189cba948c18b",
       "evidence_sha256": "ee1297b9ec4a0cd89f5ea1587795c57ee86ffcf9ab3fa9f0887221071a2fa11a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "fd02515180726e0b843e590b62d0aeef404aed48",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 fd02515180726e0b843e590b62d0aeef404aed48",
+      "scope": "CHANGES_REQUESTED M0-146 fd02515180726e0b843e590b62d0aeef404aed48",
+      "observation": "The Windows publisher accepted the unchanged Linux artifact from run 45839731781, and the browser producer validator accepted an earlier_failure substitution that removed the original market-workflow log.",
+      "reviewer": "Independent Astra Standard (t1b2)",
+      "original_sha256": "5b7148dc576d3017a0d99cd5ec0a4f8ab888996a15ae1fd7a463877d1bdc82aa",
+      "response_id": "239eb83abffdeecfee0bd50b980d0a03fe0ec982ba552965907d14b20186a0a5",
+      "response_sha256": "2fb3ca7024629ed0784dacfdcce5b19d3b829664ce472f83c332fe3b45ed9bfd",
+      "legacy_response_sha256": "2d668f291668591913e94f1830c632a4731e8bf4c913b56f996755a7da9fb8f5",
+      "observation_body_sha256": "5a09dd841dd341f804a786ab8e4c0698220c503a185a1f7e89374847119c81b7",
+      "event": {
+        "id": "msg_0cd1cb0a0e961fd1016b08f070425087d0a2bc7e2831f1fcd4",
+        "timestamp": "2026-11-27T02:52:49.269Z"
+      },
+      "supersedes": "bdee55a93bd4f8b9500ca23e8b4b515acc991bb418fe0c0c1ed189cba948c18b",
+      "evidence_sha256": "9058a0e3e26d6fd63671cea0f456b204a32ca4da9736ddfaedbd624925f4cc03"
     }
   ]
 }
