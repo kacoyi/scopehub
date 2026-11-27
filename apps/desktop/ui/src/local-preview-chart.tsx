@@ -9,7 +9,7 @@ import { formatDateTime, formatNumber, getLocale, message, t } from './i18n';
 import { hasLocalCsvPicker, readLocalFolderSourceRow, readLocalImportSourceRow } from './local-import-transport';
 import { IndicatorPreview } from './indicator-preview';
 import { PriceChart } from './price-chart';
-import { displayAccessDenied, type PublishedRevisionAccess } from './published-revision-access';
+import { displayAccessDenied, type PublishedRevisionAccess, type PublishedRevisionKind } from './published-revision-access';
 import type { LocalWorkspace } from './use-local-workspace';
 
 type ChartProps = {
@@ -99,7 +99,7 @@ export function FrozenLocalChart({ result, workspace, access }: {
   const [acceptedIndicators, setAcceptedIndicators] = useState<readonly IndicatorChartLayer[]>([]);
   const { revision, bars: events } = result;
   const bars = useMemo(() => events.map(event => event.bar), [events]);
-  const showIndicators = result.snapshot && workspace && access.canDisplay(revision.revision_id);
+  const showIndicators = result.snapshot && workspace && access.canDisplay('csv', revision.revision_id);
   return <>
     <LocalBarChart title={t('Frozen chart')} label={t('Frozen local CSV chart')} styleLabel={t('Frozen chart style')}
       series={revision.series} symbol={revision.symbol} bars={bars} indicatorPreview={showIndicators ? indicatorPreview : undefined}
@@ -153,7 +153,7 @@ function sourceRowErrorCode(error: unknown) {
   return error && typeof error === 'object' && 'code' in error ? error.code : undefined;
 }
 
-function useSourceRowRead(revisionId: string, access: PublishedRevisionAccess, workspace?: LocalWorkspace) {
+function useSourceRowRead(revisionId: string, kind: PublishedRevisionKind, access: PublishedRevisionAccess, workspace?: LocalWorkspace) {
   const [read, setRead] = useState<SourceRowRead>();
   const pending = useRef<string | undefined>(undefined);
 
@@ -168,7 +168,8 @@ function useSourceRowRead(revisionId: string, access: PublishedRevisionAccess, w
     recordNumber: number,
     load: (requestId: string, review: boolean) => Promise<OriginalSourceRow | undefined>,
   ) {
-    if (!access.canDisplay(revisionId)) return;
+    if (!access.canDisplay(kind, revisionId)) return;
+    const reading = access.beginRead(kind, revisionId);
     let requestId = crypto.randomUUID();
     pending.current = requestId;
     setRead({ loading: recordNumber });
@@ -179,26 +180,32 @@ function useSourceRowRead(revisionId: string, access: PublishedRevisionAccess, w
       } catch (error) {
         const code = sourceRowErrorCode(error);
         if (code !== 'RESOURCE_LIMIT' && code !== 'UNSUPPORTED_CAPABILITY') throw error;
-        if (pending.current !== requestId || !access.canDisplay(revisionId)) return;
+        if (pending.current !== requestId || !reading()) return;
         requestId = crypto.randomUUID();
         pending.current = requestId;
         row = await load(requestId, false);
       }
-      if (pending.current !== requestId || !access.canDisplay(revisionId)) return;
+      if (pending.current !== requestId || !reading()) return;
       if (!row || row.header.length !== row.raw_fields.length) {
         setRead({ error: message('The original CSV row could not be verified.') });
         return;
       }
       setRead({ row });
     } catch (error) {
-      if (pending.current !== requestId || !access.canDisplay(revisionId)) return;
+      if (pending.current !== requestId || !reading()) return;
+      const code = sourceRowErrorCode(error);
       if (displayAccessDenied(error)) {
         clearRead();
-        access.revoke(revisionId);
-        workspace?.reload();
+        if (code === 'SNAPSHOT_UNAVAILABLE') {
+          access.withhold(kind, revisionId);
+          void access.verify(kind, revisionId);
+          workspace?.refreshPublishedAccess(revisionId);
+        } else {
+          access.revoke(kind, revisionId);
+          workspace?.reload();
+        }
         return;
       }
-      const code = sourceRowErrorCode(error);
       setRead({ error: code === 'RESOURCE_LIMIT' ? message('This original CSV row exceeds the inspection size limit.')
         : code === 'BUSY' ? message('The CSV reader is busy. Try inspecting the record again.') : message('Unable to inspect the original CSV row.') });
     } finally {
@@ -206,7 +213,7 @@ function useSourceRowRead(revisionId: string, access: PublishedRevisionAccess, w
     }
   }
 
-  return { read: access.canDisplay(revisionId) ? read : undefined, clearRead, inspect };
+  return { read: access.canDisplay(kind, revisionId) ? read : undefined, clearRead, inspect };
 }
 
 function OriginalSourceFields({ read }: { read: SourceRowRead | undefined }) {
@@ -256,7 +263,7 @@ function FrozenSourceRows({ result, workspace, access }: {
   const [record, setRecord] = useState('');
   const { revision, bars: events } = result;
   const revisionId = revision.revision_id;
-  const { read, clearRead, inspect } = useSourceRowRead(revisionId, access, workspace);
+  const { read, clearRead, inspect } = useSourceRowRead(revisionId, 'csv', access, workspace);
   const native = hasLocalCsvPicker();
   const rows = useMemo(() => events.flatMap(({ bar, locators }) => locators.map(locator => ({ bar, locator }))), [events]);
   const pageSize = 20;
@@ -326,7 +333,7 @@ export function FrozenFolderChart({ result, access }: { result: ReadLocalFolderR
   const [page, setPage] = useState(0);
   const { revision, files, bars: events } = result;
   const revisionId = revision.revision_id;
-  const { read, clearRead, inspect } = useSourceRowRead(revisionId, access);
+  const { read, clearRead, inspect } = useSourceRowRead(revisionId, 'folder', access);
   const native = hasLocalCsvPicker();
   const bars = useMemo(() => events.map(event => event.bar), [events]);
   const rows = useMemo(() => events.flatMap(({ bar, sources }) => sources.map(source => ({ bar, source }))), [events]);

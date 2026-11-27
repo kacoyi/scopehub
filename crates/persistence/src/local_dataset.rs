@@ -206,16 +206,29 @@ pub(super) fn check_revision_id(revision_id: &str) -> Result<(), Error> {
 }
 
 pub(super) fn display_allowed(connection: &Connection, revision_id: &str) -> Result<bool, Error> {
+    Ok(matches!(
+        display_status(connection, revision_id)?,
+        scopehub_application::FrozenWorkspaceSourceStatus::Available
+    ))
+}
+
+pub(super) fn display_status(
+    connection: &Connection,
+    revision_id: &str,
+) -> Result<scopehub_application::FrozenWorkspaceSourceStatus, Error> {
+    use scopehub_application::FrozenWorkspaceSourceStatus::{Available, Revoked, Unavailable};
+
     check_revision_id(revision_id)?;
     connection
         .query_row(
-            "SELECT EXISTS(
-                SELECT 1 FROM local_dataset_revisions AS revision
-                LEFT JOIN local_dataset_display_revocations AS revoked USING (revision_id)
-                WHERE revision.revision_id = ?1 AND revoked.revision_id IS NULL
-            )",
+            "SELECT EXISTS(SELECT 1 FROM local_dataset_revisions WHERE revision_id = ?1),
+                    EXISTS(SELECT 1 FROM local_dataset_display_revocations WHERE revision_id = ?1)",
             [revision_id],
-            |row| row.get(0),
+            |row| match (row.get::<_, bool>(0)?, row.get::<_, bool>(1)?) {
+                (_, true) => Ok(Revoked),
+                (true, false) => Ok(Available),
+                _ => Ok(Unavailable),
+            },
         )
         .map_err(store_error)
 }

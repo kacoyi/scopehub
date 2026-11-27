@@ -1,0 +1,50 @@
+{
+  "task_id": "M2-039",
+  "independent_report": {
+    "path": "archives/observations/repo-hygiene-20261125/independent-final-m2-039-143d6844/final-response.txt",
+    "sha256": "4866509dfc1546d8076e190cea39cc915c9fd3937688813ca65e4c8a7482c6d0",
+    "source_response_line_sha256": "9922096a791c707ad3217a0d75ebf3aa3b4ce4cd1fc97b6130e28cf9c13ec1c3",
+    "archive_manifest_sha256": "8c9445aa9486b6eafb35de7f85724f35d084ee7fd672777a9728cbf6d8f9625c"
+  },
+  "private_regressions": {
+    "root": "archives/observations/m2-039-focus-generation-143d6844",
+    "archive_manifest_sha256": "873a615a84857824ad1b66c42f77ef07e21c847f68345314881b28049c755d7a",
+    "sources": {
+      "reviewed_source": "143d6844a745a7bce5b834ea546d4344b7202636",
+      "registered_feedback": "e447c77e23419dd41cec6c0aa26015207da87640",
+      "red": "527c76656aa8ce7a1d826bb68ae53e2126e516d9",
+      "green": "f68babd121a5722ae950734c101d0e8e7b88eb9e"
+    },
+    "focused_entry": [
+      "pnpm",
+      "exec",
+      "playwright",
+      "test",
+      "--config",
+      "tests/ui/desktop-workspace.config.mjs"
+    ],
+    "red_grep": "latest workspace focus",
+    "green_grep": "latest workspace focus|first saved-chart reopen|briefly missing live frozen",
+    "status": {
+      "red": {
+        "failed": 4,
+        "passed": 0
+      },
+      "green": {
+        "failed": 0,
+        "passed": 8
+      }
+    },
+    "report_sha256": {
+      "red/results.json": "6c544372ab7c46d985e9bff4a77d51502facb3db63f0cce6ebd07a39c7753801",
+      "green/results.json": "1a6b34b9ac887911d9950b9e85ba4f18f3c4314c0d724b831ddf793dfa0a396b"
+    }
+  },
+  "observations": [
+    "The startup snapshot was captured at A and released after the peer committed and rendered B. Before the repair, focus admitted no trailing read and A rendered at close 44. With the repair, the trailing snapshot confirmed selection 2 and only B at close 106 rendered.",
+    "The first focus captured A while its bar reply was held. After the peer committed B, four focus events during the same pending confirmation shared one trailing read. Before the repair, the first window rendered A at close 44. After the repair, only B at close 106 rendered.",
+    "With an unchanged selection, the same focus burst kept bars hidden until the trailing snapshot confirmed selection 1, then restored A at close 44.",
+    "Advancing the Chromium test clock beyond the existing workspace reply deadline released the stale startup read. The trailing snapshot rendered B at close 106, and the later delivery of the old startup reply was inert."
+  ],
+  "qualification": "Linux Chromium ran two visible pages over the ordinary desktop transport entry with independently identified synthetic revisions and the portable Rust writer. The focused rerun also passed the previous first-reopen orderings and the temporary-absence and revocation control. The prior first-reopen and folder-list observations have a separate immutable index. Native Windows remains a separate verification."
+}
