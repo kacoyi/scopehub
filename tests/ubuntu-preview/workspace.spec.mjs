@@ -1121,7 +1121,7 @@ function frozenJournalEvidence(journal) {
   };
 }
 
-function startFrozenSnapshotHold(server) {
+function startWorkspaceSnapshotHold(server, description = 'frozen indicator snapshot') {
   const tag = server.tagSnapshot();
   const stop = new AbortController();
   const signal = AbortSignal.any([stop.signal, AbortSignal.timeout(5_000)]);
@@ -1143,7 +1143,7 @@ function startFrozenSnapshotHold(server) {
       const waiting = AbortSignal.any([stopWaiting.signal, AbortSignal.timeout(3_000)]);
       try {
         return await Promise.race([tag.wait('written', waiting), reply.then(http => {
-          throw new Error(`Tagged frozen indicator snapshot settled before reaching the writer (HTTP ${http}).`);
+          throw new Error(`Tagged ${description} settled before reaching the writer (HTTP ${http}).`);
         })]);
       } finally {
         stopWaiting.abort();
@@ -1295,11 +1295,11 @@ async function observeFrozenIndicatorPreview(browser, testInfo, trials) {
                 holdingAttempt = attempt;
                 if (contendSnapshot) {
                   attempt.routePhase = 'write-competing-snapshot';
-                  competing = startFrozenSnapshotHold(server);
+                  competing = startWorkspaceSnapshotHold(server);
                   competingWritten = await competing.waitForWriter();
                 }
                 attempt.routePhase = 'write-snapshot';
-                holder = startFrozenSnapshotHold(server);
+                holder = startWorkspaceSnapshotHold(server);
                 written = await holder.waitForWriter();
               }
               attempt.routePhase = 'discard-ready-status';
@@ -1422,6 +1422,31 @@ async function observeFrozenIndicatorPreview(browser, testInfo, trials) {
   expect(await portAvailable(port)).toBe(true);
 }
 
+async function submitFrozenPreview(server, request, observed) {
+  observed.request_id = request.request_id;
+  try {
+    const response = await post(server, request);
+    observed.http = response.status;
+    const frame = await response.json();
+    const result = frame?.result;
+    const outcome = result?.outcome;
+    Object.assign(observed, {
+      ok: frame?.ok, has_result: Boolean(result), response_request_id: result?.request_id,
+      operation: outcome?.operation, state: outcome?.state, task_id: outcome?.result?.task_id,
+      code: outcome?.error?.code ?? frame?.error?.code,
+      retryable: outcome?.error?.retryable ?? frame?.error?.retryable,
+    });
+  } catch (error) {
+    observed.delivery_error = error.name;
+    throw error;
+  }
+  expect(observed, 'Frozen indicator submission must acknowledge a preview task').toMatchObject({
+    http: 200, ok: true, response_request_id: request.request_id, operation: 'indicator.runPreview',
+    state: 'committed', task_id: expect.stringMatching(/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i),
+  });
+  return observed.task_id;
+}
+
 test('indicator-preview evaluates real frozen chart bytes and isolates failure and cancellation', async ({ browser }, testInfo) => {
   const profile = await makeProfile();
   const port = await freePort();
@@ -1449,7 +1474,7 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
   const status = task_id => ({ type: 'indicator_preview_status', request_id: randomUUID(), task_id });
   const resultPoints = artifact => artifact.result.series.map(series => series.points.map(point => point.value));
   const reply = async (server, body) => (await (await post(server, body)).json()).result;
-  const observation = {};
+  const observation = { second_submission: {}, refused_submission: {} };
   let savedLayer;
   let savedOutput;
   const outputRequest = () => ({ type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: savedLayer.layer_id });
@@ -1603,12 +1628,30 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         expect((await reply(server, { ...retry, scope: { ...retry.scope, idempotency_key: randomUUID() } })).outcome)
           .toMatchObject({ state: 'failed', error: { code: 'STALE_CONTEXT' } });
 
-        const nextFailure = await reply(server, mutation('indicator.runPreview', {
+        const nextPreview = () => mutation('indicator.runPreview', {
           draft_id: invalid.outcome.result.draft_id, snapshot: source, parameters: [],
-        }, target(source)));
-        const nextFailureId = nextFailure.outcome.result.task_id;
+        }, target(source));
+        const nextFailureId = await submitFrozenPreview(server, nextPreview(), observation.second_submission);
+        expect(nextFailureId).not.toBe(failedId);
         await expect.poll(async () => (await reply(server, status(nextFailureId))).status).toBe('terminal');
         expect((await reply(server, status(nextFailureId))).event.outcome.status).toBe('failed');
+        await test.step('preserve a frozen preview refusal before task allocation', async () => {
+          const hold = startWorkspaceSnapshotHold(server);
+          try {
+            const written = await hold.waitForWriter();
+            const request = nextPreview();
+            const refused = observation.refused_submission;
+            await expect(submitFrozenPreview(server, request, refused)).rejects
+              .toThrow('Frozen indicator submission must acknowledge a preview task');
+            expect(refused).toMatchObject({
+              request_id: request.request_id, http: 429, ok: false, has_result: false, code: 'BUSY', retryable: true,
+            });
+            expect(refused.task_id).toBeUndefined();
+            await hold.drain(written);
+          } finally {
+            await hold.close();
+          }
+        });
         expect(requireSavedOutput(await readIndicatorAfterAdmission(server, outputRequest()))).toEqual(savedOutput);
         await expect(plot).toBeVisible();
 
@@ -1981,10 +2024,12 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         observation.restored = { reruns, withheld, version: savedLayer.version_id };
       });
     });
-    await testInfo.attach('indicator-preview', { body: JSON.stringify(observation), contentType: 'application/json' });
-
   } finally {
-    await profile.close();
+    try {
+      await testInfo.attach('indicator-preview', { body: JSON.stringify(observation), contentType: 'application/json' });
+    } finally {
+      await profile.close();
+    }
   }
 });
 
@@ -6233,11 +6278,15 @@ async function openPrivateRecords(page) {
   return panel;
 }
 
-async function reviewMemory(panel, title, text) {
+async function fillMemoryDraft(panel, title, text) {
   await panel.getByRole('button', { name: 'New private record' }).click();
   await panel.getByLabel('Record type').selectOption('memory');
   await panel.getByLabel('Title').fill(title);
   await panel.getByLabel('Memory', { exact: true }).fill(text);
+}
+
+async function reviewMemory(panel, title, text) {
+  await fillMemoryDraft(panel, title, text);
   await panel.getByRole('button', { name: 'Review save' }).click();
 }
 
@@ -6352,7 +6401,7 @@ test('private record review retires an approval after known peer deletion', asyn
   } finally { await profile.close(); }
 });
 
-for (const fault of ['none', 'admission busy', 'lost acknowledgement']) {
+for (const fault of ['none', 'preparation busy', 'admission busy', 'lost acknowledgement']) {
   const testName = 'private record review cancellation leaves the other window approval intact';
   test(fault === 'none' ? testName : testName + ' after ' + fault, async ({ browser }, testInfo) => {
     const profile = await makeProfile();
@@ -6367,7 +6416,7 @@ for (const fault of ['none', 'admission busy', 'lost acknowledgement']) {
           const first = await openPrivateRecords(pageA);
           const firstReview = await privateReplyDuring(pageA, stages, 'first window prepares its save', prepareSave,
             () => reviewMemory(first, firstTitle, 'Synthetic first body'));
-          expect(firstReview.observed).toMatchObject({ http: 200, state: 'confirmation_required' });
+          expect(firstReview.observed).toMatchObject({ http: 200, ok: true, state: 'confirmation_required' });
           const review = first.getByRole('region', { name: 'Review private record change' });
           await expect(review.getByText(firstTitle, { exact: true })).toBeVisible();
 
@@ -6381,9 +6430,47 @@ for (const fault of ['none', 'admission busy', 'lost acknowledgement']) {
           try {
             await inFreshBrowser(browser, server, async pageB => {
               const second = await openPrivateRecords(pageB);
-              const secondReview = await privateReplyDuring(pageB, stages, 'second window prepares its save', prepareSave,
-                () => reviewMemory(second, secondTitle, 'Synthetic second body'));
-              expect(secondReview.observed).toMatchObject({ http: 200, state: 'confirmation_required' });
+              const reviewSave = second.getByRole('button', { name: 'Review save' });
+              const deadline = performance.now() + privateReplyTimeoutMs;
+              let initialReview;
+              let hold;
+              let written;
+              try {
+                initialReview = await privateReplyDuring(pageB, stages, 'second window prepares its save', prepareSave, async () => {
+                  await fillMemoryDraft(second, secondTitle, 'Synthetic second body');
+                  if (fault === 'preparation busy') {
+                    hold = startWorkspaceSnapshotHold(server, 'private review snapshot');
+                    written = await hold.waitForWriter();
+                  }
+                  await reviewSave.click();
+                });
+                if (hold) {
+                  expect(isPrivateAdmissionRefusal(initialReview)).toBe(true);
+                  await hold.drain(written);
+                }
+              } finally {
+                await hold?.close();
+              }
+
+              let secondReview = initialReview;
+              if (isPrivateAdmissionRefusal(initialReview)) {
+                await expect(second.getByRole('alert')).toHaveText('The local workspace is busy. Try again.', {
+                  timeout: Math.max(1, Math.ceil(deadline - performance.now())),
+                });
+                const remaining = Math.ceil(deadline - performance.now());
+                if (remaining > 0) {
+                  secondReview = await privateReplyDuring(pageB, stages, 'second window reviews the retained draft again', prepareSave,
+                    () => reviewSave.click({ timeout: remaining }), remaining);
+                  expect(secondReview.payload.intent).toEqual(initialReview.payload.intent);
+                  expect(secondReview.payload.scope).toMatchObject({
+                    workspace_id: initialReview.payload.scope.workspace_id,
+                    expected_workspace_revision: initialReview.payload.scope.expected_workspace_revision,
+                  });
+                  expect(secondReview.payload.request_id).not.toBe(initialReview.payload.request_id);
+                  expect(secondReview.payload.scope.idempotency_key).not.toBe(initialReview.payload.scope.idempotency_key);
+                }
+              }
+              expect(secondReview.observed).toMatchObject({ http: 200, ok: true, state: 'confirmation_required' });
               expect(secondReview.payload.scope.idempotency_key).not.toBe(firstReview.payload.scope.idempotency_key);
               expect(secondReview.outcome.challenge_id).not.toBe(firstReview.outcome.challenge_id);
               const resolutions = [];
@@ -6401,7 +6488,7 @@ for (const fault of ['none', 'admission busy', 'lost acknowledgement']) {
                 receipts: database.prepare('SELECT count(*) AS count FROM private_record_receipts').get().count,
               });
               try {
-                let recoverCancellation = fault !== 'none';
+                let recoverCancellation = fault === 'admission busy' || fault === 'lost acknowledgement';
                 if (fault === 'admission busy') {
                   const writer = await writerPid(server);
                   await writerPid(server, 'suspend', writer);
@@ -6480,7 +6567,7 @@ for (const fault of ['none', 'admission busy', 'lost acknowledgement']) {
             if (fault !== 'none') await pageA.unrouteAll({ behavior: 'wait' });
           }
         });
-      });
+      }, { snapshotGate: fault === 'preparation busy' });
     } finally {
       await testInfo.attach('private-review-cancellation-stages', {
         body: JSON.stringify(stages, null, 2), contentType: 'application/json',
@@ -6537,22 +6624,31 @@ function privateRequestMatches(operation, argumentsMatch = () => true) {
   return payload => payload?.intent?.operation === operation && argumentsMatch(payload.intent.arguments, payload);
 }
 
-async function privateReplyDuring(page, stages, step, matches, action) {
+const privateReplyTimeoutMs = 8_000;
+
+function isPrivateAdmissionRefusal({ observed, frame }) {
+  return observed.http === 429 && frame?.ok === false && !('result' in frame)
+    && frame.error?.code === 'BUSY' && frame.error.retryable === true;
+}
+
+async function privateReplyDuring(page, stages, step, matches, action, timeout = privateReplyTimeoutMs) {
   return test.step(step, async () => {
     const matchesRequest = request => new URL(request.url()).pathname === endpoint && matches(request.postDataJSON());
     const observed = { step };
     stages.push(observed);
     try {
-      const request = await duringPageEvent(page, 'requestfinished', matchesRequest, action, 8_000, matchesRequest);
+      const request = await duringPageEvent(page, 'requestfinished', matchesRequest, action, timeout, matchesRequest);
       const response = await request.response();
       observed.http = response.status();
       const frame = await response.json();
       const payload = request.postDataJSON();
-      const outcome = frame.result?.outcome;
+      const outcome = frame?.result?.outcome;
+      observed.ok = frame?.ok;
       observed.state = outcome?.state;
-      observed.code = outcome?.error?.code ?? frame.error?.code;
-      if (frame.ok) expect(frame.result.request_id).toBe(payload.request_id);
-      return { payload, outcome, observed };
+      observed.code = outcome?.error?.code ?? frame?.error?.code;
+      observed.retryable = outcome?.error?.retryable ?? frame?.error?.retryable;
+      if (frame?.ok === true) expect(frame.result?.request_id).toBe(payload.request_id);
+      return { payload, outcome, observed, frame };
     } catch (error) {
       observed.error = error.message.split('\n')[0];
       throw error;
