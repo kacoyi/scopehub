@@ -27479,7 +27479,8 @@
         "scripts/ci_artifacts.py",
         "tests/project/test_verification_scheduling.py",
         "contracts/decisions/0039-reuse-timing-source-semantics.json",
-        "scripts/check.py"
+        "scripts/check.py",
+        "contracts/decisions/0040-share-feasible-timing-admission.json"
       ],
       "decision_refs": [
         "0004",
@@ -27492,7 +27493,8 @@
         "0036",
         "0037",
         "0038",
-        "0039"
+        "0039",
+        "0040"
       ],
       "acceptance": [
         "Retain the original independent rejection. Through the ordinary timing and budget-review entries, observe the browser-job and checkout conflicts both before and after twelve later captures rotate the original attempt out of the recent window.",
@@ -28006,7 +28008,8 @@
         "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json",
         "contracts/decisions/0036-qualify-timing-before-attempt-reduction.json",
         "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json",
-        "contracts/decisions/0039-reuse-timing-source-semantics.json"
+        "contracts/decisions/0039-reuse-timing-source-semantics.json",
+        "contracts/decisions/0040-share-feasible-timing-admission.json"
       ],
       "decision_refs": [
         "0004",
@@ -28019,7 +28022,8 @@
         "0036",
         "0037",
         "0038",
-        "0039"
+        "0039",
+        "0040"
       ],
       "acceptance": [
         "Run the ordinary weekly timing CLI in the supported system Python environment with the archived full Windows selection, unavailable preview and a source-equivalent historical substitute. Confirm it writes the weekly summary and current comparison with the original clocks.",
@@ -28343,7 +28347,8 @@
         "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json",
         "contracts/decisions/0036-qualify-timing-before-attempt-reduction.json",
         "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json",
-        "contracts/decisions/0039-reuse-timing-source-semantics.json"
+        "contracts/decisions/0039-reuse-timing-source-semantics.json",
+        "contracts/decisions/0040-share-feasible-timing-admission.json"
       ],
       "decision_refs": [
         "0004",
@@ -28356,7 +28361,8 @@
         "0036",
         "0037",
         "0038",
-        "0039"
+        "0039",
+        "0040"
       ],
       "checks": [
         "project-state",

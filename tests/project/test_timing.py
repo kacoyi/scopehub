@@ -161,7 +161,7 @@ def split_harness_report(elapsed, *, profile='full'):
     report['run_id'] = 'windows-change-11-1'
     report['generated_at'] = {
         'full': '2026-11-20T00:12:34Z',
-        'records': '2026-11-20T00:02:34Z',
+        'records': '2026-11-20T00:01:44Z',
         'ci-windows-core': '2026-11-20T00:01:45Z',
     }[profile]
     report['environment'].update(system='Windows', machine='AMD64')
@@ -670,7 +670,8 @@ class HostedTimingTests(unittest.TestCase):
         windows = timing.report_sample(report)
         linux = split_linux_sample(windows)
         for history, acquired, available in (
-            ([], [], True), ([linux, windows], [], True), ([], [linux, windows], True), ([], [], False),
+            ([], [], True), ([linux, windows], [], True), ([linux, windows], [linux], True),
+            ([], [linux, windows], True), ([], [], False),
         ):
             with (self.subTest(history=bool(history), acquired=bool(acquired), jobs_available=available),
                   tempfile.TemporaryDirectory() as folder):
@@ -699,7 +700,9 @@ class HostedTimingTests(unittest.TestCase):
                     result = json.loads(contents)
                     collection = result['recent_collection']
                     self.assertEqual([] if acquired else ['11'], collection['missing_compact_run_ids'])
-                    self.assertEqual(2 if acquired else 0, len(collection['collected_samples']))
+                    self.assertEqual(sorted(timing.report_input_sha256(sample) for sample in acquired),
+                                     collection['downloaded_compact_inputs_sha256'])
+                    self.assertEqual(len(acquired), len(collection['collected_samples']))
                     if available:
                         observed, = result['hosted']
                         windows_job, = [row for row in observed['jobs'] if row['platform'] == 'Windows']
@@ -710,6 +713,19 @@ class HostedTimingTests(unittest.TestCase):
                         self.assertTrue(any(issue.get('source') == 'attempt_jobs'
                                             and issue['error'] == 'Job listing unavailable.'
                                             for issue in result['input_issues']))
+                if history and acquired:
+                    archive = json.loads(path.read_bytes())
+                    receipts = archive['recent_collection']['collected_samples']
+                    copied = timing.platform_report_receipt(windows, timing.report_input_sha256(windows))
+                    injected = path.with_name('injected-receipt.json')
+                    timing.save_review_archive(injected, {**archive, 'recent_collection': {
+                        **archive['recent_collection'], 'collected_samples': [*receipts, copied],
+                    }})
+                    with (patch.object(sys, 'argv', ['timing.py', '--report', str(injected)]),
+                          redirect_stdout(StringIO()) as stdout):
+                        timing.main()
+                    cold = json.loads(stdout.getvalue())
+                    self.assertEqual(receipts, cold['recent_collection']['collected_samples'])
 
     def test_cold_reopen_selects_the_latest_collection_in_either_order(self):
         run = hosted_run()
@@ -746,6 +762,16 @@ class HostedTimingTests(unittest.TestCase):
 
             old = save('old.json', genuine)
             new = save('new.json', missing)
+            copied_receipt = save('copied-receipt.json', dict(missing, collected_samples=[receipt]))
+            other_run_missing = dict(genuine, completed_runs_considered=3, runs_without_compact=2,
+                                     missing_compact_run_ids=['12', '13'])
+            reordered = save('reordered.json', dict(other_run_missing, missing_compact_run_ids=['13', '12']))
+            with_missing = save('with-missing.json', other_run_missing)
+            no_original = save('no-original.json', dict(genuine, collected_at=last), samples=())
+            unrelated_download = save('unrelated-download.json', {
+                **missing, 'completed_runs_considered': 2, 'runs_with_compact': 1,
+                'collected_samples': [receipt], 'cold_bootstrap': False,
+            })
             empty = save('empty.json', missing, samples=())
             tied = save('tied.json', dict(missing, collected_at=first))
             undated = save('undated.json', dict(missing, collected_at=None))
@@ -754,6 +780,20 @@ class HostedTimingTests(unittest.TestCase):
             self.assertEqual([receipt], reopen(old, old)['recent_collection']['collected_samples'])
             for ordered in ((old, alternate_offset), (alternate_offset, old)):
                 self.assertEqual(genuine, reopen(*ordered)['recent_collection'])
+            for ordered in ((with_missing, reordered), (reordered, with_missing)):
+                with self.subTest(reordered=[path.name for path in ordered]):
+                    self.assertEqual(other_run_missing, reopen(*ordered)['recent_collection'])
+            for supplement in (copied_receipt, unrelated_download, no_original):
+                for index, ordered in enumerate(((old, supplement), (supplement, old))):
+                    with self.subTest(supplement=supplement.name, order=index):
+                        replay = root / f'{supplement.stem}-{index}.json'
+                        for view in (reopen(*ordered, save_to=replay), reopen(replay)):
+                            current = view['recent_collection']
+                            self.assertEqual((last, 'c' * 40, []),
+                                             (current['collected_at'], current['capture_source'],
+                                              current['collected_samples']))
+                            objective, = view['objective_reviews']
+                            self.assertEqual(765, objective['recent_median_seconds'])
             for inputs, when, uncertain in [
                 ((old, new), last, False), ((alternate_offset, new), last, False),
                 ((old, tied), first, True), ((old, undated), None, True),

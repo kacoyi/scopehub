@@ -93,14 +93,14 @@ class ArchivedSplitPublisherTests(unittest.TestCase):
                         'event': 'pull_request', 'head_sha': 'b' * 40, 'checkout_sha': 'a' * 40}
         fixtures.native_raw_fixture(self, report, catalog)
         report.update(report_version='2.1', windows_producers={'browser': '1' * 64}, windows_python={})
-        for lane, started in (('python', '00:11:05'), ('recovery', '00:11:20')):
+        for lane, started, original in (('python', '00:11:05', '5'), ('recovery', '00:11:20', '6')):
             part = f'windows-python-{lane}'
             report['windows_python'][lane] = {
                 'id': part, 'status': 'passed', 'exit_code': 0, 'duration_seconds': 50,
                 'started_at': f'2026-11-20T{started}Z',
                 'command': [report['environment']['python_executable'], 'scripts/windows_python.py', lane],
                 'log': f".reports/runs/{report['run_id']}/{part}.log", 'log_sha256': '3' * 64,
-                'manifest_sha256': '4' * 64, 'producer_report_sha256': '5' * 64,
+                'manifest_sha256': '4' * 64, 'producer_report_sha256': original * 64,
             }
         combined = next(row for row in report['checks'] if row['id'] == check['id'])
         combined['duration_seconds'] = 65
@@ -108,6 +108,16 @@ class ArchivedSplitPublisherTests(unittest.TestCase):
                      'split_recovery_checks': [], 'run_observations': timing.RUN_OBSERVATION_CHECKS}
         with patch.object(timing, 'committed_windows_publisher', return_value=publisher):
             self.assertEqual('passed', timing.input_report_sample(report)['report_status'])
+            for aliased in ('browser', 'recovery'):
+                with self.subTest(aliased=aliased):
+                    rebound = deepcopy(report)
+                    original = report['windows_python']['python']['producer_report_sha256']
+                    if aliased == 'browser':
+                        rebound['windows_producers'][aliased] = original
+                    else:
+                        rebound['windows_python'][aliased]['producer_report_sha256'] = original
+                    with self.assertRaisesRegex(timing.TimingError, 'reuse an original report across roles'):
+                        timing.input_report_sample(rebound)
             invalid_gates = deepcopy(report)
             invalid_gates['integration_gates'].update(status='blocked', unverified=[check['id']])
             with self.assertRaisesRegex(timing.TimingError, 'integration gates.*contradict'):
@@ -179,6 +189,78 @@ class PublicPublisherObservationTests(unittest.TestCase):
 
     def weekly(self, archive, sample):
         return self.collect(archive, [self.linux, sample])
+
+    def test_full_timing_respects_a_failed_required_windows_producer(self):
+        catalog = fixtures.SPLIT_CATALOG
+        fixtures.use_catalog(self, catalog, lanes=timing.LEGACY_WINDOWS_LANES)
+        report = fixtures.split_harness_report(675)
+        report['ci'] = dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(self.clock)), checkout_sha='a' * 40)
+        fixtures.native_raw_fixture(self, report, catalog)
+        failed = deepcopy(report)
+        workspace = next(row for row in failed['checks'] if row['id'] == 'workspace-timeframe')
+        workspace.update(status='failed', exit_code=1)
+        failed.update(status='failed', limitations=[timing.WINDOWS_LANE_FAILED], integration_gates=
+                      timing.integration_gates(failed['checks'], catalog['required_change_checks'], requested=True))
+        valid_sample = timing.report_sample(failed, cache='warm')
+        forged_sample = timing.report_sample(report, cache='warm')
+        for browser_outcome, verification_outcome, expected in (
+            ('success', 'success', 'passed'),
+            ('failure', None, 'failed'),
+            ('success', 'failure', 'failed'),
+        ):
+            jobs = fixtures.HostedTimingTests.split_windows_jobs(self)
+            browser = next(row for row in jobs if row['name'] == timing.WINDOWS_PRODUCERS['browser'])
+            # The verification step by itself does not prove the whole job succeeded.
+            browser['conclusion'] = browser_outcome
+            aggregate = next(row for row in jobs if row['steps'][0]['name'] == timing.WINDOWS_FULL_STEP)
+            aggregate['conclusion'] = self.run['conclusion'] = 'success' if expected == 'passed' else 'failure'
+            aggregate['steps'][0]['conclusion'] = verification_outcome
+            self.clock = timing.hosted_timing(self.run, jobs)
+            actions = ('--actions', self.write_variant('producer-run', self.run), self.write_variant('producer-jobs', jobs))
+            for index, inputs in enumerate(((report, forged_sample, failed, valid_sample),
+                                            (valid_sample, failed, forged_sample, report))):
+                with self.subTest(browser=browser_outcome, verification=verification_outcome, order=index):
+                    args = [arg for position, row in enumerate(inputs)
+                            for arg in ('--report', self.write_variant(f'producer-report-{position}', row))]
+                    archive = self.directory / f'producer-{browser_outcome}-{verification_outcome}-{index}.json'
+                    ordinary = self.invoke(*args, *actions)
+                    with (patch.object(timing, 'hosted_repository', return_value='fixture/scopehub'),
+                          patch.object(timing, 'collection_source', return_value='c' * 40),
+                          patch.object(timing, 'recent_runs', return_value=[self.run]),
+                          patch.object(timing, 'download_timing', return_value=[forged_sample]),
+                          patch.object(timing, 'inspect_jobs', return_value=self.clock)):
+                        weekly = self.invoke(*args, '--recent', 1, '--github-actions', '--save', archive)
+                    cold = self.invoke('--report', archive)
+                    for view in (ordinary, weekly, cold):
+                        full, = (job for job in view['hosted'][0]['jobs'] if job['platform'] == 'Windows')
+                        self.assertEqual((765, 1687), (full['seconds']['total'], full['seconds']['runner']))
+                        attributed = {sample['report_status'] for sample in view['samples'] if sample['job'] is not None}
+                        self.assertEqual({expected}, attributed)
+
+    def test_scoped_windows_report_keeps_its_core_production_instant(self):
+        fixtures.use_catalog(self, fixtures.SPLIT_CATALOG, lanes=timing.LEGACY_WINDOWS_LANES)
+        jobs = fixtures.HostedTimingTests.split_windows_jobs(self, scoped=True)
+        self.clock = timing.hosted_timing(self.run, jobs)
+        report = fixtures.split_harness_report(30, profile='records')
+        report.update(run_id=fixtures.fast_report(20, 30)['run_id'],
+                      ci=dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(self.clock)), checkout_sha='a' * 40))
+        original = timing.report_sample(report)
+        late = dict(original, recorded_at='2026-11-20T00:02:34Z')
+        actions = ('--actions', self.write_variant('scoped-run', self.run), self.write_variant('scoped-jobs', jobs))
+        for index, ordering in enumerate(((late, original), (original, late))):
+            with self.subTest(order=index):
+                archive = self.directory / f'scoped-{index}.json'
+                args = [arg for position, row in enumerate(ordering)
+                        for arg in ('--report', self.write_variant(f'scoped-report-{position}', row))]
+                ordinary = self.invoke(*args, *actions)
+                weekly = self.collect(archive, ordering)
+                cold = self.invoke('--report', archive)
+                for view in (ordinary, weekly, cold):
+                    admitted, = [row for row in view['samples'] if row['job']]
+                    self.assertEqual(original['recorded_at'], admitted['recorded_at'])
+                    self.assertEqual('35', admitted['job']['job_id'])
+                    issue, = [row for row in view['input_issues'] if 'outside the publishing job' in row['error']]
+                    self.assertEqual('32', issue['job_id'])
 
     def write_variant(self, name, sample):
         path = self.directory / f'{name}.json'

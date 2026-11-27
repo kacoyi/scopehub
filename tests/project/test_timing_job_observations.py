@@ -123,6 +123,52 @@ class PublicJobObservationTests(unittest.TestCase):
                     self.assertCountEqual([receipts[platform] for platform in platforms],
                                           timing.platform_report_receipts(view['samples']))
 
+        cleanup = dict(completion, completed_at='2026-11-20T00:12:44Z',
+                       started_at='2026-11-20T00:12:43Z')
+        witnessed = dict(parent, steps=[setup, *parent['steps'], cleanup])
+        verify = parent['steps'][0]
+        variants = (
+            ('completion before cleanup', {'completed_at': '2026-11-20T00:12:43Z'}, (765, 10, 19, 1687)),
+            ('completion at cleanup', {'completed_at': '2026-11-20T00:12:44Z'}, (None, None, 19, None)),
+            ('verification before setup', {
+                'steps': [{'number': verify['number'], 'started_at': '2026-11-20T00:12:09Z'}],
+            }, (765, 10, 19, 1687)),
+            ('verification after setup', {
+                'steps': [{'number': verify['number'], 'started_at': '2026-11-20T00:12:28Z'}],
+            }, (765, 10, None, 1687)),
+        )
+        original_jobs = [linux, core, browser, python, witnessed]
+        other_path = root / 'additional-jobs.json'
+        jobs_path.write_bytes(timing.json_bytes({'jobs': original_jobs}))
+        for name, assertions, expected in variants:
+            other = {key: witnessed[key] for key in ('id', 'run_id', 'run_attempt', 'head_sha', 'run_url')}
+            other.update(assertions)
+            other_path.write_bytes(timing.json_bytes({'jobs': [other]}))
+            for paths in ((jobs_path, other_path), (other_path, jobs_path)):
+                with self.subTest(case=name, first=paths[0].name):
+                    saved = root / f'{name}-{paths[0].name}'
+                    actions = [arg for path in paths for arg in ('--actions', run_path, path)]
+                    observed = self.ordinary(root, '--report', report_path, '--report', linux_path,
+                                             *actions, '--save', saved)
+                    for view in (observed, self.ordinary(root, '--report', saved)):
+                        windows = next(row for row in view['samples'] if row['platform'] == 'Windows')['seconds']
+                        self.assertEqual(expected, tuple(windows[field] for field in (
+                            'total', 'tail', 'aggregate_setup', 'runner',
+                        )))
+
+        for name, boundary in (
+            ('no end after cleanup', {'completed_at': '2026-11-20T00:12:43Z'}),
+            ('no start before setup', {'started_at': '2026-11-20T00:12:09Z'}),
+        ):
+            with self.subTest(case=name):
+                jobs_path.write_bytes(timing.json_bytes({'jobs': [*original_jobs[:-1], {**witnessed, **boundary}]}))
+                saved = root / f'{name}.json'
+                observed = self.ordinary(root, '--report', report_path, '--report', linux_path,
+                                         '--actions', run_path, jobs_path, '--save', saved)
+                for view in (observed, self.ordinary(root, '--report', saved)):
+                    totals = {row['platform']: row['seconds']['total'] for row in view['hosted'][0]['jobs']}
+                    self.assertEqual({'Linux': 510, 'Windows': None}, totals)
+
     def test_step_clocks_use_joined_eligibility_before_selecting_a_phase(self):
         run = hosted_run()
         job = hosted_job(31, 'ubuntu', '00:10', '07:00', 'Run pnpm check', '01:05', '06:40')

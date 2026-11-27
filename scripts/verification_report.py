@@ -150,6 +150,14 @@ def archived_windows_python_lanes(profile):
     return (lane,) if lane in WINDOWS_PYTHON_PART_LANES else ()
 
 
+def distinct_windows_producer_reports(report):
+    """Compare the original report digests after their producing roles are validated."""
+    ordinary = report.get('windows_producers', {}).values()
+    python = (part['producer_report_sha256'] for part in report.get('windows_python', {}).values())
+    originals = [*ordinary, *python]
+    return len(originals) == len(set(originals))
+
+
 def windows_publisher_status_issue(status, checks, selected, catalog, *, scoped=False, auxiliary_failure=False):
     """Compare a report verdict with the checks and any independently scheduled work."""
     if status is None:
