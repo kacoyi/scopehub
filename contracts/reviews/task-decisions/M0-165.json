@@ -97,6 +97,26 @@
       "requested_at": "2026-11-27T09:14:20.304919+00:00",
       "request_id": "4ee1aedefc66e5510288938dd93f863837d3c5283e5ceb9f939587a4eb947cf3",
       "evidence_sha256": "689a24cbf57c74d74453f2d38642a9dd17dd5f6859e3cb5caaaeb1bd1ced1cd6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "fbc2808262a2bd9d43ba2d21a9debebf68976b57",
+      "verdict": "approved",
+      "decision": "APPROVE M0-165 fbc2808262a2bd9d43ba2d21a9debebf68976b57",
+      "scope": "APPROVE M0-165 fbc2808262a2bd9d43ba2d21a9debebf68976b57",
+      "observation": "The candidate passed the architecture check, and restoring only the former planned status produced exactly one error for the worker’s import of the trusted Python evaluator.",
+      "reviewer": "Independent Astra Standard (t1g7)",
+      "original_sha256": "e5bb56904a61dc561f68143b27bda12987429e5987846ab4372cffb6b08babbf",
+      "response_id": "faeeb1dc3ccfc289be458011c55da6503d32216c0af6bc78f31cf96fc0124ae8",
+      "response_sha256": "4ec3525ea73b6caf651c8e77e7740e3916e82cf7f1804c705cda1779c996e55a",
+      "legacy_response_sha256": "2d05241fb5334ee83822028602ca390e2024aea97a4c2148b7cf9dbfc1d0f970",
+      "observation_body_sha256": "2eb18baf2eab66f10317df87cec7367f5a869c80fb9f8cb9360161301782c1fc",
+      "event": {
+        "id": "msg_0a204a640d576745016b094a7ade7087d0b456889981292feb",
+        "timestamp": "2026-11-27T09:16:56.713Z"
+      },
+      "supersedes": "4ee1aedefc66e5510288938dd93f863837d3c5283e5ceb9f939587a4eb947cf3",
+      "evidence_sha256": "09e27b2618ae643423639d4fb274f1a1102890422da88b4886b442ef7e057ccf"
     }
   ]
 }
