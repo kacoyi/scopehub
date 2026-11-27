@@ -418,18 +418,17 @@ test('published CSV requires a verified browser status before reopening', async 
   }
 });
 
-const revocationTest = test.extend({
-  localImportBridge: [async ({}, use, testInfo) => {
-    const { stdout, stderr } = await exec('cargo', [
-      'build', '--locked', '-p', 'scopehub-desktop', '--example', 'local_import_bridge',
-      '--features', 'portable-test-bridge', '--target-dir', 'target',
-    ], { cwd: root, timeout: 295_000 });
-    await testInfo.attach('local-import-bridge-build', { body: stdout + stderr, contentType: 'text/plain' });
-    await use(join(root, 'target/debug/examples', process.platform === 'win32' ? 'local_import_bridge.exe' : 'local_import_bridge'));
-  }, { timeout: 300_000 }],
+const csvAccessTest = test.extend({
+  localImportBridge: async ({}, use, testInfo) => {
+    const run = process.env.SCOPEHUB_WORKSPACE_TEST_RUN;
+    await testInfo.attach('local-import-bridge-build', {
+      body: await readFile(join(run, 'local-import-bridge-build.txt')), contentType: 'text/plain',
+    });
+    await use(join(run, process.platform === 'win32' ? 'local_import_bridge.exe' : 'local_import_bridge'));
+  },
 });
 
-revocationTest('published revocation removes visible and delayed frozen evidence and leaves an authorized clear', async ({ browser, localImportBridge }, testInfo) => {
+csvAccessTest('published revocation removes visible and delayed frozen evidence and leaves an authorized clear', async ({ browser, localImportBridge }, testInfo) => {
   const fixture = await publishCsvAccessFixture(testInfo, localImportBridge);
   const port = Number(process.env.SCOPEHUB_EVIDENCE_REVOCATION_PORT ?? await freePort());
   const { revoked, entitled, profile, market } = fixture;
@@ -530,7 +529,7 @@ revocationTest('published revocation removes visible and delayed frozen evidence
   }
 });
 
-revocationTest('CSV list recovery preserves the saved selection and timeframe undo through the native registry', async ({
+csvAccessTest('CSV list recovery preserves the saved selection and timeframe undo through the native registry', async ({
   page, localImportBridge,
 }, testInfo) => {
   const fixture = await publishCsvAccessFixture(testInfo, localImportBridge, { workspace: true });

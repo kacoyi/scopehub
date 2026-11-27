@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,10 +9,11 @@ import { prepareProfilePool } from './workspace_profile_pool.mjs';
 
 export default async function setup() {
   const root = fileURLToPath(new URL('../../', import.meta.url));
+  const exec = promisify(execFile);
   const windows = process.platform === 'win32';
   const witness = windows ? ['-p', 'scopehub-platform', '--example', 'windows_handoff_probe'] : [];
   // Build before either worker opens the binaries, including on Windows.
-  await promisify(execFile)('cargo', [
+  await exec('cargo', [
     'build', '--locked', '-p', 'scopehub-persistence', '--bin', 'workspace_bridge',
     '-p', 'scopehub-worker-host', '--example', 'history_bridge', '--bin', 'scopehub-indicator-child', ...witness, '--target-dir', 'target',
   ], { cwd: root, timeout: 295_000 });
@@ -27,6 +28,15 @@ export default async function setup() {
   };
   try {
     await mkdir(join(run, 'ports'));
+    const { stdout, stderr } = await exec('cargo', [
+      'build', '--locked', '-p', 'scopehub-desktop', '--example', 'local_import_bridge',
+      '--features', 'portable-test-bridge', '--target-dir', 'target',
+    ], { cwd: root, timeout: 295_000 });
+    const name = windows ? 'local_import_bridge.exe' : 'local_import_bridge';
+    const binary = join(run, name);
+    // Workers execute a run-owned copy so they never hold Cargo's linker output open.
+    await copyFile(join(root, 'target', 'debug', 'examples', name), binary);
+    await writeFile(join(run, 'local-import-bridge-build.txt'), `Prepared ${binary}\n${stdout}${stderr}`);
     if (windows) {
       const pendingPool = join(tmpdir(), 'scopehub-ubuntu-profiles-' + randomUUID());
       const bridge = join(root, 'target', 'debug', 'workspace_bridge.exe');
