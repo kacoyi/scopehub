@@ -89,6 +89,40 @@ fn report_cancelled_model(frame: &mut Value, model_work: &mut Option<(uuid::Uuid
     }
 }
 
+fn finish_indicator(
+    registry: &mut OperationRegistry<SqliteWorkspace>,
+    access: &WorkspaceAccess<'_>,
+    mut request: Value,
+) -> io::Result<()> {
+    let invalid = || io::Error::other("Invalid indicator notification.");
+    let frame = request.as_object_mut().ok_or_else(invalid)?;
+    if frame.len() != 3 {
+        return Err(invalid());
+    }
+    let worker = frame.remove("worker").ok_or_else(invalid)?;
+    let task_id = frame
+        .get("task_id")
+        .and_then(Value::as_str)
+        .filter(|id| uuid::Uuid::parse_str(id).is_ok())
+        .ok_or_else(invalid)?;
+    let response = if let Some(error) = worker.get("error") {
+        let worker_error = worker
+            .as_object()
+            .filter(|object| object.len() == 1)
+            .and_then(|_| serde_json::from_value(error.clone()).ok())
+            .unwrap_or_else(|| failure(ErrorCode::OUTPUTINVALID));
+        Err(worker_error)
+    } else {
+        Ok(worker)
+    };
+    match registry.finish_trusted_python(access, task_id, response) {
+        Ok(()) => Ok(()),
+        // A completion can cross an earlier cancellation or eviction.
+        Err(error) if error.code == ErrorCode::STALECONTEXT => Ok(()),
+        Err(_) => Err(io::Error::other("Indicator completion was refused.")),
+    }
+}
+
 fn serve(
     registry: &mut OperationRegistry<SqliteWorkspace>,
     access: &WorkspaceAccess<'_>,
@@ -178,32 +212,9 @@ fn serve(
             .as_ref()
             .is_ok_and(|frame| frame["type"] == "indicator_python_result")
         {
-            let request = request.expect("private frame");
-            let result = (|| {
-                let task_id = request["task_id"]
-                    .as_str()
-                    .filter(|id| uuid::Uuid::parse_str(id).is_ok())
-                    .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
-                if !request.as_object().is_some_and(|frame| frame.len() == 4)
-                    || !request["request_id"]
-                        .as_str()
-                        .is_some_and(|id| uuid::Uuid::parse_str(id).is_ok())
-                {
-                    return Err(failure(ErrorCode::INVALIDARGUMENT));
-                }
-                let worker = &request["worker"];
-                let finished = if worker.get("error").is_some() {
-                    Err(serde_json::from_value(worker["error"].clone())
-                        .unwrap_or_else(|_| failure(ErrorCode::OUTPUTINVALID)))
-                } else {
-                    Ok(worker.clone())
-                };
-                registry.finish_trusted_python(access, task_id, finished)?;
-                registry.indicator_preview_status(access, task_id)
-            })();
-            let mut frame = result_frame(result);
-            frame["request_id"] = request["request_id"].clone();
-            write_frame(&mut output, frame)?;
+            // The trusted launcher sends an ordered notification, independent
+            // of public status reads and their replies.
+            finish_indicator(registry, access, request.expect("private frame"))?;
             continue;
         }
         if count as u64 > request_limit(request.as_ref().ok()) {

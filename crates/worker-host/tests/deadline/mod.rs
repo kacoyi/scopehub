@@ -149,7 +149,7 @@ async fn observe_deadline(phase: Phase) {
     };
     let observation_elapsed = started.elapsed();
     let boot_dir = before.booted.first().map(|(_, _, path)| path);
-    let live_boot_scratch = live_processes.as_ref().and_then(|_| boot_dir).map(|path| {
+    let live_boot_scratch = live_processes.as_ref().and(boot_dir).map(|path| {
         fs::symlink_metadata(path.join("deadline-boot")).map(|metadata| metadata.is_file())
     });
     let live_child_scratch = live_processes
