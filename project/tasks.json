@@ -27077,7 +27077,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Independently review the exact PR workspace producer and separate ordered Python partitions. Retain a first ordinary full warm Windows PR with all five producer clocks, final publisher time, all 35 selections, the original attachments and Python case outcomes. Keep the 900-second timing finding open until that attempt passes within budget. The coordinator owns hosted verification and protected integration.",
+      "next_action": "Repair the shared Windows verification boundaries identified by the M0-139 and M0-146 independent reviews of 17cbf7c7. Retain public positive and rejected controls before handing the exact clean candidate to the coordinator. Qualify the repair with a first ordinary full warm Windows PR retaining all five producer clocks, final publisher time, all 35 selections, the original attachments and ordered Python case outcomes. Keep the 900-second timing finding open pending a successful comparable measurement.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -27173,6 +27173,7 @@
           "tooling"
         ],
         "context": [
+          "The exact M0-139 and M0-146 changes-requested decisions on 17cbf7c7, authenticated successful 45965137241 and failed workspace 45933801256 inputs are retained in .reports/audit-20261127/m0-146-17cbf7c7-repair/originals (manifest SHA-256 2caf29aa00a021f348ee3fbce0fd85bed043829e9006acdfd68fe9c830864ad2). M0-146 owns their joint repair without altering completed M0-139.",
           "Five-run original Windows producer comparison: archives/observations/repo-hygiene-20261125/pr123-warm-comparison-45965137241/lanes.json (SHA-256 6206f9265667be23e48c2c07db5bad6e26cba3b052f4eff980ab07a8641b8645). Checkout-local original copies, first-attempt job clocks, per-case and per-check data, producer and publisher evidence and both actual task receipts are indexed by .reports/audit-20261127/m0-146-windows-path/originals-sha256.json (SHA-256 1196fed139939e5b4097030bb11dcbbc34638bccba396febda2f639b3565eb8f).",
           "Independent M0-139 changes-requested decision on fd02515180726e0b843e590b62d0aeef404aed48, contracts/reviews/task-decisions/M0-139.json#/events/25. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-139-fd025151/original-assistant-response.jsonl (SHA-256 281f1f603d7eb47717aa318a3bee177f8a64cf2b75592057b9bfff3931f1539f).",
           "Independent M0-146 changes-requested decision on fd02515180726e0b843e590b62d0aeef404aed48, contracts/reviews/task-decisions/M0-146.json#/events/25. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-146-fd025151/original-assistant-response.jsonl (SHA-256 5b7148dc576d3017a0d99cd5ec0a4f8ab888996a15ae1fd7a463877d1bdc82aa).",
@@ -27245,6 +27246,18 @@
           "A contiguous transfer of whole discovery modules to the shorter Python job may reduce the measured recovery critical path. Four native samples expose variable host costs; compare the alternatives, original ordering, older partition boundaries and all producer intervals before choosing. Treat modeled gains as estimates pending the next full native observation."
         ],
         "risks": [
+          {
+            "failure": "Integration can report passed by substituting the four-producer head declaration for an unavailable five-producer tested merge workflow. Replay the genuine historical attempt against the correct source and reject a missing producer or an unavailable tested declaration without equivalence proof.",
+            "checks": ["project-state", "python-contracts-workers"]
+          },
+          {
+            "failure": "SIGINT after ordered Python execution can discard both reports or leave two passing copies with a failing exit. Exercise positive publication and interrupts at source validation and both publication writes, and compare the original case evidence with the unmodified control.",
+            "checks": ["project-state", "python-contracts-workers"]
+          },
+          {
+            "failure": "A passed or failed workspace row loses its indispensable Playwright output between producer execution, collection and public reopen. Verify producer digests and both public rejection boundaries using actual successful and failed workspace attachments, with the historical evidence scope kept visible.",
+            "checks": ["project-state", "python-contracts-workers"]
+          },
           {
             "failure": "An inactive workspace artifact may be accepted, a required fifth producer or attachment omitted, or the fifth job may alter protected pushes and historical imports.",
             "checks": ["project-state", "python-contracts-workers"]

@@ -10264,6 +10264,39 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-integration-uses-unverified-producer-topology",
+      "source": "Independent M0-139 changes-requested decision on 17cbf7c7dbe7290f3728eb6e4987a03df5aee973, the final event in contracts/reviews/task-decisions/M0-139.json. Original archives/observations/repo-hygiene-20261125/independent-final-m0-139-17cbf7c7/original-assistant-response.jsonl (SHA-256 43bc5e3fb64b1ce3594117eeb6f86e73ade66e8159814533dab984f7dea0bd07).",
+      "observation": "The tested merge declares five Windows producers while its PR head declares four. Using authenticated attempt-one jobs from 45965137241, the independent public integration replay went from blocked to passed when only the tested merge workflow became unavailable. The fallback read the head and omitted the workspace producer from the decision without establishing that the tested tree was equivalent.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-146"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-interruption-final-publication-passes",
+      "source": "Independent M0-146 changes-requested decision on 17cbf7c7dbe7290f3728eb6e4987a03df5aee973, the final event in contracts/reviews/task-decisions/M0-146.json. Original archives/observations/repo-hygiene-20261125/independent-final-m0-146-17cbf7c7/original-assistant-response.jsonl (SHA-256 bf35c8b51886624f0c2c81475f4b3c0cc7c1d8e88e86e8723e3281e765b68ef4).",
+      "observation": "The independent recovery producer replay completed 310 Python cases with one skip. A real SIGINT during final source revalidation raised KeyboardInterrupt and left neither report. A real SIGINT during the first publication write exited 1 while both reports said passed and lacked an interruption marker. The new isolated partition has no overlap window, but interruption accounting still depends on it.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-146"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-workspace-publication-accepts-missing-original-results",
+      "source": "Independent M0-146 changes-requested decision on 17cbf7c7dbe7290f3728eb6e4987a03df5aee973. Original archives/observations/repo-hygiene-20261125/independent-final-m0-146-17cbf7c7/original-assistant-response.jsonl (SHA-256 bf35c8b51886624f0c2c81475f4b3c0cc7c1d8e88e86e8723e3281e765b68ef4).",
+      "observation": "The workspace producer artifact and aggregate reopen accepted the authentic passed and failed workspace-timeframe outcomes after removal of their 926288-byte and 872015-byte Playwright results respectively. Removing the neighboring process log was rejected in each case. The original results were present in the controls and were omitted by collection after removal.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-146"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
