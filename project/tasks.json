@@ -27251,7 +27251,7 @@
             "checks": ["project-state", "python-contracts-workers"]
           },
           {
-            "failure": "SIGINT after ordered Python execution can discard both reports or leave two passing copies with a failing exit. Exercise positive publication and interrupts at source validation and both publication writes, and compare the original case evidence with the unmodified control.",
+            "failure": "SIGINT after ordered Python execution can discard both reports or leave two passing copies with a failing exit. Exercise positive publication and interrupts at source validation and both publication writes. Preserve existing isolated and overlapped manifest-sealing outcomes, and compare the original case evidence with the unmodified control.",
             "checks": ["project-state", "python-contracts-workers"]
           },
           {

@@ -209,7 +209,7 @@ def defer_finalization_sigint():
         nonlocal interrupted
         interrupted = True
 
-    # Overlapped runs already deliver signals through their cancellation
+    # Cooperative runs already deliver signals through their cancellation
     # callback. Preserve other callers' dispositions and worker threads.
     own_handler = (current_thread() is main_thread()
                    and signal.getsignal(signal.SIGINT) == signal.default_int_handler)
@@ -680,6 +680,7 @@ def run_verification(producer_signals):
                 if 'duration_seconds' in record:
                     record['started_at'] = part_start
             manifest = run_dir / f'{label}.json'
+            interrupted_before_seal = part_stop_requested()
             if manifest.is_file() and 'log_sha256' in record:
                 try:
                     # execute() has already closed and digested the complete original log.
@@ -691,6 +692,11 @@ def run_verification(producer_signals):
             elif record['status'] == 'passed':
                 record.update(status='failed', reason_code='missing_acceptance_evidence',
                               reason='Windows Python part completed without its case manifest.')
+            # An isolated producer owns the part through sealing. The
+            # historical overlap records a late stop at the producer level.
+            if (not recovery_window and not interrupted_before_seal and part_stop_requested()
+                    and record.get('reason_code') not in STOP_REASONS):
+                record.update(status='failed', reason_code='interrupted', reason=PYTHON_MANIFEST_INTERRUPTED)
         python_parts[lane] = record
         part_failed = record['status'] != 'passed'
     final_source = source_identity(ROOT)
