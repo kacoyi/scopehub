@@ -68,6 +68,26 @@
       "requested_at": "2026-11-27T11:41:54.428234+00:00",
       "request_id": "d7c29e5dd6006be1be9e71d600bb25061b53cfe7f0b47143ea085a9932bdd92f",
       "evidence_sha256": "bf43463c2df3debeaa5eed415a9fed8ba35ada4c9effb2ea3d0bc90f656348cf"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "38cb8777a2dba6ffbd1cec8fc14c456874cddbc2",
+      "verdict": "approved",
+      "decision": "APPROVE M0-176 38cb8777a2dba6ffbd1cec8fc14c456874cddbc2",
+      "scope": "APPROVE M0-176 38cb8777a2dba6ffbd1cec8fc14c456874cddbc2",
+      "observation": "The candidate rejected all nine recorded invalid deletion replies and returned the original receipt on every explicit retry with the same approval.",
+      "reviewer": "Independent Astra Standard (t1jq)",
+      "original_sha256": "660833d002484edd19f7bd546a5a2475691048c1f235ae7b0d006bd6f47ea831",
+      "response_id": "10b184ed95df7940ec962bf3f72d4cea23260dea0366db8755f86260af22b24f",
+      "response_sha256": "01a24e5e7743ebf99716732925d07604d127f19a681db7457917511ec05e0c3a",
+      "legacy_response_sha256": "1bc7b2bbf94137446a00b73a07356a104b75e93d73243d8152549312167afbd5",
+      "observation_body_sha256": "a8856db8082f0a1c19f60c598a742923f616dde1c80dd988ccf9ac52f96e0155",
+      "event": {
+        "id": "msg_089d4d0fe908bb32016b096e40668487d08f010b2403f83b7b",
+        "timestamp": "2026-11-27T11:49:42.602Z"
+      },
+      "supersedes": "d7c29e5dd6006be1be9e71d600bb25061b53cfe7f0b47143ea085a9932bdd92f",
+      "evidence_sha256": "156c0072c05af05610139da318fcb5345a1d3189e8afc84e6e8bc12eec27f145"
     }
   ]
 }
