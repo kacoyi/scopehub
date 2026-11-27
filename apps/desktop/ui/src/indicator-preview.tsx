@@ -271,10 +271,13 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
           throw new Error();
         }
         const event = status.event;
-        if (event.draft_id !== draft_id || event.code_hash !== code_hash || event.artifact.storage !== 'inline'
+        const { artifact } = event;
+        if (event.draft_id !== draft_id || event.code_hash !== code_hash || artifact.storage !== 'inline'
           || (sample && status.calendar_hash === null)
           || status.source_snapshot.content_hash !== snapshot.content_hash
           || event.snapshot.dataset_id !== snapshot.dataset_id || event.snapshot.dataset_revision !== snapshot.dataset_revision
+          || artifact.result.provenance.dataset_id !== snapshot.dataset_id
+          || artifact.result.provenance.dataset_revision !== snapshot.dataset_revision
           || event.snapshot.as_of_ms !== snapshot.as_of_ms || event.snapshot.from_ms !== range.from_ms
           || event.snapshot.to_ms !== range.to_ms
           || (approved ? event.params_hash !== approved.parameters_hash || event.snapshot.content_hash !== approved.snapshot_hash
@@ -282,7 +285,7 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
             : status.resolved_parameters.period !== requestedPeriod)) throw new Error();
         if (access && !access.canDisplay('csv', snapshot.dataset_id)) return;
         displayed.current = attempt;
-        showResult({ range: event.snapshot, result: event.artifact.result });
+        showResult({ range: event.snapshot, result: artifact.result });
         setResult(status);
         return;
       }

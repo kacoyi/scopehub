@@ -29369,7 +29369,7 @@
           "report_sha256": "0d96d171823dabd3aebc06893947edb08a9055a5015b735c6309484974bbf2dc"
         }
       ],
-      "next_action": "Commit and reproduce the provenance controls at the compiled chart and local writer boundary, then correlate the inline result provenance before presentation and retain before and after originals.",
+      "next_action": "Verify the repaired public-entry controls and adjacent workflows. Hand the clean candidate and exact local observations to the coordinator for independent review and native verification.",
       "blocker": null,
       "closure_reason": null,
       "evidence": [],
@@ -29382,6 +29382,7 @@
         "context": [
           ".reports/M3-007/provenance/review/original-assistant-response.jsonl",
           "contracts/reviews/task-decisions/M3-007.json#/events/9",
+        ".reports/M3-007/provenance/before-product-fix/results.json",
           ".reports/runs/20261127T090938.091051Z-6811b617/test-report.json",
           "apps/desktop/ui/src/indicator-preview.tsx",
           "crates/application/src/workspace/indicators.rs",
@@ -29437,7 +29438,7 @@
             "Changing the public operation, writer admission, artifact generation, source selection, or the polling deadline."
           ],
           "open_questions": [
-            "Which browser-observable failure and cleanup outcomes are reproduced using the actual writer artifacts?"
+            "Will the fixed consumer reject both real cross-source artifacts and the independent provenance faults while retaining positive and adjacent controls?"
           ]
         },
         "evolution": {
