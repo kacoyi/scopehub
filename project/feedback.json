@@ -9664,6 +9664,54 @@
         "prevention": "The architecture check uses its existing static import scan to reject an implemented Python caller importing from a module labeled planned. The focused regression also accepts a planned but unused module and the implemented target."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-private-workspace-handoff-readiness-after-startup",
+      "status": "open",
+      "severity": "major",
+      "source": "First ordinary PR 137 run 45980070684 on preview 31f1a4562179bd0691c46809a013202fbf6e1fb0. The original Windows report is archives/runs/windows-change-45980070684-1/test-report.json (SHA-256 b217b650e718496ca1c0e740a710c658bcf343d6508d46d86b71aef31092ccfd).",
+      "observation": "In first ordinary PR 137 run 45980070684 the Windows fresh-browser restore journey stopped at the private access document predicate after 12000 ms. The service startup wait had returned. The original omitted the failing visit and safe file or publication state. The same-preview Linux case and earlier and protected Windows controls passed.",
+      "task_ids": [
+        "M0-179"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45980070684-1",
+          "source_commit": "31f1a4562179bd0691c46809a013202fbf6e1fb0",
+          "report_sha256": "b217b650e718496ca1c0e740a710c658bcf343d6508d46d86b71aef31092ccfd"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-frozen-evidence-bridge-preparation-without-terminal-observation",
+      "status": "open",
+      "severity": "major",
+      "source": "First ordinary PR 137 run 45980070684 on preview 31f1a4562179bd0691c46809a013202fbf6e1fb0. The original Windows report is archives/runs/windows-change-45980070684-1/test-report.json (SHA-256 b217b650e718496ca1c0e740a710c658bcf343d6508d46d86b71aef31092ccfd).",
+      "observation": "In the same Windows run the frozen chart two-bar evidence case reported workspace_bridge.exe command failure while creating its synthetic profile, before the chart interaction. The raw result did not identify the exit status, signal, timeout or stderr. The same-preview Linux case and earlier and protected Windows controls passed.",
+      "task_ids": [
+        "M0-179"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45980070684-1",
+          "source_commit": "31f1a4562179bd0691c46809a013202fbf6e1fb0",
+          "report_sha256": "b217b650e718496ca1c0e740a710c658bcf343d6508d46d86b71aef31092ccfd"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

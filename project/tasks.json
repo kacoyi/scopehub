@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-179",
   "tasks": [
     {
       "id": "M0-001",
@@ -29487,6 +29487,110 @@
           "cleanup": "Correct the authoritative inventory in place and avoid a parallel catalog."
         }
       }
+    },
+    {
+      "id": "M0-179",
+      "title": "Qualify private handoff and frozen evidence preparation in native workspace verification",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-147"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "scope": [
+        "tests/ubuntu-preview",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "acceptance": [
+        "Bind the original ordinary Windows failure in each preparation to its test stage and to the passing same-preview Linux and adjacent native controls. Retain unknowns independently.",
+        "Exercise the ordinary successful entry and a relevant bounded rejection per affected preparation, retain safe observations and verify cleanup. Preserve the actual restart and frozen selection assertions and fix a deeper cause when the evidence identifies it.",
+        "Obtain independent review, matching native Windows and Linux coverage, and the protected recheck for the correction."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45980070684-1",
+          "source_commit": "31f1a4562179bd0691c46809a013202fbf6e1fb0",
+          "report_sha256": "b217b650e718496ca1c0e740a710c658bcf343d6508d46d86b71aef31092ccfd"
+        }
+      ],
+      "evidence": [],
+      "next_action": "Use the two original failing Windows entries and the same-preview Linux and adjacent native controls. Distinguish the private handoff wait and direct profile bridge creation at their existing boundaries. Preserve each unknown and inspect the earliest evidenced cause before choosing a correction.",
+      "plan": {
+        "outcome": "Both affected fixture preparations admit the real successful journey and report the observed failing stage without exposing the private capability or discarding cleanup. Qualify the exact Linux and Windows paths and integrated source.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ubuntu-preview/workspace_service_readiness.mjs",
+          "project/checks.json",
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json"
+        ],
+        "hypotheses": [
+          "The readiness wait completed before the private access document predicate expired. The original records insufficient detail to identify the visit, file state or mismatch.",
+          "The frozen evidence fixture ran the bridge against a synthetic profile and the command failed before the chart action. Check existing evidence for startup, completion, process ownership and cleanup separately from the handoff wait."
+        ],
+        "risks": [
+          {
+            "failure": "A longer timeout, a blind retry, dropping cleanup or retaining the private document could hide the failure or expose a capability. Exercise normal and bounded unavailable preparation and inspect what is retained.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Preserve original observations, adjacent passing cases and the previous fixture path until the changed boundary and cleanup have been verified.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ubuntu-preview/workspace_service_readiness.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/0"
+            }
+          ],
+          "non_goals": [
+            "Product features, new permissions, persistent user data and unrelated fixture failures."
+          ],
+          "open_questions": [
+            "Which startup visit and handoff observation failed on Windows? Which exit condition or phase prevented bridge preparation? Is there a shared cause? The originals do not establish these answers."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Normal startup and restart, eligible undo, two-bar evidence selection, synthetic isolation, private handoff, bounded waiting and cleanup."
+          ],
+          "change": [
+            "Correct the supported preparation fault or close the demonstrated diagnostic gap at each actual boundary, with durable discriminating observations."
+          ],
+          "data_plan": "Use disposable synthetic profiles and record stages, durations and safe process facts. Keep private access values and profile contents out of diagnostics.",
+          "cleanup": "Verify that the service, direct bridge and temporary profile owners are released on both the normal and failing paths."
+        },
+        "independent_review": true
+      },
+      "blocker": null,
+      "closure_reason": null
     }
   ]
 }
