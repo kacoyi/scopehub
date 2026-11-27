@@ -26606,7 +26606,8 @@
         "On the common source, preserve compatible number-only step fragments, withhold conflicting or unbound fragments from their dependent phases, and retain independent clocks through ordinary reads, offline weekly collection, rotation and cold reopen.",
         "Public and weekly timing preserve an aggregate for equivalent feasible endpoint assignments and withhold only affected metrics when the exact duration can change. Cover sub-microsecond distinctions, equivalent offsets, rotation, cold read and a separately reserved producer.",
         "Retain execution when observed steps and feasible ordering establish identical endpoints despite missing unrelated job starts. Keep runner sums unknown when a required job interval is unavailable. Exercise both originals and rejected ordering or incomplete endpoint controls.",
-        "A missing aggregate or producer job boundary can erase a measured execution interval or authorize an infeasible order. Check known or absent starts and ends, contradictory order, reordered and duplicate facts, cold reopen and rotated captures. Keep unknown queue and runner values where exact endpoints are absent."
+        "A missing aggregate or producer job boundary can erase a measured execution interval or authorize an infeasible order. Check known or absent starts and ends, contradictory order, reordered and duplicate facts, cold reopen and rotated captures. Keep unknown queue and runner values where exact endpoints are absent.",
+        "Reject an infeasible Windows scheduling cut when an observed aggregate step completion precedes a prerequisite finish, even if job and step starts are absent. Retain the demonstrated 1242-second and 827-second controls and independent clocks."
       ],
       "checks": [
         "project-state",
@@ -26614,7 +26615,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Use the common local handoff in .reports/m0-155-post-4c4865fa/handoff.json for exact-source independent review and matching verification. The coordinator owns the five held requests, hosted and native qualification, and the November 28 actual observation.",
+      "next_action": "Use the common local handoff in .reports/m0-155-post-b6cd4be5/handoff.json for scoped exact-source independent review and matching verification. The coordinator owns the five held requests, hosted and native qualification, and the November 28 actual observation.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26641,7 +26642,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-155-318f54c8/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-155-de7e2376/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-155-4c4865fa/original-assistant-response.jsonl",
-          "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json"
+          "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-155-b6cd4be5/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "Recent preload and historical linked reads can see different retained evidence when a conflict removes the platform index entry or an attempt is older than the routine window.",
@@ -26899,6 +26901,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "Checking only setup starts or cleanup ends admits an impossible prerequisite order when a complementary endpoint survives. Compare the observed job and step facts at the common scheduling cut, then retain only measurable metrics supported by a viable order.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain all source captures, saved reviews and original classifications if a change loses a valid clock or expands the ordinary read without a bound.",
@@ -27004,7 +27013,8 @@
         "At ordinary and offline weekly entries, reject a proved event-head ancestor across shallow boundaries and withhold fallback when Git ancestry is incomplete at the reader. Preserve independently observed Actions clocks and the qualified expired-preview controls on cold reread.",
         "Exclude independently disproved Linux and Windows checkouts before cross-platform conflict detection. The real paired valid Windows receipt and independent Actions clocks survive an invalid Linux counterpart in ordinary and cold weekly reads. Genuine expired previews continue to qualify.",
         "Check reachable shallow boundary parent claims even when graph enumeration is unavailable. Withhold unproven checkout qualification when the bounded search cannot establish it. Keep genuine Windows receipts and separate Actions clocks with both input orders and both proof controls.",
-        "A rejected report can enter checkout conflict reduction and withdraw a genuine receipt on another platform. Check genuine paired receipts beside late digestless or incomplete reports in both orders and cold reopen, with a valid legacy control."
+        "A rejected report can enter checkout conflict reduction and withdraw a genuine receipt on another platform. Check genuine paired receipts beside late digestless or incomplete reports in both orders and cold reopen, with a valid legacy control.",
+        "Reject a raw report whose present source facts contradict its checkout claim before cross-platform conflict reduction. On the PR 96 public replay, preserve both original receipt identities and separately observed Windows clocks. Retain legacy records that genuinely omit optional source fields."
       ],
       "checks": [
         "project-state",
@@ -27012,7 +27022,7 @@
       ],
       "diagnostic_reports": [],
       "evidence": [],
-      "next_action": "Use the common local handoff in .reports/m0-155-post-4c4865fa/handoff.json for exact-source independent review and matching verification. The coordinator owns the five held requests, hosted and native qualification, and the November 28 actual observation.",
+      "next_action": "Use the common local handoff in .reports/m0-155-post-b6cd4be5/handoff.json for scoped exact-source independent review and matching verification. The coordinator owns the five held requests, hosted and native qualification, and the November 28 actual observation.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -27041,7 +27051,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-318f54c8/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-de7e2376/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-4c4865fa/original-assistant-response.jsonl",
-          "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json"
+          "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-b6cd4be5/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "The substitute Git fingerprint is computable with the standard library; importing the full project entry brings an unrelated parser into the weekly job.",
@@ -27156,6 +27167,13 @@
           },
           {
             "failure": "A rejected report can enter checkout conflict reduction and withdraw a genuine receipt on another platform. Check genuine paired receipts beside late digestless or incomplete reports in both orders and cold reopen, with a valid legacy control.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A raw report can contradict its own source stability flag and withdraw an independent receipt after compaction. Apply one admission decision before reduction and compare the genuine PR 96 pair against a self-contradictory report and an honest legacy control.",
             "checks": [
               "project-state",
               "python-contracts-workers"

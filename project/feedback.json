@@ -10344,6 +10344,38 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "timing-aggregate-setup-completion-contradicts-prerequisite-order",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-155 decision 94b1f6859fa80e612ab3dbc276ce6a57b790ec33b4e4d49cd2778cff167bf613 on b6cd4be5ccb66c7eaad60cfc2ac81c97e51f63fa at contracts/reviews/task-decisions/M0-155.json#/events/25. Original assistant response archives/observations/repo-hygiene-20261125/independent-final-m0-155-b6cd4be5/original-assistant-response.jsonl (SHA-256 4748111feb8308fba96477962a55915b39ebd9b7fe5ef9c8f8e112636feb6fe8).",
+      "observation": "In a controlled replay of the seven genuine run 45838575346 jobs, the Windows aggregate job start and setup step start were absent. The observed setup step completion was thirteen seconds before the modified Python prerequisite completion. Ordinary, offline weekly and cold reads still admitted a 1242-second Windows harness sample. Windows wall time remained 1291 seconds and Linux wall and runner times remained 950 and 948 seconds.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-contradictory-raw-source-withdraws-independent-receipts",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-156 decision f6d7519ec16d81188c715374b70cbca56e6943625a9f5785de637ba18a4dfdee on b6cd4be5ccb66c7eaad60cfc2ac81c97e51f63fa at contracts/reviews/task-decisions/M0-156.json#/events/27. Original assistant response archives/observations/repo-hygiene-20261125/independent-final-m0-156-b6cd4be5/original-assistant-response.jsonl (SHA-256 b2f0bf1639a69013da840b6c56d75ec5e0f25e0b2f0c46d2cb4a2e2dbb1a7a08).",
+      "observation": "In a controlled cold reopen of the real PR 96 weekly archive, a Linux raw report retained its original publisher, time and input digest but claimed different start and end commits. Setting source_unchanged to true admitted the contradicted checkout and removed both genuine receipts. The same replay with source_unchanged false preserved them. The independent Windows 876-second wall and 2584 runner-seconds survived.",
+      "task_ids": [
+        "M0-156"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
