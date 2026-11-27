@@ -155,6 +155,26 @@
       "requested_at": "2026-11-27T09:36:43.731803+00:00",
       "request_id": "bd47b0f6fceaeb6213270401fa4f1ccf7319dad793ade8f2d3420cd99a951c3e",
       "evidence_sha256": "297f9e07c06ca2a650343f9c4e6a723672d5303e89dd7cd6df90ac5df9eb1872"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d412069b5baa15a9f5a03fb512eea911e82ba886",
+      "verdict": "approved",
+      "decision": "APPROVE M3-007 d412069b5baa15a9f5a03fb512eea911e82ba886",
+      "scope": "APPROVE M3-007 d412069b5baa15a9f5a03fb512eea911e82ba886",
+      "observation": "After one lost status delivery, the candidate component displayed 3500.5 for the normal sample and Unknown for the gapped sample, rejected both reciprocal artifact swaps, and issued exactly one cleanup request for each original task.",
+      "reviewer": "Independent Astra Standard (t1gq)",
+      "original_sha256": "5d4a723560c2f3054bd3c1b08d772cdb8734c31631153d27ce9ccc224388a893",
+      "response_id": "10efeeab2220962d04267ab37c83e6bae1bf38e969e171aecaee4e3b7939dea4",
+      "response_sha256": "6cf0ada9e1190a625330e54044141b721156a99742ba8bfb8751d239cc7b10a0",
+      "legacy_response_sha256": "389369db4572ebf4c3852f9cebc627dfdde56e221d8e0e92e45f3fb5edc5ebd2",
+      "observation_body_sha256": "96d56eba951459ec68a5184f2b88231418fc5ae46b6835d97feed657711465e5",
+      "event": {
+        "id": "msg_0330b1b0b320c02d016b09505f1c9c87d0b290dc298d540b77",
+        "timestamp": "2026-11-27T09:42:12.064Z"
+      },
+      "supersedes": "bd47b0f6fceaeb6213270401fa4f1ccf7319dad793ade8f2d3420cd99a951c3e",
+      "evidence_sha256": "858442d7ef0e62a13b3f62ac2ba921985cae710a68eeb06321ba843181bc4ddd"
     }
   ]
 }
