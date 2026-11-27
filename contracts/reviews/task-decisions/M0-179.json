@@ -39,6 +39,26 @@
       "requested_at": "2026-11-27T11:10:43.117932+00:00",
       "request_id": "ce7d95f8d6bc4cbf5c0d1ed17467f2a1fff11f527083d8272f6ef4282fe2c8b7",
       "evidence_sha256": "f73743b8403df78fff3f043f6c0b85532b8ff654f7582ff6e6a2d3f324cc0aa4"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e4b1a7d2ce6718e5e0b4aeeb121a5fc7f5ba5c0f",
+      "verdict": "approved",
+      "decision": "APPROVE M0-179 e4b1a7d2ce6718e5e0b4aeeb121a5fc7f5ba5c0f",
+      "scope": "APPROVE M0-179 e4b1a7d2ce6718e5e0b4aeeb121a5fc7f5ba5c0f",
+      "observation": "I observed a valid same-port handoff document remain unready for the full 12-second deadline when the current launcher supplied no matching publication notice.",
+      "reviewer": "Independent Astra Standard (t1j3)",
+      "original_sha256": "3f034a7fd7b283c576a66f0298eccbf03d9ede742cebe985c4f7a89103f61e92",
+      "response_id": "0558458769e23df07bc566a698d4e6f9383f74155c2c47ab398b0990d77dce3b",
+      "response_sha256": "864933f6999e029a3d37dee317ba363717b371c267ed5c3a5cfb24f8d0e0ee01",
+      "legacy_response_sha256": "74474e491f70ed95aad201f5e27ba639e336599a154822b861edbb2ae9cfa686",
+      "observation_body_sha256": "7a1c5d2d005940580f7bfff7d259823fc349655aa0ca8dcb3869fc260315f97a",
+      "event": {
+        "id": "msg_0596a4f2fe7323e7016b09664506f087d093cf53194ec20cae",
+        "timestamp": "2026-11-27T11:15:35.975Z"
+      },
+      "supersedes": "ce7d95f8d6bc4cbf5c0d1ed17467f2a1fff11f527083d8272f6ef4282fe2c8b7",
+      "evidence_sha256": "6dad070be97a9f39f5c5fe0f140304540165cae5b3fc942a45159452c34280cb"
     }
   ]
 }
