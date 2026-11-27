@@ -27284,6 +27284,133 @@
       }
     },
     {
+      "id": "M0-170",
+      "title": "Qualify the public CSV preview preceding a cancelled reviewed save",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M1-008"
+      ],
+      "scope": [
+        "apps/desktop/src-tauri",
+        "crates/worker-host",
+        "crates/application",
+        "python/worker_runtime"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Bind the failing public preview, same-case passing controls and the separate reviewed save to their exact native source and original logs. Identify the stage that was actually reached and preserve missing observations.",
+        "Classify or correct the CSV preview timeout at the ordinary desktop entry using an isolated synthetic source, a genuinely completed preview and a bounded early stall or failed preview. Verify cancellation after admission on a successful preview preserves the unwritten profile and an ordinary subsequent operation.",
+        "Retain original and corrective evidence, qualify the changed source on native Windows, obtain independent review and recheck the integrated source."
+      ],
+      "checks": [
+        "project-state",
+        "rust-contracts-workers",
+        "local-folder-import",
+        "architecture",
+        "market-fixtures",
+        "python-contracts-workers",
+        "python-types"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-170-49321535db353478.json",
+          "sha256": "645256c4653d9718cc52608bd356950b81c3bbc7238762f774d040e6780f4df6"
+        },
+        {
+          "path": "project/evidence/M0-170-f3c8a70a8bcd1c5e.json",
+          "sha256": "66475e637116b8eb5bf7ba21800809ab99b4ffa7d35991e590694d3dd1220e87"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45848342284-1",
+          "source_commit": "10024108d06f2d6adaf095b1ccb1a9d1bd531b82",
+          "report_sha256": "23dbf3f6ac858b6cd0c8becceed7cc2812b3cf5f5b1a7221b7d0404ff523426e"
+        },
+        {
+          "run_id": "windows-change-45848342284-1",
+          "source_commit": "10024108d06f2d6adaf095b1ccb1a9d1bd531b82",
+          "report_sha256": "d2522517d478284ed0ff105716383b337d40b8b114f84db18b0ce319b999b281"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Scoped pre-integration qualification passed. Independent approval of 4954f35d27e102a79f98ea0f2379093d2d60e777 applies to guarded source 6641533e96a144636bf6a142f63668b62aa8d2b7, whose only additional file records that review. Guarded run 45930637026 passed all seven required checks on native Windows and Linux. The public bridge cases verified a completed preview, a bounded interruption that leaves the preview unable to authorize a save, and cancellation after a separate save holds admission. The following ordinary load returned not_saved and the profile directory was absent. Ordinary PR 144 run 45930612626 passed the relevant Rust cases on both platforms and omitted the task-cadence local-folder-import check. PR 142 run 45848342284 stopped after selection at the initial public preview timeout, before save admission or cancellation. The separate save recovery and passing controls are retained with their source and logs. The original worker exchange stage, cleanup, interpreter ownership and cause remain unknown. The coordinator owns the protected integration recheck and retention of the first protected result.",
+      "plan": {
+        "outcome": "Bind the failing public preview, same-case passing controls and the separate reviewed save to their exact native source and original logs. Identify the stage that was actually reached and preserve missing observations. Classify or correct the CSV preview timeout at the ordinary desktop entry using an isolated synthetic source, a genuinely completed preview and a bounded early stall or failed preview. Verify cancellation after admission on a successful preview preserves the unwritten profile and an ordinary subsequent operation.",
+        "change_types": [
+          "tooling",
+          "market-fixtures"
+        ],
+        "context": [
+          "apps/desktop/src-tauri/src/bridge_tests.rs",
+          "apps/desktop/src-tauri/src/local_import.rs",
+          "crates/worker-host/src/local_import.rs",
+          "project/checks.json",
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json"
+        ],
+        "hypotheses": [
+          "The first worker exchange expired after the source read. The original fixture restricted Windows worker pipe I/O to one blocking thread, although the save blocker had yet to start. The log does not establish the cause."
+        ],
+        "risks": [
+          {
+            "failure": "A longer timeout or a retry before the save could hide a stuck preview or allow the cancellation assertion to pass without exercising the intended save phase.",
+            "checks": [
+              "project-state",
+              "rust-contracts-workers",
+              "local-folder-import"
+            ]
+          }
+        ],
+        "rollback": "Restore the preceding implementation and retain the diagnosed failures and controls if the ordinary contract changes.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "desktop",
+            "worker-host",
+            "application",
+            "worker-runtime"
+          ],
+          "entrypoints": [
+            "apps/desktop/src-tauri/src/bridge_tests.rs",
+            "apps/desktop/src-tauri/src/local_import.rs",
+            "crates/worker-host/src/local_import.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/0"
+            }
+          ],
+          "non_goals": [
+            "Preserve production deadlines, import authorization, private profile ownership, cancellation and saved data. Use owned synthetic fixtures. Keep the Herdr portability task and indicator cleanup cases with their existing owners."
+          ],
+          "open_questions": [
+            "Which worker exchange stage expired and why was no replacement attempted? The original log did not observe worker stages, cleanup or interpreter ownership."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Preserve production deadlines, import authorization, private profile ownership, cancellation and saved data. Use owned synthetic fixtures. Keep the Herdr portability task and indicator cleanup cases with their existing owners."
+          ],
+          "change": [
+            "Use an ordinary blocking pool for the real preview and keep the one-thread pool for the deterministic save reread. Record the completed preview, admitted save and unwritten profile separately. Use the same synthetic CSV in the controlled preview interruption and check that it cannot authorize a save."
+          ],
+          "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
+          "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
+        }
+      }
+    },
+    {
       "id": "M0-151",
       "title": "Synchronize the owned market worker interruption witness",
       "milestone": "M0",
