@@ -264,6 +264,60 @@ class PublicPublisherObservationTests(unittest.TestCase):
                                             for issue in view['input_issues']))
                         self.assertTrue(any('publisher status' in issue['error'] for issue in view['input_issues']))
 
+    def test_raw_report_results_qualify_compact_claims_by_role_across_reopen(self):
+        aggregate, browser, actions = self.split_report_pair(browser_failed=True)
+        projections = []
+        for raw in (aggregate, browser):
+            compact = timing.report_sample(raw)
+            result = next(row for row in compact['checks'] if row['id'] == 'workspace-timeframe')
+            result['duration_seconds'] += 1
+            compact['seconds']['check_work'] += 1
+            projections.append(compact)
+        rival = deepcopy(browser)
+        next(row for row in rival['checks'] if row['id'] == 'workspace-timeframe')['duration_seconds'] += 1
+        cases = (
+            (projections, {'full': 13, 'ci-windows-browser': 13}),
+            ([*projections, browser], {'ci-windows-browser': 12}),
+            ([*projections, aggregate], {'full': 12}),
+            ([*projections, aggregate, browser], {'full': 12, 'ci-windows-browser': 12}),
+            ([projections[1], browser, rival], {}),
+        )
+        for index, (reports, expected) in enumerate(cases):
+            for order, inputs in enumerate((reports, list(reversed(reports)))):
+                with self.subTest(originals=index, order=order):
+                    archive = self.directory / f'raw-sources-{index}-{order}.json'
+                    args = [arg for number, item in enumerate(inputs) for arg in (
+                        '--report', self.write_variant(f'raw-source-{number}', item),
+                    )]
+                    observed = self.invoke(*args, *actions, '--save', archive)
+                    for view in (observed, self.invoke('--report', archive)):
+                        attributed = {row['profile']: next(check['duration_seconds'] for check in row['checks']
+                                                           if check['id'] == 'workspace-timeframe')
+                                      for row in view['samples'] if row['job'] and row['platform'] == 'Windows'}
+                        self.assertEqual(expected, attributed)
+                        self.assertEqual(1687, next(row['seconds']['runner'] for row in view['hosted'][0]['jobs']
+                                                    if row['platform'] == 'Windows'))
+
+    def test_retained_capture_acquires_raw_source_without_changing_the_sample(self):
+        _, browser, actions = self.split_report_pair()
+        archive = self.directory / 'manual.json'
+        self.invoke('--report', self.write_variant('original-browser', browser), *actions, '--save', archive)
+        stored = json.loads(archive.read_text(encoding='utf-8'))
+        issues = []
+        originals, clocks = timing.archive_inputs(stored, archive.name, issues)
+        self.assertEqual([], issues)
+        archive = self.directory / f"ci-pull_request-{self.run['id']}-1.json"
+        timing.save_timing_capture(archive, timing.INTAKE_ATTEMPTS, [dict(row) for row in originals], clocks, [])
+        before = json.loads(archive.read_text(encoding='utf-8'))
+        self.assertNotIn('windows_raw_sources', before)
+        repository = self.clock['repository']
+        timing.update_timing_capture(archive, repository, self.run, timing.ci_key(self.clock), originals, clocks)
+        after = json.loads(archive.read_text(encoding='utf-8'))
+        self.assertEqual(before['samples'], after['samples'])
+        self.assertEqual(stored['windows_raw_sources'], after['windows_raw_sources'])
+        _, retained, _, _ = timing.read_timing_capture(archive)
+        self.assertEqual(stored['windows_raw_sources'], timing.windows_raw_sources(retained))
+
     def test_report_generated_after_last_upload_cannot_withdraw_original(self):
         _, browser, actions = self.split_report_pair()
         late = dict(browser, generated_at='2026-11-20T00:11:30Z')
@@ -283,6 +337,37 @@ class PublicPublisherObservationTests(unittest.TestCase):
                         self.assertEqual(680, original['seconds']['runner'])
                         issue, = (note for note in view['input_issues'] if 'outside the publishing job' in note['error'])
                         self.assertEqual('33', issue['job_id'])
+
+    def test_report_generated_outside_verification_and_staging_cannot_withdraw_original(self):
+        _, browser, actions = self.split_report_pair()
+        for label, transform in (('raw', lambda report: report), ('compact', timing.report_sample)):
+            original = self.write_variant(f'publisher-{label}-original', transform(browser))
+            for case, at, admitted in (
+                ('before verification', '00:01:59', False),
+                ('at verification', '00:02:00', True),
+                ('at staging completion', '00:11:27.999', True),
+                ('after staging', '00:11:28', False),
+            ):
+                changed = dict(browser, generated_at=f'2026-11-20T{at}Z')
+                variant = self.write_variant(f'publisher-{label}-{case}', transform(changed))
+                for index, (paths, inputs, expected) in enumerate((
+                    ((variant,), [changed], int(admitted)),
+                    ((original, variant), [browser, changed], int(not admitted)),
+                    ((variant, original), [changed, browser], int(not admitted)),
+                )):
+                    with self.subTest(format=label, case=case, inputs=paths):
+                        args = [arg for path in paths for arg in ('--report', path)]
+                        archive = self.directory / f'verification-staging-{label}-{case}-{index}.json'
+                        ordinary = self.invoke(*args, *actions)
+                        weekly = self.collect(archive, [timing.report_sample(row) for row in inputs])
+                        for view in (ordinary, weekly, self.invoke('--report', archive)):
+                            attributed = [row for row in view['samples'] if row['profile'] == 'ci-windows-browser'
+                                          and row['job']]
+                            self.assertEqual([680] * expected, [row['seconds']['runner'] for row in attributed])
+                            job, = (job for job in view['hosted'][0]['sibling_jobs'] if job['job_id'] == '33')
+                            self.assertEqual(680, job['seconds']['runner'])
+                            diagnostic = any('outside the publishing job' in row['error'] for row in view['input_issues'])
+                            self.assertEqual(not admitted, diagnostic)
 
     def test_raw_failed_check_without_log_reference_cannot_receive_clock_credit(self):
         _, browser, actions = self.split_report_pair(browser_failed=True)

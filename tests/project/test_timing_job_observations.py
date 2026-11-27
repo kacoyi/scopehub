@@ -233,6 +233,31 @@ class PublicJobObservationTests(unittest.TestCase):
                 with self.subTest(claim=name, first='sole'):
                     check(replaced, [jobs], sole)
 
+        # Initialization and cleanup still locate the job on the timeline
+        # when Actions supplies endpoints without a conclusion.
+        for anchor, edge, impossible, feasible, separate in (
+            (step(1, 'Set up job', '00:31', '00:32'), 'started_at', '00:32', '00:31',
+             (None, None, 16, 10, None, 79)),
+            (step(28, 'Complete job', '01:18', '01:18'), 'completed_at', '01:17', '01:18',
+             (29, 24, 16, None, None, None)),
+        ):
+            anchor.pop('conclusion')
+            anchor['status'] = 'completed'
+            name = anchor['name']
+            other_steps = [row for row in verification['steps'] if row['number'] != 27]
+            observed = dict(verification, steps=[*other_steps, anchor])
+            with self.subTest(step=name, claim='original'):
+                check(observed, [jobs], original)
+            for value, expected in ((impossible, original), (feasible, separate)):
+                other.write_bytes(timing.json_bytes({'jobs': [
+                    {**job_identity, edge: f'2026-11-20T00:{value}Z'},
+                ]}))
+                for order in ((jobs, other), (other, jobs)):
+                    with self.subTest(step=name, claim=value, first=order[0].name):
+                        check(observed, order, expected)
+            with self.subTest(step=name, claim='only impossible'):
+                check({**observed, edge: f'2026-11-20T00:{impossible}Z'}, [jobs], separate)
+
     def test_step_clocks_use_joined_eligibility_before_selecting_a_phase(self):
         run = hosted_run()
         job = hosted_job(31, 'ubuntu', '00:10', '07:00', 'Run pnpm check', '01:05', '06:40')

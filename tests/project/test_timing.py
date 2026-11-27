@@ -5,6 +5,7 @@ from copy import deepcopy
 from hashlib import sha256
 from io import StringIO
 import json
+from itertools import permutations
 import os
 from pathlib import Path
 import stat
@@ -771,10 +772,12 @@ class HostedTimingTests(unittest.TestCase):
             reordered = save('reordered.json', dict(other_run_missing, missing_compact_run_ids=['13', '12']))
             with_missing = save('with-missing.json', other_run_missing)
             no_original = save('no-original.json', dict(genuine, collected_at=last), samples=())
+            other_compact = dict(compact, run_id='windows-change-12-1', ci=dict(compact['ci'], run_id='12'))
             unrelated_download = save('unrelated-download.json', {
                 **missing, 'completed_runs_considered': 2, 'runs_with_compact': 1,
+                'downloaded_compact_inputs_sha256': [timing.report_input_sha256(other_compact)],
                 'collected_samples': [receipt], 'cold_bootstrap': False,
-            })
+            }, samples=(compact, other_compact))
             empty = save('empty.json', missing, samples=())
             tied = save('tied.json', dict(missing, collected_at=first))
             undated = save('undated.json', dict(missing, collected_at=None))
@@ -786,7 +789,7 @@ class HostedTimingTests(unittest.TestCase):
             for ordered in ((with_missing, reordered), (reordered, with_missing)):
                 with self.subTest(reordered=[path.name for path in ordered]):
                     self.assertEqual(other_run_missing, reopen(*ordered)['recent_collection'])
-            for supplement in (copied_receipt, unrelated_download, no_original):
+            for supplement in (copied_receipt, unrelated_download):
                 for index, ordered in enumerate(((old, supplement), (supplement, old))):
                     with self.subTest(supplement=supplement.name, order=index):
                         replay = root / f'{supplement.stem}-{index}.json'
@@ -797,6 +800,11 @@ class HostedTimingTests(unittest.TestCase):
                                               current['collected_samples']))
                             objective, = view['objective_reviews']
                             self.assertEqual(765, objective['recent_median_seconds'])
+            resaved_unavailable = root / 'resaved-no-original.json'
+            self.assertEqual([], reopen(no_original, save_to=resaved_unavailable)['recent_collection']['collected_samples'])
+            for companion in (no_original, resaved_unavailable):
+                for ordered in ((old, companion), (companion, old)):
+                    self.assertEqual(genuine, reopen(*ordered)['recent_collection'])
             for inputs, when, uncertain in [
                 ((old, new), last, False), ((alternate_offset, new), last, False),
                 ((old, tied), first, True), ((old, undated), None, True),
@@ -845,10 +853,12 @@ class HostedTimingTests(unittest.TestCase):
                 timing.main()
             return path, json.loads(stdout.getvalue())
 
-        def reopen(*paths, save_to=None):
+        def reopen(*paths, save_to=None, summary=None):
             argv = ['timing.py', *(argument for path in paths for argument in ('--report', str(path)))]
             if save_to:
                 argv.extend(('--save', str(save_to)))
+            if summary:
+                argv.extend(('--summary', str(summary)))
             with patch.object(sys, 'argv', argv), redirect_stdout(StringIO()) as stdout:
                 timing.main()
             view = json.loads(stdout.getvalue())
@@ -912,13 +922,56 @@ class HostedTimingTests(unittest.TestCase):
             invalid['recent_collection']['runs_with_compact'] = True
             invalid_path = folder / 'invalid-count.json'
             timing.save_review_archive(invalid_path, invalid)
-            self.assertEqual([], reopen(invalid_path)['collected_samples'])
+            self.assertIsNone(reopen(invalid_path))
             for companion in (incomplete_path, saved, invalid_path):
                 for paths in ((genuine, companion), (companion, genuine)):
                     with self.subTest(paths=[path.name for path in paths]):
                         combined = reopen(*paths)
                         self.assertEqual(both, combined['collected_samples'])
                         self.assertFalse(combined.get('collection_order_uncertain', False))
+
+    def test_collection_receipt_authority_survives_order_and_save(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            reports, collect, reopen = self.collection_replay(folder)
+            genuine, original = collect('genuine.json', reports)
+            both = original['recent_collection']['collected_samples']
+
+            def altered(name, change):
+                archive = json.loads(genuine.read_bytes())
+                change(archive['recent_collection'])
+                path = folder / name
+                path.write_bytes(timing.json_bytes(archive))
+                return path
+
+            invalid_copies = [altered(f'{count}.json', lambda record: record.update(runs_with_compact=count))
+                              for count in (True, False)]
+            no_listing = altered('no-listing.json', lambda record: record.pop('listed_attempt_jobs_sha256'))
+            empty_listing = altered('empty-listing.json', lambda record: record.update(listed_attempt_jobs_sha256=[]))
+            bad_count = altered('wrong-count.json', lambda record: record.update(
+                completed_runs_considered=2, runs_with_compact=2))
+            no_summary_count = altered('no-summary-count.json', lambda record: record.pop('runs_without_compact'))
+            rejected = invalid_copies + [no_listing, bad_count, no_summary_count]
+            orders = list(permutations((genuine, *invalid_copies)))
+            orders += [(genuine, *rejected), (*rejected, genuine)]
+            invalid_saved = folder / 'invalid-saved.json'
+            reopen(*rejected, save_to=invalid_saved, summary=folder / 'invalid-summary.md')
+            orders += [(genuine, invalid_saved), (invalid_saved, genuine)]
+            for index, paths in enumerate(orders):
+                with self.subTest(paths=[path.name for path in paths]):
+                    saved = folder / f'valid-{index}.json'
+                    current = reopen(*paths, save_to=saved)
+                    self.assertEqual(both, current['collected_samples'])
+                    self.assertFalse(current.get('collection_order_uncertain', False))
+                    self.assertEqual(current, reopen(saved))
+
+            for index, paths in enumerate(((genuine, empty_listing), (empty_listing, genuine))):
+                with self.subTest(paths=[path.name for path in paths]):
+                    saved = folder / f'uncertain-{index}.json'
+                    current = reopen(*paths, save_to=saved)
+                    self.assertTrue(current['collection_order_uncertain'])
+                    self.assertEqual([], current['collected_samples'])
+                    self.assertEqual(current, reopen(saved, genuine))
 
     def test_recent_collection_requires_original_layout_and_publishing_qualification(self):
         run = hosted_run()

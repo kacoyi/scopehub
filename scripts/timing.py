@@ -122,6 +122,7 @@ WINDOWS_LANE_STEPS = {f'Verify the Windows {lane} lane': role for lane, role in 
 WINDOWS_LAYOUT_STEPS = {WINDOWS_AGGREGATE_MARKER: False, WINDOWS_RECOVERY_MARKER: True}
 WINDOWS_PROFILE_STEPS = {WINDOWS_FULL_STEP: 'full', **{f'Verify {key} changes': key for key in SCOPED_PROFILES}}
 WINDOWS_ROLE_STEPS = {*WINDOWS_LAYOUT_STEPS, *WINDOWS_LANE_STEPS, WINDOWS_LANE_SELECTOR}
+WINDOWS_STAGING_STEP = 'Stage current verification evidence'
 HARNESS_STEPS = {
     'Run pnpm check',
     WINDOWS_FULL_STEP,
@@ -171,6 +172,16 @@ class TimingError(ValueError):
 
 class UnattributableReport(TimingError):
     """A readable report contradicts its source and cannot enter timing reduction."""
+
+
+class RawWindowsTiming(dict):
+    """A compact projection whose source bytes the timing reader inspected."""
+
+    __slots__ = ('source_digests',)
+
+    def __init__(self, sample, source_digests):
+        super().__init__(sample)
+        self.source_digests = source_digests
 
 
 def command(argv):
@@ -535,6 +546,8 @@ def input_report_sample(report, *, original_sha256=None):
         # Retained compacts cannot recover fields lost by projection. An
         # unbound raw input must stay diagnostic on archive reopen.
         sample['raw_publisher_unverified'] = True
+    if original_sha256 and windows_lineage_role(sample):
+        return RawWindowsTiming(sample, {original_sha256})
     return sample
 
 
@@ -1349,13 +1362,13 @@ class StepEvidence(NamedTuple):
         return self.identity_disputed or len(self.conclusions) > 1
 
     @property
-    def has_clock(self):
-        return any(values is None or values for values in self.endpoints.values())
-
-    @property
     def eligible(self):
         pending = bool(self.statuses) and self.statuses <= PENDING_STEP_STATUSES
         return not self.disputed and 'skipped' not in self.conclusions and not pending
+
+    @property
+    def supports_clock(self):
+        return self.eligible and any(values is None or values for values in self.endpoints.values())
 
     @property
     def succeeded(self):
@@ -1464,7 +1477,7 @@ def reconcile_steps(jobs, *, skipped=False):
 def joined_step_clock(primary, kind, names, steps):
     fields = ('start', 'end')
     candidates = [steps[name] for name in names & steps.keys()]
-    eligible = [step for step in candidates if step.eligible and step.has_clock]
+    eligible = [step for step in candidates if step.supports_clock]
     anonymous = [row for job, row in primary
                  if ('step_observations' not in job and 'timed_steps' not in job
                      and kind not in job.get('step_identities', {}))]
@@ -1501,7 +1514,7 @@ def job_time_choices(boundaries, primary, harness_steps, steps):
     for name, group in ACTIONS_ORDER_STEPS.items():
         groups[group] = fields = (f'{group}_start', f'{group}_end')
         step = steps.named.get(name)
-        if step and step.succeeded:
+        if step and step.supports_clock:
             anchors.update(zip(fields, step.endpoints.values(), strict=True))
 
     positions, unpositioned = {}, []
@@ -1516,7 +1529,7 @@ def job_time_choices(boundaries, primary, harness_steps, steps):
     # Numbered observations preserve the order of the actual historical job.
     # Repeated action names (downloads, uploads) have separate positions.
     for number, (name, step) in steps.visible.items():
-        if name in TIMED_STEPS or name in ACTIONS_ORDER_STEPS or not step.eligible or not step.has_clock:
+        if name in TIMED_STEPS or name in ACTIONS_ORDER_STEPS or not step.supports_clock:
             continue
         positions[number] = fields = ((number, 'start'), (number, 'end'))
         anchors.update(zip(fields, step.endpoints.values(), strict=True))
@@ -2130,7 +2143,7 @@ def missing_independent_job_clock(evidence, attempt):
                for role in roles)
 
 
-def job_outside_report(fact, recorded, *, dependent=None):
+def job_outside_report(fact, recorded, *, verification=None, dependent=None):
     choices = clock_choices(fact)
     order = local_job_order(choices)
     deadline = None
@@ -2144,14 +2157,26 @@ def job_outside_report(fact, recorded, *, dependent=None):
     if not can_order(choices, order):
         return True
 
-    # The report may be generated in verification or subsequent staging.
-    # Both occur after runner initialization and before runner cleanup.
-    lower = ordered_limit(choices, order, 'setup_end' if 'setup_end' in order else 'start')
-    upper = ordered_limit(choices, order, 'cleanup_start' if 'cleanup_start' in order else 'end', latest=True)
-    uploads = [number for number, (name, step) in (fact.visible_steps or {}).items()
+    lower_field = 'setup_end' if 'setup_end' in order else 'start'
+    upper_fields = ['cleanup_start' if 'cleanup_start' in order else 'end']
+    visible = fact.visible_steps or {}
+    uploads = [number for number, (name, step) in visible.items()
                if name.startswith('Run actions/upload-artifact@') and step.eligible]
-    if uploads and (last_upload := (max(uploads), 'end')) in order:
-        upper = min(upper, ordered_limit(choices, order, last_upload, latest=True))
+    if uploads:
+        upper_fields.append((max(uploads), 'end'))
+    if verification:
+        # This report passed source and publisher validation. Use the same
+        # ordered clock witnesses for its required verification and staging.
+        step = (fact.steps or {}).get(verification)
+        if step and step.supports_clock and 'harness_start' in order:
+            lower_field = 'harness_start'
+        staging = [number for number, (name, step) in visible.items()
+                   if name == WINDOWS_STAGING_STEP and step.supports_clock]
+        if len(staging) == 1:
+            upper_fields.append((staging[0], 'end'))
+    lower = ordered_limit(choices, order, lower_field)
+    upper_field = next(field for field in order if field in upper_fields)
+    upper = ordered_limit(choices, order, upper_field, latest=True)
     # Actions exposes whole-second bounds while the publisher records
     # fractional seconds. Coarse bounds cover their whole second; precise
     # bounds can be compared directly.
@@ -2197,7 +2222,8 @@ def report_job_issue(sample, attempt, run, evidence):
     status = sample.get('report_status')
     parent = (evidence.jobs.get((attempt, ('platform', 'Windows')))
               if producing_role[0] == 'producer' and split_windows_clock(run) else None)
-    if job_outside_report(fact, timestamp(sample['recorded_at']), dependent=parent if parent and parent.job else None):
+    if job_outside_report(fact, timestamp(sample['recorded_at']), verification=step if windows_publication else None,
+                          dependent=parent if parent and parent.job else None):
         error = 'The recorded report creation is outside the publishing job boundaries.'
     elif windows_publication and step in fact.successful_harness_steps and status in ('failed', 'blocked'):
         error = 'The timing report status contradicts the successful verification step.'
@@ -2223,14 +2249,12 @@ def reconcile_timing_clocks(samples, hosted, issues, *, report_issues=None):
 def unqualified_report_inputs(samples, issues, evidence=None):
     diagnostics = []
     unqualified = {id(row) for row in samples if report_attribution_issue(row, evidence, diagnostics)}
-    originals = defaultdict(lambda: defaultdict(list))
+    publications = defaultdict(list)
     for row in samples:
-        if (producer := windows_producer_job_name(row)) and id(row) not in unqualified and sample_identity_complete(row):
-            originals[native_lineage_key(row)][WINDOWS_PRODUCER_LANES[producer]].append(row)
-    for row in samples:
-        if (id(row) not in unqualified and row['profile'] == 'full' and split_windows_report(row)
-                and sample_identity_complete(row) and (producers := originals.get(native_lineage_key(row)))
-                and (issue := windows_report_lineage_issue(row, producers))):
+        if id(row) not in unqualified and windows_lineage_role(row) and sample_identity_complete(row):
+            publications[native_lineage_key(row)].append(row)
+    for reports in publications.values():
+        for row, issue in windows_lineage_conflicts(reports):
             unqualified.add(id(row))
             diagnostics.append({'run_id': observation_id(row), 'platform': 'Windows', 'error': issue})
     for issue in sorted(diagnostics, key=lambda note: json.dumps(note, sort_keys=True)):
@@ -2243,36 +2267,95 @@ def native_lineage_key(sample):
     return (*ci_key(sample['ci']), sample['source_commit'], sample['run_id'])
 
 
-def windows_report_lineage_issue(sample, producers):
-    lineage = sample.get('windows_lineage', {})
-    bindings = lineage.get('producers', {})
-    aggregate_checks = {row['id']: row for row in sample['checks']}
-    publishing, _, _ = native_publisher_contract(sample)
-    implemented = {row['id'] for row in publishing[1]['checks'] if row['status'] == 'implemented'} if publishing else set()
-    observed_roles = defaultdict(set)
-    for lane, records in producers.items():
-        for original in records:
-            digest = original.get('windows_lineage', {}).get('original_sha256')
-            if digest is not None:
-                observed_roles[digest].add(lane)
+def windows_lineage_role(sample):
+    if producer := windows_producer_job_name(sample):
+        return WINDOWS_PRODUCER_LANES[producer]
+    if sample['profile'] == 'full' and split_windows_report(sample):
+        return 'aggregate'
+    return None
+
+
+def windows_lineage_conflicts(reports):
+    originals, compacts = defaultdict(list), defaultdict(list)
+    raw_roles = defaultdict(set)
+    for row in reports:
+        observed = originals if isinstance(row, RawWindowsTiming) else compacts
+        role = windows_lineage_role(row)
+        observed[role].append(row)
+        if isinstance(row, RawWindowsTiming):
+            for digest in row.source_digests:
+                raw_roles[digest].add(role)
+    raw_aggregates = originals.pop('aggregate', ())
+    compact_aggregates = compacts.pop('aggregate', ())
+
+    # Only report bytes can establish the original publisher role. Qualify
+    # the raw aggregate with those producers before considering compact claims.
+    qualified_aggregates = []
+    for row in raw_aggregates:
+        if issue := windows_report_lineage_issue(row, originals, raw_roles):
+            yield row, issue
+        else:
+            qualified_aggregates.append(row)
+
+    qualified_producers = defaultdict(list, originals)
+    for role, rows in compacts.items():
+        for row in rows:
+            digest = row.get('windows_lineage', {}).get('original_sha256')
+            if digest in raw_roles and raw_roles[digest] != {role}:
+                yield row, f'The timing report binds the original {role} producer report to a different role.'
+            elif role in originals:
+                if not any(windows_compact_matches_original(row, original) for original in originals[role]):
+                    yield row, f'The timing report differs from the retained original {role} producer results.'
+            elif qualified_aggregates and not any(
+                    windows_producer_results_match(aggregate, row, role) for aggregate in qualified_aggregates):
+                yield row, f'The timing report differs from the retained original aggregate results for {role}.'
+            else:
+                qualified_producers[role].append(row)
+
+    for row in compact_aggregates:
+        sources = originals if qualified_aggregates else qualified_producers
+        if issue := windows_report_lineage_issue(row, sources, raw_roles):
+            yield row, issue
+        elif qualified_aggregates and not any(
+                windows_compact_matches_original(row, original) for original in qualified_aggregates):
+            yield row, 'The timing report differs from the retained original aggregate results.'
+
+
+def windows_compact_matches_original(compact, original):
+    if sample_core(compact) != sample_core(original):
+        return False
+    projected = original.get('windows_lineage', {})
+    claims = compact.get('windows_lineage', {})
+    if 'original_sha256' in claims and claims['original_sha256'] not in original.source_digests:
+        return False
+    for field in ('checks', 'producers', 'parts'):
+        supplied, observed = claims.get(field, {}), projected.get(field, {})
+        if any(supplied[key] != observed[key] for key in supplied.keys() & observed.keys()):
+            return False
+    return True
+
+
+def windows_report_lineage_issue(sample, producers, raw_roles):
+    bindings = sample.get('windows_lineage', {}).get('producers', {})
     for lane, digest in bindings.items():
-        roles = observed_roles.get(digest)
-        if roles and roles != {lane}:
+        if digest in raw_roles and raw_roles[digest] != {lane}:
             return f'The timing report binds the original {lane} producer report to a different role.'
     for lane, records in sorted(producers.items()):
+        if not records:
+            continue
         expected = bindings.get(lane)
         if expected is not None:
-            exact = [row for row in records if row.get('windows_lineage', {}).get('original_sha256') is not None]
+            exact = [row for row in records if isinstance(row, RawWindowsTiming)]
             if exact:
-                records = [row for row in exact if row['windows_lineage']['original_sha256'] == expected]
+                records = [row for row in exact if expected in row.source_digests]
                 if not records:
                     return f'The timing report does not bind the retained original {lane} producer report.'
-        if not any(windows_producer_results_match(sample, row, lane, aggregate_checks, implemented) for row in records):
+        if not any(windows_producer_results_match(sample, row, lane) for row in records):
             return f'The timing report differs from the retained original {lane} producer results.'
     return None
 
 
-def windows_producer_results_match(aggregate, original, lane, aggregate_checks, implemented):
+def windows_producer_results_match(aggregate, original, lane):
     if aggregate['report_status'] == 'passed' and original['report_status'] in ('failed', 'blocked'):
         return False
     lineage = aggregate.get('windows_lineage', {})
@@ -2283,6 +2366,9 @@ def windows_producer_results_match(aggregate, original, lane, aggregate_checks, 
         return False
     exact, observed = lineage.get('checks', {}), original_lineage.get('checks', {})
     comparable = exact.keys() & observed.keys()
+    aggregate_checks = {row['id']: row for row in aggregate['checks']}
+    publishing, _, _ = native_publisher_contract(aggregate)
+    implemented = {row['id'] for row in publishing[1]['checks'] if row['status'] == 'implemented'} if publishing else set()
     owned = implemented.intersection(original['selected'])
     return all(aggregate_checks.get(row['id']) == row and (
         row['id'] not in comparable or exact[row['id']] == observed[row['id']]
@@ -2322,7 +2408,15 @@ def coalesce_samples(samples, issues):
 
 
 def coalesce_sample_group(group, producers, run, issues):
-    candidates = [row for row in group if sample_eligible(row)]
+    originals = [row for row in group if isinstance(row, RawWindowsTiming) and sample_identity_complete(row)]
+    if originals:
+        # Failed reports can still provide independent measurements. Keep
+        # disagreements between their raw sources visible to the reducer.
+        known = sample_core(originals[0])
+        candidates = [*originals, *(row for row in group if not isinstance(row, RawWindowsTiming)
+                                    and sample_core(row) == known)]
+    else:
+        candidates = [row for row in group if sample_eligible(row)]
     if not candidates:
         # A diagnostic can still carry exact supplementary metadata. Compare
         # metadata only between projections of the same retained observation.
@@ -2736,12 +2830,12 @@ def native_report_issue(sample, run, issues, *, evidence=None):
     publishing, assignment, source_issue = (native_publisher_contract(sample)
                                             if identity and sample['task_id'] is None else (None, None, None))
     bindings = sample.get('windows_lineage', {}).get('producers', {}).values()
+    result_issue = None
     if len(bindings) != len(set(bindings)):
         result_issue = 'Windows producer bindings that reuse an original report across roles'
     elif sample.get('raw_publisher_unverified'):
         publishing, assignment = None, None
-    result_issue = None
-    if assignment is not None:
+    if assignment is not None and not result_issue:
         revision, catalog = publishing
         publisher = committed_windows_publisher(ROOT, revision)
         split_assignment = archived_split_assignment(publisher, assignment, catalog, ci, profile)
@@ -3688,6 +3782,19 @@ def collection_issue(note, label):
 def archive_inputs(data, label, issues, *, collection_issues=True, validation_issues=None):
     invalid = issues if validation_issues is None else validation_issues
     samples = admitted_records(data.get('samples'), valid_sample, f'timing sample in {label}', invalid)
+    # This metadata ties retained projections to previously inspected raw
+    # inputs. A standalone compact's publisher claims cannot supply it.
+    raw_sources = data.get('windows_raw_sources')
+    if isinstance(raw_sources, dict) and raw_sources:
+        for index, sample in enumerate(samples):
+            role = windows_lineage_role(sample)
+            if not role:
+                continue
+            digests = raw_sources.get(report_input_sha256(sample))
+            if isinstance(digests, list) and digests and all(map(compact_input_digest, digests)):
+                sources = set(digests)
+                if role == 'aggregate' or sources == {sample.get('windows_lineage', {}).get('original_sha256')}:
+                    samples[index] = RawWindowsTiming(sample, sources)
     hosted = admitted_records(data.get('hosted'), valid_clock, f'attempt clock in {label}', invalid)
     if collection_issues:
         notes = admitted_records(data.get('input_issues', []),
@@ -4019,7 +4126,14 @@ def offline_budget_status(root, feedback, tasks):
 
 
 def distinct_observations(rows):
-    unique = {json.dumps(row, sort_keys=True): row for row in rows}
+    unique = {}
+    for row in rows:
+        key = json.dumps(row, sort_keys=True)
+        previous = unique.get(key)
+        if isinstance(previous, RawWindowsTiming):
+            row = (RawWindowsTiming(row, previous.source_digests | row.source_digests)
+                   if isinstance(row, RawWindowsTiming) else previous)
+        unique[key] = row
     return [unique[key] for key in sorted(unique)]
 
 
@@ -4070,7 +4184,17 @@ def capture_is_complete(identity, samples, hosted):
     return evidence.complete_clock and not evidence.missing and not evidence.ambiguous
 
 
+def windows_raw_sources(samples):
+    digests = defaultdict(set)
+    for row in samples:
+        if isinstance(row, RawWindowsTiming):
+            digests[report_input_sha256(row)].update(row.source_digests)
+    return {key: sorted(digests[key]) for key in sorted(digests)}
+
+
 def write_bounded_archive(path, archive, limit, error, *, sort_keys=False):
+    if sources := windows_raw_sources(archive['samples']):
+        archive = {**archive, 'windows_raw_sources': sources}
     encoder = json.JSONEncoder(separators=(',', ':'), allow_nan=False, sort_keys=sort_keys)
     remaining = limit - 1  # Include the trailing newline in the published size.
     with path.open('xb') as output:
@@ -4191,14 +4315,17 @@ def update_timing_capture(path, repository, run, identity, samples, hosted):
     evidence = capture_observations(
         identity, [*prior_samples, *samples], known_clocks, notes, conclusion=run['conclusion'],
     )
+    changed = (prior_samples != evidence.samples
+               or windows_raw_sources(prior_samples) != windows_raw_sources(evidence.samples)
+               or prior_clocks != evidence.clocks)
     resolved_clock = evidence.complete_clock or (evidence.producer_disputed and not evidence.missing_independent_clock)
     if evidence.checkout_disputed or (not evidence.missing and resolved_clock):
         persisted = distinct_observations(notes)
-        if (prior_samples, prior_clocks, prior_issues) != (evidence.samples, evidence.clocks, persisted):
+        if changed or prior_issues != persisted:
             save_timing_capture(path, attempts, evidence.samples, evidence.clocks, persisted)
         return ('ambiguous' if evidence.ambiguous else 'retained'), evidence.samples, evidence.clocks, notes
     if attempts >= INTAKE_ATTEMPTS:
-        if (prior_samples, prior_clocks) != (evidence.samples, evidence.clocks):
+        if changed:
             save_timing_capture(path, attempts, evidence.samples, evidence.clocks, notes)
         return 'retry_exhausted', evidence.samples, evidence.clocks, [*notes, {
             'run_id': run_id, 'error': 'Incremental timing retry exhausted. Inspect this run explicitly if more timing is needed.',
@@ -4448,99 +4575,166 @@ COLLECTION_MEMBERS = {
     'downloaded_compact_inputs_sha256': compact_input_digest,
     'listed_attempt_jobs_sha256': compact_input_digest,
 }
-COLLECTION_COUNTS = ('limit_per_event', 'completed_runs_considered', 'runs_with_compact',
-                     'runs_without_compact', 'unsuccessful_runs')
+COLLECTION_COUNTS = ('completed_runs_considered', 'runs_with_compact', 'runs_without_compact', 'unsuccessful_runs')
 
 
-def valid_collection_facts(record):
-    return (all(field not in record or type(record[field]) is int and record[field] >= 0
-                for field in COLLECTION_COUNTS)
-            and all(collection_members(record, field, check) is not None
-                    for field, check in COLLECTION_MEMBERS.items()))
+class CollectionObservation(NamedTuple):
+    record: dict
+    qualified: bool
+
+
+def collection_facts(record):
+    counts = (*COLLECTION_COUNTS, 'limit_per_event') if 'limit_per_event' in record else COLLECTION_COUNTS
+    if any(type(record.get(field)) is not int or record[field] < 0 for field in counts):
+        raise TimingError('Timing collection requires nonnegative integer summary counts.')
+    considered, downloaded, missing, unsuccessful = (record[field] for field in COLLECTION_COUNTS)
+    if downloaded + missing != considered or unsuccessful > considered:
+        raise TimingError('Timing collection summary counts disagree.')
+    point = timestamp(record.get('collected_at'))
+    source, empty = record.get('capture_source'), empty_artifact_collection(record)
+    if (record.get('collected_at') is not None and point is None or source is not None and not commit_id(source)
+            or type(empty) is not bool or empty and downloaded):
+        raise TimingError('Invalid timing collection source, time or artifact state.')
+    facts = {field: record[field] for field in counts}
+    facts.update(collected_at=encode_timestamp(point), capture_source=source, cold_bootstrap=empty)
+    for field, validate in COLLECTION_MEMBERS.items():
+        if field in record:
+            members = collection_members(record, field, validate)
+            if members is None:
+                raise TimingError(f'Invalid timing collection membership in {field}.')
+            facts[field] = sorted(members)
+    if 'missing_compact_run_ids' in facts and len(facts['missing_compact_run_ids']) != missing:
+        raise TimingError('Timing collection missing run count disagrees with its recorded membership.')
+    return facts
+
+
+def collection_acquisitions(facts, samples, clocks):
+    report_digests = set(facts.get('downloaded_compact_inputs_sha256', ()))
+    listing_digests = set(facts.get('listed_attempt_jobs_sha256', ()))
+    reports = {digest: sample for sample in samples if sample['ci'] and report_digests
+               and (digest := report_input_sha256(sample)) in report_digests}
+    listings = {digest: clock for clock in clocks if listing_digests
+                and (digest := timing_input_sha256(clock)) in listing_digests}
+    downloaded = {sample['ci']['run_id'] for sample in reports.values()}
+    listed = {clock['run_id'] for clock in listings.values()}
+    missing = set(facts.get('missing_compact_run_ids', ()))
+    missing_reports = len(report_digests - reports.keys())
+    downloaded_count = facts['runs_with_compact']
+    if (downloaded & missing or len(downloaded | listed | missing) > facts['completed_runs_considered']
+            or 'downloaded_compact_inputs_sha256' in facts
+            and not len(downloaded) <= downloaded_count <= len(downloaded) + missing_reports):
+        raise TimingError('Timing collection counts disagree with its acquisition evidence.')
+    complete = not missing_reports and listing_digests == listings.keys()
+    return reports.values(), listings.values(), complete
 
 
 def observed_collection(record, samples, clocks, issues):
-    """Qualify receipts against this collection's report and job acquisitions."""
-    if not record:
-        return None
-    collected = {**record, 'collected_samples': []}
-    if (record.get('collection_order_uncertain') or not valid_collection_facts(record)
-            or timestamp(record.get('collected_at')) is None or not commit_id(record.get('capture_source'))):
-        return collected
-    reports = record.get('downloaded_compact_inputs_sha256')
-    listings = record.get('listed_attempt_jobs_sha256')
-    claims = collected_receipts(record).values()
-    if not reports or not listings or not claims:
-        # Older records can support historical measurements with their retained
-        # inputs, but counts and copied receipts cannot prove a specific acquisition.
-        return collected
-    reports, listings = set(reports), set(listings)
-    report_ids = {claim['report_id'] for claim in claims if isinstance(claim.get('report_id'), str)}
+    """Assess the owning acquisition before using a collection or its receipts."""
+    facts = collection_facts(record)
+    facts['collected_samples'] = []
+    if record.get('collection_inputs_unavailable'):
+        facts['collection_inputs_unavailable'] = True
+    reports, listings, complete = collection_acquisitions(facts, samples, clocks)
+    if not commit_id(facts['capture_source']) or not COLLECTION_MEMBERS.keys() <= facts.keys():
+        return CollectionObservation(facts, False)
+    qualified = complete and not record.get('collection_inputs_unavailable')
+    if not qualified:
+        # A combined archive also contains other observations' inputs.
+        # Their arrival cannot upgrade this collection's earlier acquisition.
+        facts['collection_inputs_unavailable'] = True
+    claims = collected_receipts(record)
+    if facts['collected_at'] is None or not claims:
+        return CollectionObservation(facts, qualified)
+    report_ids = {claim.get('report_id') for claim in claims.values() if isinstance(claim.get('report_id'), str)}
     acquired, acquired_clocks = defaultdict(list), defaultdict(list)
-    for sample in samples:
-        if sample['ci'] and sample['run_id'] in report_ids and report_input_sha256(sample) in reports:
+    for sample in reports:
+        if sample['run_id'] in report_ids:
             acquired[ci_key(sample['ci'])].append(sample)
-    for clock in clocks:
-        attempt = ci_key(clock)
-        if attempt in acquired and timing_input_sha256(clock) in listings:
+    for clock in listings:
+        if (attempt := ci_key(clock)) in acquired:
             acquired_clocks[attempt].append(clock)
     evaluated = []
     for attempt, matching_clocks in acquired_clocks.items():
         try:
-            qualified = [dict(sample, review_exclusion=review_exclusion_reason(sample))
-                         for sample in merge_samples(acquired[attempt], matching_clocks, [])]
-            evaluated.extend(qualified)
+            evaluated.extend(dict(sample, review_exclusion=review_exclusion_reason(sample))
+                             for sample in merge_samples(acquired[attempt], matching_clocks, []))
         except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
             issues.append({'run_id': attempt[1], 'source': 'timing_qualification', 'error': input_error(error)})
-    collected['collected_samples'] = qualified_collected_reports(evaluated, record)
-    return collected
+    facts['collected_samples'] = qualified_collected_reports(evaluated, record)
+    return CollectionObservation(facts, qualified)
 
 
-def uncertain_collection(point):
+def unresolved_collection(point):
     # The version-one summary reader expects counts even when the latest
     # observation cannot be selected. Zero counts and receipts claim no run.
-    return {'collected_at': encode_timestamp(point), 'capture_source': None, 'collection_order_uncertain': True,
-            'completed_runs_considered': 0, 'runs_with_compact': 0, 'runs_without_compact': 0,
-            'unsuccessful_runs': 0, 'cold_bootstrap': False, 'collected_samples': []}
+    return {'collected_at': encode_timestamp(point), 'capture_source': None, 'completed_runs_considered': 0,
+            'runs_with_compact': 0, 'runs_without_compact': 0, 'unsuccessful_runs': 0,
+            'cold_bootstrap': False, 'collected_samples': []}
+
+
+def uncertain_collection(point, witnesses=()):
+    record = {**unresolved_collection(point), 'collection_order_uncertain': True}
+    if witnesses:
+        record['collection_order_witnesses'] = list(witnesses)
+    return record
 
 
 def empty_artifact_collection(collection):
     return collection.get('artifact_collection_empty', collection.get('cold_bootstrap', False))
 
 
-def collection_facts(collection, point):
-    facts = {**{key: value for key, value in collection.items() if key not in
-                {'artifact_collection_empty', 'collected_samples'}},
-             'collected_at': encode_timestamp(point), 'cold_bootstrap': empty_artifact_collection(collection)}
-    for field, validate in COLLECTION_MEMBERS.items():
-        if field in collection and (members := collection_members(collection, field, validate)) is not None:
-            facts[field] = sorted(members)
-    return facts
+def archive_collections(record, samples, clocks, issues, label):
+    if not record:
+        return []
+    records = [record]
+    if record.get('collection_order_uncertain'):
+        witnesses = record.get('collection_order_witnesses')
+        if witnesses is None:
+            # An older summary supplies a visible uncertainty without acquisition evidence.
+            return [CollectionObservation(uncertain_collection(timestamp(record.get('collected_at'))), False)]
+        if (not isinstance(witnesses, list) or len(witnesses) != 2
+                or not all(isinstance(witness, dict) and not witness.get('collection_order_uncertain')
+                           for witness in witnesses)):
+            issues.append({'file': label, 'source': 'timing_collection', 'error': 'Invalid timing collection witnesses.'})
+            return []
+        records = witnesses
+    observations = []
+    for candidate in records:
+        try:
+            observations.append(observed_collection(candidate, samples, clocks, issues))
+        except TimingError as error:
+            issues.append({'file': label, 'source': 'timing_collection', 'error': str(error)})
+    if record.get('collection_order_uncertain'):
+        result = reconcile_collection_order(observations)
+        if (len(observations) != 2 or not all(item.qualified for item in observations)
+                or not result.get('collection_order_uncertain') or result['collected_at'] != record.get('collected_at')):
+            issues.append({'file': label, 'source': 'timing_collection',
+                           'error': 'Timing collection witnesses do not establish a disagreement.'})
+            return []
+    return observations
 
 
-def reconcile_collection_order(previous, observed):
-    """Select by observed chronology, with unresolved ordering preserved across saves."""
-    if not observed:
-        return previous
-    after = timestamp(observed.get('collected_at'))
-    if observed.get('collection_order_uncertain'):
-        observed = uncertain_collection(after)
-    if not previous:
-        return observed
-    before = timestamp(previous.get('collected_at'))
-    if before is not None and after is not None and before != after:
-        return previous if before > after else observed
-    if before == after:
-        valid_before, valid_after = valid_collection_facts(previous), valid_collection_facts(observed)
-        if valid_before != valid_after:
-            return previous if valid_before else observed
-        prior = collection_facts(previous, before)
-        if prior == collection_facts(observed, after):
-            receipts = collected_receipts(previous) | collected_receipts(observed)
-            return {**prior, 'collected_samples': [receipts[key] for key in sorted(receipts)]}
-    # A later capture resolves an equal-time disagreement. Undated evidence
-    # leaves the latest collection uncertain until a new observation is made.
-    return uncertain_collection(before if before == after else None)
+def reconcile_collection_order(observations):
+    """Select the latest qualified acquisition and retain the grounds of a tie."""
+    qualified = [item.record for item in observations if item.qualified]
+    records = qualified or [item.record for item in observations]
+    if not records:
+        return None
+    dated = [point for record in records if (point := timestamp(record['collected_at'])) is not None]
+    latest = encode_timestamp(max(dated)) if dated else None
+    current = [record for record in records if record['collected_at'] in {latest, None}]
+    facts, receipts = {}, {}
+    for record in current:
+        selection = {key: value for key, value in record.items() if key != 'collected_samples'}
+        facts[timing_input_sha256(selection)] = selection
+        receipts.update(collected_receipts(record))
+    if len(facts) == 1:
+        return {**next(iter(facts.values())), 'collected_samples': [receipts[key] for key in sorted(receipts)]}
+    point = timestamp(latest) if all(record['collected_at'] == latest for record in current) else None
+    if not qualified:
+        return {**unresolved_collection(point), 'collection_inputs_unavailable': True}
+    ordered = sorted(facts.values(), key=lambda record: (record['collected_at'] or '', timing_input_sha256(record)))
+    return uncertain_collection(point, (ordered[0], ordered[-1]))
 
 
 def qualified_hosted_history(view):
@@ -4552,7 +4746,7 @@ def inspect_recent(repository, limit, samples, workflows, issues):
     runs = recent_runs(repository, limit)
     starting_issues = len(issues)
     with_compact, without_compact = [], []
-    collected_samples, acquired, listed = [], [], []
+    collected_samples, received, listed = [], [], []
     downloaded = set()
     for run in runs:
         run_id = str(run['id'])
@@ -4561,6 +4755,7 @@ def inspect_recent(repository, limit, samples, workflows, issues):
         downloaded_inputs = [(sample, report_input_sha256(sample)) for sample in compact]
         downloaded.update(digest for _, digest in downloaded_inputs)
         samples.extend(compact)
+        received.extend(compact)
         try:
             clock = inspect_jobs(run, repository)
             workflows.append(clock)
@@ -4572,7 +4767,6 @@ def inspect_recent(repository, limit, samples, workflows, issues):
             identity = actions_attempt_identity(repository, run)
             for sample, digest in downloaded_inputs:
                 if ci_key(sample['ci']) == identity:
-                    acquired.append(sample)
                     collected_samples.append(platform_report_receipt(sample, digest))
         except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
             issues.append({'run_id': run_id, 'source': 'timing_qualification', 'error': input_error(error)})
@@ -4586,7 +4780,7 @@ def inspect_recent(repository, limit, samples, workflows, issues):
               'missing_compact_run_ids': without_compact,
               'unsuccessful_runs': sum(run.get('conclusion') != 'success' for run in runs),
               'cold_bootstrap': not with_compact and len(issues) == starting_issues}
-    return observed_collection(record, acquired, listed, issues)
+    return observed_collection(record, received, listed, issues).record
 
 
 def weekly_review():
@@ -4606,6 +4800,8 @@ def review_summary(view):
     if recent:
         if recent.get('collection_order_uncertain'):
             lines.append('- Saved captures leave the current collection uncertain.')
+        elif recent.get('collection_inputs_unavailable') and recent['capture_source'] is None:
+            lines.append('- Acquisition evidence is unavailable for the current collection.')
         elif 'completed_runs_considered' in recent:
             lines.append(f"- Examined {recent['completed_runs_considered']} completed runs; "
                          f"{recent['runs_with_compact']} with compact records, "
@@ -4758,7 +4954,7 @@ def main():
     if args.github_actions and (args.recent is None or args.run):
         parser.error('--github-actions requires --recent and cannot accompany --run')
     samples, workflows, issues = [], [], []
-    recent_observation = None
+    collection_observations = []
     explicit_input_failed = False
     read_budget = TimingReadBudget()
     read_captures = RetainedCaptureReads(ROOT / '.reports/timing')
@@ -4788,8 +4984,9 @@ def main():
                         explicit_input_failed |= args.report is not None
                     samples.extend(archive_samples)
                     workflows.extend(archive_hosted)
-                    observed = observed_collection(data.get('recent_collection'), archive_samples, archive_hosted, issues)
-                    recent_observation = reconcile_collection_order(recent_observation, observed)
+                    collection_observations.extend(archive_collections(
+                        data.get('recent_collection'), archive_samples, archive_hosted, issues, path.name,
+                    ))
                 elif data.get('kind') == SAMPLE_KIND:
                     if not valid_sample(data):
                         raise TimingError('Invalid timing sample.')
@@ -4840,6 +5037,8 @@ def main():
                 workflows.append(inspect_hosted(run, args.attempt, repository, samples, issues))
         if args.recent is not None:
             recent_observation = inspect_recent(repository, args.recent, samples, workflows, issues)
+        else:
+            recent_observation = reconcile_collection_order(collection_observations)
         if args.report is None:
             add_retained_review_inputs(timing_directories(ROOT, issues), samples, workflows,
                                        read_captures, issues, read_budget)
@@ -4859,13 +5058,14 @@ def main():
         feedback = read_json(ROOT / 'project/feedback.json')['items']
         view.update(weekly_review=weekly_review(), recent_collection=recent,
                     budget_follow_up=budget_follow_up(view, feedback, tasks))
+        summary = review_summary(view) if args.summary else None
         archive_identity = None
         if args.save:
             archive_identity = save_review_archive(
                 args.save, {'kind': ARCHIVE_KIND, 'samples': samples, 'hosted': workflows,
                             'recent_collection': recent, 'input_issues': issues})
         if args.summary:
-            append_review_summary(args.summary, review_summary(view), archive=args.save, archive_identity=archive_identity)
+            append_review_summary(args.summary, summary, archive=args.save, archive_identity=archive_identity)
         print(json.dumps(view, indent=2))
     except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
         parser.exit(1, f'Timing inspection failed: {input_error(error)}\n')
