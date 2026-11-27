@@ -30,6 +30,15 @@
       },
       "supersedes": "57b83c3fe5367736dffaff0ec05ec943b32bf9ab37b6a3d6472756d8a73347a0",
       "evidence_sha256": "ed1e04af3aa0f51347a7bf857473c31d86c22aad5eaa50d31064b1884a3c6efd"
+    },
+    {
+      "kind": "request",
+      "source_commit": "dcca5388ee1c3f0c183579c90174ad48eba06765",
+      "scope": "Independently review the replacement for the held-cleanup fixture on the ordinary public cancellation entry against the two actual Windows first-attempt timeouts.",
+      "supersedes": "04d24470332e569b5fdb72e44974a65ec93f68a0a5fe57897ac22800d70820a7",
+      "requested_at": "2026-11-27T07:20:45.843136+00:00",
+      "request_id": "1c8567985e8a6fb4301a620e6feebc4c91c1bb82ed80aaeaaf85c8354ee9eec6",
+      "evidence_sha256": "10e0152658b3291bcd91ab493b612eafa2c328abaa6bbfcd63c74d2ab91832a0"
     }
   ]
 }
