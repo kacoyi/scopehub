@@ -1129,7 +1129,7 @@ test('offline sample indicator binds recovered result provenance to the frozen c
           connection: await page.locator('.connection').innerText(),
           history: await history.evaluate(node => ({ ...node.dataset })),
           canvas_visible: await history.locator('canvas').first().isVisible(),
-          history_ready: await plot.getByText('History ready', { exact: true }).isVisible(),
+          history_status: await plot.locator('.history-status').innerText(),
         });
         observer = observeIndicatorRequests(page, endpoint);
         for (const { source, substitution } of cases) {
@@ -1217,7 +1217,10 @@ test('offline sample indicator binds recovered result provenance to the frozen c
             await expect(values).toHaveCount(0);
           }
           trial.chart_after = await chartState();
-          expect(trial.chart_after).toMatchObject({ canvas_visible: true, history_ready: true, history: { bars: '20' } });
+          expect(trial.chart_after).toMatchObject({
+            canvas_visible: true, history: { bars: '20' },
+            history_status: source === 'normal' ? 'History ready' : 'Known gaps',
+          });
           expect(trial.chart_after).toEqual(trial.chart_before);
           await showSources();
           await expect(sources.getByText(dataset_revision, { exact: true })).toBeVisible();
