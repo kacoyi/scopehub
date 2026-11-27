@@ -9327,6 +9327,29 @@
         "prevention": "Ordinary PR 148 run 45947862031 passed the frozen preview and refused snapshot controls on both platforms. The ordinary second submission produced HTTP 200 with a correlated committed task ID, and the separately refused submission retained HTTP 429 and retryable BUSY without a result. The coordinator owns the protected integrated-source recheck."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-workspace-bridge-link-failed-before-csv-interaction",
+      "status": "open",
+      "severity": "major",
+      "source": "First native observation archives/observations/repo-hygiene-20261125/pr149-native-original-45962154175/manifest.json (SHA-256 4beaa98c96f3e632f13b6cc3823af1ceef8614f1ddf4ead08a84c42a3a872ad8).",
+      "observation": "Ordinary PR 149 Windows run 45962154175 failed before the CSV list recovery test could interact. The test-scoped Cargo build reported LNK1104 opening target/debug/examples/local_import_bridge.exe. The other consumer of the same build output overlapped on another worker and passed. Windows recorded 101 passed, two skipped and one failed. Both consumers also overlapped and passed on protected 45960739508 with identical fixture and configuration. The locking process and trigger for linking are unknown.",
+      "task_ids": [
+        "M0-176"
+      ],
+      "regression_checks": [
+        "project-state",
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45962154175-1",
+          "source_commit": "19cfc02e49ffe7f92b5be7374d301b60ab0cba17",
+          "report_sha256": "a03a04dc5e930d0a50f04ac0e47aeb23b02e8c76523b5e0d2b4d259263c687c6"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
