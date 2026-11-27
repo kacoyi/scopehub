@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-174",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "90ab2fff33bfb034dc756700688f79782d7f6036",
+      "scope": "Review the two actual workspace preparation failures against their original observations, passing controls, and the exact corrected public fixture.",
+      "supersedes": null,
+      "requested_at": "2026-11-27T05:44:08.307111+00:00",
+      "request_id": "82146e173a00c86c6c28c472706fc149f2740a938b4e7cb4ed02cc2f7247409b",
+      "evidence_sha256": "4f2e2d8037abc87024ee20b41ffcd901e680113cf79a40b5ab804d6994560c32"
+    }
+  ]
+}
