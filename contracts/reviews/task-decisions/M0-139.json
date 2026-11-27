@@ -494,6 +494,15 @@
       },
       "supersedes": "e2f3f56b5b3634d6780044e8a8ed0524db826d6ba5f29dfecc1b62598dcdec91",
       "evidence_sha256": "00833b5548818d42415122bcb7414644dca7820c87658d077ec4991ae7a5c3c1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ba097a02695d7623b60fe8324d01455ec261b8c3",
+      "scope": "Requalify the existing executed-failure evidence decision after the shared Windows artifact publisher changed on this material source.",
+      "supersedes": "15b8b00aa1c4f22e3300134a9b4fd6bb2daab755a141988f08b7cee5e0a1d871",
+      "requested_at": "2026-11-27T05:57:00.227949+00:00",
+      "request_id": "7d811a4823cd4e180fa9eea85f87239f9f4ae87d8b0102e7d286db00e7e9893f",
+      "evidence_sha256": "004864298cc979f8a1adc8f2210dea0c563f107df5acd9e9587e7654bef3a587"
     }
   ]
 }

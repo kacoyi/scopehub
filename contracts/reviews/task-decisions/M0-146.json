@@ -494,6 +494,15 @@
       },
       "supersedes": "83e2803a55bfb361698016f16c29c22a7b49b771de3ad61bd04cbd12fe97a05e",
       "evidence_sha256": "4dc6b9950b3b5f79913f8feaf5b72da66fa197eb6f90be93d2e7bb26bfd6b842"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ba097a02695d7623b60fe8324d01455ec261b8c3",
+      "scope": "Verify the recovery producer and published verdict across the two observed SIGINT boundaries and a normal run on the corrected candidate.",
+      "supersedes": "2c7a5f663cc18629cf747c03b18eab4b42f955f0c13a3b693a0283b3295c0aa1",
+      "requested_at": "2026-11-27T05:56:59.629736+00:00",
+      "request_id": "35fbe9ee6e6f7fcbee17a47bbd1ff12a9103fe8f1536a82951c80e62010396fe",
+      "evidence_sha256": "5205aaf0a1d7f6b6262e4612844aa7c1a0a4a1b6a1e89d9b5184f6e6a6d63885"
     }
   ]
 }
