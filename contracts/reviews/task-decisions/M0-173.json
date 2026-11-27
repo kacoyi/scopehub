@@ -10,6 +10,26 @@
       "requested_at": "2026-11-27T04:58:28.016900+00:00",
       "request_id": "36b6168cf55402ea50baa8cc5ce606af7523efb1ad476c7114e6c88908a13402",
       "evidence_sha256": "97e7731a74e29ca1acea484d8ba565a918a7e6acd897e36c65790984f6d7c492"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5a9204d4de11f4b046f565c01a6614160917ea17",
+      "verdict": "approved",
+      "decision": "APPROVE M0-173 5a9204d4de11f4b046f565c01a6614160917ea17",
+      "scope": "APPROVE M0-173 5a9204d4de11f4b046f565c01a6614160917ea17",
+      "observation": "The retained Linux browser attachments record sample verification at 831 ms in the first public repair and a committed document with the required module still pending at 10,010 ms in the held-module control.",
+      "reviewer": "Independent Astra Standard (t1db)",
+      "original_sha256": "43b1b977bd46062a7b137dba1aecf47540422b3530758df54bcc76379c801177",
+      "response_id": "4b30ff6cd325e25fe1e241756568062ae4d79c250ad71fbcda134e09f04d6681",
+      "response_sha256": "4a556447499d071e06e21ced356ad6658198931fb1b7c907851c6124c766c37e",
+      "legacy_response_sha256": "ce814ed511a4691982c30c32a6e18ffd240f7935311cee21fb24e080e7b801b1",
+      "observation_body_sha256": "96e275e27988103ad65948c310d22a277e21fe8197ed221b0eeca61ffb56e590",
+      "event": {
+        "id": "msg_0ab4d852062be94d016b090e8989b887d08ea68a3aff189f6f",
+        "timestamp": "2026-11-27T05:01:22.809Z"
+      },
+      "supersedes": "36b6168cf55402ea50baa8cc5ce606af7523efb1ad476c7114e6c88908a13402",
+      "evidence_sha256": "2694f6ba62ae146ff029be8fea5643924c521ddc7db3758bf6880cee5a8b51f1"
     }
   ]
 }
