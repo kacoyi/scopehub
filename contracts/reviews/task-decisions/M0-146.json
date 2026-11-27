@@ -735,6 +735,26 @@
       "requested_at": "2026-11-27T11:41:56.010995+00:00",
       "request_id": "f0a56eba5ccc468e488e15319b74322c63bda10981d26c08131d38ab3a2e44e2",
       "evidence_sha256": "be9878123e94b6449ce7a1a707866ad6f12b4922615e15ef79c909e0927a7235"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "6c851d7271ea97db2fbef0ccf18bbbc32e5f067c",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 6c851d7271ea97db2fbef0ccf18bbbc32e5f067c",
+      "scope": "APPROVE M0-146 6c851d7271ea97db2fbef0ccf18bbbc32e5f067c",
+      "observation": "I independently replayed all 125 integration controls and matched all 992 ordered Python outcomes across the serial run and both partitions.",
+      "reviewer": "Independent Astra Standard (t1js)",
+      "original_sha256": "e7d9193482193303a8f9521b79c9193e4f09836cbc70b9b509467fedfa698b8e",
+      "response_id": "a2d34d41cdf4c8e00aeef05baf36e82556285221dbb12a1bb967749b4bb342d8",
+      "response_sha256": "80afd7156a3d20197ae2cdee62ab42e8d47ce0bb151a6e283444fde3dbdf4545",
+      "legacy_response_sha256": "d68d998425a84c7af2bdd2dc6a38519d00b74fa102c67d625abf37d93431f27b",
+      "observation_body_sha256": "6052d808550e779a3d0a33808aa004825e6c5cfced6b9da5b6df912be2f76c01",
+      "event": {
+        "id": "msg_0ac5a4728dbe90cd016b096dcd9dcc87d0ae43d92c5e8a40e0",
+        "timestamp": "2026-11-27T11:47:54.264Z"
+      },
+      "supersedes": "f0a56eba5ccc468e488e15319b74322c63bda10981d26c08131d38ab3a2e44e2",
+      "evidence_sha256": "d5a247e6a13e1e034d8246c436546472dcd77e8a22b0e607e247b4c8c3c3f4bb"
     }
   ]
 }

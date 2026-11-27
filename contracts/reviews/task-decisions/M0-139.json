@@ -735,6 +735,26 @@
       "requested_at": "2026-11-27T11:41:55.354288+00:00",
       "request_id": "7e652d2d29d5223d6503b9c2637104dfb95251fd000c6f899bff3330f8ec1490",
       "evidence_sha256": "73b1d971b6d147ba1932b76884314b82b705fa1ec4eb29aca697e41d00bd3372"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "6c851d7271ea97db2fbef0ccf18bbbc32e5f067c",
+      "verdict": "approved",
+      "decision": "APPROVE M0-139 6c851d7271ea97db2fbef0ccf18bbbc32e5f067c",
+      "scope": "APPROVE M0-139 6c851d7271ea97db2fbef0ccf18bbbc32e5f067c",
+      "observation": "The candidate integration command accepted the original PR 112 uploads and returned exit code 1 both when the required Ubuntu report was missing and when the Windows inventory digest disagreed with its publisher log.",
+      "reviewer": "Independent Astra Standard (t1jr)",
+      "original_sha256": "5a9eed345520b7bc62ca380a9542412f8c9b36d78a1166afdcebfac4c946130b",
+      "response_id": "6b8c3093c295809c95422f37470050d2c6b4e288c176746654f6f83800d6af21",
+      "response_sha256": "24fed2f59813b230bc2805f0f07d749bb12b930512352c87bde374e9dc4409ea",
+      "legacy_response_sha256": "eb5eda7a1df506a29ed6e871020d63c0fba107169bd9820527927064de6cf70f",
+      "observation_body_sha256": "79c13f4185316158376734bf584905f333d6b941ca27a9d3e2aeb1173915752d",
+      "event": {
+        "id": "msg_0d1f03a9141ed93d016b096e3ca43887d0badb328ec75c7afe",
+        "timestamp": "2026-11-27T11:49:36.608Z"
+      },
+      "supersedes": "7e652d2d29d5223d6503b9c2637104dfb95251fd000c6f899bff3330f8ec1490",
+      "evidence_sha256": "06a929eabb63aaf4aa77b928149986df91c8ce12339b36e366f51fe0c78b312e"
     }
   ]
 }
