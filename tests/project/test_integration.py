@@ -11,8 +11,8 @@ from unittest.mock import patch
 
 from scripts import integration, timing, verification_scope
 from scripts.project import (
-    ProjectError, archive_evidence, digest, feedback_fingerprint,
-    json_bytes, load_project, read_json, source_identity,
+    INPUT_EXCLUSIONS, ProjectError, archive_evidence, committed_source_identity, digest, feedback_fingerprint,
+    json_bytes, load_project, project_definition_hash, read_json, source_identity,
 )
 from tests.project.test_continuity import ProjectFixture, REPO
 from tests.project.fixtures import task_by_id
@@ -1287,13 +1287,15 @@ class ProtectedPythonObservationTests(IntegrationFixture):
         self.save_ledger(ledger)
         return receipt
 
-    def qualification_fixture(self, *, protected=True, finish_repair=True, extra_finding=False, timing_rules=False):
+    def qualification_fixture(self, *, protected=True, finish_repair=True, extra_finding=False, timing_rules=False,
+                              reviewed_finding=None):
         self.git('remote', 'add', 'origin', 'https://github.com/fixture/project')
         (self.root / 'project/branch-protection.json').write_bytes(json_bytes(observations()['policy']))
         path = self.root / 'project/checks.json'
         catalog = read_json(path)
         python = deepcopy(next(row for row in catalog['checks'] if row['id'] == 'rust-lints'))
-        python.update(id=self.python_check, timeout_seconds=900, windows_timeout_seconds=1200)
+        python.update(id=self.python_check, command=integration.SERIAL_COMMAND,
+                      timeout_seconds=900, windows_timeout_seconds=1200)
         catalog['checks'].append(python)
         catalog['required_change_checks'].append(self.python_check)
         path.write_bytes(json_bytes(catalog))
@@ -1322,16 +1324,22 @@ class ProtectedPythonObservationTests(IntegrationFixture):
         repair_source = self.commit()
         self.git('checkout', '--quiet', '--detach', initial)
 
-        finding = {'id': self.finding_id, 'source': 'Synthetic original timeout.',
-                   'observation': 'The serial process did not report a terminal result.',
-                   'severity': 'major', 'status': 'open',
-                   'task_ids': [self.repair_task, self.follow_up_task], 'regression_checks': [self.python_check],
-                   'resolution': None, 'deferral_reason': None,
-                   'diagnostic_reports': [{'run_id': 'windows-change-99-1', 'source_commit': initial,
-                                           'report_sha256': '1' * 64}]}
+        if reviewed_finding is None:
+            finding = {'id': self.finding_id, 'source': 'Synthetic original timeout.',
+                       'observation': 'The serial process did not report a terminal result.',
+                       'severity': 'major', 'status': 'open',
+                       'task_ids': [self.repair_task, self.follow_up_task], 'regression_checks': [self.python_check],
+                       'resolution': None, 'deferral_reason': None,
+                       'diagnostic_reports': [{'run_id': 'windows-change-99-1', 'source_commit': initial,
+                                               'report_sha256': '1' * 64}]}
+            finding_sha256 = integration.python_finding_identity(finding)
+        else:
+            finding = dict(reviewed_finding, task_ids=[self.repair_task, self.follow_up_task])
+            policy = read_json(REPO / 'project/delivery.json')['source_control'][self.policy_key]
+            finding_sha256 = policy['finding_sha256']
         rule = {'policy_task_id': self.policy_task, 'repair_task_id': self.repair_task,
                 'follow_up_task_id': self.follow_up_task, 'feedback_id': self.finding_id,
-                'repair_commit': repair_source, 'finding_sha256': integration.python_finding_identity(finding)}
+                'repair_commit': repair_source, 'finding_sha256': finding_sha256}
         path = self.root / 'project/delivery.json'
         delivery = read_json(path)
         delivery['source_control'][self.policy_key] = rule
@@ -1425,6 +1433,26 @@ class ProtectedPythonObservationTests(IntegrationFixture):
                 self.assertNotIn(self.policy_key, rejected)
                 self.assertIn(f'Unresolved major feedback: {self.finding_id}', rejected['blockers'])
 
+    def test_python_observation_pins_the_current_reviewed_finding_and_all_three_originals(self):
+        # Retained feedback from the independent M0-153 review of 2cac22b8.
+        reviewed = read_json(REPO / 'tests/fixtures/project/m0-153-reviewed-python-finding.json')
+        base, _, finding = self.qualification_fixture(reviewed_finding=reviewed)
+        result = self.scope(base)
+        self.assertEqual([], result['blockers'], result)
+        self.assertEqual('pending', result[self.policy_key]['status'])
+        reports = finding['diagnostic_reports']
+        self.assertEqual(3, len(reports))
+        self.assertEqual('windows-change-45969084025-1', reports[-1]['run_id'])
+        for alternate in (reports[:-1], [*reports[:-1], {
+                **reports[-1], 'report_sha256': 'd85d79c5ef83db8817adcc016a53da8b2372dfab1d719365985a3ba09ee723b1',
+        }]):
+            with self.subTest(third_report=alternate[2:]):
+                rejected = self.scope(base, modify=lambda project: project['feedback']['items'][0].update(
+                    diagnostic_reports=alternate))
+                self.assertNotIn(self.policy_key, rejected)
+                self.assertIn('Windows Python delivery requires the original open finding and its protected '
+                              'observation owner.', rejected['blockers'])
+
     def test_python_observation_keeps_an_active_repair_blocked(self):
         base, _, _ = self.qualification_fixture(finish_repair=False)
         result = self.scope(base)
@@ -1504,6 +1532,77 @@ class ProtectedPythonObservationTests(IntegrationFixture):
                     changed = self.scope(main, modify=lambda project: project['tasks'][self.follow_up_task].pop(
                         'protected_python_handoff'))
                     self.assertIn('The protected Windows Python handoff changed or disappeared.', changed['blockers'])
+
+    def test_protected_python_closure_requires_both_originals(self):
+        source_policy = self.root / 'scripts/project.py'
+        source_policy.parent.mkdir()
+        source_policy.write_text(f'INPUT_EXCLUSIONS = {INPUT_EXCLUSIONS!r}\n', encoding='utf-8')
+        base, _, finding = self.qualification_fixture()
+        head = source_identity(self.root)['git_head']
+        main = self.merge_observation(base, head)['sha']
+        self.git('checkout', '--quiet', '--detach', main)
+        self.git('update-ref', 'refs/remotes/origin/main', main)
+
+        source = committed_source_identity(self.root, main)
+        archive = self.root / '.reports' / 'archive'
+        repository = observations()['policy']['repository']
+        run = 'windows-change-102-1'
+        ci = {'provider': 'github-actions', 'repository': repository, 'event': 'push', 'run_id': '102',
+              'run_attempt': '1', 'head_sha': main, 'checkout_sha': main}
+        lines = [f'{case} ... {outcome}' for case, outcome in self.reviewed_inventory]
+        log = '\n'.join([*lines, '-' * 70, 'Ran 2 tests in 0.500s', '', 'OK', '']).encode()
+        check = {'id': self.python_check, 'status': 'passed', 'exit_code': 0, 'duration_seconds': 0.5,
+                 'command': [sys.executable, *integration.SERIAL_COMMAND[1:]],
+                 'log': f'.reports/runs/{run}/{self.python_check}.log', 'log_sha256': digest(log)}
+        project_hash = project_definition_hash(load_project(self.root))
+
+        def stage(profile):
+            report = {'report_version': '2.0', 'run_id': run, 'status': 'passed', 'ci': ci,
+                      'source': source, 'source_end': source, 'source_unchanged': True, 'project_unchanged': True,
+                      'project_definition_sha256': project_hash,
+                      'environment': {'system': 'Windows', 'machine': 'AMD64', 'python_executable': sys.executable},
+                      'native_requirement': {'requested': profile == 'full', 'satisfied': True},
+                      'selection': {'profile': profile, 'task_id': None, 'checks': [self.python_check]},
+                      'checks': [check]}
+            raw = json_bytes(report)
+            report_sha256 = digest(raw)
+            parent = archive if profile == 'full' else archive / 'observations' / report_sha256
+            directory = parent / 'runs' / run
+            directory.mkdir(parents=True)
+            (directory / 'test-report.json').write_bytes(raw)
+            (directory / f'{self.python_check}.log').write_bytes(log)
+            return {'source_commit': main, 'run_id': run, 'report_sha256': report_sha256}
+
+        aggregate = stage('full')
+        producer = stage('ci-windows-python')
+        endpoint = f'repos/{repository}/actions/runs/102/attempts/1'
+
+        def command(args, _):
+            if args == ['gh', 'api', endpoint]:
+                return json.dumps({'path': integration.WORKFLOW, 'id': 102, 'run_attempt': 1, 'head_sha': main,
+                                   'event': 'push', 'status': 'completed', 'head_branch': 'main'})
+            self.assertEqual(['gh', 'api', f'{endpoint}/jobs?per_page=100'], args)
+            return json.dumps({'jobs': [{'name': 'Windows change checks (python)', 'head_sha': main,
+                                        'status': 'completed', 'conclusion': 'success'}]})
+
+        with (patch.object(integration, 'diagnostic_archive_root', return_value=archive),
+              patch.object(integration, 'command', side_effect=command)):
+            blocker = 'Windows Python deadline closure requires the verified first protected push.'
+            for originals, status, blockers in (([aggregate, producer], 'passed', []),
+                                               ([aggregate], 'missing', [blocker]),
+                                               ([producer], 'missing', [blocker])):
+                with self.subTest(originals=originals):
+                    self.git('checkout', '--quiet', '--detach', main)
+                    ledger = self.ledger()
+                    task_by_id(ledger, self.follow_up_task)['diagnostic_reports'] = originals
+                    self.save_ledger(ledger)
+                    self.commit()
+                    self.finish(self.follow_up_task, finding=finding, event='push')
+                    self.save_feedback(dict(finding, status='addressed', resolution=self.resolution))
+                    self.commit()
+                    result = self.scope(main)
+                    self.assertEqual(status, result[self.policy_key]['status'], result)
+                    self.assertEqual(blockers, result['blockers'], result)
 
     def test_python_observation_retains_failures_and_only_closes_after_first_main_success(self):
         base, binding, finding = self.qualification_fixture(timing_rules=True)

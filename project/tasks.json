@@ -29560,6 +29560,7 @@
       "scope": [
         "project/delivery.json",
         "scripts/integration.py",
+        "tests/fixtures/project/m0-153-reviewed-python-finding.json",
         "tests/project/test_integration.py",
         "tests/project/test_protected_python.py",
         "project/tasks.json",
@@ -29580,7 +29581,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Retain the source-specific public-entry reproductions, correct and verify the policy locally, then hand the exact candidate to the coordinator for independent review and matching native Linux and Windows checks.",
+      "next_action": "The integration coordinator uses .reports/audit-20261127/m0-159-policy-correction/handoff.json to arrange independent review and matching native Linux and Windows checks for this candidate before separate protected policy adoption.",
       "blocker": null,
       "closure_reason": null,
       "plan": {

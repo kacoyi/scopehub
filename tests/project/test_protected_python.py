@@ -220,12 +220,17 @@ class NativeSerialResultTests(unittest.TestCase):
         producer = {'profile': 'ci-windows-python'}
         linux = {'system': 'Linux', 'run_id': 'linux-100-1'}
         unrelated = {'profile': 'ci-windows-browser', 'run_id': 'browser-100-1', 'no_python': True}
-        for reports, full_index in ((({},), 0), ((linux, producer, {}, unrelated), 2),
+        for reports, full_index in (((linux, producer, {}, unrelated), 2),
                                     (({}, producer, linux), 0), (({'other_check_failure': True}, producer), 0)):
             with self.subTest(reports=reports):
                 passing, locators = observe(*reports, extra=({**missing, 'source_commit': 'a2' * 20},))
                 self.assertEqual(OUTCOMES, passing['inventory'])
                 self.assertEqual(locators[full_index], passing['diagnostic'])
+
+        for original_only in ({}, producer):
+            with self.subTest(original_only=original_only):
+                incomplete, _ = observe(original_only)
+                self.assertIsNone(incomplete)
 
         unresolved, _ = observe({}, extra=(missing,))
         self.assertEqual({'unresolved_diagnostics': [missing]}, unresolved)
@@ -258,13 +263,14 @@ class NativeSerialResultTests(unittest.TestCase):
                 self.assertCountEqual(locators, observation['conflicting_diagnostics'])
                 self.assertNotIn('inventory', observation)
 
-        for reports, job_options in (((producer,), {}), ((linux, unrelated), {}),
-                                     (({},), {'branch': 'other'}), (({'report_event': 'pull_request'},), {}),
-                                     (({},), {'jobs': (job, job)}), (({},), {'jobs': ()}),
-                                     (({},), {'jobs': ({**job, 'status': 'in_progress'},)}),
+        for reports, job_options in (((linux, unrelated), {}), (({}, producer), {'branch': 'other'}),
+                                     (({}, {**producer, 'report_event': 'pull_request'}), {}),
+                                     (({}, producer), {'jobs': (job, job)}), (({}, producer), {'jobs': ()}),
+                                     (({}, producer), {'jobs': ({**job, 'status': 'in_progress'},)}),
                                      ((timeout,), {'jobs': ({**job, 'conclusion': 'cancelled'},)}),
-                                     (({},), {'jobs': ({**job, 'head_sha': 'a2' * 20},)}),
-                                     (({'report_log': timeout_log},), {}), (({},), {'jobs': (failed_job,)})):
+                                     (({}, producer), {'jobs': ({**job, 'head_sha': 'a2' * 20},)}),
+                                     (({'report_log': timeout_log}, {**producer, 'report_log': timeout_log}), {}),
+                                     (({}, producer), {'jobs': (failed_job,)})):
             with self.subTest(reports=reports, job_options=job_options):
                 observation, _ = observe(*reports, **job_options)
                 self.assertNotIn('diagnostic', observation or {})

@@ -869,12 +869,13 @@ def python_push_evidence(root, project, first, follow_up, policy):
         return {**issues, 'conflicting_diagnostics': [candidate[0] for candidate in evidence]}
     _, _, row = identity
     # A verified failure remains actionable with incomplete evidence. Success
-    # requires the entire nomination set to be resolved.
+    # requires both jobs' originals and resolution of the entire nomination set.
     if conclusion in {'failure', 'timed_out'} and report['status'] == row['status'] == 'failed':
         return {**issues, 'diagnostic': locator, 'reason_code': row.get('reason_code') or 'python_check_failed'}
     if unresolved:
         return issues
-    if report['selection']['profile'] == 'full' and conclusion == 'success':
+    profiles = {candidate['selection']['profile'] for _, candidate, *_ in evidence}
+    if conclusion == 'success' and profiles == {'full', 'ci-windows-python'}:
         try:
             return {'diagnostic': locator, 'report': report, 'inventory': serial_result(report, log, check)}
         except ValueError:
