@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "id": "0037",
+  "title": "Separate publishing evidence from timing endpoint proof",
+  "status": "accepted",
+  "recorded_at": "2026-11-27",
+  "context": "The independent M0-150, M0-155 and M0-156 decisions on 4c4865fa showed that report coverage and input fingerprints gated a usable negative publishing-job observation, and that the scheduling boundary of a Windows aggregate gated a duration whose measured endpoints survived. Either dependency can change ordinary, weekly and reopened results.",
+  "decision": "Use the bound publishing role and observable recording instant to check job containment at report admission. Coverage, outcome and input identity retain their own qualification rules. Only admitted claims enter attempt-wide checkout and report reduction. For Windows execution, use known prerequisite job and recognized step endpoints to constrain feasible ordering. The earliest feasible finish per producer and latest feasible aggregate start suffice to test that ordering for each measured endpoint choice. Project the duration from observed verification steps and require all feasible durations to agree. Queue and runner work still require their actual job endpoints.",
+  "authority": "ADR 0007 assigns technical design and verification to the development AI. Independent exact-source review and matching verification remain acceptance gates.",
+  "alternatives": [
+    {
+      "option": "Relax each reader or fill missing boundaries with the closest observed step.",
+      "reason": "Separate filters could disagree on reopen. Substituting a step as a job endpoint would turn a feasible scheduling limit into a measured queue or runner duration."
+    },
+    {
+      "option": "Solve a general constraint graph across all Actions steps and report fields.",
+      "reason": "The supported Windows producers share one scheduling cut. Ordered chains and extremal witnesses avoid multiplying whole-job assignments. Captures that lack the original assertions still could not populate a general graph."
+    }
+  ],
+  "consequences": [
+    "Preserve the retained capture shapes and admit compatible legacy observations. A known boundary can contradict a report even when supplementary evidence is absent. With an unobserved boundary, only the remaining admitted facts can establish a contradiction.",
+    "Keep measured step durations independent of missing scheduling boundaries. Contradictory order, an absent measured endpoint or distinct feasible durations leave the affected result unknown. Step names outside the recognized timing and role vocabulary remain outside the endpoint proof.",
+    "Run the same exact-source public replay through ordinary, offline weekly and cold entries on genuine retained originals and controlled variants. Retain paired timings against 4c4865fa and the preceding cost comparison. Local results do not qualify hosted or physical Windows behavior."
+  ],
+  "supersedes": [],
+  "related_decisions": ["0032", "0033", "0034", "0036"],
+  "revisit_when": [
+    "A supported workflow adds producer dependencies beyond the common aggregate scheduling cut.",
+    "A genuine report supplies contradictory publishing evidence outside the admitted job and step shapes, or paired measurement shows repeated reader cost growth."
+  ]
+}

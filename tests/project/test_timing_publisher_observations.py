@@ -244,25 +244,67 @@ class PublicPublisherObservationTests(unittest.TestCase):
 
     def test_outside_publishing_job_report_cannot_withdraw_valid_receipts_or_actions_clocks(self):
         expected = {'Linux': (240, 230), 'Windows': (360, 340)}
+        actions = ('--actions', self.write_variant('job-run', self.run), self.write_variant('job-list', self.jobs))
+        diagnostic = 'The recorded report creation is outside the publishing job boundaries.'
         for platform, earliest_end in (('Linux', '04:00'), ('Windows', '06:00')):
             actual = self.linux if platform == 'Linux' else self.windows
             peer = self.windows if platform == 'Linux' else self.linux
-            good = dict(actual, recorded_at=f'2026-11-20T00:{earliest_end}.999999999Z', inputs_sha256='c' * 64)
-            bad = dict(good, recorded_at=f'2026-11-20T00:{earliest_end[:-2]}01.000000001Z')
-            for index, rows in enumerate(([good, bad, peer], [peer, bad, good])):
-                with self.subTest(platform=platform, index=index):
-                    archive = self.directory / f'{platform}-{index}.json'
-                    collected = self.collect(archive, rows)
-                    reopened = self.invoke('--report', archive)
-                    for view in (collected, reopened):
-                        receipts = {row['platform']: row['report_input_sha256']
-                                    for row in view['recent_collection']['collected_samples']}
-                        self.assertEqual({row['platform']: timing.report_input_sha256(row) for row in (good, peer)},
-                                         receipts)
-                        self.assertEqual(expected, {job['platform']: (job['seconds']['total'], job['seconds']['runner'])
-                                                    for job in view['hosted'][0]['jobs']})
-                        excluded = [row for row in view['samples'] if row['recorded_at'] == bad['recorded_at']]
-                        self.assertEqual([None], [row['seconds']['total'] for row in excluded])
+            edge = f'2026-11-20T00:{earliest_end}.999999999Z'
+            late = f'2026-11-20T00:{earliest_end[:-2]}01.000000001Z'
+            bound = dict(actual, recorded_at=edge, inputs_sha256='c' * 64)
+            digestless = dict(bound)
+            del digestless['inputs_sha256']
+            pairs = (
+                ('complete', bound, dict(bound, recorded_at=late)),
+                ('digestless', digestless, dict(digestless, recorded_at=late)),
+                ('incomplete', bound, dict(bound, recorded_at=late, coverage_complete=False)),
+            )
+            for variant, good, bad in pairs:
+                for index, rows in enumerate(([good, bad, peer], [peer, bad, good, deepcopy(bad), deepcopy(good)])):
+                    with self.subTest(platform=platform, variant=variant, index=index):
+                        archive = self.directory / f'{platform}-{variant}-{index}.json'
+                        inputs = [arg for number, row in enumerate(rows) for arg in (
+                            '--report', self.write_variant(f'job-report-{number}', row),
+                        )]
+                        ordinary = self.invoke(*inputs, *actions)
+                        collected = self.collect(archive, rows)
+                        reopened = self.invoke('--report', archive)
+                        receipts = {
+                            row['platform']: timing.report_input_sha256(row) for row in (good, peer)
+                        }
+                        for view in (ordinary, collected, reopened):
+                            observed = (view['recent_collection']['collected_samples'] if view.get('recent_collection')
+                                        else list(timing.platform_report_receipts(view['samples'])))
+                            self.assertEqual(len(receipts), len(observed))
+                            self.assertEqual(receipts, {row['platform']: row['report_input_sha256'] for row in observed})
+                            clocks = {job['platform']: (job['seconds']['total'], job['seconds']['runner'])
+                                      for job in view['hosted'][0]['jobs']}
+                            self.assertEqual(expected, clocks)
+                            excluded = [row for row in view['samples'] if row['recorded_at'] == late]
+                            self.assertEqual([None], [row['seconds']['total'] for row in excluded])
+                            self.assertEqual([diagnostic], [issue['error'] for issue in view['input_issues']])
+
+    def test_report_job_admission_uses_only_available_bounds(self):
+        late_report = dict(self.linux, recorded_at='2026-11-20T00:04:01.000000001Z')
+        for missing, recorded_at, rejected in (
+            ('started_at', late_report['recorded_at'], True),
+            ('completed_at', late_report['recorded_at'], False),
+            ('completed_at', '2026-11-20T00:00:09.999999999Z', True),
+        ):
+            with self.subTest(missing=missing, recorded_at=recorded_at):
+                jobs = deepcopy(self.jobs)
+                del jobs[0][missing]
+                view = self.invoke(
+                    '--report', self.write_variant('partial-report', dict(late_report, recorded_at=recorded_at)),
+                    '--actions', self.write_variant('partial-run', self.run), self.write_variant('partial-jobs', jobs),
+                )
+                sample, = view['samples']
+                self.assertEqual(rejected, sample['job'] is None)
+                if not rejected:
+                    self.assertIsNone(sample['seconds']['total'])
+                    self.assertEqual(20, sample['seconds']['setup'])
+                self.assertEqual(rejected, any('outside the publishing job boundaries' in issue['error']
+                                              for issue in view['input_issues']))
 
     def test_disproved_linux_checkout_does_not_displace_windows_receipt(self):
         def git(*args):
@@ -276,6 +318,7 @@ class PublicPublisherObservationTests(unittest.TestCase):
         base = git('commit-tree', tree, '-m', 'Base')
         head = git('commit-tree', tree, '-p', base, '-m', 'Topic')
         preview = git('commit-tree', tree, '-p', base, '-p', head, '-m', 'Preview')
+        alternative = git('commit-tree', tree, '-p', base, '-p', head, '-m', 'Alternative preview')
         for name in ('tasks.json', 'feedback.json', 'delivery.json'):
             path = self.directory / 'project' / name
             path.parent.mkdir(exist_ok=True)
@@ -287,24 +330,42 @@ class PublicPublisherObservationTests(unittest.TestCase):
         self.clock = timing.actions_clock(self.run, self.jobs)
         for sample in (self.windows, self.linux):
             sample.update(source_commit=preview, ci=dict(sample['ci'], head_sha=head, checkout_sha=preview))
-        original = self.directory / 'genuine-ancestry.json'
-        receipts = lambda view: {receipt['platform'] for receipt in view['recent_collection']['collected_samples']}
-        self.assertEqual({'Linux', 'Windows'}, receipts(self.collect(original, [self.linux, self.windows])))
         impostor = dict(self.linux, source_commit=base, ci=dict(self.linux['ci'], checkout_sha=base))
-        for number, rows in enumerate(([impostor, self.windows], [self.windows, impostor])):
-            archive = self.directory / f'disproved-{number}.json'
-            weekly = self.collect(archive, rows)
-            ordinary = self.invoke('--report', self.write_variant('first', rows[0]),
-                                   '--report', self.write_variant('second', rows[1]),
-                                   '--actions', self.write_variant('run', self.run), self.write_variant('jobs', self.jobs))
-            cold = self.invoke('--report', archive)
-            self.assertEqual({'Windows'}, receipts(weekly))
-            self.assertEqual({'Windows'}, receipts(cold))
-            for view in (weekly, ordinary, cold):
-                self.assertEqual({'Linux': None, 'Windows': 360},
-                                 {row['platform']: row['seconds']['total'] for row in view['samples']})
-                self.assertEqual({'Linux': 240, 'Windows': 360},
-                                 {job['platform']: job['seconds']['total'] for job in view['hosted'][0]['jobs']})
+        competing = dict(self.linux, source_commit=alternative, ci=dict(self.linux['ci'], checkout_sha=alternative))
+        late = dict(competing, recorded_at='2026-11-20T00:04:01.000000001Z')
+        jobs = ('--actions', self.write_variant('run', self.run), self.write_variant('jobs', self.jobs))
+        clocks = {'Linux': (240, 230), 'Windows': (360, 340)}
+        outside = 'The recorded report creation is outside the publishing job boundaries.'
+        conflict = 'Conflicting timing checkouts for this attempt.'
+        for case, linux, expected_platforms, issue in (
+            ('genuine', self.linux, ('Linux', 'Windows'), None),
+            ('ancestor', impostor, ('Windows',), timing.PR_CHECKOUT_ANCESTOR),
+            ('late-with-digest', dict(late, inputs_sha256='c' * 64), ('Windows',), outside),
+            ('late-without-digest', late, ('Windows',), outside),
+            ('competing-checkouts', competing, (), conflict),
+        ):
+            expected = [timing.platform_report_receipt(row, timing.report_input_sha256(row))
+                        for row in (linux, self.windows) if row['platform'] in expected_platforms]
+            for order, rows in enumerate(([linux, self.windows], [self.windows, linux, linux])):
+                with self.subTest(case=case, order=order):
+                    archive = self.directory / f'{case}-{order}.json'
+                    weekly = self.collect(archive, rows)
+                    reports = [item for number, row in enumerate(rows)
+                               for item in ('--report', self.write_variant(f'input-{number}', row))]
+                    ordinary = self.invoke(*reports, *jobs)
+                    cold = self.invoke('--report', archive)
+                    for view in (weekly, ordinary, cold):
+                        self.assertCountEqual(expected, timing.platform_report_receipts(view['samples']))
+                        self.assertEqual({platform: clocks[platform] if platform in expected_platforms else (None, None)
+                                          for platform in clocks}, {
+                            row['platform']: (row['seconds']['total'], row['seconds']['runner'])
+                            for row in view['samples']
+                        })
+                        self.assertEqual(clocks, {job['platform']: (job['seconds']['total'], job['seconds']['runner'])
+                                                  for job in view['hosted'][0]['jobs']})
+                        self.assertEqual([issue] if issue else [], [note['error'] for note in view['input_issues']])
+                    for view in (weekly, cold):
+                        self.assertCountEqual(expected, view['recent_collection']['collected_samples'])
 
     def test_an_absent_pr_head_cannot_be_its_own_merge_preview(self):
         head = self.linux['ci']['head_sha']

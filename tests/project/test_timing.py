@@ -158,6 +158,11 @@ def split_harness_report(elapsed, *, profile='full'):
     report['selection']['checks'].sort()
     report['selection']['profile'] = profile
     report['run_id'] = 'windows-change-11-1'
+    report['generated_at'] = {
+        'full': '2026-11-20T00:12:34Z',
+        'records': '2026-11-20T00:02:34Z',
+        'ci-windows-core': '2026-11-20T00:01:45Z',
+    }[profile]
     report['environment'].update(system='Windows', machine='AMD64')
     if profile != 'ci-windows-core':
         measured = {row['id']: row for row in report['checks']}
@@ -180,7 +185,13 @@ def lane_sample(sample, lane):
         } for check in SPLIT_CATALOG['checks']
     ]
     return {**sample, 'profile': f'ci-windows-{lane}', 'selected': [key], 'checks': checks,
+            'recorded_at': '2026-11-20T00:04:25Z',
             'seconds': {**sample['seconds'], 'check_work': row['duration_seconds']}}
+
+
+def split_linux_sample(windows, *, report_day=20):
+    return dict(windows, platform='Linux', run_id=fast_report(report_day, 0)['run_id'],
+                recorded_at='2026-11-20T00:01:00Z')
 
 
 def native_raw_fixture(test, report, catalog):
@@ -511,7 +522,7 @@ class HostedTimingTests(unittest.TestCase):
         report = split_harness_report(675)
         report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, identity)), 'checkout_sha': 'a' * 40}
         windows = timing.report_sample(report)
-        linux = dict(windows, platform='Linux', run_id=fast_report(20, 675)['run_id'])
+        linux = split_linux_sample(windows)
         samples = [windows, linux]
 
         def fragment(start, end):
@@ -697,6 +708,7 @@ class HostedTimingTests(unittest.TestCase):
         windows = hosted_job(32, 'windows', '00:20', '06:00',
                              'Run uv run python scripts/check.py --require-windows', '00:50', '05:20')
         report = split_harness_report(675)
+        report['generated_at'] = '2026-11-20T00:01:00Z'
         report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
                         'event': 'pull_request', 'head_sha': FIXTURE_PR_HEAD, 'checkout_sha': 'a' * 40}
         sample = timing.report_sample(report, cache='warm')
@@ -726,7 +738,7 @@ class HostedTimingTests(unittest.TestCase):
         windows_report['selection']['profile'] = 'full'
         windows_report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(full))), 'checkout_sha': 'a' * 40}
         windows_sample = timing.report_sample(windows_report)
-        linux_sample = dict(windows_sample, platform='Linux', run_id=fast_report(20, 675)['run_id'])
+        linux_sample = split_linux_sample(windows_sample)
 
         def missing(row):
             return dict(row, steps=[dict(step, completed_at=None) for step in row['steps']])
@@ -763,7 +775,7 @@ class HostedTimingTests(unittest.TestCase):
         report = split_harness_report(675)
         report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(official))), 'checkout_sha': 'a' * 40}
         windows = timing.report_sample(report)
-        linux = dict(windows, platform='Linux', run_id=fast_report(20, 675)['run_id'])
+        linux = split_linux_sample(windows)
         observations = [linux, windows]
 
         def change_member(lane, *, foreign=False, missing_step=False):
@@ -1116,7 +1128,7 @@ class HostedTimingTests(unittest.TestCase):
         report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(clock))), 'checkout_sha': 'a' * 40}
         windows = timing.report_sample(report)
         browser = lane_sample(windows, 'browser')
-        linux = dict(windows, platform='Linux', run_id=fast_report(21, 675)['run_id'])
+        linux = split_linux_sample(windows, report_day=21)
         other = dict(browser, source_commit='d' * 40, ci=dict(browser['ci'], checkout_sha='d' * 40))
         samples = [linux, windows, browser]
         self.enterContext(isolated_git_environment())
@@ -1362,7 +1374,8 @@ class HostedTimingTests(unittest.TestCase):
                 with self.subTest(step=expected_step, reverse=evidence[0] is other):
                     view = timing.timing_view([full, browser], hosted=evidence)
                     rows = {row['profile']: row for row in view['samples']}
-                    self.assertEqual((765, 720), tuple(row['seconds']['total'] for row in rows.values()))
+                    self.assertEqual((765, 720), tuple(rows[profile]['seconds']['total']
+                                                       for profile in ('full', 'ci-windows-browser')))
                     self.assertTrue(all(row['hosted_success_complete'] for row in rows.values()))
                     self.assertEqual([expected_step, expected_step],
                                      [row['seconds']['browser_step'] for row in rows.values()])
@@ -1380,7 +1393,7 @@ class HostedTimingTests(unittest.TestCase):
         report['selection']['profile'] = 'full'
         report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(full_clock))), 'checkout_sha': 'a' * 40}
         windows = timing.report_sample(report)
-        linux = dict(windows, platform='Linux', run_id=fast_report(20, 675)['run_id'])
+        linux = split_linux_sample(windows)
         original_jobs = [job for job in jobs if job['name'] != timing.WINDOWS_PRODUCERS['core']]
         late_jobs = [dict(job, completed_at='2026-11-20T00:16:30Z') if job['id'] == 31 else job
                      for job in original_jobs]
@@ -1509,7 +1522,7 @@ class HostedTimingTests(unittest.TestCase):
         report = split_harness_report(675)
         report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(clock))), 'checkout_sha': 'a' * 40}
         full = timing.report_sample(report)
-        linux = dict(full, platform='Linux', run_id=fast_report(20, 675)['run_id'])
+        linux = split_linux_sample(full)
         for claim in ('full', 'records'):
             producer = dict(lane_sample(full, 'recovery'), profile=claim, cache='partial')
             for samples in ([linux, full, producer], [producer, full, linux, producer]):
@@ -1574,7 +1587,7 @@ class HostedTimingTests(unittest.TestCase):
         self.assertEqual(765, result['workflow']['total_elapsed_seconds'])
         self.assertIsNone(result['workflow']['runner_work_seconds'])
         self.assertIsNone(windows['seconds']['queue'])
-        self.assertIsNone(windows['seconds']['harness_step'])
+        self.assertEqual(695, windows['seconds']['harness_step'])
         self.assertFalse(timing.clock_complete(result))
 
     def test_retained_split_clocks_require_each_named_producer_once(self):

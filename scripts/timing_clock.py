@@ -108,6 +108,28 @@ def ordered_choices(choices, fields, *, within):
                               within))
 
 
+def ordered_limit(choices, fields, boundary, *, latest=False):
+    """Find the outer feasible limit of a boundary in an ordered chain."""
+    if latest:
+        fields = reversed(fields)
+        edge = Decimal('Infinity')
+        select = max
+    else:
+        edge = Decimal('-Infinity')
+        select = min
+    limit = None
+    for field in fields:
+        if values := choices.get(field):
+            eligible = (point for point in values if point <= edge) if latest else (
+                point for point in values if point >= edge)
+            edge = select(eligible, default=None)
+            if edge is None:
+                return None
+        if field == boundary:
+            limit = edge
+    return limit
+
+
 def interval_bounds(pairs):
     values = [value for start, end in pairs if (value := elapsed(start, end)) is not None]
     return (min(values), max(values)) if values else None

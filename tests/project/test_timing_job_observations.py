@@ -35,6 +35,56 @@ class PublicJobObservationTests(unittest.TestCase):
             timing.main()
         return json.loads(output.getvalue())
 
+    def test_split_execution_uses_measured_steps_with_partial_job_boundaries(self):
+        use_catalog(self, SPLIT_CATALOG, lanes=timing.LEGACY_WINDOWS_LANES)
+        root = self.timing_checkout()
+        run_path, jobs_path, report_path = (root / name for name in ('run.json', 'jobs.json', 'report.json'))
+        run_path.write_bytes(timing.json_bytes(hosted_run()))
+        report = split_harness_report(675)
+        report.update(generated_at='2026-11-20T00:12:34Z', ci={
+            'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
+            'event': 'pull_request', 'head_sha': FIXTURE_PR_HEAD, 'checkout_sha': 'a' * 40,
+        })
+        report_path.write_bytes(timing.json_bytes(timing.report_sample(report)))
+        core = hosted_job(32, 'windows', '00:20', '09:00', 'Verify the Windows core lane', '01:10', '08:40')
+        browser = hosted_job(33, 'windows', '00:40', '12:00', 'Verify the Windows browser lane', '02:00', '11:25')
+        python = hosted_job(34, 'windows', '00:30', '08:00', 'Verify the Windows python lane', '01:00', '07:50')
+        parent = hosted_job(35, 'windows', '12:08', '12:45', timing.WINDOWS_FULL_STEP, '12:27', '12:35')
+        parent['steps'].append({'name': timing.WINDOWS_AGGREGATE_MARKER, 'conclusion': 'success'})
+        for lane, job in (('core', core), ('browser', browser), ('python', python)):
+            job.update(name=timing.WINDOWS_PRODUCERS[lane], labels=['windows-latest'])
+        parent['labels'] = ['windows-latest']
+        original = [core, browser, python, parent]
+        no_parent_start = dict(parent, started_at=None)
+        no_producer_end = dict(browser, completed_at=None)
+        late_finish = dict(browser, completed_at='2026-11-20T00:12:40Z')
+        late_step = dict(browser['steps'][0], completed_at='2026-11-20T00:12:40Z')
+        late_without_end = dict(no_producer_end, steps=[late_step])
+        cases = (
+            ('untouched', original, (695, 8, 1687, 765)),
+            ('producer start', [core, browser, dict(python, started_at=None), parent], (695, 8, None, 765)),
+            ('producer completion', [core, no_producer_end, python, parent], (695, None, None, 765)),
+            ('aggregate start', [core, browser, python, no_parent_start], (695, None, None, 765)),
+            ('aggregate completion', [core, browser, python, dict(parent, completed_at=None)], (695, 8, None, None)),
+            ('two absent boundaries', [core, no_producer_end, python, no_parent_start], (695, None, None, 765)),
+            ('reordered duplicates', [no_parent_start, python, browser, core, no_parent_start], (695, None, None, 765)),
+            ('missing measured endpoint', [core, browser, dict(python, steps=[]), no_parent_start],
+             (None, None, None, 765)),
+            ('impossible job order', [core, late_finish, python, no_parent_start], (None, None, None, 765)),
+            ('impossible step order', [core, late_without_end, python, no_parent_start], (None, None, None, 765)),
+        )
+        for index, (case, jobs, expected) in enumerate(cases):
+            with self.subTest(case=case):
+                jobs_path.write_bytes(timing.json_bytes({'jobs': jobs}))
+                saved = root / f'capture-{index}.json'
+                ordinary = self.ordinary(root, '--report', report_path, '--actions', run_path, jobs_path, '--save', saved)
+                reopened = self.ordinary(root, '--report', saved)
+                for view in (ordinary, reopened):
+                    sample, = view['samples']
+                    self.assertEqual(expected, tuple(sample['seconds'][field] for field in (
+                        'harness_step', 'queue', 'runner', 'total',
+                    )))
+
     def test_step_clocks_use_joined_eligibility_before_selecting_a_phase(self):
         run = hosted_run()
         job = hosted_job(31, 'ubuntu', '00:10', '07:00', 'Run pnpm check', '01:05', '06:40')

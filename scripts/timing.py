@@ -21,7 +21,7 @@ if __package__:
     from .doctor import tool_version
     from .execution_inputs import committed_project_definition_claims, committed_source_identity, is_source_input
     from .timing_clock import (
-        can_order, encode_timestamp, extrema, interval_bounds, ordered_choices, paired_minima,
+        can_order, encode_timestamp, extrema, interval_bounds, ordered_choices, ordered_limit, paired_minima,
         seconds as interval_seconds, sum_intervals, timestamp,
     )
     from .verification_report import (
@@ -40,7 +40,7 @@ else:
     from doctor import tool_version
     from execution_inputs import committed_project_definition_claims, committed_source_identity, is_source_input
     from timing_clock import (
-        can_order, encode_timestamp, extrema, interval_bounds, ordered_choices, paired_minima,
+        can_order, encode_timestamp, extrema, interval_bounds, ordered_choices, ordered_limit, paired_minima,
         seconds as interval_seconds, sum_intervals, timestamp,
     )
     from verification_report import (
@@ -647,6 +647,35 @@ def windows_aggregate_cache(caches):
     return 'unknown'
 
 
+def split_execution_bounds(parent, sources, active):
+    # A producer's earliest feasible finish and the aggregate's latest
+    # feasible start bound their shared scheduling cut. Those witnesses
+    # determine feasibility only. The measured span uses observed steps.
+    inactive = [ordered_limit(source, ('requested', 'start', 'end'), 'end')
+                for lane, source in sources.items() if lane not in active]
+    if None in inactive:
+        return None
+    order = phase_order('harness')
+    running = []
+    for lane in active:
+        source = sources[lane]
+        running.append([
+            (harness, ordered_limit({**source, 'harness_start': (harness,)}, order, 'end'))
+            for harness in source['harness_start']
+        ])
+
+    executions = []
+    for end in parent['harness_end']:
+        deadline = ordered_limit({**parent, 'harness_end': (end,)}, order, 'start', latest=True)
+        if deadline is None or any(finish > deadline for finish in inactive):
+            continue
+        eligible = [tuple(harness for harness, finish in lane if finish is not None and finish <= deadline)
+                    for lane in running]
+        if all(eligible):
+            executions.extend((harness, end) for harness in extrema(eligible, min))
+    return interval_bounds(executions)
+
+
 def split_stage_intervals(parent, members, scoped):
     parent = job_endpoint_choices(parent)
     unplaced = unplaced_phases(parent)
@@ -703,23 +732,10 @@ def split_stage_intervals(parent, members, scoped):
         )
         if not viable:
             blocked.update(('queue', 'harness_step'))
-        executing = [
-            ordered_choices(sources[lane], ('harness_start', 'end'), within=phase_order('harness'))
-            for lane in active
-        ]
-        # Observed job starts constrain the step order above. Missing starts
-        # leave runner work unknown without removing a measured execution span.
-        if all(executing):
-            executions = []
-            for start, end in ordered_choices(parent, ('start', 'harness_end'), within=phase_order('harness')):
-                if start not in viable:
-                    continue
-                eligible = [tuple(harness for harness, finish in lane if finish <= start) for lane in executing]
-                if all(eligible):
-                    executions.extend((harness, end) for harness in extrema(eligible, min))
-            stages['harness_step'] = interval_bounds(executions)
-            if parent.get('harness_end') and not executions:
-                blocked.add('harness_step')
+    if parent.get('harness_end') and all(sources[lane].get('harness_start') for lane in active):
+        stages['harness_step'] = split_execution_bounds(parent, sources, active)
+        if stages['harness_step'] is None:
+            blocked.add('harness_step')
     stages['runner'] = sum_intervals([interval_bounds(job_boundary_choices(source, ('start', 'end')))
                                       for source in (parent, *sources.values())])
     return stages, blocked
@@ -1802,14 +1818,16 @@ def report_clock_role(sample):
 
 
 def report_job_issue(sample, attempt, run, evidence):
-    if evidence is None or not sample.get('inputs_sha256') or not sample_eligible(sample):
+    """Reject a contradicted publishing time using the identified job's own bounds."""
+    if evidence is None:
         return None
     role = report_clock_role(sample)
     if role is None or (role[0] == 'platform'
                         and not protected_profile_matches(run, sample['platform'], sample['profile'])):
         return None
     fact = evidence.jobs.get((attempt, role))
-    if fact and fact.job and job_outside_report(fact.job, timestamp(sample['recorded_at'])):
+    if fact and fact.job and sample_identity_complete(sample) and (
+            job_outside_report(fact.job, timestamp(sample['recorded_at']))):
         return {'run_id': attempt[1], role[0]: role[1], 'job_id': fact.job['job_id'],
                 'error': 'The recorded report creation is outside the publishing job boundaries.'}
     return None
