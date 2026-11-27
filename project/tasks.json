@@ -29382,6 +29382,113 @@
       }
     },
     {
+      "id": "M0-165",
+      "title": "Reconcile the implemented indicator module with the engineering inventory",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M3-005"
+      ],
+      "scope": [
+        "project/development.json",
+        "scripts/check_architecture.py",
+        "tests/project/test_development.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "The normal module source identifies the implemented Python evaluation entry and the Rust declarative owner consistently with the worker consumer, selected checks and historical delivery.",
+        "Demonstrate a maintained control at the existing engineering boundary for the observed incorrect inventory and a legitimate distinct module state. Scope any detection to what the evidence can establish. Preserve existing callers, behavior and task history."
+      ],
+      "checks": [
+        "project-state",
+        "architecture",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-165-b7c0ef6e2b718035.json",
+          "sha256": "2e312f4b1b1b7f7c7e2c2262d5e4a8f5ebac1d7ee6bbaaafec7fc257715582ca"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The ordinary module entry identifies Python trusted evaluation and Rust declarative calculation. Independent review restored the former planned label, observed the real worker import fail validation and accepted a separate genuinely planned module. The Linux task checks passed. The change affects the engineering inventory and static architecture validation.",
+      "plan": {
+        "outcome": "A fresh engineering agent sees the actual Python and Rust indicator responsibilities through ordinary module navigation.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/development.json",
+          "scripts/check_architecture.py",
+          "tests/project/test_development.py",
+          "python/worker_runtime/indicator.py",
+          "python/indicators/trusted.py",
+          "crates/domain/src/indicator.rs",
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json"
+        ],
+        "hypotheses": [
+          "The worker implementation added the public Python entry to the catalog while leaving its design-stage status and broad ownership intact."
+        ],
+        "risks": [
+          {
+            "failure": "A blanket rule based on file existence or declared dependencies alone could classify a planned module as delivered, or conflate implementation with platform acceptance.",
+            "checks": [
+              "project-state",
+              "architecture",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the engineering record and any validation change together and recover the original observation and accepted task receipts.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "indicators",
+            "worker-runtime",
+            "domain"
+          ],
+          "entrypoints": [
+            "project/development.json",
+            "scripts/check_architecture.py",
+            "tests/project/test_development.py"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/module_design"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/0"
+            }
+          ],
+          "non_goals": [
+            "Change any product operation, indicator execution, permissions, release acceptance or historical task definition."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Product operations, historical evidence and genuinely planned module or capability records."
+          ],
+          "change": [
+            "Correct misleading ownership and status. Use an existing check or a focused regression proportionate to this discrepancy."
+          ],
+          "data_plan": "Engineering metadata only. Use synthetic controls and preserve historical records.",
+          "cleanup": "Correct the authoritative inventory in place and avoid a parallel catalog."
+        }
+      }
+    },
+    {
       "id": "M0-159",
       "title": "Qualify the handoff for the first protected Windows Python observation",
       "milestone": "M0",
