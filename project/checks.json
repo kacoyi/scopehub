@@ -427,7 +427,7 @@
     {
       "id": "local-folder-refresh-preview",
       "status": "implemented",
-      "purpose": "Exercise folder review and guarded publication through the built UI, Rust registry, Python checker and SQLite. Observe additions, all alias locators, competing prices, explicit unit, adjustment and venue contradictions, incomplete coverage and discarded late replies. Publish with explicit source and bar withdrawals, recover a lost reply, and reopen and revoke frozen folder revisions after restart.",
+      "purpose": "Exercise folder review and guarded publication through the built UI, Rust registry, Python checker and SQLite. Observe additions, all alias locators, competing prices, explicit unit, adjustment and venue contradictions, incomplete coverage and discarded late replies. Publish with explicit source and bar withdrawals, recover a lost reply, and reopen and revoke frozen folder revisions after restart. Exercise both directions of status contention between published CSV and folder libraries and distinguish temporary absence from durable withdrawal on explicit retry, including CSV without a workspace. After withdrawing the sole revision in either library, observe the confirmation and empty state separately and prove denial after reopening.",
       "platforms": "all",
       "command": [
         "{python}",
@@ -659,7 +659,7 @@
     {
       "id": "workspace-timeframe",
       "status": "implemented",
-      "purpose": "Exercise the real opted-in local writer through staged browser startup, private handoff recovery, browser and process restart, timeframe undo, terminal cleanup, decision-note confirmation, deletion, backup and restore, private-record lifecycle and stale approval, and chart evidence selection and narrow projection of actual frozen profile data.",
+      "purpose": "Exercise the real opted-in local writer through staged browser startup, private handoff recovery, browser and process restart, timeframe undo, terminal cleanup, decision-note confirmation, deletion, backup and restore, private-record lifecycle and stale approval, and chart evidence selection and narrow projection of actual frozen profile data. Verify that the public CSV library keeps a withheld entry hidden after an invalid HTTP status reply and recovers it after a valid confirmation.",
       "platforms": "all",
       "command": [
         "pnpm",
@@ -675,7 +675,7 @@
     {
       "id": "desktop-workspace-transport",
       "status": "implemented",
-      "purpose": "Exercise the built desktop UI with substituted Tauri IPC for default startup, authorized timeframe and undo, rejection, and a delayed source invoke. Verify source recovery through the actual Rust registry and storage, including a still-pending write and late acknowledgement.",
+      "purpose": "Exercise the built desktop UI with substituted Tauri IPC for default startup, authorized timeframe and undo, rejection, and a delayed source invoke. At native startup, count snapshot calls for valid completion, a marked writer refusal and a completed storage BUSY. Verify source recovery through the actual Rust registry and storage, including a still-pending write and late acknowledgement. Exercise the shared browser reply decoder with valid success, typed failure, invalid output and a genuine pre-admission refusal.",
       "platforms": "all",
       "command": [
         "pnpm",
@@ -862,6 +862,39 @@
       ],
       "timeout_seconds": 900,
       "cadence": "change"
+    },
+    {
+      "id": "published-revision-launch-deadline",
+      "status": "implemented",
+      "purpose": "Exercise private-profile setup at the compiled-app fixture entry and record the first typed storage reply. Use a synthetic monotonic clock and process observations to require an owned WebView2 listener within the original endpoint deadline and keep rejected launches out of the public journey.",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "exec",
+        "node",
+        "--test",
+        "--test-isolation=none",
+        "--test-reporter=tap",
+        "tests/ui/published-revision-launch-deadline.test.mjs"
+      ],
+      "timeout_seconds": 60,
+      "cadence": "task"
+    },
+    {
+      "id": "windows-published-revision-access",
+      "status": "implemented",
+      "purpose": "Exercise the compiled Windows WebView2 app in the same prepared synthetic profile as the seed bridge. Record first status replies and native admission before validating the public journey. Interrupt original-row delivery and verify withheld content, dialog close and reopen, status-confirmed restoration and confirmed withdrawal in the CSV and folder libraries. Record controlled inputs and response delivery separately.",
+      "platforms": "windows-x64",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/published-revision-access-windows.config.mjs"
+      ],
+      "timeout_seconds": 2400,
+      "cadence": "task"
     }
   ],
   "milestones": [

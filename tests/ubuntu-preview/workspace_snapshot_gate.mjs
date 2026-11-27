@@ -7,8 +7,8 @@ import { syncBuiltinESMExports } from 'node:module';
 export const snapshotTag = 'x-scopehub-test-snapshot';
 const snapshotStages = ['handled', 'written', 'drained', 'finished', 'closed'];
 
-// Installed only in the Vite child for the indicator journey. Observe the real
-// writer's input and defer delivery of its reply at the pipe boundary.
+// Installed in the Vite child for tests that need a known admission holder.
+// Observe the real writer's input and defer its reply at the pipe boundary.
 export function installSnapshotGate(endpoint, writerPath) {
   const requestContext = new AsyncLocalStorage();
   const spawn = childProcess.spawn;
