@@ -30,6 +30,15 @@
       },
       "supersedes": "7fa8c3b738b7e9621d8b78fcb78753deee60197e422d7adf157583347fd7dca3",
       "evidence_sha256": "9e71731dc3b3419959fdcf234a09192e0d4fbd83c5335fb9370582a361e1f87e"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e4b1a7d2ce6718e5e0b4aeeb121a5fc7f5ba5c0f",
+      "scope": "Independently qualify ordinary fresh-browser private handoff and frozen workspace-fixture preparation against their two real Windows failures, passing same-preview Linux and adjacent integrated controls. Preserve the underlying restart and frozen-selection assertions and their bounded recovery.",
+      "supersedes": "ddec97ae0b155975f085479603ec32a877bfbf9c97ffb40d4b8a74b78c6c2c6c",
+      "requested_at": "2026-11-27T11:10:43.117932+00:00",
+      "request_id": "ce7d95f8d6bc4cbf5c0d1ed17467f2a1fff11f527083d8272f6ef4282fe2c8b7",
+      "evidence_sha256": "f73743b8403df78fff3f043f6c0b85532b8ff654f7582ff6e6a2d3f324cc0aa4"
     }
   ]
 }
