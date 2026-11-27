@@ -6,6 +6,7 @@ import type {
   DecisionNotePreviewRestoreCommand11, DecisionNotePreviewRestoreReply11, DecisionNoteRestoreBackupCommand11,
   DecisionNoteRestoreBackupInput, DecisionNoteRestoreBackupReply11, DecisionNoteRestoreScope11, DecisionNoteRestoreSummary,
 } from '../../../../contracts/generated/protocol';
+import { isDecisionNoteDeleteCommitted11 } from '../../../../contracts/generated/decision-note-output-validators.mjs';
 import { exchangeWorkspace, readWorkspaceAfterAdmission } from './use-local-workspace';
 
 type WriteCommand = DecisionNoteSaveCommand11 | DecisionNoteAppendOutcomeCommand11 | DecisionNoteDeleteCommand11;
@@ -91,13 +92,16 @@ export async function resolveNote(prepared: PreparedNote, decision: 'approve' | 
     const outcome = await send<WriteReply>({
       ...command, ...envelope(), confirmation: { challenge_id: challengeId, decision },
     }, signal);
-    if (decision === 'approve' && outcome.state === 'committed' && outcome.receipt?.undoable === false
-        && typeof outcome.receipt.operation_id === 'string' && outcome.receipt.operation_id.length === 36
-        && decisionNoteUuid.test(outcome.receipt.operation_id)
-        && outcome.receipt.workspace_id === command.scope.workspace_id
-        && outcome.receipt.target?.kind === 'decision_note'
-        && outcome.receipt.target.object_id === command.scope.target.object_id
-        && outcome.receipt.committed_workspace_revision === command.scope.expected_workspace_revision + 1) return outcome.receipt;
+    if (decision === 'approve' && outcome.state === 'committed') {
+      const { receipt } = outcome;
+      const validShape = command.intent.operation === 'decisionNote.delete'
+        ? isDecisionNoteDeleteCommitted11(outcome)
+        : receipt?.undoable === false && typeof receipt.operation_id === 'string'
+          && receipt.operation_id.length === 36 && decisionNoteUuid.test(receipt.operation_id);
+      if (validShape && receipt.workspace_id === command.scope.workspace_id
+          && receipt.target?.kind === 'decision_note' && receipt.target.object_id === command.scope.target.object_id
+          && receipt.committed_workspace_revision === command.scope.expected_workspace_revision + 1) return receipt;
+    }
     throw { code: 'OUTPUT_INVALID' };
   } catch (error) {
     if (decision === 'decline' && noteErrorCode(error) === 'CANCELLED') return;
