@@ -550,7 +550,9 @@ function startWriter(root, { path, profileId, workspaceId }) {
       delete frame.request_id;
     } else if (job.operation === 'frozen_chart_status') {
       if (frame?.request_id !== job.requestId || !(validFailure || frame?.ok === true
-        && typeof frame.result?.available === 'boolean' && Object.keys(frame.result).length === 1)) throw invalidReply();
+        && typeof frame.result?.available === 'boolean'
+        && (Object.keys(frame.result).length === 1 || Object.keys(frame.result).length === 2
+          && frame.result.available === false && frame.result.revoked === true))) throw invalidReply();
       delete frame.request_id;
     } else if (job.operation === acceptedLayers || job.operation === acceptedOutput) {
       if (frame?.request_id !== job.requestId

@@ -331,6 +331,93 @@ test('frozen chart shares two visible bars and clears the independent selection'
   }
 });
 
+test('published CSV requires a verified browser status before reopening', async ({ browser }, testInfo) => {
+  const profile = await makeProfile();
+  const revision = randomUUID();
+  const a = Date.parse('2026-02-03T00:00:00Z');
+  const b = Date.parse('2026-02-04T00:00:00Z');
+  const attempts = [];
+  const denial = { ok: false, error: { code: 'PERMISSION_DENIED', retryable: false } };
+  const unavailable = { ok: true, result: { available: false } };
+  // Both branches describe an unavailable synthetic fixture. There is no
+  // successful access claim in this malformed shape.
+  const invalid = { ...unavailable, error: { code: 'SNAPSHOT_UNAVAILABLE', retryable: false } };
+  try {
+    await seedFrozenEvidence(profile, revision, a, b);
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        let phase = 'withhold';
+        const reads = type => attempts.filter(attempt => attempt.type === type);
+        const statuses = () => reads('frozen_chart_status').filter(attempt => attempt.phase === phase);
+        await page.route(`**${endpoint}`, async route => {
+          const request = route.request().postDataJSON();
+          if (request?.revision_id !== revision || !['frozen_chart', 'frozen_chart_status'].includes(request.type)) {
+            return route.continue();
+          }
+          let substitute;
+          if (request.type === 'frozen_chart' && phase === 'withhold') {
+            substitute = { status: 403, json: denial };
+          } else if (request.type === 'frozen_chart_status') {
+            if (phase === 'withhold') substitute = { status: 200, json: unavailable };
+            if (phase === 'denied') substitute = { status: 403, json: denial };
+            if (phase === 'invalid') substitute = { status: 200, json: invalid };
+          }
+          const attempt = { type: request.type, phase };
+          attempts.push(attempt);
+          if (substitute) {
+            Object.assign(attempt, substitute);
+            return route.fulfill(substitute);
+          }
+          const response = await route.fetch();
+          Object.assign(attempt, { status: response.status(), json: await response.json() });
+          return route.fulfill({ response });
+        });
+
+        await control(page, 'Open published CSV').click();
+        const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+        const open = control(dialog, 'Open frozen chart');
+        const alert = dialog.getByRole('alert');
+        const chart = dialog.getByRole('region', { name: 'Frozen local CSV chart' });
+        await dialog.getByLabel('Revision ID').fill(revision);
+        const withheld = page.waitForResponse(response => response.request().postDataJSON()?.type === 'frozen_chart_status');
+        await open.click();
+        await expect(alert).toHaveText('This profile does not have permission to display this revision.');
+        expect(await (await withheld).finished()).toBeNull();
+        await expect.poll(() => statuses()).toMatchObject([{ status: 200, json: unavailable }]);
+        await expect(chart).toHaveCount(0);
+        expect(reads('frozen_chart')).toHaveLength(1);
+
+        for (const next of ['denied', 'invalid']) {
+          phase = next;
+          await open.click();
+          await expect.poll(() => statuses().length).toBe(1);
+          await expect(alert).toHaveText('Unable to verify access to this published revision. Try opening it again.');
+          await expect(chart).toHaveCount(0);
+          expect(statuses()).toHaveLength(1);
+          expect(reads('frozen_chart')).toHaveLength(1);
+        }
+
+        phase = 'verified';
+        await open.click();
+        await expect(chart.getByLabel('Selected bar')).toContainText('C 44.25');
+        expect(statuses()[0]).toMatchObject({ status: 200, json: { ok: true, result: { available: true } } });
+        const [, ...reopens] = reads('frozen_chart');
+        expect(reopens.at(-1)).toMatchObject({ phase: 'verified', status: 200, json: { ok: true } });
+        // Access restoration also refreshes the workspace snapshot. If those
+        // reads contend, any earlier chart attempt must be a writer refusal.
+        for (const refused of reopens.slice(0, -1)) {
+          expect(refused).toEqual({ type: 'frozen_chart', phase: 'verified', status: 429, json: busy });
+        }
+      });
+    });
+  } finally {
+    await profile.close();
+    await testInfo.attach('published-csv-browser-status', {
+      body: JSON.stringify({ revision, attempts }, null, 2), contentType: 'application/json',
+    });
+  }
+});
+
 const revocationTest = test.extend({
   localImportBridge: [async ({}, use, testInfo) => {
     const { stdout, stderr } = await exec('cargo', [
@@ -343,7 +430,7 @@ const revocationTest = test.extend({
 });
 
 revocationTest('published revocation removes visible and delayed frozen evidence and leaves an authorized clear', async ({ browser, localImportBridge }, testInfo) => {
-  const fixture = await publishRevocationFixture(testInfo, localImportBridge);
+  const fixture = await publishCsvAccessFixture(testInfo, localImportBridge);
   const port = Number(process.env.SCOPEHUB_EVIDENCE_REVOCATION_PORT ?? await freePort());
   const { revoked, entitled, profile, market } = fixture;
   const held = Promise.withResolvers();
@@ -411,10 +498,17 @@ revocationTest('published revocation removes visible and delayed frozen evidence
             expect(initial.result.undo.operation_id).toBe(baseline.receipt.operation_id);
             const workspaceClear = control(fresh, 'Clear shared selection');
             await expect.soft(workspaceClear).toBeVisible({ timeout: 2500 });
+            let rejectedSnapshot = false;
+            await fresh.route(`**${endpoint}`, async route => {
+              if (rejectedSnapshot || route.request().postDataJSON()?.type !== 'snapshot') return route.continue();
+              rejectedSnapshot = true;
+              await route.fulfill({ status: 429, json: { ok: false, error: { code: 'BUSY', retryable: true } } });
+            });
             const denied = await open(fresh, revision);
             await expect(denied.getByText('This frozen chart is unavailable in the current profile.')).toBeVisible();
             const modalClear = control(denied, 'Clear shared selection');
             await expect(modalClear).toBeEnabled();
+            expect(rejectedSnapshot).toBe(true);
             const accepted = await action(fresh, denied, 'Clear shared selection', 'workspace.selectEvidence');
             expect(accepted.result.selection).toEqual({ workspace_id: 'main', selection_revision: 2, target: null });
             const cleared = (await (await post(server, snapshot)).json()).result;
@@ -436,7 +530,142 @@ revocationTest('published revocation removes visible and delayed frozen evidence
   }
 });
 
-async function publishRevocationFixture(testInfo, binary) {
+revocationTest('CSV list recovery preserves the saved selection and timeframe undo through the native registry', async ({
+  page, localImportBridge,
+}, testInfo) => {
+  const fixture = await publishCsvAccessFixture(testInfo, localImportBridge, { workspace: true });
+  const id = fixture.entitled.revision_id;
+  const earlierStatus = Promise.withResolvers();
+  const calls = [];
+  const observations = {};
+  let phase = 'initial';
+  try {
+    // The desktop-hosted UI enables the published library and original row reader.
+    // Run its invoke transport against the real profile-bound Rust test bridge.
+    await inService(await freePort(), fixture.profile, 'development', async server => {
+      await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
+        const { payload, operation } = args;
+        const call = { phase, operation: operation ?? payload.type, revision: payload.revision_id,
+          requestId: args.requestId ?? payload.request_id };
+        calls.push(call);
+        const reply = await fixture.invoke(command, args);
+        call.error = reply.error?.code;
+        if (call.operation === 'market.listLocalImportRevisions') {
+          call.listed = reply.result?.revisions.map(revision => revision.revision_id);
+        } else if (call.operation === 'frozen_chart_status') {
+          call.available = reply.result?.available;
+          if (call.phase === 'unavailable') await earlierStatus.promise;
+        } else if (call.operation === 'market.readLocalImportSourceRow' && call.phase === 'unavailable') {
+          call.authorizedRow = reply.result?.revision_id;
+          call.deliveredError = 'SNAPSHOT_UNAVAILABLE';
+          return { error: { code: call.deliveredError } };
+        }
+        return reply;
+      });
+      await page.addInitScript(() => {
+        window.isTauri = true;
+        window.__SCOPEHUB_DESKTOP_WORKSPACE__ = true;
+        window.deliveredChartStatuses = [];
+        window.__TAURI_INTERNALS__ = {
+          async invoke(command, args) {
+            const reply = await window.testNativeInvoke(command, args);
+            if (args.payload.type === 'frozen_chart_status') window.deliveredChartStatuses.push(args.payload.request_id);
+            if (reply.error) throw reply.error;
+            return reply.result;
+          },
+        };
+      });
+      const clock = new Date('2026-04-16T08:00:00Z');
+      await page.clock.install({ time: clock });
+      await page.clock.pauseAt(new Date(clock.getTime() + 1000));
+      await page.goto(server.url);
+      const undo = control(page, 'Undo timeframe change');
+      await control(page, '5m').click();
+      await expect(undo).toBeEnabled();
+
+      await control(page, 'Open published CSV').last().click();
+      const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+      const entry = dialog.getByRole('button', { name: /Open entitled\.csv/ });
+      const revisionInput = dialog.getByLabel('Revision ID');
+      const chart = dialog.getByRole('region', { name: 'Frozen local CSV chart' });
+      const provenance = dialog.getByRole('region', { name: 'Published source provenance' });
+      const sourceRows = dialog.getByRole('table', { name: 'Published source rows' });
+      const originalFields = dialog.getByRole('region', { name: 'Original CSV fields' });
+      await expect(revisionInput).toHaveValue('');
+      await entry.click();
+      await expect(chart.getByLabel('Selected bar')).toContainText('C 64.25');
+      await control(dialog, 'Share selected bar').click();
+      await expect(dialog.getByText(/Shared bar ·/)).toBeVisible();
+      const readDurableState = async () => {
+        const reply = await fixture.invoke('execute_operation', { operation: null, payload: snapshot });
+        expect(reply.error).toBeUndefined();
+        const { workspace, selection_revision, chart_evidence, undo } = reply.result;
+        return { workspace, selection_revision, chart_evidence, undo };
+      };
+      const before = observations.before = await readDurableState();
+      expect(before).toMatchObject({ workspace: { revision: 1, timeframe: '5m' }, selection_revision: 1,
+        chart_evidence: { revision_id: id }, undo: { committed_workspace_revision: 1 } });
+      expect(before.undo.operation_id).toEqual(expect.any(String));
+
+      await dialog.getByText('Source rows (2)', { exact: true }).click();
+      const inspect = control(dialog, 'Inspect record 2');
+      await inspect.click();
+      await expect(originalFields.getByRole('row', { name: 'Close 64.25', exact: true })).toBeVisible();
+      phase = 'unavailable';
+      await inspect.click();
+      for (const privateResult of [entry, chart, provenance, sourceRows, originalFields]) {
+        await expect(privateResult).toHaveCount(0);
+      }
+      const statusDuringLoss = () => calls.filter(call => call.phase === 'unavailable' && call.operation === 'frozen_chart_status');
+      await expect.poll(() => statusDuringLoss().map(call => call.available)).toEqual([true]);
+      expect(calls.filter(call => call.deliveredError)).toMatchObject([
+        { revision: id, authorizedRow: id, deliveredError: 'SNAPSHOT_UNAVAILABLE' },
+      ]);
+      // Let the browser's original status wait expire without changing the native grant.
+      await page.clock.fastForward(5100);
+      await expect(entry).toHaveCount(0);
+
+      phase = 'refresh';
+      await control(dialog, 'Refresh revisions').click();
+      const refreshCalls = operation => calls.filter(call => call.phase === 'refresh' && call.operation === operation);
+      await expect.poll(() => refreshCalls('market.listLocalImportRevisions').map(call => call.listed)).toEqual([
+        [fixture.revoked.revision_id, id].sort(),
+      ]);
+      const refreshStatus = () => refreshCalls('frozen_chart_status').map(call => ({ revision: call.revision, available: call.available }));
+      await expect.poll(refreshStatus, { timeout: 3000, message: 'Refresh must ask Rust about the withheld CSV revision' })
+        .toEqual([{ revision: id, available: true }]);
+      await expect(entry).toBeVisible();
+      await expect(chart).toHaveCount(0);
+      await expect(revisionInput).toHaveValue('');
+      expect(refreshCalls('frozen_chart')).toEqual([]);
+
+      phase = 'reopen';
+      await entry.click();
+      await expect(chart.getByLabel('Selected bar')).toContainText('C 64.25');
+      await expect(provenance).toContainText(id);
+      await expect(originalFields).toHaveCount(0);
+      earlierStatus.resolve();
+      await expect.poll(() => page.evaluate(() => window.deliveredChartStatuses)).toContain(statusDuringLoss()[0].requestId);
+      await expect(chart.getByLabel('Selected bar')).toContainText('C 64.25');
+      expect(calls.filter(call => call.operation === 'frozen_chart').map(call => [call.phase, call.revision]))
+        .toEqual([['initial', id], ['reopen', id]]);
+      await control(dialog, 'Close').click();
+      await expect(undo).toBeEnabled();
+      observations.after = await readDurableState();
+      expect(observations.after).toEqual(before);
+      expect(calls.filter(call => ['chart.setTimeframe', 'workspace.selectEvidence', 'workspace.undo', 'workspace_source']
+        .includes(call.operation)).map(call => call.operation)).toEqual(['chart.setTimeframe', 'workspace.selectEvidence']);
+    });
+  } finally {
+    earlierStatus.resolve();
+    await fixture.close();
+    await testInfo.attach('csv-list-access-and-durable-state', {
+      body: JSON.stringify({ id, calls, ...observations }, null, 2), contentType: 'application/json',
+    });
+  }
+});
+
+async function publishCsvAccessFixture(testInfo, binary, { workspace = false } = {}) {
   const temp = await mkdtemp(join(tmpdir(), 'scopehub-evidence-revocation-'));
   const app = join(temp, 'app');
   const folder = join(temp, 'folder');
@@ -454,7 +683,7 @@ async function publishRevocationFixture(testInfo, binary) {
       ['entitled.csv', 'KEEP,60,64,59,61.5,25', 'KEEP,62,67,60,64.25,8'],
     ].map(([name, a, b]) => [name, `Date,Symbol,Open,High,Low,Close,Volume\n2026-02-03,${a}\n2026-02-04,${b}\n`]);
     for (const [name, csv] of sources) await writeFile(join(folder, name), csv);
-    bridge = startLocalImportBridge(binary, app, folder);
+    bridge = startLocalImportBridge(binary, app, folder, { workspace });
     const market = async (name, payload) => {
       const frame = await bridge.request('execute_operation', { operation: `market.${name}`, requestId: randomUUID(), payload });
       expect(frame.error, JSON.stringify(frame.error)).toBeUndefined();
@@ -482,7 +711,8 @@ async function publishRevocationFixture(testInfo, binary) {
     const { profile_id: id } = db.prepare('SELECT profile_id FROM profile_binding WHERE singleton = 1').get();
     db.close();
     await testInfo.attach('published-revisions', { body: JSON.stringify(revisions.map(revision => revision.revision_id)), contentType: 'application/json' });
-    return { revoked: revisions[0], entitled: revisions[1], profile: { root: path, id, workspaceId: 'main' }, market, close };
+    return { revoked: revisions[0], entitled: revisions[1], profile: { root: path, id, workspaceId: 'main' },
+      invoke: bridge.request, market, close };
   } catch (error) {
     await close();
     throw error;
@@ -883,7 +1113,7 @@ const indicatorStatusFaults = [
   ['an admitted BUSY', 200, () => busy, 'The workspace is busy. Try the preview again.'],
   ['a nonretryable 429', 429, () => ({ ok: false, error: { code: 'BUSY', retryable: false } }),
     'The workspace is busy. Try the preview again.'],
-  ['a contradictory 429', 429, reply => ({ ...busy, result: reply.result }), 'The workspace is busy. Try the preview again.'],
+  ['a contradictory 429', 429, () => ({ ...busy, result: {} }), 'The indicator preview could not be completed.'],
   ['a different task', 200, reply => ({ ok: true, result: { ...reply.result, task_id: randomUUID() } }),
     'The indicator preview could not be completed.'],
   ['persistent admission contention', 429, () => busy, 'The indicator preview could not be completed.', true],
@@ -3459,12 +3689,19 @@ test('decision-note backup restore previews known deletions and independent copi
 });
 
 function observeDecisionNoteWindow(page, window, events, baseline) {
+  const snapshots = new WeakMap();
+  let nextSnapshot = 0;
+  const snapshotId = request => {
+    if (!snapshots.has(request)) snapshots.set(request, ++nextSnapshot);
+    return snapshots.get(request);
+  };
   const identify = request => {
     if (new URL(request.url()).pathname !== endpoint) return;
     const message = request.postDataJSON();
     const operation = message?.intent?.operation ?? message?.type;
     if (operation !== 'snapshot' && operation !== 'chart.setTimeframe' && !operation?.startsWith('decisionNote.')) return;
-    return { window, operation, requestId: message.request_id, target: message.scope?.target?.object_id,
+    return { window, operation, snapshotId: operation === 'snapshot' ? snapshotId(request) : undefined,
+      requestId: message.request_id, target: message.scope?.target?.object_id,
       noteId: message.intent?.arguments?.note_id, expectedRevision: message.scope?.expected_workspace_revision,
       confirmation: message.confirmation?.decision };
   };
@@ -3492,6 +3729,7 @@ function observeDecisionNoteWindow(page, window, events, baseline) {
         selectedNote: outcome?.result?.note?.note_id, list: outcome?.result?.notes?.map(note => note.note_id) });
     }, error => { row.readError = error.message.split('\n')[0]; });
   });
+  return snapshotId;
 }
 
 async function decisionNoteMode(page) {
@@ -3703,7 +3941,7 @@ for (const scenario of ['recovers', 'nonretryable', 'denied', 'exhausts', 'abort
           const notes = observer.getByRole('dialog', { name: 'Decision notes' });
           await control(observer, 'Decision notes').click();
           for (const fixture of [...retained, removed]) await saveBackupTestNote(notes, fixture);
-          observeDecisionNoteWindow(observer, 'observer', observation.events, baseline);
+          const snapshotId = observeDecisionNoteWindow(observer, 'observer', observation.events, baseline);
           await assertBackupTestNote(notes, removed);
           const detail = observation.events.find(row => row.operation === 'decisionNote.read' && row.noteId);
           const removedId = detail.noteId;
@@ -3726,14 +3964,20 @@ for (const scenario of ['recovers', 'nonretryable', 'denied', 'exhausts', 'abort
               const snapshotDenied = scenario === 'snapshot denied';
               const snapshotDeliveryFails = scenario === 'snapshot delivery fails';
               const snapshotFails = snapshotDenied || snapshotDeliveryFails;
+              const interleaveSnapshots = holdsSnapshot || snapshotContention || snapshotFails;
               const denied = scenario === 'denied';
               const refusalHttp = denied ? 403 : 429;
               const refusalError = denied ? { code: 'PERMISSION_DENIED', retryable: false }
                 : { ...busy.error, retryable: scenario !== 'nonretryable' };
               let missingDetail = false;
+              const releaseFocus = Promise.withResolvers();
+              const focus = { first: [], trailing: [] };
+              const fallbackSnapshots = [];
+              if (interleaveSnapshots) Object.assign(observation, { focus, fallbackSnapshots });
+              let focusPhase;
+              let deliverMissingDetail = false;
               let snapshotFinished = false;
               let recovering = false;
-              let snapshotAttempts = 0;
               let firstRefusal;
               let attempts = 0;
               const fallbackReplies = () => observation.events.filter(row => row.stage === 'response'
@@ -3744,6 +3988,7 @@ for (const scenario of ['recovers', 'nonretryable', 'denied', 'exhausts', 'abort
                   const { result } = await response.json();
                   observation.heldReply = {
                     kind, http: response.status(), workspaceRevision: result?.workspace?.revision,
+                    snapshotId: kind === 'snapshot' ? snapshotId(route.request()) : undefined,
                     readyMs: performance.now() - baseline,
                     list: result?.outcome?.result?.notes?.map(note => note.note_id),
                   };
@@ -3756,7 +4001,7 @@ for (const scenario of ['recovers', 'nonretryable', 'denied', 'exhausts', 'abort
                   }
                 } finally { await response.dispose(); }
               };
-              const refuseSnapshotWhileWriterHeld = async route => {
+              const refuseSnapshotWhileWriterHeld = async (route, attempt) => {
                 const holder = server.tagSnapshot();
                 const held = post(server, snapshot, holder.headers, AbortSignal.timeout(5_000));
                 void held.catch(() => {});
@@ -3767,9 +4012,13 @@ for (const scenario of ['recovers', 'nonretryable', 'denied', 'exhausts', 'abort
                   const refused = await route.fetch();
                   try {
                     observation.snapshotRefusal = { http: refused.status(), body: await refused.json() };
+                    attempt.http = refused.status();
                     expect(observation.snapshotRefusal).toEqual({ http: 429, body: busy });
                     holder.release();
-                    await holder.wait('drained');
+                    observation.writerDrainedSnapshot = await holder.wait('drained');
+                    expect(observation.writerDrainedSnapshot).toMatchObject({
+                      id: holder.id, request_id: observation.writerHoldingSnapshot.request_id, ok: true, revision: 5,
+                    });
                     await route.fulfill({ response: refused });
                   } finally { await refused.dispose(); }
                 } finally {
@@ -3777,24 +4026,72 @@ for (const scenario of ['recovers', 'nonretryable', 'denied', 'exhausts', 'abort
                   await Promise.allSettled([held.then(responseStatus)]);
                 }
               };
+              const readFocusSnapshot = async (route, stage) => {
+                const entry = { id: snapshotId(route.request()), startedMs: performance.now() - baseline };
+                focus[stage].push(entry);
+                const reply = await route.fetch();
+                try {
+                  Object.assign(entry, {
+                    http: reply.status(), revision: (await reply.json()).result?.workspace.revision,
+                    readyMs: performance.now() - baseline,
+                  });
+                  if (stage === 'first') await releaseFocus.promise;
+                  await route.fulfill({ response: reply });
+                } finally { await reply.dispose(); }
+              };
+              const focusPending = observer.getByText('Loading local workspace…');
+              async function holdWorkspaceFocus() {
+                // The drawer owns the in-flight detail. Its fallback cannot start
+                // until we deliver that detail, so focus owns this next snapshot.
+                await expect(focusPending).toHaveCount(0);
+                focusPhase = 'starting';
+                await observer.evaluate(() => window.dispatchEvent(new Event('focus')));
+                await expect.poll(() => focus.first).toMatchObject([{ http: 200, revision: 5 }]);
+                await expect(focusPending).toBeVisible();
+                await observer.evaluate(() => {
+                  for (let attempt = 0; attempt < 3; attempt++) window.dispatchEvent(new Event('focus'));
+                });
+              }
+              async function finishWorkspaceFocus() {
+                if (!interleaveSnapshots) return;
+                // The first focus read is still awaiting delivery. The drawer has
+                // already settled, so the queued focus now owns the trailing read.
+                await expect(focusPending).toBeVisible();
+                focusPhase = 'trailing';
+                releaseFocus.resolve();
+                await expect.poll(() => focus.trailing).toMatchObject([{ http: 200, revision: 5 }]);
+                await expect(focusPending).toHaveCount(0);
+                expect(focus.first).toHaveLength(1);
+                expect(focus.trailing).toHaveLength(1);
+                focusPhase = 'settled';
+              }
               const injectAdmission = async route => {
                 const request = route.request().postDataJSON();
-                if (missingDetail && !recovering && !snapshotFinished && request?.type === 'snapshot'
-                    && (holdsSnapshot || snapshotContention || snapshotFails)) {
-                  snapshotAttempts += 1;
-                  if (holdsSnapshot && snapshotAttempts === 1) return holdReply(route, 'snapshot');
-                  if (snapshotDenied) {
-                    return route.fulfill({ status: 403, json: { ok: false, error: { code: 'PERMISSION_DENIED', retryable: false } } });
-                  }
-                  if (snapshotContention && snapshotAttempts === 1) return refuseSnapshotWhileWriterHeld(route);
-                  const reply = await route.fetch();
+                if (request?.type === 'snapshot' && focusPhase === 'starting') {
+                  focusPhase = 'holding';
+                  return readFocusSnapshot(route, 'first');
+                }
+                if (request?.type === 'snapshot' && focusPhase === 'trailing') return readFocusSnapshot(route, 'trailing');
+                if (request?.type === 'snapshot' && focusPhase === 'holding' && !deliverMissingDetail) {
+                  return readFocusSnapshot(route, 'first'); // Extra focus reads fail the ownership count.
+                }
+                if (request?.type === 'snapshot' && focusPhase === 'holding' && !snapshotFinished) {
+                  const attempt = { id: snapshotId(route.request()), startedMs: performance.now() - baseline };
+                  fallbackSnapshots.push(attempt);
+                  if (holdsSnapshot && fallbackSnapshots.length === 1) return holdReply(route, 'snapshot');
+                  if (snapshotContention && fallbackSnapshots.length === 1) return refuseSnapshotWhileWriterHeld(route, attempt);
+                  const headers = snapshotDenied ? { ...await route.request().allHeaders(), authorization: '' } : undefined;
+                  const reply = await route.fetch(headers ? { headers } : undefined);
                   try {
+                    const frame = await reply.json();
+                    Object.assign(attempt, { http: reply.status(), revision: frame.result?.workspace.revision, error: frame.error });
                     if (snapshotDeliveryFails) {
-                      observation.lostSnapshot = { http: reply.status(), revision: (await reply.json()).result?.workspace.revision };
+                      observation.lostSnapshot = { http: attempt.http, revision: attempt.revision };
                       return await route.abort('failed');
                     }
-                    snapshotFinished = true;
+                    if (!snapshotDenied) snapshotFinished = true;
                     if (reopens) await delay(2_000);
+                    attempt.deliveredMs = performance.now() - baseline;
                     return await route.fulfill({ response: reply });
                   } finally { await reply.dispose(); }
                 }
@@ -3804,6 +4101,10 @@ for (const scenario of ['recovers', 'nonretryable', 'denied', 'exhausts', 'abort
                   const response = await route.fetch();
                   try {
                     missingDetail = (await response.json()).result?.outcome?.error?.code === 'DATA_UNAVAILABLE';
+                    if (missingDetail && interleaveSnapshots) {
+                      await holdWorkspaceFocus();
+                      deliverMissingDetail = true;
+                    }
                     return await route.fulfill({ response });
                   } finally { await response.dispose(); }
                 }
@@ -3884,18 +4185,23 @@ for (const scenario of ['recovers', 'nonretryable', 'denied', 'exhausts', 'abort
                 }
                 if (timesOut) {
                   await expect.poll(() => observation.heldReply).toMatchObject(holdsSnapshot
-                    ? { kind: 'snapshot', http: 200, workspaceRevision: 5 }
+                    ? { kind: 'snapshot', http: 200, workspaceRevision: 5, snapshotId: fallbackSnapshots[0]?.id }
                     : { kind: 'list', http: 200, list: expect.arrayContaining(remainingIds) });
+                  if (reopens) {
+                    expect(fallbackSnapshots[1]).toMatchObject({ http: 200, revision: 5 });
+                    expect(observation.heldReply.readyMs - fallbackSnapshots[0].startedMs).toBeGreaterThanOrEqual(2_000);
+                  }
                   const reload = notes.getByRole('button', { name: 'Reload decision notes' });
                   const close = notes.getByRole('button', { name: 'Close decision notes' });
                   await expect(close).toBeDisabled();
                   observation.beforeDeadline = await decisionNoteMode(observer);
-                  // The mixed run spent two seconds delivering its admitted snapshot before the list wait.
+                  // Only the designated fallback spent two seconds of the shared deadline.
                   await expect(reload).toBeVisible({ timeout: reopens ? 4_000 : 8_000 });
                   await expect(close).toBeEnabled();
                   await expect(notes.getByRole('alert')).toHaveText('The decision-note request timed out.');
                   observation.afterDeadline = await decisionNoteMode(observer);
                   observation.heldUntilRecoveryMs = performance.now() - baseline - observation.heldReply.readyMs;
+                  await finishWorkspaceFocus();
                   recovering = true;
                   if (reopens) {
                     await close.click();
@@ -3922,19 +4228,26 @@ for (const scenario of ['recovers', 'nonretryable', 'denied', 'exhausts', 'abort
                     expect(fallbackReplies().map(row => row.http)).toEqual([429]);
                   }
                   expect(attempts).toBe(holdsSnapshot ? 0 : 2);
-                  if (holdsSnapshot) expect(snapshotAttempts).toBe(1);
+                  if (holdsSnapshot) expect(fallbackSnapshots).toHaveLength(1);
                 } else if (recovers) {
                   await assertCurrentList();
                   expect(fallbackReplies()).toMatchObject([{ http: 429 }, { http: 200 }]);
                   await expect.poll(() => fallbackReplies()[1]?.list?.toSorted()).toEqual(remainingIds);
+                  await finishWorkspaceFocus();
                 } else if (snapshotFails) {
                   const reload = notes.getByRole('button', { name: 'Reload decision notes' });
                   await expect(reload).toBeVisible();
                   await expect(notes.getByRole('alert')).toHaveText(snapshotDenied
                     ? 'This decision note action is no longer authorized.' : 'The local workspace could not verify the result.');
+                  if (snapshotDenied) {
+                    expect(fallbackSnapshots).toMatchObject([{ http: 403, error: { code: 'PERMISSION_DENIED', retryable: false } }]);
+                  }
                   if (snapshotDeliveryFails) expect(observation.lostSnapshot).toEqual({ http: 200, revision: 5 });
-                  expect(snapshotAttempts).toBe(1);
+                  expect(fallbackSnapshots).toHaveLength(1);
                   expect(attempts).toBe(0);
+                  const failure = await decisionNoteMode(observer);
+                  await finishWorkspaceFocus();
+                  expect(await decisionNoteMode(observer)).toEqual(failure);
                   recovering = true;
                   await reload.click();
                   await assertCurrentList();
@@ -3969,7 +4282,16 @@ for (const scenario of ['recovers', 'nonretryable', 'denied', 'exhausts', 'abort
                   await assertBackupTestNote(notes, retained[1]);
                   expect(attempts).toBe(terminalAttempts);
                 }
-                if (snapshotContention) expect(snapshotAttempts).toBe(2);
+                if (snapshotContention) expect(fallbackSnapshots).toMatchObject([{ http: 429 }, { http: 200, revision: 5 }]);
+                if (interleaveSnapshots) {
+                  const deletedDetail = events.find(row => row.window === 'observer' && row.stage === 'response'
+                    && row.noteId === removedId && row.code === 'DATA_UNAVAILABLE');
+                  const snapshotRequest = id => events.find(row => row.window === 'observer'
+                    && row.stage === 'request' && row.snapshotId === id);
+                  expect(snapshotRequest(focus.first[0].id).elapsedMs).toBeLessThan(deletedDetail.elapsedMs);
+                  expect(snapshotRequest(fallbackSnapshots[0].id).elapsedMs).toBeGreaterThan(deletedDetail.elapsedMs);
+                  expect(snapshotRequest(focus.trailing[0].id).elapsedMs).toBeGreaterThan(fallbackSnapshots.at(-1).startedMs);
+                }
                 if (!recovers) {
                   await expect(notes.getByRole('region', { name: 'Original decision' }).getByText(retained[1].thesis)).toBeVisible();
                   await expect(notes.getByText(removed.thesis)).toHaveCount(0);
@@ -3983,9 +4305,10 @@ for (const scenario of ['recovers', 'nonretryable', 'denied', 'exhausts', 'abort
                 });
               } finally {
                 observation.attempts = attempts;
-                observation.snapshotAttempts = snapshotAttempts;
+                observation.snapshotAttempts = fallbackSnapshots.length;
                 observation.after = { mode: await decisionNoteMode(observer), stored: decisionNoteStoredState(profile) };
                 release.resolve();
+                releaseFocus.resolve();
                 await observer.unroute(url, injectAdmission);
               }
             });
@@ -6605,12 +6928,12 @@ function isPrivateApproval(payload) {
     && payload.intent.arguments.action === 'resolve' && payload.intent.arguments.decision === 'approve';
 }
 
-function privateDetailReply(page, id, matches) {
+function privateDetailReply(page, id, matches, timeout) {
   return page.waitForResponse(async response => {
     const intent = response.request().postDataJSON()?.intent;
     return intent?.operation === 'privateRecord.read' && intent.arguments.record_id === id && response.ok()
       && matches((await response.json()).result?.outcome);
-  });
+  }, { timeout });
 }
 
 function assertSameDeleteResolution(before, retry) {
@@ -6783,7 +7106,13 @@ for (const fault of ['lost reply', 'blocked checkpoint']) {
   });
 }
 
-test('private record delete recovery hides its old title after pre-commit busy and peer rename', async ({ browser }, testInfo) => {
+test('private record delete recovery hides its old title after pre-commit busy and peer rename around ordinary refocus',
+  ({ browser }, testInfo) => checkPrivatePeerCorrection(browser, testInfo, false));
+
+test('private record delete recovery hides its old title after pre-commit busy and peer rename with contended refocus',
+  ({ browser }, testInfo) => checkPrivatePeerCorrection(browser, testInfo, true));
+
+async function checkPrivatePeerCorrection(browser, testInfo, contendedRefocus) {
   const profile = await makeProfile();
   const stages = [];
   try {
@@ -6889,46 +7218,100 @@ test('private record delete recovery hides its old title after pre-commit busy a
             });
           });
 
-          const focused = await privateReplyDuring(pageA, stages, 'origin reads the corrected revision around focus', readDetail,
-            async () => {
-              await focusPrivateRecords(pageA);
-              stages.push({ step: 'origin focus dispatched' });
-            });
-          expectCorrectedRead(focused);
+          // Arm the natural observer before focus: a matching reply can be from an already issued read.
+          const observeCorrectedDetail = () => {
+            const reply = privateDetailReply(pageA, id,
+              outcome => outcome?.state === 'completed' && outcome.result.workspace_revision === 2, 8_000);
+            void reply.catch(() => {});
+            return reply;
+          };
+          const assertCorrectedResponse = async (response, step) => {
+            const frame = (await response.json()).result;
+            expect(frame.request_id).toBe(response.request().postDataJSON().request_id);
+            expectCorrectedRead({ observed: { http: response.status() }, outcome: frame.outcome });
+            stages.push({ step, http: response.status() });
+          };
+          if (contendedRefocus) {
+            const heldSnapshot = origin.tagSnapshot();
+            const requestPattern = `**${endpoint}`;
+            let taggedSnapshot = false;
+            const admitAfterSnapshot = async route => {
+              const body = route.request().postDataJSON();
+              if (body?.type === 'snapshot' && !taggedSnapshot) {
+                taggedSnapshot = true;
+                return route.continue({ headers: { ...await route.request().allHeaders(), ...heldSnapshot.headers } });
+              }
+              if (readDetail(body)) await heldSnapshot.wait('written');
+              return route.continue();
+            };
+            const recoveredDetail = privateDetailReply(pageA, id,
+              outcome => outcome?.state === 'completed' && outcome.result.workspace_revision === 2);
+            void recoveredDetail.catch(() => {});
+            await pageA.route(requestPattern, admitAfterSnapshot);
+            try {
+              const first = await privateReplyDuring(pageA, stages, 'focus snapshot refuses the first corrected detail read',
+                readDetail, () => focusPrivateRecords(pageA));
+              expect(first.observed).toMatchObject({ http: 429, code: 'BUSY' });
+              heldSnapshot.release();
+              expect(await heldSnapshot.wait('drained')).toMatchObject({ ok: true, revision: 2 });
+              const response = await recoveredDetail;
+              const outcome = (await response.json()).result.outcome;
+              expect(response.request().postDataJSON()).toEqual(first.payload);
+              expectCorrectedRead({ observed: { http: response.status() }, outcome });
+              stages.push({ step: 'authorized detail admitted after focus snapshot drained', http: response.status() });
+            } finally {
+              heldSnapshot.release();
+              await pageA.unroute(requestPattern, admitAfterSnapshot);
+            }
+          } else {
+            const detail = observeCorrectedDetail();
+            await focusPrivateRecords(pageA);
+            stages.push({ step: 'ordinary origin focus dispatched' });
+            await assertCorrectedResponse(await detail, 'authorized correction read observed around ordinary focus');
+          }
           await assertPrivateHidden(first, title, text, renamed, corrected);
           await expect(first.getByRole('button', { name: 'Delete private record', exact: true })).toHaveCount(0);
 
-          let retrySent = false;
-          let gatedRead;
-          const releaseRead = Promise.withResolvers();
-          const endpointUrl = origin.url + endpoint;
-          const gateCurrentRead = async route => {
-            const payload = route.request().postDataJSON();
-            if (isPrivateApproval(payload)) retrySent = true;
-            if (retrySent && !gatedRead && readDetail(payload)) {
-              gatedRead = payload.request_id;
-              await releaseRead.promise;
-            }
-            await route.continue();
+          const retryDeletion = async () => {
+            const retried = await privateReplyDuring(pageA, stages, 'origin retries the original deletion resolution',
+              isPrivateApproval, () => clickPrivate(first, 'Retry confirmation'));
+            assertSameDeleteResolution(rejected.payload, retried.payload);
+            expect(retried.observed).toMatchObject({ http: 200, state: 'failed', code: 'STALE_CONTEXT' });
           };
-          await pageA.route(endpointUrl, gateCurrentRead);
-          try {
-            const current = await privateReplyDuring(pageA, stages, 'authorized reread after stale deletion retry',
-              payload => readDetail(payload) && payload.request_id === gatedRead, async () => {
-                const retried = await privateReplyDuring(pageA, stages, 'origin retries the original deletion resolution',
-                  isPrivateApproval, () => clickPrivate(first, 'Retry confirmation'));
-                assertSameDeleteResolution(rejected.payload, retried.payload);
-                expect(retried.observed).toMatchObject({ http: 200, state: 'failed', code: 'STALE_CONTEXT' });
-                await expect.poll(() => Boolean(gatedRead)).toBe(true);
-                await assertPrivateHidden(first, title, text, renamed, corrected);
-                await expect(first.getByRole('button', { name: 'Delete private record', exact: true })).toHaveCount(0);
-                stages.push({ step: 'before corrected detail response', contentHidden: true, sameResolution: true });
-                releaseRead.resolve();
-              });
-            expectCorrectedRead(current);
-          } finally {
-            releaseRead.resolve();
-            await pageA.unrouteAll({ behavior: 'wait' });
+          if (contendedRefocus) {
+            let retrySent = false;
+            let gatedRead;
+            const releaseRead = Promise.withResolvers();
+            const endpointUrl = origin.url + endpoint;
+            const gateCurrentRead = async route => {
+              const payload = route.request().postDataJSON();
+              if (isPrivateApproval(payload)) retrySent = true;
+              if (retrySent && !gatedRead && readDetail(payload)) {
+                gatedRead = payload.request_id;
+                await releaseRead.promise;
+              }
+              await route.continue();
+            };
+            await pageA.route(endpointUrl, gateCurrentRead);
+            try {
+              const current = await privateReplyDuring(pageA, stages, 'authorized reread after stale deletion retry',
+                payload => readDetail(payload) && payload.request_id === gatedRead, async () => {
+                  await retryDeletion();
+                  await expect.poll(() => Boolean(gatedRead)).toBe(true);
+                  await assertPrivateHidden(first, title, text, renamed, corrected);
+                  await expect(first.getByRole('button', { name: 'Delete private record', exact: true })).toHaveCount(0);
+                  stages.push({ step: 'before corrected detail response', contentHidden: true, sameResolution: true });
+                  releaseRead.resolve();
+                });
+              expectCorrectedRead(current);
+            } finally {
+              releaseRead.resolve();
+              await pageA.unrouteAll({ behavior: 'wait' });
+            }
+          } else {
+            const detail = observeCorrectedDetail();
+            await retryDeletion();
+            await assertCorrectedResponse(await detail, 'authorized correction read observed around ordinary deletion retry');
           }
           await expect(first.getByRole('alert')).toContainText('changed');
           await expect(first.getByRole('heading', { name: renamed })).toBeVisible();
@@ -6939,9 +7322,9 @@ test('private record delete recovery hides its old title after pre-commit busy a
           stages.push({ step: 'corrected detail displayed', revision: 2, deletions: 0 });
         } finally { writerLock.close(); }
       });
-    });
+    }, { snapshotGate: contendedRefocus });
   } finally {
     await testInfo.attach('private-deletion-peer-recovery', { body: JSON.stringify(stages), contentType: 'application/json' });
     await profile.close();
   }
-});
+}
