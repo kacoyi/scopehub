@@ -64,6 +64,8 @@ def rust_boundaries(root):
 def declared_source_boundaries(root):
     """Check statically visible TS/Python module crossings and public entries.
 
+    For Python, an implemented caller importing a real public entry of a
+    planned module is an inventory inconsistency. Declarations alone are allowed.
     This intentionally does not claim to detect dynamic imports or all semantic
     coupling. Existing capability checks and code review remain necessary.
     """
@@ -87,6 +89,7 @@ def declared_source_boundaries(root):
             return
         caller = owner(source)
         relative = target.relative_to(root).as_posix()
+        callee = None
         if relative.startswith('contracts/generated/'):
             dependency, public = 'domain', True
         else:
@@ -103,6 +106,9 @@ def declared_source_boundaries(root):
                 errors.append(f'Forbidden module dependency: {caller["id"]} -> {dependency}')
             elif not public:
                 errors.append(f'Private module entry: {caller["id"]} -> {relative}')
+            elif (source.suffix == '.py' and caller['status'] == 'implemented'
+                  and callee is not None and callee['status'] == 'planned' and target.is_file()):
+                errors.append(f'Planned module entry imported by implemented module: {caller["id"]} -> {relative}')
 
     ui = root / 'apps/desktop/ui/src'
     for path in ui.rglob('*'):

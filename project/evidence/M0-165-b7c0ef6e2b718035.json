@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-165",
+  "task_definition_sha256": "53b088d869029f06fa58680240daa4fa24f9ea5a93a769c2b40ddea902e0fc28",
+  "run_id": "20261126T124037.859457Z-68d2d533",
+  "recorded_at": "2026-11-26T12:49:30.548112+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "c1b3b65fb4478c58a43da42e961c36de0c61994444c1a6bc86c70ade03e120c3",
+    "file_count": 611,
+    "git_head": "16444fef187a3319672207576df1bbd5d607fa0d",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "b7c0ef6e2b71803524ae048f55ce581ac28c63882eecbdb0d4feb60610ad1c28",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-44-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/indicator-module-inventory/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/indicator-module-inventory/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c586ce94e37c8d2110cde4bca3ecf70ab763bea8b6fd3399109b7cbd5db4b95b"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/indicator-module-inventory/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "21394e146442aeb8b6a2927b16e5377ec5098398d42b0b7ad4f232b27003b445"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/indicator-module-inventory/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "044c471b4eb27ef44569a8014ad6d138f763b8ea4ca96e00149b5236b0e7fb21"
+    }
+  ],
+  "project_definition_sha256": "dc040ca158df83d0283d874cd625a7baa1c9382d0d8b34e055a7428c9b894ea5",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}
