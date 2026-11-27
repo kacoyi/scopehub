@@ -677,6 +677,26 @@
       "requested_at": "2026-11-27T10:14:37.565888+00:00",
       "request_id": "a3f9f4613ab9895590b8bd2840c4e28df335de0524fc34715eac95a34ce4148f",
       "evidence_sha256": "69b7e286045c0a59c0023611a83eb6cf1a3ea5c8cb57ae76a787ebeededf4a44"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "215952297bc76e1b5459a2a94bb24d3637a78cb8",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 215952297bc76e1b5459a2a94bb24d3637a78cb8",
+      "scope": "APPROVE M0-146 215952297bc76e1b5459a2a94bb24d3637a78cb8",
+      "observation": "Both workflow replays rejected the Python producer when only its optional timing upload succeeded.",
+      "reviewer": "Independent Astra Standard (t1hh)",
+      "original_sha256": "4fd75c0395239e2ea451e74406a32cf627e1a99253018db2b57a9b81b6a8d501",
+      "response_id": "afc7fcb8ae64ba493dfcf8f7ec5bbade2fcd1f495fae83b14b6ff66893e3cc48",
+      "response_sha256": "c7a9b4b25403ca7e211475963cfc816a0deb9b9ee081762c9ec50c054f50f7b2",
+      "legacy_response_sha256": "30b78bf324b61ae8d901a3e50b3042f8b43d9829775757e401676f078ee67591",
+      "observation_body_sha256": "393c1d730553d24c3e5b4483787d9bb6ef880b630dfa780d7983993ccdf90c56",
+      "event": {
+        "id": "msg_0a87064a46f984e7016b09642619ac87d08a9cb94a1601d006",
+        "timestamp": "2026-11-27T11:06:33.533Z"
+      },
+      "supersedes": "a3f9f4613ab9895590b8bd2840c4e28df335de0524fc34715eac95a34ce4148f",
+      "evidence_sha256": "d80353681ad0be8a45ae267dd9fb4e2889127db2579d9ec2d3879e7194fb2493"
     }
   ]
 }

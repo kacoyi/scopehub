@@ -677,6 +677,26 @@
       "requested_at": "2026-11-27T10:14:36.891752+00:00",
       "request_id": "8d78e0a315f2a189e63fe8a94d501fe69a39bb1726d5974f6e71dc1427b68aa4",
       "evidence_sha256": "4e66de7b1e9adf2ecf8f2dfe58db0511ef3f3f9d567618d621e2b668bbc1c423"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "215952297bc76e1b5459a2a94bb24d3637a78cb8",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-139 215952297bc76e1b5459a2a94bb24d3637a78cb8",
+      "scope": "CHANGES_REQUESTED M0-139 215952297bc76e1b5459a2a94bb24d3637a78cb8",
+      "observation": "The public integration command returned exit code 0 in both the four-producer and five-producer offline replays when the final report was uploaded under the timing artifact name.",
+      "reviewer": "Independent Astra Standard (t1hg)",
+      "original_sha256": "9ce56c8d0690afe86512ebcb8706de1b82227eda589bf0053bcb09be37a2c2da",
+      "response_id": "3d655e82ca97d7e98bf8788c8118d644b6caf26eee245a8ce7965e73ebf29c53",
+      "response_sha256": "b94753dc019b8e501ff15e41da957287e853ce7cffb876280d8406bfac671ead",
+      "legacy_response_sha256": "89a75f7af4f3eab4c71a66830f364dc01956e837e1ed86b919cc63e989c9362d",
+      "observation_body_sha256": "9fddd8f4577fc4fa6ba07eb87a8ddf573fe433264fc258909d174e4f29fabd3b",
+      "event": {
+        "id": "msg_0e6d09da8ac7a259016b0959cc2ae487d0a2f38f791f44bfd6",
+        "timestamp": "2026-11-27T10:22:31.071Z"
+      },
+      "supersedes": "8d78e0a315f2a189e63fe8a94d501fe69a39bb1726d5974f6e71dc1427b68aa4",
+      "evidence_sha256": "1241d88bb45f28f6e23a185740bc488313b62502a7dcfb71335ca587f43a734c"
     }
   ]
 }
