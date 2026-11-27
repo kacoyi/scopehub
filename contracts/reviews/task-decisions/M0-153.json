@@ -97,6 +97,26 @@
       "requested_at": "2026-11-27T09:30:53.372819+00:00",
       "request_id": "6084a6fe6da948c8a8a8727225f369034b9dab4881912c7c366351713dc1cf15",
       "evidence_sha256": "2096676a0412205eab60b58dbdbf57edad51fc9542594d182cefdd005173b6fc"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "2cac22b85efa33304594d339246284038408b7ee",
+      "verdict": "approved",
+      "decision": "APPROVE M0-153 2cac22b85efa33304594d339246284038408b7ee",
+      "scope": "APPROVE M0-153 2cac22b85efa33304594d339246284038408b7ee",
+      "observation": "I verified that all eight retained Linux replays passed the same 47 retirement cases in the same order, with 276 fewer Git launches per run when the fixture seed was reused.",
+      "reviewer": "Independent Astra Standard (t1gm)",
+      "original_sha256": "5364e2c810cb7b3939571483e0399aa665af338f53a2c99f52c68c0d4f1ed01a",
+      "response_id": "bc93dbe1da543d818d1b1bf7e2254a5235b7ce67f9b584488bbadfbc1d0d5ef8",
+      "response_sha256": "7bc2e9ab8e1980060aa54dc7ce1ed82dcd4d0833e920cb5b6e86f79b428a703c",
+      "legacy_response_sha256": "bfc775f899ddd49bfacae071ab375ca73b0d54a65b96c3e21f58f67d30f7be63",
+      "observation_body_sha256": "2aff22b69252284f006a702e0770802238da9b3599ff1d003c3e5dab84057b5e",
+      "event": {
+        "id": "msg_0194288929afb5c6016b094e71c11487d0821a45c04778b96b",
+        "timestamp": "2026-11-27T09:34:00.771Z"
+      },
+      "supersedes": "6084a6fe6da948c8a8a8727225f369034b9dab4881912c7c366351713dc1cf15",
+      "evidence_sha256": "a8953cd519dc75cf85eadcd2261763ffe75cbf50bfc723d1705476cf1290abc1"
     }
   ]
 }
