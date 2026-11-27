@@ -1,0 +1,122 @@
+{
+  "version": 3,
+  "task_id": "M0-153",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "8b37d7e9b75e4275f3b5dedd08007a64c6af0703",
+      "scope": "Review per-case filesystem, Git object and configuration isolation, retry after initialization failure, honestly separated setup and suite timings, and both original native serial deadline failures with their same-tree ordinary controls.",
+      "supersedes": null,
+      "requested_at": "2026-11-25T22:06:07.063189+00:00",
+      "request_id": "8736c746405e929cc31724c252fbad21c09fc37039a6ecf2249dd8e19eed81ea",
+      "evidence_sha256": "881ceca1b1d582455db728b30d83742e0d8666c87ab591371ed4b4ef9475b84f"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "8b37d7e9b75e4275f3b5dedd08007a64c6af0703",
+      "verdict": "approved",
+      "decision": "APPROVE M0-153 8b37d7e9b75e4275f3b5dedd08007a64c6af0703",
+      "scope": "APPROVE M0-153 8b37d7e9b75e4275f3b5dedd08007a64c6af0703",
+      "observation": "Across eight Linux runs of the same six cases, median combined setup time fell from 0.1623 to 0.0698 seconds and median total time rose from 2.6747 to 2.8515 seconds.",
+      "reviewer": "Independent Astra Standard (t10g)",
+      "original_sha256": "bcf9e0a03922b19ff1d79ba05f0a962ce4e568ff536fb3d5ea9250d6858fecb9",
+      "response_id": "83dd2a6f894268894178c129ece5e9ad2ee1d9eef98ac2ec359d6b8e1f73ec25",
+      "response_sha256": "0551c2930688eafdcb9fb48a3c4ae5039965e325c2c2b8e811c86db9c64af89e",
+      "legacy_response_sha256": "35331972c45073f10b9534e17e95cfdf24dbf42e5e3ef69875a79b2c6a025403",
+      "observation_body_sha256": "32811c546ad69495ea7b47284fcf8b3b8e7b384a0a1fa0f8e7d99ae0c5b52c2f",
+      "event": {
+        "id": "msg_0e41bdad099944c6016b075db0decc87d0909489ad56d9dda5",
+        "timestamp": "2026-11-25T22:14:29.710Z"
+      },
+      "supersedes": "8736c746405e929cc31724c252fbad21c09fc37039a6ecf2249dd8e19eed81ea",
+      "evidence_sha256": "71982cbbab8a378013134185969d643bc8f5b336e68967162d799f8daf6ef9d7"
+    },
+    {
+      "kind": "request",
+      "source_commit": "7883801fbf5cfd0faa0c6fba91e236219c0df402",
+      "scope": "Independently compare the bounded Windows crossover, the task decision and the original serial discovery/order, rejection, cleanup, local and hosted limits. Verify the separated M0-146 overlap and that the two-case timing cannot close the full ordinary protected 1200-second observation.",
+      "supersedes": "83dd2a6f894268894178c129ece5e9ad2ee1d9eef98ac2ec359d6b8e1f73ec25",
+      "requested_at": "2026-11-26T03:19:42.310290+00:00",
+      "request_id": "90f3dfdd0158de0e40cb962556d82e9d8f74066de05df90e5d04c63b292eff2f",
+      "evidence_sha256": "997efaa2ffa7f41495ea9225a5bcdf732c770bb9ff8e15da70c0bbdbea35a507"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "7883801fbf5cfd0faa0c6fba91e236219c0df402",
+      "verdict": "approved",
+      "decision": "APPROVE M0-153 7883801fbf5cfd0faa0c6fba91e236219c0df402",
+      "scope": "APPROVE M0-153 7883801fbf5cfd0faa0c6fba91e236219c0df402",
+      "observation": "Across eight Windows processes running the same two tests, all 42 ordered command transcripts matched and median process time fell from 34.8634 to 32.2871 seconds.",
+      "reviewer": "Independent Astra Standard (t123)",
+      "original_sha256": "2474636a674084e4d3387d5660dd232d9d38174b821bac2200b6a24a43406851",
+      "response_id": "b2b3033bfe2e5b333ce8dc4c8dc9e6da144fc10a6cc8d8615cdf45aeb4dabfc0",
+      "response_sha256": "5b5080b412b51ad57ad1878fb48a43b5d8becd52212eca20bd2ad15d6ad31007",
+      "legacy_response_sha256": "ca4816e4ce9a276b2f6a7ef8d16b30d72b2583a5c6d27defd2dc898ea46e6765",
+      "observation_body_sha256": "4178e34ae4bc3bb8d499eff7b432171ca3120fa669ec66a32a11d3f9342efeec",
+      "event": {
+        "id": "msg_0343d2a7bbbbf8ad016b07a9fd6fd087d1aa1483f06aa8cf87",
+        "timestamp": "2026-11-26T03:40:07.788Z"
+      },
+      "supersedes": "90f3dfdd0158de0e40cb962556d82e9d8f74066de05df90e5d04c63b292eff2f",
+      "evidence_sha256": "8bf3a3a9ea4b8d4e2df308e07ee112fd6b81fa2b7b7e160e083eb2b11036287d"
+    },
+    {
+      "kind": "request",
+      "source_commit": "68847f66d160e50dc057b4a8916a126c7dd6a535",
+      "scope": "Compare the native reports and complete ordered case results on the reconciled candidate with the original successful and timed-out controls. Check old and new skips, the captured terminal result and which source was tested. Independently assess changes from the protected merge, remaining first-push ownership, the ordinary integration outcome and the separate process and workflow objectives.",
+      "supersedes": "b2b3033bfe2e5b333ce8dc4c8dc9e6da144fc10a6cc8d8615cdf45aeb4dabfc0",
+      "requested_at": "2026-11-26T05:53:07.431167+00:00",
+      "request_id": "e5e59d4e136951c9008e8b6a802fb514e6dfa2dda8bc3668268c7d33cf0e8495",
+      "evidence_sha256": "8035fdfa05352c9c65a9e743eeb8de5026a49d07ff05ce3405302466a59547eb"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "68847f66d160e50dc057b4a8916a126c7dd6a535",
+      "verdict": "approved",
+      "decision": "APPROVE M0-153 68847f66d160e50dc057b4a8916a126c7dd6a535",
+      "scope": "APPROVE M0-153 68847f66d160e50dc057b4a8916a126c7dd6a535",
+      "observation": "Both Windows runs preserved all 831 baseline outcomes and skip reasons in order, added seven expected skips, and ended with `OK (skipped=72)`.",
+      "reviewer": "Independent Astra Standard (t149)",
+      "original_sha256": "61dd24ead8bbe42bc039b5360d18220e916c19983caf299d8b5c635a4e57efec",
+      "response_id": "62ac3865142a48e38d678bde8fdb88e7a4382ac3f5532587a3ff96dee67256e4",
+      "response_sha256": "4405f7fa2e3f28dced6ded3747d98e383b243a1461c1bc120293dda3f8f487af",
+      "legacy_response_sha256": "855598ebb7a0067db3b7c7c106b3b6dc03405e36a41c23880c10e2b4161c5b53",
+      "observation_body_sha256": "e3667d9389448f5f4452741ee60d80f9164282adbe6df02ff353bc4daea2f95e",
+      "event": {
+        "id": "msg_07f8c0b1a6c1dfb7016b07d3084b9c87d1ba9a34d20d2fb8b8",
+        "timestamp": "2026-11-26T06:35:15.605Z"
+      },
+      "supersedes": "e5e59d4e136951c9008e8b6a802fb514e6dfa2dda8bc3668268c7d33cf0e8495",
+      "evidence_sha256": "13ffda217c449f7e13e17d7b22aa37fe058c2aee75c38ccbcda8276c20faedf7"
+    },
+    {
+      "kind": "request",
+      "source_commit": "2cac22b85efa33304594d339246284038408b7ee",
+      "scope": "Independently review the measured retirement-fixture reuse, preserved clean per-case state and failure/skip classification, and source-accurate original protected timeout on the new integrated navigation baseline.",
+      "supersedes": "62ac3865142a48e38d678bde8fdb88e7a4382ac3f5532587a3ff96dee67256e4",
+      "requested_at": "2026-11-27T09:30:53.372819+00:00",
+      "request_id": "6084a6fe6da948c8a8a8727225f369034b9dab4881912c7c366351713dc1cf15",
+      "evidence_sha256": "2096676a0412205eab60b58dbdbf57edad51fc9542594d182cefdd005173b6fc"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "2cac22b85efa33304594d339246284038408b7ee",
+      "verdict": "approved",
+      "decision": "APPROVE M0-153 2cac22b85efa33304594d339246284038408b7ee",
+      "scope": "APPROVE M0-153 2cac22b85efa33304594d339246284038408b7ee",
+      "observation": "I verified that all eight retained Linux replays passed the same 47 retirement cases in the same order, with 276 fewer Git launches per run when the fixture seed was reused.",
+      "reviewer": "Independent Astra Standard (t1gm)",
+      "original_sha256": "5364e2c810cb7b3939571483e0399aa665af338f53a2c99f52c68c0d4f1ed01a",
+      "response_id": "bc93dbe1da543d818d1b1bf7e2254a5235b7ce67f9b584488bbadfbc1d0d5ef8",
+      "response_sha256": "7bc2e9ab8e1980060aa54dc7ce1ed82dcd4d0833e920cb5b6e86f79b428a703c",
+      "legacy_response_sha256": "bfc775f899ddd49bfacae071ab375ca73b0d54a65b96c3e21f58f67d30f7be63",
+      "observation_body_sha256": "2aff22b69252284f006a702e0770802238da9b3599ff1d003c3e5dab84057b5e",
+      "event": {
+        "id": "msg_0194288929afb5c6016b094e71c11487d0821a45c04778b96b",
+        "timestamp": "2026-11-27T09:34:00.771Z"
+      },
+      "supersedes": "6084a6fe6da948c8a8a8727225f369034b9dab4881912c7c366351713dc1cf15",
+      "evidence_sha256": "a8953cd519dc75cf85eadcd2261763ffe75cbf50bfc723d1705476cf1290abc1"
+    }
+  ]
+}
