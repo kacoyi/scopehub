@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-170",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -27287,7 +27287,7 @@
       "id": "M0-170",
       "title": "Qualify the public CSV preview preceding a cancelled reviewed save",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-008"
       ],
@@ -27315,7 +27315,16 @@
         "python-contracts-workers",
         "python-types"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-170-49321535db353478.json",
+          "sha256": "645256c4653d9718cc52608bd356950b81c3bbc7238762f774d040e6780f4df6"
+        },
+        {
+          "path": "project/evidence/M0-170-f3c8a70a8bcd1c5e.json",
+          "sha256": "66475e637116b8eb5bf7ba21800809ab99b4ffa7d35991e590694d3dd1220e87"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "windows-change-45848342284-1",
@@ -27328,9 +27337,9 @@
           "report_sha256": "d2522517d478284ed0ff105716383b337d40b8b114f84db18b0ce319b999b281"
         }
       ],
-      "next_action": "Independently review the fixture and retained evidence, run the focused stage cases and required task checks on the exact candidate on native Windows, then recheck the integrated source.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Scoped pre-integration qualification passed. Independent approval of 4954f35d27e102a79f98ea0f2379093d2d60e777 applies to guarded source 6641533e96a144636bf6a142f63668b62aa8d2b7, whose only additional file records that review. Guarded run 45930637026 passed all seven required checks on native Windows and Linux. The public bridge cases verified a completed preview, a bounded interruption that leaves the preview unable to authorize a save, and cancellation after a separate save holds admission. The following ordinary load returned not_saved and the profile directory was absent. Ordinary PR 144 run 45930612626 passed the relevant Rust cases on both platforms and omitted the task-cadence local-folder-import check. PR 142 run 45848342284 stopped after selection at the initial public preview timeout, before save admission or cancellation. The separate save recovery and passing controls are retained with their source and logs. The original worker exchange stage, cleanup, interpreter ownership and cause remain unknown. The coordinator owns the protected integration recheck and retention of the first protected result.",
       "plan": {
         "outcome": "Bind the failing public preview, same-case passing controls and the separate reviewed save to their exact native source and original logs. Identify the stage that was actually reached and preserve missing observations. Classify or correct the CSV preview timeout at the ordinary desktop entry using an isolated synthetic source, a genuinely completed preview and a bounded early stall or failed preview. Verify cancellation after admission on a successful preview preserves the unwritten profile and an ordinary subsequent operation.",
         "change_types": [
