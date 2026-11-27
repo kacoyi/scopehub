@@ -532,6 +532,26 @@
       "requested_at": "2026-11-27T10:49:17.686438+00:00",
       "request_id": "8dc26b3651a811f19ac05e79e4ee57e9ca490dcd2cb344e57882f0fb6033e693",
       "evidence_sha256": "72f5e89e37712db9adc950de7ab39eaf5f16d3593dfcad7ced36931ffde714a6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "6491b83725eb2b1ac60ebe2e6854f51941fe6e83",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 6491b83725eb2b1ac60ebe2e6854f51941fe6e83",
+      "scope": "CHANGES_REQUESTED M0-155 6491b83725eb2b1ac60ebe2e6854f51941fe6e83",
+      "observation": "On run 45838575346, ordinary, offline weekly, and cold reads all lost the 24-second Windows setup when a competing verification start preceded completion of the required artifact download by one second.",
+      "reviewer": "Independent Astra Standard (t1hs)",
+      "original_sha256": "a45f8c02e24dcf0153fdf4d862a9630a4dd60074965aeca1d1f1dec836e2ea2d",
+      "response_id": "c1b3e62ea4b1dd86596f119f0646bbc75247913f6823ec6badb027746dbcc225",
+      "response_sha256": "c70e2ee17ee786f03e88d32aca1bcc418804eb02fb2d5ba4cd565ac106d2edee",
+      "legacy_response_sha256": "9fdb3f84c655880e23203092ea3bd31a5b644be31083cfc56f7bd1b0108abcf2",
+      "observation_body_sha256": "fd048deb79896db693752a7fdcc0a3af2d07c5e6f2290a4c9d7c615ff5292bed",
+      "event": {
+        "id": "msg_0dba16b48a9a3abd016b0962465a1c87d0a9ae19aa859cf3cc",
+        "timestamp": "2026-11-27T10:58:39.096Z"
+      },
+      "supersedes": "8dc26b3651a811f19ac05e79e4ee57e9ca490dcd2cb344e57882f0fb6033e693",
+      "evidence_sha256": "32b46e5567556e53935bfdae5e07021b35978a05d4adb5fad56d8174c5c9baa1"
     }
   ]
 }

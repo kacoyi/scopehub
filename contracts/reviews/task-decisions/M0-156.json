@@ -561,6 +561,26 @@
       "requested_at": "2026-11-27T10:49:18.545049+00:00",
       "request_id": "cc844b42920af454e14f232b6a6bf08778e289e59171172ea67f68dd1c696ce9",
       "evidence_sha256": "958dac12a4098010b4d9bfbe5b17c808861a7819158194298a9cfbf76fb019bc"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "6491b83725eb2b1ac60ebe2e6854f51941fe6e83",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 6491b83725eb2b1ac60ebe2e6854f51941fe6e83",
+      "scope": "CHANGES_REQUESTED M0-156 6491b83725eb2b1ac60ebe2e6854f51941fe6e83",
+      "observation": "Cold replay credited a copied PR 96 Windows receipt even though the legacy collection downloaded only the Linux report for that run.",
+      "reviewer": "Independent Astra Standard (t1hv)",
+      "original_sha256": "40ac0ae6989688d64f87e65949fb93e53471dd4836c365f4ee56506bdefaa6e9",
+      "response_id": "17a9fd950c455692d84f250eb5602605675fcc8cbd7dd39c12a5f5c2d2b97974",
+      "response_sha256": "01c1f5f6d941502a729375e09ecea8630134c89bf7d1ba0bbdb639f6bc6e276a",
+      "legacy_response_sha256": "414a397e0b3eb0c25115a13a57d1778ac750d0b8befcfdab79e8e001b40741db",
+      "observation_body_sha256": "6a0a34098e15bbd9a8e0aafd5be3182fdce8a0093ebc49e562843732738f742c",
+      "event": {
+        "id": "msg_088c71b56b4231b7016b096215947487d0ad7895593aba8b00",
+        "timestamp": "2026-11-27T10:57:46.198Z"
+      },
+      "supersedes": "cc844b42920af454e14f232b6a6bf08778e289e59171172ea67f68dd1c696ce9",
+      "evidence_sha256": "2f22307266584b9065c19d06e8c20f01f1da83f623d93cb9bcd21fb3a774d8cb"
     }
   ]
 }

@@ -552,6 +552,26 @@
       "requested_at": "2026-11-27T10:49:16.828870+00:00",
       "request_id": "dc1bfefafa518b8d0a198b62f80115c51d1faa96ca84a9122512cb77e6314933",
       "evidence_sha256": "f029da971f429827d59f9fe42ac74fa2885fda509c6edf99fac3530a379b1570"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "6491b83725eb2b1ac60ebe2e6854f51941fe6e83",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 6491b83725eb2b1ac60ebe2e6854f51941fe6e83",
+      "scope": "CHANGES_REQUESTED M0-150 6491b83725eb2b1ac60ebe2e6854f51941fe6e83",
+      "observation": "With partial Actions metadata, the reader attributed 3,165 runner-seconds to a passing Windows aggregate even though the retained browser verification step and its original report both recorded failure.",
+      "reviewer": "Independent Astra Standard (t1ht)",
+      "original_sha256": "ec86c3e16ad3147a97ba13ce88175ac076d8884808e045f327d8ec83d93cc50b",
+      "response_id": "b2d1dbe99cec5d262a5b60b2c60834f2e0b1717d344f8ad014711809efd2d705",
+      "response_sha256": "34640d5033747733b9414621640b8efbebd1cda555575d52e6e99dd95db6dee8",
+      "legacy_response_sha256": "90dd3e725f6ff2f482c5b00724dccc22f0c873099e6fa931c7208c7f1dab4904",
+      "observation_body_sha256": "f2118a6c6331a0650bfa230f2581d13a7fb474428a814f6ca28a8a50b3a85967",
+      "event": {
+        "id": "msg_02ccc10ae51168f6016b09626d5fe487d09ffae993815e4d4f",
+        "timestamp": "2026-11-27T10:59:21.401Z"
+      },
+      "supersedes": "dc1bfefafa518b8d0a198b62f80115c51d1faa96ca84a9122512cb77e6314933",
+      "evidence_sha256": "29db773443bc9c339edcea6b6bf90c38dea00a2df89e2e32e29a448403ff33e9"
     }
   ]
 }
