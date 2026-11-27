@@ -9698,6 +9698,43 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "peer-note-deletion-accepts-invalid-operation-receipt-id",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent Astra Standard (t1h5) on 3475ae4144d5e27d37b2ce379996e922e1d5ddad. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-177-3475ae41/original-assistant-response.jsonl (SHA-256 0433114996e8f103c6770cb28a630f24958e7953f19b0373c44d00ecd127910c), recorded via project:review in 883809a692b5c433cfcc71447c86caf96d171f65.",
+      "observation": "Replaying a retained real deletion receipt with only the operation ID changed to x produced the initiating success notice and passed the fixture receipt assertion. Omitting the operation ID also produced the success notice in the UI, while the fixture rejected it. The valid receipt passed and wrong target and revision controls were rejected. The receipt schema requires a UUID operation ID.",
+      "task_ids": [
+        "M0-177"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "peer-note-deletion-fixture-assumes-admission-during-read-contention",
+      "status": "open",
+      "severity": "major",
+      "source": "Ordinary PR 131 run 45974954433, attempt 1, both platforms on fdd76d08d6b3d144ab7daea803867df9d58c46ec. Original at archives/observations/repo-hygiene-20261125/pr131-native-original-45974954433/manifest.json (SHA-256 89b7239d39e28b4511fc7971f582f5527925e290d86a075bb093f71ae032033f).",
+      "observation": "The Linux decision-note draft fixture waited for a committed notice after its initiating approval was explicitly refused with HTTP 429 BUSY and retryable true. The UI showed the correct busy message. The note and its outcome remained at workspace revision 4 with no deletion marker. The same preview on Windows committed one matching marker at revision 5. The original lock holder and duration remain unknown.",
+      "task_ids": [
+        "M0-177"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261127T093622.092577Z-aa46385c",
+          "source_commit": "fdd76d08d6b3d144ab7daea803867df9d58c46ec",
+          "report_sha256": "fe340f34a7d37d598dd354882df3d3d5efa8d86a4626d24c9b1e99d5b1fd4599"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
