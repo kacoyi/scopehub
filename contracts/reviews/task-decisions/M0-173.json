@@ -1,0 +1,64 @@
+{
+  "version": 3,
+  "task_id": "M0-173",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "5a9204d4de11f4b046f565c01a6614160917ea17",
+      "scope": "Review the exact cold sample-navigation corrective source against the retained first Windows diagnostic, using its public positive and held-required-module negative controls.",
+      "supersedes": null,
+      "requested_at": "2026-11-27T04:58:28.016900+00:00",
+      "request_id": "36b6168cf55402ea50baa8cc5ce606af7523efb1ad476c7114e6c88908a13402",
+      "evidence_sha256": "97e7731a74e29ca1acea484d8ba565a918a7e6acd897e36c65790984f6d7c492"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5a9204d4de11f4b046f565c01a6614160917ea17",
+      "verdict": "approved",
+      "decision": "APPROVE M0-173 5a9204d4de11f4b046f565c01a6614160917ea17",
+      "scope": "APPROVE M0-173 5a9204d4de11f4b046f565c01a6614160917ea17",
+      "observation": "The retained Linux browser attachments record sample verification at 831 ms in the first public repair and a committed document with the required module still pending at 10,010 ms in the held-module control.",
+      "reviewer": "Independent Astra Standard (t1db)",
+      "original_sha256": "43b1b977bd46062a7b137dba1aecf47540422b3530758df54bcc76379c801177",
+      "response_id": "4b30ff6cd325e25fe1e241756568062ae4d79c250ad71fbcda134e09f04d6681",
+      "response_sha256": "4a556447499d071e06e21ced356ad6658198931fb1b7c907851c6124c766c37e",
+      "legacy_response_sha256": "ce814ed511a4691982c30c32a6e18ffd240f7935311cee21fb24e080e7b801b1",
+      "observation_body_sha256": "96e275e27988103ad65948c310d22a277e21fe8197ed221b0eeca61ffb56e590",
+      "event": {
+        "id": "msg_0ab4d852062be94d016b090e8989b887d08ea68a3aff189f6f",
+        "timestamp": "2026-11-27T05:01:22.809Z"
+      },
+      "supersedes": "36b6168cf55402ea50baa8cc5ce606af7523efb1ad476c7114e6c88908a13402",
+      "evidence_sha256": "2694f6ba62ae146ff029be8fea5643924c521ddc7db3758bf6880cee5a8b51f1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "f707c0edf2a1068226d7e330f4ebdcde3c731701",
+      "scope": "Verify the actual cold public chart recovery and deliberate held-module boundary at the protected combination. Trace the genuine successful cold 827ms sample and the held 10.009s refusal, including what the anonymous script and previous Windows delay do and do not establish. Inspect ordering, failure cleanup and the existing user-visible recovery on this source. Keep earlier 41-case hosted evidence, the 1200.047s previous unsplit failure and pending fresh hosted observations distinct.",
+      "supersedes": "4b30ff6cd325e25fe1e241756568062ae4d79c250ad71fbcda134e09f04d6681",
+      "requested_at": "2026-11-27T09:06:50.397111+00:00",
+      "request_id": "99f0edd83992c84bd0a60698176c8de65d5980da4cf2116f9e1dc4b154044b6f",
+      "evidence_sha256": "14c4db27e80a8e2f744c43bd9e6231a3eeb74f177c85fc5d9059d2f25b0f70ea"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "f707c0edf2a1068226d7e330f4ebdcde3c731701",
+      "verdict": "approved",
+      "decision": "APPROVE M0-173 f707c0edf2a1068226d7e330f4ebdcde3c731701",
+      "scope": "APPROVE M0-173 f707c0edf2a1068226d7e330f4ebdcde3c731701",
+      "observation": "The retained Linux browser attachments show that the first public repair verified the sample at 827 ms and that holding the required startup module stopped navigation at 10,009 ms.",
+      "reviewer": "Independent Astra Standard (t1g3)",
+      "original_sha256": "79d26af1d6d89f63776b6488c47af6dcf68e2d1136b7e056a32e80ed1878dbe5",
+      "response_id": "2f7e5aa4586dec33e27122fbca73445ff8d74ca09ab9b3f9806ef5d92033d178",
+      "response_sha256": "8fba714fb3176419fc3ab26d9a0008400e2ff8d199a9c2055ba53556308b4a5b",
+      "legacy_response_sha256": "b2553ebbb6bfc43f992f17024909073ea99ff607b397daeccc805224c460eed4",
+      "observation_body_sha256": "4f0cdb8141028fc81da000930c66e79fb605079ae3df8c9b84eed52fc566f628",
+      "event": {
+        "id": "msg_05015ae6b3fc5c45016b0948fc473c87d0b024e512727929e3",
+        "timestamp": "2026-11-27T09:10:41.627Z"
+      },
+      "supersedes": "99f0edd83992c84bd0a60698176c8de65d5980da4cf2116f9e1dc4b154044b6f",
+      "evidence_sha256": "69ce698e1f9ec731df5fa0e33e45559baa5d70e44e04d65dd51f2cf69e01f736"
+    }
+  ]
+}

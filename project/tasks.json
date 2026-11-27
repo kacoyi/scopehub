@@ -29380,6 +29380,245 @@
           "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
         }
       }
+    },
+    {
+      "id": "M0-171",
+      "title": "Recover Windows handoff fixture preparation after its subprocess deadline",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-147"
+      ],
+      "scope": [
+        "tests/ubuntu-preview",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain the failed first-attempt native test, the previously passing protected comparison and the current same-fixture control. Name the failing preparation phase and preserve any unknown inner stage.",
+        "Use the existing fixture at its normal entry to distinguish successful preparation from real expiration or interruption. Preserve its established comparison outcomes, bounded diagnostics and cleanup. Correct the verified cost or fixture isolation issue once.",
+        "Obtain independent review and retain a native Windows run of the ordinary handoff scenario on the repaired source, then verify the integrated revision."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-171-e321cc9ce9f14d5a.json",
+          "sha256": "6c92ba4502f42cea3b2ae2d4a9b50962b74683d33f1a02a13e32ad23474d044b"
+        },
+        {
+          "path": "project/evidence/M0-171-16a14bd6ef14ef60.json",
+          "sha256": "400f80c1958d449d4637a062c2ce53a2434a11532568777b8de3b70f4c6cf715"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45933801256-1",
+          "source_commit": "4c6907e67c50eadfa95308b46594f92722e2490b",
+          "report_sha256": "2b4e4c9dce03a68efcfe32ed9dd49a0efdb48287a8f9a9195f55c689d4cb0657"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Scoped pre-integration qualification passed. Independent approval of 6074628d8343c1e7b70dd084c53e3901ac896c04 applies to ddd83e28f7ff37366912a4f70aeae67824c61137 with its review records. Guarded PR 146 run 45941768345 passed environment and every task check on Linux and Windows. The workspace suites passed 100 Linux and 99 Windows cases with two Windows skips for POSIX signal behavior. Both passed bounded preparation and cleanup, interruption before comparison, deadline expiry and the ordinary private launcher. Ordinary PR 146 run 45939423128 passed the Windows workspace suite on preview 2c2dc471d5a9339e0278ea5de2b41bd672c31c8b. It recorded 1988 ms for setup compilation and 1818 ms for native preparation, including 14 ms to load the helper and 1544 ms for the matrix. The earlier protected pass and same-fixture Windows controls are retained with the original PR 123 failure. The historical last internal stage and cause of the elapsed time remain unknown. The ordinary aggregate retains a separate cold market-recovery failure assigned to M0-173 and PR 147. The coordinator owns reconciliation with protected main and retention of the first integrated Windows workspace result.",
+      "plan": {
+        "outcome": "Retain the failed first-attempt native test, the previously passing protected comparison and the current same-fixture control. Name the failing preparation phase and preserve any unknown inner stage. Use the existing fixture at its normal entry to distinguish successful preparation from real expiration or interruption. Preserve its established comparison outcomes, bounded diagnostics and cleanup. Correct the verified cost or fixture isolation issue once.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.setup.mjs",
+          "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+          "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.cs",
+          "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.ps1",
+          "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "project/checks.json",
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json"
+        ],
+        "hypotheses": [
+          "The first PR 123 attempt exhausted the leaf matrix preparation subprocess deadline before the 24 native file comparisons. The protected run and two contemporary Windows controls completed the same case. Their 8646, 7374 and 7668 ms observations and the failed 15362 ms observation cover the whole case. Startup, helper compilation, matrix work and host contention remain separate possibilities for the historical expiration."
+        ],
+        "risks": [
+          {
+            "failure": "Hiding the failed setup or accepting partial preparation would falsely pass the scenario; unbounded diagnostic retries would distort its cost.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Restore the preceding implementation and retain the diagnosed failures and controls if the ordinary contract changes.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.setup.mjs",
+            "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+            "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.ps1",
+            "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/0"
+            }
+          ],
+          "non_goals": [
+            "Keep adjustments inside development verification of disposable synthetic fixtures. Preserve production authorization, user data, established permission checks, native result meanings and existing product behavior."
+          ],
+          "open_questions": [
+            "Which preparation milestones and timings are observed by the next ordinary Windows job? The first attempt emitted no inner milestone."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Keep adjustments inside development verification of disposable synthetic fixtures. Preserve production authorization, user data, established permission checks, native result meanings and existing product behavior."
+          ],
+          "change": [
+            "Compile the existing C# fixture helper once in Windows workspace setup and load its run-owned assembly during ordinary leaf calibration. Record bounded phase timings and exercise an interrupted calibration before any native file comparison."
+          ],
+          "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
+          "cleanup": "Delete the assembly with the owned workspace run directory and preserve exclusive leaf fixture ownership and cleanup. Retain the original failed job and passing comparisons."
+        }
+      }
+    },
+    {
+      "id": "M0-173",
+      "title": "Resolve the observed cold Windows repair preview stall after document commit",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-154"
+      ],
+      "scope": [
+        "tests/ubuntu-preview",
+        "tests/ui/sample-startup.mjs",
+        "apps/desktop/ui",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain the first ordinary Windows producer and its protected comparison. Distinguish the genuinely stalled first public repair from the intentional held-script control and the separate handoff-preparation fixture.",
+        "Demonstrate the applicable bounded correction at the ordinary first public consumer. Confirm a genuinely delayed required module is still rejected and preserve the established data and readiness assertions. State what remains unknown about the historical script.",
+        "Obtain a source-bound independent decision and an actual hosted Windows cold repair run, retain the scoped report and verify the integrated revision."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "market-recovery"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-173-dd6cb1d22ad7340d.json",
+          "sha256": "3b6eb845354193ca0f9f24663b3f190927365c5e5a23997d0e732363e3bbab55"
+        },
+        {
+          "path": "project/evidence/M0-173-2cb833308cb3574e.json",
+          "sha256": "8a64594db3fe5a6870c84c5fa29cf9bf84a72ff7f3b990ed32907b580ee4c464"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Scoped pre-integration qualification passed. Independent approval of f707c0edf2a1068226d7e330f4ebdcde3c731701 applies to a3d02a0ea79cd5636359d0235478caf909a29047, whose only additions since review are review records. Ordinary PR 147 run 45971658258 attempt 1 tested the same tree at merge preview 89aedef2253b7aba2146496b9bc00ddd80c72d44. All three required checks and all 41 market-recovery cases passed on Linux and Windows. The Linux aggregate was blocked outside task scope. The first public repair verified the sample at 1016 ms on Linux and 1560 ms on Windows and passed the existing chart and frozen-source assertions. The intentional workspace-start.ts hold rejected navigation at 10002 ms and 10018 ms respectively. The adjacent handoff controls passed 18 on Linux and 17 on Windows, with the POSIX signal case skipped on Windows. The original Windows failure and protected comparison remain archived. The original late script route and delay cause remain unknown. In the intermediate run 45943406153 the Windows market-recovery check passed while python-contracts-workers expired at its existing ceiling. The qualifying originals are indexed in archives/observations/repo-hygiene-20261125/pr147-native-original-45971658258/manifest.json (SHA-256 40899482a08552d3a7a1e83773b9602a919df53ffa3ee4fa11beac4fecc50c32). The coordinator owns composition with protected 4d17dff0d0c82df10a05a7339fda219a0a3d2bf8 and observation of the first protected push after integration.",
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45939423128-1",
+          "source_commit": "2c2dc471d5a9339e0278ea5de2b41bd672c31c8b",
+          "report_sha256": "b3b9ec298a949738d74f3c4d44e52840837a0239195673707ba3ea0e7df5ad59"
+        }
+      ],
+      "plan": {
+        "outcome": "Recover a reliably verifiable cold synthetic closed-bar repair after the document commits; retain the actual failing and passing boundaries.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/market-closed-bar-repair.spec.mjs",
+          "tests/ubuntu-preview/market-recovery.vite.config.mjs",
+          "tests/ubuntu-preview/market-preview-config.mjs",
+          "tests/ui/sample-startup.mjs",
+          "project/checks.json",
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json"
+        ],
+        "hypotheses": [
+          "The retained observer narrows the failure to a committed document with one late pending script. The first protected Windows repair reached DOMContentLoaded at 255 ms and verified the chart at 1629 ms. The historical request route and wait cause remain unknown.",
+          "The original preview probe admitted the browser after the document response while Vite could still transform source on demand. A fresh-cache Linux comparison observed the real main entry respond in 7.92 ms before preparation and 0.08 ms after, with the chart verified at 1009 and 904 ms. This establishes a fixture improvement on the local host. Windows recurrence and recovery require ordinary native evidence."
+        ],
+        "risks": [
+          {
+            "failure": "A warmed page, widened timeout, hidden retry or looser chart assertion could pass without observing the original cold user entry.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "market-recovery"
+            ]
+          }
+        ],
+        "rollback": "Restore the prior preview behavior and keep the original diagnosis if the correction changes the public sample, hides a genuine deadline, or fails the affected comparison.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "ui"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/market-closed-bar-repair.spec.mjs",
+            "tests/ubuntu-preview/market-recovery.vite.config.mjs",
+            "tests/ubuntu-preview/market-preview-config.mjs",
+            "tests/ui/sample-startup.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/0"
+            }
+          ],
+          "non_goals": [
+            "Product feature changes, user data, unrelated Windows matrix preparation and a blanket timeout change."
+          ],
+          "open_questions": [
+            "Does the prepared fixture pass the first ordinary Windows repair and preserve the rejection of the held module? The original anonymous script cannot be attributed without its request and server timing."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Keep the public cold path, 10000 ms navigation bound, original synthetic chart and source-row assertions, held-asset controls, privacy of diagnostic paths, and classification of genuine failures."
+          ],
+          "change": [
+            "Prepare the Vite startup entry, dynamic application entry and linked stylesheet before the market recovery fixture signals readiness. Keep the ordinary preview, browser navigation and real synthetic bridge in the first public case."
+          ],
+          "data_plan": "Use the existing synthetic chart, per-run test data and disposable local verification outputs. No user-data changes.",
+          "cleanup": "Retain authenticated first-attempt originals and remove any superseded verification path when its replacement is qualified."
+        }
+      }
     }
   ]
 }

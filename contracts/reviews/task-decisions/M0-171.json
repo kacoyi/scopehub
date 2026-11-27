@@ -1,0 +1,64 @@
+{
+  "version": 3,
+  "task_id": "M0-171",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "6074628d8343c1e7b70dd084c53e3901ac896c04",
+      "scope": "Review the owned Windows test fixture setup and deadline reliability change against the PR 123 ordinary failure, existing native guest results and the protected composition at 6074628d.",
+      "supersedes": null,
+      "requested_at": "2026-11-27T04:17:44.595940+00:00",
+      "request_id": "3008bd01112921ae88b2ae899d83b22a8c8ca3282c5b74bd19a315972d1d0c0f",
+      "evidence_sha256": "b1f0656d4f5f9dbdacbaeef6e209c105da289cac864878e7be4e208d20dd99e3"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "6074628d8343c1e7b70dd084c53e3901ac896c04",
+      "verdict": "approved",
+      "decision": "APPROVE M0-171 6074628d8343c1e7b70dd084c53e3901ac896c04",
+      "scope": "APPROVE M0-171 6074628d8343c1e7b70dd084c53e3901ac896c04",
+      "observation": "The Windows guest completed all 24 comparisons in each of the twenty successful trials and removed every owned leaf file before returning either preparation failure.",
+      "reviewer": "Independent Astra Standard (t1ck)",
+      "original_sha256": "ca7368e8359730aae0b99c2e8b700aa8ede40932d3c5f2083a7712f75dc14167",
+      "response_id": "268a8fb1ca61277349b830ebd8d73aa1a85733afc528707f99380c617038c176",
+      "response_sha256": "df6f4b3af0d22dbd48ff9b48d9bd42b237e1306f291090883cfd2ed34b724deb",
+      "legacy_response_sha256": "a41364171c5f64e3f231d9893d62b6f61a028fdbaf0e7c71019c6d443156cac0",
+      "observation_body_sha256": "1011abc6de291b596613afa11c2091453f5311364f8501e1e3809f7c6bbf979a",
+      "event": {
+        "id": "msg_0bfaf1d54eee97a3016b0904ce643487d0bd735e50d6ed11e6",
+        "timestamp": "2026-11-27T04:19:42.690Z"
+      },
+      "supersedes": "3008bd01112921ae88b2ae899d83b22a8c8ca3282c5b74bd19a315972d1d0c0f",
+      "evidence_sha256": "b14c86236fc14d9963e310c9e11396c097e5086774178c76926106b6d3c1803b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "f707c0edf2a1068226d7e330f4ebdcde3c731701",
+      "scope": "Verify that this combination preserves the accepted handoff calibration, case order, Windows path and genuine refusal/timeout semantics. Inspect the original adverse Windows observation, the successful guarded receipts, the 18 focused Linux controls on the present source including failure and cleanup, and interaction with the combined cold fixture. Preserve the closed M0-171 history and limits of each platform.",
+      "supersedes": "268a8fb1ca61277349b830ebd8d73aa1a85733afc528707f99380c617038c176",
+      "requested_at": "2026-11-27T09:06:51.239647+00:00",
+      "request_id": "274d80ddd504fe91e650d2dc8ae7333c36d8bfb11cf1fa5e36947790eb278cf2",
+      "evidence_sha256": "c8b3ea989024eceef4facd2a6f61e3c4a3ac19c773eafa56411a19f20425d5b1"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "f707c0edf2a1068226d7e330f4ebdcde3c731701",
+      "verdict": "approved",
+      "decision": "APPROVE M0-171 f707c0edf2a1068226d7e330f4ebdcde3c731701",
+      "scope": "APPROVE M0-171 f707c0edf2a1068226d7e330f4ebdcde3c731701",
+      "observation": "On the reviewed Linux source, I independently reran eight subprocess controls, including a successful exit, an ACL refusal at exit code 58, and a live child that reached its deadline after 403 ms.",
+      "reviewer": "Independent Astra Standard (t1g4)",
+      "original_sha256": "45faf191fdd8b0799decbd22f2a7003d14171e7684e0175a1bc4567cb99b2f38",
+      "response_id": "e75c3d264f0684f4667a816148418121a869e70b07c2b5aa1a22f38d98029eeb",
+      "response_sha256": "6eb4f9fe1245ddc96fbbeb67ec22cbdf335a340c7715a03aaa9d0360ca6ce8b6",
+      "legacy_response_sha256": "4d3634639903c5457211d204da731a93f239c4e3b22af0d3726de251e0bed19b",
+      "observation_body_sha256": "0b7f8a8422423162b7de1ad300e5008b07a306a0ecdae377b682ac73c3f99062",
+      "event": {
+        "id": "msg_0a91e36d92aab635016b0948b06c7087d08f4083f6fd734f0a",
+        "timestamp": "2026-11-27T09:09:23.273Z"
+      },
+      "supersedes": "274d80ddd504fe91e650d2dc8ae7333c36d8bfb11cf1fa5e36947790eb278cf2",
+      "evidence_sha256": "fddb60c20807a99c48828900f1de26d805404c287e5c6d604d7e15f6929ac1c7"
+    }
+  ]
+}

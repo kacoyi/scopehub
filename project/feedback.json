@@ -9643,6 +9643,62 @@
         "prevention": "The first-attempt ordinary PR run 45931554585 and guarded run 45931566969 both passed rust-lints on Linux and Windows. The earlier guarded receipts remain bound to the selection that omitted rust-lints."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-calibration-expires-before-file-comparison",
+      "status": "addressed",
+      "severity": "major",
+      "source": "First native observation archives/observations/repo-hygiene-20261125/pr123-native-original-45933801256/manifest.json (SHA-256 1c7999a4d37d4976091603fa5272d322c77bed4270fbf00c33aa4c7e9a8c294e).",
+      "observation": "The first ordinary PR 123 Windows browser job 140292229420 failed while preparing the test-owned file matrix in the private launcher handoff case. The case took 15362 ms. The workspace suite recorded 97 passed, one failed and two skipped. The bounded subprocess diagnostic identified expiration before the subsequent file comparisons. Its last internal stage and the reason for its elapsed time are unknown. The earlier M0-147 first protected case passed in 8646 ms including its other work.",
+      "task_ids": [
+        "M0-171"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45933801256-1",
+          "source_commit": "4c6907e67c50eadfa95308b46594f92722e2490b",
+          "report_sha256": "2b4e4c9dce03a68efcfe32ed9dd49a0efdb48287a8f9a9195f55c689d4cb0657"
+        }
+      ],
+      "resolution": {
+        "cause": "The bounded subprocess expired during test-owned leaf ACL matrix preparation, before the 24 native witness comparisons. The historical last internal stage and cause of the elapsed time remain unknown.",
+        "correction": "Compile the existing C# fixture helper once in Windows workspace setup and load the run-owned assembly in the leaf preparation subprocess. Keep the existing subprocess deadline, comparison outcomes and owned-file cleanup. Record setup compilation and the script, helper and matrix milestones.",
+        "prevention": "Guarded run 45941768345 passed environment and all M0-171 checks on Linux and Windows. The workspace suites exercised bounded preparation and cleanup, interruption before native witness comparison, actual deadline expiry and the ordinary private launcher. The ordinary PR 146 Windows workspace producer also passed with observed compilation and matrix timings. The earlier failed report and passing controls are retained."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-cold-repair-script-pending-after-document-commit",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Original Windows PR 146 attempt 1, run 45939423128, staged producer and protected comparison in archives/observations/repo-hygiene-20261125/pr146-producer-45939423128-recovery/cold-start-recurrence.json (SHA-256 55c4b69f0351c8ec55952597d2c580b4ee4fea96453ddff132142846362e2d51). The complete ordinary Windows aggregate at archives/runs/windows-change-45939423128-1/test-report.json contains the same market-recovery failure.",
+      "observation": "The first public closed-bar repair stopped before its chart assertions. At 10016 ms the document had returned HTTP 200, committed at 23 ms and finished at 31 ms; one unnamed script requested at 7026 ms was still pending. The other 40 cases passed. The same first public test on protected Windows run 45936740302 committed at 17 ms, reached DOMContentLoaded at 255 ms, verified the sample at 1629 ms, and passed in 6281 ms. The intentional workspace-start.ts hold was issued at 23 ms in the producer and 34 ms in the protected run. It stopped at the original deadline in both. The original late script route and cause of the delay remain unknown.",
+      "task_ids": [
+        "M0-173"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers",
+        "market-recovery"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45939423128-1",
+          "source_commit": "2c2dc471d5a9339e0278ea5de2b41bd672c31c8b",
+          "report_sha256": "b3b9ec298a949738d74f3c4d44e52840837a0239195673707ba3ea0e7df5ad59"
+        }
+      ],
+      "resolution": {
+        "cause": "The original preview fixture signaled readiness as soon as the document responded, while Vite could still transform required startup assets on demand. The original Windows trace identifies a committed document and one unnamed late pending script. Its route and the cause of its delay remain unknown.",
+        "correction": "Prepare the real Vite startup entry, dynamic application entry and stylesheet and wait for the initial crawl before signaling preview readiness. Keep the first public browser navigation, real synthetic worker, chart and frozen-source assertions, and the existing 10000 ms deadline.",
+        "prevention": "Ordinary PR 147 run 45971658258 attempt 1 passed all three required checks on Linux and Windows. The first public repair verified the sample at 1016 ms and 1560 ms respectively. The deliberately held required module still left the document committed and rejected startup at 10002 ms and 10018 ms respectively. The first Windows failure, the protected comparison and the original held-module controls remain archived."
+      },
+      "deferral_reason": null
     }
   ]
 }
