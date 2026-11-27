@@ -59,6 +59,26 @@
       "requested_at": "2026-11-27T03:59:09.450143+00:00",
       "request_id": "c183725d7a1ce867409ad2b60cdb7673f4dde19d76df78616b3e14fdf4234a2a",
       "evidence_sha256": "f689a1a22878d84df78894b87ed6c8879e25fec2004814a1beeec45bbfba1501"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "3292bcd9bb6d125108453595c266af199ed77ae4",
+      "verdict": "approved",
+      "decision": "APPROVE M0-151 3292bcd9bb6d125108453595c266af199ed77ae4",
+      "scope": "APPROVE M0-151 3292bcd9bb6d125108453595c266af199ed77ae4",
+      "observation": "I verified that all eleven M0-151 implementation and test files and the browser configuration match the previously approved Git blobs.",
+      "reviewer": "Independent Astra Standard (t1cd)",
+      "original_sha256": "7c40dd417a50c8ef214e1dae5a4df63b3c1310bb202a36ab5221a90a2afa75cc",
+      "response_id": "96fb57ee6d39427cd77968396dfbd64d3101261963e9b71cc03d6838b8425d9c",
+      "response_sha256": "6ffc3f83012981f191eef44129daf1b2871fe7fd44c4ffbe3cb770be696ca745",
+      "legacy_response_sha256": "5a71d11e19be4b55b925a52adc3cbe1e498f34feac2b77049401cf2a6fa90e90",
+      "observation_body_sha256": "ac2860b7ccf287b0f4535bc2bb5d102f32b3477cb3f70d99cb207530ac4cc523",
+      "event": {
+        "id": "msg_0d8fe2b1a4ed6955016b0900d8a56087d09b2f7e143fe0ceb6",
+        "timestamp": "2026-11-27T04:02:54.280Z"
+      },
+      "supersedes": "c183725d7a1ce867409ad2b60cdb7673f4dde19d76df78616b3e14fdf4234a2a",
+      "evidence_sha256": "747e630822edcc391bd420b031932d3eb8df5342627554a04c124a4caa989cc0"
     }
   ]
 }
