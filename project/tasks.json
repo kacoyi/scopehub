@@ -29524,7 +29524,7 @@
         }
       ],
       "evidence": [],
-      "next_action": "Independently review the existing preparation boundaries and qualify the correction with first-attempt native Windows and Linux task checks, then recheck the integrated source. Compare the visit, file and publication observations independently from the direct bridge exit and ACL observations. Keep the original visit, bridge terminal state and any common cause open without discriminating evidence.",
+      "next_action": "Qualify the reviewed corrections with normal and rejected controls at each affected entry, then hand the clean candidate and local observations to the coordinator for a new independent review, first-attempt native Windows and Linux task checks, and the protected recheck. The original private handoff stopped on the first service visit. Compare safe file and publication observations independently from direct bridge exit and ACL observations.",
       "plan": {
         "outcome": "Both affected fixture preparations admit the real successful journey and report the observed failing stage without exposing the private capability or discarding cleanup. Qualify the exact Linux and Windows paths and integrated source.",
         "change_types": [
@@ -29533,12 +29533,15 @@
         "context": [
           "tests/ubuntu-preview/workspace.spec.mjs",
           "tests/ubuntu-preview/workspace_service_readiness.mjs",
+          "tests/ubuntu-preview/workspace_fixture_bridge.mjs",
+          "contracts/reviews/task-decisions/M0-179.json",
+          "contracts/schemas/protocol.schema.json",
           "project/checks.json",
           "contracts/reviews/2026-11-26-maintenance-workstreams.json"
         ],
         "hypotheses": [
-          "The original readiness wait returned before the private access document predicate expired. The report did not distinguish a missing or unsuitable file, a writer or publication refusal, or a service exit. The controlled publication rejection exercises the real writer and distinguishes its occupied final path after readiness.",
-          "The original frozen evidence preparation failed during the direct bridge invocation. Its terminal state is unknown. The controlled profile mismatch exercises the same bridge entry and distinguishes a declared native exit from a deadline, without reaching fixture writes."
+          "The original first-visit service readiness wait returned before the private access document predicate expired. The report did not distinguish a missing or unsuitable file, a writer or publication refusal, or a service exit. A real current publication rejection with a readable, syntactically valid same-port older document tests whether publication confirmation owns readiness.",
+          "The original frozen evidence preparation failed during the direct bridge invocation. Its terminal state is unknown. Preserve the native profile-mismatch control and compare revision 0 with a negative revision at the fixture preparation entry to distinguish a valid startup frame from a protocol-invalid frame before SQLite seeding."
         ],
         "risks": [
           {
@@ -29546,6 +29549,12 @@
             "checks": [
               "project-state",
               "python-contracts-workers",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "An older valid private document bypasses a current publication rejection, or a startup frame with a revision below the canonical minimum authorizes fixture writes. Exercise accepted and distinguishing rejected inputs at the affected fixture entries and verify callback refusal, file and process cleanup, and unchanged synthetic data on rejection.",
+            "checks": [
               "workspace-timeframe"
             ]
           }
@@ -29568,13 +29577,17 @@
             {
               "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
               "pointer": "/outcomes/0"
+            },
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/Revision"
             }
           ],
           "non_goals": [
             "Product features, new permissions, persistent user data and unrelated fixture failures."
           ],
           "open_questions": [
-            "Which startup visit and handoff observation failed on Windows? Which exit condition or phase prevented bridge preparation? Is there a shared cause? The originals do not establish these answers."
+            "What were the file state and publication result on the first Windows service visit? Which exit condition or ACL phase prevented the original bridge preparation? Is there a shared cause? These facts remain unobserved in the original records."
           ]
         },
         "evolution": {
@@ -29583,7 +29596,8 @@
             "Normal startup and restart, eligible undo, two-bar evidence selection, synthetic isolation, private handoff, bounded waiting and cleanup."
           ],
           "change": [
-            "Correct the supported preparation fault or close the demonstrated diagnostic gap at each actual boundary, with durable discriminating observations."
+            "Require confirmation of this launcher's publication before consuming its private document and reject an observed current publication refusal even when a valid older document exists.",
+            "Qualify the canonical startup revision before the first frozen fixture write and retain a passing revision-zero control and a rejected negative revision through the affected entry."
           ],
           "data_plan": "Use disposable synthetic profiles and record stages, durations and safe process facts. Keep private access values and profile contents out of diagnostics.",
           "cleanup": "Verify that the service, direct bridge and temporary profile owners are released on both the normal and failing paths."

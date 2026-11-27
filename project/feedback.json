@@ -9670,7 +9670,7 @@
       "status": "open",
       "severity": "major",
       "source": "First ordinary PR 137 run 45980070684 on preview 31f1a4562179bd0691c46809a013202fbf6e1fb0. The original Windows report is archives/runs/windows-change-45980070684-1/test-report.json (SHA-256 b217b650e718496ca1c0e740a710c658bcf343d6508d46d86b71aef31092ccfd).",
-      "observation": "In first ordinary PR 137 run 45980070684 the Windows fresh-browser restore journey stopped at the private access document predicate after 12000 ms. The service startup wait had returned. The original omitted the failing visit and safe file or publication state. The same-preview Linux case and earlier and protected Windows controls passed.",
+      "observation": "In first ordinary PR 137 run 45980070684 the Windows fresh-browser restore journey stopped on its first service visit at the private access document predicate after 12000 ms. The service startup wait had returned. The original workspace-timeframe log reports workspace.spec.mjs:6635:89 and :171:5; the matching spec calls inService at lines 171, 191 and 219. The file state, publication outcome and underlying cause at that visit remain unknown. The same-preview Linux case and earlier and protected Windows controls passed.",
       "task_ids": [
         "M0-179"
       ],
@@ -9694,7 +9694,7 @@
       "status": "open",
       "severity": "major",
       "source": "First ordinary PR 137 run 45980070684 on preview 31f1a4562179bd0691c46809a013202fbf6e1fb0. The original Windows report is archives/runs/windows-change-45980070684-1/test-report.json (SHA-256 b217b650e718496ca1c0e740a710c658bcf343d6508d46d86b71aef31092ccfd).",
-      "observation": "In the same Windows run the frozen chart two-bar evidence case reported workspace_bridge.exe command failure while creating its synthetic profile, before the chart interaction. The raw result did not identify the exit status, signal, timeout or stderr. The same-preview Linux case and earlier and protected Windows controls passed.",
+      "observation": "In the same Windows run the frozen chart two-bar evidence case reported workspace_bridge.exe command failure while creating its synthetic profile, before the chart interaction. The raw result did not identify the exit status, signal, timeout, stderr or ACL stage. The same-preview Linux case and earlier and protected Windows controls passed. No retained original establishes a common cause with the first-visit private handoff failure.",
       "task_ids": [
         "M0-179"
       ],
@@ -9709,6 +9709,36 @@
           "source_commit": "31f1a4562179bd0691c46809a013202fbf6e1fb0",
           "report_sha256": "b217b650e718496ca1c0e740a710c658bcf343d6508d46d86b71aef31092ccfd"
         }
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "workspace-handoff-admits-old-document-after-publication-rejection",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent review of 1d40f033623fa809d9be68fa09f76485035d11bc, contracts/reviews/task-decisions/M0-179.json#/events/1. Original response: archives/observations/repo-hygiene-20261125/independent-final-m0-179-1d40f033/original-assistant-response.jsonl (SHA-256 073df63482a8a2dc5e3ac53d0b56fb1054fed186b84108073361a64bb23e191e).",
+      "observation": "The independent review called the actual readiness helper with a current publication rejection and a syntactically valid older private document for the same port. The helper returned ready and supplied the older capability. The rejected current publication must keep the service fixture unready and the browser callback must remain unentered even when the older document is readable.",
+      "task_ids": [
+        "M0-179"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "workspace-frozen-fixture-admits-out-of-contract-revision",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent review of 1d40f033623fa809d9be68fa09f76485035d11bc, contracts/reviews/task-decisions/M0-179.json#/events/1. Original response: archives/observations/repo-hygiene-20261125/independent-final-m0-179-1d40f033/original-assistant-response.jsonl (SHA-256 073df63482a8a2dc5e3ac53d0b56fb1054fed186b84108073361a64bb23e191e).",
+      "observation": "The independent review submitted directly to the actual frozen fixture bridge preparation a valid startup frame with revision 0 and an otherwise matching frame with revision -1. Both were classified ready. A mismatched workspace control was rejected. The canonical Revision minimum is 0, and an invalid startup frame must be rejected before SQLite seeding.",
+      "task_ids": [
+        "M0-179"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
       ],
       "resolution": null,
       "deferral_reason": null
