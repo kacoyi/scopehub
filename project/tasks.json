@@ -29197,7 +29197,7 @@
         {
           "run_id": "windows-change-45969084025-1",
           "source_commit": "770b2481d79de4801d644e711beecfe68adb5195",
-          "report_sha256": "d85d79c5ef83db8817adcc016a53da8b2372dfab1d719365985a3ba09ee723b1"
+          "report_sha256": "5a4df558d52ae6ae90844c794664585ed7a13f3c8b74a0ddbd7b3405214d2adf"
         }
       ],
       "next_action": "The coordinator should assess independent review of the clean reconciled candidate. The candidate keeps the already reviewed PR 131 fixture reuse and the observed Git-launch reduction on current source. Adopt the independent M0-159 observer policy through PR 138 before granting any protected-only handoff. Keep M0-153 active and the major finding open. After authorized integration, retain and require the first ordinary protected Windows main-push Python producer, aggregate, every ordered case outcome and a terminal result within the existing 1200-second process deadline. M0-146 owns the 900-second full PR target and periodic verifier reuse.",
@@ -29223,6 +29223,7 @@
           ".reports/audit-20261125/m0-153-periodic-policy-baseline/SHA256SUMS (SHA-256 f5dd2ac4ead1abd9a85f6be063f3bc33a97ace6422e9f2bcef085688a79319a9)",
           ".reports/audit-20261125/m0-153-periodic-policy-pair/SHA256SUMS (SHA-256 1751fffca5048290a0d3302fc4e3e740062f3d21fa199e4859cd36b8840d1483)",
           "archives/observations/repo-hygiene-20261125/main-producer-45969084025-python/observation.json",
+          "archives/observations/repo-hygiene-20261125/main-native-original-45969084025/manifest.json (SHA-256 3970dbc82db9bee7d4f2e9206aac028f280b50d145c373f89b1f4089b72ef1fe)",
           "archives/observations/repo-hygiene-20261125/pr143-native-original-45966576424/manifest.json",
           ".reports/audit-20261127/m0-153-reconcile-770b2481/originals/SHA256SUMS.local",
           ".reports/audit-20261127/m0-153-reconcile-770b2481/native-comparison.json",
