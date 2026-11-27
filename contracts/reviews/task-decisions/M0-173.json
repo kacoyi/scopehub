@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-173",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "5a9204d4de11f4b046f565c01a6614160917ea17",
+      "scope": "Review the exact cold sample-navigation corrective source against the retained first Windows diagnostic, using its public positive and held-required-module negative controls.",
+      "supersedes": null,
+      "requested_at": "2026-11-27T04:58:28.016900+00:00",
+      "request_id": "36b6168cf55402ea50baa8cc5ce606af7523efb1ad476c7114e6c88908a13402",
+      "evidence_sha256": "97e7731a74e29ca1acea484d8ba565a918a7e6acd897e36c65790984f6d7c492"
+    }
+  ]
+}
