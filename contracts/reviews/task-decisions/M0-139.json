@@ -416,6 +416,26 @@
       "requested_at": "2026-11-27T04:17:45.064173+00:00",
       "request_id": "b6b8ad5d23c7a9629db123382ffefb0bf82e42cf6a12c9b6c89d666d89c061a3",
       "evidence_sha256": "034969b83fe16a37e2ba3b1bc4a40bb3e03a3692ae29ca1b4b0c59c13e2a2d60"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "1d7e14978847af2a74af4fc02087d4e55cfb5b1b",
+      "verdict": "approved",
+      "decision": "APPROVE M0-139 1d7e14978847af2a74af4fc02087d4e55cfb5b1b",
+      "scope": "APPROVE M0-139 1d7e14978847af2a74af4fc02087d4e55cfb5b1b",
+      "observation": "The candidate reader accepted the original passing Windows report from main run 45852539879 and rejected the same report when the lane result was changed to failure.",
+      "reviewer": "Independent Astra Standard (t1cn)",
+      "original_sha256": "7d5c79e087991c4a368b99e6f35b168137a8d19fd83972695af7fee5a4d09702",
+      "response_id": "b167fd6c3da8fbe38ccbd2fa2871ff5a484822f9a446062837e619f0f05f6efe",
+      "response_sha256": "47465a31cafc5ed1b9984c0dd36757ba081feb65a63bb0570d3c17ceb73129dc",
+      "legacy_response_sha256": "d59b8754fc749490de605c63d8e6f977251a9475a3dd85ae2c44259af8dd0081",
+      "observation_body_sha256": "d7f3bae12098fea1034ca72a1bb7931134a7c7ec5862bcf4155f5f49b78ef0f6",
+      "event": {
+        "id": "msg_091302a5ca00c873016b090564766487d099233afb4ec29376",
+        "timestamp": "2026-11-27T04:22:14.247Z"
+      },
+      "supersedes": "b6b8ad5d23c7a9629db123382ffefb0bf82e42cf6a12c9b6c89d666d89c061a3",
+      "evidence_sha256": "aa804280f1554e5d0253c615cebe95de1bdee8651594a0543e35795c189644ef"
     }
   ]
 }

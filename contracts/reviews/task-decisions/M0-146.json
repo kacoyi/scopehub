@@ -416,6 +416,26 @@
       "requested_at": "2026-11-27T04:17:44.465232+00:00",
       "request_id": "0cc41629101bba8c9fb124e8d5e2953f41e05d1191cd78abdd523d2a434b04da",
       "evidence_sha256": "c093c9a3cb117a33fce3816833e5d394c43d7aac14a03577373ca13234494df6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "1d7e14978847af2a74af4fc02087d4e55cfb5b1b",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 1d7e14978847af2a74af4fc02087d4e55cfb5b1b",
+      "scope": "APPROVE M0-146 1d7e14978847af2a74af4fc02087d4e55cfb5b1b",
+      "observation": "The reviewed code accepted the original recovery producer from run 45933801256 and rejected the recovery producer from run 45839731781 when checked against the same aggregate.",
+      "reviewer": "Independent Astra Standard (t1cm)",
+      "original_sha256": "9613834a35cb03b582714f93780beb2a8ea293b3da56431674d548380003e307",
+      "response_id": "51debf900a3ca9e2ecfa55d0d935572d3cb0f0b81d0142dda84a9b25ea41f91c",
+      "response_sha256": "0532c1e995b339c68b7b254e90831db09d461ff193acab700dcf08eaa60408a8",
+      "legacy_response_sha256": "78a77101ad52e72c10745b528b9b07b3f67672e7dcd7348551b836f57dc8aee1",
+      "observation_body_sha256": "b9c991969ddd608a881ef483c2d4c0c3f80ee66675cc209cd1c2f68ccc7fc0c3",
+      "event": {
+        "id": "msg_03458ca225866e14016b090538fd9087d08320b3a905e8a3c9",
+        "timestamp": "2026-11-27T04:21:30.391Z"
+      },
+      "supersedes": "0cc41629101bba8c9fb124e8d5e2953f41e05d1191cd78abdd523d2a434b04da",
+      "evidence_sha256": "7c7c1f810fd105a2e15fde4a8c11b0122b181e746ae9b52cd97c4564bf1ab8d4"
     }
   ]
 }
