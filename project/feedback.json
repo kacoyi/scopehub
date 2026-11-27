@@ -12296,6 +12296,124 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "timing-clock-endpoints-without-step-conclusion-lose-authority",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent review of 343bb62e8ef179abf4fa9f98bd960e3066070a19, recorded at e1193203c94a21aba71142e1530c00e81d81b2c6. Originals: M0-155, Independent Astra Standard (t1j5), observations/repo-hygiene-20261125/independent-final-m0-155-343bb62e/original-assistant-response.jsonl (SHA-256 45079133c9f951b21bf5b21dc3252ae939d90c9479cec577f9e2096e3edd1c1b).",
+      "observation": "On push 45838575346, leaving the first completed step's 14:44:30–32 UTC endpoints intact and removing its conclusion lets an impossible 14:44:31 job start gain 3258 runner-seconds alone or erase genuine setup, queue and runner clocks in either order. The genuine 3260 runner-seconds and 24-second setup survive the missing conclusion alone. A 14:44:30 alternative is feasible and can withdraw its dependent metrics.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-report-recorded-outside-producer-verification-and-staging",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent review of 343bb62e8ef179abf4fa9f98bd960e3066070a19, recorded at e1193203c94a21aba71142e1530c00e81d81b2c6. Originals: M0-150, Independent Astra Standard (t1j6), observations/repo-hygiene-20261125/independent-final-m0-150-343bb62e/original-assistant-response.jsonl (SHA-256 bc43f2465618877d327447a05b526b743bc4c1159e6595a774a24b04d755610f); M0-155, Independent Astra Standard (t1j5), observations/repo-hygiene-20261125/independent-final-m0-155-343bb62e/original-assistant-response.jsonl (SHA-256 45079133c9f951b21bf5b21dc3252ae939d90c9479cec577f9e2096e3edd1c1b).",
+      "observation": "On PR 123 run 45965137241, raw and compact browser reports recorded after setup but before required verification (08:25:16 versus 08:25:18 UTC), or after staging but before upload finished (08:38:36 versus 08:38:35 UTC), gain attribution alone and erase the genuine 983 runner-seconds in either order. The observed job clocks are independent. A report after upload is already rejected.",
+      "task_ids": [
+        "M0-150",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-compact-pair-overrides-raw-producer-duration",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent review of 343bb62e8ef179abf4fa9f98bd960e3066070a19, recorded at e1193203c94a21aba71142e1530c00e81d81b2c6. Originals: M0-150, Independent Astra Standard (t1j6), observations/repo-hygiene-20261125/independent-final-m0-150-343bb62e/original-assistant-response.jsonl (SHA-256 bc43f2465618877d327447a05b526b743bc4c1159e6595a774a24b04d755610f).",
+      "observation": "On PR 123 run 45933801256, amended compact browser and aggregate reports agree on workspace-timeframe at 210.875 seconds while the retained originals each measure 209.875. Ordinary, offline weekly and cold reads credited 678 and 3165 runner-seconds to the amended reports. One amended aggregate beside its browser original correctly failed, as did historical publisher staging with the changed duration.",
+      "task_ids": [
+        "M0-150",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-compact-digest-claim-withdraws-verified-raw-role",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent review of 343bb62e8ef179abf4fa9f98bd960e3066070a19, recorded at e1193203c94a21aba71142e1530c00e81d81b2c6. Originals: M0-150, Independent Astra Standard (t1j6), observations/repo-hygiene-20261125/independent-final-m0-150-343bb62e/original-assistant-response.jsonl (SHA-256 bc43f2465618877d327447a05b526b743bc4c1159e6595a774a24b04d755610f).",
+      "observation": "On PR 123 run 45965137241, the genuine aggregate's two input digests match the browser and Python original bytes. Adding a browser compact that claims the Python digest withdraws the valid aggregate in both orders while leaving 3337 independently observed runner-seconds. Directly swapping the digest roles in an aggregate is independently rejected.",
+      "task_ids": [
+        "M0-150",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-invalid-collection-copies-gain-dispute-authority",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent review of 343bb62e8ef179abf4fa9f98bd960e3066070a19, recorded at e1193203c94a21aba71142e1530c00e81d81b2c6. Originals: M0-156, Independent Astra Standard (t1j7), observations/repo-hygiene-20261125/independent-final-m0-156-343bb62e/original-assistant-response.jsonl (SHA-256 7bb6a52b6b9aab9fde6149fc3b7512df65244d50ae914a099e1d92d1381e2d1b).",
+      "observation": "For PR 96, six permutations of a genuine capture and two same-time copies with true and false in place of the integer runs_with_compact produce two receipts or zero depending on order. Saving the two invalid copies before reopening with the genuine capture also erases both receipts in either order.",
+      "task_ids": [
+        "M0-156",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-collection-admission-uses-missing-or-unsupported-count",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent review of 343bb62e8ef179abf4fa9f98bd960e3066070a19, recorded at e1193203c94a21aba71142e1530c00e81d81b2c6. Originals: M0-156, Independent Astra Standard (t1j7), observations/repo-hygiene-20261125/independent-final-m0-156-343bb62e/original-assistant-response.jsonl (SHA-256 7bb6a52b6b9aab9fde6149fc3b7512df65244d50ae914a099e1d92d1381e2d1b).",
+      "observation": "A copy of a genuine combined PR 96 and push collection can erase all four receipts by omitting listed_attempt_jobs_sha256 or by claiming that only one run had downloads when two are evidenced. The undercounting copy alone gives all four receipts. Both defects survive save and cold reopen. Absence and an explicit empty list have distinct acquisition meaning.",
+      "task_ids": [
+        "M0-156",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-unsummarizable-collection-published-before-validation",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent review of 343bb62e8ef179abf4fa9f98bd960e3066070a19, recorded at e1193203c94a21aba71142e1530c00e81d81b2c6. Originals: M0-156, Independent Astra Standard (t1j7), observations/repo-hygiene-20261125/independent-final-m0-156-343bb62e/original-assistant-response.jsonl (SHA-256 7bb6a52b6b9aab9fde6149fc3b7512df65244d50ae914a099e1d92d1381e2d1b).",
+      "observation": "Removing runs_without_compact lets --save --summary write a new file and then exit 1. Both 343bb62e and the previous supported reader 4d17dff0 fail when reopening that file for a summary.",
+      "task_ids": [
+        "M0-156",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

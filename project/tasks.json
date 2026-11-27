@@ -27510,7 +27510,8 @@
         "Reject an infeasible Windows scheduling cut when an observed aggregate step completion precedes a prerequisite finish, even if job and step starts are absent. Retain the demonstrated 1242-second and 827-second controls and independent clocks.",
         "Replay the applicable e6f12373 findings and genuine originals at the ordinary, standard-library weekly and cold entrypoints. Carry exact local source and outcomes to the retained handoff while hosted, native and scheduled evidence remains with the coordinator.",
         "An impossible cleanup finish or pre-setup verification start can erase other Windows measurements. Replay the original push, infeasible alternatives and still-feasible alternatives at ordinary, offline weekly and cold entries in both orders.",
-        "Replay all three 6491b837 independent decisions at ordinary, offline weekly and cold entries, keeping the 1291-second Windows wall, 24-second setup, 10-second tail and 3260 runner-seconds at their supported scope. Compare coverage and costs on identical retained inputs."
+        "Replay all three 6491b837 independent decisions at ordinary, offline weekly and cold entries, keeping the 1291-second Windows wall, 24-second setup, 10-second tail and 3260 runner-seconds at their supported scope. Compare coverage and costs on identical retained inputs.",
+        "At the ordinary, offline weekly and cold entries, preserve observed step endpoints when a verdict is missing, retain separately supported Actions clocks, and distinguish genuine, feasible and impossible alternatives on push 45838575346 and PR 123."
       ],
       "checks": [
         "project-state",
@@ -27518,7 +27519,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Use .reports/m0-155-6491b837-reconciliation/handoff.json for the local source and regression evidence. Keep all five downstream scopes gated on three new independent approvals on the same candidate. The coordinator owns hosted and native qualification and the scheduled observation on 2026-11-28 at 16:17 UTC.",
+      "next_action": "Use .reports/m0-155-343bb62e-reconciliation/handoff.json for the local source and regression evidence. Keep all five downstream scopes gated on three new independent approvals on the same candidate. The coordinator owns hosted and native qualification and the scheduled observation on 2026-11-28 at 16:17 UTC.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -27555,7 +27556,8 @@
           "contracts/decisions/0039-reuse-timing-source-semantics.json",
           "observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1hj/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-155-6491b837/original-assistant-response.jsonl",
-          "contracts/decisions/0041-qualify-ordered-timing-provenance.json"
+          "contracts/decisions/0041-qualify-ordered-timing-provenance.json",
+          "observations/repo-hygiene-20261125/independent-final-m0-155-343bb62e/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "Recent preload and historical linked reads can see different retained evidence when a conflict removes the platform index entry or an attempt is older than the routine window.",
@@ -27570,7 +27572,8 @@
           "An unobserved scheduling boundary constrains feasibility through observed job and step clocks without itself becoming a measured endpoint.",
           "Replaying retained PR 145 and contemporary publisher inputs on the protected baseline can distinguish qualified reports, contradictory sources and missing coverage while keeping independent Actions clocks.",
           "Applying source verdicts, prerequisite feasibility and collection order before output projection can preserve the genuine cases while rejecting the seven e6f12373 findings across all three reader entries.",
-          "Compare extending per-case guards for the latest setup, cleanup, producer and collection cases with replacing the three shared qualification rules at their existing ownership boundaries. Per-case guards preserve a shorter initial diff but leave other visible step edges, producer role assignments and equally dated copies open to the same conflicting reduction. Replace fixed clock witnesses with ordered historical visible steps and feasible anchors, qualify the observed report through the mandatory producer step, role, report content and last upload, and bind each current receipt to locally acquired run, platform and jobs evidence before combining collections. Keep one attempt reducer and separate independent clock proof from report and receipt attribution."
+          "Compare extending per-case guards for the latest setup, cleanup, producer and collection cases with replacing the three shared qualification rules at their existing ownership boundaries. Per-case guards preserve a shorter initial diff but leave other visible step edges, producer role assignments and equally dated copies open to the same conflicting reduction. Replace fixed clock witnesses with ordered historical visible steps and feasible anchors, qualify the observed report through the mandatory producer step, role, report content and last upload, and bind each current receipt to locally acquired run, platform and jobs evidence before combining collections. Keep one attempt reducer and separate independent clock proof from report and receipt attribution.",
+          "At the three ADR 0041 boundaries, normalize each input before it enters the reduction and keep proven facts distinct from assertions awaiting support. This changes three existing eligibility decisions and leaves the readers and archive format shared. Additional per-entry conditions have a smaller initial diff but repeat the same ownership logic in ordinary, weekly and cold reads and leave grouped or reordered inputs able to change authority."
         ],
         "risks": [
           {
@@ -27935,6 +27938,55 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "timing-clock-endpoints-without-step-conclusion-lose-authority: On push 45838575346, leaving the first completed step's 14:44:30–32 UTC endpoints intact and removing its conclusion lets an impossible 14:44:31 job start gain 3258 runner-seconds alone or erase genuine setup, queue and runner clocks in either order. The genuine 3260 runner-seconds and 24-second setup survive the missing conclusion alone. A 14:44:30 alternative is feasible and can withdraw its dependent metrics.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "timing-report-recorded-outside-producer-verification-and-staging: On PR 123 run 45965137241, raw and compact browser reports recorded after setup but before required verification (08:25:16 versus 08:25:18 UTC), or after staging but before upload finished (08:38:36 versus 08:38:35 UTC), gain attribution alone and erase the genuine 983 runner-seconds in either order. The observed job clocks are independent. A report after upload is already rejected.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "timing-compact-pair-overrides-raw-producer-duration: On PR 123 run 45933801256, amended compact browser and aggregate reports agree on workspace-timeframe at 210.875 seconds while the retained originals each measure 209.875. Ordinary, offline weekly and cold reads credited 678 and 3165 runner-seconds to the amended reports. One amended aggregate beside its browser original correctly failed, as did historical publisher staging with the changed duration.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "timing-compact-digest-claim-withdraws-verified-raw-role: On PR 123 run 45965137241, the genuine aggregate's two input digests match the browser and Python original bytes. Adding a browser compact that claims the Python digest withdraws the valid aggregate in both orders while leaving 3337 independently observed runner-seconds. Directly swapping the digest roles in an aggregate is independently rejected.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "timing-invalid-collection-copies-gain-dispute-authority: For PR 96, six permutations of a genuine capture and two same-time copies with true and false in place of the integer runs_with_compact produce two receipts or zero depending on order. Saving the two invalid copies before reopening with the genuine capture also erases both receipts in either order.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "timing-collection-admission-uses-missing-or-unsupported-count: A copy of a genuine combined PR 96 and push collection can erase all four receipts by omitting listed_attempt_jobs_sha256 or by claiming that only one run had downloads when two are evidenced. The undercounting copy alone gives all four receipts. Both defects survive save and cold reopen. Absence and an explicit empty list have distinct acquisition meaning.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "timing-unsummarizable-collection-published-before-validation: Removing runs_without_compact lets --save --summary write a new file and then exit 1. Both 343bb62e and the previous supported reader 4d17dff0 fail when reopening that file for a summary.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain all source captures, saved reviews and original classifications if a change loses a valid clock or expands the ordinary read without a bound.",
@@ -28068,7 +28120,8 @@
         "Reject a raw report whose present source facts contradict its checkout claim before cross-platform conflict reduction. On the PR 96 public replay, preserve both original receipt identities and separately observed Windows clocks. Retain legacy records that genuinely omit optional source fields.",
         "Replay the applicable e6f12373 findings and genuine originals at the ordinary, standard-library weekly and cold entrypoints. Carry exact local source and outcomes to the retained handoff while hosted, native and scheduled evidence remains with the coordinator.",
         "Cross-collection receipt reuse or missing-run order can change current receipt eligibility. Replay genuine, missing, mixed, reordered and conflicting collections in both orders and check independent history and the protected summary.",
-        "Replay PR 96 legacy partial-platform acquisition, a failed current jobs request beside retained jobs, repeated save of a partial equal-time copy, and boolean acquisition counts in both input orders."
+        "Replay PR 96 legacy partial-platform acquisition, a failed current jobs request beside retained jobs, repeated save of a partial equal-time copy, and boolean acquisition counts in both input orders.",
+        "Qualify a collection before it can contribute to receipt authority or withdraw it. At the public entry, preserve genuine PR 96 and push receipts through permutation, duplicate malformed inputs and save/reopen. Distinguish unavailable, malformed and independently supported disagreement, and verify summary reopen with the previous supported reader."
       ],
       "checks": [
         "project-state",
@@ -28087,7 +28140,7 @@
         }
       ],
       "evidence": [],
-      "next_action": "Use .reports/m0-155-6491b837-reconciliation/handoff.json for the local source and regression evidence. Keep all five downstream scopes gated on three new independent approvals on the same candidate. The coordinator owns hosted and native qualification and the scheduled observation on 2026-11-28 at 16:17 UTC.",
+      "next_action": "Use .reports/m0-155-343bb62e-reconciliation/handoff.json for the local source and regression evidence. Keep all five downstream scopes gated on three new independent approvals on the same candidate. The coordinator owns hosted and native qualification and the scheduled observation on 2026-11-28 at 16:17 UTC.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -28123,7 +28176,8 @@
           "contracts/decisions/0039-reuse-timing-source-semantics.json",
           "observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1hm/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-6491b837/original-assistant-response.jsonl",
-          "contracts/decisions/0041-qualify-ordered-timing-provenance.json"
+          "contracts/decisions/0041-qualify-ordered-timing-provenance.json",
+          "observations/repo-hygiene-20261125/independent-final-m0-156-343bb62e/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "The substitute Git fingerprint is computable with the standard library; importing the full project entry brings an unrelated parser into the weekly job.",
@@ -28298,6 +28352,27 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "timing-invalid-collection-copies-gain-dispute-authority: For PR 96, six permutations of a genuine capture and two same-time copies with true and false in place of the integer runs_with_compact produce two receipts or zero depending on order. Saving the two invalid copies before reopening with the genuine capture also erases both receipts in either order.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "timing-collection-admission-uses-missing-or-unsupported-count: A copy of a genuine combined PR 96 and push collection can erase all four receipts by omitting listed_attempt_jobs_sha256 or by claiming that only one run had downloads when two are evidenced. The undercounting copy alone gives all four receipts. Both defects survive save and cold reopen. Absence and an explicit empty list have distinct acquisition meaning.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "timing-unsummarizable-collection-published-before-validation: Removing runs_without_compact lets --save --summary write a new file and then exit 1. Both 343bb62e and the previous supported reader 4d17dff0 fail when reopening that file for a summary.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain the recorded evidence and archived identities; revert an extraction that changes the validated execution inputs or weekly runtime requirements.",
@@ -28430,9 +28505,10 @@
         "Incomplete or digestless reports can bypass a publishing-job contradiction and enter attempt reduction. Check genuine and modified reports with one or both job boundaries, digest, coverage and status variations on ordinary, weekly and reopened reads.",
         "Replay the applicable e6f12373 findings and genuine originals at the ordinary, standard-library weekly and cold entrypoints. Carry exact local source and outcomes to the retained handoff while hosted, native and scheduled evidence remains with the coordinator.",
         "Producer outcome, raw digest aliasing or dependency-infeasible report creation can admit an impossible report and displace a genuine one. Replay the historical publisher and raw and compact reader entries with supported, rejected and unrelated controls.",
-        "Replay mandatory-step failure, contradictory producer result content, swapped distinct role digests, last-upload lifetime and missing failed logs at their report and staging boundaries, with genuine producer neighbors."
+        "Replay mandatory-step failure, contradictory producer result content, swapped distinct role digests, last-upload lifetime and missing failed logs at their report and staging boundaries, with genuine producer neighbors.",
+        "Replay PR 123 failed and successful producer originals and their compact forms alone and together. Check report time against the verified producer interval, give raw bytes and measured check durations only their observed role, and preserve historical publisher forms and lane mapping."
       ],
-      "next_action": "Use .reports/m0-155-6491b837-reconciliation/handoff.json for the local source and regression evidence. Keep all five downstream scopes gated on three new independent approvals on the same candidate. The coordinator owns hosted and native qualification and the scheduled observation on 2026-11-28 at 16:17 UTC.",
+      "next_action": "Use .reports/m0-155-343bb62e-reconciliation/handoff.json for the local source and regression evidence. Keep all five downstream scopes gated on three new independent approvals on the same candidate. The coordinator owns hosted and native qualification and the scheduled observation on 2026-11-28 at 16:17 UTC.",
       "blocker": null,
       "evidence": [],
       "closure_reason": null,
@@ -28468,7 +28544,8 @@
           "contracts/decisions/0039-reuse-timing-source-semantics.json",
           "observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1hk/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-150-6491b837/original-assistant-response.jsonl",
-          "contracts/decisions/0041-qualify-ordered-timing-provenance.json"
+          "contracts/decisions/0041-qualify-ordered-timing-provenance.json",
+          "observations/repo-hygiene-20261125/independent-final-m0-150-343bb62e/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "The earlier and later sources had the same four Windows producer jobs and aggregate catalog. The browser and recovery assignments changed while the reader used one current mapping for both.",
@@ -28778,6 +28855,27 @@
           },
           {
             "failure": "Empty or missing failed-check log references may give timing credit or silently drop diagnostics. Check the real failure next to rejection at staging and preserve the original bytes.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "timing-report-recorded-outside-producer-verification-and-staging: On PR 123 run 45965137241, raw and compact browser reports recorded after setup but before required verification (08:25:16 versus 08:25:18 UTC), or after staging but before upload finished (08:38:36 versus 08:38:35 UTC), gain attribution alone and erase the genuine 983 runner-seconds in either order. The observed job clocks are independent. A report after upload is already rejected.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "timing-compact-pair-overrides-raw-producer-duration: On PR 123 run 45933801256, amended compact browser and aggregate reports agree on workspace-timeframe at 210.875 seconds while the retained originals each measure 209.875. Ordinary, offline weekly and cold reads credited 678 and 3165 runner-seconds to the amended reports. One amended aggregate beside its browser original correctly failed, as did historical publisher staging with the changed duration.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "timing-compact-digest-claim-withdraws-verified-raw-role: On PR 123 run 45965137241, the genuine aggregate's two input digests match the browser and Python original bytes. Adding a browser compact that claims the Python digest withdraws the valid aggregate in both orders while leaving 3337 independently observed runner-seconds. Directly swapping the digest roles in an aggregate is independently rejected.",
             "checks": [
               "project-state",
               "python-contracts-workers"
