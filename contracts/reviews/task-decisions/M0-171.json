@@ -39,6 +39,26 @@
       "requested_at": "2026-11-27T09:06:51.239647+00:00",
       "request_id": "274d80ddd504fe91e650d2dc8ae7333c36d8bfb11cf1fa5e36947790eb278cf2",
       "evidence_sha256": "c8b3ea989024eceef4facd2a6f61e3c4a3ac19c773eafa56411a19f20425d5b1"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "f707c0edf2a1068226d7e330f4ebdcde3c731701",
+      "verdict": "approved",
+      "decision": "APPROVE M0-171 f707c0edf2a1068226d7e330f4ebdcde3c731701",
+      "scope": "APPROVE M0-171 f707c0edf2a1068226d7e330f4ebdcde3c731701",
+      "observation": "On the reviewed Linux source, I independently reran eight subprocess controls, including a successful exit, an ACL refusal at exit code 58, and a live child that reached its deadline after 403 ms.",
+      "reviewer": "Independent Astra Standard (t1g4)",
+      "original_sha256": "45faf191fdd8b0799decbd22f2a7003d14171e7684e0175a1bc4567cb99b2f38",
+      "response_id": "e75c3d264f0684f4667a816148418121a869e70b07c2b5aa1a22f38d98029eeb",
+      "response_sha256": "6eb4f9fe1245ddc96fbbeb67ec22cbdf335a340c7715a03aaa9d0360ca6ce8b6",
+      "legacy_response_sha256": "4d3634639903c5457211d204da731a93f239c4e3b22af0d3726de251e0bed19b",
+      "observation_body_sha256": "0b7f8a8422423162b7de1ad300e5008b07a306a0ecdae377b682ac73c3f99062",
+      "event": {
+        "id": "msg_0a91e36d92aab635016b0948b06c7087d08f4083f6fd734f0a",
+        "timestamp": "2026-11-27T09:09:23.273Z"
+      },
+      "supersedes": "274d80ddd504fe91e650d2dc8ae7333c36d8bfb11cf1fa5e36947790eb278cf2",
+      "evidence_sha256": "fddb60c20807a99c48828900f1de26d805404c287e5c6d604d7e15f6929ac1c7"
     }
   ]
 }

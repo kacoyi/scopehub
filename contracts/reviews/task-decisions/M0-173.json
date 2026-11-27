@@ -39,6 +39,26 @@
       "requested_at": "2026-11-27T09:06:50.397111+00:00",
       "request_id": "99f0edd83992c84bd0a60698176c8de65d5980da4cf2116f9e1dc4b154044b6f",
       "evidence_sha256": "14c4db27e80a8e2f744c43bd9e6231a3eeb74f177c85fc5d9059d2f25b0f70ea"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "f707c0edf2a1068226d7e330f4ebdcde3c731701",
+      "verdict": "approved",
+      "decision": "APPROVE M0-173 f707c0edf2a1068226d7e330f4ebdcde3c731701",
+      "scope": "APPROVE M0-173 f707c0edf2a1068226d7e330f4ebdcde3c731701",
+      "observation": "The retained Linux browser attachments show that the first public repair verified the sample at 827 ms and that holding the required startup module stopped navigation at 10,009 ms.",
+      "reviewer": "Independent Astra Standard (t1g3)",
+      "original_sha256": "79d26af1d6d89f63776b6488c47af6dcf68e2d1136b7e056a32e80ed1878dbe5",
+      "response_id": "2f7e5aa4586dec33e27122fbca73445ff8d74ca09ab9b3f9806ef5d92033d178",
+      "response_sha256": "8fba714fb3176419fc3ab26d9a0008400e2ff8d199a9c2055ba53556308b4a5b",
+      "legacy_response_sha256": "b2553ebbb6bfc43f992f17024909073ea99ff607b397daeccc805224c460eed4",
+      "observation_body_sha256": "4f0cdb8141028fc81da000930c66e79fb605079ae3df8c9b84eed52fc566f628",
+      "event": {
+        "id": "msg_05015ae6b3fc5c45016b0948fc473c87d0b024e512727929e3",
+        "timestamp": "2026-11-27T09:10:41.627Z"
+      },
+      "supersedes": "99f0edd83992c84bd0a60698176c8de65d5980da4cf2116f9e1dc4b154044b6f",
+      "evidence_sha256": "69ce698e1f9ec731df5fa0e33e45559baa5d70e44e04d65dd51f2cf69e01f736"
     }
   ]
 }
