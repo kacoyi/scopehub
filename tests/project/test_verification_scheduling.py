@@ -1650,6 +1650,33 @@ class WindowsLaneTests(ProjectFixture):
             self.assertEqual(receipt, self.record_report(report_path, artifact=artifact, cold=True))
             self.assertEqual(original, receipt_path.read_bytes())
 
+    def test_windows_core_omissions_require_the_environment_process_result(self):
+        catalog_path = self.root / 'project/checks.json'
+        catalog = read_json(catalog_path)
+        environment = next(check for check in catalog['checks'] if check['id'] == 'environment')
+        environment['command'] = ['{python}', '-c', 'print("Environment check failed."); raise SystemExit(5)']
+        catalog_path.write_bytes(json_bytes(catalog))
+        subprocess.run(['git', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.org',
+                        'commit', '-qam', 'Run the environment failure fixture'], cwd=self.root, check=True)
+        head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=self.root, text=True).strip()
+        with patch.dict(os.environ, {'GITHUB_EVENT_NAME': 'push', 'GITHUB_SHA': head, 'SCOPEHUB_SOURCE_HEAD': head}):
+            code, report = self.run_harness('--ci-windows-lane', 'core')
+            rows = {row['id']: row for row in report['checks']}
+            self.assertEqual((1, 'failed', 5), (code, rows['environment']['status'], rows['environment']['exit_code']))
+            self.assertEqual('earlier_failure', rows['project-state']['reason_code'])
+            stage = self.downloads / 'environment-failed'
+            self.assertTrue(ci_artifacts.stage_artifacts(self.root, stage, os.environ, lane='core'))
+            self.assertIn(b'Environment check failed.', (stage / rows['environment']['log'].removeprefix('.reports/')).read_bytes())
+
+            for key in ('log', 'log_sha256', 'exit_code', 'duration_seconds'):
+                del rows['environment'][key]
+            latest, per_run = 'test-report.json', f"runs/{report['run_id']}/test-report.json"
+            rejected = self.downloads / 'environment-without-process-result'
+            with self.replace_artifact_bytes(self.reports, dict.fromkeys((latest, per_run), json_bytes(report))):
+                with self.assertRaisesRegex(ci_artifacts.PublicationError, 'stop for environment'):
+                    ci_artifacts.stage_artifacts(self.root, rejected, os.environ, lane='core')
+            self.assertFalse((rejected / latest).exists())
+
     def test_recovery_overlap_does_not_restart_checks_after_python_cleanup_failure(self):
         self.partition_fixture()
         recovery_started = Event()

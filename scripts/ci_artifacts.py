@@ -12,7 +12,7 @@ import tempfile
 
 if __package__:
     from . import windows_python
-    from .check import (PRIVATE_CHECK_LOGS, PYTHON_MANIFEST_INTERRUPTED, STOP_REASONS, WINDOWS_LANES,
+    from .check import (PRIVATE_CHECK_LOGS, PYTHON_MANIFEST_INTERRUPTED, WINDOWS_LANES,
                         WINDOWS_LANES_RUN_PREFIX, check_timeout, ci_provenance, redacted_check_log, select_checks,
                         stops_after_check, windows_lane_checks, windows_lanes_run_id)
     from .project import (ProjectError, digest, file_digest, json_bytes, load_project,
@@ -29,7 +29,7 @@ if __package__:
     from .verification_scope import SCOPED_PROFILES, ci_base, ci_event_checkout, git, require_ancestor
 else:
     import windows_python
-    from check import (PRIVATE_CHECK_LOGS, PYTHON_MANIFEST_INTERRUPTED, STOP_REASONS, WINDOWS_LANES,
+    from check import (PRIVATE_CHECK_LOGS, PYTHON_MANIFEST_INTERRUPTED, WINDOWS_LANES,
                        WINDOWS_LANES_RUN_PREFIX, check_timeout, ci_provenance, redacted_check_log, select_checks,
                        stops_after_check, windows_lane_checks, windows_lanes_run_id)
     from project import (ProjectError, digest, file_digest, json_bytes, load_project,
@@ -828,10 +828,13 @@ def validate_windows_lane(project, report, source, ci, selected, lane, profile, 
 
 
 def producer_stopped(row):
-    if row.get('reason_code') in STOP_REASONS and (
-            row['status'] != 'failed' or not {'log', 'log_sha256', 'exit_code', 'duration_seconds'} <= row.keys()):
+    if not stops_after_check(row):
+        return False
+    if row['status'] == 'blocked' and row.get('reason_code') == 'executable_unavailable' and 'log' not in row:
+        return True
+    if row['status'] != 'failed' or not {'log', 'log_sha256', 'exit_code', 'duration_seconds'} <= row.keys():
         raise PublicationError(f"Windows producer stop for {row['id']} has no executed process evidence.")
-    return stops_after_check(row)
+    return True
 
 
 def validate_producer_outcomes(report, selected, lane, *, recovery_overlap=False):
