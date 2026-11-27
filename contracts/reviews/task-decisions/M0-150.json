@@ -581,6 +581,26 @@
       "requested_at": "2026-11-27T11:13:04.282960+00:00",
       "request_id": "de1f139bccb3bf9de1177f11eb03f0c7813805fc3492a073aa3a63ca590872b8",
       "evidence_sha256": "32c784ea72275474de6fd9e102a46b8a6860c2dcfdc62e691c870f7aa281583e"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "343bb62e8ef179abf4fa9f98bd960e3066070a19",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 343bb62e8ef179abf4fa9f98bd960e3066070a19",
+      "scope": "CHANGES_REQUESTED M0-150 343bb62e8ef179abf4fa9f98bd960e3066070a19",
+      "observation": "On PR 123 run 45933801256, ordinary, offline weekly, and cold reads all attributed 3,165 Windows runner-seconds to an aggregate whose failed check duration contradicted both retained raw reports.",
+      "reviewer": "Independent Astra Standard (t1j6)",
+      "original_sha256": "bc43f2465618877d327447a05b526b743bc4c1159e6595a774a24b04d755610f",
+      "response_id": "08d76313b696697c6466e4ffa4a2e89b1daf721d0b491f935d7d37152a17bcb9",
+      "response_sha256": "e35598c3fe35e1b8fed69bfca88ad68e5d6e178865e0fc0d50264409b2714625",
+      "legacy_response_sha256": "eb817c451b8492e2471711175f9da4a3fe05f1138ef29aff17aa29d7cffa6232",
+      "observation_body_sha256": "65d88d39f99c6b98844f06dcd99ad057dcbfb05648a99e57108aef7b239893cb",
+      "event": {
+        "id": "msg_0da1830515158f81016b0967fb77b887d08dd956e6439eac9d",
+        "timestamp": "2026-11-27T11:22:58.687Z"
+      },
+      "supersedes": "de1f139bccb3bf9de1177f11eb03f0c7813805fc3492a073aa3a63ca590872b8",
+      "evidence_sha256": "44ae6100384d984fb402f5624ff73c44d1c6fdd3b8c8434153ffbd5132a7e87b"
     }
   ]
 }

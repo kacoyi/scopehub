@@ -561,6 +561,26 @@
       "requested_at": "2026-11-27T11:13:05.147503+00:00",
       "request_id": "a3c82e801ab73fed5ac39fc71b5484bf9eb093b874c02a7399b747620c677a8e",
       "evidence_sha256": "7f47b5aa036d2182eeb71855789efed1bf7e993770813d5bdf69baab1d10ec00"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "343bb62e8ef179abf4fa9f98bd960e3066070a19",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 343bb62e8ef179abf4fa9f98bd960e3066070a19",
+      "scope": "CHANGES_REQUESTED M0-155 343bb62e8ef179abf4fa9f98bd960e3066070a19",
+      "observation": "On run 45838575346, ordinary, offline weekly, and cold reads all reported 3,258 Windows runner-seconds when the aggregate job start was placed one second after its first recorded step began.",
+      "reviewer": "Independent Astra Standard (t1j5)",
+      "original_sha256": "45079133c9f951b21bf5b21dc3252ae939d90c9479cec577f9e2096e3edd1c1b",
+      "response_id": "23112516b46f138039922fd28e67b9b17f070743851526e55e3ec862c4f6c7ee",
+      "response_sha256": "d19b5258750252444af3d474ae23e11c792694ee61324a5f6abbba7b063aaa4e",
+      "legacy_response_sha256": "23852cfbff5436ce3a0086279e4a2c0247e5702f047f8bed94cf5131f4476ab0",
+      "observation_body_sha256": "11816b7b8fa74e2bda3491c393b037659bd983494c961de80f43b22a71aff709",
+      "event": {
+        "id": "msg_098f1f1ea27e0fff016b09671264b087d08d02d78075f4c224",
+        "timestamp": "2026-11-27T11:19:02.689Z"
+      },
+      "supersedes": "a3c82e801ab73fed5ac39fc71b5484bf9eb093b874c02a7399b747620c677a8e",
+      "evidence_sha256": "577b46b9f4c7c38d9a9648921d22939c357d4e6bde1bdd01e22640a780002582"
     }
   ]
 }

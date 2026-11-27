@@ -590,6 +590,26 @@
       "requested_at": "2026-11-27T11:13:06.015293+00:00",
       "request_id": "d8fe6c6348a619372fc207b3162e044d2b17f3d925de1e674f652df0d5609fce",
       "evidence_sha256": "030974f143f95b37f48634b51d8feed366d7322e63e22127b9a8480eb14bab61"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "343bb62e8ef179abf4fa9f98bd960e3066070a19",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 343bb62e8ef179abf4fa9f98bd960e3066070a19",
+      "scope": "CHANGES_REQUESTED M0-156 343bb62e8ef179abf4fa9f98bd960e3066070a19",
+      "observation": "Reordering one genuine PR 96 capture and two copies with invalid boolean counts produced either two receipts or zero, and a cold reread preserved both outcomes.",
+      "reviewer": "Independent Astra Standard (t1j7)",
+      "original_sha256": "7bb6a52b6b9aab9fde6149fc3b7512df65244d50ae914a099e1d92d1381e2d1b",
+      "response_id": "004675c183db68922f5e715357c4338222055ab072e174d36c59a9cd105164b1",
+      "response_sha256": "bc2051cd553d4c98663c45f5b9a788fe9520799beeba4e831a047f3ccb2f7462",
+      "legacy_response_sha256": "23c66708a4fa3cb45c0758e86ce0be404cc54e6dd90a7d399629e64ea6e378d6",
+      "observation_body_sha256": "b6b688fb470aa0670ba976c7fba4d50c2c4f3a1bc16653552455d9e11b5c3760",
+      "event": {
+        "id": "msg_0bdd3f754c34d557016b096755599c87d0b761c1a540561a1d",
+        "timestamp": "2026-11-27T11:20:10.929Z"
+      },
+      "supersedes": "d8fe6c6348a619372fc207b3162e044d2b17f3d925de1e674f652df0d5609fce",
+      "evidence_sha256": "aa5b4369679b55731b979f23dd9140f20b6c4b54975b757bd0bab9fa468b0d3b"
     }
   ]
 }
