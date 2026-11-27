@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-179",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "1d40f033623fa809d9be68fa09f76485035d11bc",
+      "scope": "Independently qualify ordinary fresh-browser private handoff and frozen workspace-fixture preparation against their two real Windows failures, passing same-preview Linux and adjacent integrated controls. Preserve the underlying restart and frozen-selection assertions and their bounded recovery.",
+      "supersedes": null,
+      "requested_at": "2026-11-27T10:50:29.648880+00:00",
+      "request_id": "7fa8c3b738b7e9621d8b78fcb78753deee60197e422d7adf157583347fd7dca3",
+      "evidence_sha256": "b5f6d836c68b0f4a9070fd68ececa1dcc3fd51cc28d2e5dae1a5ecba23350534"
+    }
+  ]
+}
