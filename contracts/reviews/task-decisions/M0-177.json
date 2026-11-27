@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-177",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "59c57475671aaca62f097fcf92a3ff668cd4a5a1",
+      "scope": "Independently review the normal initiating decision-note UI after an admitted peer deletion with a missing or late approval reply, and the actual observer fallback on disposable synthetic records. Compare the original Windows journal/storage marker, same-preview Linux, the current positive and refusal and the existing authorized recovery behavior.",
+      "supersedes": null,
+      "requested_at": "2026-11-27T09:37:43.143686+00:00",
+      "request_id": "f8ff98ef00ae344c6f85963c175650e701e61ca7cb9d41a4353483c34cf165d3",
+      "evidence_sha256": "52b6c5eb7f298fe882e346be06f3adbd983e8d4c18921d7de2efa3baf143b5d2"
+    }
+  ]
+}
