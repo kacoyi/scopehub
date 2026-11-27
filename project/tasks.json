@@ -27870,7 +27870,7 @@
           "report_sha256": "fbe1d3c9c91c97cdc4122f6c39e6b25facc8ede80f1241a6e3d976b2f46381fe"
         }
       ],
-      "next_action": "Independently review the cleanup-specific held and released control and the original and local observations. Qualify this source on supported Windows and Linux, archive matching evidence and recheck the integrated revision.",
+      "next_action": "Obtain independent review of the held cleanup and missing entry witness regressions on the clean candidate. The coordinator owns supported Windows and Linux qualification, matching evidence archival and the integrated revision recheck.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -27888,7 +27888,8 @@
         ],
         "hypotheses": [
           "The two original Windows assertions sampled scratch at cancellation return after the bounded cleanup wait timed out. In the first Linux control the cancellation returned with scratch present and the reaper removed it after release. Later disposal and the reason for delay in the original Windows runs remain unknown.",
-          "Both PR 149 native Windows first attempts reached the 900-second Rust harness limit with only the held scratch control unfinished in its 17-test binary. The stalled stage is unknown. Tokio's Windows child pipes and scratch removal both use the blocking pool. A fixture that holds only the supervisor's exit after normal interpreter reclamation should isolate the pending scratch cleanup while permitting ordinary worker I/O."
+          "Both PR 149 native Windows first attempts reached the 900-second Rust harness limit with only the held scratch control unfinished in its 17-test binary. The stalled stage is unknown. Tokio's Windows child pipes and scratch removal both use the blocking pool. A fixture that holds only the supervisor's exit after normal interpreter reclamation should isolate the pending scratch cleanup while permitting ordinary worker I/O.",
+          "The independent Astra review found that the held path discarded both witnessed IDs and omitted invocation counting. A controlled Linux run with the entry witness withheld confirmed a separate fixture teardown defect: dropping the started computation queued the reaper, but the current-thread runtime shut down without driving it. After release acknowledgement and a further two seconds, the interpreter was absent, the exited supervisor remained a zombie, and the owned scratch still existed."
         ],
         "risks": [
           {
@@ -27900,7 +27901,7 @@
             ]
           },
           {
-            "failure": "A fixture can starve worker I/O or stall test shutdown while the checked operation appears bounded. Isolate the hold to the owned cleanup, bound receipt and release on failure, and exercise a rejected or unreleased path through the public interaction before running the task harness.",
+            "failure": "A fixture can starve worker I/O or stop driving the reaper when entry evidence is missing. Isolate the hold to the owned cleanup, retain independent startup facts, bound release, PID queries and runtime shutdown, and exercise both the missing entry and withheld release paths before the task harness. Check both witnessed processes and one invocation after acknowledged release on the held path.",
             "checks": [
               "project-state",
               "rust-contracts-workers",
@@ -27942,7 +27943,8 @@
             "The existing bounded cancellation response, one terminal result without a cancelled artifact, task-scoped resource ownership and adjacent computation."
           ],
           "change": [
-            "Observe the cancellation error at return and task-owned scratch absence separately in the two affected native cases. Verify the adjacent task's result independently and replace the blocking-pool hold with a bounded cleanup-specific control."
+            "Observe the cancellation error at return and task-owned scratch absence separately in the two affected native cases. Verify the adjacent task's result independently and replace the blocking-pool hold with a bounded cleanup-specific control.",
+            "Preserve process and invocation evidence on the held path. After missing entry evidence, keep the fixture runtime driving the original cleanup and verify disposal of the started computation's own scratch and processes."
           ],
           "data_plan": "Use disposable synthetic fixture files and processes only. Existing profile data and wire formats are outside this change.",
           "cleanup": "Retain the original Windows failures and passing controls. Observe disposal of the same task-owned path after release and verify a bounded failure when disposal is attempted while held. Bound test-fixture expiry and failed-test shutdown separately from the existing harness limit."

@@ -18,7 +18,7 @@ use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     process::Command,
     sync::oneshot,
-    time::{sleep, timeout},
+    time::{error::Elapsed, sleep, timeout},
 };
 use uuid::Uuid;
 
@@ -231,6 +231,8 @@ struct Fixture {
     config: WorkerConfig,
 }
 
+type WorkerWitness = (u32, u32, PathBuf);
+
 impl Fixture {
     fn new(script: &str) -> Self {
         let mut config = config();
@@ -252,11 +254,17 @@ impl Fixture {
     }
 
     fn observe_real_worker() -> Self {
+        Self::instrument_real_worker("", true)
+    }
+
+    fn instrument_real_worker(startup: &str, record_entry: bool) -> Self {
         // The fixture records an entry witness outside the scratch directory.
         // The actual selected function only performs synthetic arithmetic.
         let repository = serde_json::to_string(repo().to_str().unwrap()).unwrap();
+        let record_entry = if record_entry { "True" } else { "False" };
         let fixture = Self::new(&format!(
             r#"import json, os, pathlib, runpy, sys, worker_runtime
+{startup}
 repo = pathlib.Path({repository})
 sys.path[:0] = [str(repo), str(repo / 'python')]
 worker_runtime.__path__ = [str(repo / 'python/worker_runtime')]
@@ -264,10 +272,11 @@ worker = runpy.run_path(str(repo / 'python/worker_runtime/indicator.py'))
 serve = worker['serve']
 evaluate = serve.__globals__['evaluate']
 def observe(*args):
-    path = pathlib.Path(__file__).parents[2] / 'entered'
-    facts = [os.getpid(), os.getppid(), os.getcwd()]
-    with path.open('a', encoding='utf-8') as witness:
-        witness.write(json.dumps(facts) + '\n')
+    if {record_entry}:
+        path = pathlib.Path(__file__).parents[2] / 'entered'
+        facts = [os.getpid(), os.getppid(), os.getcwd()]
+        with path.open('a', encoding='utf-8') as witness:
+            witness.write(json.dumps(facts) + '\n')
     return evaluate(*args)
 serve.__globals__['evaluate'] = observe
 os._exit(worker['main']())
@@ -316,20 +325,31 @@ runpy.run_path(str(Path(__file__).with_name('indicator_guard_original.py')), run
         .unwrap();
     }
 
-    async fn witness(&self) -> (u32, u32, PathBuf) {
-        timeout(Duration::from_secs(8), async {
+    fn read_witness(&self, file: &str) -> Option<WorkerWitness> {
+        let text = fs::read_to_string(self.directory.join(file)).ok()?;
+        serde_json::from_str(text.lines().next()?).ok()
+    }
+
+    async fn wait_for_witness(
+        &self,
+        file: &str,
+        limit: Duration,
+    ) -> Result<WorkerWitness, Elapsed> {
+        timeout(limit, async {
             loop {
-                if let Ok(text) = fs::read_to_string(self.directory.join("entered"))
-                    && let Some(line) = text.lines().next()
-                    && let Ok(witness) = serde_json::from_str(line)
-                {
+                if let Some(witness) = self.read_witness(file) {
                     return witness;
                 }
                 sleep(Duration::from_millis(10)).await;
             }
         })
         .await
-        .expect("selected code must reach the real interpreter")
+    }
+
+    async fn witness(&self) -> WorkerWitness {
+        self.wait_for_witness("entered", Duration::from_secs(8))
+            .await
+            .expect("selected code must reach the real interpreter")
     }
 
     fn assert_reaped(&self, pid: u32, parent: u32, scratch: PathBuf) {
@@ -639,9 +659,14 @@ while True:
     fixture.assert_reaped(pid, parent, scratch);
 }
 
-#[test]
-fn cancellation_returns_while_owned_scratch_cleanup_is_held() {
-    let fixture = Fixture::observe_real_worker();
+fn held_cleanup_fixture(record_entry: bool) -> Fixture {
+    let fixture = Fixture::instrument_real_worker(
+        r#"
+started = pathlib.Path(__file__).parents[2] / 'worker-started'
+started.write_text(json.dumps([os.getpid(), os.getppid(), os.getcwd()]), encoding='utf-8')
+"#,
+        record_entry,
+    );
     let guard = fixture
         .directory
         .join("python/worker_runtime/indicator_guard.py");
@@ -675,13 +700,74 @@ raise SystemExit(status)
 "#,
     )
     .unwrap();
+    fixture
+}
 
+#[cfg(any(target_os = "linux", windows))]
+async fn observe_held_worker_exit(pid: u32, parent: u32) -> io::Result<()> {
+    if pid == 0 || parent == 0 || pid == parent || parent == std::process::id() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "invalid worker PIDs",
+        ));
+    }
+    let started = Instant::now();
+    timeout(Duration::from_secs(2), async {
+        loop {
+            #[cfg(target_os = "linux")]
+            let (interpreter_alive, supervisor_alive) =
+                (process_exists(pid), process_exists(parent));
+            #[cfg(windows)]
+            let (interpreter_alive, supervisor_alive) =
+                tokio::try_join!(probe_held_worker_pid(pid), probe_held_worker_pid(parent))?;
+
+            if !interpreter_alive && !supervisor_alive {
+                eprintln!(
+                    "observed interpreter {pid} and supervisor {parent} absent in {:?}",
+                    started.elapsed()
+                );
+                return Ok(());
+            }
+            sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .map_err(|_| {
+        io::Error::new(
+            io::ErrorKind::TimedOut,
+            format!("process observation timed out for interpreter {pid} and supervisor {parent}"),
+        )
+    })?
+}
+
+#[cfg(not(any(target_os = "linux", windows)))]
+async fn observe_held_worker_exit(_: u32, _: u32) -> io::Result<()> {
+    eprintln!("process exit observation is unavailable on this host");
+    Ok(())
+}
+
+#[cfg(windows)]
+async fn probe_held_worker_pid(pid: u32) -> io::Result<bool> {
+    let output = Command::new("tasklist.exe")
+        .kill_on_drop(true)
+        .args(["/NH", "/FO", "CSV", "/FI", &format!("PID eq {pid}")])
+        .output()
+        .await?;
+    if !output.status.success() {
+        return Err(io::Error::other(format!(
+            "tasklist failed: {}",
+            output.status
+        )));
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).contains(&format!(",\"{pid}\",")))
+}
+
+fn exercise_held_cleanup(fixture: &Fixture) -> Result<(), Elapsed> {
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
         .unwrap();
     let release = fixture.directory.join("release-cleanup");
-    let mut owned_scratch = None;
     let result = catch_unwind(AssertUnwindSafe(|| {
         runtime.block_on(async {
             let request = request(LOOP);
@@ -690,11 +776,12 @@ raise SystemExit(status)
                 cancellation.await.unwrap();
             });
             tokio::pin!(operation);
-            let (_, _, scratch) = tokio::select! {
+            let worker = tokio::select! {
                 result = &mut operation => panic!("computation ended before cancellation: {result:?}"),
-                witness = fixture.witness() => witness,
+                witness = fixture.wait_for_witness("entered", Duration::from_secs(8)) => witness?,
             };
-            let scratch = owned_scratch.insert(scratch).as_path();
+            assert_eq!(fixture.read_witness("worker-started").as_ref(), Some(&worker));
+            let (pid, parent, scratch) = worker;
             let pending = scratch.join("pending-output");
             fs::write(&pending, b"synthetic scratch data").unwrap();
 
@@ -721,7 +808,7 @@ raise SystemExit(status)
             .await
             .expect("the real supervisor must enter the cleanup hold");
 
-            let unreleased = observe_scratch_disposal(scratch)
+            let unreleased = observe_scratch_disposal(&scratch)
                 .await
                 .expect_err("unreleased scratch must fail the disposal observation");
             assert_eq!(unreleased.kind(), io::ErrorKind::TimedOut);
@@ -729,7 +816,7 @@ raise SystemExit(status)
             eprintln!("scratch disposal observation timed out before release");
 
             fs::write(&release, b"").unwrap();
-            observe_scratch_disposal(scratch)
+            observe_scratch_disposal(&scratch)
                 .await
                 .expect("the original reaper must dispose of scratch after release");
             assert!(
@@ -737,17 +824,78 @@ raise SystemExit(status)
                 "the supervisor hold expired without observing release"
             );
             eprintln!("supervisor observed release and the original reaper removed scratch");
-        });
+            observe_held_worker_exit(pid, parent)
+                .await
+                .expect("both owned processes must exit after release");
+            let invocations = fs::read_to_string(fixture.directory.join("entered"))
+                .unwrap()
+                .lines()
+                .count();
+            assert_eq!(invocations, 1, "a cancelled run must never invoke the code again");
+            eprintln!("observed {invocations} invocation after release");
+            Ok(())
+        })
     }));
-    if let Err(failure) = result {
-        let _ = fs::write(&release, b"");
-        if let Some(scratch) = owned_scratch {
-            let _ = runtime.block_on(observe_scratch_disposal(&scratch));
+    let cleanup = (!matches!(result, Ok(Ok(())))).then(|| {
+        let startup = fixture.read_witness("worker-started");
+        let scratch_present = startup
+            .as_ref()
+            .is_some_and(|(_, _, scratch)| scratch.is_dir());
+        let released = fs::write(&release, b"");
+        let disposal = runtime.block_on(async {
+            // Dropping compute queues cleanup on this runtime. Drive it even
+            // when the computation never delivered its entry witness.
+            let (pid, parent, scratch) = fixture
+                .wait_for_witness("worker-started", Duration::from_secs(2))
+                .await
+                .map_err(io::Error::other)?;
+            eprintln!("driving teardown for {scratch:?} after rejected fixture evidence");
+            let (scratch_disposal, process_exit) = tokio::join!(
+                observe_scratch_disposal(&scratch),
+                observe_held_worker_exit(pid, parent)
+            );
+            scratch_disposal.and(process_exit)
+        });
+        (released, disposal, scratch_present)
+    });
+    // A failed assertion or process probe must not wait indefinitely on a pipe.
+    runtime.shutdown_timeout(Duration::from_secs(2));
+    if let Some((released, disposal, scratch_present)) = cleanup {
+        released.expect("release the supervisor after rejected fixture evidence");
+        disposal.expect("dispose of the started worker after rejected fixture evidence");
+        let acknowledged = fixture.directory.join("cleanup-release-observed").is_file();
+        eprintln!(
+            "rejected fixture evidence: scratch_present_before_release={scratch_present}, \
+             release_acknowledged={acknowledged}, owned scratch removed"
+        );
+        if matches!(result, Ok(Err(_))) {
+            assert!(
+                scratch_present,
+                "the started worker must have its own scratch before teardown"
+            );
+            assert!(
+                !fixture.directory.join("entered").exists(),
+                "the entry witness was withheld"
+            );
+            assert!(
+                acknowledged,
+                "the supervisor must acknowledge teardown release"
+            );
         }
-        // A failed assertion must not turn into an unbounded wait on a pipe.
-        runtime.shutdown_timeout(Duration::from_secs(2));
-        resume_unwind(failure);
     }
+    result.unwrap_or_else(|failure| resume_unwind(failure))
+}
+
+#[test]
+fn cancellation_returns_while_owned_scratch_cleanup_is_held() {
+    exercise_held_cleanup(&held_cleanup_fixture(true))
+        .expect("selected code must reach the real interpreter");
+}
+
+#[test]
+fn held_cleanup_reaps_a_started_worker_without_an_entry_witness() {
+    exercise_held_cleanup(&held_cleanup_fixture(false))
+        .expect_err("the entry witness must time out after interpreter startup");
 }
 
 #[tokio::test]
