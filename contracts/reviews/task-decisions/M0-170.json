@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-170",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "4954f35d27e102a79f98ea0f2379093d2d60e777",
+      "scope": "Review the corrected initial CSV preview and reviewed-save cancellation qualification. Inspect the original failed Windows exchange, compare authorization and cancellation frontiers with real positive and rejected controls, and check the protected M0-167 composition. Preserve unknown original stage and native limits.",
+      "supersedes": null,
+      "requested_at": "2026-11-27T02:46:00.776479+00:00",
+      "request_id": "617241946b77ac1010ba08649c4966efc644ffd200acc894c693a5f140c40405",
+      "evidence_sha256": "79765c5664ba7d557b903d29034bbf1d8b34604a49b0d190e5140b04abf55b87"
+    }
+  ]
+}
