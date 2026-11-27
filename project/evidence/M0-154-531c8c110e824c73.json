@@ -1,0 +1,90 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-154",
+  "task_definition_sha256": "e59068158552d37530986f788bb727772c9c9ce0babe18867e2abc5516d925b2",
+  "run_id": "20261125T224642.663687Z-e2867a2f",
+  "recorded_at": "2026-11-25T22:51:04.622911+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "c3286aaab3f9e7e7d463895c2b4331e4fcdf5873a30d766310c374a10fae5bcd",
+    "file_count": 611,
+    "git_head": "99f035cc755af5aa14fb16c1d5233cb659dd34da",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "531c8c110e824c7338f52aa3de28acf088067ef1baff91997602ef38df6a7768",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/windows-sample-document-readiness/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/windows-sample-document-readiness/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f42b9f77bfd089007d3bba98bd1c9ee57e8ae8f22f6d965a0ea8d855c31ebe11"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/windows-sample-document-readiness/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "8239c9d6021a2b1478a34a6dd69a162f820d3f9e25f4dfefbfc94d5fc4f21aa6"
+    },
+    {
+      "id": "market-recovery",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-closed-bar-repair.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "dda3650e75d65bbd00e3a0b681186a6a6298ee7616841a569510f29cda003cc8"
+    }
+  ],
+  "project_definition_sha256": "258eda6cdc9b0d49ee45657720b0f9c490f3eb2dc053b9f44699ebcb2bbbc1e3",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "1fd397158c85e8a9332c956d0c5e5117694f7cf6a076f45188129f4b4127c5b3"
+  ]
+}

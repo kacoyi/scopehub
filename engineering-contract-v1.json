@@ -26,6 +26,24 @@
       }
     },
     "dependencies": "Choose compatible stable versions during implementation and commit all lockfiles; do not automatically upgrade major versions or add dependencies for placeholder modules",
+    "first_test": {
+      "principle": {
+        "$source": {
+          "path": "project/delivery.json",
+          "pointer": "/iteration_policy/during/0"
+        }
+      },
+      "examples": {
+        "chart_rendering": {
+          "observe": "Open the chart with a known fixture and verify the visible plotted series against independently expected candle values and times.",
+          "reject": "Treat a mounted frame, price line or axis labels alone as insufficient evidence of the expected candle series."
+        },
+        "protocol_or_permission": {
+          "observe": "Exercise the decoder for malformed input or the operation registry for denied access. Include the valid message or authorized request as a control.",
+          "reject": "Require the affected boundary to refuse the malformed or unauthorized input before the operation runs."
+        }
+      }
+    },
     "build_or_reuse": {
       "principle": "Choose reuse, integration, adaptation, or local implementation by concrete product needs and lifetime maintenance cost. External data channels, products, services, libraries, and SDKs are valid options.",
       "evaluation": [
@@ -44,7 +62,27 @@
         "omniscience": "An optional candidate alongside direct providers, search tools, local documents and other future channels. Its availability or completion must not gate unrelated ScopeHub development or use.",
         "delivery": "This is a design requirement, not a claim of implemented integrations. Add concrete interfaces and adapters when a workflow needs them, within the existing authorization and versioned contract process."
       },
-      "decision_effort": "Keep comparison and rationale proportional to the dependency's impact; routine library use does not require a new governance workflow. Apply existing shared-capability and provider onboarding rules when relevant."
+      "decision_effort": "Keep comparison and rationale proportional to the dependency's impact.",
+      "local_dependencies": {
+        "versioning": {
+          "path": "engineering-contract-v1.json",
+          "pointer": "/implementation_policy/dependencies"
+        },
+        "review": {
+          "$source": {
+            "path": "project/dependencies.json",
+            "pointer": "/maintenance/procedure/2"
+          }
+        }
+      },
+      "shared_capabilities_and_providers": {
+        "requirements": "For actual use of a shared capability or external provider, verify its permitted purposes, license, cost, data handling and access. Apply any organization, host or provider policy that governs the integration.",
+        "authorization": {
+          "path": "engineering-contract-v1.json",
+          "pointer": "/implementation_policy/changes"
+        },
+        "unavailable": "If a required policy or grant cannot be verified, leave the affected integration unconfigured or use an authorized alternative. Continue unrelated work when an optional host capability is unavailable."
+      }
     },
     "completion": "Mark work complete only after tests have actually run and passed; do not report simulated market data acceptance as real market data acceptance",
     "verification_slices": "A stream implementation, a quality-state transition and the complete three-instrument market workflow require distinct checks. Protocol changes require generator and TypeScript, Python and Rust validation. A passing partial slice cannot establish the full acceptance requirement.",

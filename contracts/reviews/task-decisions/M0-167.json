@@ -1,0 +1,180 @@
+{
+  "version": 3,
+  "task_id": "M0-167",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "5623272d990220dab2bffd3e11556d3cb8d134cb",
+      "scope": "Review ordinary indicator cancellation when cleanup is briefly interrupted. Verify the exact bounded cleanup and terminal outcomes, evidence of child exit versus scratch absence, preservation of other owned data and normal completion.",
+      "supersedes": null,
+      "requested_at": "2026-11-26T13:27:16.262206+00:00",
+      "request_id": "54a83b888c8a8062fdacfc0fd3de286c6ebcf576ace6921eeee7a6d69c96c437",
+      "evidence_sha256": "4224b2113f398b60f4baf19ad2ae38f232ea570b3154c9a62eb0084873a8f6b7"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5623272d990220dab2bffd3e11556d3cb8d134cb",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-167 5623272d990220dab2bffd3e11556d3cb8d134cb",
+      "scope": "CHANGES_REQUESTED M0-167 5623272d990220dab2bffd3e11556d3cb8d134cb",
+      "observation": "The scratch cleanup loop can start another removal after its retry deadline because it checks the clock only after calling remove.",
+      "reviewer": "Independent Astra Standard (t17b)",
+      "original_sha256": "92ce12ad7c8d0bbb7c1b3fc4aba62333023d2a03b7515aa05f29e668afb789ca",
+      "response_id": "459c6b88b986049e5e772090d8b36e1f67df09775c5c02e36a55805fa4db0f6a",
+      "response_sha256": "457901ff269592984d12afa7865e84665a7312f77c6c69771e8a0f3a47dd7609",
+      "legacy_response_sha256": "1496aebd3892a598bd7988ec74f812b8c511e82a03ff3c808d1b921b9eb07ee7",
+      "observation_body_sha256": "0b4c9c702bfd64b050cd6c56b8b879e2d9fd6a92c3dfe2fd6d484af7252468a4",
+      "event": {
+        "id": "msg_0d37f75f3b8a1ae7016b08343a27dc87d1a810ebb3b8397c51",
+        "timestamp": "2026-11-26T13:29:54.770Z"
+      },
+      "supersedes": "54a83b888c8a8062fdacfc0fd3de286c6ebcf576ace6921eeee7a6d69c96c437",
+      "evidence_sha256": "f8a5076d2e74fbed2d8d646fef0fb7f7c2e1a1006253ad960440cda4a7cb0cb2"
+    },
+    {
+      "kind": "request",
+      "source_commit": "5585d26a63ebe8a54885b1aa5d9046a78218d38a",
+      "scope": "Review the bounded cancellation and scratch cleanup correction at the ordinary worker entry. Check the time immediately before a retry, a slow in-flight removal, permit ownership, the observable cancellation result and adjacent task isolation.",
+      "supersedes": "459c6b88b986049e5e772090d8b36e1f67df09775c5c02e36a55805fa4db0f6a",
+      "requested_at": "2026-11-26T13:39:49.533296+00:00",
+      "request_id": "588c8f28a39c8dd9e8658187953b251be81ca8656e691d0bede75349adc13047",
+      "evidence_sha256": "39a875eca894a80e1a4f579b42965ae1fae4108fd6686a729460dfdec63ceeaa"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5585d26a63ebe8a54885b1aa5d9046a78218d38a",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-167 5585d26a63ebe8a54885b1aa5d9046a78218d38a",
+      "scope": "CHANGES_REQUESTED M0-167 5585d26a63ebe8a54885b1aa5d9046a78218d38a",
+      "observation": "In my preview transport test, a complete WORKER_EXITED frame remained pending until the child emitted its close event.",
+      "reviewer": "Independent Astra Standard (t17n)",
+      "original_sha256": "81b6a7ec76e77105d5c5f015cdfcc2b68056eb916ef809572640a164e02f7c2d",
+      "response_id": "79a4e2545b3c89e4c0fc339290a1a51dc927763c185ee8b1b094538ee3d654d4",
+      "response_sha256": "6ce2a3a51b84d2d03a8df4462927a8f9d4eaa45f19260b196fc99b488783f678",
+      "legacy_response_sha256": "11416405bd98a87db6705968a6176b1ca0a80604ec81d6f88bb49cc011a3c362",
+      "observation_body_sha256": "0f03b95608c80977acfed5d975c393cb603af35fdedb874cbc36f988f2f6d230",
+      "event": {
+        "id": "msg_0ff8beadb84db529016b0837e106b087d18e160ad3598f125f",
+        "timestamp": "2026-11-26T13:45:27.593Z"
+      },
+      "supersedes": "588c8f28a39c8dd9e8658187953b251be81ca8656e691d0bede75349adc13047",
+      "evidence_sha256": "5411ccf4deae1d81c242ef7946b3f1ceabd1110e7c473fa8cc5418fb03cd867e"
+    },
+    {
+      "kind": "request",
+      "source_commit": "cf1eb9da0acb97e1dc74c59377280f1a4bcf3274",
+      "scope": "Review the actual preview registry and carrier lifetime when a completed WORKER_EXITED frame precedes slow cleanup. Check terminal failure delivery, subsequent result stability, successful close, cancellation, bounded carrier ownership and adjacent admissions.",
+      "supersedes": "79a4e2545b3c89e4c0fc339290a1a51dc927763c185ee8b1b094538ee3d654d4",
+      "requested_at": "2026-11-26T14:10:22.355796+00:00",
+      "request_id": "092c4509fa63f2d19e00b9089f2c0a219ea8708a87d3454314d19c233d233582",
+      "evidence_sha256": "ec6b14166e3c94b52a9575b81ca48887a66ab909fae6833a92afe50a84c6fd25"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "cf1eb9da0acb97e1dc74c59377280f1a4bcf3274",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-167 cf1eb9da0acb97e1dc74c59377280f1a4bcf3274",
+      "scope": "CHANGES_REQUESTED M0-167 cf1eb9da0acb97e1dc74c59377280f1a4bcf3274",
+      "observation": "The candidate preview transport returned the same success artifact after a controlled carrier exited with code 0, exited with code 1, or was terminated by SIGTERM.",
+      "reviewer": "Independent Astra Standard (t187)",
+      "original_sha256": "105cc38ebe5ba8119ec8dc3400a1f6ea0406a4dbe7bbf92188aff519e13b6c82",
+      "response_id": "1337872b929c55728ed40127b62a97e1fe5a4a15bb8c9fa4b00376169cf9e7f6",
+      "response_sha256": "66f62cff34c09f8bafa628a3107284f42206e236cfea2f60062798d7f76b7174",
+      "legacy_response_sha256": "83970cd81144e3e50ee5ee0b41f7e7b781c40d876abb4b12f41db9b4ed855539",
+      "observation_body_sha256": "62056b82497847359413bdbc3ef2e5f70b260a1d52434ce6e9be40aa9d3440db",
+      "event": {
+        "id": "msg_07384f2bfe74f15c016b083f21414487d296e2d43c2642a532",
+        "timestamp": "2026-11-26T14:16:21.542Z"
+      },
+      "supersedes": "092c4509fa63f2d19e00b9089f2c0a219ea8708a87d3454314d19c233d233582",
+      "evidence_sha256": "2c756214b87954ac3d87ee36d3fe967504b408f9c83c4969aa4b9078da086d7d"
+    },
+    {
+      "kind": "request",
+      "source_commit": "0ca842a35ca077d433c5b2d7930d29a7d8b1f23f",
+      "scope": "Review the actual preview registry and carrier lifetime when a completed WORKER_EXITED frame precedes slow cleanup. Check terminal failure delivery, subsequent result stability, successful close, cancellation, bounded carrier ownership and adjacent admissions.",
+      "supersedes": "1337872b929c55728ed40127b62a97e1fe5a4a15bb8c9fa4b00376169cf9e7f6",
+      "requested_at": "2026-11-26T14:24:22.162824+00:00",
+      "request_id": "f1fd47ace71ddd6fcae8964194f77936d455b68e1c5644481f567b5fff97a29c",
+      "evidence_sha256": "c9c2345fd36f2531e652fa7eb98dd4dce8018ce28fad70ae252331e903d60a87"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "0ca842a35ca077d433c5b2d7930d29a7d8b1f23f",
+      "verdict": "approved",
+      "decision": "APPROVE M0-167 0ca842a35ca077d433c5b2d7930d29a7d8b1f23f",
+      "scope": "APPROVE M0-167 0ca842a35ca077d433c5b2d7930d29a7d8b1f23f",
+      "observation": "The public preview returned the artifact after exit 0 and recorded a task-scoped WORKER_EXITED with no artifact or committed effects after exit 1 and SIGTERM.",
+      "reviewer": "Independent Astra Standard (t18m)",
+      "original_sha256": "4b1e10c1146e25d2e21015a9ed46ab70f2b58a18ac3505bb65fc9603ec644f8b",
+      "response_id": "d8a082955cea3caf5567f5c478dc455401dde8936915f2513c60b9334ad76ce9",
+      "response_sha256": "ded4326fc6a614ae72eba1eeae553bba6fb48c6c2ca5b1488410ccbfea90c6d9",
+      "legacy_response_sha256": "d710cbfa6d4129b1d2d31b2f66d0bfaa89c9e53a982168c363541911056147d9",
+      "observation_body_sha256": "da47c9b166f244fe432f31d24575be3bb79c1d6d3b8e553639ac29fd68248a2a",
+      "event": {
+        "id": "msg_0eeb1ce527a73dc9016b0841f6c2c487d2a433a72e3e048100",
+        "timestamp": "2026-11-26T14:28:22.165Z"
+      },
+      "supersedes": "f1fd47ace71ddd6fcae8964194f77936d455b68e1c5644481f567b5fff97a29c",
+      "evidence_sha256": "bf9b5f09f111d4bcd214cfe1a98258c4cdb0f6a398517b629d1d2b02da077134"
+    },
+    {
+      "kind": "request",
+      "source_commit": "6e8b80b18a9cc7af0c7869c809a444f73934aeb4",
+      "scope": "Independently review the completed M0-167 closure composed with protected 774b5704. Both parents changed tests/ubuntu-preview/workspace.spec.mjs. Exercise the shared browser cases for frozen admission and carrier terminal/cleanup behavior, review guarded native receipts and scoped reports on both platforms. Verify public result and failure precedence, ordinary adjacent admission, the actual two-parent change, historical diagnostic limits and no regression in the M0-166 journal controls.",
+      "supersedes": "d8a082955cea3caf5567f5c478dc455401dde8936915f2513c60b9334ad76ce9",
+      "requested_at": "2026-11-26T15:06:19.961557+00:00",
+      "request_id": "c8521ba1e9ba0748a72e932ae9075e56e5e71255dc372f519f00a73748f93e87",
+      "evidence_sha256": "b4fe3b6761793efe5ff160ddfabe537e5515a639c0a42e3247bf2a9626faf308"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "6e8b80b18a9cc7af0c7869c809a444f73934aeb4",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-167 6e8b80b18a9cc7af0c7869c809a444f73934aeb4",
+      "scope": "CHANGES_REQUESTED M0-167 6e8b80b18a9cc7af0c7869c809a444f73934aeb4",
+      "observation": "Playwright stopped during global setup when Cargo could not open `target/debug/.cargo-build-lock` on the read-only filesystem, so none of the selected browser cases ran on the merge commit.",
+      "reviewer": "Independent Astra Standard (t194)",
+      "original_sha256": "f9a998a2ca889373be647ed1736acbd07fc241419853dd4a796e53cd4c4921ff",
+      "response_id": "0dfd41f9f8e33e3fb906ace905f2e95eb273e4262c5d8e778f0940ef8931a82e",
+      "response_sha256": "03d1fd0699adfec4ad763297015b3f24ca04f00941179adf9010b01ef386ac2f",
+      "legacy_response_sha256": "21513cac44bb4a6d273e7fc1642acd4e82d6db4f7fcf9ae77afff83107f3ad46",
+      "observation_body_sha256": "38ec2e6c3526a117831a113390d5b7e1b952ef6ea58377e963fd8b0c771a2cd2",
+      "event": {
+        "id": "msg_0ce1eb5e7d800441016b084c1a1bac87d2a229244f78bf19ef",
+        "timestamp": "2026-11-26T15:11:42.327Z"
+      },
+      "supersedes": "c8521ba1e9ba0748a72e932ae9075e56e5e71255dc372f519f00a73748f93e87",
+      "evidence_sha256": "4d1c923dff5c992385765f0e5abda239253ab41399256e4145fd6e2aa4be7411"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b8303eeeeddfd9295342108759a90b96c924eab9",
+      "scope": "Review the missing writable-run evidence identified in the prior decision on 6e8b80b1 and the submitted source, which differs only by the preserved request and decision. Verify the 8 frozen admission and 3 carrier terminal/cleanup cases against the retained raw command outcomes, original result and journal attachments, check the exact tested Git tree versus the submitted code and confirm the scope of the real Windows evidence.",
+      "supersedes": "0dfd41f9f8e33e3fb906ace905f2e95eb273e4262c5d8e778f0940ef8931a82e",
+      "requested_at": "2026-11-26T15:19:32.866909+00:00",
+      "request_id": "d243bb9fd38a1883cb9c94f6d012f4ff613a582b8dabc6199ee7043342e8498c",
+      "evidence_sha256": "93fc672aa57c1a557c98c8b86445a0d47756a7218a69a87661c67b60a79401f0"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b8303eeeeddfd9295342108759a90b96c924eab9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-167 b8303eeeeddfd9295342108759a90b96c924eab9",
+      "scope": "APPROVE M0-167 b8303eeeeddfd9295342108759a90b96c924eab9",
+      "observation": "I verified that the writable Ubuntu run passed all eight frozen admission cases and all three carrier and restoration cases, and that all 17 decoded Playwright attachments matched the coordinator’s archived originals byte for byte.",
+      "reviewer": "Independent Astra Standard (t19k)",
+      "original_sha256": "93e0c809d92ff029212dc19732f8d9277efb0ca85461c6d424e090ec2ddba16f",
+      "response_id": "d70006506c4118741db2f656a36fd9efb289fd0775f5c968e191be8b72d18688",
+      "response_sha256": "7fc314092bf4613be29c00f61d2098faca557ca720346d94654d71911d4e1583",
+      "legacy_response_sha256": "0fae59c458c5b34d7da553eac61ff898c27e202af03856cf89ff43a1d7f6b9cd",
+      "observation_body_sha256": "01a1c3bdb6d077aef6fe300e88160847b60f71cfa3472f8e35a8774d1497bd8d",
+      "event": {
+        "id": "msg_0370be60678c057d016b084ed9737487d284a8c1e5121b7870",
+        "timestamp": "2026-11-26T15:23:27.477Z"
+      },
+      "supersedes": "d243bb9fd38a1883cb9c94f6d012f4ff613a582b8dabc6199ee7043342e8498c",
+      "evidence_sha256": "2d99b7c4375d95044c0db148e3800afa02867354628e7f2ee3c328c48b88d1d1"
+    }
+  ]
+}
