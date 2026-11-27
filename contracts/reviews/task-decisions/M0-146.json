@@ -706,6 +706,26 @@
       "requested_at": "2026-11-27T11:19:12.977924+00:00",
       "request_id": "a61fd9eb0273d17738a2c1d2a5117ef277b2528f84853d699a6dcfa99c0e6ba5",
       "evidence_sha256": "bb8f8996823105168873539b396155edd9c1f8e3999282a9a8b44f8d6b442af4"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d38d2fe205d98f92cfc71c3d9be33c070fd5e08a",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 d38d2fe205d98f92cfc71c3d9be33c070fd5e08a",
+      "scope": "APPROVE M0-146 d38d2fe205d98f92cfc71c3d9be33c070fd5e08a",
+      "observation": "I replayed all 73 public controls on the reviewed source and matched all 57 original decisions.",
+      "reviewer": "Independent Astra Standard (t1jc)",
+      "original_sha256": "8bb6823e1567d46f0a9de24c64a09d9db4d113f3fd58565572ff23c51ac6889d",
+      "response_id": "c291fe63fc9b90839ba82f5db0506d39f40c679bdb9768cb444421c80c01d551",
+      "response_sha256": "81da93809fb3c228a413082e0d9b7d303ce72607979818263222c381d7694b8c",
+      "legacy_response_sha256": "298412b99f858f4b3e7252376043dbc9f7fa4d74238da2a226fceb758b0405c6",
+      "observation_body_sha256": "0975ead2be9b5aecfef7cec178d005f5fa7637558c91d377f288a05d5cbc4026",
+      "event": {
+        "id": "msg_0e5ba43d3b5288f3016b0968ae5a7487d0a573ee1f02bf905c",
+        "timestamp": "2026-11-27T11:25:55.264Z"
+      },
+      "supersedes": "a61fd9eb0273d17738a2c1d2a5117ef277b2528f84853d699a6dcfa99c0e6ba5",
+      "evidence_sha256": "785bb31a566620ccf98e4bdd64e2c3829641019e9c01dd1e39bb46d309b5f37b"
     }
   ]
 }

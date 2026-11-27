@@ -706,6 +706,26 @@
       "requested_at": "2026-11-27T11:19:12.290334+00:00",
       "request_id": "19d70a60e9090f00526d669a9043789cf122f1b1ce8c4e747e5635ca85372c78",
       "evidence_sha256": "908095ffa8107decc7188315c6886b4f2f42a2a3d6998af4926010f53bffec89"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d38d2fe205d98f92cfc71c3d9be33c070fd5e08a",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-139 d38d2fe205d98f92cfc71c3d9be33c070fd5e08a",
+      "scope": "CHANGES_REQUESTED M0-139 d38d2fe205d98f92cfc71c3d9be33c070fd5e08a",
+      "observation": "In an offline replay of PR 112, the integration command returned exit code 0 after I removed the required Ubuntu report from the artifact inventory.",
+      "reviewer": "Independent Astra Standard (t1jb)",
+      "original_sha256": "26a7b1280236902e6584860b118a80e3b5c7ea98290b6e9c363eb9e7776647cd",
+      "response_id": "d5da0080968b6b48c6e5f2aad246a5d3b335fa41a09c6329d44120d112be90af",
+      "response_sha256": "e885b5ae8ab837913dcb2ddc00fe43b2dd36a6206382b6d638cfaa0485ab5085",
+      "legacy_response_sha256": "8a708df96bdee20b82ccdc25ebb0882c29d5ed4f8456eca539f687b94022db4e",
+      "observation_body_sha256": "5415840aec18a87acb583e26b915130f420782b73b5a9e5382cbd6fcae538748",
+      "event": {
+        "id": "msg_02871cf1c9510e63016b0968d85cd487d0897dca3317c29ef6",
+        "timestamp": "2026-11-27T11:26:38.210Z"
+      },
+      "supersedes": "19d70a60e9090f00526d669a9043789cf122f1b1ce8c4e747e5635ca85372c78",
+      "evidence_sha256": "969420d5c07fbb5758ff85d3890c579e11809e2e9d481081f18d2a22e84bf2ad"
     }
   ]
 }
