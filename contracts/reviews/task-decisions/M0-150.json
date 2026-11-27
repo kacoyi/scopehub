@@ -378,6 +378,26 @@
       "requested_at": "2026-11-27T03:12:12.806848+00:00",
       "request_id": "1d3934b3b85f6a3a92ad42fb65372f637f7020f223012f97a025dea8e495ffd8",
       "evidence_sha256": "2054007c289840421c0c356ee527b62d07bf9fe9c27227ba527983370a44676a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b6cd4be5ccb66c7eaad60cfc2ac81c97e51f63fa",
+      "verdict": "approved",
+      "decision": "APPROVE M0-150 b6cd4be5ccb66c7eaad60cfc2ac81c97e51f63fa",
+      "scope": "APPROVE M0-150 b6cd4be5ccb66c7eaad60cfc2ac81c97e51f63fa",
+      "observation": "On run 45838575346, reopening the genuine archive with a late digestless Linux report preserved both original receipt digests in either input order.",
+      "reviewer": "Independent Astra Standard (t1bq)",
+      "original_sha256": "f506aceab7709fd0915feacad25660547f04415c895cbbb2b742a6b72f331481",
+      "response_id": "5259cbd6225cef94fb5c71799aad1ffe8c8f2e4ada844b3b56b268b026977522",
+      "response_sha256": "919cfa791a1a52e2f58490e9712f077bb947f0c362976cf681d669e4b294423b",
+      "legacy_response_sha256": "e6322adde7e351810af1005447e8c3576815a70949323e81a7eb1da090806b52",
+      "observation_body_sha256": "11c80d92edcfcf597d606c01c3a215ca12da20ca29ff9bbd1b83fb198a9bc040",
+      "event": {
+        "id": "msg_0e304985aab8f2e9016b08f69e338c87d0be2ff53d7cdda736",
+        "timestamp": "2026-11-27T03:19:16.918Z"
+      },
+      "supersedes": "1d3934b3b85f6a3a92ad42fb65372f637f7020f223012f97a025dea8e495ffd8",
+      "evidence_sha256": "24c409f881da9acb542e9cae025f4cca392625077cf373303dc839f70be1fa4d"
     }
   ]
 }

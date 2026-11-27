@@ -358,6 +358,26 @@
       "requested_at": "2026-11-27T03:12:13.964332+00:00",
       "request_id": "eb87110bc91f1de4601871acf13140d05c66cbc9c5d24dcc65206eda6fe0965a",
       "evidence_sha256": "59ff1da4d8f9f4637c6522291f63c05d88a41f77e142462af456fc95c4588041"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b6cd4be5ccb66c7eaad60cfc2ac81c97e51f63fa",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 b6cd4be5ccb66c7eaad60cfc2ac81c97e51f63fa",
+      "scope": "CHANGES_REQUESTED M0-155 b6cd4be5ccb66c7eaad60cfc2ac81c97e51f63fa",
+      "observation": "For run 45838575346, both readers counted 1242 seconds of Windows execution even though the aggregate setup step had already finished 13 seconds before its prerequisite job completed.",
+      "reviewer": "Independent Astra Standard (t1bp)",
+      "original_sha256": "4748111feb8308fba96477962a55915b39ebd9b7fe5ef9c8f8e112636feb6fe8",
+      "response_id": "192f268274a821657e5d9873250e9e9fa9ba9a3152114785faef510b97c215a2",
+      "response_sha256": "f1c56120a4e3db0159aaa2cc9b0d20f0f559062f6f0b9bc10bdfc234691f498c",
+      "legacy_response_sha256": "fd4cb2e24ba6155d1cc1351d3b2f09f708eb1ac4d1f436185cc3f80836b6b6f4",
+      "observation_body_sha256": "ba9230492592d2943ed4f8854e365ffb3085d0c4b7d9e4f4936f9d219d13bb78",
+      "event": {
+        "id": "msg_0cb967431e79bc3a016b08f667b3b887d089fb2238f3f6fb45",
+        "timestamp": "2026-11-27T03:18:29.109Z"
+      },
+      "supersedes": "eb87110bc91f1de4601871acf13140d05c66cbc9c5d24dcc65206eda6fe0965a",
+      "evidence_sha256": "94b1f6859fa80e612ab3dbc276ce6a57b790ec33b4e4d49cd2778cff167bf613"
     }
   ]
 }

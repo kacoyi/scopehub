@@ -387,6 +387,26 @@
       "requested_at": "2026-11-27T03:12:15.426427+00:00",
       "request_id": "c0a01707d55bb07e03d74ba06375ed7cccb4ab359cb5b62972ef87178ae51c19",
       "evidence_sha256": "4325112d0797da83332e1d4a01129c90f59d55d23a26a549d7081880ff683453"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b6cd4be5ccb66c7eaad60cfc2ac81c97e51f63fa",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 b6cd4be5ccb66c7eaad60cfc2ac81c97e51f63fa",
+      "scope": "CHANGES_REQUESTED M0-156 b6cd4be5ccb66c7eaad60cfc2ac81c97e51f63fa",
+      "observation": "Reopening the PR 96 archive with a Linux report whose start and end commits disagreed removed both genuine receipts when its source_unchanged flag was true.",
+      "reviewer": "Independent Astra Standard (t1br)",
+      "original_sha256": "b2f0bf1639a69013da840b6c56d75ec5e0f25e0b2f0c46d2cb4a2e2dbb1a7a08",
+      "response_id": "f681697c1402ff65cd34fc2242c2c9f88a621252d33f3037c06de1a37b575a20",
+      "response_sha256": "071c85101c13da0ddfde39a65327d4a471e813e4738f2462485d7b6acb92b594",
+      "legacy_response_sha256": "6b2b16b6ec1635461cd527ebeb8fc19a2e7250fcca9fe5c45d3e3d63ddb7268e",
+      "observation_body_sha256": "9e16ea28cefaef343cb6bc36b471aa1906bfd5d6fc980089710d0167115891a8",
+      "event": {
+        "id": "msg_08012978ecc80f68016b08f707a77887d093c5401260eae9b5",
+        "timestamp": "2026-11-27T03:21:14.999Z"
+      },
+      "supersedes": "c0a01707d55bb07e03d74ba06375ed7cccb4ab359cb5b62972ef87178ae51c19",
+      "evidence_sha256": "f6d7519ec16d81188c715374b70cbca56e6943625a9f5785de637ba18a4dfdee"
     }
   ]
 }
