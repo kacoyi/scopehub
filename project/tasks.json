@@ -27737,7 +27737,7 @@
           "report_sha256": "a6761ffac6afb7bfe9e017f30f6609bea9fe01c3de038b6ae2196ca9d390c88c"
         }
       ],
-      "next_action": "Compare what the ordinary cancellation caller can observe at return with what the cleanup owner guarantees after its bounded wait. Use the two first-attempt Windows failures, their passing controls and one controlled pending cleanup to establish the responsibility and correct the corresponding implementation or check.",
+      "next_action": "Independently review the clean test correction and its retained original and local observations. Qualify the corrected native cases on supported Windows and Linux, archive matching evidence, and recheck on the integrated revision.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -27753,7 +27753,7 @@
           "contracts/reviews/2026-11-26-maintenance-workstreams.json"
         ],
         "hypotheses": [
-          "The native caller timed out waiting for cleanup and the ordinary assertion immediately sampled the directory. Existing background cleanup may still own it. Distinguish delayed disposal, lost ownership and an incorrect observation point before selecting a repair. Later disposal and why these Windows waits expired are unknown."
+          "The two original Windows assertions sampled scratch at cancellation return after the bounded cleanup wait timed out. In the controlled local case, the same cancellation wait expires with scratch still present and the original reaper removes it after release. The native tests now verify terminal cancellation and subsequent disposal separately. Later disposal and the reason for delay in the original Windows runs remain unknown."
         ],
         "risks": [
           {
@@ -27790,7 +27790,7 @@
             "Unrelated deadlines, Windows Python suite timing, changes to indicator permissions or source authorization, and new product capabilities."
           ],
           "open_questions": [
-            "Is the task-owned cleanup still live and eventually successful after the observed timeout, or does the implementation lose the cleanup? What signal can the controlling test observe without weakening the cancellation boundary?"
+            "Do the two corrected native cases and the held and released control pass on the supported Windows qualification candidate?"
           ]
         },
         "evolution": {
@@ -27799,10 +27799,10 @@
             "The existing bounded cancellation response, one terminal result without a cancelled artifact, task-scoped resource ownership and adjacent computation."
           ],
           "change": [
-            "Correct the cleanup owner or its consumer observation after distinguishing the two in the existing trusted indicator workflow."
+            "Observe the cancellation error at return and task-owned scratch absence separately in the two affected native cases. Verify the adjacent task's result independently and use held cleanup to exercise the return boundary."
           ],
           "data_plan": "Use disposable synthetic fixture files and processes only. Existing profile data and wire formats are outside this change.",
-          "cleanup": "Retain the native failure and contrast. Remove any superseded check assumption or temporary observer after the ordinary caller and cleanup owner have qualifying coverage."
+          "cleanup": "Retain the original Windows failure and passing controls. Replace the immediate absence assumption in the affected cancellation cases with bounded observation of the same task-owned path."
         }
       }
     }

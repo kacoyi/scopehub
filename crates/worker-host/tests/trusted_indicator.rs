@@ -17,6 +17,7 @@ use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     process::Command,
     sync::oneshot,
+    task::spawn_blocking,
     time::{sleep, timeout},
 };
 use uuid::Uuid;
@@ -418,6 +419,22 @@ fn process_exists(pid: u32) -> bool {
     }
 }
 
+async fn observe_scratch_disposal(scratch: &Path) -> io::Result<()> {
+    // This observation has its own bound. It gives the reaper time to run
+    // after the caller's cancellation wait has ended.
+    timeout(Duration::from_secs(2), async {
+        loop {
+            match fs::symlink_metadata(scratch) {
+                Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
+                Err(error) => return Err(error),
+                Ok(_) => sleep(Duration::from_millis(10)).await,
+            }
+        }
+    })
+    .await
+    .map_err(io::Error::other)?
+}
+
 impl Drop for Fixture {
     fn drop(&mut self) {
         fs::remove_dir_all(&self.directory).unwrap();
@@ -605,14 +622,75 @@ while True:
     );
     let started = Instant::now();
     cancel.send(()).unwrap();
-    let failure = operation.await.unwrap_err();
+    let failure = timeout(Duration::from_secs(2), operation)
+        .await
+        .expect("cancellation must return within the caller watchdog")
+        .unwrap_err();
     eprintln!(
-        "synthetic cancellation returned after {:?}",
-        started.elapsed()
+        "synthetic cancellation returned after {:?}, scratch={:?}",
+        started.elapsed(),
+        fs::symlink_metadata(&scratch)
     );
     assert_eq!(failure.code, ErrorCode::CANCELLED);
     assert!(!failure.retryable && failure.details.is_empty());
+    observe_scratch_disposal(&scratch)
+        .await
+        .expect("cancelled scratch must be removed within the observation window");
     fixture.assert_reaped(pid, parent, scratch);
+}
+
+#[test]
+fn cancellation_returns_while_owned_scratch_cleanup_is_held() {
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .max_blocking_threads(1)
+        .build()
+        .unwrap()
+        .block_on(async {
+            let fixture = Fixture::observe_real_worker();
+            let request = request(LOOP);
+            let (cancel, cancellation) = oneshot::channel();
+            let operation = compute(&fixture.config, &request, async {
+                cancellation.await.unwrap();
+            });
+            tokio::pin!(operation);
+            let (pid, parent, scratch) = tokio::select! {
+                result = &mut operation => panic!("computation ended before cancellation: {result:?}"),
+                witness = fixture.witness() => witness,
+            };
+            let pending = scratch.join("pending-output");
+            fs::write(&pending, b"synthetic scratch data").unwrap();
+
+            // Queue removal behind the only blocking thread. The test can
+            // release it explicitly and a failed test cannot hold it forever.
+            let (release, held) = std::sync::mpsc::channel();
+            let (started, entered) = oneshot::channel();
+            spawn_blocking(move || {
+                let _ = started.send(());
+                let _ = held.recv_timeout(Duration::from_secs(5));
+            });
+            entered.await.unwrap();
+
+            let started = Instant::now();
+            cancel.send(()).unwrap();
+            let failure = timeout(Duration::from_secs(2), operation)
+                .await
+                .expect("cancellation must return while cleanup is held")
+                .unwrap_err();
+            assert_eq!(failure.code, ErrorCode::CANCELLED);
+            assert!(!failure.retryable && failure.details.is_empty());
+            assert_eq!(fs::read(&pending).unwrap(), b"synthetic scratch data");
+            eprintln!(
+                "synthetic cancellation returned after {:?} with scratch still held",
+                started.elapsed()
+            );
+
+            release.send(()).expect("cleanup was still held at release");
+            observe_scratch_disposal(&scratch)
+                .await
+                .expect("the original reaper must dispose of scratch after release");
+            fixture.assert_reaped(pid, parent, scratch);
+        });
 }
 
 #[tokio::test]
@@ -652,18 +730,30 @@ async fn cancelling_one_live_computation_preserves_adjacent_scratch_and_result()
     .expect("the adjacent computation must write its own scratch output");
 
     cancel.send(()).unwrap();
-    let failure = first.await.unwrap_err();
+    let failure = timeout(Duration::from_secs(2), first)
+        .await
+        .expect("cancellation must return within the caller watchdog")
+        .unwrap_err();
     assert_eq!(failure.code, ErrorCode::CANCELLED);
-    cancelled.assert_reaped(pid, parent, scratch);
+    assert!(!failure.retryable && failure.details.is_empty());
+    eprintln!(
+        "synthetic cancellation returned, scratch={:?}",
+        fs::symlink_metadata(&scratch)
+    );
     assert_eq!(
         fs::read_to_string(pending_output).unwrap(),
         "adjacent synthetic output"
     );
     fs::write(adjacent_scratch.join("allow-result"), b"").unwrap();
 
-    let reply = second.await.unwrap();
-    assert_result(&serde_json::to_value(reply).unwrap(), &adjacent_request);
+    let (reply, disposal) = tokio::join!(second, observe_scratch_disposal(&scratch));
+    assert_result(
+        &serde_json::to_value(reply.unwrap()).unwrap(),
+        &adjacent_request,
+    );
     adjacent.assert_reaped(adjacent_pid, adjacent_parent, adjacent_scratch);
+    disposal.expect("cancelled scratch must be removed within the observation window");
+    cancelled.assert_reaped(pid, parent, scratch);
 }
 
 async fn carrier(request: &IndicatorCompute11, cancel: bool) -> Value {
