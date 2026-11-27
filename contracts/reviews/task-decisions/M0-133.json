@@ -294,6 +294,15 @@
       "requested_at": "2026-11-27T09:51:05.357973+00:00",
       "request_id": "45220819fb1c39a0f1f1ee1bffbde42060b0b639f85537e2c4531effb1056521",
       "evidence_sha256": "4755b32e58e1a9ae849bda0ea528512ef6999935a45684a867402319bb84abbb"
+    },
+    {
+      "kind": "request",
+      "source_commit": "17cd39cfc82e095f341f9b2f3a4c20022e36996d",
+      "scope": "Attempt and checkout reconciliation, bounded retained and current capture lookup, and dispute persistence through rotation and cold reopen.",
+      "supersedes": "45220819fb1c39a0f1f1ee1bffbde42060b0b639f85537e2c4531effb1056521",
+      "requested_at": "2026-11-27T10:16:57.718015+00:00",
+      "request_id": "4506bc363cc5100fadc21055a6f693435a1b066bb3839ec2b708a26adbc727f1",
+      "evidence_sha256": "6102194b51d2fbaab22b8250ad94b94dc96cef02dd9edae71fe11ad926095c4b"
     }
   ]
 }

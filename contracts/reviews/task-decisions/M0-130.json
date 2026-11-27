@@ -294,6 +294,15 @@
       "requested_at": "2026-11-27T09:51:03.647227+00:00",
       "request_id": "549ee228dd8c1af22eba668d0d774217d5d9cf9faa64f17f9eb441c2316e4b25",
       "evidence_sha256": "158e165df4c57e05785e175c84857130b4ff5be31fd4f946df0ff90c3524c0a6"
+    },
+    {
+      "kind": "request",
+      "source_commit": "17cd39cfc82e095f341f9b2f3a4c20022e36996d",
+      "scope": "Producer-only timing, including the source-bound empty ordinary Python selection. No Windows platform coverage from an isolated producer.",
+      "supersedes": "549ee228dd8c1af22eba668d0d774217d5d9cf9faa64f17f9eb441c2316e4b25",
+      "requested_at": "2026-11-27T10:16:55.979662+00:00",
+      "request_id": "4bf4bea2e69a3cd4770699b3fcbcd54d0bfa6740d75ccfc402376736fea19e3f",
+      "evidence_sha256": "bf38fe559cfc016ffe81362a6493a4b386efcad1b94c6b6bcebed68edae555df"
     }
   ]
 }

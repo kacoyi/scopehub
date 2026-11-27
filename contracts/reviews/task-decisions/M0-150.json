@@ -514,6 +514,15 @@
       },
       "supersedes": "9c111b704756262e59b5da12ba9654487a4f45441a0e6778a8db8cbafe854855",
       "evidence_sha256": "21b19fe6246fc34f99f95961d2ff5699dd0ce64195d6b4f8b5fedd2a9c1f1256"
+    },
+    {
+      "kind": "request",
+      "source_commit": "17cd39cfc82e095f341f9b2f3a4c20022e36996d",
+      "scope": "Raw and compact Windows publisher qualification and the composition with protected native workspace staging. Historical 2.0 and split 2.1 source and lane boundaries.",
+      "supersedes": "039a70f2757956b2f15fe4135454a694a5c811b5af49bf5aa8fab7324e986161",
+      "requested_at": "2026-11-27T10:17:00.291821+00:00",
+      "request_id": "ab603ff8bcfe5cdf9d95a5fd9f3d3b2f60dca92ac3195ecb38c299c059d10e97",
+      "evidence_sha256": "02a03f8f4641e01a2952628f8bd834651ae41f2e19e7e1842f72f4a9a81a7ba1"
     }
   ]
 }
