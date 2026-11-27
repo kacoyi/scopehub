@@ -11896,8 +11896,141 @@
       "id": "weekly-timing-confuses-missing-download-with-missing-history",
       "status": "open",
       "severity": "major",
-      "source": "Independent Astra Standard (t1gd) at e6f12373277d8aa05a734a1a1c9648f0cf489577. Source-bound decision recorded at 1001178385c88bbb513d3d0fabd770f6ae6893d8. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-156-e6f12373/original-assistant-response.jsonl (SHA-256 641a69075a2f88dcc5c9a04b3e235428f684bea8a112458fbd74f934a3f89eb7).",
-      "observation": "With a missing current PR 96 download, weekly output set cold_bootstrap both with and without qualified saved history. The saved case declared history unavailable while displaying Linux 770-second and Windows 876-second historical medians.",
+      "source": "Independent Astra Standard (t1gd) at e6f12373277d8aa05a734a1a1c9648f0cf489577. Source-bound decision recorded at 1001178385c88bbb513d3d0fabd770f6ae6893d8. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-156-e6f12373/original-assistant-response.jsonl (SHA-256 641a69075a2f88dcc5c9a04b3e235428f684bea8a112458fbd74f934a3f89eb7). Independent source-bound M0-156 review of 1024b35f34c1065dc4f75389e78a4d699d32627b recorded at ba3fd2525177fa1f5a7414a5a38f1bbd8566eb54. Full response at archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1h2/final-response.txt (SHA-256 96aa5d363e623f865cb859468a542b0d3ea3315b07eb4e334e722974f48fd9d4).",
+      "observation": "With a missing current PR 96 download, weekly output set cold_bootstrap both with and without qualified saved history. The saved case declared history unavailable while displaying Linux 770-second and Windows 876-second historical medians. On 1024b35f, the displayed flag was corrected but its saved value remained true, so the protected reader again claimed the qualified history was unavailable.",
+      "task_ids": [
+        "M0-156",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-aggregate-setup-retains-infeasible-start",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent source-bound M0-155 review of 1024b35f34c1065dc4f75389e78a4d699d32627b recorded at ba3fd2525177fa1f5a7414a5a38f1bbd8566eb54. Full response at archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1h0/final-response.txt (SHA-256 9e5e178a927e352c92e2889d8804b4a46e17fd1c79ce71b8af917994d7c10890).",
+      "observation": "On push 45838575346, adding a 14:44:26Z aggregate start before the final prerequisite finished at 14:44:27Z withdrew the 24-second aggregate setup in ordinary, offline weekly and cold reads. The actual aggregate started at 14:44:29Z and its harness at 14:44:53Z. Queue and runner remained 2 and 3260 seconds.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-job-completion-ignores-completed-steps",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent source-bound M0-155 review of 1024b35f34c1065dc4f75389e78a4d699d32627b recorded at ba3fd2525177fa1f5a7414a5a38f1bbd8566eb54. Full response at archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1h0/final-response.txt (SHA-256 9e5e178a927e352c92e2889d8804b4a46e17fd1c79ce71b8af917994d7c10890).",
+      "observation": "On push 45838575346, adding a Python job completion at 14:44:17Z withdrew 3260 runner-seconds and 2 queue seconds across all three reads. Its verification step ended at 14:44:18Z and Complete job ended at 14:44:25Z. The original 14:44:27Z finish is feasible. Adding a distinct feasible 14:44:28Z finish leaves the exact runner sum unknown.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "explicit-timing-artifact-list-failure-preempts-jobs",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent source-bound M0-155 review of 1024b35f34c1065dc4f75389e78a4d699d32627b recorded at ba3fd2525177fa1f5a7414a5a38f1bbd8566eb54. Full response at archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1h0/final-response.txt (SHA-256 9e5e178a927e352c92e2889d8804b4a46e17fd1c79ce71b8af917994d7c10890).",
+      "observation": "For PR 96, failing only artifact discovery made explicit --run 45563183277 exit before listing jobs. With the same original job response, the offline weekly entry retained 876 Windows wall seconds, 2584 runner-seconds and 827 execution seconds with zero current receipts. Returning an empty artifact list preserved the clocks at both entries.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-publisher-omits-lane-stop-order",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent source-bound M0-150 review of 1024b35f34c1065dc4f75389e78a4d699d32627b recorded at ba3fd2525177fa1f5a7414a5a38f1bbd8566eb54. Full response at archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1h1/final-response.txt (SHA-256 061d8137a64dfa80744127bd033c587cc38fc2b42356a94f4405303cc7eeb344).",
+      "observation": "On PR 123 run 45933801256, changing the failing workspace-timeframe reason to interrupted left subsequent browser results, which its historical publisher rejected but the timing reader attributed at 678 runner-seconds in raw and compact forms. On run 45965137241, a lone Python shard marked earlier_failure with no preceding stop was also attributed at 868 runner-seconds.",
+      "task_ids": [
+        "M0-150",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-failed-report-contradicts-successful-actions-steps",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent source-bound M0-150 review of 1024b35f34c1065dc4f75389e78a4d699d32627b recorded at ba3fd2525177fa1f5a7414a5a38f1bbd8566eb54. Full response at archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1h1/final-response.txt (SHA-256 061d8137a64dfa80744127bd033c587cc38fc2b42356a94f4405303cc7eeb344).",
+      "observation": "On PR 123 run 45965137241, the reader attributed 868 runner-seconds to a compact Python report claiming failure despite a successful verification step. It also attributed 3337 runner-seconds to a failed aggregate claiming a producer failed when all four independent producer jobs succeeded. The job clocks remain supported without the contradictory reports.",
+      "task_ids": [
+        "M0-150",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-aggregate-projects-contradictory-integration-gates",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent source-bound M0-150 review of 1024b35f34c1065dc4f75389e78a4d699d32627b recorded at ba3fd2525177fa1f5a7414a5a38f1bbd8566eb54. Full response at archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1h1/final-response.txt (SHA-256 061d8137a64dfa80744127bd033c587cc38fc2b42356a94f4405303cc7eeb344).",
+      "observation": "On PR 123 run 45965137241, a raw aggregate with all 28 required checks passed still yielded complete coverage after integration_gates was changed to blocked and python-contracts-workers was listed as unverified. The altered report projected identically to the genuine publisher report.",
+      "task_ids": [
+        "M0-150",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-uncertain-saved-collection-breaks-protected-summary",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent source-bound M0-156 review of 1024b35f34c1065dc4f75389e78a4d699d32627b recorded at ba3fd2525177fa1f5a7414a5a38f1bbd8566eb54. Full response at archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1h2/final-response.txt (SHA-256 96aa5d363e623f865cb859468a542b0d3ea3315b07eb4e334e722974f48fd9d4).",
+      "observation": "The protected reader at 4d17dff0 failed --report with --summary on a same-version PR 96 archive saved under uncertain collection order, because the archive omitted completed_runs_considered. The genuine archive generated a summary with two receipts and the uncertain archive without --summary returned zero.",
+      "task_ids": [
+        "M0-156",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-equivalent-receipt-orders-become-uncertain",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent source-bound M0-156 review of 1024b35f34c1065dc4f75389e78a4d699d32627b recorded at ba3fd2525177fa1f5a7414a5a38f1bbd8566eb54. Full response at archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1h2/final-response.txt (SHA-256 96aa5d363e623f865cb859468a542b0d3ea3315b07eb4e334e722974f48fd9d4).",
+      "observation": "Combining PR 96 original and reversed collected_samples receipt order cleared the capture source and both receipts in either input order. Each archive alone retained the same Linux and Windows receipts and the collection timestamp and source were identical.",
       "task_ids": [
         "M0-156",
         "M0-155"

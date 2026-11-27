@@ -27508,7 +27508,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Use .reports/m0-155-e6f12373-reconciliation/handoff.json for exact-source review and local regression evidence. The coordinator owns independent review dispatch, hosted and native qualification, and the November 28 scheduled observation at 16:17 UTC.",
+      "next_action": "Use .reports/m0-155-1024b35f-reconciliation/handoff.json for the combined local correction and exact-source regression evidence. The coordinator owns the three independent decisions on a common candidate, hosted and native qualification, and the November 28 scheduled observation at 16:17 UTC.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -27540,7 +27540,8 @@
           "project/timing-publishers.json",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-150-e6f12373/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-155-e6f12373/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-e6f12373/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-e6f12373/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1h0/final-response.txt"
         ],
         "hypotheses": [
           "Recent preload and historical linked reads can see different retained evidence when a conflict removes the platform index entry or an attempt is older than the routine window.",
@@ -27863,6 +27864,34 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "A prerequisite-infeasible aggregate start or a completion before an observed step erases an otherwise unique measurement. Replay protected push 45838575346 and a genuinely ambiguous endpoint at ordinary, offline weekly and cold entries.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An explicit artifact-list failure can erase independent Actions clocks. Replay PR 96 jobs through the explicit and weekly routes with original, empty and failing artifact discovery.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A historical lane claim can violate observed stop order, job outcome or integration coverage. Replay the authentic PR 123 publishers and their adjacent stop, status and aggregate contradictions at all three reader routes and verify the protected staging consumer.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An uncertain or reordered capture can clear valid receipts or make the protected summary fail. Replay original, reordered and disputed PR 96 archives and reopen a saved weekly capture lacking a current download at the old summary entry.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain all source captures, saved reviews and original classifications if a change loses a valid clock or expands the ordinary read without a bound.",
@@ -28005,7 +28034,7 @@
         }
       ],
       "evidence": [],
-      "next_action": "Use .reports/m0-155-e6f12373-reconciliation/handoff.json for exact-source review and local regression evidence. The coordinator owns independent review dispatch, hosted and native qualification, and the November 28 scheduled observation at 16:17 UTC.",
+      "next_action": "Use .reports/m0-155-1024b35f-reconciliation/handoff.json for the combined local correction and exact-source regression evidence. The coordinator owns the three independent decisions on a common candidate, hosted and native qualification, and the November 28 scheduled observation at 16:17 UTC.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -28036,7 +28065,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-4c4865fa/original-assistant-response.jsonl",
           "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-b6cd4be5/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-e6f12373/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-e6f12373/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1h2/final-response.txt"
         ],
         "hypotheses": [
           "The substitute Git fingerprint is computable with the standard library; importing the full project entry brings an unrelated parser into the weekly job.",
@@ -28183,6 +28213,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "An uncertain or reordered capture can clear valid receipts or make the protected summary fail. Replay original, reordered and disputed PR 96 archives and reopen a saved weekly capture lacking a current download at the old summary entry.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain the recorded evidence and archived identities; revert an extraction that changes the validated execution inputs or weekly runtime requirements.",
@@ -28307,7 +28344,7 @@
         "Incomplete or digestless reports can bypass a publishing-job contradiction and enter attempt reduction. Check genuine and modified reports with one or both job boundaries, digest, coverage and status variations on ordinary, weekly and reopened reads.",
         "Replay the applicable e6f12373 findings and genuine originals at the ordinary, standard-library weekly and cold entrypoints. Carry exact local source and outcomes to the retained handoff while hosted, native and scheduled evidence remains with the coordinator."
       ],
-      "next_action": "Use .reports/m0-155-e6f12373-reconciliation/handoff.json for exact-source review and local regression evidence. The coordinator owns independent review dispatch, hosted and native qualification, and the November 28 scheduled observation at 16:17 UTC.",
+      "next_action": "Use .reports/m0-155-1024b35f-reconciliation/handoff.json for the combined local correction and exact-source regression evidence. The coordinator owns the three independent decisions on a common candidate, hosted and native qualification, and the November 28 scheduled observation at 16:17 UTC.",
       "blocker": null,
       "evidence": [],
       "closure_reason": null,
@@ -28338,7 +28375,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-150-de7e2376/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-150-4c4865fa/original-assistant-response.jsonl",
           "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-e6f12373/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-e6f12373/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1h1/final-response.txt"
         ],
         "hypotheses": [
           "The earlier and later sources had the same four Windows producer jobs and aggregate catalog. The browser and recovery assignments changed while the reader used one current mapping for both.",
@@ -28620,6 +28658,13 @@
           },
           {
             "failure": "Admit fields using the historical publisher contract before projection. Exercise genuine 2.0, added windows_producers and windows_python, genuine 2.1, and partial historical evidence.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A historical lane claim can violate observed stop order, job outcome or integration coverage. Replay the authentic PR 123 publishers and their adjacent stop, status and aggregate contradictions at all three reader routes and verify the protected staging consumer.",
             "checks": [
               "project-state",
               "python-contracts-workers"
