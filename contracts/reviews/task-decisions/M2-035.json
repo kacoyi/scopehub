@@ -454,6 +454,15 @@
       },
       "supersedes": "98d7342858bf523dd251f298ec8f08ad3da31fe28de5b7f5cb0f2ea36fd5a02d",
       "evidence_sha256": "710508ec87c37e7c4266bd3bdd050bb14791b25198aca901f26c46502357385f"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ff7f9403dc57e4a945796d56aa07ec6aaabbba33",
+      "scope": "Requalify frozen access fencing, retained authorized clear and recovery on the combined shared browser test.",
+      "supersedes": "33234c5c22fd86b43fcc319ce04feeac6f30bf0d211deeec59f2564778f6d490",
+      "requested_at": "2026-11-27T07:13:36.329190+00:00",
+      "request_id": "c8c90b6b5d45382fe07b4f17a4dcb6cde76c852e120359d8e36f779f28dfacd2",
+      "evidence_sha256": "6df4e0f41365b542ba92bf4c8c2707d6fa1a2f64bc62be238a098200cf46aebd"
     }
   ]
 }

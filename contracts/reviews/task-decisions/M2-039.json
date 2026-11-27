@@ -610,6 +610,15 @@
       },
       "supersedes": "ebca812cc5b1d5984b2f4eeebaadf1eb044c54eff534c6b13bf05c13ef814286",
       "evidence_sha256": "5d7d29dab2ed4c1d0c53a58f17147d42c5a46e5f1bf32b529430e82fed7e787f"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ff7f9403dc57e4a945796d56aa07ec6aaabbba33",
+      "scope": "Check the combined frozen-chart consumer evidence at the two-parent source. Preserve source identity, first reopen and refused preview behavior when the integrated workspace preparation helper is present.",
+      "supersedes": "e7ae275bdf32f27b761d8575377d42cdd148661b88e9b36832ae22830da6e0e5",
+      "requested_at": "2026-11-27T07:13:34.834689+00:00",
+      "request_id": "6adbb3537d1b8666c540e6ff8057d652d8a049de09c0f24a298645786a84999c",
+      "evidence_sha256": "b6a82acbb32017a455b763be4a53ec285c00636d193df32350cd9b74b51940b3"
     }
   ]
 }

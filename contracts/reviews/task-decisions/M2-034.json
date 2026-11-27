@@ -434,6 +434,15 @@
       },
       "supersedes": "ecac464db2e845648fc3f50508b3bd6ce83a253acef64c6f6141a78721f79420",
       "evidence_sha256": "4f21fc48996f1058201155cbdb735e9828bc7bd712c3f9c07062ba545d24d8da"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ff7f9403dc57e4a945796d56aa07ec6aaabbba33",
+      "scope": "Requalify frozen access refresh on the composition when the shared workspace consumer changes.",
+      "supersedes": "b9ca23eb22a761dbbb36489b60491431d54dc8b1ea3616c752eb83f743591730",
+      "requested_at": "2026-11-27T07:13:35.591062+00:00",
+      "request_id": "3786bd9798a3fdd7e3eac2dc68a849f6103a1545e69de2c24f5395163ba0661b",
+      "evidence_sha256": "4578c69fa4225a5fccb66e33b0b93e1c88aecd2c177f9b49a9adec3a68a7079c"
     }
   ]
 }
