@@ -434,6 +434,26 @@
       "requested_at": "2026-11-27T03:34:31.982066+00:00",
       "request_id": "98d7342858bf523dd251f298ec8f08ad3da31fe28de5b7f5cb0f2ea36fd5a02d",
       "evidence_sha256": "f1212946517e02e65e9c7ebac41c72ed48677fb4055e254e51de2c87766a9496"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "f636dcdd382340e453dd29b91cfff01c2413929f",
+      "verdict": "approved",
+      "decision": "APPROVE M2-035 f636dcdd382340e453dd29b91cfff01c2413929f",
+      "scope": "APPROVE M2-035 f636dcdd382340e453dd29b91cfff01c2413929f",
+      "observation": "When the public startup received the retained admitted SQLite BUSY error, it made one snapshot request and displayed “The local workspace is busy.”",
+      "reviewer": "Independent Astra Standard (t1bw)",
+      "original_sha256": "2867df562001c50d0577485950ee9ded2d11a01bfdf9b90179ea438ca8e08d29",
+      "response_id": "33234c5c22fd86b43fcc319ce04feeac6f30bf0d211deeec59f2564778f6d490",
+      "response_sha256": "eebc6d530abb3cbc59bceb10b8d91efc701fb18d72850daf475a4dc091cb78e0",
+      "legacy_response_sha256": "c8f59f68c5c2af576851f977afdee1768c02ccbc9916c6f7abbd525ebe67d968",
+      "observation_body_sha256": "7c996a358ac0b9fa25ae7b40a8fada575ebc201e8d03bf5f6d6d6a8afc44abc7",
+      "event": {
+        "id": "msg_01c1c0995452f7f4016b08fa9c162c87d096d2179d297dd2c7",
+        "timestamp": "2026-11-27T03:36:10.418Z"
+      },
+      "supersedes": "98d7342858bf523dd251f298ec8f08ad3da31fe28de5b7f5cb0f2ea36fd5a02d",
+      "evidence_sha256": "710508ec87c37e7c4266bd3bdd050bb14791b25198aca901f26c46502357385f"
     }
   ]
 }

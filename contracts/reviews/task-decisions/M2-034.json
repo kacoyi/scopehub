@@ -414,6 +414,26 @@
       "requested_at": "2026-11-27T03:34:33.049893+00:00",
       "request_id": "ecac464db2e845648fc3f50508b3bd6ce83a253acef64c6f6141a78721f79420",
       "evidence_sha256": "7bccc84a8238923e63b8c5c8d8e592145323511bd9431195b24d141559aa45c7"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "f636dcdd382340e453dd29b91cfff01c2413929f",
+      "verdict": "approved",
+      "decision": "APPROVE M2-034 f636dcdd382340e453dd29b91cfff01c2413929f",
+      "scope": "APPROVE M2-034 f636dcdd382340e453dd29b91cfff01c2413929f",
+      "observation": "I replayed the candidate’s frozen-access refresh reader and observed one call for a valid snapshot at selection revision 2, two calls to recover that same revision after a marked writer refusal, and one call each for permission denial and an admitted storage BUSY.",
+      "reviewer": "Independent Astra Standard (t1bz)",
+      "original_sha256": "98681061dd38243bd77dfaa627c439ed028fb61a7e0811cf5523c343122bc846",
+      "response_id": "b9ca23eb22a761dbbb36489b60491431d54dc8b1ea3616c752eb83f743591730",
+      "response_sha256": "5dda13a6d77bd58610e4ee5ba8b3035a617a8327711c35a29158b88ba11c57ac",
+      "legacy_response_sha256": "41ec4b6384a38fe77d89982e7cf9b63f7ad7417591020ab047f6a8be5bc92f62",
+      "observation_body_sha256": "b490b10ecd5dd5c1faa0dbe431fa78ca47abcade14c2d289946706e8b19a9412",
+      "event": {
+        "id": "msg_07c9f93e7f694672016b08fb82416887d0bce1d5ed340ed022",
+        "timestamp": "2026-11-27T03:40:00.076Z"
+      },
+      "supersedes": "ecac464db2e845648fc3f50508b3bd6ce83a253acef64c6f6141a78721f79420",
+      "evidence_sha256": "4f21fc48996f1058201155cbdb735e9828bc7bd712c3f9c07062ba545d24d8da"
     }
   ]
 }

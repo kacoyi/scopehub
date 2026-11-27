@@ -532,6 +532,26 @@
       "requested_at": "2026-11-27T03:34:34.268421+00:00",
       "request_id": "95a4f129e44e57652413b0482d31e8a9e110eede0de88520e28b1caeff34eb37",
       "evidence_sha256": "18c87395a940f3d7ece46fa5b581e477c1d7bf1396a5f8c0b685c7e7c4053b48"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "f636dcdd382340e453dd29b91cfff01c2413929f",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 f636dcdd382340e453dd29b91cfff01c2413929f",
+      "scope": "APPROVE M2-039 f636dcdd382340e453dd29b91cfff01c2413929f",
+      "observation": "In my replay, the native snapshot reader accepted a valid reply on the first call, retried an explicit writer refusal once, and returned the admitted storage BUSY after one call.",
+      "reviewer": "Independent Astra Standard (t1c0)",
+      "original_sha256": "7ab9445408de63a553e70fb92f7612629e4bdec6f75224ec762be93850e348ed",
+      "response_id": "d4201a4df888c6d741dece25f63ddc2bcc177cb832286d7011165fa1d5cfb7b7",
+      "response_sha256": "74695c44ebbf9a76035e117f2750c03e35caabe4b1c1de38fc4e697ba4cf9a67",
+      "legacy_response_sha256": "3cb1e2e116193b8abc5473c48dce143210b86ee8fbc192bd48037b28ed213503",
+      "observation_body_sha256": "34f208beb4ff52fa0ee068f4da415af3f57db40f91ac83305cc6d99618f3b564",
+      "event": {
+        "id": "msg_0b93395fde058200016b08fb5d0bf087d0a85909b951a36e4b",
+        "timestamp": "2026-11-27T03:39:24.338Z"
+      },
+      "supersedes": "95a4f129e44e57652413b0482d31e8a9e110eede0de88520e28b1caeff34eb37",
+      "evidence_sha256": "19e537b763479f77c66cb0a5b19e987f7541f98cc975bc5b9f69b41e3cbaff7d"
     }
   ]
 }
