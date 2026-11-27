@@ -10328,6 +10328,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "timing-retained-step-order-omits-actions-setup-boundary",
+      "status": "open",
+      "severity": "major",
+      "source": "Local exact-source public replay of d7593605696741c6fedc7cf1bb21ef5ec577bed7. The original push 45838575346 observations and the controlled comparison are retained at .reports/m0-155-post-4c4865fa/public-scope-d7593605696741c6fedc7cf1bb21ef5ec577bed7/result.json (SHA-256 342c8311cdd280482b57b032954d46b4c427401f4ec7449d6b18723288fed20d).",
+      "observation": "With the aggregate job start missing and a prerequisite finishing after the actual successful Set up job step starts but before verification starts, ordinary, weekly and cold reads still reported 1242 seconds. The original setup instant independently contradicts that prerequisite order.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

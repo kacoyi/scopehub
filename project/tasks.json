@@ -26892,6 +26892,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "Ignoring successful Actions setup or completion markers can accept a contradicted prerequisite order when a job boundary is absent. Keep these markers as timing constraints in ordinary, weekly and cold reads; keep measured intervals dependent on their own endpoints.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain all source captures, saved reviews and original classifications if a change loses a valid clock or expands the ordinary read without a bound.",
@@ -26947,7 +26954,8 @@
             "Derive protected role and profile evidence from all claims for each job ID, delay dependent projections until attempt reconciliation, and allow bounded acquisition of independently missing clocks with a disputed producer.",
             "Keep explicit legacy publishing scope claims alongside new compatible role observations; use successful execution evidence for role inference and retain name-only legacy layout context for independently known roles.",
             "Capture step facts before name selection and bind number-only fragments only within the established job. Use joined eligibility for both listed and reopened phase projections.",
-            "Use the prerequisite scheduling cut to constrain verification steps without substituting an inferred instant into queue or runner metrics."
+            "Use the prerequisite scheduling cut to constrain verification steps without substituting an inferred instant into queue or runner metrics.",
+            "Retain job-scoped successful Actions setup and completion step witnesses in the existing observation shape for prerequisite ordering."
           ],
           "data_plan": "Read existing saved reviews and retained per-attempt captures. Cover missing, conflicting and intact historical data. Retain compatible V1 evidence, including individually supported legacy intervals. Recompute derived layout where the original assertions survive. Use retained report timestamps and job boundaries to withdraw incompatible old attributions and preserve original bytes.",
           "cleanup": "Remove superseded lookup or reconciliation only after equivalent accepted and rejected observations pass. The coordinator commissions three material decisions first, one for job facts, one for historical publisher selection and outcomes, and one for checkout proof, each with an ordinary genuine positive. Reuse originals by digest and consolidate reproducers and risk assertions under each owner. Hold downstream reviews while a primary decision is red. Obtain the remaining formal decisions before acceptance, and compare against the next genuine capture or product change when available."
