@@ -25,6 +25,7 @@ from scripts import ci_artifacts, project, windows_python
 from scripts.diagnostic_archive import diagnostic_locator, resolve_diagnostic
 from scripts.process_tree import running_group
 from scripts.project import json_bytes, read_json
+from scripts.timing import windows_aggregate_cache
 from scripts.verification_scope import ScopeError, preview
 from tests.project.fixtures import task_by_id
 from tests.project.test_continuity import ProjectFixture
@@ -592,11 +593,11 @@ class WindowsLaneTests(ProjectFixture):
         return {'SCOPEHUB_SCOPE_OUTCOME': 'success', 'SCOPEHUB_SCOPE_PROFILE': profile,
                 'SCOPEHUB_SCOPE_BASE': base, 'SCOPEHUB_SCOPE_DECISION': json.dumps(decision)}
 
-    def produce(self, profile=None, *, browser_exit=0, recovery_exit=0, recovery_ui_exit=0,
+    def produce(self, profile=None, *, lanes=harness.WINDOWS_LANES, browser_exit=0, recovery_exit=0, recovery_ui_exit=0,
                 recovery_part_failed=False):
         reports = {}
         attempt = os.environ['GITHUB_RUN_ATTEMPT']
-        for lane in ('core',) if profile else harness.WINDOWS_LANES:
+        for lane in ('core',) if profile else lanes:
             args = ('--profile', profile) if profile else ('--ci-windows-lane', lane)
             fixture_exit = {'browser': browser_exit, 'recovery': recovery_exit}.get(lane, 0)
             ui_exit = recovery_ui_exit if lane == 'recovery' else 0
@@ -652,7 +653,13 @@ class WindowsLaneTests(ProjectFixture):
             self.save_ledger(ledger)
         workflow = Path('.github/workflows/verify.yml')
         (self.root / workflow).parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(Path(__file__).resolve().parents[2] / workflow, self.root / workflow)
+        # The fixture publisher still discovers the split from the committed workflow.
+        (self.root / workflow).write_text(dedent('''\
+            jobs:
+              windows_change:
+                steps:
+                  - run: uv run python scripts/check.py --require-windows --ci-windows-aggregate downloads
+            '''), encoding='utf-8')
         for directory in ('scripts', 'tests', 'tests/project'):
             (self.root / directory).mkdir()
         runner_source = Path(__file__).resolve().parents[2] / 'scripts/windows_python.py'
@@ -1130,22 +1137,17 @@ class WindowsLaneTests(ProjectFixture):
     def test_current_split_receipt_binds_the_original_producer_attempt(self):
         self.use_native_report_line_endings()
         self.partition_fixture(receipt_scope=True)
-        first = self.downloads / 'first'
         with patch.dict(os.environ, {'GITHUB_RUN_ATTEMPT': '1'}):
-            self.produce()
-            code, prior = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
-            self.assertEqual((0, 'passed'), (code, prior['status']))
-            self.assertTrue(ci_artifacts.stage_artifacts(self.root, first, os.environ))
-        shutil.rmtree(self.reports)
+            prior = self.produce(lanes=windows_python.LANES)
+        first = self.downloads
 
         self.downloads = Path(self.enterContext(tempfile.TemporaryDirectory()))
-        self.produce()
+        producers = self.produce()
         code, current = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
         self.assertEqual((0, 'passed'), (code, current['status']))
         clean = self.reports / 'ci' / 'current'
         clean.parent.mkdir()
         self.assertTrue(ci_artifacts.stage_artifacts(self.root, clean, os.environ))
-        self.assertEqual(prior['selection'], current['selection'])
         report_files = ['test-report.json', f"runs/{current['run_id']}/test-report.json"]
         original_report = (clean / report_files[0]).read_bytes()
         self.assertIn(b'\r\n', original_report)
@@ -1153,7 +1155,8 @@ class WindowsLaneTests(ProjectFixture):
         for lane in windows_python.LANES:
             name = f'windows-python-{lane}.producer.json'
             relative = f"runs/{current['run_id']}/{name}"
-            older = (first / 'runs' / prior['run_id'] / name).read_bytes()
+            self.assertEqual(prior[lane]['selection'], producers[lane]['selection'])
+            older = (first / f'verification-windows-1-{lane}' / 'test-report.json').read_bytes()
             self.assertEqual('1', json.loads(older)['ci']['run_attempt'])
             self.assertEqual('2', read_json(clean / relative)['ci']['run_attempt'])
             altered = deepcopy(current)
@@ -1949,9 +1952,8 @@ class WindowsLaneTests(ProjectFixture):
         part = discovery['windows_python']['recovery']
         self.assertIn(b'RuntimeError: rejected actual suffix import', (self.root / part['log']).read_bytes())
         shutil.rmtree(self.reports)
-        self.produce()
+        self.produce(lanes=('core', 'browser', 'python'))
         recovery = self.downloads / 'verification-windows-2-recovery'
-        shutil.rmtree(recovery)
         with patch.dict(os.environ, {'SCOPEHUB_BAD_PYTHON': '1'}):
             serial = subprocess.run([sys.executable, *windows_python.COMMAND[1:]], cwd=self.root,
                                     capture_output=True, text=True, encoding='utf-8')
@@ -2173,6 +2175,7 @@ class WindowsLaneTests(ProjectFixture):
         recovery_check = next(row for row in warm['checks'] if row['id'] == 'market-recovery')
         boolean_exit = [{**row, 'exit_code': False} if row is recovery_check else row for row in warm['checks']]
         missing_task = {key: value for key, value in warm.items() if key != 'task_id'}
+        warm_bytes = json_bytes(warm)
         for lane, timing, state, expected in (
             ('recovery', None, 'unknown', 'unknown'),
             ('recovery', b'{"cache":', 'unknown', 'unknown'),
@@ -2186,15 +2189,27 @@ class WindowsLaneTests(ProjectFixture):
             ('recovery', json_bytes({**warm, 'cache': 'not_requested'}), 'not_requested', 'unknown'),
             ('python', None, 'unknown', 'unknown'),
             ('python', json_bytes({**samples['python'], 'cache': 'warm'}), 'warm', 'unknown'),
-            ('recovery', json_bytes(warm), 'warm', 'warm'),
+            ('recovery', warm_bytes, 'warm', 'warm'),
         ):
             with self.subTest(lane=lane, state=state, timing=timing):
-                for owner, sample in samples.items():
-                    paths[owner].write_bytes(json_bytes(sample))
-                if timing is None:
-                    paths[lane].unlink()
-                else:
-                    paths[lane].write_bytes(timing)
+                path = paths[lane]
+                if timing is not None:
+                    path.write_bytes(timing)
+                sample = ci_artifacts.matching_lane_timing(path.parent, lanes[lane])
+                self.assertEqual(state, sample.get('cache', 'unknown'))
+                self.assertEqual(expected, windows_aggregate_cache({**caches, lane: state}))
+                path.unlink(missing_ok=True)
+
+        # Exercise the output and timing publication for complete evidence and
+        # for each producer whose missing cache changes the aggregate decision.
+        for missing, expected in ((None, 'warm'), ('recovery', 'unknown'), ('python', 'unknown')):
+            with self.subTest(missing=missing):
+                for lane, sample in samples.items():
+                    if lane != missing:
+                        paths[lane].write_bytes(json_bytes(sample))
+                if missing:
+                    paths[missing].unlink(missing_ok=True)
+                expected_caches = {**caches, **({missing: 'unknown'} if missing else {})}
                 output.write_bytes(b'')
                 with patch.dict(os.environ, {'GITHUB_OUTPUT': str(output)}):
                     code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
@@ -2202,14 +2217,14 @@ class WindowsLaneTests(ProjectFixture):
                 self.assertEqual('passed', report['status'])
                 actual = dict(line.split('=', 1) for line in output.read_text(encoding='utf-8').splitlines())
                 self.assertEqual(expected, actual['cache'])
-                self.assertEqual({**caches, lane: state}, json.loads(actual['windows_caches']))
+                self.assertEqual(expected_caches, json.loads(actual['windows_caches']))
                 destination = self.reports / 'published'
                 self.assertTrue(ci_artifacts.stage_artifacts(self.root, destination, os.environ))
                 _, published = ci_artifacts.stage_timing(destination, {
                     'SCOPEHUB_TIMING_CACHE': actual['cache'], 'SCOPEHUB_TIMING_WINDOWS_CACHES': actual['windows_caches'],
                 }, has_report=True)
                 self.assertEqual(expected, published['cache'])
-                self.assertEqual({**caches, lane: state}, published['windows_caches'])
+                self.assertEqual(expected_caches, published['windows_caches'])
                 shutil.rmtree(self.reports)
 
     def test_scoped_aggregate_republishes_the_original_selection_and_report(self):
@@ -2266,7 +2281,7 @@ class WindowsLaneTests(ProjectFixture):
 
     def test_split_runner_retains_original_case_output_and_diagnostic_ownership(self):
         self.partition_fixture('case_events')
-        self.produce()
+        self.produce(lanes=('core', 'browser', 'python'))
         recovery = self.downloads / 'verification-windows-2-recovery'
         passing = ('', 'inline_stdout', 'status_stdout')
         for mode in (*passing, 'multiple', 'header', 'subtest', 'fixture', 'relabeled'):

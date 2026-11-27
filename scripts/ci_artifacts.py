@@ -26,7 +26,7 @@ if __package__:
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, integration_validation, release_artifacts, validate_notice,
     )
-    from .verification_scope import SCOPED_PROFILES, ci_base, ci_event_checkout, git, require_ancestor
+    from .verification_scope import SCOPED_PROFILES, ci_base, ci_event_checkout, require_ancestor
 else:
     import windows_python
     from check import (PRIVATE_CHECK_LOGS, PYTHON_MANIFEST_INTERRUPTED, WINDOWS_LANES,
@@ -43,7 +43,7 @@ else:
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, integration_validation, release_artifacts, validate_notice,
     )
-    from verification_scope import SCOPED_PROFILES, ci_base, ci_event_checkout, git, require_ancestor
+    from verification_scope import SCOPED_PROFILES, ci_base, ci_event_checkout, require_ancestor
 
 ROOT = Path(__file__).resolve().parents[1]
 SCOPE_FILE = 'verification-scope.json'
@@ -448,22 +448,20 @@ def source_uses_windows_aggregate(source):
     return any(isinstance(step.get('run'), str) and aggregate.issubset(step['run'].split()) for step in steps)
 
 
-def source_uses_windows_python_parts(root, head):
-    source = CommittedPath.at(root, head)
+def source_uses_windows_python_parts(source):
     return (source / 'scripts/windows_python.py').is_file() and source_uses_windows_aggregate(source)
 
 
-def source_producer_bindings(root, commit):
+def source_producer_bindings(source):
     # Select the bindings from the tested source rather than from the submitted report.
-    source = CommittedPath.at(root, commit)
     definitions = read_json(source / 'contracts/schemas/project.schema.json')['$defs']
     properties = definitions.get('HostedHarnessReport', {}).get('properties', {})
     parts = properties.get('windows_python', {}).get('additionalProperties', {}).get('properties', {})
     return WINDOWS_PRODUCERS in properties, PRODUCER_REPORT_DIGEST in parts
 
 
-def committed_windows_python(root, commit):
-    return git(root, 'cat-file', 'blob', f'{commit}:scripts/windows_python.py')
+def committed_windows_python(source):
+    return (source / 'scripts/windows_python.py').read_bytes()
 
 
 def runner_uses_callback_records(runner):
@@ -536,8 +534,9 @@ def validate_recorded_windows_evidence(root, project, reports, report, *, platfo
     if (report['report_version'] != '2.0' or 'windows_python' in report or WINDOWS_PRODUCERS in report):
         raise PublicationError('The recorded source and run do not schedule Windows producer bindings.')
     if ci and windows_x64(report['environment']) and ci['event'] in {'push', 'pull_request'}:
-        producer_reports, _ = source_producer_bindings(root, ci['head_sha'])
-        source_aggregate = source_uses_windows_aggregate(CommittedPath.at(root, ci['head_sha']))
+        committed = CommittedPath.at(root, ci['head_sha'])
+        producer_reports, _ = source_producer_bindings(committed)
+        source_aggregate = source_uses_windows_aggregate(committed)
         if (producer_reports or source_aggregate) and profile in SCOPED_PROFILES:
             check_scoped_windows_aggregate(project, report, profile)
         elif producer_reports or source_aggregate:
@@ -551,8 +550,8 @@ def check_scoped_windows_aggregate(project, report, profile, *, source=None):
     validate_windows_lane(project, report, source or report['source'], report['ci'], selected, 'core', profile)
 
 
-def committed_lane_ownership(root, commit):
-    path = CommittedPath.at(root, commit) / 'scripts/check.py'
+def committed_lane_ownership(source):
+    path = source / 'scripts/check.py'
     if not path.is_file():
         return None
     # Read the scheduler declarations without executing historical source.
@@ -583,10 +582,10 @@ def committed_lane_ownership(root, commit):
         raise PublicationError('Unrecognized Windows lane ownership in the recorded source.') from error
 
 
-def windows_assignments(root, commit, selected, runner):
+def windows_assignments(source, selected, runner):
     split = runner is not None
     recovery_owns_workflow = split and runner_assigns_market_workflow_to_recovery(runner)
-    ownership = committed_lane_ownership(root, commit)
+    ownership = committed_lane_ownership(source)
     return {lane: windows_lane_checks(
         selected, lane, python_split=split, recovery_owns_market_workflow=recovery_owns_workflow, ownership=ownership,
     ) for lane in WINDOWS_LANES}
@@ -601,11 +600,12 @@ def validate_windows_aggregate(root, project, reports, report, source, source_co
                                *, lane_result=None):
     selected = select_checks(project)
     ci = report['ci']
+    committed = CommittedPath.at(root, source_commit)
     split = (windows_python.enabled(project, ci, selected)
-             and source_uses_windows_python_parts(root, source_commit))
-    retain, part_reports = source_producer_bindings(root, source_commit)
-    runner = committed_windows_python(root, source_commit) if split else None
-    assignments = windows_assignments(root, source_commit, selected, runner)
+             and source_uses_windows_python_parts(committed))
+    retain, part_reports = source_producer_bindings(committed)
+    runner = committed_windows_python(committed) if split else None
+    assignments = windows_assignments(committed, selected, runner)
     rows = {row['id']: row for row in report['checks']}
     native = rows.get('windows-native-build', {})
     native_ok = native.get('status') == 'passed' and native.get('exit_code') == 0
@@ -675,10 +675,11 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=None, collecti
         validate_windows_run_id(report)
         if assignments is None:
             selected = select_checks(project)
+            committed = CommittedPath.at(root, checkout)
             split = (windows_python.enabled(project, expected, selected)
-                     and source_uses_windows_python_parts(root, checkout))
-            runner = committed_windows_python(root, checkout) if split else None
-            assignments = windows_assignments(root, checkout, selected, runner)
+                     and source_uses_windows_python_parts(committed))
+            runner = committed_windows_python(committed) if split else None
+            assignments = windows_assignments(committed, selected, runner)
         lane_selection = assignments[lane]
         profile = f'ci-windows-{lane}'
         recovery_overlap = runner is not None and runner_assigns_market_workflow_to_recovery(runner)
@@ -909,12 +910,13 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
     reports = root / '.reports'
     run_id = windows_lanes_run_id(ci)
     rows = {}
+    committed = CommittedPath.at(root, checkout)
     partitioned = (not profile and windows_python.enabled(project, ci, selected)
-                   and source_uses_windows_python_parts(root, checkout))
-    retain, retain_part_producers = source_producer_bindings(root, checkout) if not profile else (False, False)
-    runner = committed_windows_python(root, checkout) if partitioned else None
+                   and source_uses_windows_python_parts(committed))
+    retain, retain_part_producers = source_producer_bindings(committed) if not profile else (False, False)
+    runner = committed_windows_python(committed) if partitioned else None
     cutoff = runner_partition_cutoff(runner) if partitioned else None
-    assignments = windows_assignments(root, checkout, selected, runner)
+    assignments = windows_assignments(committed, selected, runner)
     retained_lanes = ordinary_producer_lanes(assignments, partitioned, retain)
     started = []
     caches = {}
