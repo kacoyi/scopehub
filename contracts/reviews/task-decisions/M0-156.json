@@ -474,6 +474,26 @@
       "requested_at": "2026-11-27T09:24:41.767140+00:00",
       "request_id": "afa8fe743b9655e095c7ce479b2ef65b08ee61ec7ebce820ce31aa9a2453d853",
       "evidence_sha256": "eaebaad740ce69135af2c603d5ab2586d4ea6731dc87324e410b49fb30e9aa0a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e6f12373277d8aa05a734a1a1c9648f0cf489577",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 e6f12373277d8aa05a734a1a1c9648f0cf489577",
+      "scope": "CHANGES_REQUESTED M0-156 e6f12373277d8aa05a734a1a1c9648f0cf489577",
+      "observation": "Reversing the order of the same two PR 96 archives on cold reopen changed the reported receipt count from zero to two.",
+      "reviewer": "Independent Astra Standard (t1gd)",
+      "original_sha256": "641a69075a2f88dcc5c9a04b3e235428f684bea8a112458fbd74f934a3f89eb7",
+      "response_id": "02a76a8bcd84033c337e3834a042795108856a239ed1c04c5f4c2e0e1d530601",
+      "response_sha256": "d5f6d8d56d538d28d825557b28bc983a0486afa9f22cb163fefac3f0ff46a7a4",
+      "legacy_response_sha256": "3ae41dde5f7469c6ae1990b262e2e420977fccb77ae348bb26487cc460963d35",
+      "observation_body_sha256": "39b9afd9de29df13c3e00d8b163d5eb2cd6b8f8d41beb028c4ffc121a0d0af2d",
+      "event": {
+        "id": "msg_07104caaa33d6f45016b094e53314487d098ff46f48d7b79e1",
+        "timestamp": "2026-11-27T09:33:24.622Z"
+      },
+      "supersedes": "afa8fe743b9655e095c7ce479b2ef65b08ee61ec7ebce820ce31aa9a2453d853",
+      "evidence_sha256": "8a1afd774108b3b0a5550b581c033ea63bb578f65fa7626638419295785ffd8a"
     }
   ]
 }

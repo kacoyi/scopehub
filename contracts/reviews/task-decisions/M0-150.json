@@ -465,6 +465,26 @@
       "requested_at": "2026-11-27T09:24:40.087638+00:00",
       "request_id": "e689aebe7f27c907b616b3cdd55c0ef0d1e5f9151243f0742a0b29ba61ebb90a",
       "evidence_sha256": "2cfc5cc273918c0a1c1182658bbec663058caaddad5a29e68b50d26d4de6797d"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e6f12373277d8aa05a734a1a1c9648f0cf489577",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 e6f12373277d8aa05a734a1a1c9648f0cf489577",
+      "scope": "CHANGES_REQUESTED M0-150 e6f12373277d8aa05a734a1a1c9648f0cf489577",
+      "observation": "For PR 123 run 45933801256, the reader reported the Windows browser producer as passed while its workspace-timeframe check still showed exit code 1.",
+      "reviewer": "Independent Astra Standard (t1gc)",
+      "original_sha256": "dfae8fa9fdad491f4a95c0c0a6f99780b0cbf558349f97b6ad8157984c8094a6",
+      "response_id": "650e745ff5af3fdab1df58db883c1a7ad81c029250dffa50f99287d2fecc94ce",
+      "response_sha256": "9390a49ec55e2008c485e48481a16a7fd1441c07903102e4d145874df3547b32",
+      "legacy_response_sha256": "d6e0226ea1347a0e9cab2664321a854fdf5d1f863939d78a43b2f1b8890c8d95",
+      "observation_body_sha256": "e2bf12a56e6749be666c87c23d26da129285a39d24424a9579f69b6abc9b35aa",
+      "event": {
+        "id": "msg_02b1423abcf47b22016b094e06c47c87d0b6f3f5ab55722e82",
+        "timestamp": "2026-11-27T09:32:06.811Z"
+      },
+      "supersedes": "e689aebe7f27c907b616b3cdd55c0ef0d1e5f9151243f0742a0b29ba61ebb90a",
+      "evidence_sha256": "21d4c5645a58079b9d7dd1c64efaa26f5c6bb121cbfe7683ddf1cd110405071c"
     }
   ]
 }

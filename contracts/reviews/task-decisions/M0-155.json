@@ -445,6 +445,26 @@
       "requested_at": "2026-11-27T09:24:40.942611+00:00",
       "request_id": "06be243f06e84cfafa955bf5418c524483650ae90cb68c328c7d95c415c8c99e",
       "evidence_sha256": "69042964511a47afa90e3e2bdb2b1e3f27dade928bce1ea2f6dade0b6e75d350"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e6f12373277d8aa05a734a1a1c9648f0cf489577",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 e6f12373277d8aa05a734a1a1c9648f0cf489577",
+      "scope": "CHANGES_REQUESTED M0-155 e6f12373277d8aa05a734a1a1c9648f0cf489577",
+      "observation": "On protected push 45838575346, ordinary, offline weekly, and cold reads all dropped the uniquely supported 3260 Windows runner-seconds when I added an infeasible Python job completion time.",
+      "reviewer": "Independent Astra Standard (t1gb)",
+      "original_sha256": "b563c698cb6a1f404cf08287843409ad0a25f7865c87fc6f740a6cc705c3c601",
+      "response_id": "eb46ca19518676104f439fb61447bdb4f55d874a3c4ed907881a6f496a9b6e38",
+      "response_sha256": "0cfe84e13a1d42a01b8e8f520c1e68db679f253719fcace2ff3ea10bd70b6ca3",
+      "legacy_response_sha256": "326f492489fe415b7a8a341b7eef7207e4dd9f41c78e222000a607307c7d140d",
+      "observation_body_sha256": "516f12d4b09b6fceced5ca22a3b23bfcb3985d10651cfec3857cc6a9518c58dd",
+      "event": {
+        "id": "msg_070a281f02056de6016b094e38e6fc87d0868006f799a9ab6b",
+        "timestamp": "2026-11-27T09:33:04.000Z"
+      },
+      "supersedes": "06be243f06e84cfafa955bf5418c524483650ae90cb68c328c7d95c415c8c99e",
+      "evidence_sha256": "a9d914b7d5af9d4038fa494fbc1b3101a358e5b84d390a06c81539beab0ae29a"
     }
   ]
 }
