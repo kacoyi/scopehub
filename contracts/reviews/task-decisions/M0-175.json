@@ -1,0 +1,122 @@
+{
+  "version": 3,
+  "task_id": "M0-175",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "2d2e9522570a635dbe72ab7d555ff7d0c2e19a53",
+      "scope": "Review how the two observed cancellations distinguish a bounded terminal response from actual later disposal of the same owned scratch path and independent adjacent work.",
+      "supersedes": null,
+      "requested_at": "2026-11-27T06:26:22.335294+00:00",
+      "request_id": "57b83c3fe5367736dffaff0ec05ec943b32bf9ab37b6a3d6472756d8a73347a0",
+      "evidence_sha256": "1b9786e0f213f2a258d4c021e6a69a29506c9574981055eedf774cb814b80eb1"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "2d2e9522570a635dbe72ab7d555ff7d0c2e19a53",
+      "verdict": "approved",
+      "decision": "APPROVE M0-175 2d2e9522570a635dbe72ab7d555ff7d0c2e19a53",
+      "scope": "APPROVE M0-175 2d2e9522570a635dbe72ab7d555ff7d0c2e19a53",
+      "observation": "The retained Linux control returned CANCELLED while its scratch file was still readable and observed NotFound on the same directory after release.",
+      "reviewer": "Independent Astra Standard (t1dx)",
+      "original_sha256": "3263676fb46d047a9b369c777e09c35d5ecf6b156f6e07f7ee06aee2e53e217f",
+      "response_id": "04d24470332e569b5fdb72e44974a65ec93f68a0a5fe57897ac22800d70820a7",
+      "response_sha256": "6cb915b29537021014a765e8fd84fafdb3bfe8b1f4a8464669e0c6a74fa9bc27",
+      "legacy_response_sha256": "bbf3ce42ad18ead43caee5a19e2b8d84783d886fe751b01fb3a24a79976a3448",
+      "observation_body_sha256": "fc0e9cfc2b1bbde6f71bc5b2797154dc48644d9c7d44ab2b0d3d33eb7715a235",
+      "event": {
+        "id": "msg_05047119bcb523aa016b0922e7e46c87d0912cf863b2c3b7dc",
+        "timestamp": "2026-11-27T06:28:11.133Z"
+      },
+      "supersedes": "57b83c3fe5367736dffaff0ec05ec943b32bf9ab37b6a3d6472756d8a73347a0",
+      "evidence_sha256": "ed1e04af3aa0f51347a7bf857473c31d86c22aad5eaa50d31064b1884a3c6efd"
+    },
+    {
+      "kind": "request",
+      "source_commit": "dcca5388ee1c3f0c183579c90174ad48eba06765",
+      "scope": "Independently review the replacement for the held-cleanup fixture on the ordinary public cancellation entry against the two actual Windows first-attempt timeouts.",
+      "supersedes": "04d24470332e569b5fdb72e44974a65ec93f68a0a5fe57897ac22800d70820a7",
+      "requested_at": "2026-11-27T07:20:45.843136+00:00",
+      "request_id": "1c8567985e8a6fb4301a620e6feebc4c91c1bb82ed80aaeaaf85c8354ee9eec6",
+      "evidence_sha256": "10e0152658b3291bcd91ab493b612eafa2c328abaa6bbfcd63c74d2ab91832a0"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "dcca5388ee1c3f0c183579c90174ad48eba06765",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-175 dcca5388ee1c3f0c183579c90174ad48eba06765",
+      "scope": "CHANGES_REQUESTED M0-175 dcca5388ee1c3f0c183579c90174ad48eba06765",
+      "observation": "The held-cleanup test now discards both witnessed process IDs and finishes without checking whether the interpreter and supervisor exited.",
+      "reviewer": "Independent Astra Standard (t1f5)",
+      "original_sha256": "77b7af05f8b21f0e48c0d4a6a13009d6ab2dc3874267b29d046eefe349b7e439",
+      "response_id": "32ca369f8b1eb7ad6492a3588866421265a44b7671fe1a046d2b4346c0114e32",
+      "response_sha256": "9063da3a85af824c493119a5df1ab78937b00d052fd593d37c5e9b0cb671eb60",
+      "legacy_response_sha256": "19e91d77d21942b3089df4df22286325678e8c53dda30e7c05d96ffe0f753bb0",
+      "observation_body_sha256": "818a5835753a019004b8ede1cc6713f4109122278f8835677531bf7647707814",
+      "event": {
+        "id": "msg_0098e323dd2515d2016b092fd280d487d097352573799f4401",
+        "timestamp": "2026-11-27T07:23:25.923Z"
+      },
+      "supersedes": "1c8567985e8a6fb4301a620e6feebc4c91c1bb82ed80aaeaaf85c8354ee9eec6",
+      "evidence_sha256": "d8f29cc7745167645aa137a62a8b398cf1060a6462d15d164df3f9d88029ea3f"
+    },
+    {
+      "kind": "request",
+      "source_commit": "1f2e78aed866734f066fb64b16b14cea8a87816a",
+      "scope": "Review the correction for the two specific findings on deferred disposal of a cancelled, synthetic indicator and the rejected entry-witness fixture on source 1f2e78ae.",
+      "supersedes": "32ca369f8b1eb7ad6492a3588866421265a44b7671fe1a046d2b4346c0114e32",
+      "requested_at": "2026-11-27T07:34:14.361518+00:00",
+      "request_id": "510f3829e78d1c861a3aba72fe427dfed7bc2741664050335d33636530eb551d",
+      "evidence_sha256": "b5a9aed3bf346b00b5f83cf92ba7ae5dea48ae3cb8a398231200e7d342e6cf89"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "1f2e78aed866734f066fb64b16b14cea8a87816a",
+      "verdict": "approved",
+      "decision": "APPROVE M0-175 1f2e78aed866734f066fb64b16b14cea8a87816a",
+      "scope": "APPROVE M0-175 1f2e78aed866734f066fb64b16b14cea8a87816a",
+      "observation": "The archived Linux run recorded one invocation, removal of the witnessed scratch directory, and absence of both witnessed processes after the supervisor acknowledged release.",
+      "reviewer": "Independent Astra Standard (t1f8)",
+      "original_sha256": "e0670fceeb68e5146099a9c4557a7e72b7f8fff0f085b84a149ee2bc0e653c95",
+      "response_id": "c2b63662f24a2108a551e7cb33692d39156c7125a49be23cf713d71e7ca7e454",
+      "response_sha256": "4a16cca77db775748350059fd3c980336c3c287068fd32b7a7890b1a0038727e",
+      "legacy_response_sha256": "f6ef615de851db94881b393afb9473cd39f5f7184579d3a0eec423727cdcd538",
+      "observation_body_sha256": "c52c86299bee99eafd9dcbda4f319c6cb3edee7609617dfb54d5b1d581d51464",
+      "event": {
+        "id": "msg_0467f20ff6e46459016b0932dcf0ac87d08c2afcaa2a44a7f9",
+        "timestamp": "2026-11-27T07:36:14.422Z"
+      },
+      "supersedes": "510f3829e78d1c861a3aba72fe427dfed7bc2741664050335d33636530eb551d",
+      "evidence_sha256": "f487870c86996f7257ca2c1a6f70bf111843dee350dc5fe4c86c7bed63a8b1bb"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a6c7aa2239de14d973a1fecd24874c7517d0de61",
+      "scope": "Review cancellation and adjacent computation isolation against the combined trusted_indicator.rs and native worker on a6c7aa22.",
+      "supersedes": "c2b63662f24a2108a551e7cb33692d39156c7125a49be23cf713d71e7ca7e454",
+      "requested_at": "2026-11-27T08:22:41.270744+00:00",
+      "request_id": "4f0c05f7aec2e987a613ca09ef35886c22f0749dbba3d16afda837f5f4090bf4",
+      "evidence_sha256": "7612e81990237d9891ee791694122d922e2497e44223c142e2420abf5372fc67"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a6c7aa2239de14d973a1fecd24874c7517d0de61",
+      "verdict": "approved",
+      "decision": "APPROVE M0-175 a6c7aa2239de14d973a1fecd24874c7517d0de61",
+      "scope": "APPROVE M0-175 a6c7aa2239de14d973a1fecd24874c7517d0de61",
+      "observation": "The candidate’s Linux trace records cancellation returning after 1.001145518 seconds with scratch still present, followed by acknowledged release, removal of that scratch, absence of interpreter PID 655 and supervisor PID 624, and exactly one invocation.",
+      "reviewer": "Independent Astra Standard (t1fk)",
+      "original_sha256": "8828ce346831d6b0fa7b56a4ccda048c8ff3c7cd7a5b8444ed3dc87c218f8fbe",
+      "response_id": "f48ad0caf34067e0a7ab4b66a71c7a0c2bf50ce16f95ec30f1911963fc840f9d",
+      "response_sha256": "c1677d8fec7808cbb24d68adddfd2361288048e0da991688e931403aabf79414",
+      "legacy_response_sha256": "8326639dfd764f66cd33d2685073df6694c30097d2e2ea6abde13ce2c61b0a9a",
+      "observation_body_sha256": "982697e437a6ccd365430059ba7271c713bb077e539051e7ceefb6443675b298",
+      "event": {
+        "id": "msg_0056a5750a0d55be016b093fcc4a8487d08cf82d154da92417",
+        "timestamp": "2026-11-27T08:31:32.844Z"
+      },
+      "supersedes": "4f0c05f7aec2e987a613ca09ef35886c22f0749dbba3d16afda837f5f4090bf4",
+      "evidence_sha256": "9f0bf730bfcbf098168a19c6ef509c8750e6e936c509cf1f5138e27fe6db2878"
+    }
+  ]
+}

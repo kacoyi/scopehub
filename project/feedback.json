@@ -9446,6 +9446,203 @@
         "prevention": "Independent reviewer t1cq recovered the objective from the public handoff on cf795dd4. The first ordinary PR 134 run 45941621830 passed both required checks and all six named public navigation controls on Linux and Windows. The coordinator retains protected integration and actual due periodic follow-through as separate observations."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "native-market-interruption-missing-owned-worker",
+      "source": "Ordinary PR125 run 45686305388 attempt 1. archives/observations/repo-hygiene-20261125/pr125-native-original-45686305388/manifest.json SHA-256 2a82afed0d53dc3e5cdb7ec70beb5e52583e2ba0fdaa55e7fe7201139c3ff534. Exact Windows original under archives/runs/windows-change-45686305388-1/test-report.json. Browser results SHA-256 c37991db3b4d7d039e28f159b4b012cc01fb3e38fb1bfbda041aeb9ca0ad8938. First ordinary PR143 run 45933813398 attempt 1, browser producer job 140292266673. The original is archives/observations/repo-hygiene-20261125/pr143-producer-45933813398-browser/original.zip, SHA-256 d16875258eaa1daaa3c11cd214ccfbd8feb352f74c8f9d660eec8c4ad0048d44. Resolve the second diagnostic with the extracted producer ZIP as archive root. Case log SHA-256 2bdefac6f9398e30c00d81a829a18471f1eed48de944890ab11ee7494714a339, browser results SHA-256 baab2cc99c96d40f3697b3230435babdc9db7b687598683ca879f53f4fccf9c8.",
+      "observation": "The first native Windows chart interruption case reached the helper and saw zero owned synthetic worker leaves. Its browser attestation records one accepted stream, the confirmed partial, the final closed bar and ordinary completion with no reconnecting or resumed frame. The native grouped delivery companion and workspace timeframe passed. The same-run Linux interruption and workspace timeframe checks passed. This report does not determine which worker instance or process timing caused the miss. The first ordinary PR143 Windows browser producer exercised the same original interruption path. The helper reported zero owned synthetic market interpreters after one accepted stream and the confirmed sequence 1 partial. The same stream delivered the sequence 2 closed bar and completed with no reconnecting or resumed frame. The adjacent grouped delivery case observed both recovery states in one read, and workspace timeframe passed. The cause of the missing witness remains unknown.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-151"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "market-worker-interruption",
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The original browser observer and the worker's closing update were unsynchronized. Portable and Linux browser controls reproduced zero candidates when ordinary completion and bridge cleanup overtook the delayed observer. The exact exit and enumeration order in the two original Windows failures remains unknown.",
+        "correction": "Hold the closing update on the admitted original synthetic worker after its confirmed partial. Bind termination to the one-use witness and exact process identity, then verify an ordinary replacement and replay from the confirmed position.",
+        "prevention": "Both named chart interruption journeys passed on Linux and Windows in ordinary PR 130 run 45938231556 attempt 1. Each retained browser attestation records one accepted subscription, reconnecting and resumed at sequence 1, the sequence 2 closed bar and completion. The grouped companion records both recovery frames in one read. The task receipts also cover workspace timeframe and the worker ownership controls."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45686305388-1",
+          "source_commit": "d1736c1566fe7eb8ba05b46c03c266842dcd8149",
+          "report_sha256": "40f50f064608fe13b174f31ade14f78b697b1da6c97714653cfa77bbd8ffd96b"
+        },
+        {
+          "run_id": "windows-change-45933813398-1",
+          "source_commit": "f413dc20df41b07c905e2f85b763d49bb0f55528",
+          "report_sha256": "c6304f87dd126b0422597433d2612e7c81439289b2b35e77d34f85c92e0fe901"
+        }
+      ]
+    },
+    {
+      "id": "market-interruption-expired-child-hides-live-match",
+      "source": "Independent Astra Standard (t10k) on 793c179994333b3c6f4fab6771fa6f4c31901940. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-151-793c1799/original-assistant-response.jsonl, SHA-256 916b2c73ab7db14c964200b0d4832668cb457c2374e5a01872dad6553176d03d; recorded via project:review in 4b276c464d2b43a5c1934e90f94794283c1f66d2.",
+      "observation": "Two legitimate live workers matched the same witness under separate owned bridges. Adding an expired child ahead of the second worker caused its entire bridge scan to be skipped, leaving a false unique selection. The review inspected selection only and reaped both bridges by closing their input.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-151"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "python-types",
+        "market-worker-interruption"
+      ],
+      "resolution": {
+        "cause": "An expired child aborted inspection of its bridge, so a second live match could disappear from the uniqueness check.",
+        "correction": "Skip only the expired process, continue through its surviving siblings and the other owned bridge, and refuse inaccessible or ambiguous identities before signalling.",
+        "prevention": "The Linux and Windows Python logs from ordinary PR 130 run 45938231556 attempt 1 pass the direct and redirected expired-child cases, the ambiguous two-bridge case, and the inaccessible and decoy controls. Python types and both chart interruption journeys also passed."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "market-interruption-fixture-exposed-by-default-library",
+      "source": "Independent Astra Standard (t10k) on 793c179994333b3c6f4fab6771fa6f4c31901940. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-151-793c1799/original-assistant-response.jsonl, SHA-256 916b2c73ab7db14c964200b0d4832668cb457c2374e5a01872dad6553176d03d; recorded via project:review in 4b276c464d2b43a5c1934e90f94794283c1f66d2.",
+      "observation": "A default external crate could call MarketWorker::preview_interruption. The constructor selected a repository tests directory absent from the packaged crate. Hidden documentation did not constrain the build or the callable surface.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-151"
+      ],
+      "regression_checks": [
+        "rust-format",
+        "rust-contracts-workers",
+        "market-worker-interruption",
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The preview interruption constructor was compiled into the default worker-host library and could select a fixture unavailable to ordinary external consumers.",
+        "correction": "Require the explicit preview-market-interruption feature for the fixture constructor and the separate interruption example. Keep the standard history bridge on the default worker.",
+        "prevention": "The retained external default build rejected the constructor with E0599 and the ordinary consumer compiled. Independent review confirmed the corrected implementation blobs on the composed source. Ordinary PR 130 run 45938231556 attempt 1 passed Rust format, Rust contracts and workers, the opt-in browser interruption journeys and workspace timeframe on Linux and Windows."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-cancelled-indicator-cleanup-wait-and-scratch-observation",
+      "status": "addressed",
+      "severity": "major",
+      "source": "First ordinary PR 134 run 45946774981, Windows core producer job 140333158721. The aggregate is archives/observations/repo-hygiene-20261125/pr134-native-original-45946774981/manifest.json (SHA-256 a26d3a9799d142929afb1b449543d95da4c7ee4c44e1316598a79be3cef5f8ff).",
+      "observation": "The correlated-result and adjacent-task cancellation cases both reported INDICATOR_CLEANUP_WAIT_FAILED with Timeout. At the first directory observation the task scratch path existed. At the subsequent process queries both interpreter and supervisor were absent. The first case reported a 1.0086272-second cancellation. Its later directory state and the reason for the delay were not observed. The two cases passed on this candidate Linux and on its Windows protected base with the same worker and test sources. A separate pre-admission deadline and a Python suite timeout have existing owners. In first-attempt PR 149 ordinary run 45952279090 and guarded run 45952324381, both Windows Rust harnesses reached the 900-second limit. Each 17-test trusted-indicator binary completed the original two cancellation cases and 14 other cases; only cancellation_returns_while_owned_scratch_cleanup_is_held remained running, first reported after 60 seconds. Its stalled stage is unknown. Guarded indicator-workflow passed three cases on each platform and Linux passed all guarded task checks. The original manifests are archived under archives/observations/repo-hygiene-20261125/pr149-native-original-45952279090 and archives/observations/repo-hygiene-20261125/task-dispatch-m0-175-45952324381. On dcca5388, the independent Astra review confirmed missing held-path coverage for both process IDs and the single invocation. It also identified that an entry witness timeout could shut down the fixture runtime before it drove the reaper. A controlled Linux observation on the same test source with only entry evidence suppressed reproduced fixture-local scratch retention. The interpreter was absent and the supervisor acknowledged release but was a zombie two seconds after shutdown. The disposable scratch was still present and was removed only after that observation. This is an observed fixture teardown failure; whether an interpreter or supervisor would outlive the normal held and released path was previously unmeasured. The diagnostic log is .reports/m0-175/held-cleanup-review/baseline-without-entry-state.log (SHA-256 6dcee0b91ea8c86e49e2baca9e92103a2cbd93ba3b272cd0c955a7e94aa36320).",
+      "task_ids": [
+        "M0-175"
+      ],
+      "regression_checks": [
+        "project-state",
+        "rust-contracts-workers",
+        "indicator-workflow"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45946774981-1",
+          "source_commit": "f54d437f5ea159fb0aa5d806682aeae8a6653b1b",
+          "report_sha256": "a6761ffac6afb7bfe9e017f30f6609bea9fe01c3de038b6ae2196ca9d390c88c"
+        },
+        {
+          "run_id": "windows-change-45952279090-1",
+          "source_commit": "06f2e91dd0700c83acd3cc990a8d3c2987d3d711",
+          "report_sha256": "d0702ac591c0e183aba0d9bf323d1b903d6d07c3ce9c890103487facd1462203"
+        },
+        {
+          "run_id": "20261127T063216.487478Z-e993ffa5",
+          "source_commit": "53917996a926a5fdea41c7e2f58f1ba86bdc0c4f",
+          "report_sha256": "fbe1d3c9c91c97cdc4122f6c39e6b25facc8ede80f1241a6e3d976b2f46381fe"
+        }
+      ],
+      "resolution": {
+        "cause": "The original assertions treated the directory snapshot at terminal cancellation as proof of completed disposal after the bounded wait. The original Windows delay and later directory state are unknown, as is the stalled stage in both earlier Windows held-control timeouts. The independently reproduced fixture defect was premature shutdown of the current-thread runtime after rejection of a missing entry witness, which left queued teardown without a running reaper. The earlier held path also omitted both PID observations and the invocation count.",
+        "correction": "Assert the terminal cancellation result separately from bounded disposal of the owned scratch path, and independently verify the adjacent computation. Hold the real supervisor at exit, observe release, check both witnessed PIDs and count one invocation. Use the separate startup witness to keep driving the original reaper after rejected entry evidence and verify disposal before runtime shutdown.",
+        "prevention": "The two task receipts bind the original finding to the three required checks on both supported systems in guarded run 45959844599 attempt 1 on 88eec308aa5abf7e1ed0126c61195cc505c4a950. The held and missing-entry controls passed on both systems. A separate Linux mutation withheld release and failed at the bounded disposal assertion before fixture recovery. The original diagnostics and passing counterparts remain retained. Ordinary merge-preview verification and protected integrated-source revalidation remain coordinator follow-through."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-indicator-deadline-expires-before-running-child-observation",
+      "status": "addressed",
+      "severity": "major",
+      "source": "First native observation archives/observations/repo-hygiene-20261125/main-producer-45844453865-core/observation.json (SHA-256 f846a83ef0363e4a5755e8de09c7e4ea09aec0b7797b2188de8a496b56083545).",
+      "observation": "Protected push 45844453865 Windows core job 139994374749 had 12 passing and two failing trusted-indicator tests. The deadline case at trusted_indicator.rs:450 observed TIMEOUT before its joined interpreter and sleeping-child witnesses completed. Its later cleanup and no-surviving-child assertions were not reached. The original does not determine which witness had already completed or whether Python had entered. A separate scratch assertion at line 340 recurred on the old implementation and remains owned by M0-167.",
+      "task_ids": [
+        "M0-169"
+      ],
+      "regression_checks": [
+        "project-state",
+        "rust-contracts-workers",
+        "indicator-workflow"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45844453865-1",
+          "source_commit": "774b5704a2c23a33d3c58230177ba50556e25744",
+          "report_sha256": "6b468211eee9b20f4b88479d1de6f0b9e1a18ae27e85269fa3bdae8fff60077e"
+        },
+        {
+          "run_id": "windows-change-45844453865-1",
+          "source_commit": "774b5704a2c23a33d3c58230177ba50556e25744",
+          "report_sha256": "17936b45c6f4c0067a2fc281de760f968c5416cad1579015e14adf895d775623"
+        }
+      ],
+      "resolution": {
+        "cause": "The former fixture could reach TIMEOUT before its joined interpreter and sleeping-child witness observation completed. The original leaves each witness state, actual indicator entry and child startup, and terminal process and scratch cleanup unknown.",
+        "correction": "Use a fixture-only finite deadline and distinct controls for interpreter startup before hello and a running child after interpreter admission. Require the expected witnesses while the processes are alive, then observe the typed terminal result, artifact absence and owned resource cleanup.",
+        "prevention": "Guarded run 45931566969 passed both deadline controls, separate normal and cancellation cases, and the indicator workflow on Linux and Windows. Retain the producer and aggregate failures and the earlier passing Windows deadline comparison. The coordinator owns the protected integration recheck."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-indicator-deadline-observes-process-exit-after-terminal-boundary",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent Astra Standard review of 2727e7b359dc1b6ef9e26dcb9467063417458075, recorded at 7d6c99be4549a99969e462a38f069518aab553c5. Exact original at archives/observations/repo-hygiene-20261125/independent-final-m0-169-2727e7b3/original-assistant-response.jsonl (SHA-256 8f73eb1b2826147431e73e62fcecf59176565816091629730f711bc339ccc316).",
+      "observation": "The Windows deadline fixture checked scratch at the terminal result, then read the witness files and started a separate serial tasklist.exe subprocess for each witnessed PID. In the running-child case that means three queries, each allowed up to two seconds. A witnessed process still alive at the terminal result could exit before its later query and pass the assertion. This is a confirmed limitation of the fixture observation. The review observed no candidate process leak and established no new cleanup facts about the original protected Windows failure.",
+      "task_ids": [
+        "M0-169"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Witness rereads and serial PID queries deferred the first exit observation and could miss a process that exited after the terminal result.",
+        "correction": "Acquire stable references while the witnessed processes are alive. Sample the entire group at the first bounded observation after return and ahead of witness rereads, with a 100 ms result-to-reply bound.",
+        "prevention": "The same observer rejected the held live child and accepted the exited set in the guarded Linux and Windows Rust checks. The two deadline cases passed their first-sample and scratch assertions. Retained Linux diagnostics record the measured intervals."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "trusted-indicator-deadline-fixture-fails-ordinary-rust-lints",
+      "source": "PR 143 first-attempt ordinary check run 45852075540 at merge preview 4f0a5c8d3119465e9725aee4d170b7b9a3992e89. Retained original manifest at archives/observations/repo-hygiene-20261125/pr143-native-original-45852075540/manifest.json (SHA-256 abd10d03e9daa77464fedd03b2c472e1ae45df7d7d565bfb371d896467858ebe).",
+      "observation": "Linux and Windows each failed only rust-lints. Clippy flagged the deadline fixture in crates/worker-host/tests/deadline/mod.rs for wrapping an already computed boot witness option in an unnecessary closure. The Rust test checks passed on both platforms. The two passing guarded task reports from run 45852268773 bind to PR head 184cfb0f7ae10d88a34cfbb2c07bf6eb9d131604 and did not select rust-lints.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-169"
+      ],
+      "regression_checks": [
+        "rust-lints"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261126T154538.281198Z-42fbf115",
+          "source_commit": "4f0a5c8d3119465e9725aee4d170b7b9a3992e89",
+          "report_sha256": "d099b1c9cbe74e95d63a34bc5939a8a49a03754bb04e3f4b2aced8c851a6074e"
+        },
+        {
+          "run_id": "windows-change-45852075540-1",
+          "source_commit": "4f0a5c8d3119465e9725aee4d170b7b9a3992e89",
+          "report_sha256": "d7dda19a28bfb65608c6680419364a1d0ef914d48a3db928fcc4b20d9c938764"
+        }
+      ],
+      "resolution": {
+        "cause": "The deadline fixture used an unnecessary closure to return an already computed boot witness option, which Clippy rejected on both platforms.",
+        "correction": "Use Option::and for the already computed boot witness option and include rust-lints in the task's required checks.",
+        "prevention": "The first-attempt ordinary PR run 45931554585 and guarded run 45931566969 both passed rust-lints on Linux and Windows. The earlier guarded receipts remain bound to the selection that omitted rust-lints."
+      },
+      "deferral_reason": null
     }
   ]
 }

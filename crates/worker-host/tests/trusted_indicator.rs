@@ -1,5 +1,6 @@
 use std::{
     fs, future, io,
+    panic::{AssertUnwindSafe, catch_unwind, resume_unwind},
     path::{Path, PathBuf},
     process::Stdio,
     time::{Duration, Instant},
@@ -17,9 +18,12 @@ use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     process::Command,
     sync::oneshot,
-    time::{sleep, timeout},
+    time::{error::Elapsed, sleep, timeout},
 };
 use uuid::Uuid;
+
+#[cfg(any(target_os = "linux", windows))]
+mod deadline;
 
 const SOURCE: &str = r#"def compute(bars, params):
     print("synthetic stdout")
@@ -230,6 +234,8 @@ struct Fixture {
     config: WorkerConfig,
 }
 
+type WorkerWitness = (u32, u32, PathBuf);
+
 impl Fixture {
     fn new(script: &str) -> Self {
         let mut config = config();
@@ -251,11 +257,17 @@ impl Fixture {
     }
 
     fn observe_real_worker() -> Self {
+        Self::instrument_real_worker("", true)
+    }
+
+    fn instrument_real_worker(startup: &str, record_entry: bool) -> Self {
         // The fixture records an entry witness outside the scratch directory.
         // The actual selected function only performs synthetic arithmetic.
         let repository = serde_json::to_string(repo().to_str().unwrap()).unwrap();
+        let record_entry = if record_entry { "True" } else { "False" };
         let fixture = Self::new(&format!(
             r#"import json, os, pathlib, runpy, sys, worker_runtime
+{startup}
 repo = pathlib.Path({repository})
 sys.path[:0] = [str(repo), str(repo / 'python')]
 worker_runtime.__path__ = [str(repo / 'python/worker_runtime')]
@@ -263,10 +275,11 @@ worker = runpy.run_path(str(repo / 'python/worker_runtime/indicator.py'))
 serve = worker['serve']
 evaluate = serve.__globals__['evaluate']
 def observe(*args):
-    path = pathlib.Path(__file__).parents[2] / 'entered'
-    facts = [os.getpid(), os.getppid(), os.getcwd()]
-    with path.open('a', encoding='utf-8') as witness:
-        witness.write(json.dumps(facts) + '\n')
+    if {record_entry}:
+        path = pathlib.Path(__file__).parents[2] / 'entered'
+        facts = [os.getpid(), os.getppid(), os.getcwd()]
+        with path.open('a', encoding='utf-8') as witness:
+            witness.write(json.dumps(facts) + '\n')
     return evaluate(*args)
 serve.__globals__['evaluate'] = observe
 os._exit(worker['main']())
@@ -315,20 +328,31 @@ runpy.run_path(str(Path(__file__).with_name('indicator_guard_original.py')), run
         .unwrap();
     }
 
-    async fn witness(&self) -> (u32, u32, PathBuf) {
-        timeout(Duration::from_secs(8), async {
+    fn read_witness(&self, file: &str) -> Option<WorkerWitness> {
+        let text = fs::read_to_string(self.directory.join(file)).ok()?;
+        serde_json::from_str(text.lines().next()?).ok()
+    }
+
+    async fn wait_for_witness(
+        &self,
+        file: &str,
+        limit: Duration,
+    ) -> Result<WorkerWitness, Elapsed> {
+        timeout(limit, async {
             loop {
-                if let Ok(text) = fs::read_to_string(self.directory.join("entered"))
-                    && let Some(line) = text.lines().next()
-                    && let Ok(witness) = serde_json::from_str(line)
-                {
+                if let Some(witness) = self.read_witness(file) {
                     return witness;
                 }
                 sleep(Duration::from_millis(10)).await;
             }
         })
         .await
-        .expect("selected code must reach the real interpreter")
+    }
+
+    async fn witness(&self) -> WorkerWitness {
+        self.wait_for_witness("entered", Duration::from_secs(8))
+            .await
+            .expect("selected code must reach the real interpreter")
     }
 
     fn assert_reaped(&self, pid: u32, parent: u32, scratch: PathBuf) {
@@ -418,6 +442,22 @@ fn process_exists(pid: u32) -> bool {
     }
 }
 
+async fn observe_scratch_disposal(scratch: &Path) -> io::Result<()> {
+    // This observation has its own bound. It gives the reaper time to run
+    // after the caller's cancellation wait has ended.
+    timeout(Duration::from_secs(2), async {
+        loop {
+            match fs::symlink_metadata(scratch) {
+                Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
+                Err(error) => return Err(error),
+                Ok(_) => sleep(Duration::from_millis(10)).await,
+            }
+        }
+    })
+    .await
+    .map_err(|elapsed| io::Error::new(io::ErrorKind::TimedOut, elapsed))?
+}
+
 impl Drop for Fixture {
     fn drop(&mut self) {
         fs::remove_dir_all(&self.directory).unwrap();
@@ -448,30 +488,6 @@ async fn cancels_running_code_reaps_its_interpreter_and_delivers_no_artifact() {
     assert!(
         !process_exists(sleeping),
         "the sleeping child survived cancellation"
-    );
-}
-
-#[tokio::test]
-async fn a_deadline_reaps_running_code_without_retry_or_artifact() {
-    let mut fixture = Fixture::observe_real_worker();
-    fixture.config.deadline = Duration::from_secs(5);
-    let request = request(SPAWNING_LOOP);
-    let operation = compute(&fixture.config, &request, future::pending());
-    tokio::pin!(operation);
-    let ((pid, parent, scratch), sleeping) = tokio::select! {
-        result = &mut operation => panic!("computation ended before entering Python: {result:?}"),
-        witness = async { tokio::join!(fixture.witness(), fixture.sleeping_child()) } => witness,
-    };
-    assert!(process_exists(sleeping));
-    let failure = timeout(Duration::from_secs(5), operation)
-        .await
-        .unwrap()
-        .unwrap_err();
-    assert_eq!(failure.code, ErrorCode::TIMEOUT);
-    fixture.assert_reaped(pid, parent, scratch);
-    assert!(
-        !process_exists(sleeping),
-        "the sleeping child survived the deadline"
     );
 }
 
@@ -605,14 +621,260 @@ while True:
     );
     let started = Instant::now();
     cancel.send(()).unwrap();
-    let failure = operation.await.unwrap_err();
+    let failure = timeout(Duration::from_secs(2), operation)
+        .await
+        .expect("cancellation must return within the caller watchdog")
+        .unwrap_err();
     eprintln!(
-        "synthetic cancellation returned after {:?}",
-        started.elapsed()
+        "synthetic cancellation returned after {:?}, scratch={:?}",
+        started.elapsed(),
+        fs::symlink_metadata(&scratch)
     );
     assert_eq!(failure.code, ErrorCode::CANCELLED);
     assert!(!failure.retryable && failure.details.is_empty());
+    observe_scratch_disposal(&scratch)
+        .await
+        .expect("cancelled scratch must be removed within the observation window");
     fixture.assert_reaped(pid, parent, scratch);
+}
+
+fn held_cleanup_fixture(record_entry: bool) -> Fixture {
+    let fixture = Fixture::instrument_real_worker(
+        r#"
+started = pathlib.Path(__file__).parents[2] / 'worker-started'
+started.write_text(json.dumps([os.getpid(), os.getppid(), os.getcwd()]), encoding='utf-8')
+"#,
+        record_entry,
+    );
+    let guard = fixture
+        .directory
+        .join("python/worker_runtime/indicator_guard.py");
+    fs::rename(&guard, guard.with_file_name("indicator_guard_original.py")).unwrap();
+    // Hold only this supervisor's exit after the real guard reclaims its
+    // interpreter. The transport and its Windows blocking pipe I/O run normally.
+    fs::write(
+        guard,
+        r#"import runpy
+import sys
+from pathlib import Path
+from time import monotonic, sleep
+
+guard = runpy.run_path(str(Path(__file__).with_name('indicator_guard_original.py')))
+try:
+    status = guard['supervise'](int(sys.argv[1]), int(sys.argv[2]))
+except OSError:
+    raise SystemExit(guard['ABANDONED']) from None
+
+if status == guard['ABANDONED']:
+    directory = Path(__file__).parents[2]
+    release = directory / 'release-cleanup'
+    (directory / 'cleanup-held').touch()
+    deadline = monotonic() + 6
+    while monotonic() < deadline:
+        if release.exists():
+            (directory / 'cleanup-release-observed').touch()
+            break
+        sleep(0.01)
+raise SystemExit(status)
+"#,
+    )
+    .unwrap();
+    fixture
+}
+
+#[cfg(any(target_os = "linux", windows))]
+async fn observe_held_worker_exit(pid: u32, parent: u32) -> io::Result<()> {
+    if pid == 0 || parent == 0 || pid == parent || parent == std::process::id() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "invalid worker PIDs",
+        ));
+    }
+    let started = Instant::now();
+    timeout(Duration::from_secs(2), async {
+        loop {
+            #[cfg(target_os = "linux")]
+            let (interpreter_alive, supervisor_alive) =
+                (process_exists(pid), process_exists(parent));
+            #[cfg(windows)]
+            let (interpreter_alive, supervisor_alive) =
+                tokio::try_join!(probe_held_worker_pid(pid), probe_held_worker_pid(parent))?;
+
+            if !interpreter_alive && !supervisor_alive {
+                eprintln!(
+                    "observed interpreter {pid} and supervisor {parent} absent in {:?}",
+                    started.elapsed()
+                );
+                return Ok(());
+            }
+            sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .map_err(|_| {
+        io::Error::new(
+            io::ErrorKind::TimedOut,
+            format!("process observation timed out for interpreter {pid} and supervisor {parent}"),
+        )
+    })?
+}
+
+#[cfg(not(any(target_os = "linux", windows)))]
+async fn observe_held_worker_exit(_: u32, _: u32) -> io::Result<()> {
+    eprintln!("process exit observation is unavailable on this host");
+    Ok(())
+}
+
+#[cfg(windows)]
+async fn probe_held_worker_pid(pid: u32) -> io::Result<bool> {
+    let output = Command::new("tasklist.exe")
+        .kill_on_drop(true)
+        .args(["/NH", "/FO", "CSV", "/FI", &format!("PID eq {pid}")])
+        .output()
+        .await?;
+    if !output.status.success() {
+        return Err(io::Error::other(format!(
+            "tasklist failed: {}",
+            output.status
+        )));
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).contains(&format!(",\"{pid}\",")))
+}
+
+fn exercise_held_cleanup(fixture: &Fixture) -> Result<(), Elapsed> {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let release = fixture.directory.join("release-cleanup");
+    let result = catch_unwind(AssertUnwindSafe(|| {
+        runtime.block_on(async {
+            let request = request(LOOP);
+            let (cancel, cancellation) = oneshot::channel();
+            let operation = compute(&fixture.config, &request, async {
+                cancellation.await.unwrap();
+            });
+            tokio::pin!(operation);
+            let worker = tokio::select! {
+                result = &mut operation => panic!("computation ended before cancellation: {result:?}"),
+                witness = fixture.wait_for_witness("entered", Duration::from_secs(8)) => witness?,
+            };
+            assert_eq!(fixture.read_witness("worker-started").as_ref(), Some(&worker));
+            let (pid, parent, scratch) = worker;
+            let pending = scratch.join("pending-output");
+            fs::write(&pending, b"synthetic scratch data").unwrap();
+
+            let started = Instant::now();
+            cancel.send(()).unwrap();
+            let failure = timeout(Duration::from_secs(2), operation)
+                .await
+                .expect("cancellation must return while cleanup is held")
+                .unwrap_err();
+            assert_eq!(failure.code, ErrorCode::CANCELLED);
+            assert!(!failure.retryable && failure.details.is_empty());
+            assert_eq!(fs::read(&pending).unwrap(), b"synthetic scratch data");
+            eprintln!(
+                "synthetic cancellation returned after {:?} with scratch still held",
+                started.elapsed()
+            );
+
+            timeout(Duration::from_secs(2), async {
+                let held = fixture.directory.join("cleanup-held");
+                while !held.exists() {
+                    sleep(Duration::from_millis(10)).await;
+                }
+            })
+            .await
+            .expect("the real supervisor must enter the cleanup hold");
+
+            let unreleased = observe_scratch_disposal(&scratch)
+                .await
+                .expect_err("unreleased scratch must fail the disposal observation");
+            assert_eq!(unreleased.kind(), io::ErrorKind::TimedOut);
+            assert_eq!(fs::read(&pending).unwrap(), b"synthetic scratch data");
+            eprintln!("scratch disposal observation timed out before release");
+
+            fs::write(&release, b"").unwrap();
+            observe_scratch_disposal(&scratch)
+                .await
+                .expect("the original reaper must dispose of scratch after release");
+            assert!(
+                fixture.directory.join("cleanup-release-observed").is_file(),
+                "the supervisor hold expired without observing release"
+            );
+            eprintln!("supervisor observed release and the original reaper removed scratch");
+            observe_held_worker_exit(pid, parent)
+                .await
+                .expect("both owned processes must exit after release");
+            let invocations = fs::read_to_string(fixture.directory.join("entered"))
+                .unwrap()
+                .lines()
+                .count();
+            assert_eq!(invocations, 1, "a cancelled run must never invoke the code again");
+            eprintln!("observed {invocations} invocation after release");
+            Ok(())
+        })
+    }));
+    let cleanup = (!matches!(result, Ok(Ok(())))).then(|| {
+        let startup = fixture.read_witness("worker-started");
+        let scratch_present = startup
+            .as_ref()
+            .is_some_and(|(_, _, scratch)| scratch.is_dir());
+        let released = fs::write(&release, b"");
+        let disposal = runtime.block_on(async {
+            // Dropping compute queues cleanup on this runtime. Drive it even
+            // when the computation never delivered its entry witness.
+            let (pid, parent, scratch) = fixture
+                .wait_for_witness("worker-started", Duration::from_secs(2))
+                .await
+                .map_err(io::Error::other)?;
+            eprintln!("driving teardown for {scratch:?} after rejected fixture evidence");
+            let (scratch_disposal, process_exit) = tokio::join!(
+                observe_scratch_disposal(&scratch),
+                observe_held_worker_exit(pid, parent)
+            );
+            scratch_disposal.and(process_exit)
+        });
+        (released, disposal, scratch_present)
+    });
+    // A failed assertion or process probe must not wait indefinitely on a pipe.
+    runtime.shutdown_timeout(Duration::from_secs(2));
+    if let Some((released, disposal, scratch_present)) = cleanup {
+        released.expect("release the supervisor after rejected fixture evidence");
+        disposal.expect("dispose of the started worker after rejected fixture evidence");
+        let acknowledged = fixture.directory.join("cleanup-release-observed").is_file();
+        eprintln!(
+            "rejected fixture evidence: scratch_present_before_release={scratch_present}, \
+             release_acknowledged={acknowledged}, owned scratch removed"
+        );
+        if matches!(result, Ok(Err(_))) {
+            assert!(
+                scratch_present,
+                "the started worker must have its own scratch before teardown"
+            );
+            assert!(
+                !fixture.directory.join("entered").exists(),
+                "the entry witness was withheld"
+            );
+            assert!(
+                acknowledged,
+                "the supervisor must acknowledge teardown release"
+            );
+        }
+    }
+    result.unwrap_or_else(|failure| resume_unwind(failure))
+}
+
+#[test]
+fn cancellation_returns_while_owned_scratch_cleanup_is_held() {
+    exercise_held_cleanup(&held_cleanup_fixture(true))
+        .expect("selected code must reach the real interpreter");
+}
+
+#[test]
+fn held_cleanup_reaps_a_started_worker_without_an_entry_witness() {
+    exercise_held_cleanup(&held_cleanup_fixture(false))
+        .expect_err("the entry witness must time out after interpreter startup");
 }
 
 #[tokio::test]
@@ -652,18 +914,30 @@ async fn cancelling_one_live_computation_preserves_adjacent_scratch_and_result()
     .expect("the adjacent computation must write its own scratch output");
 
     cancel.send(()).unwrap();
-    let failure = first.await.unwrap_err();
+    let failure = timeout(Duration::from_secs(2), first)
+        .await
+        .expect("cancellation must return within the caller watchdog")
+        .unwrap_err();
     assert_eq!(failure.code, ErrorCode::CANCELLED);
-    cancelled.assert_reaped(pid, parent, scratch);
+    assert!(!failure.retryable && failure.details.is_empty());
+    eprintln!(
+        "synthetic cancellation returned, scratch={:?}",
+        fs::symlink_metadata(&scratch)
+    );
     assert_eq!(
         fs::read_to_string(pending_output).unwrap(),
         "adjacent synthetic output"
     );
     fs::write(adjacent_scratch.join("allow-result"), b"").unwrap();
 
-    let reply = second.await.unwrap();
-    assert_result(&serde_json::to_value(reply).unwrap(), &adjacent_request);
+    let (reply, disposal) = tokio::join!(second, observe_scratch_disposal(&scratch));
+    assert_result(
+        &serde_json::to_value(reply.unwrap()).unwrap(),
+        &adjacent_request,
+    );
     adjacent.assert_reaped(adjacent_pid, adjacent_parent, adjacent_scratch);
+    disposal.expect("cancelled scratch must be removed within the observation window");
+    cancelled.assert_reaped(pid, parent, scratch);
 }
 
 async fn carrier(request: &IndicatorCompute11, cancel: bool) -> Value {

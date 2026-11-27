@@ -28947,6 +28947,439 @@
           "cleanup": "Use the same existing source and command. Check the ordinary and read-only routes and remove unnecessary duplicate instructions introduced by this change."
         }
       }
+    },
+    {
+      "id": "M0-151",
+      "title": "Synchronize the owned market worker interruption witness",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M1-019"
+      ],
+      "scope": [
+        "tests/ubuntu-preview",
+        "tests/project/test_market_probe_owner.py",
+        "crates/worker-host/examples/history_bridge.rs",
+        "crates/worker-host/src/market.rs",
+        "python/worker_runtime",
+        "apps/desktop/ui/ubuntu-preview.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence",
+        "crates/worker-host/Cargo.toml",
+        "crates/worker-host/examples/history_bridge_interruption.rs",
+        "crates/worker-host/examples/common/history_bridge.rs"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Both ordinary interruption journeys observe a confirmed partial, terminate exactly the admitted original synthetic worker, verify the replacement witness, replay through one subscription and preserve the frozen history. An ordinary later request works.",
+        "An absent, ambiguous, stale or decoy worker is refused without terminating unrelated processes. Portable controls exercise disposable subprocesses and bounded waits. The original hosted Windows outcome and passing companion controls remain recoverable.",
+        "Expiring one enumerated child cannot hide its live siblings. Inspect both bridges before claiming uniqueness; refuse inaccessible and ambiguous identities without signalling them.",
+        "An ordinary external Rust build cannot call the test-only worker constructor. The separate opt-in preview bridge runs the same interruption journey, while ordinary builds and finite playback use the default worker."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "market-worker-interruption",
+        "workspace-timeframe",
+        "rust-format",
+        "rust-contracts-workers",
+        "python-types"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-151-198d2da411d886a5.json",
+          "sha256": "dd5787d5d2359a8a8e346aecfe9aff46b6e4c6ea0e8c6a6219d8e0b7ffcbad71"
+        },
+        {
+          "path": "project/evidence/M0-151-4fa88ecf935b5a59.json",
+          "sha256": "d86026763a7c0a9a0313e84883c749f0d6b41ece40450dfb599003fa19895916"
+        },
+        {
+          "path": "project/evidence/M0-151-04b671aa07f6701d.json",
+          "sha256": "92f96395448b32ec525def61bdb4570972029e128eef72cf8256f06247e82241"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Ordinary PR 130 run 45938231556 attempt 1 passed all seven M0-151 checks on Linux and Windows. Its tested merge 880a25518af711c26db820679841acd3aa664df6 had the submitted tree of 74f231590799e8bf02b752b21541b34bf2509db9 and the implementation independently approved at 3292bcd9bb6d125108453595c266af199ed77ae4. Both named chart journeys resumed at the confirmed partial through a single subscription, preserved frozen history, and completed the later ordinary request. The grouped case observed both recovery states in one read. Workspace timeframe passed 99 cases on Linux and 98 on Windows, with two Windows skips. The earlier receipt and failed Windows originals remain historical evidence. The Linux aggregate remains blocked on the Windows-only native build. Other catalog omissions, physical Windows acceptance and protected integration remain separate.",
+      "plan": {
+        "outcome": "The ordinary browser check interrupts a positively identified live worker at confirmed replay progress under the existing deadlines, and verifies the resulting recovery.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/worker-interruption.spec.mjs",
+          "tests/ubuntu-preview/interrupt_owned_worker.py",
+          "crates/worker-host/examples/history_bridge.rs",
+          "python/worker_runtime/replay.py",
+          "archives/observations/repo-hygiene-20261125/pr125-native-original-45686305388/manifest.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-151-793c1799/final-response.txt"
+        ],
+        "hypotheses": [
+          "The current mutation observer triggers asynchronously after the confirmed partial becomes visible. The worker emits the closing update independently and its bridge can reap it before the one-shot descendant scan. The failing native stream contains normal completion without any recovery frames. The original report does not identify the precise ordering of process exit and enumeration.",
+          "The portable protocol and ordinary Linux browser red controls observed the normal final and bridge cleanup before the delayed observer, then reproduced the zero-candidate failure. The fixture holds the closing update only on the original development worker and uses a one-use witness bound to the preview, bridge command and interpreter."
+        ],
+        "risks": [
+          {
+            "failure": "A slow browser or process enumeration misses the original worker, or a naturally completed stream is counted as a real interruption.",
+            "checks": [
+              "market-worker-interruption"
+            ]
+          },
+          {
+            "failure": "A missing, ambiguous or stale process identity terminates a decoy or a subsequent request, or a blocked worker increases existing deadlines.",
+            "checks": [
+              "python-contracts-workers",
+              "market-worker-interruption",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "Skipping the rest of a bridge after an expired child presents a live ambiguous witness as unique. Exercise direct and redirected children, access refusal, and two disposable bridge processes without signalling either ambiguous worker.",
+            "checks": [
+              "python-contracts-workers",
+              "python-types",
+              "market-worker-interruption"
+            ]
+          },
+          {
+            "failure": "A feature unification or shared preview build places the test fixture in ordinary runtime or overwrites the ordinary executable. Check a default external compile, ordinary finite replay, separate opt-in executable and real Chromium recovery.",
+            "checks": [
+              "rust-format",
+              "rust-contracts-workers",
+              "market-worker-interruption",
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Revert the isolated interruption-witness change if it cannot maintain bounded progress and exact process ownership. Retain the original diagnostic and matching positive controls.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "worker-host",
+            "ui"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/worker-interruption.config.mjs",
+            "tests/ubuntu-preview/interrupt_owned_worker.py",
+            "crates/worker-host/examples/history_bridge.rs",
+            "python/worker_runtime/replay.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            }
+          ],
+          "non_goals": [
+            "Product or runner deadline changes, external dependencies, wider process authority, or changes to the accepted M1-019 and independent M0-119 and M0-144 records."
+          ],
+          "open_questions": [
+            "The actual Windows enumeration order in the original failure remains unknown. The coordinator owns ordinary Windows verification of the corrected fixture and native launcher lineage."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing platform ownership, replay timing for ordinary callers, request and instance authority, exact protocol and browser assertions, and unrelated processes."
+          ],
+          "change": [
+            "Arm one stream on a private test preview. Keep the original worker live after its genuine partial and identify it through the exact bridge, executable, command witness and process ancestry. Run the replacement and subsequent request through their ordinary workers."
+          ],
+          "data_plan": "Use disposable synthetic fixtures and retain source-identified raw diagnostics and control artifacts in the private archive.",
+          "cleanup": "Release every fixture-owned process and temporary resource on completion or refusal; preserve previous native originals."
+        }
+      },
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45686305388-1",
+          "source_commit": "d1736c1566fe7eb8ba05b46c03c266842dcd8149",
+          "report_sha256": "40f50f064608fe13b174f31ade14f78b697b1da6c97714653cfa77bbd8ffd96b"
+        }
+      ]
+    },
+    {
+      "id": "M0-175",
+      "title": "Verify terminal cancellation and subsequent owned indicator scratch cleanup after a bounded wait",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-167"
+      ],
+      "scope": [
+        "crates/worker-host"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain the first native failure in each of the two cancellation cases and the same-source Linux and protected Windows passing counterparts. Record which resource states were observed at which time and which historical outcomes are unknown.",
+        "Retain both first-attempt Windows Rust timeouts of the earlier held control and the separate passing controls. Demonstrate that the new test fails within its observation bounds when release is withheld.",
+        "Use the ordinary benign indicator cancellation interaction and a controlled pending cleanup. Distinguish its terminal outcome from verified disposal, preserve owned cleanup through the bounded wait, normal completion, absence of a cancelled artifact and isolation of the adjacent computation. Resolve the observed discrepancy at its responsible boundary with independently checkable evidence.",
+        "Obtain independent review, native Windows and Linux checks for the affected behavior and a recheck on the integrated revision. Record remaining timing and observation limits."
+      ],
+      "checks": [
+        "project-state",
+        "rust-contracts-workers",
+        "indicator-workflow"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-175-3cc980281a8b78d9.json",
+          "sha256": "9706aa2fb2582922acc102e9bcdf8717c4c17195843ab43737f55cdb37564acd"
+        },
+        {
+          "path": "project/evidence/M0-175-badbc601ee756be9.json",
+          "sha256": "dc2e37bd17e91fd89cc2f7ba1ea10259609fa30709da36720f3131cb5fdadc9e"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45946774981-1",
+          "source_commit": "f54d437f5ea159fb0aa5d806682aeae8a6653b1b",
+          "report_sha256": "a6761ffac6afb7bfe9e017f30f6609bea9fe01c3de038b6ae2196ca9d390c88c"
+        },
+        {
+          "run_id": "windows-change-45952279090-1",
+          "source_commit": "06f2e91dd0700c83acd3cc990a8d3c2987d3d711",
+          "report_sha256": "d0702ac591c0e183aba0d9bf323d1b903d6d07c3ce9c890103487facd1462203"
+        },
+        {
+          "run_id": "20261127T063216.487478Z-e993ffa5",
+          "source_commit": "53917996a926a5fdea41c7e2f58f1ba86bdc0c4f",
+          "report_sha256": "fbe1d3c9c91c97cdc4122f6c39e6b25facc8ede80f1241a6e3d976b2f46381fe"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Branch qualification is complete. Independent approval of 1f2e78aed866734f066fb64b16b14cea8a87816a applies to the unchanged implementation on 88eec308aa5abf7e1ed0126c61195cc505c4a950. Guarded PR 149 task run 45959844599 attempt 1 tested that exact clean branch commit on Linux x64 and Windows x64. Environment and all three required checks passed on each platform. The six named Rust controls covered held cleanup, discarding a correlated result before child exit, adjacent scratch and result isolation, private CLI EOF without a persistable result, independent positive values and cleanup after a missing entry witness. The three browser interactions covered a second approved task during pending cleanup, approved output restoration and region-only restoration. The guarded originals are bound by archives/observations/repo-hygiene-20261125/task-dispatch-m0-175-45959844599/manifest.json (SHA-256 4b94d54bef39ca0578d75d1ab1958aae595135de98d593e8090cbcb6eab345be). The separate Linux withheld-release mutation failed at the bounded disposal assertion before fixture recovery. Process absence was sampled for the two witnessed PIDs within the fixture windows. Later scratch state and the delay cause in the original PR 134 Windows cases remain unknown, as does the stalled stage in both earlier PR 149 Windows timeouts. The coordinator owns observation of the ordinary PR 149 merge-preview run and the separate recheck on the finally integrated protected revision. Both are pending for this handoff.",
+      "plan": {
+        "outcome": "The cancellation caller receives its documented terminal result, and task-owned scratch disposal and adjacent work are verified at the boundaries their owners actually guarantee.",
+        "change_types": [
+          "indicators"
+        ],
+        "context": [
+          "crates/worker-host/tests/trusted_indicator.rs",
+          "crates/worker-host/src/indicator.rs",
+          "crates/worker-host/src/cleanup.rs",
+          "python/worker_runtime/indicator_guard.py",
+          "project/checks.json",
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json"
+        ],
+        "hypotheses": [
+          "The two original Windows assertions sampled scratch at cancellation return after the bounded cleanup wait timed out. In the first Linux control the cancellation returned with scratch present and the reaper removed it after release. Later disposal and the reason for delay in the original Windows runs remain unknown.",
+          "Both PR 149 native Windows first attempts reached the 900-second Rust harness limit with only the held scratch control unfinished in its 17-test binary. The stalled stage is unknown. Tokio's Windows child pipes and scratch removal both use the blocking pool. A fixture that holds only the supervisor's exit after normal interpreter reclamation should isolate the pending scratch cleanup while permitting ordinary worker I/O.",
+          "The independent Astra review found that the held path discarded both witnessed IDs and omitted invocation counting. A controlled Linux run with the entry witness withheld confirmed a separate fixture teardown defect: dropping the started computation queued the reaper, but the current-thread runtime shut down without driving it. After release acknowledgement and a further two seconds, the interpreter was absent, the exited supervisor remained a zombie, and the owned scratch still existed."
+        ],
+        "risks": [
+          {
+            "failure": "A relaxed absence assertion, unconditional sleep, longer budget or unowned cleanup could hide a permanent leak, delay cancellation or remove another task’s files. A held cleanup and independent adjacent completion must distinguish the outcomes.",
+            "checks": [
+              "project-state",
+              "rust-contracts-workers",
+              "indicator-workflow"
+            ]
+          },
+          {
+            "failure": "A fixture can starve worker I/O or stop driving the reaper when entry evidence is missing. Isolate the hold to the owned cleanup, retain independent startup facts, bound release, PID queries and runtime shutdown, and exercise both the missing entry and withheld release paths before the task harness. Check both witnessed processes and one invocation after acknowledged release on the held path.",
+            "checks": [
+              "project-state",
+              "rust-contracts-workers",
+              "indicator-workflow"
+            ]
+          }
+        ],
+        "rollback": "Restore the previous behavior if cancellation, ownership or adjacent completion regresses. Preserve the original reports and leave unsupported platform observations open.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "worker-host"
+          ],
+          "entrypoints": [
+            "crates/worker-host/tests/trusted_indicator.rs",
+            "crates/worker-host/src/indicator.rs",
+            "crates/worker-host/src/cleanup.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/0"
+            }
+          ],
+          "non_goals": [
+            "Unrelated deadlines, Windows Python suite timing, changes to indicator permissions or source authorization, and new product capabilities."
+          ],
+          "open_questions": [
+            "The native logs leave the stalled stage unknown. Do the two corrected cancellation cases and the cleanup-specific control pass on the supported Windows qualification candidate?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The existing bounded cancellation response, one terminal result without a cancelled artifact, task-scoped resource ownership and adjacent computation."
+          ],
+          "change": [
+            "Observe the cancellation error at return and task-owned scratch absence separately in the two affected native cases. Verify the adjacent task's result independently and replace the blocking-pool hold with a bounded cleanup-specific control.",
+            "Preserve process and invocation evidence on the held path. After missing entry evidence, keep the fixture runtime driving the original cleanup and verify disposal of the started computation's own scratch and processes."
+          ],
+          "data_plan": "Use disposable synthetic fixture files and processes only. Existing profile data and wire formats are outside this change.",
+          "cleanup": "Retain the original Windows failures and passing controls. Observe disposal of the same task-owned path after release and verify a bounded failure when disposal is attempted while held. Bound test-fixture expiry and failed-test shutdown separately from the existing harness limit."
+        }
+      }
+    },
+    {
+      "id": "M0-169",
+      "title": "Qualify the running indicator deadline after real interpreter admission",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M3-005"
+      ],
+      "scope": [
+        "crates/worker-host",
+        "python/worker_runtime"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain the exact original and distinguish expiration before observing both witnesses from deadline cleanup after actual interpreter and child admission. Record which phases were seen in each positive and interrupted control.",
+        "Exercise the ordinary trusted-indicator boundary with a finite test deadline and original production limits. Observe the actual terminal result, absence of an artifact and cleanup of the owned interpreter, child and scratch resources. Keep startup expiration, normal completion and cancellation distinct.",
+        "Acquire stable references while all witnessed processes are alive. Sample their exit state at the first bounded observation after the terminal result, before witness rereads or external PID lookup, and report the sampling interval. The same observer rejects a set with a controlled living child and accepts the fully exited set.",
+        "Compare fixture assumptions, startup timing, execution and cleanup, then qualify the correction under source-bound independent review, real Windows checks and protected integration. Preserve the separate M0-167 diagnostic and original unknowns."
+      ],
+      "checks": [
+        "project-state",
+        "rust-contracts-workers",
+        "indicator-workflow",
+        "rust-lints"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-169-5dcdc7769fe6c9bc.json",
+          "sha256": "276b366e063e1da1958f20aae4603e145a0c441873ec8ee1d9a4c7117258817d"
+        },
+        {
+          "path": "project/evidence/M0-169-15044bdfa776ee3f.json",
+          "sha256": "f034915810ab7f8063612476d7080994cb9a7568a8f9e14f50f10a94ad73cc04"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45844453865-1",
+          "source_commit": "774b5704a2c23a33d3c58230177ba50556e25744",
+          "report_sha256": "6b468211eee9b20f4b88479d1de6f0b9e1a18ae27e85269fa3bdae8fff60077e"
+        },
+        {
+          "run_id": "windows-change-45844453865-1",
+          "source_commit": "774b5704a2c23a33d3c58230177ba50556e25744",
+          "report_sha256": "17936b45c6f4c0067a2fc281de760f968c5416cad1579015e14adf895d775623"
+        },
+        {
+          "run_id": "windows-change-45825584085-1",
+          "source_commit": "8d088f7cba3e7d6322ee9eeb396bd2db59bfa4a2",
+          "report_sha256": "49e0b487bd0cd4501a5c5888ae2198149015b40a9cbcc78242d916ff08d4fff8"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent review approved b767732ad317bb4f1fd7e1646ba9aeb0e0c00513. Guarded run 45931566969 passed all four required checks on Linux and Windows at 9a3c4664712f088a494fa226fb65e41971690932, which adds only the review ledger. The native controls distinguished interpreter startup before hello from actual indicator admission and a witnessed sleeping child. Both returned non-retryable TIMEOUT with no artifact, absent scratch and all retained process references exited at the first sample within 100 ms of return. The observer rejected a held live child and accepted the exited set. Normal completion and cancellation passed separately. Ordinary PR 143 run 45931554585 passed the Rust regressions and lints on both platforms at merge preview a5299db8febecd892c139b5e81621459f7eb7169. Its task-cadence indicator-workflow was blocked and is covered by the guarded reports. The original protected run 45844453865 returned TIMEOUT before joined witness observation completed. The individual witness states, actual indicator entry and child startup, and terminal process and scratch state remain unknown. The M0-167 scratch failure retains its own diagnostic. Earlier guarded receipts remain at their original source and scope. The coordinator owns the protected integration recheck.",
+      "plan": {
+        "outcome": "Retain the exact original and distinguish expiration before observing both witnesses from deadline cleanup after actual interpreter and child admission. Record which phases were seen in each positive and interrupted control. Exercise the ordinary trusted-indicator boundary with a finite test deadline and original production limits. Observe the actual terminal result, absence of an artifact and cleanup of scratch and all owned witnessed processes at the first bounded post-result sample. Keep startup expiration, normal completion and cancellation distinct.",
+        "change_types": [
+          "indicators"
+        ],
+        "context": [
+          "crates/worker-host/tests/deadline/mod.rs",
+          "crates/worker-host/tests/deadline/process_observer.rs",
+          "crates/worker-host/tests/deadline/observe_processes.py",
+          "crates/worker-host/tests/trusted_indicator.rs",
+          "crates/worker-host/src/indicator.rs",
+          "project/checks.json",
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json"
+        ],
+        "hypotheses": [
+          "Cold startup or witness observation can consume the test budget before both child identifiers are recorded. The panic message alone does not prove that the interpreter failed to enter or that any process survived.",
+          "A process that exits after TIMEOUT can escape the later serial tasklist checks. Sampling retained process references immediately after the result can distinguish the controlled living case from an exited set within the observed interval."
+        ],
+        "risks": [
+          {
+            "failure": "Moving the timeout past the observed failure without a deterministic running-child control could make the test pass without exercising deadline cleanup.",
+            "checks": [
+              "project-state",
+              "rust-contracts-workers",
+              "indicator-workflow"
+            ]
+          },
+          {
+            "failure": "The deadline fixture could accept a process that was alive at result delivery because witness reads and serial external PID probes delayed the first observation. Exercise the same observer with a controlled living child and a fully exited set.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The shared deadline test can fail ordinary Linux and Windows verification when its implementation triggers a Clippy warning that the guarded task selection omits.",
+            "checks": [
+              "rust-lints"
+            ]
+          }
+        ],
+        "rollback": "Restore the preceding implementation and retain the diagnosed failures and controls if the ordinary contract changes.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "worker-host",
+            "worker-runtime"
+          ],
+          "entrypoints": [
+            "crates/worker-host/tests/deadline/mod.rs",
+            "crates/worker-host/tests/trusted_indicator.rs",
+            "crates/worker-host/src/indicator.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/0"
+            }
+          ],
+          "non_goals": [
+            "Use only the owned synthetic fixture. Preserve the supported indicator deadline, resource boundaries, normal return, cancellation and adjacent task isolation. M0-167 retains the independent cancellation scratch recurrence."
+          ],
+          "open_questions": [
+            "Cold startup or witness observation can consume the test budget before both child identifiers are recorded. The panic message alone does not prove that the interpreter failed to enter or that any process survived."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Use only the owned synthetic fixture. Preserve the supported indicator deadline, resource boundaries, normal return, cancellation and adjacent task isolation. M0-167 retains the independent cancellation scratch recurrence."
+          ],
+          "change": [
+            "Inspect which runtime, process and fixture events are observed in the genuine failed and earlier passing runs. Pair a real running-child deadline observation with a bounded early-timeout control in an isolated synthetic task. Preserve product limits and capture process and filesystem cleanup. Coordinate shared Rust test changes with M0-167.",
+            "Use a prestarted test-only helper to poll retained process references once without waiting. Bound and report the 100 ms result-to-reply window, exercise a pipe-gated living child and an exited set through the same observer at a public compute result, and retain the old Linux evidence alongside the updated observations."
+          ],
+          "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
+          "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
+        }
+      }
     }
   ]
 }
