@@ -39,6 +39,26 @@
       "requested_at": "2026-11-27T09:53:41.831756+00:00",
       "request_id": "d68ba9dfb281706bb78759e7ac4a8d13f5546283a674d7baf404e6025dc470bf",
       "evidence_sha256": "6ad21334321e7403b996a40460e77f9669956080a4e9a40ca8ecc1c9d0fe7983"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "3475ae4144d5e27d37b2ce379996e922e1d5ddad",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-177 3475ae4144d5e27d37b2ce379996e922e1d5ddad",
+      "scope": "CHANGES_REQUESTED M0-177 3475ae4144d5e27d37b2ce379996e922e1d5ddad",
+      "observation": "In an in-memory replay of a retained deletion receipt, changing only its operation ID to `x` still triggered the initiating success notice and passed the candidate fixture’s receipt check.",
+      "reviewer": "Independent Astra Standard (t1h5)",
+      "original_sha256": "0433114996e8f103c6770cb28a630f24958e7953f19b0373c44d00ecd127910c",
+      "response_id": "30cac65b59e435f4bd002ae1968c27244889e4babebe663b7e9576fccf811c02",
+      "response_sha256": "29aba95a2d78717a4aa45812e230e63f7847f0d3a7ba96f654d64d9f7a0905f8",
+      "legacy_response_sha256": "73f37a7145b3dd6d272a1e1317e4c77518f26a5038af947edec7702c7d475846",
+      "observation_body_sha256": "193b294bc835bc122aa149083aa641c6fea49b5c481e25b33d784db80931116b",
+      "event": {
+        "id": "msg_08f87e6042829856016b09542fe29c87d0a66f709bc13d8269",
+        "timestamp": "2026-11-27T09:58:32.270Z"
+      },
+      "supersedes": "d68ba9dfb281706bb78759e7ac4a8d13f5546283a674d7baf404e6025dc470bf",
+      "evidence_sha256": "878609efc14be93a8de9494a2b3e6bcdb6ee5060e73c85ed98d1a217f0424913"
     }
   ]
 }
