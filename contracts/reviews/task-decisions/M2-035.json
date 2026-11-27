@@ -463,6 +463,26 @@
       "requested_at": "2026-11-27T07:13:36.329190+00:00",
       "request_id": "c8c90b6b5d45382fe07b4f17a4dcb6cde76c852e120359d8e36f779f28dfacd2",
       "evidence_sha256": "6df4e0f41365b542ba92bf4c8c2707d6fa1a2f64bc62be238a098200cf46aebd"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ff7f9403dc57e4a945796d56aa07ec6aaabbba33",
+      "verdict": "approved",
+      "decision": "APPROVE M2-035 ff7f9403dc57e4a945796d56aa07ec6aaabbba33",
+      "scope": "APPROVE M2-035 ff7f9403dc57e4a945796d56aa07ec6aaabbba33",
+      "observation": "After the shared selection was redacted during a CSV read, the late reply displayed neither the chart nor its provenance, and the authorized clear sent one request with expected selection revision 2.",
+      "reviewer": "Independent Astra Standard (t1f4)",
+      "original_sha256": "2a4496f0afe022d254f6383a6e93e0713ce376d26e73a7993fed0705c79f145f",
+      "response_id": "3272583942198ef7dbae2b8a1e7ddff247c9d70ebd297ce4c66b100df44e5ee9",
+      "response_sha256": "fa7b3726f237cb904c00cdc957808d4e9273fa5a800ded3e385856b0477977be",
+      "legacy_response_sha256": "175863055f5ca80812a214a7d287864210199826748c669565e5a031d59cbbef",
+      "observation_body_sha256": "c0975ef87f9901a61ab4a2e71a09d12786703d7741cc86fc13019c2a720f8a14",
+      "event": {
+        "id": "msg_05c579948e787d7f016b093000f06c87d0944593d34cd70aae",
+        "timestamp": "2026-11-27T07:24:03.123Z"
+      },
+      "supersedes": "c8c90b6b5d45382fe07b4f17a4dcb6cde76c852e120359d8e36f779f28dfacd2",
+      "evidence_sha256": "fd9a69dd4ca9f6bbfc747cd53dd8eb3a4f5b1ca35df7608e1504f13cc4d70b98"
     }
   ]
 }

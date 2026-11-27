@@ -443,6 +443,26 @@
       "requested_at": "2026-11-27T07:13:35.591062+00:00",
       "request_id": "3786bd9798a3fdd7e3eac2dc68a849f6103a1545e69de2c24f5395163ba0661b",
       "evidence_sha256": "4578c69fa4225a5fccb66e33b0b93e1c88aecd2c177f9b49a9adec3a68a7079c"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ff7f9403dc57e4a945796d56aa07ec6aaabbba33",
+      "verdict": "approved",
+      "decision": "APPROVE M2-034 ff7f9403dc57e4a945796d56aa07ec6aaabbba33",
+      "scope": "APPROVE M2-034 ff7f9403dc57e4a945796d56aa07ec6aaabbba33",
+      "observation": "I replayed the retained writer events through the candidate’s shared snapshot helper and observed request 2 reach the writer and drain with HTTP 200, while the competing snapshot returned retryable HTTP 429 BUSY before reaching the writer.",
+      "reviewer": "Independent Astra Standard (t1f3)",
+      "original_sha256": "769fcd9dd439fb32bd0bb2bd33deb747fc7d3fcb6ddda75f8efc356195f6b122",
+      "response_id": "4fbf1531b1d0f6dcd418d66e3cb51b1610375c68fd698a2435b3562c9c5d6604",
+      "response_sha256": "c664ed9062c71dd87aa3636a09b94ec5b90309c0983e3fb8e5cac55b46e26810",
+      "legacy_response_sha256": "8ac48c9879419bca2eed5cfab070404ea969246635be4ecebdadd7520f3936ed",
+      "observation_body_sha256": "3cabacad451e3700ac29858e7f0d12d826bb98cd77e14833d537244c7b50afd2",
+      "event": {
+        "id": "msg_096a0a672a7da6a4016b092fb7ea6487d09578412da749c754",
+        "timestamp": "2026-11-27T07:22:48.120Z"
+      },
+      "supersedes": "3786bd9798a3fdd7e3eac2dc68a849f6103a1545e69de2c24f5395163ba0661b",
+      "evidence_sha256": "99cc0389f68e38162678f6522a279cd24da63f06c6231101a7608922f63ffab5"
     }
   ]
 }

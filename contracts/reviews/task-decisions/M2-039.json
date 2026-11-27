@@ -619,6 +619,26 @@
       "requested_at": "2026-11-27T07:13:34.834689+00:00",
       "request_id": "6adbb3537d1b8666c540e6ff8057d652d8a049de09c0f24a298645786a84999c",
       "evidence_sha256": "b6a82acbb32017a455b763be4a53ec285c00636d193df32350cd9b74b51940b3"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ff7f9403dc57e4a945796d56aa07ec6aaabbba33",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 ff7f9403dc57e4a945796d56aa07ec6aaabbba33",
+      "scope": "APPROVE M2-039 ff7f9403dc57e4a945796d56aa07ec6aaabbba33",
+      "observation": "In the retained Linux and Windows results for run 45952399553, the admitted frozen preview returned HTTP 200 with a matching request ID and a task ID, while the refused preview returned HTTP 429 with retryable BUSY and no task ID.",
+      "reviewer": "Independent Astra Standard (t1f1)",
+      "original_sha256": "a59f6f27086431d72de46ad5bda1d35df5ea518c7293a4cf650fa3ec2c52c179",
+      "response_id": "cd8f836a20fa09bd1b7d3f17b3251b595d2af568200511537fc2b6884e3be8ae",
+      "response_sha256": "8a0648d6a0b611c2ca1ba8590137a7dd67716ea111f2f0c02e3e45476301f107",
+      "legacy_response_sha256": "6750af17d047acbfa37403dc0406803732a511e8cc499b6c6bd03c0a89d91d2c",
+      "observation_body_sha256": "b7604940b8987e5a431f275cf50b770fb6ffdaf16724a4ebcdc1c815eeaefe3c",
+      "event": {
+        "id": "msg_0725b3163fdeb99b016b092e76eabc87d0b14f023c3289be89",
+        "timestamp": "2026-11-27T07:17:31.705Z"
+      },
+      "supersedes": "6adbb3537d1b8666c540e6ff8057d652d8a049de09c0f24a298645786a84999c",
+      "evidence_sha256": "ba2582ef140ef5cef5a5d7ceeb0e1d9f03ba35ffe4b655942265aec0b29cef77"
     }
   ]
 }
