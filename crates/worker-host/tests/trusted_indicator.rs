@@ -1,5 +1,6 @@
 use std::{
     fs, future, io,
+    panic::{AssertUnwindSafe, catch_unwind, resume_unwind},
     path::{Path, PathBuf},
     process::Stdio,
     time::{Duration, Instant},
@@ -17,7 +18,6 @@ use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     process::Command,
     sync::oneshot,
-    task::spawn_blocking,
     time::{sleep, timeout},
 };
 use uuid::Uuid;
@@ -432,7 +432,7 @@ async fn observe_scratch_disposal(scratch: &Path) -> io::Result<()> {
         }
     })
     .await
-    .map_err(io::Error::other)?
+    .map_err(|elapsed| io::Error::new(io::ErrorKind::TimedOut, elapsed))?
 }
 
 impl Drop for Fixture {
@@ -641,35 +641,62 @@ while True:
 
 #[test]
 fn cancellation_returns_while_owned_scratch_cleanup_is_held() {
-    tokio::runtime::Builder::new_current_thread()
+    let fixture = Fixture::observe_real_worker();
+    let guard = fixture
+        .directory
+        .join("python/worker_runtime/indicator_guard.py");
+    fs::rename(&guard, guard.with_file_name("indicator_guard_original.py")).unwrap();
+    // Hold only this supervisor's exit after the real guard reclaims its
+    // interpreter. The transport and its Windows blocking pipe I/O run normally.
+    fs::write(
+        guard,
+        r#"import runpy
+import sys
+from pathlib import Path
+from time import monotonic, sleep
+
+guard = runpy.run_path(str(Path(__file__).with_name('indicator_guard_original.py')))
+try:
+    status = guard['supervise'](int(sys.argv[1]), int(sys.argv[2]))
+except OSError:
+    raise SystemExit(guard['ABANDONED']) from None
+
+if status == guard['ABANDONED']:
+    directory = Path(__file__).parents[2]
+    release = directory / 'release-cleanup'
+    (directory / 'cleanup-held').touch()
+    deadline = monotonic() + 6
+    while monotonic() < deadline:
+        if release.exists():
+            (directory / 'cleanup-release-observed').touch()
+            break
+        sleep(0.01)
+raise SystemExit(status)
+"#,
+    )
+    .unwrap();
+
+    let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
-        .max_blocking_threads(1)
         .build()
-        .unwrap()
-        .block_on(async {
-            let fixture = Fixture::observe_real_worker();
+        .unwrap();
+    let release = fixture.directory.join("release-cleanup");
+    let mut owned_scratch = None;
+    let result = catch_unwind(AssertUnwindSafe(|| {
+        runtime.block_on(async {
             let request = request(LOOP);
             let (cancel, cancellation) = oneshot::channel();
             let operation = compute(&fixture.config, &request, async {
                 cancellation.await.unwrap();
             });
             tokio::pin!(operation);
-            let (pid, parent, scratch) = tokio::select! {
+            let (_, _, scratch) = tokio::select! {
                 result = &mut operation => panic!("computation ended before cancellation: {result:?}"),
                 witness = fixture.witness() => witness,
             };
+            let scratch = owned_scratch.insert(scratch).as_path();
             let pending = scratch.join("pending-output");
             fs::write(&pending, b"synthetic scratch data").unwrap();
-
-            // Queue removal behind the only blocking thread. The test can
-            // release it explicitly and a failed test cannot hold it forever.
-            let (release, held) = std::sync::mpsc::channel();
-            let (started, entered) = oneshot::channel();
-            spawn_blocking(move || {
-                let _ = started.send(());
-                let _ = held.recv_timeout(Duration::from_secs(5));
-            });
-            entered.await.unwrap();
 
             let started = Instant::now();
             cancel.send(()).unwrap();
@@ -685,12 +712,42 @@ fn cancellation_returns_while_owned_scratch_cleanup_is_held() {
                 started.elapsed()
             );
 
-            release.send(()).expect("cleanup was still held at release");
-            observe_scratch_disposal(&scratch)
+            timeout(Duration::from_secs(2), async {
+                let held = fixture.directory.join("cleanup-held");
+                while !held.exists() {
+                    sleep(Duration::from_millis(10)).await;
+                }
+            })
+            .await
+            .expect("the real supervisor must enter the cleanup hold");
+
+            let unreleased = observe_scratch_disposal(scratch)
+                .await
+                .expect_err("unreleased scratch must fail the disposal observation");
+            assert_eq!(unreleased.kind(), io::ErrorKind::TimedOut);
+            assert_eq!(fs::read(&pending).unwrap(), b"synthetic scratch data");
+            eprintln!("scratch disposal observation timed out before release");
+
+            fs::write(&release, b"").unwrap();
+            observe_scratch_disposal(scratch)
                 .await
                 .expect("the original reaper must dispose of scratch after release");
-            fixture.assert_reaped(pid, parent, scratch);
+            assert!(
+                fixture.directory.join("cleanup-release-observed").is_file(),
+                "the supervisor hold expired without observing release"
+            );
+            eprintln!("supervisor observed release and the original reaper removed scratch");
         });
+    }));
+    if let Err(failure) = result {
+        let _ = fs::write(&release, b"");
+        if let Some(scratch) = owned_scratch {
+            let _ = runtime.block_on(observe_scratch_disposal(&scratch));
+        }
+        // A failed assertion must not turn into an unbounded wait on a pipe.
+        runtime.shutdown_timeout(Duration::from_secs(2));
+        resume_unwind(failure);
+    }
 }
 
 #[tokio::test]

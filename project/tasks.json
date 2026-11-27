@@ -27843,6 +27843,7 @@
       ],
       "acceptance": [
         "Retain the first native failure in each of the two cancellation cases and the same-source Linux and protected Windows passing counterparts. Record which resource states were observed at which time and which historical outcomes are unknown.",
+        "Retain both first-attempt Windows Rust timeouts of the earlier held control and the separate passing controls. Demonstrate that the new test fails within its observation bounds when release is withheld.",
         "Use the ordinary benign indicator cancellation interaction and a controlled pending cleanup. Distinguish its terminal outcome from verified disposal, preserve owned cleanup through the bounded wait, normal completion, absence of a cancelled artifact and isolation of the adjacent computation. Resolve the observed discrepancy at its responsible boundary with independently checkable evidence.",
         "Obtain independent review, native Windows and Linux checks for the affected behavior and a recheck on the integrated revision. Record remaining timing and observation limits."
       ],
@@ -27857,9 +27858,19 @@
           "run_id": "windows-change-45946774981-1",
           "source_commit": "f54d437f5ea159fb0aa5d806682aeae8a6653b1b",
           "report_sha256": "a6761ffac6afb7bfe9e017f30f6609bea9fe01c3de038b6ae2196ca9d390c88c"
+        },
+        {
+          "run_id": "windows-change-45952279090-1",
+          "source_commit": "06f2e91dd0700c83acd3cc990a8d3c2987d3d711",
+          "report_sha256": "d0702ac591c0e183aba0d9bf323d1b903d6d07c3ce9c890103487facd1462203"
+        },
+        {
+          "run_id": "20261127T063216.487478Z-e993ffa5",
+          "source_commit": "53917996a926a5fdea41c7e2f58f1ba86bdc0c4f",
+          "report_sha256": "fbe1d3c9c91c97cdc4122f6c39e6b25facc8ede80f1241a6e3d976b2f46381fe"
         }
       ],
-      "next_action": "Independently review the clean test correction and its retained original and local observations. Qualify the corrected native cases on supported Windows and Linux, archive matching evidence, and recheck on the integrated revision.",
+      "next_action": "Independently review the cleanup-specific held and released control and the original and local observations. Qualify this source on supported Windows and Linux, archive matching evidence and recheck the integrated revision.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -27871,15 +27882,25 @@
           "crates/worker-host/tests/trusted_indicator.rs",
           "crates/worker-host/src/indicator.rs",
           "crates/worker-host/src/cleanup.rs",
+          "python/worker_runtime/indicator_guard.py",
           "project/checks.json",
           "contracts/reviews/2026-11-26-maintenance-workstreams.json"
         ],
         "hypotheses": [
-          "The two original Windows assertions sampled scratch at cancellation return after the bounded cleanup wait timed out. In the controlled local case, the same cancellation wait expires with scratch still present and the original reaper removes it after release. The native tests now verify terminal cancellation and subsequent disposal separately. Later disposal and the reason for delay in the original Windows runs remain unknown."
+          "The two original Windows assertions sampled scratch at cancellation return after the bounded cleanup wait timed out. In the first Linux control the cancellation returned with scratch present and the reaper removed it after release. Later disposal and the reason for delay in the original Windows runs remain unknown.",
+          "Both PR 149 native Windows first attempts reached the 900-second Rust harness limit with only the held scratch control unfinished in its 17-test binary. The stalled stage is unknown. Tokio's Windows child pipes and scratch removal both use the blocking pool. A fixture that holds only the supervisor's exit after normal interpreter reclamation should isolate the pending scratch cleanup while permitting ordinary worker I/O."
         ],
         "risks": [
           {
             "failure": "A relaxed absence assertion, unconditional sleep, longer budget or unowned cleanup could hide a permanent leak, delay cancellation or remove another task’s files. A held cleanup and independent adjacent completion must distinguish the outcomes.",
+            "checks": [
+              "project-state",
+              "rust-contracts-workers",
+              "indicator-workflow"
+            ]
+          },
+          {
+            "failure": "A fixture can starve worker I/O or stall test shutdown while the checked operation appears bounded. Isolate the hold to the owned cleanup, bound receipt and release on failure, and exercise a rejected or unreleased path through the public interaction before running the task harness.",
             "checks": [
               "project-state",
               "rust-contracts-workers",
@@ -27912,7 +27933,7 @@
             "Unrelated deadlines, Windows Python suite timing, changes to indicator permissions or source authorization, and new product capabilities."
           ],
           "open_questions": [
-            "Do the two corrected native cases and the held and released control pass on the supported Windows qualification candidate?"
+            "The native logs leave the stalled stage unknown. Do the two corrected cancellation cases and the cleanup-specific control pass on the supported Windows qualification candidate?"
           ]
         },
         "evolution": {
@@ -27921,10 +27942,10 @@
             "The existing bounded cancellation response, one terminal result without a cancelled artifact, task-scoped resource ownership and adjacent computation."
           ],
           "change": [
-            "Observe the cancellation error at return and task-owned scratch absence separately in the two affected native cases. Verify the adjacent task's result independently and use held cleanup to exercise the return boundary."
+            "Observe the cancellation error at return and task-owned scratch absence separately in the two affected native cases. Verify the adjacent task's result independently and replace the blocking-pool hold with a bounded cleanup-specific control."
           ],
           "data_plan": "Use disposable synthetic fixture files and processes only. Existing profile data and wire formats are outside this change.",
-          "cleanup": "Retain the original Windows failure and passing controls. Replace the immediate absence assumption in the affected cancellation cases with bounded observation of the same task-owned path."
+          "cleanup": "Retain the original Windows failures and passing controls. Observe disposal of the same task-owned path after release and verify a bounded failure when disposal is attempted while held. Bound test-fixture expiry and failed-test shutdown separately from the existing harness limit."
         }
       }
     }
