@@ -27705,6 +27705,128 @@
       }
     },
     {
+      "id": "M0-174",
+      "title": "Preserve and handle the observed preparation outcomes in two workspace journeys",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-093",
+        "M0-101"
+      ],
+      "scope": [
+        "tests/ubuntu-preview",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain both ordinary first-attempt originals, their separate passing same-source and protected controls, and the verified response stage for each. Preserve separate cause attribution where the original exchange is missing.",
+        "At the normal consumer, distinguish an admitted mutation from a typed refusal or a missing result before the two-window review and frozen indicator assertions. Preserve authorizations, saved results, the original timeout, cancellation semantics and idempotency. Exercise the normal path and one bounded refused or unavailable case for the affected entry, using the existing fixture mechanisms.",
+        "Obtain an independent source decision, verify the affected public journeys on Linux and Windows and recheck the integrated revision. Preserve uncovered states explicitly."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-174-6e96cf31c96cf5b8.json",
+          "sha256": "124f9c4bef418be67342164794e557de7fa80e8b51bc9a220d8bb05b4cfd5507"
+        },
+        {
+          "path": "project/evidence/M0-174-26b056261f8be6dc.json",
+          "sha256": "ce8059043f2173f8c7ac352da61c311c2660cff1fa52ae7a7bfe718afa5ab249"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45943186660-1",
+          "source_commit": "471a3bcc016186494d6508ce73372c8a9573d010",
+          "report_sha256": "f7f046b38d6e69be08fc06ea4f412ca68857b80e34498d305cb334def8950306"
+        },
+        {
+          "run_id": "20261127T050318.853582Z-84ced601",
+          "source_commit": "a526ea6fbd05f10584e522bbd6087a7807a375b2",
+          "report_sha256": "c57aa800844bea9590b755bec466727728fb6036b9bcacca4e9ae24a9d676b7a"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent approval of 90ab2fff33bfb034dc756700688f79782d7f6036 applies to candidate 621f023707d1c830d0059bff49a8513927005d75. Ordinary PR 148 run 45947862031 attempt 1 tested merge preview 694f8156383c1a3bc13ade28893b682e208c7cda with the same tree. All three required task checks and all six named workspace controls passed on Linux and Windows. Linux passed 100 workspace cases and has an overall blocked report outside the task scope. Windows passed 99 workspace cases and skipped two POSIX signal cases. The separate first-attempt PR 130 Windows and PR 97 Linux failures, and their separate passing controls, remain archived. The owner of the original Windows busy slot and the original Linux HTTP response and typed reason remain unknown. The coordinator owns publication and the protected integrated-source recheck.",
+      "plan": {
+        "outcome": "Two ordinary synthetic workspace journeys reach their intended assertions or retain the original typed preparation failure at the public boundary.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ubuntu-preview/workspace_snapshot_gate.mjs",
+          "apps/desktop/ui/src/private-record-transport.ts",
+          "apps/desktop/ui/src/private-records.tsx",
+          "project/checks.json",
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json"
+        ],
+        "hypotheses": [
+          "The Windows browser displayed the typed BUSY and kept the draft with Review save available. The two-window fixture assumed its first submission would be admitted. Exercise the existing explicit Review save action once more only after a verified HTTP 429 retryable BUSY with no result.",
+          "The Linux fixture discarded the HTTP status and body outside result. Retain the observed preparation outcome before requiring a correlated committed reply with a task ID. The historical Linux response and the identity of the occupied Windows slot remain unknown."
+        ],
+        "risks": [
+          {
+            "failure": "An unconditional mutation retry, a longer deadline or replacing ordinary activity by forced serialization could hide a real refusal, duplicate a write, or weaken the original checks.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Restore the previous consumer change if the established refusal, original budget or downstream assertions change. Keep the original evidence and leave unsupported cases open.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ubuntu-preview/workspace_snapshot_gate.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/0"
+            }
+          ],
+          "non_goals": [
+            "Unrelated failure classes, generic retry infrastructure, new product operations, real user data or final release acceptance."
+          ],
+          "open_questions": [
+            "What occupied admission in the original Windows run, and what HTTP response did the original Linux submission receive? The retained originals cannot establish either."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Ordinary two-window isolation, the frozen synthetic source, stored indicator output, cancellation, existing deadlines and established mutation authorization."
+          ],
+          "change": [
+            "Have the browser fixture exercise the available draft action after a definite admission refusal within the original observation budget.",
+            "Have the direct frozen preview fixture record HTTP and protocol evidence before asserting a task identity, with one submission per request."
+          ],
+          "data_plan": "Only synthetic fixtures are in use. Preserve the public operation and storage contracts.",
+          "cleanup": "Remove any duplicated temporary observation path after confirming the adopted narrow handling. Retain the diagnostic originals and regression cases."
+        }
+      }
+    },
+    {
       "id": "M0-151",
       "title": "Synchronize the owned market worker interruption witness",
       "milestone": "M0",
