@@ -8317,7 +8317,7 @@
       "status": "open",
       "severity": "major",
       "source": "Original Windows PR 146 attempt 1, run 45939423128, staged producer and protected comparison in archives/observations/repo-hygiene-20261125/pr146-producer-45939423128-recovery/cold-start-recurrence.json (SHA-256 55c4b69f0351c8ec55952597d2c580b4ee4fea96453ddff132142846362e2d51).",
-      "observation": "The first public closed-bar repair stopped before its chart assertions. At 10016 ms the document had returned HTTP 200, committed at 23 ms and finished at 31 ms; one unnamed script requested at 7026 ms was still pending. The other 40 cases passed. The same public test on the protected base passed in 6.3 seconds. The initial observation does not identify a script route or cause of the delay.",
+      "observation": "The first public closed-bar repair stopped before its chart assertions. At 10016 ms the document had returned HTTP 200, committed at 23 ms and finished at 31 ms; one unnamed script requested at 7026 ms was still pending. The other 40 cases passed. The same first public test on protected Windows run 45936740302 committed at 17 ms, reached DOMContentLoaded at 255 ms, verified the sample at 1629 ms, and passed in 6281 ms. The intentional workspace-start.ts hold was issued at 23 ms in the producer and 34 ms in the protected run. It stopped at the original deadline in both. The original late script route and cause of the delay remain unknown.",
       "task_ids": [
         "M0-173"
       ],

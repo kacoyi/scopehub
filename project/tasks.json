@@ -27441,7 +27441,7 @@
         "market-recovery"
       ],
       "evidence": [],
-      "next_action": "Compare the failing first cold public repair against the same protected Windows case and the existing held-document and held-module controls. Measure or classify the first costly consumer-visible stage and choose one correction supported by it.",
+      "next_action": "Independently review the clean prepared-preview source and compare its first ordinary Windows public repair and held-module observation with the retained producer and protected control. Attach any matching full-run recurrence to the existing finding before evaluating closure.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -27451,13 +27451,15 @@
         ],
         "context": [
           "tests/ubuntu-preview/market-closed-bar-repair.spec.mjs",
+          "tests/ubuntu-preview/market-recovery.vite.config.mjs",
           "tests/ubuntu-preview/market-preview-config.mjs",
           "tests/ui/sample-startup.mjs",
           "project/checks.json",
           "contracts/reviews/2026-11-26-maintenance-workstreams.json"
         ],
         "hypotheses": [
-          "The retained observer narrows the failure to a committed document with one pending script. Compare preview preparation, delivery and browser timing before attributing the cause."
+          "The retained observer narrows the failure to a committed document with one late pending script. The first protected Windows repair reached DOMContentLoaded at 255 ms and verified the chart at 1629 ms. The historical request route and wait cause remain unknown.",
+          "The original preview probe admitted the browser after the document response while Vite could still transform source on demand. A fresh-cache Linux comparison observed the real main entry respond in 7.92 ms before preparation and 0.08 ms after, with the chart verified at 1009 and 904 ms. This establishes a fixture improvement on the local host. Windows recurrence and recovery require ordinary native evidence."
         ],
         "risks": [
           {
@@ -27478,6 +27480,7 @@
           ],
           "entrypoints": [
             "tests/ubuntu-preview/market-closed-bar-repair.spec.mjs",
+            "tests/ubuntu-preview/market-recovery.vite.config.mjs",
             "tests/ubuntu-preview/market-preview-config.mjs",
             "tests/ui/sample-startup.mjs"
           ],
@@ -27495,7 +27498,7 @@
             "Product feature changes, user data, unrelated Windows matrix preparation and a blanket timeout change."
           ],
           "open_questions": [
-            "Which observed preparation or delivery cost explains the pending script in comparable trials? The old response does not identify its route."
+            "Does the prepared fixture pass the first ordinary Windows repair and preserve the rejection of the held module? The original anonymous script cannot be attributed without its request and server timing."
           ]
         },
         "evolution": {
@@ -27504,7 +27507,7 @@
             "Keep the public cold path, 10000 ms navigation bound, original synthetic chart and source-row assertions, held-asset controls, privacy of diagnostic paths, and classification of genuine failures."
           ],
           "change": [
-            "Compare the failing first cold public repair against the same protected Windows case and the existing held-document and held-module controls. Measure or classify the first costly consumer-visible stage and choose one correction supported by it."
+            "Prepare the Vite startup entry, dynamic application entry and linked stylesheet before the market recovery fixture signals readiness. Keep the ordinary preview, browser navigation and real synthetic bridge in the first public case."
           ],
           "data_plan": "Use the existing synthetic chart, per-run test data and disposable local verification outputs. No user-data changes.",
           "cleanup": "Retain authenticated first-attempt originals and remove any superseded verification path when its replacement is qualified."
