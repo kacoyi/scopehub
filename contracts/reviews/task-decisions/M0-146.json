@@ -639,6 +639,15 @@
       },
       "supersedes": "2d747b05a66c3c8307a6905efa1eafe6303d3d28ee9a086d9a0e5657927aaabd",
       "evidence_sha256": "60e3f9ed99c45f79301834d74da65ec6af1acdb7c9485349ba83ebee242952e9"
+    },
+    {
+      "kind": "request",
+      "source_commit": "f5ba8771b485118ef017c75f5b184bb61991a90e",
+      "scope": "Independently assess the producer interruption/publication, selected-case partition, log and workspace attachment preservation and reopened reports on this five-lane candidate. Compare the ordinary four-lane protected path and the original native samples.",
+      "supersedes": "e1931f32cfebb5be7637b872923e6ae9a3deca7e5787b21c46cd6694b9192692",
+      "requested_at": "2026-11-27T09:52:00.671095+00:00",
+      "request_id": "b9fba548a9e2ddbe19b5b42a7920a38a80af21975eaffe4de7328cd4ee8923f6",
+      "evidence_sha256": "d50917b5b461b745cfffb65cac85c5fa4433807109e814917128dca3762c34ad"
     }
   ]
 }

@@ -639,6 +639,15 @@
       },
       "supersedes": "ddf63bf3061ab7bad048901e2d06afbde6e34e7675e7efa26aa495f9b650a451",
       "evidence_sha256": "6ea17f9059e1687ec8b3c453172a873aac709c3fd270b87ee1bce258cc9cdea3"
+    },
+    {
+      "kind": "request",
+      "source_commit": "f5ba8771b485118ef017c75f5b184bb61991a90e",
+      "scope": "Independently assess the protected integration decision at the public entry against the actual tested merge tree, its workflow, PR source, producer set and statuses. Confirm the normal five-producer PR and the four-producer protected push, and the documented cases where irreconcilable source information prevents a decision.",
+      "supersedes": "71aaa8cc13afa42a08d427a92423cded784bf776ac7e90e220a4f99c2557db76",
+      "requested_at": "2026-11-27T09:51:59.976877+00:00",
+      "request_id": "7085a4a9b96551dd3f515761de94fe6ab6e07f56da1431be6cb18be0404e20bb",
+      "evidence_sha256": "6a8b656e115652c0d7b3ab5de03fcd5ad45e1123cccc34ec78f646679270d4fe"
     }
   ]
 }
