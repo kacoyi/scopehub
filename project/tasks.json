@@ -29499,8 +29499,11 @@
       ],
       "scope": [
         "apps/desktop/ui",
+        "contracts/generated",
+        "scripts",
         "tests/ubuntu-preview",
         "tests/ui",
+        "project/checks.json",
         "project/tasks.json",
         "project/feedback.json",
         "project/evidence"
@@ -29514,11 +29517,13 @@
         "Reconcile the existing operation and fixture contract for a missing approval reply. Use synthetic committed, unresolved and refusal controls with actual transport and stored marker identity. Check the documented recovery action for the existing result without repeating a deletion or exposing deleted note content.",
         "At the ordinary verification entries, observe the five-second missing-notice result with approval headers received and the body still pending. Require the complete matching receipt and notice for success, and verify both owned synthetic profiles are removed when result attachment rejects.",
         "Use the initiating note approval path to accept the original valid UUID receipt and reject both a missing ID and a malformed nonempty ID, retaining the existing unverified outcome and recovery path.",
+        "At the ordinary initiating deletion action, require a canonical committed outcome and nested receipt bound to the prepared workspace, target and next revision before showing success. Exercise extra fields at both reviewed placements, invalid values and mismatched bindings; retain the unverified notice and explicit same-approval recovery with one durable marker and no automatic repeat.",
         "At the peer draft fixture, prove an explicit pre-admission retryable BUSY leaves the note and outcome unchanged and separately observe a successful approval with one matching durable marker and the ordinary success notice.",
         "Independently review the smallest evidenced repair or contract-aligned verification correction, preserve adjacent normal and observer-abort behavior and obtain ordinary native and protected observations."
       ],
       "checks": [
         "project-state",
+        "generated-contracts",
         "workspace-timeframe",
         "market-workflow",
         "ui-build"
@@ -29549,7 +29554,7 @@
           "report_sha256": "fe340f34a7d37d598dd354882df3d3d5efa8d86a4626d24c9b1e99d5b1fd4599"
         }
       ],
-      "next_action": "Review the clean candidate and its exact-source browser controls for valid, missing-ID and malformed-ID approvals, genuine pre-admission BUSY, and one durable peer deletion. The coordinator obtains an independent decision, an ordinary Windows observation and matching protected verification before resolving findings or completing the task.",
+      "next_action": "Review the clean candidate and its exact-source browser controls for canonical committed deletion, rejected replies, explicit recovery, retryable pre-admission BUSY and one durable peer deletion. The coordinator obtains an independent decision, an ordinary Windows observation and matching protected verification before resolving findings or completing the task.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -29561,6 +29566,7 @@
           "tests/ubuntu-preview/workspace.spec.mjs",
           "apps/desktop/ui/src/decision-notes.tsx",
           "apps/desktop/ui/src/decision-note-transport.ts",
+        "scripts/generate_output_validators.mjs",
           "project/checks.json",
           "contracts/reviews/2026-11-26-maintenance-workstreams.json"
         ],
@@ -29568,6 +29574,7 @@
           "The first Windows journal observes one approval without a correlated response before the initiating assertion fails. The stored marker establishes commit by teardown, while the observer still reads revision 4 within the assertion window. A controlled browser delivery interruption exercises the existing recovery path without attributing the original failure.",
           "Sequential receipt parsing delays reporting an already failed notice assertion while the body remains pending. Sequential attachment and teardown prevent both closes when attachment rejects. Exercise each distinction at its ordinary fixture entry.",
           "Decision-note receipt consumers can accept a matching target and revision with an absent or malformed operation ID. Apply the existing receipt validation at the shared boundary and exercise the normal initiating approval.",
+        "The initiating action verifies selected receipt values but can accept additional fields at the outcome or receipt level. Decode the closed canonical committed outcome and its nested receipt before evaluating the prepared approval binding.",
           "PR 131 received an explicit retryable BUSY before a write, while its fixture unconditionally expected a commit. Inspect owned reads and distinguish a proved refusal from ambiguous delivery before any repeat of approval."
         ],
         "risks": [
@@ -29596,6 +29603,13 @@
           "failure": "A missing or malformed operation ID can produce a false success notice. Check the original valid receipt and rejected variants at the public initiating approval, preserving its unverified state and same-approval recovery.",
           "checks": [
             "workspace-timeframe"
+          ]
+        },
+        {
+          "failure": "A malformed committed outcome, malformed nested receipt or mismatched approval binding can produce a false success notice. At the initiating deletion exercise a canonical success and representative rejected replies, including each independently observed extra-field placement, and check an explicit recovery returns the same receipt with one durable marker and no automatic repeat.",
+          "checks": [
+            "workspace-timeframe",
+            "generated-contracts"
           ]
         },
         {
@@ -29631,6 +29645,10 @@
               "pointer": "/$defs/DecisionNoteReceipt11"
             },
             {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/DecisionNoteDeleteCommitted11"
+            },
+            {
               "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
               "pointer": "/outcomes/0"
             }
@@ -29651,7 +29669,7 @@
           "change": [
             "Observe approval delivery and the initiating notice within their original windows. Retain the initiator drawer state beside the observer and durable marker. In the existing consent case, distinguish a locally committed approval whose reply is interrupted from an explicit stale refusal, and verify that the same approval recovers the original receipt without another deletion.",
             "Keep receipt parsing and the notice assertion independent. Release both owned profile directories even if attaching the recovery observation fails.",
-            "Require a canonical receipt before authorizing a decision-note success notice, preserve unresolved approval recovery, and distinguish proved pre-admission refusal from the successful single-commit peer draft control."
+            "Require the canonical committed deletion outcome and nested receipt, including the approval binding, before authorizing the initiating success notice. Preserve unresolved approval recovery and distinguish proved pre-admission refusal from the successful single-commit peer draft control."
           ],
           "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
           "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."

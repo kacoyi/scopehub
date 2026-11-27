@@ -9756,6 +9756,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "peer-note-deletion-accepts-noncanonical-committed-approval",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent Astra Standard (t1hf) on c845c2bf670bda28f94eda2387378e53bc1ec2bf. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-177-c845c2bf/original-assistant-response.jsonl (SHA-256 183ebf6821b7c9b83b3925369b859f5b0ee090f2867b35774f5ea41e67fbe660), recorded via project:review in 32e128eb34daad0f9974836ce8ac845a3a9d6e4e.",
+      "observation": "An independent replay of a retained committed deletion produced the initiating success notice when synthetic note content was added to outcome.result or to receipt.deleted_note_body. Both canonical objects prohibit additional fields. The fixture accepted the extra outcome field and rejected the extra receipt field. Neither replay displayed the synthetic content.",
+      "task_ids": [
+        "M0-177"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

@@ -3858,13 +3858,26 @@ test('decision-note backup restore previews known deletions and independent copi
   }
 });
 
-for (const operationId of ['missing', 'malformed']) {
-  test(`decision-note deletion recovers its original receipt after a ${operationId} operation ID`, async ({ browser }, testInfo) => {
+const unexpectedApprovalBody = 'Synthetic body supplied by a malformed deletion approval';
+const rejectedDeleteApprovals = [
+  ['a missing operation ID', ({ receipt }) => { delete receipt.operation_id; }],
+  ['a malformed operation ID', ({ receipt }) => { receipt.operation_id = 'x'; }],
+  ['an extra field in the committed outcome', outcome => { outcome.result = { body: unexpectedApprovalBody }; }],
+  ['an extra field in the receipt', ({ receipt }) => { receipt.deleted_note_body = unexpectedApprovalBody; }],
+  ['a mistyped undoable flag', ({ receipt }) => { receipt.undoable = 'false'; }],
+  ['a mismatched workspace', ({ receipt }) => { receipt.workspace_id = 'other-workspace'; }],
+  ['a mismatched target', ({ receipt }) => { receipt.target.object_id = randomUUID(); }],
+  ['an extra field in the target', ({ receipt }) => { receipt.target.extra = true; }],
+  ['a mismatched revision', ({ receipt }) => { receipt.committed_workspace_revision += 1; }],
+];
+
+for (const [scenario, changeApproval] of rejectedDeleteApprovals) {
+  test(`decision-note deletion recovers its original receipt after ${scenario}`, async ({ browser }, testInfo) => {
     const profile = await makeProfile();
     const fixture = { date: '2026-02-03', thesis: 'Synthetic decision for a receipt control', choice: 'Wait', outcomes: [
       { date: '2026-04-09', body: 'Synthetic outcome for the receipt control' },
     ] };
-    const observation = { operationId, events: [] };
+    const observation = { scenario, events: [] };
     try {
       await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
         await inFreshBrowser(browser, server, async page => {
@@ -3882,27 +3895,28 @@ for (const operationId of ['missing', 'malformed']) {
           const sentApprovals = () => observation.events.filter(row => row.stage === 'request'
             && row.operation === 'decisionNote.delete' && row.confirmation === 'approve').map(row => row.requestId);
           const notice = notes.getByText('Decision note deleted.', { exact: true });
+          const error = notes.getByRole('alert');
           const retry = notes.getByRole('button', { name: 'Retry confirmation' });
           const url = server.url + endpoint;
-          const changeReceipt = async route => {
+          let changed;
+          const deliverChangedApproval = async route => {
             const request = route.request().postDataJSON();
-            if (!isDecisionNoteDeleteApproval(request)) return route.continue();
+            if (!isDecisionNoteDeleteApproval(request) || changed) return route.continue();
             const response = await route.fetch();
             try {
               const frame = await response.json();
+              expect(response.status()).toBe(200);
+              expectDecisionNoteDeleteReceipt(frame, request);
               observation.producer = { http: response.status(), frame };
-              const changed = structuredClone(frame);
-              const receipt = changed.result?.outcome?.receipt;
-              if (receipt) {
-                if (operationId === 'missing') delete receipt.operation_id;
-                else receipt.operation_id = 'x';
-              }
+              changed = structuredClone(frame);
+              changeApproval(changed.result.outcome);
+              expect(changed).not.toEqual(frame);
               await route.fulfill({ status: response.status(), json: changed });
             } finally {
               await response.dispose();
             }
           };
-          await page.route(url, changeReceipt);
+          await page.route(url, deliverChangedApproval);
           let approval;
           try {
             const invalid = await onDecisionNoteDeleteApproval(page, () =>
@@ -3912,33 +3926,30 @@ for (const operationId of ['missing', 'malformed']) {
             expect(approval).toMatchObject({ scope: { workspace_id: workspaceId, expected_workspace_revision: revision,
               target: { kind: 'decision_note', object_id: noteId }, idempotency_key: expect.any(String) },
             confirmation: { decision: 'approve', challenge_id: expect.any(String) } });
-            expect(observation.producer.http).toBe(200);
             expect(invalid.status()).toBe(200);
-            expectDecisionNoteDeleteReceipt(observation.producer.frame, approval);
-            const deliveredReceipt = observation.unverified.frame.result.outcome.receipt;
-            if (operationId === 'missing') expect(deliveredReceipt).not.toHaveProperty('operation_id');
-            else expect(deliveredReceipt.operation_id).toBe('x');
-            const restored = structuredClone(observation.unverified.frame);
-            restored.result.outcome.receipt.operation_id = observation.producer.frame.result.outcome.receipt.operation_id;
-            expect(restored).toEqual(observation.producer.frame);
+            expect(observation.unverified.frame).toEqual(changed);
             observation.afterCommit = decisionNoteStoredState(profile);
             expect(observation.afterCommit).toMatchObject({ workspace: { revision: revision + 1 }, notes: [],
               outcomeCount: 0, deletions: [{ noteId, revision: revision + 1 }] });
-            await expect(notes.getByRole('alert')).toHaveText('The local workspace could not verify the result.');
-            await expect(retry).toBeEnabled();
+            await expect(error.or(notice)).toBeVisible();
+            observation.unverified.drawer = await decisionNoteMode(page);
+            observation.unverified.approvalRequestIds = sentApprovals();
             await expect(notice).toHaveCount(0);
+            await expect(error).toHaveText('The local workspace could not verify the result.');
+            await expect(retry).toBeEnabled();
             await expect(notes.getByText(fixture.thesis)).toHaveCount(0);
             await expect(notes.getByText(fixture.outcomes[0].body)).toHaveCount(0);
-            observation.unverified.drawer = await decisionNoteMode(page);
+            await expect(notes.getByText(unexpectedApprovalBody)).toHaveCount(0);
             expect(sentApprovals()).toEqual([approval.request_id]);
           } finally {
-            await page.unroute(url, changeReceipt);
+            await page.unroute(url, deliverChangedApproval);
           }
           const valid = await onDecisionNoteDeleteApproval(page, () => retry.click());
           const replay = valid.request().postDataJSON();
           observation.recovered = { request: replay, http: valid.status(), frame: await valid.json() };
           expect(replay.request_id).not.toBe(approval.request_id);
           expect(replay.scope).toEqual(approval.scope);
+          expect(replay.intent).toEqual(approval.intent);
           expect(replay.confirmation).toEqual(approval.confirmation);
           expect(valid.status()).toBe(200);
           expectDecisionNoteDeleteReceipt(observation.recovered.frame, replay);
@@ -3948,8 +3959,9 @@ for (const operationId of ['missing', 'malformed']) {
           await expect(retry).toHaveCount(0);
           observation.recovered.drawer = await decisionNoteMode(page);
           observation.recovered.stored = decisionNoteStoredState(profile);
+          observation.recovered.approvalRequestIds = sentApprovals();
           expect(observation.recovered.stored).toEqual(observation.afterCommit);
-          expect(sentApprovals()).toEqual([approval.request_id, replay.request_id]);
+          expect(observation.recovered.approvalRequestIds).toEqual([approval.request_id, replay.request_id]);
         });
       });
     } finally {
@@ -6882,12 +6894,13 @@ async function deleteBackupTestNote(page, notes, date) {
 }
 
 function expectDecisionNoteDeleteReceipt(frame, request) {
-  expect(frame).toMatchObject({ ok: true, result: { protocol_version: '1.1', type: 'response', request_id: request.request_id,
-    outcome: { operation: 'decisionNote.delete', state: 'committed' } } });
-  expect(frame.result.outcome.receipt).toEqual({
-    operation_id: expect.stringMatching(/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i),
-    target: request.scope.target, undoable: false, workspace_id: request.scope.workspace_id,
-    committed_workspace_revision: request.scope.expected_workspace_revision + 1,
+  expect(frame).toMatchObject({ ok: true, result: { protocol_version: '1.1', type: 'response', request_id: request.request_id } });
+  expect(frame.result.outcome).toEqual({
+    operation: 'decisionNote.delete', state: 'committed', receipt: {
+      operation_id: expect.stringMatching(/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i),
+      target: request.scope.target, undoable: false, workspace_id: request.scope.workspace_id,
+      committed_workspace_revision: request.scope.expected_workspace_revision + 1,
+    },
   });
   expect(frame.result.outcome.receipt.operation_id).toHaveLength(36);
 }
