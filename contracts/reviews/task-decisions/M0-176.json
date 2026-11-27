@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-176",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "c494a94b013a655a6034ee73c13f2612b449c581",
+      "scope": "Review single preparation of the run-owned native local import executable and both concurrent Windows workspace consumers at the normal fixture entry.",
+      "supersedes": null,
+      "requested_at": "2026-11-27T08:40:07.725251+00:00",
+      "request_id": "1bfbea2d83552ac89d9436afe4984ef202c3fc4104f5e7d852e46c41022528c4",
+      "evidence_sha256": "2de3a4b0dccdf3df61ca9235d18beddddabad4b64f4e900a386227acb9e95c56"
+    }
+  ]
+}
