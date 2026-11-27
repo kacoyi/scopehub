@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-171",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "6074628d8343c1e7b70dd084c53e3901ac896c04",
+      "scope": "Review the owned Windows test fixture setup and deadline reliability change against the PR 123 ordinary failure, existing native guest results and the protected composition at 6074628d.",
+      "supersedes": null,
+      "requested_at": "2026-11-27T04:17:44.595940+00:00",
+      "request_id": "3008bd01112921ae88b2ae899d83b22a8c8ca3282c5b74bd19a315972d1d0c0f",
+      "evidence_sha256": "b1f0656d4f5f9dbdacbaeef6e209c105da289cac864878e7be4e208d20dd99e3"
+    }
+  ]
+}
