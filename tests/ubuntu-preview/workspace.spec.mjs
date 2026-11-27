@@ -1121,7 +1121,7 @@ function frozenJournalEvidence(journal) {
   };
 }
 
-function startWorkspaceSnapshotHold(server) {
+function startWorkspaceSnapshotHold(server, description = 'frozen indicator snapshot') {
   const tag = server.tagSnapshot();
   const stop = new AbortController();
   const signal = AbortSignal.any([stop.signal, AbortSignal.timeout(5_000)]);
@@ -1143,7 +1143,7 @@ function startWorkspaceSnapshotHold(server) {
       const waiting = AbortSignal.any([stopWaiting.signal, AbortSignal.timeout(3_000)]);
       try {
         return await Promise.race([tag.wait('written', waiting), reply.then(http => {
-          throw new Error(`Tagged workspace snapshot settled before reaching the writer (HTTP ${http}).`);
+          throw new Error(`Tagged ${description} settled before reaching the writer (HTTP ${http}).`);
         })]);
       } finally {
         stopWaiting.abort();
@@ -6439,7 +6439,7 @@ for (const fault of ['none', 'preparation busy', 'admission busy', 'lost acknowl
                 initialReview = await privateReplyDuring(pageB, stages, 'second window prepares its save', prepareSave, async () => {
                   await fillMemoryDraft(second, secondTitle, 'Synthetic second body');
                   if (fault === 'preparation busy') {
-                    hold = startWorkspaceSnapshotHold(server);
+                    hold = startWorkspaceSnapshotHold(server, 'private review snapshot');
                     written = await hold.waitForWriter();
                   }
                   await reviewSave.click();
