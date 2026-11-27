@@ -1,3 +1,4 @@
+import { withReplyDeadline } from './reply-deadline';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import type {
   ListLocalImportRevisionsInput, ListLocalImportRevisionsOutput,
@@ -16,6 +17,8 @@ import type {
 } from '../../../../contracts/generated/protocol';
 import type { LocalFolderCatalog } from './local-import-editor';
 import { formatNumber, getLocale, message, t } from './i18n';
+
+const localRevisionReplyDeadlineMs = 15_000;
 
 export type LocalImportMessage = ReturnType<typeof message> | string | { readonly render: () => string };
 
@@ -349,11 +352,11 @@ export async function publishLocalImport(payload: PublishLocalImportInput, reque
   });
 }
 
-export async function readLocalImportRevision(payload: ReadLocalImportRevisionInput, requestId: string) {
+export async function readLocalImportRevision(payload: ReadLocalImportRevisionInput, requestId: string, signal?: AbortSignal) {
   requireNative();
-  return invoke<ReadLocalImportRevisionOutput>('execute_operation', {
+  return withReplyDeadline(localRevisionReplyDeadlineMs, () => invoke<ReadLocalImportRevisionOutput>('execute_operation', {
     operation: 'market.readLocalImportRevision', payload, requestId,
-  });
+  }), signal);
 }
 
 export async function readLocalImportSourceRow(payload: ReadLocalImportSourceRowPayload, requestId: string) {
@@ -379,6 +382,8 @@ export async function revokeLocalImportRevision(payload: RevokeLocalImportRevisi
 
 export async function previewLocalFolderRefresh(payload: PreviewLocalFolderRefreshInput, requestId: string) {
   requireNative();
+  // A folder stage can inspect up to 64 files. Its worker and native
+  // cancellation rules apply while the comparison is being prepared.
   return invoke<PreviewLocalFolderRefreshOutput>('execute_operation', {
     operation: 'market.previewLocalFolderRefresh', payload, requestId,
   });
@@ -405,11 +410,11 @@ export async function listLocalFolderRevisions(payload: ListLocalFolderRevisions
   });
 }
 
-export async function readLocalFolderRevision(payload: ReadLocalFolderRevisionInput, requestId: string) {
+export async function readLocalFolderRevision(payload: ReadLocalFolderRevisionInput, requestId: string, signal?: AbortSignal) {
   requireNative();
-  return invoke<ReadLocalFolderRevisionOutput>('execute_operation', {
+  return withReplyDeadline(localRevisionReplyDeadlineMs, () => invoke<ReadLocalFolderRevisionOutput>('execute_operation', {
     operation: 'market.readLocalFolderRevision', payload, requestId,
-  });
+  }), signal);
 }
 
 export async function readLocalFolderSourceRow(payload: ReadLocalFolderSourceRowPayload, requestId: string) {
