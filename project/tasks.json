@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-174",
   "tasks": [
     {
       "id": "M0-001",
@@ -27701,6 +27701,116 @@
           ],
           "data_plan": "Preserve all archived session bytes and formats. Exercise disposable synthetic originals.",
           "cleanup": "After checking both platforms and earlier real desktop observations, remove any superseded fixture assumptions and preserve the first failure."
+        }
+      }
+    },
+    {
+      "id": "M0-174",
+      "title": "Preserve and handle the observed preparation outcomes in two workspace journeys",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-093",
+        "M0-101"
+      ],
+      "scope": [
+        "tests/ubuntu-preview",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain both ordinary first-attempt originals, their separate passing same-source and protected controls, and the verified response stage for each. Preserve separate cause attribution where the original exchange is missing.",
+        "At the normal consumer, distinguish an admitted mutation from a typed refusal or a missing result before the two-window review and frozen indicator assertions. Preserve authorizations, saved results, the original timeout, cancellation semantics and idempotency. Exercise the normal path and one bounded refused or unavailable case for the affected entry, using the existing fixture mechanisms.",
+        "Obtain an independent source decision, verify the affected public journeys on Linux and Windows and recheck the integrated revision. Preserve uncovered states explicitly."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "evidence": [],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45943186660-1",
+          "source_commit": "471a3bcc016186494d6508ce73372c8a9573d010",
+          "report_sha256": "f7f046b38d6e69be08fc06ea4f412ca68857b80e34498d305cb334def8950306"
+        },
+        {
+          "run_id": "20261127T050318.853582Z-84ced601",
+          "source_commit": "a526ea6fbd05f10584e522bbd6087a7807a375b2",
+          "report_sha256": "c57aa800844bea9590b755bec466727728fb6036b9bcacca4e9ae24a9d676b7a"
+        }
+      ],
+      "next_action": "Read the two original failures and paired green controls. Compare the normal request/response boundary in the existing workspace test. Fix the first supported distinction, then verify the named journeys with their original deadlines and without replaying an uncertain mutation.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Two ordinary synthetic workspace journeys reach their intended assertions or retain the original typed preparation failure at the public boundary.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ubuntu-preview/workspace_indicator_gate.mjs",
+          "project/checks.json",
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json"
+        ],
+        "hypotheses": [
+          "Private review preparation observed an explicit BUSY. The indicator test dereferenced an absent result without retaining its reply. Determine whether existing admission and observation handling can serve each discrepancy. The original Linux response and the owner of the Windows occupied slot remain unknown."
+        ],
+        "risks": [
+          {
+            "failure": "An unconditional mutation retry, a longer deadline or replacing ordinary activity by forced serialization could hide a real refusal, duplicate a write, or weaken the original checks.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Restore the previous consumer change if the established refusal, original budget or downstream assertions change. Keep the original evidence and leave unsupported cases open.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "ui"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ubuntu-preview/workspace_indicator_gate.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/0"
+            }
+          ],
+          "non_goals": [
+            "Unrelated failure classes, generic retry infrastructure, new product operations, real user data or final release acceptance."
+          ],
+          "open_questions": [
+            "Which response is available before the second indicator run, and does the normal private review entry already expose recovery after a definite pre-admission refusal?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Ordinary two-window isolation, the frozen synthetic source, stored indicator output, cancellation, existing deadlines and established mutation authorization."
+          ],
+          "change": [
+            "Use the existing consumer and fixture paths to preserve a verifiable response and reach or reject the correct assertions."
+          ],
+          "data_plan": "Only synthetic fixtures are in use. Preserve the public operation and storage contracts.",
+          "cleanup": "Remove any duplicated temporary observation path after confirming the adopted narrow handling. Retain the diagnostic originals and regression cases."
         }
       }
     }
