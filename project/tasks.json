@@ -29813,6 +29813,144 @@
           "cleanup": "Remove the retired scope guards and the hosted publisher prefetch used only by the block-buffer discrepancy. Remove the patch references from the pnpm lock and rebind the inventory to the new lock hash. Retain the exact package set, license records, original diagnostics and previous task receipts."
         }
       }
+    },
+    {
+      "id": "M3-009",
+      "title": "Recover indicator acceptance controls when a desktop reply misses its deadline",
+      "milestone": "M3",
+      "status": "done",
+      "depends_on": [
+        "M3-006"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/i18n/locales/zh-Hans/indicators.json",
+        "apps/desktop/ui/src/indicator-acceptance.tsx",
+        "apps/desktop/ui/src/reply-deadline.ts",
+        "apps/desktop/ui/src/use-local-workspace.ts",
+        "tests/ui/desktop-workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0017"
+      ],
+      "acceptance": [
+        "A genuine indicator preparation with an on-time desktop reply enters confirmation on the displayed frozen source. Cancelling it authorizes no write.",
+        "When the native delivery is held beyond the existing reply budget, the active view leaves its busy state, reports the uncertain outcome and exposes an appropriate recovery action without waiting for release. A late reply cannot reopen an old confirmation or overwrite newer state.",
+        "Preserve the existing approval and durable revision semantics of explicit writes. Verify dispatch counts and the authoritative workspace for the applicable on-time, missing and late replies at the desktop consumer."
+      ],
+      "checks": [
+        "project-state",
+        "ui-build",
+        "market-workflow",
+        "desktop-workspace-transport",
+        "indicator-workflow"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M3-009-7b34cbf89690afa4.json",
+          "sha256": "1e61137c6029dce88851cc43dceb4406e0c00147a8cfe0d38d110cd84e203030"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "All six selected local checks passed on independently approved source 0c9281b3d132c35ab578390039bdc0370eec545f. All 44 desktop transport cases passed on the first attempt. A held preparation or accepted-output reply no longer leaves the user waiting indefinitely. A read-only retry displayed the matching committed version and ignored the late reply. Real writer journals contained exactly one approved operation, one version and one active layer in committed cases, and zero mutations for cancellation and correlated rejection. Physical Windows and packaged WebView experience have separate acceptance gates.",
+      "plan": {
+        "outcome": "Users regain control of the indicator acceptance view within its existing reply budget and can reconcile an uncertain result without authorizing an unintended mutation.",
+        "change_types": [
+          "ui",
+          "indicators"
+        ],
+        "context": [
+          "apps/desktop/ui/src/indicator-acceptance.tsx",
+          "apps/desktop/ui/src/reply-deadline.ts",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "tests/ui/desktop-workspace.spec.mjs",
+          "contracts/decisions/0017-indicator-acceptance-and-restore.json"
+        ],
+        "hypotheses": [
+          "The UI passes a timeout signal to the native bridge but the waiting promise does not settle before a withheld reply is released. The existing caller-side reply helper may supply the missing boundary.",
+          "Recovery can claim success from the workspace revision while the accepted-layer list or its output is still in flight. Compare withheld output with immediate delivery for the same committed version.",
+          "A rejected transport promise can hide an already committed approval. Compare lost delivery after a real stored commit with a correlated operation rejection."
+        ],
+        "risks": [
+          {
+            "failure": "A withheld preparation leaves the user permanently busy or a late challenge repaints a newer action.",
+            "checks": [
+              "desktop-workspace-transport",
+              "ui-build"
+            ]
+          },
+          {
+            "failure": "A timed-out write is presented as definitely uncommitted or repeated automatically, losing durable indicator or undo state.",
+            "checks": [
+              "desktop-workspace-transport",
+              "indicator-workflow"
+            ]
+          },
+          {
+            "failure": "Readback reports success before accepted output is visible, or a failed list or output removes the read-only retry.",
+            "checks": [
+              "desktop-workspace-transport",
+              "indicator-workflow"
+            ]
+          },
+          {
+            "failure": "An immediate delivery failure unlocks a new mutation without correlated rejection or an authoritative readback.",
+            "checks": [
+              "desktop-workspace-transport",
+              "indicator-workflow"
+            ]
+          }
+        ],
+        "rollback": "Restore the prior caller and preserve the original positive and negative observations if a valid confirmation or stored outcome regresses.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/indicator-acceptance.tsx",
+            "apps/desktop/ui/src/reply-deadline.ts",
+            "tests/ui/desktop-workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/implementation_policy/first_test"
+            },
+            {
+              "path": "contracts/decisions/0017-indicator-acceptance-and-restore.json",
+              "pointer": ""
+            }
+          ],
+          "non_goals": [
+            "Adding operations, changing provider or trading permissions, changing the deadline, or introducing a general state-machine framework."
+          ],
+          "open_questions": [
+            "Which current indicator actions share the same unresolved wait, and what does the authoritative snapshot show if a write commits before its reply is released?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing frozen-source binding, explicit approval, idempotency, authoritative workspace revision and undo."
+          ],
+          "change": [
+            "End the UI wait at its existing deadline and prevent an expired operation from repainting the active view.",
+            "Treat any write delivery failure without correlated rejection as uncertain. Complete readback only when the workspace and accepted layers with their available outputs can be displayed."
+          ],
+          "data_plan": "Use isolated disposable synthetic workspace data. Keep existing persisted schemas and the Rust single-writer path. An uncertain delivery cannot establish whether a mutation committed.",
+          "cleanup": "Settle the caller, release listeners and timers, and dispose the native test workspace after each trial."
+        }
+      }
     }
   ]
 }

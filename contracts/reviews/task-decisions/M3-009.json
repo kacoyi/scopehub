@@ -1,0 +1,64 @@
+{
+  "version": 3,
+  "task_id": "M3-009",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "77b2b33311188b9c52e42f6b26bcb104ffd8008d",
+      "scope": "Verify ordinary indicator preparation, a lost or late desktop reply, and a write that commits before its reply. Check bounded UI recovery, explicit consent, dispatch counts, durable workspace state, and stale confirmation handling.",
+      "supersedes": null,
+      "requested_at": "2026-11-28T10:07:54.543491+00:00",
+      "request_id": "862bb9f32e14a6e0f35da5279d2f483b66582b2bd0a02e588d046976cc5b97dc",
+      "evidence_sha256": "42634e67982cde785b045f717c88ac4d061cdd950add9cfdf8e8d42a2e1a4057"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "77b2b33311188b9c52e42f6b26bcb104ffd8008d",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M3-009 77b2b33311188b9c52e42f6b26bcb104ffd8008d",
+      "scope": "CHANGES_REQUESTED M3-009 77b2b33311188b9c52e42f6b26bcb104ffd8008d",
+      "observation": "When I withheld the accepted-output reply during recovery, the panel reported success while showing neither the committed layer nor a retry control.",
+      "reviewer": "Independent Astra Standard (t1qc)",
+      "original_sha256": "9555b3d99a45aceed2d715ab87cf0c17a62b31924f564cf17d7ab31853d4c040",
+      "response_id": "e11303d9290e18abb991fb5ccfadd80a1e7c4589c634b4d20bb0aee80de298bc",
+      "response_sha256": "e9bd8d1cee691659eef0b3610be17b3301207019c35a037970ebc226db489210",
+      "legacy_response_sha256": "e14568b98545661689514240d90827fd623a99aa4c076e9f5cb5ffa4b27fb3b9",
+      "observation_body_sha256": "4a7f6be72df9f59b6e821519e8e37423d0e9b55d2d2133ed2c807c2207c23a26",
+      "event": {
+        "id": "msg_0018ab1aae37d611016b0aa97e423887d182e9a6a2320d9121",
+        "timestamp": "2026-11-28T10:14:40.467Z"
+      },
+      "supersedes": "862bb9f32e14a6e0f35da5279d2f483b66582b2bd0a02e588d046976cc5b97dc",
+      "evidence_sha256": "67803efb3f5095fbcc04d39ddc8bb6bcb0f3a54af72c31af816550cfa46074cf"
+    },
+    {
+      "kind": "request",
+      "source_commit": "0c9281b3d132c35ab578390039bdc0370eec545f",
+      "scope": "Verify the two previously demonstrated indicator failures and their controls at the actual desktop entry. Check committed state and dispatch count when an accepted output is delayed or missing and when an approval is dispatched but its reply is lost. Confirm a correlated rejection and ordinary completion still have distinct outcomes.",
+      "supersedes": "e11303d9290e18abb991fb5ccfadd80a1e7c4589c634b4d20bb0aee80de298bc",
+      "requested_at": "2026-11-28T10:28:14.560079+00:00",
+      "request_id": "e1aefeeedc99f0a04185bf063d20732a4387b3f764ef0c156e4d9cab444e948d",
+      "evidence_sha256": "6f795b3e0d4ca1479ba7216ea36eb48943ba7bb7f732cd82b5d0ea4ff9396fe1"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "0c9281b3d132c35ab578390039bdc0370eec545f",
+      "verdict": "approved",
+      "decision": "APPROVE M3-009 0c9281b3d132c35ab578390039bdc0370eec545f",
+      "scope": "APPROVE M3-009 0c9281b3d132c35ab578390039bdc0370eec545f",
+      "observation": "I saw a read-only retry display the committed version while the first output reply was still held, and releasing that reply left the version visible with only one approval dispatched.",
+      "reviewer": "Independent Astra Standard (t1qk)",
+      "original_sha256": "be6727dee5fe6543fe47e438ff175f3a2295ecb5e88fe3afc5e95446f03b0e53",
+      "response_id": "caa713407f34fb0fa465c7ee39a5459a3c79a78711aa41e92f451ccee82d3695",
+      "response_sha256": "6301ff6b6af4c792bd6ca9b7ca46f07c808deaf4b328d0c684ac976e98dc23e8",
+      "legacy_response_sha256": "335b81762c65f2834321c3500107ad8930c4e4eeee3bf05c1c82d9179fcdc680",
+      "observation_body_sha256": "e20b02717f4bfdb790184b6cfe8b19b7039c7befec65a96f76cf4f8755a094e7",
+      "event": {
+        "id": "msg_0c853e3b91da3902016b0aadeec12c87d1a822f19932e78974",
+        "timestamp": "2026-11-28T10:33:28.038Z"
+      },
+      "supersedes": "e1aefeeedc99f0a04185bf063d20732a4387b3f764ef0c156e4d9cab444e948d",
+      "evidence_sha256": "1623ca12ae487e37297be40be7623379cf154a5bbd91d242648e331d19eee1a4"
+    }
+  ]
+}
