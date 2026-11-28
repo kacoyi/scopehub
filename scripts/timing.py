@@ -2239,14 +2239,47 @@ def publishing_endpoints(step, floor, ceiling):
     return start, end
 
 
+def publishing_neighbor_bound(positions, floor, ceiling, *, latest):
+    """Find the outer bound supported by a feasible chain on one side of the writer."""
+    edge = ceiling if latest else floor
+    bound = None
+    for number in sorted(positions, reverse=latest):
+        start, end = publishing_endpoints(positions[number], floor, ceiling)
+        for points in (end, start) if latest else (start, end):
+            if not points:
+                continue
+            # Walk toward the writer using the widest remaining interval. If
+            # even that witness cannot continue, this chain supplies no bound.
+            if latest:
+                point = max((point for point in points if not outside_report_bound(point, edge, latest=True)),
+                            key=publishing_upper_key, default=None)
+                if point is not None and edge is not None and edge.is_finite():
+                    point = min(point, edge, key=publishing_upper_key)
+            else:
+                point = min((point for point in points if not outside_report_bound(edge, point, latest=True)),
+                            default=None)
+                if point is not None and edge is not None:
+                    point = max(point, edge)
+            if point is None:
+                return None
+            edge = bound = point
+    return bound
+
+
 def publishing_phase_bounds(fact, verification, floor, ceiling):
     steps = fact.steps or {}
     initialization = steps.get(WINDOWS_INITIALIZATION_STEP)
     writer = steps.get(verification)
     staging = steps.get(WINDOWS_STAGING_STEP)
-    # The historical workflow initializes the report directory, writes in
-    # verification, and stages the existing bytes. These relations do not
-    # depend on Actions returning a number or a clock for each step.
+    # Setup and cleanup enclose the job's steps. Initialization and staging
+    # likewise enclose the writer even when their numbered positions are absent.
+    before, after = {}, {}
+    if initialization and initialization.eligible and initialization.number is not None:
+        before[initialization.number] = initialization
+        initialization = None
+    if staging and staging.eligible and staging.number is not None:
+        after[staging.number] = staging
+        staging = None
     lowers = [min(points) for step in (steps.get('Set up job'), initialization)
               for points in publishing_endpoints(step, floor, ceiling) if points]
     uppers = [max(points, key=publishing_upper_key) for step in (staging, steps.get('Complete job'))
@@ -2255,26 +2288,31 @@ def publishing_phase_bounds(fact, verification, floor, ceiling):
     if writer and writer.eligible and writer.number is not None:
         first = last = writer.number
     else:
-        first = initialization.number if initialization and initialization.eligible else None
-        last = staging.number if staging and staging.eligible else None
+        first = next(iter(before), None)
+        last = next(iter(after), None)
     # The writer's end cannot disqualify a successor that independently
     # bounds that end. Its start still rules out a successor before the work.
     predecessor_ceiling = max(starts or ends, key=publishing_upper_key, default=ceiling)
-    successor_floor = max(lowers, default=floor)
-    if starts:
-        successor_floor = max((*lowers, min(starts)))
     for number, (name, step) in (fact.visible_steps or {}).items():
         # Another lane's writer is not part of this publisher's sequence.
         if (name == verification or name in WINDOWS_LANE_STEPS
                 or name in ACTIONS_ORDER_STEPS or name in PUBLISHING_BOUNDARY_STEPS):
             continue
         if first is not None and number < first:
-            lowers.extend(min(points) for points in publishing_endpoints(step, floor, predecessor_ceiling)
-                          if points)
+            before[number] = step
         elif (last is not None and number > last
               or (name is not None and name.startswith('Run actions/upload-artifact@'))):
-            uppers.extend(max(points, key=publishing_upper_key)
-                          for points in publishing_endpoints(step, successor_floor, ceiling) if points)
+            after[number] = step
+    prior = publishing_neighbor_bound(before, max(lowers, default=floor), predecessor_ceiling, latest=False)
+    if prior is not None:
+        lowers.append(prior)
+    successor_floor = max(lowers, default=floor)
+    if starts:
+        successor_floor = max((*lowers, min(starts)))
+    following = publishing_neighbor_bound(after, successor_floor,
+                                          min(uppers, key=publishing_upper_key, default=ceiling), latest=True)
+    if following is not None:
+        uppers.append(following)
     starts, ends = publishing_endpoints(writer, max(lowers, default=floor),
                                         min(uppers, key=publishing_upper_key, default=ceiling))
     if starts:

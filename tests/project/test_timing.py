@@ -502,24 +502,31 @@ class HostedTimingTests(unittest.TestCase):
         genuine = dict(lane_sample(timing.report_sample(report), 'browser'),
                        recorded_at='2026-11-20T00:11:25.847471Z')
         cases = (
-            ('started_at', 1, 'completed_at', '12:01', None),
-            ('completed_at', 2, 'started_at', '00:39', None),
-            ('started_at', 1, 'completed_at', '00:20', '01:45'),
-            ('completed_at', 2, 'started_at', '12:05', '11:27'),
-            (None, 0, 'completed_at', '11:28', '11:27'),
+            ('started_at', 1, 'completed_at', '12:01', None, None),
+            ('completed_at', 2, 'started_at', '00:39', None, None),
+            ('started_at', 1, 'completed_at', '00:20', '01:45', None),
+            ('completed_at', 2, 'started_at', '12:05', '11:27', None),
+            (None, 0, 'completed_at', '11:28', '11:27', None),
+            ('started_at', 1, 'completed_at', '01:29', '01:45', (10, 'completed_at', '01:30')),
+            ('completed_at', 2, 'started_at', '11:31', '11:27', (14, 'started_at', '11:30')),
         )
         with tempfile.TemporaryDirectory() as directory:
             run_path, jobs_path, altered_path, good_path, copy_path = (
                 Path(directory) / name for name in ('run.json', 'jobs.json', 'altered.json', 'good.json', 'copy.json'))
             run_path.write_bytes(timing.json_bytes(run))
             good_path.write_bytes(timing.json_bytes(genuine))
-            for missing, index, field, altered_at, claimed_at in cases:
+            for missing, index, field, altered_at, claimed_at, neighbor in cases:
                 jobs = self.split_windows_jobs()
                 steps = jobs[2]['steps']
                 steps.append({'number': 13, 'status': 'completed', 'conclusion': 'success',
                               'started_at': '2026-11-20T00:11:25Z', 'completed_at': '2026-11-20T00:11:30Z'})
                 if missing:
                     del steps[0][missing]
+                if neighbor:
+                    del steps[index][missing]
+                    number, endpoint, instant = neighbor
+                    steps.append({'number': number, 'status': 'completed', 'conclusion': 'success',
+                                  endpoint: f'2026-11-20T00:{instant}Z'})
                 changed = deepcopy(jobs)
                 changed[2]['steps'][index][field] = f'2026-11-20T00:{altered_at}Z'
                 jobs_path.write_bytes(timing.json_bytes(jobs))

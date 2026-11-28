@@ -27522,7 +27522,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Reproduce the independently reviewed PR 123 predecessor and successor conflicts from .reports/m0-150-neighbor-order-d86f7c6e/intake-sources.json. Qualify ordered step alternatives before reducing bounds and verify genuine, rejected and ambiguous inputs through ordinary, offline weekly and cold reads.",
+      "next_action": "Use .reports/m0-150-neighbor-order-d86f7c6e/handoff.json for the local PR 145 candidate, paired consumer regressions and retained compatibility checks. Review ordinary, weekly and cold attribution, ambiguous single listings, qualified clocks and receipt continuity on this same source. The coordinator owns the renewed decisions and remaining acceptance gates.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -28678,7 +28678,7 @@
         "On PR 123, bound the recorded report instant by the ordered historical writer and its independently observed neighbors. Match the aggregate original's producer role when compact reports explicitly claim a digest. Preserve the authentic raw and compact reports, recorded precision and legacy compact forms without a digest.",
         "Use the original workflow order and intersect independently observed initialization, verification, staging and surrounding job boundaries at their recorded precision. Retain exact genuine PR 123 success and failure producer reports through both input orders and reject confirmed out-of-window and wrong-role claims."
       ],
-      "next_action": "Reproduce the independently reviewed PR 123 predecessor and successor conflicts from .reports/m0-150-neighbor-order-d86f7c6e/intake-sources.json. Qualify ordered step alternatives before reducing bounds and verify genuine, rejected and ambiguous inputs through ordinary, offline weekly and cold reads.",
+      "next_action": "Use .reports/m0-150-neighbor-order-d86f7c6e/handoff.json for the local PR 145 ordered-step candidate, original inputs and replay results. Obtain new M0-150, M0-155 and M0-156 primary decisions on this same clean source before opening the five downstream requests. Publication and exact-source hosted, native and protected qualification remain with the coordinator.",
       "blocker": null,
       "evidence": [],
       "closure_reason": null,
