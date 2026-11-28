@@ -1,0 +1,35 @@
+{
+  "version": 3,
+  "task_id": "M0-186",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "f8b2f85f4f32e57a72bebbc9701ebc9c7c391c9a",
+      "scope": "Verify the existing worker crate discovers the exact same 18 named import tests, source fixtures and assertions, that the non-test runtime stays unchanged, and that the moved tests retain worker cancellation and cleanup coverage. Compare a native control with the original result.",
+      "supersedes": null,
+      "requested_at": "2026-11-28T10:47:41.975261+00:00",
+      "request_id": "aed03d13b7b3dcba8dfee06f55a4c032702ef582d52a4bef16510dc66a87b544",
+      "evidence_sha256": "2a219ba373dbe1edd5dbb89c38b0d196ecee845d230e7fa83aee3a69fc688f39"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "f8b2f85f4f32e57a72bebbc9701ebc9c7c391c9a",
+      "verdict": "approved",
+      "decision": "APPROVE M0-186 f8b2f85f4f32e57a72bebbc9701ebc9c7c391c9a",
+      "scope": "APPROVE M0-186 f8b2f85f4f32e57a72bebbc9701ebc9c7c391c9a",
+      "observation": "The Cargo-built worker-host test binary discovered and passed local_import::tests::failed_or_stalled_cleanup_releases_admission_without_proof under its original qualified name.",
+      "reviewer": "Independent Astra Standard (t1qp)",
+      "original_sha256": "58e1e613e8c9676f39797ba562e9b0fe6ffd04a90647f3528c4c0332fdb7eaf9",
+      "response_id": "1168abc974d196cce95f48dfaf54f101023c9ed59e74de50a78c4abdfa2df968",
+      "response_sha256": "6db0f7e34683d30d256f41ad0e624986eb32afc61ffc0bdc7c6ab9edb041a777",
+      "legacy_response_sha256": "bc091b4f60f9b686ce3ad478d5c89a594eca4d8ff44a602db3d660b699b1c507",
+      "observation_body_sha256": "f1e33aeb3e399b653c34cb6f753111122bcf3e5b6ef20db8c7f9107d3c3ab907",
+      "event": {
+        "id": "msg_013ba4f6841f0553016b0ab175792487d2818731f5b648592a",
+        "timestamp": "2026-11-28T10:48:28.248Z"
+      },
+      "supersedes": "aed03d13b7b3dcba8dfee06f55a4c032702ef582d52a4bef16510dc66a87b544",
+      "evidence_sha256": "1737d578210865d5906b8782101f0b562f8ad1b6565db33c2f2979daa79b51f7"
+    }
+  ]
+}
