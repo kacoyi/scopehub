@@ -90,7 +90,7 @@ function committed(operation, result, id, undoable) {
   };
 }
 
-async function nativeTransport(page, { optedIn, native = true, textModel = false, observeFrozenRevision }, use) {
+async function nativeTransport(page, { optedIn, native = true, textModel = false, observeFrozenRevision, observeIndicatorReplies }, use) {
   const calls = [];
   await page.exposeBinding('dispatchNativeWorkspace', async (_, command, args) => {
     calls.push({ command, args });
@@ -99,7 +99,7 @@ async function nativeTransport(page, { optedIn, native = true, textModel = false
       ? ['operation', 'payload', 'requestId'] : ['operation', 'payload']);
     return use(args);
   });
-  await page.addInitScript(({ optedIn, native, textModel, observeFrozenRevision }) => {
+  await page.addInitScript(({ optedIn, native, textModel, observeFrozenRevision, observeIndicatorReplies }) => {
     window.isTauri = native;
     if (optedIn) Object.defineProperty(window, '__SCOPEHUB_DESKTOP_WORKSPACE__', { value: true });
     if (textModel) Object.defineProperty(window, '__SCOPEHUB_DESKTOP_TEXT_MODEL__', { value: true });
@@ -110,10 +110,13 @@ async function nativeTransport(page, { optedIn, native = true, textModel = false
         if (args.payload.type === 'frozen_chart' && args.payload.revision_id === observeFrozenRevision) {
           (window.receivedFrozenReplies ??= []).push(args.payload.request_id);
         }
+        if (observeIndicatorReplies && ['indicator.acceptVersion', 'confirmation.respond'].includes(args.operation)) {
+          (window.receivedIndicatorReplies ??= []).push(args.payload.request_id);
+        }
         return reply.result;
       },
     };
-  }, { optedIn, native, textModel, observeFrozenRevision });
+  }, { optedIn, native, textModel, observeFrozenRevision, observeIndicatorReplies });
   return calls;
 }
 
@@ -1608,8 +1611,7 @@ for (const scenario of [
   });
 }
 
-test('native indicator status retries only a proven writer refusal', async ({ browser, baseURL }, testInfo) => {
-  test.setTimeout(180_000);
+async function buildNativeWorkspaceBridge() {
   const repository = fileURLToPath(new URL('../../', import.meta.url));
   const binary = join(repository, 'target/debug/examples',
     process.platform === 'win32' ? 'local_import_bridge.exe' : 'local_import_bridge');
@@ -1617,6 +1619,12 @@ test('native indicator status retries only a proven writer refusal', async ({ br
     '--features', 'portable-test-bridge', '--target-dir', 'target'], {
     cwd: repository, env: { ...process.env, CARGO_BUILD_JOBS: '2' }, timeout: 120_000,
   });
+  return binary;
+}
+
+test('native indicator status retries only a proven writer refusal', async ({ browser, baseURL }, testInfo) => {
+  test.setTimeout(180_000);
+  const binary = await buildNativeWorkspaceBridge();
   const temp = await mkdtemp(join(tmpdir(), 'scopehub-native-indicator-'));
   const app = join(temp, 'app');
   const revision = randomUUID();
@@ -1738,5 +1746,205 @@ test('native indicator status retries only a proven writer refusal', async ({ br
     await bridge?.close();
     await rm(temp, { recursive: true, force: true });
     await testInfo.attach('native-indicator-journal', { body: JSON.stringify({ storageBusy, experiments }), contentType: 'application/json' });
+  }
+});
+
+test('native indicator acceptance recovers from missing and late replies without repeating approval', async ({ browser, baseURL }, testInfo) => {
+  test.setTimeout(180_000);
+  const binary = await buildNativeWorkspaceBridge();
+  const temp = await mkdtemp(join(tmpdir(), 'scopehub-native-indicator-acceptance-'));
+  const prices = [80, 80, 80].map((close, index) => {
+    const time = Date.UTC(2026, 1, 3 + index);
+    return { time_ms: time, trading_day: new Date(time).toISOString().slice(0, 10),
+      open: close, high: close, low: close, close, volume: 10, is_closed: true };
+  });
+  const observations = [];
+  try {
+    for (const { name, heldOperation, deferWrite } of [
+      { name: 'on-time', heldOperation: null },
+      { name: 'late preparation', heldOperation: 'indicator.acceptVersion' },
+      { name: 'late approval reply', heldOperation: 'confirmation.respond' },
+      { name: 'approval still in transit during recovery', heldOperation: 'confirmation.respond', deferWrite: true },
+    ]) {
+      const app = join(temp, name);
+      const database = join(app, 'workspace-dev', 'workspace.sqlite3');
+      const revision = randomUUID();
+      const snapshot = { operation: null, payload: { type: 'snapshot' } };
+      const observation = { name, heldOperation, revision, prices, commands: [], workspaceReads: [] };
+      observations.push(observation);
+      const hold = Promise.withResolvers();
+      const forward = Promise.withResolvers();
+      let held;
+      let bridge = startLocalImportBridge(binary, app, temp, { workspace: true });
+      let page;
+      const readDurable = async () => {
+        const current = await bridge.request('execute_operation', snapshot);
+        const accepted = await bridge.request('execute_operation', { operation: null, payload: {
+          type: 'indicator_accepted_layers', request_id: randomUUID(), revision_id: revision,
+        } });
+        expect(accepted.result.dataset_id).toBe(revision);
+        observation.durable = { snapshot: current.result, accepted: accepted.result };
+        return observation.durable;
+      };
+      try {
+        expect((await bridge.request('execute_operation', snapshot)).result.workspace.revision).toBe(0);
+        await bridge.close();
+        seedPublishedChart(database, revision, prices);
+        bridge = startLocalImportBridge(binary, app, temp, { workspace: true });
+        page = await browser.newPage();
+        const calls = await nativeTransport(page, { optedIn: true, observeIndicatorReplies: true }, async args => {
+          let command;
+          if (['indicator.acceptVersion', 'confirmation.respond'].includes(args.operation)) {
+            command = { args, dispatchedAt: performance.now() };
+            observation.commands.push(command);
+            if (!held && args.operation === heldOperation) {
+              held = command;
+              if (deferWrite) await forward.promise;
+            }
+          }
+          const reply = await bridge.request('execute_operation', args);
+          if (args.payload.type === 'snapshot') observation.workspaceReads.push({ args, reply });
+          if (args.payload.type === 'indicator_preview_status' && reply.result?.status === 'ready') {
+            observation.preview = { args, reply };
+          }
+          if (command) {
+            command.reply = reply;
+            command.answeredAt = performance.now();
+            if (command === held) {
+              await hold.promise;
+              command.releasedAt = performance.now();
+            }
+          }
+          return reply;
+        });
+        await page.goto(baseURL);
+        await control(page, 'Open published CSV').click();
+        const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+        await dialog.getByLabel('Revision ID').fill(revision);
+        await control(dialog, 'Open frozen chart').click();
+        const panel = dialog.getByRole('region', { name: 'Indicator preview' });
+        await control(panel, 'Run preview').click();
+        const accept = control(panel, 'Accept preview');
+        const confirmation = panel.getByRole('group', { name: 'Confirm accepted indicator' });
+        const alert = panel.getByRole('alert');
+        const acceptanceOps = () => calls.filter(({ args }) =>
+          ['indicator.acceptVersion', 'confirmation.respond'].includes(args.operation)).map(({ args }) => args.operation);
+        const expectDeadline = async text => {
+          await expect(alert).toHaveText(text, { timeout: 16_500 });
+          observation.deadlineMs = Math.round(performance.now() - held.dispatchedAt);
+          expect(observation.deadlineMs).toBeGreaterThanOrEqual(14_900);
+          expect(held.releasedAt).toBeUndefined();
+          await expect(confirmation).toHaveCount(0);
+        };
+        const releaseHeld = async () => {
+          hold.resolve();
+          await page.waitForFunction(id => window.receivedIndicatorReplies?.includes(id), held.args.payload.request_id);
+        };
+        await accept.click();
+        expect(observation.preview.reply.result.event.artifact.result.series[0].points.at(-1))
+          .toEqual({ time_ms: prices.at(-1).time_ms, value: 80 });
+
+        if (heldOperation === 'indicator.acceptVersion') {
+          await expectDeadline('The indicator confirmation reply did not arrive. You can try accepting the preview again.');
+          await expect(accept).toBeEnabled();
+          expect(acceptanceOps()).toEqual(['indicator.acceptVersion']);
+          await accept.click();
+          await expect(confirmation).toBeVisible();
+          await releaseHeld();
+          await expect(confirmation).toBeVisible();
+          await expect(alert).toHaveCount(0);
+        }
+        await expect(confirmation).toBeVisible();
+        const prepared = observation.commands.filter(({ args }) => args.operation === 'indicator.acceptVersion');
+        for (const { args, reply } of prepared) {
+          expect(args.payload.scope).toMatchObject({ workspace_id: workspaceId, expected_workspace_revision: 0,
+            target: { kind: 'chart_interval', snapshot: { dataset_id: revision } } });
+          expect(reply.result.outcome.state).toBe('awaiting_confirmation');
+        }
+        const challengeId = prepared.at(-1).reply.result.outcome.challenge.challenge_id;
+        if (heldOperation === 'indicator.acceptVersion') {
+          expect(challengeId).not.toBe(held.reply.result.outcome.challenge.challenge_id);
+        }
+
+        const approve = heldOperation === 'confirmation.respond';
+        await control(confirmation, approve ? 'Confirm indicator acceptance' : 'Cancel indicator acceptance').click();
+        if (approve) {
+          await expectDeadline('The indicator change could not be confirmed. Reload the workspace state to review accepted indicators.');
+          await expect(accept).toBeDisabled();
+          const recovery = control(panel, 'Reload workspace state');
+          if (deferWrite) {
+            const reads = observation.workspaceReads.length;
+            await recovery.click();
+            await expect.poll(() => observation.workspaceReads.length).toBeGreaterThan(reads);
+            await expect(recovery).toBeEnabled();
+            await expect(accept).toBeDisabled();
+            expect(observation.workspaceReads.at(-1).reply.result.workspace.revision).toBe(0);
+            observation.durableBeforeForwarding = await readDurable();
+            expect(observation.durableBeforeForwarding.accepted.layers).toHaveLength(0);
+            expect(held.reply).toBeUndefined();
+            expect(acceptanceOps()).toEqual(['indicator.acceptVersion', 'confirmation.respond']);
+            forward.resolve();
+            await expect.poll(() => held.reply?.result?.outcome.state).toBe('committed');
+          }
+          const { snapshot: current, accepted } = await readDurable();
+          expect(current.workspace.revision).toBe(1);
+          expect(accepted.layers).toHaveLength(1);
+          const output = await bridge.request('execute_operation', { operation: null, payload: {
+            type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: accepted.layers[0].layer_id,
+          } });
+          observation.durable.output = output;
+          expect(output.result.document.snapshot.dataset_id).toBe(revision);
+          expect(output.result.document.artifact.result.series[0].points.at(-1))
+            .toEqual({ time_ms: prices.at(-1).time_ms, value: 80 });
+          await recovery.click();
+          const acceptedPanel = panel.getByRole('region', { name: 'Accepted indicators' });
+          await expect(acceptedPanel.getByText(accepted.layers[0].version_id)).toBeVisible();
+          await expect(recovery).toHaveCount(0);
+          await expect(accept).toHaveCount(0);
+          await expect(panel.getByRole('status')).toHaveText('Workspace state reloaded. Review the accepted indicators.');
+          expect(observation.workspaceReads.at(-1).reply.result.workspace.revision).toBe(1);
+          expect(held.releasedAt).toBeUndefined();
+          await releaseHeld();
+          await expect(panel.getByText('Indicator version accepted.', { exact: true })).toHaveCount(0);
+          await expect(confirmation).toHaveCount(0);
+          await expect(acceptedPanel.getByText(accepted.layers[0].version_id)).toBeVisible();
+          expect(await bridge.request('execute_operation', snapshot)).toEqual({ result: current });
+        } else {
+          await expect(accept).toBeEnabled();
+          await expect(confirmation).toHaveCount(0);
+          const { snapshot: current, accepted } = await readDurable();
+          expect(current.workspace.revision).toBe(0);
+          expect(accepted.layers).toHaveLength(0);
+        }
+        expect(acceptanceOps()).toEqual([
+          ...prepared.map(() => 'indicator.acceptVersion'), 'confirmation.respond',
+        ]);
+        expect(observation.commands.at(-1)).toMatchObject({
+          args: { operation: 'confirmation.respond', payload: { challenge_id: challengeId, decision: approve ? 'approve' : 'deny' } },
+          reply: { result: { outcome: approve ? { state: 'committed', receipt: { committed_workspace_revision: 1 } }
+            : { state: 'failed', error: { code: 'CANCELLED' } } } },
+        });
+        await bridge.close();
+        const stored = new DatabaseSync(database, { readOnly: true });
+        try {
+          observation.storedVersions = stored.prepare('SELECT COUNT(*) AS count FROM indicator_versions').get().count;
+          observation.storedLayers = stored.prepare('SELECT COUNT(*) AS count FROM indicator_layer_state').get().count;
+          expect(observation.storedVersions).toBe(approve ? 1 : 0);
+          expect(observation.storedLayers).toBe(approve ? 1 : 0);
+        } finally {
+          stored.close();
+        }
+      } finally {
+        forward.resolve();
+        hold.resolve();
+        await page?.close();
+        await bridge.close();
+      }
+    }
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+    await testInfo.attach('native-indicator-acceptance-journal', {
+      body: JSON.stringify(observations, null, 2), contentType: 'application/json',
+    });
   }
 });

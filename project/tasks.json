@@ -29697,6 +29697,7 @@
         "M3-006"
       ],
       "scope": [
+        "apps/desktop/ui/src/i18n/locales/zh-Hans/indicators.json",
         "apps/desktop/ui/src/indicator-acceptance.tsx",
         "apps/desktop/ui/src/reply-deadline.ts",
         "apps/desktop/ui/src/use-local-workspace.ts",
@@ -29723,7 +29724,7 @@
         "indicator-workflow"
       ],
       "evidence": [],
-      "next_action": "Reproduce the held desktop preparation beside its on-time control and repair the owning indicator UI path. Obtain independent review and native and integrated regression observations.",
+      "next_action": "Review the clean desktop deadline correction and its on-time, withheld and late native-bridge observations. Obtain independent review and exact-source native and integrated regression evidence before closing the finding.",
       "blocker": null,
       "closure_reason": null,
       "plan": {

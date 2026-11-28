@@ -304,7 +304,7 @@ export function readWorkspaceAfterAdmission<T>(body: AdmissionRead, signal: Abor
 }
 
 async function readCommittedSnapshot(receipt: CommittedRevision, signal: AbortSignal): Promise<Snapshot> {
-  const current = await readWorkspaceSnapshotAfterAdmission(signal);
+  const current = await readWorkspaceSnapshot(signal);
   if (current.workspace.id !== receipt.workspace_id || current.workspace.revision < receipt.committed_workspace_revision) {
     throw { code: 'OUTPUT_INVALID' };
   }
@@ -495,7 +495,7 @@ export function useLocalWorkspace() {
     const superseded = () => focusAtRead !== undefined && focusAtRead.generation !== focus.current.generation;
     setView(previous => ({ ...previous, pending, errorId: undefined, selectionNotice: undefined }));
     return work(controller.signal).then(snapshot => {
-      if (controller.signal.aborted || superseded()) return false;
+      if (controller.signal.aborted || superseded()) return;
       if (focusAtRead?.pending) updateFocus({ ...focusAtRead, pending: false });
       if (checkedAccess.length && !focus.current.pending) {
         const next = new Set(unconfirmedAccess.current);
@@ -506,7 +506,7 @@ export function useLocalWorkspace() {
         setUnconfirmedRevisions(next);
       }
       showSnapshot(snapshot);
-      return true;
+      return snapshot;
     }, error => {
       if (!controller.signal.aborted && !superseded()) {
         const selectionBusy = pending === 'evidence' && errorCode(error) === 'BUSY';
@@ -516,7 +516,6 @@ export function useLocalWorkspace() {
           selectionNotice: selectionBusy ? message('The workspace is busy. Try selecting again.') : undefined,
         }));
       }
-      return false;
     }).finally(() => release(controller));
   }, [release, showSnapshot, updateFocus]);
   const queueSnapshot = useCallback(() => {
@@ -628,6 +627,17 @@ export function useLocalWorkspace() {
     }
   }
 
+  async function checkAfterIndicatorReply(workspaceId: string) {
+    const generation = focus.current.generation;
+    const current = await run(async signal => {
+      const readback = await readWorkspaceSnapshot(signal);
+      if (readback.workspace.id !== workspaceId || snapshot && (readback.workspace.revision < snapshot.workspace.revision
+        || readback.selection_revision < snapshot.selection_revision)) throw { code: 'OUTPUT_INVALID' };
+      return readback;
+    }, 'open');
+    if (hasConfirmedFocus(generation)) return current;
+  }
+
   const submit = (intent: Intent) => {
     if (snapshot && !view.errorId) run(signal => mutate(snapshot, intent, signal), 'save');
   };
@@ -665,7 +675,7 @@ export function useLocalWorkspace() {
     }
   }
   return {
-    ...view, reload, refreshAfterIndicatorCommit, canCheckRevision, recoverSource, refreshPublishedAccess, unconfirmedRevisions,
+    ...view, reload, refreshAfterIndicatorCommit, checkAfterIndicatorReply, canCheckRevision, recoverSource, refreshPublishedAccess, unconfirmedRevisions,
     focus: focusView, hasConfirmedFocus,
     error: view.errorId && t(view.errorId),
     selectionNotice: view.selectionNotice && t(view.selectionNotice),
