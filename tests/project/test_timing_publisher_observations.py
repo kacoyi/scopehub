@@ -573,6 +573,7 @@ class PublicPublisherObservationTests(unittest.TestCase):
         self.assert_view(self.weekly(archive, self.windows), original, [])
         contradicted = dict(self.windows, report_status='blocked')
         self.assert_view(self.weekly(self.directory / 'contradicted.json', contradicted), {}, [issue])
+
         variant = self.write_variant('altered', contradicted)
         for paths in ((archive, variant), (variant, archive)):
             self.assert_view(self.invoke('--report', paths[0], '--report', paths[1]), original, [issue])
@@ -582,6 +583,13 @@ class PublicPublisherObservationTests(unittest.TestCase):
             if row['id'] == 'environment' else row for row in contradicted['checks']
         ], seconds=dict(contradicted['seconds'], check_work=102))
         self.assert_view(self.weekly(self.directory / 'genuinely-blocked.json', blocked), {}, [])
+
+    def test_single_job_publisher_cannot_attest_to_a_split_layout(self):
+        relabeled = dict(self.windows, run_id='windows-change-11-1')
+        issues = []
+        self.assertFalse(timing.native_report_issue(self.windows, self.clock, issues))
+        self.assertTrue(timing.native_report_issue(relabeled, self.clock, issues))
+        self.assertIn('native publisher identity, job layout or check scope', issues[0]['error'])
 
     def test_unsplit_raw_reports_reject_split_publisher_fields(self):
         original = deepcopy(self.windows_report)

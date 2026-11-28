@@ -1,6 +1,7 @@
 {
   "version": 1,
   "assignments": {
+    "single-job": {},
     "lanes-1": {
       "browser": [
         "chart-history",
@@ -64,6 +65,16 @@
     }
   },
   "programs": {
+    "84a627e17ac2f31327f6b9ec76ef59a7d1770ea8cb1fcb4719cb028bb966096b": {
+      "sources": [
+        "56ff21afadbcc5b7225553bfc54359b07ea75960"
+      ],
+      "assignment": "single-job",
+      "run_observations": "session",
+      "catalogs": [
+        "e393a9c7c25f4af0c0f6bf9d17f18528839e9a52dc2e47c7badcb1b4a88740e3"
+      ]
+    },
     "62e28f1f610e178a1b183fa42028cdaae844c0fd82b5a681339f4ab7fda93606": {
       "sources": [
         "d9102de9c036fb6ae4b962a5dfa9529927110315",

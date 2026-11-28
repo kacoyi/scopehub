@@ -1635,18 +1635,31 @@ def clock_choices(fact):
     return fact.order_bounds if fact.order_bounds is not None else job_endpoint_choices(fact.job)
 
 
+def windows_dependency_job(observed, attempt, layout):
+    if not split_windows_clock(layout) or layout['workflow'].get('windows_layout_disputed'):
+        return None
+    parent = observed.get((attempt, ('platform', 'Windows')))
+    if parent and parent.job:
+        # A protected display name identifies a clock candidate. Only an
+        # observed dependency check establishes that the job consumes lanes.
+        steps = parent.steps or {}
+        if any(step.eligible and step.conclusions in ({'success'}, {'failure'})
+               for name, step in steps.items() if name in WINDOWS_LAYOUT_STEPS):
+            return parent
+    return None
+
+
 def scheduled_job_clocks(observed, attempt, layout):
     parent_key = attempt, ('platform', 'Windows')
-    parent = observed.get(parent_key)
-    lanes = windows_clock_lanes(layout)
-    if not lanes or not parent or not parent.job or layout['workflow'].get('windows_layout_disputed'):
+    parent = windows_dependency_job(observed, attempt, layout)
+    if parent is None:
         return
     choices = clock_choices(parent)
     deadline = ordered_limit(choices, local_job_order(choices), 'start', latest=True)
     if deadline is None:
         return
     finishes = []
-    for lane in lanes:
+    for lane in windows_clock_lanes(layout):
         key = attempt, ('producer', WINDOWS_PRODUCERS[lane])
         fact = observed.get(key)
         if not fact or not fact.job:
@@ -2287,10 +2300,11 @@ def report_job_issue(sample, attempt, run, evidence):
                            and (forwarded or role[0] == 'producer'
                                 or split_windows_clock(run) and split_windows_report(sample)))
     status = sample.get('report_status')
-    parent = (evidence.jobs.get((attempt, ('platform', 'Windows')))
-              if producing_role[0] == 'producer' and split_windows_clock(run) else None)
+    parent = (windows_dependency_job(evidence.jobs, attempt, run)
+              if producing_role[0] == 'producer'
+              and WINDOWS_PRODUCER_LANES[producing_role[1]] in windows_clock_lanes(run) else None)
     if job_outside_report(fact, timestamp(sample['recorded_at']), verification=step if windows_publication else None,
-                          dependent=parent if parent and parent.job else None):
+                          dependent=parent):
         error = 'The recorded report creation is outside the publishing job boundaries.'
     elif windows_publication and step in fact.successful_harness_steps and status in ('failed', 'blocked'):
         error = 'The timing report status contradicts the successful verification step.'
@@ -2918,7 +2932,7 @@ def native_report_issue(sample, run, issues, *, evidence=None):
         result_issue = 'Windows producer bindings that reuse an original report across roles'
     elif sample.get('raw_publisher_unverified'):
         publishing, assignment = None, None
-    if assignment is not None and not result_issue:
+    if assignment is not None and (assignment or not (split_report or lanes)) and not result_issue:
         revision, catalog = publishing
         publisher = committed_windows_publisher(ROOT, revision)
         split_assignment = archived_split_assignment(publisher, assignment, catalog, ci, profile)

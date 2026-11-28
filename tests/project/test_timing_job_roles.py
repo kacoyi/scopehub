@@ -360,6 +360,26 @@ class TimingJobRoleTests(unittest.TestCase):
                                   'ci-windows-recovery': 300}, rows)
                 self.assertEqual(not swapped, bool(list(timing.platform_report_receipts(view['samples']))))
 
+    def test_only_observed_aggregate_dependency_can_bound_recovery_publication(self):
+        swapped = deepcopy(self.jobs)
+        aggregate, browser = swapped[1], swapped[3]
+        aggregate['name'], browser['name'] = browser['name'], aggregate['name']
+        aggregate['steps'] = browser['steps'] = []
+        early_consumer = deepcopy(self.jobs)
+        early_consumer[1]['started_at'] = '2026-11-20T00:04:00Z'
+        for name, jobs, expected in (
+            ('original', self.jobs, (300, 270, 'warm')),
+            ('name-only', swapped, (300, 270, 'warm')),
+            ('proven-dependency', early_consumer, (None, None, 'unknown')),
+        ):
+            with self.subTest(case=name):
+                for view in self.read_modes(jobs, name):
+                    recovery, = (row for row in view['samples'] if row['profile'] == 'ci-windows-recovery')
+                    self.assertEqual(expected, (recovery['seconds']['total'], recovery['seconds']['runner'],
+                                                recovery['cache']))
+                    if name == 'name-only' and view['recent_collection'] is not None:
+                        self.assertEqual([], view['recent_collection']['collected_samples'])
+
     def test_job_claims_join_before_membership_and_measurement(self):
         browser = self.jobs[3]
         missing = dict(browser, conclusion=None, status=None, name=None, steps=[], labels=None)
