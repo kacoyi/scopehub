@@ -30788,7 +30788,7 @@
     },
     {
       "id": "M0-182",
-      "title": "Recover bounded Windows handoff fixture matrix preparation under ordinary verification",
+      "title": "Qualify the bounded Windows handoff fixture repair before integration",
       "milestone": "M0",
       "status": "active",
       "depends_on": [
@@ -30808,7 +30808,7 @@
       "acceptance": [
         "Bind the original workspace-timeframe Windows failure to its actual fixture call, submitted head and tested tree. Compare the same unchanged witness on a passing native Windows run, applicable Linux observations and the M0-147 receipt. Keep unobserved internal causes explicit.",
         "At the real test-owned preparation entry, verify success and a bounded failure with ordinary cleanup, safe reporting and the existing subprocess deadline. Preserve the 24 native file comparisons and the established independent Windows verifier and parser controls, including their accepted and rejected outcomes.",
-        "Obtain independent review on the exact changed source, the first applicable native Windows and Linux observations, and the integrated recheck. Preserve M0-146 timing evidence independently of the workspace outcome."
+        "Obtain independent review on the exact changed source and the first applicable native Windows and Linux observations. Qualify the repair before integration through ordinary PR 123 Windows and Ubuntu workspace runs with matching receipts for all four checks, including both original Windows fixtures, the native refusals, all 24 leaf comparisons and cleanup. M0-185 owns the original integrated recheck. Preserve M0-146 timing evidence independently of the workspace outcome."
       ],
       "checks": [
         "project-state",
@@ -30862,9 +30862,19 @@
           "run_id": "20261128T061336.251887Z-259a37c9",
           "source_commit": "fa0f311cd637f5d3466a1f0ed5b1ec985127cede",
           "report_sha256": "73cc569bffada336ac008915e18db36312df531540e5342c6d24f3ccd98d0647"
+        },
+        {
+          "run_id": "windows-change-46131733216-1",
+          "source_commit": "f1f9edfb40c685ce780a1c7c006b7b666241990c",
+          "report_sha256": "f541f1e4ca620bc6f1404b5fbf43e3a5f9a420f6f7f9ed3d15b901fc9f2d0502"
+        },
+        {
+          "run_id": "20261128T094358.437930Z-7c81cbfd",
+          "source_commit": "f1f9edfb40c685ce780a1c7c006b7b666241990c",
+          "report_sha256": "63b9451464de0245272ddf55f8d845bf60251980e4bd257d2c55356f51e95916"
         }
       ],
-      "next_action": "Recheck the bounded ACL preparation in the actual integrated main revision using the ordinary required Windows and Ubuntu workspace results and matching evidence receipts. The exact reviewed PR 123 attempt 46131733216 passed on both platforms on the first journey, with the real Windows broad and explicit-only fixtures and all 24 independent leaf comparisons and cleanup. The matching local and native receipts qualify the ordinary workspace repair. The two fixture findings remain open through the integrated recheck. The existing integration and feedback gates require completed delivery work, so the coordinator must arrange the scoped pre-merge delivery and protected recheck handoff before merging.",
+      "next_action": "Obtain independent review of the exact revised source, the bounded fixture controls and the M0-185 handoff. The coordinator then retains the first ordinary full PR 123 reports and workspace originals from Windows and Ubuntu on the reviewed current head and base. Record new M0-182 receipts for all four checks against the revised task and project definitions. Once both native receipts and their regression evidence are verified, complete M0-182 and address its two fixture findings within the demonstrated PR scope. M0-185 independently owns protected workspace verification, and M0-141 owns the protected Windows timing measurement.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -30884,7 +30894,10 @@
         ],
         "hypotheses": [
           "The original leaf matrix compiled fixed interop code inside its deadline. Prebuilding that code remains useful. The later broad failure hit an unchanged separate PowerShell preparation before any of the ordinary matrix progress could be observed. The last internal operation and cause of either historical timeout remain unknown.",
-          "Both simple fixtures use a fixed sequence of managed file ACL operations. Running those same operations in the existing prebuilt helper removes two PowerShell starts from the ordinary journey. Measure each child envelope and its managed stages separately on native Windows."
+          "Both simple fixtures use a fixed sequence of managed file ACL operations. Running those same operations in the existing prebuilt helper removes two PowerShell starts from the ordinary journey. Measure each child envelope and its managed stages separately on native Windows.",
+          "Independent review approved corrective source ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc at contracts/reviews/task-decisions/M0-182.json#/events/7. Ordinary full PR 123 run 46131733216 attempt 1 submitted 049b10133e19c225f44799839d0093b34806de72 against base 742430e69246c8869732f12bb33742895dfe2d54 and tested f1f9edfb40c685ce780a1c7c006b7b666241990c, tree 8ef977ea80793d78286138179008b549f7e58971. Its original local, Windows and Ubuntu receipts remain attached to this task under the previous definition.",
+          "The first-attempt native Windows journey completed the broad and explicit-only preparations in 94 and 149 ms through dacl-written and verified refusals at stages 58 and 54. The read-only control refused at stage 55. The 4226 ms native matrix preparation recorded all three setup stages and six stages for each of 24 rows. The independent verifier accepted all 16 zero-mask and inherit-only files and refused all eight effective files at their expected stages. The full journey passed with fixture cleanup, handoff removal and capability rotation. The separate timeout, refusal and parser controls passed. The Windows workspace journal recorded 117 passes and two skips. Ubuntu passed 118 cases, including its own first-attempt launcher journey and platform permission refusal.",
+          "The same ordinary Windows run finished in 826 seconds from workflow creation under M0-146. Its timing proof is preserved with that accepted qualification. The split applies the completed-delivery rule in project/delivery.json#/source_control/integration so the reviewed repair can be delivered before M0-185 observes the exact integrated revision."
         ],
         "risks": [
           {
@@ -30920,14 +30933,16 @@
             {
               "path": "project/delivery.json",
               "pointer": "/source_control/verification"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/integration"
             }
           ],
           "non_goals": [
             "Production permission semantics, private user data, broader browser startup and the Windows Python scheduling objective remain under their existing owners."
           ],
-          "open_questions": [
-            "How much time does the first exact native run spend starting the fixture executable, preparing both simple fixtures, loading the matrix interop and checking each real file under the existing deadlines?"
-          ]
+          "open_questions": []
         },
         "evolution": {
           "kind": "refactor",
@@ -30939,6 +30954,106 @@
           ],
           "data_plan": "Only temporary test-owned files and retained diagnostic observations are involved.",
           "cleanup": "Dispose of the helper with the existing run directory. Retain original witnesses, exclusive matrix fixture creation and cleanup, and all later native comparisons."
+        }
+      }
+    },
+    {
+      "id": "M0-185",
+      "title": "Verify the Windows and Ubuntu workspace repair on the first protected main push",
+      "milestone": "M0",
+      "status": "planned",
+      "depends_on": [
+        "M0-182"
+      ],
+      "scope": [
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Bind the first ordinary protected main push after integration of PR 123 to the actual integrated commit containing M0-182, its workflow attempt and both required Windows and Ubuntu jobs. Both platforms must pass the ordinary workspace-timeframe journey and all four task checks on that revision. Retain original platform reports, logs, workspace journals and provenance, including any producer originals bound by the final report, and archive matching M0-185 receipts for both platforms.",
+        "Verify on native Windows that the original broad and explicit-only fixtures reach dacl-written and the independent verifier refuses both at their expected stages. Preserve the read-only refusal, all 24 independent matrix comparisons with their expected accepts and refusals, bounded diagnostics, parser controls, fixture teardown, handoff removal and capability rotation. Verify Ubuntu's own launcher and permission-refusal path.",
+        "Compare against M0-182's retained original failures, applicable passing controls and ordinary PR receipts, including the M0-147 witness. Obtain independent review of the integrated revision and exact observations. If the first push is missing, stale, blocked or failed, retain the first observation and applicable recovery diagnostics, keep this task unfinished and assign correction under the existing integration incident procedure."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe",
+        "rust-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "The coordinator owns this recheck after PR 123 integrates. Identify the actual protected main commit and capture its first ordinary push on Windows and Ubuntu. Verify and retain the bound workspace originals, then arrange independent review and record the two matching M0-185 receipts before closing. Keep the distinct M0-141 timing observation under its own evidence and threshold.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The exact first protected main push containing the delivered repair independently demonstrates the full workspace journey on Windows and Ubuntu with durable native evidence.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/delivery.json",
+          "project/checks.json",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ubuntu-preview/workspace_test_handoff_acl.mjs"
+        ],
+        "hypotheses": [
+          "The native fixture repair demonstrated on ordinary PR 123 inputs should also pass on the first ordinary protected main push containing it."
+        ],
+        "risks": [
+          {
+            "failure": "A later retry, a mismatched report or incomplete native fixture coverage could conceal a failure on the first integrated revision.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "workspace-timeframe",
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the first protected result, original archives and recovery diagnostics. If the integrated result fails or cannot be verified, assign corrective work and follow the existing integration incident and reviewed repair or revert procedures.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/check.py",
+            "scripts/project.py",
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/integration"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "M0-141 separately owns the first protected Windows timing objective. M0-146 retains the accepted 826-second ordinary PR measurement."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Preserve the M0-182 repair, original findings, scope, regression coverage and retained evidence. Preserve M0-147, M0-139 and M0-146 acceptance."
+          ],
+          "change": [
+            "Record the protected workspace observation separately after the pre-merge repair is independently accepted and integrated."
+          ],
+          "data_plan": "Retain authenticated synthetic fixture evidence with its original source, run, platform and file digests.",
+          "cleanup": "Verify native fixture and launcher cleanup on the protected run. Preserve the original observation and any recovery artifacts."
         }
       }
     }
