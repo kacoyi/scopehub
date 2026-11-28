@@ -117,6 +117,15 @@
       },
       "supersedes": "04bf2d5cf2bfee5b26e1eef16daed87bd03e26dc9a5a1f7b54ef7be9b082b220",
       "evidence_sha256": "5ecf7134c21fd4d98651122efaabcf23258b2eaf04422d68a0daca4f9500376a"
+    },
+    {
+      "kind": "request",
+      "source_commit": "f9ca349518a3a58842010e01db1d5010b34f651b",
+      "scope": "Verify the pre-integration repair at the original Windows fixture failures, both native positive and refused controls, all 24 comparisons and cleanup. Compare M0-182 with its previous scope and the planned M0-185 protected recheck. Check identity and custody of the original and renewed receipts, the measured PR outcome and the remaining open gates.",
+      "supersedes": "8f0e4f5ed84e5d61465bbddebe6b8a8b14be401fa06e318c9e9ce195d957788f",
+      "requested_at": "2026-11-28T10:29:55.089693+00:00",
+      "request_id": "6a74ebf98c2aa5a967620699f9cd3fe13eec8a449ebf1c639d420849d3e53388",
+      "evidence_sha256": "8e1f1f4e0383d4735570fdfec567dd20abe83f4819af9ea61c284f61ca4b5d5a"
     }
   ]
 }
