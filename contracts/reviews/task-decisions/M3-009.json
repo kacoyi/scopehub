@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M3-009",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "77b2b33311188b9c52e42f6b26bcb104ffd8008d",
+      "scope": "Verify ordinary indicator preparation, a lost or late desktop reply, and a write that commits before its reply. Check bounded UI recovery, explicit consent, dispatch counts, durable workspace state, and stale confirmation handling.",
+      "supersedes": null,
+      "requested_at": "2026-11-28T10:07:54.543491+00:00",
+      "request_id": "862bb9f32e14a6e0f35da5279d2f483b66582b2bd0a02e588d046976cc5b97dc",
+      "evidence_sha256": "42634e67982cde785b045f717c88ac4d061cdd950add9cfdf8e8d42a2e1a4057"
+    }
+  ]
+}
