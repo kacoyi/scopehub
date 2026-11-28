@@ -871,6 +871,15 @@
       },
       "supersedes": "e5ce81c95d150b36108a2a5fb88679dae1a05f80ab46d77ffa62cecc6ec217f4",
       "evidence_sha256": "bb8f38d0f2dcdc46070c7c71f63b53aa311ab5374672c3a81fd11d4324b6f290"
+    },
+    {
+      "kind": "request",
+      "source_commit": "7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "scope": "Review the actual Windows PR Python allocation, the authentic timed contiguous module cutoff in three ordinary full warm runs, the retained fourth timeout, the 973-second source and the 900/901 boundary controls. Verify that all actual discovered IDs remain in order, 578/405 on the latest 983, the raw output and interrupted and rejected outcomes still have a single correct owner, and the duration calculation includes initial queue. Compare the exact integrated fixture build placement and cost. Assess the offline 829.289 projection within its observed limits and the gated native/protected follow-through.",
+      "supersedes": "3a274394a9bf70309c3eb27c708c91cb717006942a739bf5c6e9b7c381c576bf",
+      "requested_at": "2026-11-28T06:52:41.416882+00:00",
+      "request_id": "fde9ba8ca43d68cde55a532925c69705fbdde0dfc4ea7cc2ba9496742aa794d8",
+      "evidence_sha256": "f52f5fef8bbe94d970a255e431c17e5ab0599dc074b23520bf0d3df7f2ccc837"
     }
   ]
 }

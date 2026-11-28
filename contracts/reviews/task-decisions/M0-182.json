@@ -30,6 +30,15 @@
       },
       "supersedes": "58bf76e322d7848de6eee649b3e852615a6cc6e620b09d9ca9a4da38d04c8a3c",
       "evidence_sha256": "12d4dc1c1d7b680185a371d2cbc85f725ff080eb1063551fde017dd58e764884"
+    },
+    {
+      "kind": "request",
+      "source_commit": "7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "scope": "Review the integrated bounded broad and explicit-only test fixture preparation and unchanged real 24-file comparisons, the production consumer and independent refusal, timeout, observation privacy, ordered progress and cleanup. Use all three actual first-attempt Windows journals, the retained helper build and controlled calibration, and the six portable public test controls. Locate the two deadlines independently and preserve the historical unknown inner stages and candidate native qualification.",
+      "supersedes": "1ae7b1bbcc9b0ffc369caef647b0dc7c56bc3a298e7801705eab0077521cea36",
+      "requested_at": "2026-11-28T06:52:42.209868+00:00",
+      "request_id": "712212ffe3b963ff71b145ab3f316a48de6cdf259970ed42c8d6eac005e66289",
+      "evidence_sha256": "74e9cbe28cb91f4bf4af805893a99c8f86d07d7e5dedfb8e4a70e3bdf328aaa9"
     }
   ]
 }

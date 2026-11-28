@@ -813,6 +813,15 @@
       },
       "supersedes": "414e0d3ddf2f70aa83aa1d881a38a68aaefbe18d37833cafb1ea94bd44a7a759",
       "evidence_sha256": "9a220c756f6b5932ca5a8420c235ab3e1082e73412f584e6438f1eedc9489190"
+    },
+    {
+      "kind": "request",
+      "source_commit": "7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "scope": "Review the protected four-producer and ordinary five-producer contract as composed. Verify 35 selections, ordered new Python partition ownership through genuine publishing and aggregation, rejection of the true former split, and evidence preservation for interrupted and failed producers. Use the retained 125 original integration controls and both platform reports, and verify the fixture remains under the intended workspace or protected browser owner.",
+      "supersedes": "5e7667ec37e581b49b1719b02364639c4da82342b94790b8a2b73c11694131b0",
+      "requested_at": "2026-11-28T06:52:42.980602+00:00",
+      "request_id": "db6978ba06ed1fddeb322ee63cd472e242265654a41d13f35c73efe5d9f6cfd8",
+      "evidence_sha256": "bb358fb98ddf030e8b9e8cad9be920656712d3acc4e462fc6585840b44dd11d5"
     }
   ]
 }

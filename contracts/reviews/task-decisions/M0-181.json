@@ -88,6 +88,15 @@
       },
       "supersedes": "8a4ce809dedb45ba1c3a0aa2bf5aaf79eb66257e05f8f36e5e970ad4a36e2f5d",
       "evidence_sha256": "53a70f67ddab99d0399faddd2956ef6531b0ae30e0647855b797cb36bd356a84"
+    },
+    {
+      "kind": "request",
+      "source_commit": "7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "scope": "Review applicability of the accepted dependency advisory dispositions on the combined Python allocator and workspace fixture source. Check the actual verification workflow, dependency policy, relevant lockfiles and new test-only helper. Replay accepted and retired/expired cases with the established public checker and its genuine archived material, plus both successful ordinary dependency outcomes on 46115517382. Keep scheduled and protected adoption in their own scopes.",
+      "supersedes": "1d92fbdb8d48f6cf03d1747eb24c6adb2b4340c328c89e56cc4226e51358e104",
+      "requested_at": "2026-11-28T06:52:43.764498+00:00",
+      "request_id": "fc5dadc081b773d8dc502ec76a958ffa4d4ac3495717d75cd0c079ac7bc4c4f9",
+      "evidence_sha256": "881c87959630a776e033b505d38078d67f44caac5f44bf7cb1b58c5cb6fd8310"
     }
   ]
 }
