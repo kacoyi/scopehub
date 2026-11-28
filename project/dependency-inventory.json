@@ -4,7 +4,7 @@
   "lock_sha256": {
     "Cargo.lock": "7ce260e0f34c5fbbf725831316d5219a188fc13a72d43d7bad3a058d2567c777",
     "uv.lock": "c64faf3fc1912c0a52d3c088b35b491875063972a67fc7113d1224a57978240c",
-    "pnpm-lock.yaml": "93ce172ebd5dbdddc6e00334d8aa79f9913545cf2bf52a49770d4eedff16c1f3"
+    "pnpm-lock.yaml": "273fc2842fdc1eff02288f414b15188f81a4603e2808254c1a01404919a5231c"
   },
   "packages": [
     {
