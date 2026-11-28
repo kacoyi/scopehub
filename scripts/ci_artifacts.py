@@ -3,6 +3,7 @@
 import argparse
 import ast
 from datetime import datetime, timezone
+from functools import lru_cache
 import json
 import os
 from pathlib import Path
@@ -547,12 +548,17 @@ def validate_windows_run_id(report):
 
 def source_uses_windows_aggregate(source):
     workflow = source / '.github/workflows/verify.yml'
-    if not workflow.is_file():
-        return False
+    return workflow.is_file() and _workflow_declares_windows_aggregate(workflow.read_text(encoding='utf-8'))
+
+
+@lru_cache(maxsize=8)
+def _workflow_declares_windows_aggregate(contents):
+    # Cache only the answer for exact workflow text. A new admission still
+    # reads its own committed blob and validates its own evidence.
     import yaml
 
     try:
-        steps = yaml.safe_load(workflow.read_text(encoding='utf-8'))['jobs']['windows_change']['steps']
+        steps = yaml.safe_load(contents)['jobs']['windows_change']['steps']
     except KeyError:
         return False
     except (TypeError, yaml.YAMLError) as error:
@@ -563,6 +569,14 @@ def source_uses_windows_aggregate(source):
 
 def source_uses_windows_python_parts(source):
     return (source / 'scripts/windows_python.py').is_file() and source_uses_windows_aggregate(source)
+
+
+def _committed_windows_source(root, commit):
+    source = CommittedPath.at(root, commit)
+    # The schema, workflow and scheduler describe one committed allocation.
+    # Read them together without using any artifact-supplied declaration.
+    source.prefetch('contracts/schemas/project.schema.json', '.github/workflows/verify.yml', 'scripts/check.py')
+    return source
 
 
 def source_producer_bindings(source):
@@ -779,7 +793,7 @@ def validate_windows_aggregate(root, project, reports, report, source, source_co
                                *, lane_result=None):
     selected = select_checks(project)
     ci = report['ci']
-    committed = CommittedPath.at(root, source_commit)
+    committed = _committed_windows_source(root, source_commit)
     split = (windows_python.enabled(project, ci, selected)
              and source_uses_windows_python_parts(committed))
     retained_lanes, part_reports, workspace_results = source_producer_bindings(committed)
@@ -863,7 +877,7 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=None, collecti
         validate_windows_run_id(report)
         if assignments is None:
             selected = select_checks(project)
-            committed = CommittedPath.at(root, checkout)
+            committed = _committed_windows_source(root, checkout)
             _, _, workspace_results = source_producer_bindings(committed)
             split = (windows_python.enabled(project, expected, selected)
                      and source_uses_windows_python_parts(committed))
@@ -872,7 +886,9 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=None, collecti
             assignments = windows_assignments(committed, selected, event=expected['event'],
                                               split=split, recovery_checks=recovery_checks)
         else:
-            recovery_checks = runner_recovery_checks(runner)
+            # Collection has already derived ownership. Only the recovery lane
+            # needs its overlap rule to recheck interrupted or omitted results.
+            recovery_checks = runner_recovery_checks(runner) if lane == 'recovery' else ()
         if lane not in assignments:
             raise PublicationError(f'Windows {lane} lane is inactive for the recorded source and event.')
         lane_selection = assignments[lane]
@@ -1119,7 +1135,7 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
     reports = root / '.reports'
     run_id = windows_lanes_run_id(ci)
     rows = {}
-    committed = CommittedPath.at(root, checkout)
+    committed = CommittedPath.at(root, checkout) if profile else _committed_windows_source(root, checkout)
     partitioned = (not profile and windows_python.enabled(project, ci, selected)
                    and source_uses_windows_python_parts(committed))
     retained_lanes, retain_part_producers, workspace_results = (

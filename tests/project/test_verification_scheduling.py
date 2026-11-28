@@ -514,16 +514,31 @@ class WindowsLaneTests(ProjectFixture):
     current_transfers = harness.WINDOWS_PR_CHECK_TRANSFERS
     current_workspace_result_checks = harness.WINDOWS_WORKSPACE_RESULT_CHECKS
     historical_recovery_checks = {'market-workflow', 'desktop-localization'}
+    _checkout_seed = None
 
-    def setUp(self):
-        super().setUp()
-        schema_path = self.root / 'contracts/schemas/project.schema.json'
+    def initialize_checkout(self, root):
+        cls = type(self)
+        if cls._checkout_seed is None:
+            # Only the pristine checkout is shared. Each case gets its own
+            # Git objects, index, working files, hosted event and report paths.
+            with ExitStack() as cleanup:
+                seed = Path(cleanup.enter_context(tempfile.TemporaryDirectory()))
+                super().initialize_checkout(seed)
+                commits = self._bootstrap_checkout(seed)
+                cls.addClassCleanup(cleanup.pop_all().close)
+                cls.addClassCleanup(setattr, cls, '_checkout_seed', None)
+                cls._checkout_seed = seed, commits
+        seed, self.fixture_commits = cls._checkout_seed
+        shutil.copytree(seed, root, dirs_exist_ok=True)
+
+    @staticmethod
+    def _bootstrap_checkout(root):
+        schema_path = root / 'contracts/schemas/project.schema.json'
         schema = read_json(schema_path)
         report = schema['$defs']['HarnessReport']['properties']
         report['checks']['items']['properties'].pop(harness.BROWSER_RESULTS_DIGEST)
         schema_path.write_bytes(json_bytes(schema))
-        self.downloads = Path(self.enterContext(tempfile.TemporaryDirectory()))
-        catalog_path = self.root / 'project/checks.json'
+        catalog_path = root / 'project/checks.json'
         catalog = read_json(catalog_path)
         for name in ('dependency-review', 'python-contracts-workers', 'workspace-timeframe',
                      'market-recovery', 'market-recovery-ui'):
@@ -534,13 +549,14 @@ class WindowsLaneTests(ProjectFixture):
             check['command'] = ['{python}', '-c', f'import os, sys; sys.exit(int(os.environ.get({exit_key!r}, 0)))']
         catalog['profiles']['records'] = ['environment', 'project-state', 'dependency-review']
         catalog_path.write_bytes(json_bytes(catalog))
-        ledger = self.ledger()
+        ledger_path = root / 'project/tasks.json'
+        ledger = read_json(ledger_path)
         task_by_id(ledger, 'M0-001')['checks'].append('market-recovery-ui')
-        self.save_ledger(ledger)
+        ledger_path.write_bytes(json_bytes(ledger))
 
         def git(*args):
             command = ['git', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.org', *args]
-            return subprocess.check_output(command, cwd=self.root, stderr=subprocess.PIPE, text=True).strip()
+            return subprocess.check_output(command, cwd=root, stderr=subprocess.PIPE, text=True).strip()
 
         git('add', '.')
         tree = git('write-tree')
@@ -548,6 +564,12 @@ class WindowsLaneTests(ProjectFixture):
         head = git('commit-tree', tree, '-p', base, '-m', 'Fixture head')
         merge = git('commit-tree', tree, '-p', base, '-p', head, '-m', 'Fixture merge')
         git('checkout', '--detach', merge)
+        return base, head, merge
+
+    def setUp(self):
+        super().setUp()
+        base, head, merge = self.fixture_commits
+        self.downloads = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.reports = self.root / '.reports'
         self.event = self.downloads.parent / f'{self.downloads.name}-event.json'
         self.addCleanup(self.event.unlink, missing_ok=True)

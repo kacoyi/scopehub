@@ -27077,7 +27077,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "PR 123 first attempt 46127361251 passed both required jobs and all 28 applicable Windows checks with seven planned omissions. Windows publication took 921 seconds including the two-second queue. Diagnose repeated work in the recovery Python arm against the retained native callbacks and ordinary consumer. Compare a matching valid input, a genuine admission refusal and interruption behavior before and after the repair, preserving all 983 ordered case identities and the 578/405 allocation where feasible. Retain the three separate M0-182 receipts. The corrective candidate requires exact-source independent review and a new comparable ordinary full warm Windows PR at or below 900 seconds. First protected four-producer adoption remains pending.",
+      "next_action": "Verify the batched committed-source reads and isolated Windows lane fixture reuse against the unchanged 578/405 partition. Retain local crossover, public native evidence replay and task-harness results. Obtain independent review of the exact corrective source and a new first-attempt ordinary full warm Windows PR with both required jobs passing, 28 applicable Windows passes and seven planned omissions across the 35 selected checks, and publication by 900 seconds including queue. The 921-second recurrence remains open and the three M0-182 receipts remain separate. First protected four-producer adoption remains pending.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -27678,12 +27678,14 @@
             "scripts/check.py",
             "scripts/windows_python.py",
             "scripts/ci_artifacts.py",
+            "scripts/review_tree.py",
             "scripts/diagnostic_archive.py",
             "scripts/project.py",
             "scripts/storage.py",
             "scripts/timing.py",
             "scripts/integration.py",
             "contracts/schemas/project.schema.json",
+            "tests/project/test_continuity.py",
             "tests/project/test_delivery.py",
             "tests/project/test_integration.py",
             "tests/project/test_storage.py",
@@ -27744,7 +27746,8 @@
             "Verify the producer declarations from the tested merge tree. Keep both Python producer verdicts coherent when interrupted during finalization and use the existing reports for workspace result digests. Preserve the narrower attachment evidence supported by authentic historical sources.",
             "Qualify the complete declared producer set and pinned checkout for each source-producing job from the verified tested merge tree. Verify the local commit and tree against the hosted record, and retain historical tree-backed qualification when the commit object is unavailable.",
             "Use one terminal report rule across hosted Windows producers that own workspace or Python outcomes, including scoped and protected paths. Preserve completed rows and bound attachments, freeze the verdict after both report copies, retry one sealed manifest digest read, and reject publication when generated case evidence cannot be verified.",
-            "Start the ordinary Windows PR Python recovery suffix at test_processes. Keep the tested-source rule for the former storage boundary and all older boundaries. Preserve the existing producer topology, protected and serial paths, and all original attachments."
+            "Start the ordinary Windows PR Python recovery suffix at test_processes. Keep the tested-source rule for the former storage boundary and all older boundaries. Preserve the existing producer topology, protected and serial paths, and all original attachments.",
+            "Batch the verified schema, workflow and scheduler blobs within ordinary Windows admission, reuse only the parsed aggregate declaration for exact workflow text, and copy a pristine fixture checkout before each Windows lane case. Preserve source proof, per-case mutations, producer admission and independent cleanup."
           ],
           "data_plan": "Use synthetic fixtures, read-only hosted originals and matching check logs. Preserve actual job durations, original identifiers and coverage for comparison. Archived 2.0 and legacy 2.1 evidence depends on authenticated retrieval for attempt lineage within canonical paths. Legacy merged output supports identifiable printed events under the historical runner format. The stream cannot prove unprinted discovery members or recover ambiguous callbacks. Diagnostic resolution checks the pinned report bytes, identities and attachment digests and returns the recorded check outcome. This path can reopen an ambiguous legacy original with all its bound attachments and grants no per-case receipt. The record command revalidates the supplied report and originals before returning either a new or existing receipt. The two genuine teardown executions with identical merged output and opposite outer callbacks establish that historical per-case recovery is mathematically impossible for those bytes. A newly submitted manifest or a chosen prefix cannot supply the missing ownership. Qualification relies on the supported historical runner's visible standard writes. Exact high-resolution durations, unprinted details and overridden or obscured runner writes require independently bound evidence.",
           "cleanup": "Remove temporary profiling from the delivery path, archive the focused comparison and retain any unresolved timing investigation with its next observable action."

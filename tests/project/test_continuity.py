@@ -33,16 +33,19 @@ class ProjectFixture(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
-        subprocess.run(['git', 'init', '--quiet', str(self.root)], check=True, capture_output=True)
-        schema = self.root / 'contracts/schemas/project.schema.json'
+        self.initialize_checkout(self.root)
+
+    def initialize_checkout(self, root):
+        subprocess.run(['git', 'init', '--quiet', str(root)], check=True, capture_output=True)
+        schema = root / 'contracts/schemas/project.schema.json'
         schema.parent.mkdir(parents=True)
         shutil.copyfile(REPO / 'contracts/schemas/project.schema.json', schema)
-        (self.root / '.gitignore').write_text('.reports/\n__pycache__/\n', encoding='utf-8')
+        (root / '.gitignore').write_text('.reports/\n__pycache__/\n', encoding='utf-8')
         for relative, value in records().items():
-            destination = self.root / relative
+            destination = root / relative
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_bytes(json_bytes(value))
-        (self.root / 'implementation.py').write_text('value = 1\n', encoding='utf-8')
+        (root / 'implementation.py').write_text('value = 1\n', encoding='utf-8')
 
     def ledger(self):
         return read_json(self.root / 'project/tasks.json')
