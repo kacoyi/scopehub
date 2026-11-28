@@ -97,6 +97,26 @@
       "requested_at": "2026-11-28T05:37:47.454133+00:00",
       "request_id": "b1509801ae4d65c3a48e58d64a43ad838beb2bb345bd58958304e7398f9168d0",
       "evidence_sha256": "d68a2bffc52acb33e17436aa66c6d04d12a079fd77262dce1d39845344437da0"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "59ca08adba2f0e4bae6e9a0704937028c4817e83",
+      "verdict": "approved",
+      "decision": "APPROVE M0-179 59ca08adba2f0e4bae6e9a0704937028c4817e83",
+      "scope": "APPROVE M0-179 59ca08adba2f0e4bae6e9a0704937028c4817e83",
+      "observation": "The first-attempt Linux browser journal records three visits with confirmed current publication and a readable same-port file that left the callback unentered when the launcher refused publication.",
+      "reviewer": "Independent Astra Standard (t1mx)",
+      "original_sha256": "86d80f6951b64378caf0b0ae5851ab4ad25ab1e01c74ca258e79f350c079ed9f",
+      "response_id": "8b2e20ffb46fa9ea7355cc0fda97442832fb026d20b5a278b4a08a0895ad0cba",
+      "response_sha256": "de250d4213316c63d8211600954d08413490e2a011389169070d8b58f6f26f95",
+      "legacy_response_sha256": "fed1dedfa972f3eba30d1e7de0dbcf3d70be2da3acd63b868504d70bb5f4553d",
+      "observation_body_sha256": "90f891de8e90af0172cc52a76773fa7da6a0fd3a15e8e7660687a8f9380da7a7",
+      "event": {
+        "id": "msg_02e7680e07a526bf016b0a6984233087d099b3fd03cbffb921",
+        "timestamp": "2026-11-28T05:41:47.540Z"
+      },
+      "supersedes": "b1509801ae4d65c3a48e58d64a43ad838beb2bb345bd58958304e7398f9168d0",
+      "evidence_sha256": "dd6a19cecf2dcfb9afb8cddf60ad116c7587c7c134bd20d9fa47553985a1cd97"
     }
   ]
 }
