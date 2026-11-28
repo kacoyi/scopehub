@@ -880,6 +880,26 @@
       "requested_at": "2026-11-28T06:52:41.416882+00:00",
       "request_id": "fde9ba8ca43d68cde55a532925c69705fbdde0dfc4ea7cc2ba9496742aa794d8",
       "evidence_sha256": "f52f5fef8bbe94d970a255e431c17e5ab0599dc074b23520bf0d3df7f2ccc837"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "scope": "APPROVE M0-146 7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "observation": "I independently verified that the candidate assigns all 983 discovered test IDs exactly once and in their original order, with 578 on Python and 405 on recovery.",
+      "reviewer": "Independent Astra Standard (t1np)",
+      "original_sha256": "5e7e7bf6f1105abfaeb6e0f5d9b580e16fadb0799d07ebcb4fc958fc87fdf9e0",
+      "response_id": "78d95f79dd88c99a112cfb1979260f0d9e5c46abba407e97ebe796a3a7a00f32",
+      "response_sha256": "253755c84dc3dcb85491ebd84e6f547ca88226e4b923360bb642baa907b41081",
+      "legacy_response_sha256": "df6fe49816687b2a3bf99584cb644079fb9f6ae6ee3f261cd0fcef9f5ab9eaea",
+      "observation_body_sha256": "330ce34070669b9c9c2d72f3ce2eb54b8e78f1bbdbbe73368d9fbb044e6a00f4",
+      "event": {
+        "id": "msg_0e0ebf516a4aeed0016b0a7b70d5d087d090217137495f5466",
+        "timestamp": "2026-11-28T06:58:27.442Z"
+      },
+      "supersedes": "fde9ba8ca43d68cde55a532925c69705fbdde0dfc4ea7cc2ba9496742aa794d8",
+      "evidence_sha256": "805a45648220d99c41e0ede3d7c948c9de4a2e286ce1fdf73f556a16a34c7c47"
     }
   ]
 }

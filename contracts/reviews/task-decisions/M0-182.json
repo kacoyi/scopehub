@@ -39,6 +39,26 @@
       "requested_at": "2026-11-28T06:52:42.209868+00:00",
       "request_id": "712212ffe3b963ff71b145ab3f316a48de6cdf259970ed42c8d6eac005e66289",
       "evidence_sha256": "74e9cbe28cb91f4bf4af805893a99c8f86d07d7e5dedfb8e4a70e3bdf328aaa9"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "verdict": "approved",
+      "decision": "APPROVE M0-182 7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "scope": "APPROVE M0-182 7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "observation": "In my controlled replay, the explicit-only fixture timed out with explicit-dacl-ready as its last confirmed stage at 2 ms, before its independent verifier ran.",
+      "reviewer": "Independent Astra Standard (t1nq)",
+      "original_sha256": "7753547dfab2f2645fea9c33d524f6e85a0c632e1686e16f10e61ce38a04ef8c",
+      "response_id": "f0bc77aee2b4775d49f172f9962a1c49026ad30037ad2972d38d94adb0411a03",
+      "response_sha256": "56042675ce8272f186b169fd82430dc2f80a17082629fb5595c87fe4dcb981e7",
+      "legacy_response_sha256": "e6ebd0b208c2368a61c595b97f1713aa2a679584f5d8c95a9a3ac66475ae6bf8",
+      "observation_body_sha256": "4ce95ba31731b2866647a3514a0dd29ddc3442277b425d2325b3662b23b24d75",
+      "event": {
+        "id": "msg_0857011af9726b66016b0a7be1570c87d090cfc5870e9e174d",
+        "timestamp": "2026-11-28T07:00:09.493Z"
+      },
+      "supersedes": "712212ffe3b963ff71b145ab3f316a48de6cdf259970ed42c8d6eac005e66289",
+      "evidence_sha256": "fd0d3a030586eb42330c038ed54ca801b0a712456712c20109c98bf16124aa53"
     }
   ]
 }

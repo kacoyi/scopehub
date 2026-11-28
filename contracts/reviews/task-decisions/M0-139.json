@@ -822,6 +822,26 @@
       "requested_at": "2026-11-28T06:52:42.980602+00:00",
       "request_id": "db6978ba06ed1fddeb322ee63cd472e242265654a41d13f35c73efe5d9f6cfd8",
       "evidence_sha256": "bb358fb98ddf030e8b9e8cad9be920656712d3acc4e462fc6585840b44dd11d5"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "verdict": "approved",
+      "decision": "APPROVE M0-139 7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "scope": "APPROVE M0-139 7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "observation": "The current integration entry reproduced all 125 retained verdicts, and the joined Linux controls showed that both publication and aggregation rejected genuine Python output from the former storage cutoff.",
+      "reviewer": "Independent Astra Standard (t1nr)",
+      "original_sha256": "154c73798c240e1256259f9460e4eef852d2b7179d5e9551b9592d47427d7cbd",
+      "response_id": "8b895f8e7247c94d9f5ea83ea1b334df5b964af002f93971f371d83bd03e3402",
+      "response_sha256": "8dffe088454d209b5c8a8052e83cf81e421f855e09bb3e500e5ad318ff2205e1",
+      "legacy_response_sha256": "75a2ccb486f66029b7db86bdcb06f5f73271184ea773808b59220fd23a340c9d",
+      "observation_body_sha256": "64336f8a75fb33ca3fad2edaf7193d6c45fe8723de43070dc2bb5796f4f8d1eb",
+      "event": {
+        "id": "msg_02a0954bcb274b96016b0a7c1e4c9087d0b243abaaee7c2c40",
+        "timestamp": "2026-11-28T07:01:05.047Z"
+      },
+      "supersedes": "db6978ba06ed1fddeb322ee63cd472e242265654a41d13f35c73efe5d9f6cfd8",
+      "evidence_sha256": "e8738cc3eb34d2d826fbd7228f1803fd9b74f6dcbe7cd88fc8c78baf15cabda0"
     }
   ]
 }
