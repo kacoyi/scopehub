@@ -368,6 +368,26 @@
       "requested_at": "2026-11-28T04:46:25.361773+00:00",
       "request_id": "8d97c18c10f2a1fdc7b6e02ade4105bd15cc98101397160af7e8c2ba65b5a346",
       "evidence_sha256": "d3f83864664f381b81de3866cc9c606f6ad735b9338be090832294c00eaf4fa5"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d226171f0d21bf65109416128a68bea9c8577b2d",
+      "verdict": "approved",
+      "decision": "APPROVE M0-148 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "scope": "APPROVE M0-148 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "observation": "Reversing the 35 selected checks in the Windows report for push run 45838575346 left only the original Linux receipt after a cold reopen.",
+      "reviewer": "Independent Astra Standard (t1mk)",
+      "original_sha256": "29952e00a5ac28953cb4e58305673ad44510e839d70065644678c04b0fb2cd40",
+      "response_id": "19fd5bbfc3a8c710e1fe44ac7053ba20a7e01e2d8bd806351ff47521a708c5b4",
+      "response_sha256": "b5beb0eed75d7b68a38f3a6567b0f41b0772ef4d1076f203a34e4c026c252870",
+      "legacy_response_sha256": "490f335d5dee6c600b4c09a24e82aae7cbdb901e7daf752f795c77e81afae7e1",
+      "observation_body_sha256": "903405918b982b68eaac1cbcc7515f6d3ec5d13b62f9e26d8caba259e76b33ea",
+      "event": {
+        "id": "msg_0c1ab86e4a2de2f4016b0a5efe3b6887d09bb2f0f5ca24a2a4",
+        "timestamp": "2026-11-28T04:56:56.782Z"
+      },
+      "supersedes": "8d97c18c10f2a1fdc7b6e02ade4105bd15cc98101397160af7e8c2ba65b5a346",
+      "evidence_sha256": "bdf64caaa3f52ed8a8192ad3949cf73aaa4226928a54e793ae2bab3b4c73f8a3"
     }
   ]
 }

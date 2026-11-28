@@ -368,6 +368,26 @@
       "requested_at": "2026-11-28T04:46:21.489116+00:00",
       "request_id": "69df205b24a0b7a0e8e0358b1c9f957b4e433dac17ec26d9457ff3769a499229",
       "evidence_sha256": "d2086557d87090a7a512f0b41ed43fa2216de3c9448b708a2cb63f50960d62d4"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d226171f0d21bf65109416128a68bea9c8577b2d",
+      "verdict": "approved",
+      "decision": "APPROVE M0-130 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "scope": "APPROVE M0-130 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "observation": "After the PR 84 browser and aggregate job names were swapped, cold reads in both report orders preserved 321 seconds of wall time and 319 runner-seconds for recovery job 138978153088, and collecting its report alone yielded zero Windows platform receipts.",
+      "reviewer": "Independent Astra Standard (t1mf)",
+      "original_sha256": "699ee3a6dcfbc082f8abc4ee952d7fc0c76bcdc77a52ce2fdb4d97713101db51",
+      "response_id": "b61df77edbd0efc513d5447eba1a98219354f666e24c30fe70f22f60473274fd",
+      "response_sha256": "45a79e47f148756681cf45c1bd00ba2f15eaac868fc40d84e1690fbb5dfa5db3",
+      "legacy_response_sha256": "ac1cab4b2099bc266d113160f7b55298cd86f1aeba659ad8701072a8f287f574",
+      "observation_body_sha256": "f605f2f30d96eb2960abacde58cfa150070e81150119874f070d34a2d15364ba",
+      "event": {
+        "id": "msg_0269001ee4439a04016b0a5e2281e087d09adeef956fff0adf",
+        "timestamp": "2026-11-28T04:53:11.665Z"
+      },
+      "supersedes": "69df205b24a0b7a0e8e0358b1c9f957b4e433dac17ec26d9457ff3769a499229",
+      "evidence_sha256": "229e5c3188398ec6e714951cb69c40be88fb55a035d2e76b474c4646aadce8e6"
     }
   ]
 }

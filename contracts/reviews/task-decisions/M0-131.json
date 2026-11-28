@@ -368,6 +368,26 @@
       "requested_at": "2026-11-28T04:46:22.452007+00:00",
       "request_id": "af9d893ece94076aae7debd0fefeab0569c42c3e82e664459ec198a4e204e679",
       "evidence_sha256": "36f549120334acd95d6f6fc04870439d5593dbab30f4af7caff2feb4649e7a5b"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d226171f0d21bf65109416128a68bea9c8577b2d",
+      "verdict": "approved",
+      "decision": "APPROVE M0-131 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "scope": "APPROVE M0-131 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "observation": "For PR 123, the reader rejected both report formats dated at initialization and preserved the genuine browser job’s 983 runner-seconds in both input orders after a cold reopen.",
+      "reviewer": "Independent Astra Standard (t1mg)",
+      "original_sha256": "d730b67711bed159231067b159e6086be863feb7cfbeaad05dc6a0480adc4780",
+      "response_id": "432d3224fc1e5dbaaeda4ceced1cafd78ef38b4652de90ed802f6de054d1d9a3",
+      "response_sha256": "9c86d57fdc7a457b9318f91e82dab6461542c7de8aae8a1b950ab57ebf1007a2",
+      "legacy_response_sha256": "e0ca587d824d526cd14e096dc3f28cd34bb9a51964d79274590a3d3cbd6ba90b",
+      "observation_body_sha256": "326222949647447639bf554a3e5cb3d5ba05dc599d3b0e0912937dbe4a069034",
+      "event": {
+        "id": "msg_0fad9070077e9b76016b0a5eb652c087d09f0115b9179d6e99",
+        "timestamp": "2026-11-28T04:55:48.438Z"
+      },
+      "supersedes": "af9d893ece94076aae7debd0fefeab0569c42c3e82e664459ec198a4e204e679",
+      "evidence_sha256": "3df9b55db9f7db876f467a03a1a8ad38eef7da29ea2eb22d897ce96619557251"
     }
   ]
 }

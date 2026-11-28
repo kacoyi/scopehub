@@ -368,6 +368,26 @@
       "requested_at": "2026-11-28T04:46:23.411942+00:00",
       "request_id": "ce36cebc20ace59436e89d3919a84562e68b205a00403bd52bd35f5c049aa331",
       "evidence_sha256": "471883f78f84b3e7831be41396a8cd8c243132832b1cda530b86075522e05906"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d226171f0d21bf65109416128a68bea9c8577b2d",
+      "verdict": "approved",
+      "decision": "APPROVE M0-133 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "scope": "APPROVE M0-133 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "observation": "After twelve newer captures displaced PR 84, a cold reopen in both input orders preserved the 804-second Windows wall time and the 321-second recovery job duration while leaving the disputed browser duration and Windows runner total unknown.",
+      "reviewer": "Independent Astra Standard (t1mh)",
+      "original_sha256": "2b33bfdc0f36a216301c620055de0dfaae129ce33c5c8b99b5b4d0f039c17417",
+      "response_id": "53fa5dca0b4f7fa7c075f31185b7968e6f4c23c877bc40efed4c7d6801619390",
+      "response_sha256": "e7e01322653c1ce2df03825a7e791d9df2fa0ec1240b1727240756e01ca98ab0",
+      "legacy_response_sha256": "c09475598b5f37d4acb56475d1fd27dcc2e1d26e2b6bbba07efc56bc32b49090",
+      "observation_body_sha256": "37677920a420e608251534dbdc8ececc972d191269b65fa3b598c26f19fbf175",
+      "event": {
+        "id": "msg_0af563d35b704b11016b0a5e01afe887d0b304607a337a9ca9",
+        "timestamp": "2026-11-28T04:52:40.545Z"
+      },
+      "supersedes": "ce36cebc20ace59436e89d3919a84562e68b205a00403bd52bd35f5c049aa331",
+      "evidence_sha256": "4f9f61138136eafb5d84abb388559fe8eca1e4213a113183fc2f3be40a13e7cb"
     }
   ]
 }

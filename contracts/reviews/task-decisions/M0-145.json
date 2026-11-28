@@ -368,6 +368,26 @@
       "requested_at": "2026-11-28T04:46:24.363669+00:00",
       "request_id": "ef93e6f383708a95d6b68004f1903b294bee8cc37a14b2790e3ca444dac8060b",
       "evidence_sha256": "a4712d3b6c36b4af1966a5dace371fadb4c821351466b66f71fd7197678ff210"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d226171f0d21bf65109416128a68bea9c8577b2d",
+      "verdict": "approved",
+      "decision": "APPROVE M0-145 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "scope": "APPROVE M0-145 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "observation": "After a cold reopen, both collection modes preserved the accepted Windows receipt for run 45389970933 and returned zero receipts for its split-layout copy even with qualifying history.",
+      "reviewer": "Independent Astra Standard (t1mj)",
+      "original_sha256": "0bd023db9bc8e2b48d9b01de8525026e02140517c62158bb7cec3018c0528065",
+      "response_id": "31ac8a210bb4e4268c0c8bb57aac184082809620e1518f0d7badf8ce05d87761",
+      "response_sha256": "da2f3026a0ca02e99a98da46bcd08eb82184750b0fee1eba3d3ea509f80ec21a",
+      "legacy_response_sha256": "58ffc57634199ef821cc29c200a56143c2e3e5a3550474d5c57b8b9c34d7a48e",
+      "observation_body_sha256": "da71f3a3483d5bcacb84b747e20747609a0dc809ec28147c1cd1f3be2ccb0dac",
+      "event": {
+        "id": "msg_094201101df2cf19016b0a5e05b15087d097aa4dafc93635ab",
+        "timestamp": "2026-11-28T04:52:42.022Z"
+      },
+      "supersedes": "ef93e6f383708a95d6b68004f1903b294bee8cc37a14b2790e3ca444dac8060b",
+      "evidence_sha256": "217702660a66aa5db206a1565ac3cc3037d33ae34e639b3b74cf56bf58663790"
     }
   ]
 }
