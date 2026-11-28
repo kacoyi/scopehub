@@ -126,6 +126,26 @@
       "requested_at": "2026-11-28T10:29:55.089693+00:00",
       "request_id": "6a74ebf98c2aa5a967620699f9cd3fe13eec8a449ebf1c639d420849d3e53388",
       "evidence_sha256": "8e1f1f4e0383d4735570fdfec567dd20abe83f4819af9ea61c284f61ca4b5d5a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "f9ca349518a3a58842010e01db1d5010b34f651b",
+      "verdict": "approved",
+      "decision": "APPROVE M0-182 f9ca349518a3a58842010e01db1d5010b34f651b",
+      "scope": "APPROVE M0-182 f9ca349518a3a58842010e01db1d5010b34f651b",
+      "observation": "The reviewed verifier accepted the original Windows workspace journal from run 46131733216, rejected a mismatched digest, and accepted the original digest again.",
+      "reviewer": "Independent Astra Standard (t1qm)",
+      "original_sha256": "88159741cf92d5984a8ddd21386d518af72170d8eef24de5cba3e6feba470760",
+      "response_id": "8492e797a5b3c1c03e3cf19c2d75ac1cf1cba3805a30ff945d29fe55557da2d4",
+      "response_sha256": "1a3d713b6ea906816c15613b3528f0c38561314a3f0bfd660bd59fdc3faf38ef",
+      "legacy_response_sha256": "76498e995e6ff1d0b3e4a40fd9345856a08dec8b63b70a4077818138d0163d5e",
+      "observation_body_sha256": "91f80e6ca6e02c7ca82228404916f8aa686709f0ff105891e95afcff695b1fc8",
+      "event": {
+        "id": "msg_04f75717f4a5021f016b0aade8b0c087d2b67596f7cc396a96",
+        "timestamp": "2026-11-28T10:33:42.149Z"
+      },
+      "supersedes": "6a74ebf98c2aa5a967620699f9cd3fe13eec8a449ebf1c639d420849d3e53388",
+      "evidence_sha256": "5c8936274894ed4e437fd08175cc553f4b4c46bb0786f0c82caed266c5b369ee"
     }
   ]
 }
