@@ -822,6 +822,26 @@
       "requested_at": "2026-11-28T05:07:28.534518+00:00",
       "request_id": "0afe24aa3d59d65932b5ad18106f219526554069aba098c476d8e04394d8167e",
       "evidence_sha256": "c1109cf2ea409f58999de234a71a9c04a16a9ce3b54f1e12283766c6545d06fa"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ede385d261fefd14148d5162ffc7e10cdd293b2e",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 ede385d261fefd14148d5162ffc7e10cdd293b2e",
+      "scope": "APPROVE M0-146 ede385d261fefd14148d5162ffc7e10cdd293b2e",
+      "observation": "With the PR 120 job clocks fixed, the public Windows timing reader recorded zero breaches at 900 seconds and one at 901 seconds while the first-producer-to-publisher span stayed at 866 seconds.",
+      "reviewer": "Independent Astra Standard (t1mp)",
+      "original_sha256": "7453e19351e0584df46d0717ed93b8b576c9edbcf61ded0a64ad98933ed28be7",
+      "response_id": "8d2541db95178b5fcb3583588a0da71624fa7b58a641470c7213fc620613ae85",
+      "response_sha256": "22e777df0a36f8b325fc66306dc618b09dfa5138676f5f45979d988303ae176d",
+      "legacy_response_sha256": "c510f6cf155db679515fac8c67e4d584e6660736e0e3097679480d1b27b76ec6",
+      "observation_body_sha256": "900ab16c3f04733f86044cb18ed1c73a449e2beb6f63e8a549cf68293a66d36d",
+      "event": {
+        "id": "msg_03ad9ee1e0dd52a6016b0a62789ddc87d0b9cd27f84ef71d90",
+        "timestamp": "2026-11-28T05:11:45.294Z"
+      },
+      "supersedes": "0afe24aa3d59d65932b5ad18106f219526554069aba098c476d8e04394d8167e",
+      "evidence_sha256": "9942b58a5fdbba5ed7d9a1069aa4f6b58784265f83400003d851e684d492ae16"
     }
   ]
 }
