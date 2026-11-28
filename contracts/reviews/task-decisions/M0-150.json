@@ -630,6 +630,15 @@
       },
       "supersedes": "fd03b23f579021a6e894786f48970685bc7a801efe492103ec0db9fee41d4a6e",
       "evidence_sha256": "49c50b7878ee6b6948d6b8d33f802a59a2e3c787f91c4592ff3e00eb90d03b01"
+    },
+    {
+      "kind": "request",
+      "source_commit": "829afd0b33d48304011d8e4c093a43874d517c57",
+      "scope": "Audit role-local phase bounds across partial step numbers and clocks. Verify initialization, staging, verification and neighboring subsecond bounds, genuine measured runner time, both orders and original positive and negative public controls.",
+      "supersedes": "a89eaeb169775281e9f8a54a30f55798adda794c79b7f34e5fd4b47e8852a5bf",
+      "requested_at": "2026-11-28T02:10:52.087280+00:00",
+      "request_id": "c3918a49686e58385281045bcb3091de6e6ef009ac40e8ee8c81910b05010caa",
+      "evidence_sha256": "ccc59dc620ecde4447a049fe896cbdf58a94d71b7f5bc0193212a5f5f3450168"
     }
   ]
 }
