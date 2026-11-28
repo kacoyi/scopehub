@@ -10,6 +10,26 @@
       "requested_at": "2026-11-28T09:57:24.769861+00:00",
       "request_id": "031052b2429da9259ea9e3237feeb851b99c36211326f74793225dfa7c72de0a",
       "evidence_sha256": "b4a66f24b0307e411fac66443dcc23071f8a94cb512aa756a802d99514242441"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e06c0cd769466f6e44421194aa63399eca56f8d7",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-183 e06c0cd769466f6e44421194aa63399eca56f8d7",
+      "scope": "CHANGES_REQUESTED M0-183 e06c0cd769466f6e44421194aa63399eca56f8d7",
+      "observation": "The M2-011 implementation prompt surfaced a saved-chart warning and omitted the matching private-record regression.",
+      "reviewer": "Independent Astra Standard (t1q8)",
+      "original_sha256": "26d4f44ab6a17ef19772d5e7b2740872512d4751cc655505da9a1741cd4e5fa2",
+      "response_id": "d7ac459358b202c56bd0aebfd2c61c27cc095c2fe66c2778cd8d2d3ccdacdb39",
+      "response_sha256": "e41a131b2301dc91e95df7142a1cb30defe1b9c7662ae087d44638feed5b6eec",
+      "legacy_response_sha256": "68379fb0af88ffb7d25ead230f7c3cc14d85c54f7a756272b304841b8eeb5828",
+      "observation_body_sha256": "bcfa38288955dcbc9a47ceb63a1e22f6cc2586a4add43edad9229b53a957d92a",
+      "event": {
+        "id": "msg_03cf76e17d38ca2f016b0aa647725c87d2bff68efbf9938fc6",
+        "timestamp": "2026-11-28T10:01:07.171Z"
+      },
+      "supersedes": "031052b2429da9259ea9e3237feeb851b99c36211326f74793225dfa7c72de0a",
+      "evidence_sha256": "df0b841ff3d009415722169a7342fa9de32563a5bc51f480b559980dc8457d43"
     }
   ]
 }
