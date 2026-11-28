@@ -68,6 +68,26 @@
       "requested_at": "2026-11-28T08:40:03.557584+00:00",
       "request_id": "baebf6d34ebc1029225c6f2f96dddbd1ebd50b8480223cbee0eb23b86809c978",
       "evidence_sha256": "96db6dad259e43ae0895fdf19c383e0bbfbb42b844a5fb292aee38321bbc5c36"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "verdict": "approved",
+      "decision": "APPROVE M0-182 22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "scope": "APPROVE M0-182 22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "observation": "In a controlled replay on the reviewed source, the workspace entry checked all 24 expected file outcomes, detected a deliberately incorrect acceptance, and removed every fixture it owned.",
+      "reviewer": "Independent Astra Standard (t1pd)",
+      "original_sha256": "0f9d3ca112ef409c1887836a6932aed50bedb916cb99221b6c5c3da2d7ed87fd",
+      "response_id": "fb2679ccaf1992cd5839cbf3f546f9cd86affb79f9be89304c01fd18b2b7815d",
+      "response_sha256": "190021180768d1c997c6353b18ef34f52e476d5534270290fc964078b630c7d6",
+      "legacy_response_sha256": "8ca4af376b03223a2caea9efb21cf2aaf68d66ebdc61ba8c3ea27352a234cb59",
+      "observation_body_sha256": "fe4ccac08d0b8dd4f9c37ef62530ac635a3f5959a7ab6c9c977fea0ff3f969d1",
+      "event": {
+        "id": "msg_0e988e38066b598c016b0a93feb4c887d1b7f6d267ca3ef342",
+        "timestamp": "2026-11-28T08:43:07.775Z"
+      },
+      "supersedes": "baebf6d34ebc1029225c6f2f96dddbd1ebd50b8480223cbee0eb23b86809c978",
+      "evidence_sha256": "7834279fe546a92d975c590d72f649283f59bc4d8a8786f0a39fd9c6a7e7e651"
     }
   ]
 }

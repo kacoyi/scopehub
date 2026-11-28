@@ -851,6 +851,26 @@
       "requested_at": "2026-11-28T08:40:02.786571+00:00",
       "request_id": "5266c7ebe928655ccd3b752167b73c1ca2190959d58d6e630351e3a40f512922",
       "evidence_sha256": "9ede2a18969ed723b77223a9abaf7d68971370a97cba67dd1e5e51b31d431010"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "verdict": "approved",
+      "decision": "APPROVE M0-139 22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "scope": "APPROVE M0-139 22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "observation": "For both LF and CRLF input, the candidate fixture produced the same former-allocation runner bytes, and the retained runs showed that publication and aggregation each rejected its genuine `test_processes` output while accepting the current partition.",
+      "reviewer": "Independent Astra Standard (t1pc)",
+      "original_sha256": "261aba5b5f87eea12bc450e24f754fc2ad013b2763da9c76ed34f08c48d271ff",
+      "response_id": "ba7e4383cdf34ee04c980a4e69d8f5d1e5dd65306a142c188180755147d3cce7",
+      "response_sha256": "7f69550932d7426faa10c96cf6c194923e2bff8b24988dc0796b2070971d6f30",
+      "legacy_response_sha256": "7a59825620956b2e461904f5298595d27dae233add702ac7bb90025ba813e227",
+      "observation_body_sha256": "afdeaf401d90c99206036511c53232b3a86a59212294046ff40b60d211bda580",
+      "event": {
+        "id": "msg_0b8e51291f8dc73d016b0a9434b0a487d185d4d82f6396b600",
+        "timestamp": "2026-11-28T08:43:56.788Z"
+      },
+      "supersedes": "5266c7ebe928655ccd3b752167b73c1ca2190959d58d6e630351e3a40f512922",
+      "evidence_sha256": "85ff6dda227435d62d1b33e4a29330d824b9617654f1d7a23ec8403e5d67bbbd"
     }
   ]
 }

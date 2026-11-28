@@ -126,6 +126,26 @@
       "requested_at": "2026-11-28T08:40:04.327584+00:00",
       "request_id": "94d835846c06e5d45d8290a1c1fc6af5500403f379b39dc9a8551feb784c156b",
       "evidence_sha256": "f01a8314cffc83f33323407a3d3d47516d725cd984cf696cf0eaad40896888aa"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "verdict": "approved",
+      "decision": "APPROVE M0-181 22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "scope": "APPROVE M0-181 22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "observation": "On the reviewed candidate, the ordinary dependency checker accepted the four findings recorded in each platform log from PR 123 run 46120026971 and exited with code 1 in all four replays that added either retired advisory as the sole unresolved finding.",
+      "reviewer": "Independent Astra Standard (t1pf)",
+      "original_sha256": "9ebbc2ae1267063a5ae6fa7d2f264767e1c1b2472e5120fe61db70320162536d",
+      "response_id": "622d0035bfa207a02ded825d37e402b43614c29047ace8aa61783ae99a707ae8",
+      "response_sha256": "2ef94dd30b7edd881f89a37e90802d8cd0307979d674e4e9a8db6bdff16a5b59",
+      "legacy_response_sha256": "3f3420b29f04566934cbf5907314af24981bde15dfa04681eb4af109c8004004",
+      "observation_body_sha256": "5c94faee7aa3710ee4d1542865dc28905b624c69e19b44c801a8289ba6bd7aa0",
+      "event": {
+        "id": "msg_04ec9979b9551618016b0a940987f487d2b1a6a411ada4aeed",
+        "timestamp": "2026-11-28T08:43:13.547Z"
+      },
+      "supersedes": "94d835846c06e5d45d8290a1c1fc6af5500403f379b39dc9a8551feb784c156b",
+      "evidence_sha256": "079b7c14b86d301c9f0b64339076983d7c78848ee1291f25f4893d7d05708180"
     }
   ]
 }
