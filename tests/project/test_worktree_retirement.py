@@ -1,9 +1,11 @@
 """Exercise retirement observations in temporary native Git worktrees."""
 
+from contextlib import ExitStack
 import json
 import os
 from pathlib import Path, PureWindowsPath
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -26,26 +28,44 @@ PNPM_TOOL_RESOLUTIONS = (
 
 
 class WorktreeRetirementTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.seed = None
+
+    @classmethod
+    def baseline_repository(cls):
+        if cls.seed is None:
+            # Seed only the standalone repository. Publish it after bootstrap
+            # succeeds so a failed case leaves no partial state for the next.
+            with ExitStack() as cleanup:
+                seed = Path(cleanup.enter_context(tempfile.TemporaryDirectory(
+                    prefix='scopehub-retirement-seed-',
+                ))).resolve()
+                worktree.git(seed, 'init', '--quiet', '--initial-branch=main')
+                worktree.git(seed, 'config', '--local', 'user.name', 'Retirement Fixture')
+                worktree.git(seed, 'config', '--local', 'user.email', 'fixture@example.invalid')
+                (seed / '.gitignore').write_text('.reports/\n.env\n', encoding='utf-8')
+                (seed / 'fixture.txt').write_text('shared baseline', encoding='utf-8')
+                worktree.git(seed, 'add', '.')
+                worktree.git(seed, 'commit', '--quiet', '-m', 'baseline')
+                worktree.git(seed, 'update-ref', 'refs/remotes/origin/main', 'HEAD')
+                cls.addClassCleanup(cleanup.pop_all().close)
+                cls.seed = seed
+        return cls.seed
+
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.directory = Path(temporary.name).resolve()
         self.primary = self.directory / 'primary'
-        self.primary.mkdir()
+        shutil.copytree(self.baseline_repository(), self.primary)
         self.managed = self.directory / 'worktree checkouts'
         self.managed.mkdir()
         self.archive = self.directory / 'retained data'
         self.archive.mkdir()
         self.common = self.primary / '.git'
-        self.git('init', '--quiet', '--initial-branch=main')
-        self.git('config', '--local', 'user.name', 'Retirement Fixture')
-        self.git('config', '--local', 'user.email', 'fixture@example.invalid')
         self.git('config', '--local', 'scopehub.worktreeRoot', str(self.managed))
-        (self.primary / '.gitignore').write_text('.reports/\n.env\n', encoding='utf-8')
-        (self.primary / 'fixture.txt').write_text('shared baseline', encoding='utf-8')
-        self.git('add', '.')
-        self.git('commit', '--quiet', '-m', 'baseline')
-        self.git('update-ref', 'refs/remotes/origin/main', 'HEAD')
         self.candidate = self.add_worktree('candidate')
 
     def git(self, *args, cwd=None):

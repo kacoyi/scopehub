@@ -8,6 +8,8 @@ import { promisify } from 'node:util';
 
 const exec = promisify(execFile);
 const witness = fileURLToPath(new URL('../../target/debug/examples/windows_handoff_probe.exe', import.meta.url));
+const fixtureHelper = 'handoff-fixture-acl.exe';
+const deadlineExceeded = 'subprocess deadline exceeded';
 const stages = {
   51: 'file type',
   52: 'directory owner',
@@ -30,7 +32,7 @@ function probeFailure(error, child, exitStages) {
   }
   // Node can set error.killed when a deadline only closes inherited pipes.
   // child.killed means a signal was actually sent to the direct child.
-  if (child?.killed) return 'subprocess deadline exceeded';
+  if (child?.killed) return deadlineExceeded;
   if (error.signal && Object.hasOwn(constants.signals, error.signal)) {
     return `subprocess terminated by ${error.signal}`;
   }
@@ -38,30 +40,60 @@ function probeFailure(error, child, exitStages) {
   return 'subprocess startup failed';
 }
 
-export async function runHandoffProbe(executable, args, { timeout = 10_000, maxBuffer = 8192, env, exitStages = stages } = {}) {
+export async function runHandoffProbe(executable, args, {
+  timeout = 10_000, maxBuffer = 8192, env, exitStages = stages, readProgress,
+  incompleteProgress = 'synthetic leaf ACL preparation progress incomplete',
+} = {}) {
   let child;
+  let stdout;
   try {
     // Let execFile close the pipes at its deadline and wait for the direct child.
     const execution = exec(executable, args, { timeout, killSignal: 'SIGKILL', maxBuffer, windowsHide: true, env });
     child = execution.child;
-    await execution;
+    ({ stdout } = await execution);
   } catch (error) {
     // execFile errors can carry the command, stdout and stderr. Retain only
     // the enumerated outcome, without chaining the original error.
-    throw new Error(probeFailure(error, child, exitStages));
+    const failure = probeFailure(error, child, exitStages);
+    const progress = readProgress?.(error.stdout ?? '', true);
+    if (failure === deadlineExceeded && readProgress) {
+      const detail = progress ? `last confirmed ${progress.last}` : 'no preparation stage confirmed';
+      throw new Error(`${failure}, ${detail}`);
+    }
+    throw new Error(failure);
   }
+  if (!readProgress) return;
+  const progress = readProgress(stdout);
+  if (!progress?.complete) throw new Error(incompleteProgress);
+  return progress;
 }
 
-function prepareAclFixture(check, handoff, fixture, exitStages = {
-  1: 'fixture preparation', 2: 'raw ACE readback', 3: 'legacy managed descriptor',
-}) {
+function prepareAclFixture(check, handoff, fixture, exitStages, readProgress) {
   const systemRoot = process.env.SystemRoot;
   if (!systemRoot) throw new Error('subprocess startup failed (missing system root)');
   const powershell = join(systemRoot, 'System32/WindowsPowerShell/v1.0/powershell.exe');
   return runHandoffProbe(powershell, ['-NoProfile', '-NonInteractive', '-NoLogo', '-Command', check], {
     env: { ...process.env, SCOPEHUB_TEST_HANDOFF: handoff, SCOPEHUB_TEST_ACL_FIXTURE: fixture },
     exitStages,
+    readProgress,
   });
+}
+
+export async function buildWindowsAclFixtureHelper(run) {
+  const systemRoot = process.env.SystemRoot;
+  if (!systemRoot) throw new Error('Could not build the synthetic ACL fixture helper (missing system root).');
+  const compiler = join(systemRoot, 'Microsoft.NET/Framework64/v4.0.30319/csc.exe');
+  const sources = ['workspace_test_handoff_prepare_acl.cs', 'workspace_test_handoff_leaf_acl.cs']
+    .map(name => fileURLToPath(new URL(name, import.meta.url)));
+  const started = performance.now();
+  try {
+    await runHandoffProbe(compiler, [
+      '/nologo', '/target:exe', '/platform:anycpu', '/out:' + join(run, fixtureHelper), ...sources,
+    ], { exitStages: {} });
+  } catch (error) {
+    throw new Error(`Could not build the synthetic ACL fixture helper (${error.message}).`);
+  }
+  console.info('Synthetic ACL fixture helper build', JSON.stringify({ elapsedMs: Math.round(performance.now() - started) }));
 }
 
 export async function assertWindowsPrivateHandoff(handoff, launch = runHandoffProbe) {
@@ -118,38 +150,44 @@ async function withAclFixtures(fixtures, verify) {
   if (primary || cleanup) throw primary ?? cleanup;
 }
 
-export async function assertUnsuitableWindowsHandoffsRejected(profile) {
-  const prepare = `
-    $ErrorActionPreference = 'Stop'
-    $path = $env:SCOPEHUB_TEST_HANDOFF
-    try {
-      if ($env:SCOPEHUB_TEST_ACL_FIXTURE -eq 'broad') {
-        $acl = [IO.File]::GetAccessControl($path, [Security.AccessControl.AccessControlSections]::Access)
-        $sid = [Security.Principal.SecurityIdentifier]::new('S-1-1-0')
-        $rights = [Security.AccessControl.FileSystemRights]::Read
-      } elseif ($env:SCOPEHUB_TEST_ACL_FIXTURE -eq 'explicit-only') {
-        $acl = [Security.AccessControl.FileSecurity]::new()
-        $acl.SetAccessRuleProtection($true, $false)
-        $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User
-        $rights = [Security.AccessControl.FileSystemRights]::FullControl
-      } else { exit 1 }
-      $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new(
-        $sid, $rights, [Security.AccessControl.AccessControlType]::Allow
-      ))
-      [IO.File]::SetAccessControl($path, $acl)
-      exit 0
-    } catch { exit 1 }
-  `;
-  const cases = [['broad', 58], ['explicit-only', 54]];
-  for (const [fixture, stage] of cases) {
+async function prepareUnsuitableAcl(path, fixture, stages, launchFixture) {
+  const started = performance.now();
+  let progress;
+  let failure;
+  try {
+    const run = process.env.SCOPEHUB_WORKSPACE_TEST_RUN;
+    if (!run) throw new Error('subprocess startup failed (missing test run directory)');
+    await launchFixture(join(run, fixtureHelper), [], {
+      env: { ...process.env, SCOPEHUB_TEST_HANDOFF: path, SCOPEHUB_TEST_ACL_FIXTURE: fixture },
+      exitStages: { 1: 'fixture preparation' },
+      incompleteProgress: 'synthetic ACL preparation progress incomplete',
+      readProgress: (stdout, interrupted) => {
+        progress = aclProgress(stdout, interrupted, stages.length, index => [undefined, stages[index]]);
+        return progress;
+      },
+    });
+  } catch (error) {
+    failure = error.message;
+    throw new Error(`Could not prepare the synthetic ${fixture} ACL fixture (${failure}).`);
+  } finally {
+    const elapsedMs = progress?.times ?? [];
+    console.info('Synthetic unsuitable ACL fixture preparation', JSON.stringify({
+      fixture, subprocessMs: Math.round(performance.now() - started), stages: stages.slice(0, elapsedMs.length),
+      elapsedMs, failure: failure ?? null,
+    }));
+  }
+}
+
+export async function assertUnsuitableWindowsHandoffsRejected(profile, {
+  launchFixture = runHandoffProbe, launch = runHandoffProbe,
+} = {}) {
+  const cases = [['broad', 'baseline-read', 58], ['explicit-only', 'explicit-dacl-ready', 54]];
+  for (const [fixture, descriptorReady, stage] of cases) {
     const path = join(profile, `synthetic-acl-${fixture}.txt`);
     await withAclFixtures([{ name: fixture, path }], async () => {
-      try {
-        await prepareAclFixture(prepare, path, fixture);
-      } catch (error) {
-        throw new Error(`Could not prepare the synthetic ${fixture} ACL fixture (${error.message}).`);
-      }
-      await assertRejectedHandoff(path, stage);
+      await prepareUnsuitableAcl(path, fixture,
+        ['helper-entered', 'input-ready', descriptorReady, 'rule-added', 'dacl-written'], launchFixture);
+      await assertRejectedHandoff(path, stage, launch);
     });
   }
 
@@ -158,7 +196,7 @@ export async function assertUnsuitableWindowsHandoffsRejected(profile) {
   await withAclFixtures([{ name: 'read-only', path: readOnly, restoreWrite: true }], async () => {
     try { await chmod(readOnly, 0o400); }
     catch { throw aclFixtureFailure('read-only', 'fixture preparation'); }
-    await assertRejectedHandoff(readOnly, 55);
+    await assertRejectedHandoff(readOnly, 55, launch);
   });
 }
 
@@ -201,6 +239,41 @@ function leafFailure(controls, stderr) {
   return `case ${control.name}: legacy managed stage differs (expected ${control.expectedStage}, observed ${legacyStage[1]})`;
 }
 
+const setupStages = ['script-entered', 'helper-loaded', 'matrix-ready'];
+const rowStages = ['handle-read', 'baseline-matched', 'submission-checked', 'dacl-written', 'readback-checked', 'legacy-matched'];
+
+function aclProgress(stdout, interrupted, count, positionAt) {
+  // A deadline may cut the final write short. Accept only complete records
+  // in order, and derive display names from the parent-owned matrix.
+  const lines = stdout.split('\n');
+  const tail = lines.pop();
+  if ((!interrupted && tail !== '') || lines.length === 0 || lines.length > count) return;
+
+  const times = [];
+  let last;
+  for (const [index, line] of lines.entries()) {
+    const record = /^SCOPEHUB_ACL_PROGRESS (?:([0-9]{1,2}) )?([a-z-]{1,24}) (0|[1-9][0-9]{0,4})\r?$/u.exec(line);
+    if (!record || record[0] !== line) return;
+    const [, row, stage, milliseconds] = record;
+    const [expectedRow, expectedStage, name] = positionAt(index);
+    const elapsed = Number(milliseconds);
+    if (row !== expectedRow || stage !== expectedStage || elapsed < (times.at(-1) ?? 0)) return;
+    times.push(elapsed);
+    last = name === undefined ? stage : `case ${name} ${stage}`;
+  }
+  return { complete: times.length === count, last: `${last} at ${times.at(-1)} ms`, times };
+}
+
+function leafProgress(controls, stdout, interrupted) {
+  const count = setupStages.length + controls.length * rowStages.length;
+  return aclProgress(stdout, interrupted, count, index => {
+    const offset = index - setupStages.length;
+    if (offset < 0) return [undefined, setupStages[index]];
+    const row = Math.floor(offset / rowStages.length);
+    return [String(row), rowStages[offset % rowStages.length], controls[row].name];
+  });
+}
+
 export async function assertWindowsLeafAclMatrix(profile, {
   prepareFixture = prepareAclFixture, launch = runHandoffProbe,
 } = {}) {
@@ -223,10 +296,16 @@ export async function assertWindowsLeafAclMatrix(profile, {
     expectedStage: mode === 'effective' ? effective : 0,
   })));
   await withAclFixtures(controls, async () => {
+    const started = performance.now();
     try {
-      await prepareFixture(prepare, profile, JSON.stringify({ controls }), {
+      const progress = await prepareFixture(prepare, profile, JSON.stringify({ controls }), {
         1: 'fixture preparation', 4: stderr => leafFailure(controls, stderr),
-      });
+      }, (stdout, interrupted) => leafProgress(controls, stdout, interrupted));
+      if (progress) {
+        console.info('Synthetic leaf ACL matrix preparation', JSON.stringify({
+          subprocessMs: Math.round(performance.now() - started), setupStages, rowStages, elapsedMs: progress.times,
+        }));
+      }
     } catch (error) {
       throw new Error(`Could not verify the synthetic leaf ACL matrix (${error.message}).`);
     }

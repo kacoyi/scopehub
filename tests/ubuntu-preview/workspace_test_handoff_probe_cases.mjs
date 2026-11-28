@@ -165,6 +165,125 @@ async function verifyLeafCalibrationDiagnostics() {
   });
 }
 
+async function verifyLeafPreparationProgress() {
+  await withProbeMarker(async marker => {
+    const profile = dirname(marker);
+    const expected = expectedLeafStages(profile);
+    const setup = ['script-entered', 'helper-loaded', 'matrix-ready'];
+    const row = ['handle-read', 'baseline-matched', 'submission-checked', 'dacl-written', 'readback-checked', 'legacy-matched'];
+    const positions = [...setup, ...Array.from(expected.keys()).flatMap((_, index) =>
+      row.map(stage => `${index} ${stage}`))];
+    const records = positions.map((stage, index) => `SCOPEHUB_ACL_PROGRESS ${stage} ${index}\r\n`);
+    const calls = [];
+    const launch = (_executable, _args, options) => {
+      const path = options.env.SCOPEHUB_TEST_HANDOFF;
+      assert.ok(expected.has(path));
+      calls.push(path);
+      return runHandoffProbe(process.execPath, ['-e', `process.exit(${expected.get(path)})`], options);
+    };
+    const prepare = (stdout, stderr, hold = false) => async (_check, _profile, fixture, exitStages, readProgress) => {
+      const body = `
+        const fs = require('node:fs');
+        const { controls } = JSON.parse(process.env.SCOPEHUB_TEST_ACL_FIXTURE);
+        if (controls.length !== 24 || !controls.every(({ path }) => fs.statSync(path).isFile())) process.exit(1);
+        fs.writeFileSync(controls[0].path, process.env.SCOPEHUB_TEST_PROBE_MARKER);
+        fs.writeSync(1, process.argv[1]);
+        fs.writeSync(2, process.argv[2]);
+        if (process.argv[3] === 'true') setTimeout(() => {}, 2000);
+      `;
+      return runHandoffProbe(process.execPath, ['-e', body, stdout, stderr, String(hold)], {
+        env: { ...env, SCOPEHUB_TEST_ACL_FIXTURE: fixture }, exitStages, readProgress,
+        timeout: hold ? 800 : undefined,
+      });
+    };
+
+    await assertWindowsLeafAclMatrix(profile, { prepareFixture: prepare(records.join(''), sid), launch });
+    assert.deepEqual(calls, [...expected.keys()]);
+    assert.deepEqual(await readdir(profile), []);
+
+    const prefix = 'Could not verify the synthetic leaf ACL matrix (';
+    const rejected = [
+      [prepare('', records[0], true), 'subprocess deadline exceeded, no preparation stage confirmed'],
+      [prepare(records[0], '', true), 'subprocess deadline exceeded, last confirmed script-entered at 0 ms'],
+      [prepare(records.slice(0, 5).join('') + `SCOPEHUB_ACL_PROGRESS 0 ${marker}`, sid, true),
+        'subprocess deadline exceeded, last confirmed case allow-zero-mask baseline-matched at 4 ms'],
+      [prepare(records[0] + records[2], sid), 'synthetic leaf ACL preparation progress incomplete'],
+      [prepare(records.join('') + `${marker} ${sid}\n`, ''), 'synthetic leaf ACL preparation progress incomplete'],
+    ];
+    for (const [prepareFixture, disposition] of rejected) {
+      const started = performance.now();
+      await assertSafeFixtureDiagnostic(assertWindowsLeafAclMatrix(profile, {
+        prepareFixture, launch: leafMatrixMustStop,
+      }), profile, prefix + disposition + ').');
+      console.info('Synthetic leaf ACL preparation control', JSON.stringify({
+        disposition, elapsedMs: Math.round(performance.now() - started),
+      }));
+      assert.deepEqual(await readdir(profile), []);
+    }
+  });
+}
+
+async function verifyUnsuitablePreparationProgress() {
+  await withProbeMarker(async marker => {
+    const profile = dirname(marker);
+    const expected = new Map([['broad', 58], ['explicit-only', 54], ['read-only', 55]]);
+    const prepared = [];
+    const witnessed = [];
+    const launch = async (executable, args, options) => {
+      const [name] = await readdir(profile);
+      const fixture = name.match(/^synthetic-acl-(.+)\.txt$/u)[1];
+      assert.equal(options.env.SCOPEHUB_TEST_HANDOFF, join(profile, name));
+      if (fixture !== 'read-only') assert.equal(await readFile(join(profile, name), 'utf8'), sentinel);
+      witnessed.push(fixture);
+      return runHandoffProbe(process.execPath, ['-e', `process.exit(${expected.get(fixture)})`], options);
+    };
+    const launchFixture = stop => async (executable, args, options) => {
+      assert.equal(executable, join(process.env.SCOPEHUB_WORKSPACE_TEST_RUN, 'handoff-fixture-acl.exe'));
+      assert.deepEqual(args, [], 'The fixture path must stay out of the command line.');
+      assert.equal(options.timeout, undefined, 'Use the shared ten-second deadline.');
+      const fixture = options.env.SCOPEHUB_TEST_ACL_FIXTURE;
+      const name = `synthetic-acl-${fixture}.txt`;
+      assert.equal(options.env.SCOPEHUB_TEST_HANDOFF, join(profile, name));
+      assert.deepEqual(await readdir(profile), [name]);
+      prepared.push(fixture);
+      const records = ['helper-entered', 'input-ready', fixture === 'broad' ? 'baseline-read' : 'explicit-dacl-ready',
+        'rule-added', 'dacl-written'].map((stage, index) => `SCOPEHUB_ACL_PROGRESS ${stage} ${index}\r\n`);
+      const body = `
+        const fs = require('node:fs');
+        fs.writeFileSync(process.env.SCOPEHUB_TEST_HANDOFF, process.env.SCOPEHUB_TEST_PROBE_MARKER);
+        fs.writeSync(1, process.argv[1]);
+        fs.writeSync(2, process.argv[2]);
+        if (process.argv[3] === 'deadline') setTimeout(() => {}, 2000);
+        if (process.argv[3] === 'refused') process.exitCode = 1;
+      `;
+      const recordCount = { deadline: 3, refused: 4, incomplete: 4 }[stop] ?? records.length;
+      const stdout = records.slice(0, recordCount).join('') + (stop === 'deadline' ? marker : '');
+      return runHandoffProbe(process.execPath, ['-e', body, stdout, sid, stop], {
+        ...options, env: { ...options.env, SCOPEHUB_TEST_PROBE_MARKER: sentinel },
+        timeout: stop === 'deadline' ? 800 : undefined,
+      });
+    };
+    await assertUnsuitableWindowsHandoffsRejected(profile, { launchFixture: launchFixture(''), launch });
+    assert.deepEqual(prepared, ['broad', 'explicit-only']);
+    assert.deepEqual(witnessed, [...expected.keys()]);
+    assert.deepEqual(await readdir(profile), []);
+
+    const rejects = [
+      ['deadline', 'subprocess deadline exceeded, last confirmed baseline-read at 2 ms'],
+      ['refused', 'fixture preparation'],
+      ['incomplete', 'synthetic ACL preparation progress incomplete'],
+    ];
+    for (const [stop, disposition] of rejects) {
+      prepared.length = 0;
+      await assertSafeFixtureDiagnostic(assertUnsuitableWindowsHandoffsRejected(profile, {
+        launchFixture: launchFixture(stop), launch: leafMatrixMustStop,
+      }), profile, `Could not prepare the synthetic broad ACL fixture (${disposition}).`);
+      assert.deepEqual(prepared, ['broad']);
+      assert.deepEqual(await readdir(profile), []);
+    }
+  });
+}
+
 async function assertSafeFixtureDiagnostic(request, profile, message) {
   const error = await request.then(() => null, failure => failure);
   assert.ok(error instanceof Error, 'Expected a fixture error.');
@@ -245,6 +364,8 @@ export const handoffProbeCases = [
   { name: 'synthetic fixture cleanup after a matching matrix', run: () => verifyLeafCleanupDiagnostics(false) },
   { name: 'first synthetic readback failure when cleanup also fails', run: () => verifyLeafCleanupDiagnostics(true) },
   { name: 'bounded synthetic leaf matrix calibration and fixture cleanup', run: verifyLeafCalibrationDiagnostics },
+  { name: 'bounded synthetic leaf preparation progress and cleanup', run: verifyLeafPreparationProgress },
+  { name: 'bounded unsuitable ACL preparation, refusal and cleanup', run: verifyUnsuitablePreparationProgress },
   { name: 'the independent private handoff witness accepts and rejects through the bounded launcher', run: async () => {
     await runPrivateHandoffWitness(0);
     await runPrivateHandoffWitness(58);

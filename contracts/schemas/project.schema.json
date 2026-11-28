@@ -1442,7 +1442,7 @@
       "properties": {
         "observed_feedback": {"$ref": "#/$defs/ObservedFeedback"},
         "report_version": {
-          "const": "2.0"
+          "enum": ["2.0", "2.1"]
         },
         "run_id": {
           "type": "string",
@@ -1532,6 +1532,10 @@
               },
               "log_sha256": {
                 "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "browser_results_sha256": {
+                "type": ["string", "null"],
                 "pattern": "^[a-f0-9]{64}$"
               }
             },
@@ -1637,6 +1641,36 @@
     "HostedHarnessReport": {
       "allOf": [{"$ref": "#/$defs/HarnessReport"}],
       "properties": {
+        "windows_producers": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {"enum": ["browser", "python", "recovery", "workspace"]},
+          "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+        },
+        "windows_python": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {"enum": ["python", "recovery"]},
+          "additionalProperties": {
+            "type": "object",
+            "required": ["id", "status", "command"],
+            "properties": {
+              "id": {"enum": ["windows-python-python", "windows-python-recovery"]},
+              "status": {"enum": ["passed", "failed", "blocked"]},
+              "command": {"type": "array", "items": {"type": "string"}, "minItems": 3, "maxItems": 3},
+              "exit_code": {"type": ["integer", "null"]},
+              "duration_seconds": {"type": "number", "minimum": 0},
+              "started_at": {"type": "string", "format": "date-time"},
+              "log": {"type": "string"},
+              "log_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+              "manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+              "producer_report_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+              "reason": {"type": "string"},
+              "reason_code": {"type": "string"}
+            },
+            "additionalProperties": false
+          }
+        },
         "generated_at": {"type": "string", "format": "date-time"},
         "source_end": {"$ref": "#/$defs/Source"},
         "project_state_error": {"type": ["null", "string"]},
@@ -1679,7 +1713,7 @@
         "checks": {
           "items": {
             "propertyNames": {"enum": ["id", "status", "command", "reason", "reason_code", "duration_seconds",
-              "exit_code", "log", "log_sha256", "observation", "field_observation"]}
+              "exit_code", "log", "log_sha256", "observation", "field_observation", "browser_results_sha256"]}
           }
         }
       },

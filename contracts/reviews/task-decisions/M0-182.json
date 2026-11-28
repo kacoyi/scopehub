@@ -1,0 +1,122 @@
+{
+  "version": 3,
+  "task_id": "M0-182",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "scope": "Review the exact ordinary Windows test-owned matrix preparation and the genuine PR 123 failed and preceding passed cases. Check that the same helper and 24 file comparisons, the ten-second bound, safe ordered progress and cleanup are preserved. Exercise the finite positive, timeout and refusal controls against the public fixtures. Distinguish the historical M0-147 call, Linux evidence and the outstanding native surface.",
+      "supersedes": null,
+      "requested_at": "2026-11-28T05:52:01.159177+00:00",
+      "request_id": "58bf76e322d7848de6eee649b3e852615a6cc6e620b09d9ca9a4da38d04c8a3c",
+      "evidence_sha256": "8f47b735659f017330789fb7da8200fe59dff3e7bbf93062fb11dd72acc0a2d6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "verdict": "approved",
+      "decision": "APPROVE M0-182 947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "scope": "APPROVE M0-182 947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "observation": "I verified that the candidate’s 4,864-byte C# compiler input exactly matches the helper embedded in its parent’s matrix script.",
+      "reviewer": "Independent Astra Standard (t1n3)",
+      "original_sha256": "6962343c1cdea73a2bfc289f172794beabcc94800cef706fe78f2577b6bb9005",
+      "response_id": "1ae7b1bbcc9b0ffc369caef647b0dc7c56bc3a298e7801705eab0077521cea36",
+      "response_sha256": "1f71a2ac7a81c8ce689733f71915f859d2a1f92219018f6315498f30c85a8d22",
+      "legacy_response_sha256": "5993a85b8ae5da85584998127da5ddbd9c35458706cdc0d0472802508747f9ab",
+      "observation_body_sha256": "341e90d283e67c93d0e26774bf1331313347f6b133818f2e8657012838f8b063",
+      "event": {
+        "id": "msg_0fe346bdb93862d4016b0a6d6ae2f087d0b6ad80e546c7f72b",
+        "timestamp": "2026-11-28T05:58:24.048Z"
+      },
+      "supersedes": "58bf76e322d7848de6eee649b3e852615a6cc6e620b09d9ca9a4da38d04c8a3c",
+      "evidence_sha256": "12d4dc1c1d7b680185a371d2cbc85f725ff080eb1063551fde017dd58e764884"
+    },
+    {
+      "kind": "request",
+      "source_commit": "7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "scope": "Review the integrated bounded broad and explicit-only test fixture preparation and unchanged real 24-file comparisons, the production consumer and independent refusal, timeout, observation privacy, ordered progress and cleanup. Use all three actual first-attempt Windows journals, the retained helper build and controlled calibration, and the six portable public test controls. Locate the two deadlines independently and preserve the historical unknown inner stages and candidate native qualification.",
+      "supersedes": "1ae7b1bbcc9b0ffc369caef647b0dc7c56bc3a298e7801705eab0077521cea36",
+      "requested_at": "2026-11-28T06:52:42.209868+00:00",
+      "request_id": "712212ffe3b963ff71b145ab3f316a48de6cdf259970ed42c8d6eac005e66289",
+      "evidence_sha256": "74e9cbe28cb91f4bf4af805893a99c8f86d07d7e5dedfb8e4a70e3bdf328aaa9"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "verdict": "approved",
+      "decision": "APPROVE M0-182 7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "scope": "APPROVE M0-182 7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "observation": "In my controlled replay, the explicit-only fixture timed out with explicit-dacl-ready as its last confirmed stage at 2 ms, before its independent verifier ran.",
+      "reviewer": "Independent Astra Standard (t1nq)",
+      "original_sha256": "7753547dfab2f2645fea9c33d524f6e85a0c632e1686e16f10e61ce38a04ef8c",
+      "response_id": "f0bc77aee2b4775d49f172f9962a1c49026ad30037ad2972d38d94adb0411a03",
+      "response_sha256": "56042675ce8272f186b169fd82430dc2f80a17082629fb5595c87fe4dcb981e7",
+      "legacy_response_sha256": "e6ebd0b208c2368a61c595b97f1713aa2a679584f5d8c95a9a3ac66475ae6bf8",
+      "observation_body_sha256": "4ce95ba31731b2866647a3514a0dd29ddc3442277b425d2325b3662b23b24d75",
+      "event": {
+        "id": "msg_0857011af9726b66016b0a7be1570c87d090cfc5870e9e174d",
+        "timestamp": "2026-11-28T07:00:09.493Z"
+      },
+      "supersedes": "712212ffe3b963ff71b145ab3f316a48de6cdf259970ed42c8d6eac005e66289",
+      "evidence_sha256": "fd0d3a030586eb42330c038ed54ca801b0a712456712c20109c98bf16124aa53"
+    },
+    {
+      "kind": "request",
+      "source_commit": "22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "scope": "Review whether the former-allocation fixture repair preserves the genuine Windows workspace broad, explicit-only and 24-file outcomes and independent assertions, the timeouts, refusal and cleanup. Compare the actual 46120026971 observations to the candidate and verify the limits of prior Linux and Windows evidence.",
+      "supersedes": "f0bc77aee2b4775d49f172f9962a1c49026ad30037ad2972d38d94adb0411a03",
+      "requested_at": "2026-11-28T08:40:03.557584+00:00",
+      "request_id": "baebf6d34ebc1029225c6f2f96dddbd1ebd50b8480223cbee0eb23b86809c978",
+      "evidence_sha256": "96db6dad259e43ae0895fdf19c383e0bbfbb42b844a5fb292aee38321bbc5c36"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "verdict": "approved",
+      "decision": "APPROVE M0-182 22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "scope": "APPROVE M0-182 22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "observation": "In a controlled replay on the reviewed source, the workspace entry checked all 24 expected file outcomes, detected a deliberately incorrect acceptance, and removed every fixture it owned.",
+      "reviewer": "Independent Astra Standard (t1pd)",
+      "original_sha256": "0f9d3ca112ef409c1887836a6932aed50bedb916cb99221b6c5c3da2d7ed87fd",
+      "response_id": "fb2679ccaf1992cd5839cbf3f546f9cd86affb79f9be89304c01fd18b2b7815d",
+      "response_sha256": "190021180768d1c997c6353b18ef34f52e476d5534270290fc964078b630c7d6",
+      "legacy_response_sha256": "8ca4af376b03223a2caea9efb21cf2aaf68d66ebdc61ba8c3ea27352a234cb59",
+      "observation_body_sha256": "fe4ccac08d0b8dd4f9c37ef62530ac635a3f5959a7ab6c9c977fea0ff3f969d1",
+      "event": {
+        "id": "msg_0e988e38066b598c016b0a93feb4c887d1b7f6d267ca3ef342",
+        "timestamp": "2026-11-28T08:43:07.775Z"
+      },
+      "supersedes": "baebf6d34ebc1029225c6f2f96dddbd1ebd50b8480223cbee0eb23b86809c978",
+      "evidence_sha256": "7834279fe546a92d975c590d72f649283f59bc4d8a8786f0a39fd9c6a7e7e651"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ce2fdc6c58642f7665627b771085c1673eb49be5",
+      "scope": "Review the prebuilt Windows ACL fixture, refusal diagnostics, bounded preparation and cleanup in the composed source.",
+      "supersedes": "fb2679ccaf1992cd5839cbf3f546f9cd86affb79f9be89304c01fd18b2b7815d",
+      "requested_at": "2026-11-28T08:56:30.693812+00:00",
+      "request_id": "e365bf6100fec23c190c953638103ecdd080c08f4da4c6b67d357210ca568334",
+      "evidence_sha256": "31671b12349fe415a13164049c563344f6a04bf59cbe3c99d6932f18810d7bd1"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ce2fdc6c58642f7665627b771085c1673eb49be5",
+      "verdict": "approved",
+      "decision": "APPROVE M0-182 ce2fdc6c58642f7665627b771085c1673eb49be5",
+      "scope": "APPROVE M0-182 ce2fdc6c58642f7665627b771085c1673eb49be5",
+      "observation": "In my Linux replay, the explicit-only fixture reached its ten-second deadline during a partial fifth record and reported rule-added as the last confirmed stage.",
+      "reviewer": "Independent Astra Standard (t1pp)",
+      "original_sha256": "fc9071ef9ffe8be4f07884587b3039d857a92ae7afb85c8dd27d520271bdc2db",
+      "response_id": "e45bd76f432a97e8588facf25c8e0f26f461b0e06e797624d08b42f17cb8232c",
+      "response_sha256": "145421fa38153abc59963b7bbc7051d886d519741e4167a155691493012d8567",
+      "legacy_response_sha256": "0aaaabcb063f333609038374e03a8c3e1142d3520c43acfcdda81d4e6f0c5089",
+      "observation_body_sha256": "a0aac1f76d46e1566fed97fb0a54131db543c333de450d3e6f44555452c8c817",
+      "event": {
+        "id": "msg_0f65590f70fd2585016b0a99f2b23887d2b16b35eba6480da9",
+        "timestamp": "2026-11-28T09:08:25.588Z"
+      },
+      "supersedes": "e365bf6100fec23c190c953638103ecdd080c08f4da4c6b67d357210ca568334",
+      "evidence_sha256": "2200d81a7a3b56d9218ea8ffa410c590ccc257c3950e9cd0d1de833cc49a4677"
+    }
+  ]
+}
