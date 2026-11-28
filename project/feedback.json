@@ -10853,8 +10853,8 @@
       "id": "timing-publisher-clock-outside-recorded-report-boundary",
       "status": "open",
       "severity": "major",
-      "source": "Independent decisions on e00b088bf70fea095a427b2fa465cd5544ef79a6, recorded at 2ce9ba4b622ff08c4db946052a5ec80a5fd93b64. M0-130 archives/observations/repo-hygiene-20261125/independent-final-m0-130-e00b088b/original-assistant-response.jsonl (SHA-256 924d728237f42216bc13c145a9088e64318548e76606daca211f5fafb25f227e).",
-      "observation": "Swapped PR 84 browser and aggregate names with incomplete steps attributed 645 seconds to the platform even though that job finished before the aggregate report was recorded. A saved older review restored the same attribution when the dropped role assertions were unavailable.",
+      "source": "Independent decisions on e00b088bf70fea095a427b2fa465cd5544ef79a6, recorded at 2ce9ba4b622ff08c4db946052a5ec80a5fd93b64. M0-130 archives/observations/repo-hygiene-20261125/independent-final-m0-130-e00b088b/original-assistant-response.jsonl (SHA-256 924d728237f42216bc13c145a9088e64318548e76606daca211f5fafb25f227e). Independent M0-130 and M0-131 decisions on fb933345839af9593c31bd7655fc2a7dce4ca9a5, recorded at 7f04a224f1bc5042fab9f0caab0ca49b326a1ac2. Originals: .reports/m0-155-fb933345-reconciliation/reviews/M0-130/original-assistant-response.jsonl (SHA-256 0734e372a046692020d0283ebefb038e41d228f3019dc04dff47377f59b922f4) and .reports/m0-155-fb933345-reconciliation/reviews/M0-131/original-assistant-response.jsonl (SHA-256 337cd393b68f48bb641d0df8e3f30e0e613549890adc3bb1ad2f48bde5a0b850).",
+      "observation": "Swapped PR 84 browser and aggregate names with incomplete steps attributed 645 seconds to the platform even though that job finished before the aggregate report was recorded. A saved older review restored the same attribution when the dropped role assertions were unavailable. On fb933345, the same swapped-name listing used the browser job start as a deadline for the unchanged recovery job 138978153088. Ordinary, offline weekly and cold reads dropped the report attribution for 321 wall seconds, 319 runner-seconds and partial cache in both report orders, while the Actions job retained its clocks.",
       "task_ids": [
         "M0-155"
       ],
@@ -12615,6 +12615,23 @@
         "project-state",
         "python-contracts-workers"
       ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-single-job-publisher-missing-from-registry",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-145 decision on fb933345839af9593c31bd7655fc2a7dce4ca9a5, recorded at 7f04a224f1bc5042fab9f0caab0ca49b326a1ac2. Original: .reports/m0-155-fb933345-reconciliation/reviews/M0-145/original-assistant-response.jsonl (SHA-256 eecaf140f292e027cf5f0be17b8a7e00766c7371fac37bb390f5ab1368a7a900). Accepted source 523d03040afa74adc7bce32205c9ab30c4f79fe3 and its original replay are retained at archives/observations/repo-hygiene-20261125/m0-145-qualified-original-523d0304/green-exact/summary.json (SHA-256 775162c0fc439cf9f1f6e29cc3251edce6ca1aadbf5580cd27819643e22fd4fc).",
+      "observation": "Both recent collection modes and cold reopen dropped the accepted single-job Windows report from run 45389970933. The historical publishing catalog and execution input digest matched, but the exact publisher was missing from the registry. The accepted positive earned one receipt and three trend samples. The sharded-layout and missing-download controls earned zero receipts.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
       "resolution": null,
       "deferral_reason": null
     }

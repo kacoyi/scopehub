@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-156",
+  "focus_task_id": "M0-155",
   "tasks": [
     {
       "id": "M0-001",
@@ -27513,7 +27513,8 @@
         "Replay all three 6491b837 independent decisions at ordinary, offline weekly and cold entries, keeping the 1291-second Windows wall, 24-second setup, 10-second tail and 3260 runner-seconds at their supported scope. Compare coverage and costs on identical retained inputs.",
         "At the ordinary, offline weekly and cold entries, preserve observed step endpoints when a verdict is missing, retain separately supported Actions clocks, and distinguish genuine, feasible and impossible alternatives on push 45838575346 and PR 123.",
         "Use the retained PR 123 producer and PR 96 and push collection at their public entries. Contradictory timestamps cannot displace an original in either input order when another step loses a number or clock. Preserve each independently supported runner measurement. Reopen the saved collections in fresh processes and compare the six paired measurements on the same five input families.",
-        "Reopen the retained PR 84 rotation, PR 123 publishing, and PR 96 and push collection controls ordinary, offline weekly, and cold. Preserve independent clock coverage and genuine same-time uncertainty and later partial recovery."
+        "Reopen the retained PR 84 rotation, PR 123 publishing, and PR 96 and push collection controls ordinary, offline weekly, and cold. Preserve independent clock coverage and genuine same-time uncertainty and later partial recovery.",
+        "Through ordinary and both recent collection readers and fresh-process reopen, preserve the independent PR 84 recovery wall, runner and cache attribution when the browser and aggregate names are swapped. Keep isolated producers ineligible for platform receipts. Restore the exact accepted run 45389970933 publisher and reject its sharded-layout and missing-download controls."
       ],
       "checks": [
         "project-state",
@@ -27521,7 +27522,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Use .reports/m0-155-829afd0b-reconciliation/handoff.json for the clean material source and local evidence. Keep the five downstream scopes gated on three independent approvals on that source. The coordinator owns hosted and native qualification and the scheduled observation on 2026-11-28 at 16:17 UTC.",
+      "next_action": "Use .reports/m0-155-fb933345-reconciliation/handoff.json for the clean local correction and its exact evidence. Qualify that source separately for M0-150, M0-155 and M0-156 before downstream review. The coordinator owns hosted and native qualification and the scheduled observation on 2026-11-28 at 16:17 UTC.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -27561,7 +27562,9 @@
           "contracts/decisions/0041-qualify-ordered-timing-provenance.json",
           "observations/repo-hygiene-20261125/independent-final-m0-155-343bb62e/original-assistant-response.jsonl",
           "observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1jm/original-assistant-response.jsonl",
-          "observations/repo-hygiene-20261125/independent-final-m0-155-829afd0b/original-assistant-response.jsonl"
+          "observations/repo-hygiene-20261125/independent-final-m0-155-829afd0b/original-assistant-response.jsonl",
+          ".reports/m0-155-fb933345-reconciliation/secondary-decision-register.json",
+          "archives/observations/repo-hygiene-20261125/m0-145-qualified-original-523d0304/green-exact/summary.json"
         ],
         "hypotheses": [
           "Recent preload and historical linked reads can see different retained evidence when a conflict removes the platform index entry or an attempt is older than the routine window.",
@@ -27579,7 +27582,8 @@
           "Compare extending per-case guards for the latest setup, cleanup, producer and collection cases with replacing the three shared qualification rules at their existing ownership boundaries. Per-case guards preserve a shorter initial diff but leave other visible step edges, producer role assignments and equally dated copies open to the same conflicting reduction. Replace fixed clock witnesses with ordered historical visible steps and feasible anchors, qualify the observed report through the mandatory producer step, role, report content and last upload, and bind each current receipt to locally acquired run, platform and jobs evidence before combining collections. Keep one attempt reducer and separate independent clock proof from report and receipt attribution.",
           "At the three ADR 0041 boundaries, normalize each input before it enters the reduction and keep proven facts distinct from assertions awaiting support. This changes three existing eligibility decisions and leaves the readers and archive format shared. Additional per-entry conditions have a smaller initial diff but repeat the same ownership logic in ordinary, weekly and cold reads and leave grouped or reordered inputs able to change authority.",
           "An unpositioned or clockless step should limit only its own contribution. Check the report instant at the existing publisher admission boundary with individually supported constraints from the writer and its ordered neighbors. At the existing collection admission boundary, a proven contradiction in local acquisition metadata should withhold only that collection's authority. Reuse both projections across public reads and saved reviews.",
-          "The named workflow order and independently observed endpoint precision establish publishing feasibility even with missing step positions. Exact collection member identities allow independent Actions outcomes and per-event cardinality to qualify metadata before receipt reconciliation."
+          "The named workflow order and independently observed endpoint precision establish publishing feasibility even with missing step positions. Exact collection member identities allow independent Actions outcomes and per-event cardinality to qualify metadata before receipt reconciliation.",
+          "Use corroborated job-role evidence for cross-job publication bounds and the exact historical publisher closure for the previously accepted monolithic report. Both changes belong at the shared admission boundaries."
         ],
         "risks": [
           {
@@ -28066,6 +28070,20 @@
           },
           {
             "failure": "timing-collection-event-limit-contradicts-bound-members: Archived weekly collections with two PR runs and limit one, or three PR runs and limit two, compete with their genuine versions and withdraw all receipts after cold reopen in either order. The same weekly recent limit applied to the original transport selects only that many runs per event.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "timing-publisher-clock-outside-recorded-report-boundary: A display-only aggregate assignment can disqualify an independently proven producer. Replay the genuine and swapped PR 84 listings in both orders with isolated recovery, and preserve late-report rejection when the aggregate role is independently established.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "timing-single-job-publisher-missing-from-registry: An unregistered monolithic publisher can lose an eligible current receipt, or its registration can admit a sharded layout. Verify the approved report, the sharded and missing-download controls and cold reopen at both collection entries.",
             "checks": [
               "project-state",
               "python-contracts-workers"
