@@ -851,6 +851,26 @@
       "requested_at": "2026-11-28T07:42:34.019776+00:00",
       "request_id": "890a905fbd2d11c043f23dacf764944a130788cc33e1f383da415e831821fe9d",
       "evidence_sha256": "b1be809a1c67bb6e0da1027d406df2ab01947d40aa6d7377fc6a0c8bf832e2c3"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "2e7fd0b6b156115ef087f4e209494caa6015cb7d",
+      "verdict": "approved",
+      "decision": "APPROVE M0-156 2e7fd0b6b156115ef087f4e209494caa6015cb7d",
+      "scope": "APPROVE M0-156 2e7fd0b6b156115ef087f4e209494caa6015cb7d",
+      "observation": "In both ABC and CBA order, adding the genuine PR 96 success record up front or after a fresh-process reopen left two conflicting acquisitions, zero current receipts, and identical Windows clocks.",
+      "reviewer": "Independent Astra Standard (t1p2)",
+      "original_sha256": "71479ad2a4551ba167392704110aeb130febdc7a54bc0537bce182a4da45cff3",
+      "response_id": "d8157a25407b678688a9589589a8bb63806cc543377788a93a1ef02d47ad34f2",
+      "response_sha256": "074e3172e3b8f7513e111a96bac3bf5caeffe6cdaa73a6bc4c0e90be72f0eb18",
+      "legacy_response_sha256": "8748b33cf2258e7e90a068a60a044f1790ebd51492f1fba5f7932dddaf38f90c",
+      "observation_body_sha256": "5262751e284620b26c80b44ffb2d263e77817ead8c6f53fbbb52cfac4444dddd",
+      "event": {
+        "id": "msg_05fd1413afc15039016b0a8758a81c87d09053101f4969f3b4",
+        "timestamp": "2026-11-28T07:49:10.275Z"
+      },
+      "supersedes": "890a905fbd2d11c043f23dacf764944a130788cc33e1f383da415e831821fe9d",
+      "evidence_sha256": "2a5f2da281daf3ca9c25c941d806d9879d61ed765ca414353bcbe881f3fa5e63"
     }
   ]
 }

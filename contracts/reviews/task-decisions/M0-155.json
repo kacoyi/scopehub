@@ -822,6 +822,26 @@
       "requested_at": "2026-11-28T07:41:19.272775+00:00",
       "request_id": "0bf3b5662e17488e38cf7dbc89d84bf703c1a93a7918d3980bdfb8b7f5078388",
       "evidence_sha256": "8f4bbc85917b469f281c97d40f7bf73e5fcb17a98b6c1c5b3a7f5ab0d0cd9900"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "2e7fd0b6b156115ef087f4e209494caa6015cb7d",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 2e7fd0b6b156115ef087f4e209494caa6015cb7d",
+      "scope": "CHANGES_REQUESTED M0-155 2e7fd0b6b156115ef087f4e209494caa6015cb7d",
+      "observation": "After a fresh-process reopen, the 08:38:34Z copy received 983 runner-seconds alone, while pairing it with the genuine PR 123 report left both unattributed.",
+      "reviewer": "Independent Astra Standard (t1p0)",
+      "original_sha256": "e37be8f616c0812597abba8892946ccbe48e6bb0f73cb8454e1cd498d052db6b",
+      "response_id": "95241ce64c82d2de22f964948313a9540fac8aead7066014d12e6ee844ffa95e",
+      "response_sha256": "c5b0c6c0079d9fc7a04b9757e97bd1c8254ff1edefaec59aa3f88702520a1531",
+      "legacy_response_sha256": "81234b1bd7f50a82fb02dd1a14eeebf225b558cd511ebc4c892f4fd6ead44241",
+      "observation_body_sha256": "8ee46927207dd32bd7840aacd8d1752f886db7c6bc6d0741e20b6a6c4ef158c8",
+      "event": {
+        "id": "msg_023785778ef85f0b016b0a878d47a487d09095a95db4798f62",
+        "timestamp": "2026-11-28T07:50:03.486Z"
+      },
+      "supersedes": "0bf3b5662e17488e38cf7dbc89d84bf703c1a93a7918d3980bdfb8b7f5078388",
+      "evidence_sha256": "898582d29f246938012c400a6255e00b9f3551be4f21e8e3ebde81b807ad13c0"
     }
   ]
 }

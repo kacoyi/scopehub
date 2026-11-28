@@ -842,6 +842,26 @@
       "requested_at": "2026-11-28T07:42:33.139650+00:00",
       "request_id": "a5bf59af2d5b29d5fa64ba0e3b9c99a4f86dab0235c6b4b27ca156128dcfa331",
       "evidence_sha256": "3eed4fd18257b2c5d9e2e6c5b85203fdf484b9b00549cc38b90544ac59a0c705"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "2e7fd0b6b156115ef087f4e209494caa6015cb7d",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 2e7fd0b6b156115ef087f4e209494caa6015cb7d",
+      "scope": "CHANGES_REQUESTED M0-150 2e7fd0b6b156115ef087f4e209494caa6015cb7d",
+      "observation": "After a cold reopen, a competing step 25 start at 08:38:36Z gave the altered PR 123 browser report 983 runner-seconds even though step 26 had already started at 08:38:35Z.",
+      "reviewer": "Independent Astra Standard (t1p1)",
+      "original_sha256": "dfe047bfb2e2821177ef1767e544e91d4496939f2ce38135dc372930c7b0eb4c",
+      "response_id": "07acb73c1ff57bd8c063330b7c8cbfb7ebd966e6ef700d96761388e09e0a1352",
+      "response_sha256": "b8db84802d84c738fa742a996f57ef23a1435421f64f18dd924a3fbab7f42668",
+      "legacy_response_sha256": "b5782b305d9d061083bb3ccbf5a5c46e43192f9d1593d6ad5351b1211d91fdee",
+      "observation_body_sha256": "9d49cc2c0f32185140c65c97885728fed5710c8692f3fc5c1b72ba84139bd723",
+      "event": {
+        "id": "msg_04d6df012faaa33f016b0a8745f81087d0acac06ed65363d9b",
+        "timestamp": "2026-11-28T07:48:50.303Z"
+      },
+      "supersedes": "a5bf59af2d5b29d5fa64ba0e3b9c99a4f86dab0235c6b4b27ca156128dcfa331",
+      "evidence_sha256": "30e5284a596800cd4222b1c1d6f2616f5420479fb44e770ebd16989cbe3b9d42"
     }
   ]
 }
