@@ -39,6 +39,26 @@
       "requested_at": "2026-11-28T10:28:14.560079+00:00",
       "request_id": "e1aefeeedc99f0a04185bf063d20732a4387b3f764ef0c156e4d9cab444e948d",
       "evidence_sha256": "6f795b3e0d4ca1479ba7216ea36eb48943ba7bb7f732cd82b5d0ea4ff9396fe1"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "0c9281b3d132c35ab578390039bdc0370eec545f",
+      "verdict": "approved",
+      "decision": "APPROVE M3-009 0c9281b3d132c35ab578390039bdc0370eec545f",
+      "scope": "APPROVE M3-009 0c9281b3d132c35ab578390039bdc0370eec545f",
+      "observation": "I saw a read-only retry display the committed version while the first output reply was still held, and releasing that reply left the version visible with only one approval dispatched.",
+      "reviewer": "Independent Astra Standard (t1qk)",
+      "original_sha256": "be6727dee5fe6543fe47e438ff175f3a2295ecb5e88fe3afc5e95446f03b0e53",
+      "response_id": "caa713407f34fb0fa465c7ee39a5459a3c79a78711aa41e92f451ccee82d3695",
+      "response_sha256": "6301ff6b6af4c792bd6ca9b7ca46f07c808deaf4b328d0c684ac976e98dc23e8",
+      "legacy_response_sha256": "335b81762c65f2834321c3500107ad8930c4e4eeee3bf05c1c82d9179fcdc680",
+      "observation_body_sha256": "e20b02717f4bfdb790184b6cfe8b19b7039c7befec65a96f76cf4f8755a094e7",
+      "event": {
+        "id": "msg_0c853e3b91da3902016b0aadeec12c87d1a822f19932e78974",
+        "timestamp": "2026-11-28T10:33:28.038Z"
+      },
+      "supersedes": "e1aefeeedc99f0a04185bf063d20732a4387b3f764ef0c156e4d9cab444e948d",
+      "evidence_sha256": "1623ca12ae487e37297be40be7623379cf154a5bbd91d242648e331d19eee1a4"
     }
   ]
 }
