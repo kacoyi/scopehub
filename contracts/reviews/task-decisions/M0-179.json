@@ -68,6 +68,26 @@
       "requested_at": "2026-11-27T11:55:12.519661+00:00",
       "request_id": "9e2821632e262275c7c2da894f280ebb61a41fe9d5b5f08dde7bd1ee156986e6",
       "evidence_sha256": "0314cfbe268d4b1aafd36fbfdc1924503c70dcd890a05ef861663e586191c3f2"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "2f0a9f63f0e2c72949ba60a43b4cec8205a80efc",
+      "verdict": "approved",
+      "decision": "APPROVE M0-179 2f0a9f63f0e2c72949ba60a43b4cec8205a80efc",
+      "scope": "APPROVE M0-179 2f0a9f63f0e2c72949ba60a43b4cec8205a80efc",
+      "observation": "The reviewed deletion consumer rejected all nine altered responses from each native journal and accepted every explicit retry of the original approval.",
+      "reviewer": "Independent Astra Standard (t1k2)",
+      "original_sha256": "800d5fc4f6016fc504da02ac44a6e2e07648d805deb0eeee4481175035f3c2a7",
+      "response_id": "cf9cf42349bf891941bc5bab01b2bb3a9217087f475b9253f9ce787941f3d4c4",
+      "response_sha256": "f8f80256cb48f3b639d9554bc45494975a4457c5a81efceca0563cc4e5c08648",
+      "legacy_response_sha256": "47e4b86d59a798e5cdee5c8e9a99a358e28b5cd65acaac16dd5efb79a36838cd",
+      "observation_body_sha256": "6183a1403774ef2ed998637c18813b91c4fa569959433c885dafc8b22221e47d",
+      "event": {
+        "id": "msg_03ae54b78f4e9ffb016b0a38b2193c87d08c48231dbebc678c",
+        "timestamp": "2026-11-28T02:13:27.890Z"
+      },
+      "supersedes": "9e2821632e262275c7c2da894f280ebb61a41fe9d5b5f08dde7bd1ee156986e6",
+      "evidence_sha256": "e5f2c200aba77df407b267818aa43f361f7ceaaac93c905157d394691136d049"
     }
   ]
 }
