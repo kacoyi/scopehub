@@ -30772,7 +30772,20 @@
         "workspace-timeframe",
         "rust-contracts-workers"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-182-df285d69e35ec830.json",
+          "sha256": "7bea1f32d39d33fb82035e18a304e11a6d63b317057fce925168ab0eae57e6a6"
+        },
+        {
+          "path": "project/evidence/M0-182-174bda2aba9ebe23.json",
+          "sha256": "94ecaaaa722e11a0148f3499d15645675332e835f19107b7e119f619e03ec5c4"
+        },
+        {
+          "path": "project/evidence/M0-182-6c62059cd5ed3c7c.json",
+          "sha256": "e55bcb250a9d592cb9c9716ebdd34c27de24dab7140a2934a7ae27721052ec40"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "windows-change-46111075105-1",
@@ -30795,7 +30808,7 @@
           "report_sha256": "73cc569bffada336ac008915e18db36312df531540e5342c6d24f3ccd98d0647"
         }
       ],
-      "next_action": "Review the local candidate that moves both managed synthetic ACL preparations into the existing prebuilt helper and reports completed stages at the ordinary workspace entry. Obtain the first applicable native Windows and Linux evidence on the reviewed source, then recheck the integrated source. Compare the broad and explicit-only fixture child clocks with the real matrix and retain the 46115517382 broad failure and 46111075105 leaf failure as separate observations with unknown internal causes.",
+      "next_action": "Local verification and the ordinary PR 123 first attempt 46127361251 passed the full workspace journey on both native platforms at the reviewed source. The broad and explicit-only Windows ACL fixtures, independent 24-file matrix, refusals and cleanup reached their checks. Retain these three task receipts and the historical failures, then recheck the integrated revision. M0-146 separately owns the 921-second ordinary Windows timing.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
