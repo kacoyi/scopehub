@@ -14,7 +14,8 @@ from uuid import uuid4
 
 if __package__:
     from .development import (
-        HERDR_ROLE_PHASES, feedback_for_task, feedback_row_routable, read_only_project_command, task_launch_excerpt,
+        HERDR_ROLE_PHASES, feedback_for_task, feedback_row_routable, product_history, read_only_project_command,
+        task_launch_excerpt,
     )
     from .review_tree import CommittedPath
     from .herdr_lifecycle import Lifecycle, LifecycleHold, ORIGINAL_LIMIT, require_supported_host
@@ -24,7 +25,8 @@ if __package__:
     from .storage import maintain_automatically
 else:
     from development import (
-        HERDR_ROLE_PHASES, feedback_for_task, feedback_row_routable, read_only_project_command, task_launch_excerpt,
+        HERDR_ROLE_PHASES, feedback_for_task, feedback_row_routable, product_history, read_only_project_command,
+        task_launch_excerpt,
     )
     from review_tree import CommittedPath
     from herdr_lifecycle import Lifecycle, LifecycleHold, ORIGINAL_LIMIT, require_supported_host
@@ -137,11 +139,11 @@ def resolve_model(models: list, family: str, effort: str) -> str:
     return max(candidates)[1]
 
 
-def role_profile(root: Path, records: Path | CommittedPath, args: argparse.Namespace) -> tuple[str, str]:
+def role_profile(root: Path, development: dict, args: argparse.Namespace) -> tuple[str, str]:
     profile = 'supervise' if args.escalate_model else ROLE_PROFILES[args.role]
     invalid_profile = f'Missing or invalid project/development.json#herdr profile {profile!r}'
     try:
-        settings = read_record(records / 'project/development.json')['herdr']
+        settings = development['herdr']
         if settings['host'] != 'Herdr':
             raise LaunchError('Expected Herdr as the host in project/development.json#herdr')
         profiles = settings['profiles']
@@ -232,7 +234,12 @@ def launch_argv(root: Path, args: argparse.Namespace) -> list[str]:
     if feedback_issue:
         excerpt['feedback_diagnostic'] = (feedback_issue + ' Run pnpm project:check for the error or '
                                           f'pnpm project:recover --task {args.task_id} --save to retain it.')
-    model, effort = role_profile(root, records, args)
+    development = read_record(records / 'project/development.json')
+    model, effort = role_profile(root, development, args)
+    if args.role == 'implement':
+        history = product_history(root, task, tasks, items, development, limit=1)
+        if history:
+            excerpt['product_history'] = history
 
     # Herdr restricts names to 32 characters and requires live names to be unique.
     prefix = re.sub(r'[^a-z0-9_-]', '-', f'{args.task_id.lower()}-{args.role}')[:19]

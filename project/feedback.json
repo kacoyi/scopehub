@@ -9830,6 +9830,44 @@
         "prevention": "The public dependency review rejects a reappearing unresolved advisory and rejects expired exceptions even on an empty query result. Offline and incomplete queries retain their distinct outcomes. The six-check M0-181 receipt and its independent review preserve these controls."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "product-task-context-omits-shared-file-history",
+      "source": "Ordinary read-only project context for M2-040 on main 742430e69246c8869732f12bb33742895dfe2d54, compared with the scopes and feedback for M2-038 and M2-040.",
+      "observation": "M2-040 reports its three linked major findings. Both tasks touch apps/desktop/ui/src/decision-notes.tsx and the decision-note transport, yet the normal context provides no route from that overlap to the earlier confirmed-peer-decision-note-delete-misses-initiator-list finding or its workspace-timeframe regression.",
+      "severity": "minor",
+      "status": "addressed",
+      "task_ids": [
+        "M0-183"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The entry joined observations only through the active task identifier, despite existing shared product paths and historical task scopes.",
+        "correction": "Derive a bounded set of related product observations from shared product files and evidence for the individual finding, then expose its original observation and regression check in normal context and the first implementation prompt.",
+        "prevention": "The decision-note M2-040, financial M1-013, unrelated and housekeeping controls exercise both entries. The actual M3-009 first launch supplied the earlier committed-indicator readback observation."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "product-history-broad-task-file-promotes-unrelated-findings",
+      "severity": "minor",
+      "status": "addressed",
+      "source": "Independent review of e06c0cd769466f6e44421194aa63399eca56f8d7. Original response SHA-256 26d4f44ab6a17ef19772d5e7b2740872512d4751cc655505da9a1741cd4e5fa2. Confirmed through ordinary M2-011 and M0-151 context before correction.",
+      "observation": "The M2-011 implementation entry gives a saved-chart warning ahead of the recorded private-record focus failure that shares its workspace-timeframe check. M0-151 shows a chart-label layout finding at a Rust interruption probe. Each neighboring task touched the shared file, but its individual findings concern different consumers. After correction, ordinary context and implementation launch preview showed the private-correction HTTP 429 finding and its workspace-timeframe check first for M2-011 and omitted the chart-label finding for M0-151.",
+      "task_ids": [
+        "M0-183"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "An overlap with one historical task promoted all findings attached to that task, including findings about another product consumer.",
+        "correction": "Use finding-specific evidence when selecting a shared file and omit unsupported associations within the existing output limits.",
+        "prevention": "The ordinary context and first launch now select the private-record HTTP 429 finding for M2-011 and omit the chart-label association for M0-151. An independent review also retained the original decision-note, market data and indicator matches."
+      },
+      "deferral_reason": null
     }
   ]
 }

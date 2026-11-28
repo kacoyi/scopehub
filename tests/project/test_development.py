@@ -21,6 +21,53 @@ from tests.project.fixtures import task_by_id
 from tests.project.test_continuity import ProjectFixture
 
 
+class ProductHistoryContextTests(unittest.TestCase):
+    def test_decision_note_context_routes_the_prior_observation_and_consumer(self):
+        root = Path(__file__).resolve().parents[2]
+        context = task_context(root, 'M2-040', read_only=True)
+        self.assertEqual([item['id'] for item in context['feedback'][:3]], [
+            'peer-decision-note-observer-busy-fallback-list',
+            'peer-decision-note-observer-fallback-reply-deadline',
+            'peer-decision-note-observer-busy-fallback-snapshot',
+        ])
+        history = context['product_history']
+        self.assertEqual(2, len(history['observations']))
+        first = history['observations'][0]
+        self.assertEqual('confirmed-peer-decision-note-delete-misses-initiator-list', first['id'])
+        self.assertEqual('M2-038', first['task_id'])
+        self.assertIn('apps/desktop/ui/src/decision-notes.tsx', first['shared_paths'])
+        self.assertIn('apps/desktop/ui/src/decision-note-transport.ts', first['shared_paths'])
+        self.assertEqual(['workspace-timeframe'], first['regression_checks'])
+        self.assertEqual('pnpm check --task M2-038', first['check_command'])
+        _, _, path, pointer = shlex.split(first['full_record'])
+        original = resolve_source(root, {'path': path, 'pointer': pointer})
+        self.assertEqual(first['id'], original['id'])
+        self.assertIn(original['diagnostic_reports'][0]['report_sha256'], first['original_diagnostic'])
+
+    def test_history_requires_evidence_for_the_individual_finding(self):
+        root = Path(__file__).resolve().parents[2]
+        context = task_context(root, 'M2-011', read_only=True)
+        history = context['product_history']['observations']
+        self.assertEqual('ordinary-refocus-private-correction-read-was-refused', history[0]['id'])
+        self.assertEqual(['workspace-timeframe'], history[0]['regression_checks'])
+        _, _, path, pointer = shlex.split(history[0]['full_record'])
+        self.assertEqual(history[0]['id'], resolve_source(root, {'path': path, 'pointer': pointer})['id'])
+        self.assertTrue({
+            'first-saved-chart-reopen-misses-focus-source-change',
+            'folder-revision-refresh-skips-temporary-access-recheck',
+            'folder-stage-single-revision-timeout-drops-supported-work',
+        }.isdisjoint(item['id'] for item in history))
+
+        context = task_context(root, 'M0-151', read_only=True)
+        self.assertNotIn('observations', context.get('product_history', {}))
+
+        context = task_context(root, 'M1-013', read_only=True)
+        first = context['product_history']['observations'][0]
+        self.assertEqual('hosted-selected-stock-history-disconnected', first['id'])
+        self.assertEqual('M1-025', first['task_id'])
+        self.assertEqual(['apps/desktop/ui/src/market.ts'], first['shared_paths'])
+
+
 class MaintenanceHandoffTests(ProjectFixture):
     def setUp(self):
         super().setUp()

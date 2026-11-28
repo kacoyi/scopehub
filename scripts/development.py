@@ -8,6 +8,7 @@ from functools import cache
 import hashlib
 import json
 import os
+import re
 import shlex
 import subprocess
 from pathlib import Path
@@ -380,6 +381,106 @@ def task_launch_excerpt(task, linked_feedback, source_commit=None):
     return {name: value for name, value in result.items() if value}
 
 
+def product_history(root, task, tasks, items, development, *, limit):
+    """Route individual findings through shared product files and consumer evidence."""
+    modules = development.get('modules', [])
+    scope = task.get('scope', [])
+    if not isinstance(modules, list) or not isinstance(scope, list):
+        return {}
+    roots = tuple(path for module in modules
+                  if isinstance(module, dict) and module.get('id') not in (None, 'development-tooling')
+                  and isinstance(module.get('paths'), list)
+                  for path in module['paths'] if isinstance(path, str) and path)
+    result, files = {}, set()
+    directory_limit = 'Directory scopes are too broad to identify shared files.'
+    for path in scope:
+        if not isinstance(path, str):
+            continue
+        relative = Path(path)
+        if relative.anchor or '..' in relative.parts:
+            continue
+        owned = any(path == owner or path.startswith(owner + '/') for owner in roots)
+        if owned and (root / relative).is_file():
+            files.add(path)
+        elif (owned or any(owner.startswith(path + '/') for owner in roots)) and (root / relative).is_dir():
+            result['directory_scope'] = directory_limit
+    if not files:
+        return result
+
+    parents = {parent.as_posix() for path in files for parent in Path(path).parents}
+    matches, directory_only = {}, set()
+    for other in tasks:
+        if not isinstance(other, dict) or other.get('status') != 'done' or other.get('id') == task['id']:
+            continue
+        key, other_scope, checks = other.get('id'), other.get('scope'), other.get('checks')
+        if (not isinstance(key, str) or not isinstance(other_scope, list)
+                or not isinstance(checks, list)):
+            continue
+        paths = {path for path in other_scope if isinstance(path, str)}
+        if shared := sorted(files & paths):
+            matches[key] = (shared, checks)
+        elif paths & parents:
+            directory_only.add(key)
+
+    checks = task.get('checks')
+    current_checks = {check for check in checks if isinstance(check, str)} if isinstance(checks, list) else set()
+    current_check_prefixes = {check.partition('-')[0] for check in current_checks if '-' in check}
+    ranked, ambiguous = [], set()
+    severity = {'critical': 0, 'major': 1, 'minor': 2}
+    for index, item in enumerate(items):
+        if not feedback_row_routable(item) or task['id'] in item['task_ids']:
+            continue
+        checks = item.get('regression_checks')
+        if not isinstance(item.get('id'), str) or not isinstance(checks, list) or not checks:
+            continue
+        ambiguous.update(directory_only.intersection(item['task_ids']))
+        observation = item.get('observation')
+        observation = observation if isinstance(observation, str) else ''
+        candidates = []
+        for key in item['task_ids']:
+            if key in matches:
+                shared, task_checks = matches[key]
+                covered = [check for check in checks if isinstance(check, str) and check in task_checks]
+                if not covered:
+                    continue
+                check_prefixes = current_check_prefixes & {check.partition('-')[0] for check in covered if '-' in check}
+                # A shared check still needs the finding to name the file's subject.
+                if current_checks.intersection(covered):
+                    check_prefixes.update(item['id'].split('-'))
+                file_evidence = sum(
+                    path.stem.partition('-')[0] in check_prefixes
+                    or bool(re.search(rf'(?<![\w.-]){re.escape(path.name)}(?![\w.-])', observation))
+                    for path in map(Path, shared)
+                )
+                if file_evidence:
+                    candidates.append((-file_evidence, -len(shared), key, shared, covered))
+        if candidates:
+            evidence, count, key, shared, covered = min(candidates)
+            ranked.append((evidence, count, severity.get(item['severity'], 3), index, key, shared, covered))
+
+    if ranked:
+        result['basis'] = 'Shared files and finding records suggest related observations. Confirm affected code in the original record.'
+        result['observations'] = []
+        for _, _, _, index, key, shared, checks in sorted(ranked)[:limit]:
+            item = items[index]
+            row = {
+                'id': item['id'],
+                'task_id': key,
+                'shared_paths': shared[:3],
+                'observation': excerpt(item.get('observation'), 310, observation=True),
+                'regression_checks': checks,
+                'full_record': feedback_source_command(index),
+                'check_command': shlex.join(('pnpm', 'check', '--task', key)),
+            }
+            if original := next(diagnostic_commands((item,)), None):
+                row['original_diagnostic'] = original
+            result['observations'].append(row)
+    if ambiguous:
+        result['directory_scope'] = directory_limit
+        result['directory_only_tasks'] = len(ambiguous)
+    return result
+
+
 def causal_context(task, linked_feedback, source_commit=None):
     context = {
         'observation': 'Record the failure and impact in feedback.observation. Preserve the original in diagnostic_reports.',
@@ -410,7 +511,7 @@ def causal_context(task, linked_feedback, source_commit=None):
     return context
 
 
-def focused_context(project, key, phase, *, source_commit=None):
+def focused_context(root, project, key, phase, *, source_commit=None):
     task = project['tasks'][key]
     development = project.get('development', {})
     plan = task.get('plan', {})
@@ -483,6 +584,10 @@ def focused_context(project, key, phase, *, source_commit=None):
             result['development_host']['default_reasoning_effort'] = herdr['reasoning_efforts'][0]
     if linked_feedback or plan.get('hypotheses') or task.get('diagnostic_reports'):
         result['causal_investigation'] = causal_context(task, linked_feedback, source_commit)
+    if phase == 'implement' and source_commit is None:
+        history = product_history(root, task, project['tasks'].values(), items, development, limit=2)
+        if history:
+            result['product_history'] = history
     if phase in {'verify', 'handoff'} and herdr and task['status'] in {'planned', 'active', 'blocked'}:
         review_commit = source_commit or '<full-commit>'
         review_launch = f'pnpm project:herdr {key} review --source {review_commit} --assignment "<scope>"'
