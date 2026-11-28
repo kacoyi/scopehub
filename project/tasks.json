@@ -29841,7 +29841,12 @@
         "architecture",
         "dependency-review"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-187-792f3865d43c1147.json",
+          "sha256": "117e7b184201a6125b32e23d55d71297b498e774665864806660b721ddd17c26"
+        }
+      ],
       "next_action": "Obtain independent review of the clean monthly records source and use matching scoped evidence for closure. Track the source-linked uv, Python, pnpm and Rust follow-ups in the November dependency maintenance record.",
       "blocker": null,
       "closure_reason": null,
