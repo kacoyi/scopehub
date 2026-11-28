@@ -39,6 +39,26 @@
       "requested_at": "2026-11-28T10:11:35.943889+00:00",
       "request_id": "6abd006bac989257f2c85d60afee32df14bda615a15eb0d730908775f9d76b23",
       "evidence_sha256": "4c9aeca6cef314d1bec1b4708f764531bdd3963adf10556390093e6aac349cc4"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5bd5369bbe592d6563de25c7ecaff08d265b6c76",
+      "verdict": "approved",
+      "decision": "APPROVE M0-183 5bd5369bbe592d6563de25c7ecaff08d265b6c76",
+      "scope": "APPROVE M0-183 5bd5369bbe592d6563de25c7ecaff08d265b6c76",
+      "observation": "Both entry points surfaced the private-record regression for M2-011 and omitted the chart-label warning for M0-151.",
+      "reviewer": "Independent Astra Standard (t1qf)",
+      "original_sha256": "f5eecec887b8bced33e11a877d280d7e6be939859d39c186ef38dc4ba4d9e3df",
+      "response_id": "14b0a6e7f70ba0fd9f98a488908ec1b6bb26da57deceda24554c20f48f3b3c52",
+      "response_sha256": "1c2a5d5df851d71ed7f1f937f902cbcadcd39fd490e918885461ee17c4c3f254",
+      "legacy_response_sha256": "3bff0cc2e6e443f0abc85a5e79f67f20aaebdcd09f50487d3d904cdccaef3a0a",
+      "observation_body_sha256": "b141dc3e59f60bcb7f44eb1eba07ce1748d9b623c741896228bbbbe4dd87c8d4",
+      "event": {
+        "id": "msg_0082784d4842eb65016b0aa95f72a487d2876109e111b6a39f",
+        "timestamp": "2026-11-28T10:14:17.183Z"
+      },
+      "supersedes": "6abd006bac989257f2c85d60afee32df14bda615a15eb0d730908775f9d76b23",
+      "evidence_sha256": "260df360239aceb86a2b13cf8813919a8affbe2479ba7beaa97d4052e4288ece"
     }
   ]
 }
