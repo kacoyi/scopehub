@@ -8,6 +8,7 @@ from functools import cache
 import hashlib
 import json
 import os
+import re
 import shlex
 import subprocess
 from pathlib import Path
@@ -381,7 +382,7 @@ def task_launch_excerpt(task, linked_feedback, source_commit=None):
 
 
 def product_history(root, task, tasks, items, development, *, limit):
-    """Route by explicitly shared product files in the existing task scopes."""
+    """Route individual findings through shared product files and consumer evidence."""
     modules = development.get('modules', [])
     scope = task.get('scope', [])
     if not isinstance(modules, list) or not isinstance(scope, list):
@@ -421,6 +422,9 @@ def product_history(root, task, tasks, items, development, *, limit):
         elif paths & parents:
             directory_only.add(key)
 
+    checks = task.get('checks')
+    current_checks = {check for check in checks if isinstance(check, str)} if isinstance(checks, list) else set()
+    current_check_prefixes = {check.partition('-')[0] for check in current_checks if '-' in check}
     ranked, ambiguous = [], set()
     severity = {'critical': 0, 'major': 1, 'minor': 2}
     for index, item in enumerate(items):
@@ -430,20 +434,34 @@ def product_history(root, task, tasks, items, development, *, limit):
         if not isinstance(item.get('id'), str) or not isinstance(checks, list) or not checks:
             continue
         ambiguous.update(directory_only.intersection(item['task_ids']))
+        observation = item.get('observation')
+        observation = observation if isinstance(observation, str) else ''
         candidates = []
         for key in item['task_ids']:
             if key in matches:
                 shared, task_checks = matches[key]
-                if covered := [check for check in checks if isinstance(check, str) and check in task_checks]:
-                    candidates.append((-len(shared), key, shared, covered))
+                covered = [check for check in checks if isinstance(check, str) and check in task_checks]
+                if not covered:
+                    continue
+                check_prefixes = current_check_prefixes & {check.partition('-')[0] for check in covered if '-' in check}
+                # A shared check still needs the finding to name the file's subject.
+                if current_checks.intersection(covered):
+                    check_prefixes.update(item['id'].split('-'))
+                file_evidence = sum(
+                    path.stem.partition('-')[0] in check_prefixes
+                    or bool(re.search(rf'(?<![\w.-]){re.escape(path.name)}(?![\w.-])', observation))
+                    for path in map(Path, shared)
+                )
+                if file_evidence:
+                    candidates.append((-file_evidence, -len(shared), key, shared, covered))
         if candidates:
-            count, key, shared, covered = min(candidates)
-            ranked.append((count, severity.get(item['severity'], 3), index, key, shared, covered))
+            evidence, count, key, shared, covered = min(candidates)
+            ranked.append((evidence, count, severity.get(item['severity'], 3), index, key, shared, covered))
 
     if ranked:
-        result['basis'] = 'Shared task scope points to related observations. Confirm the affected code in the original record.'
+        result['basis'] = 'Shared files and finding records suggest related observations. Confirm affected code in the original record.'
         result['observations'] = []
-        for _, _, index, key, shared, checks in sorted(ranked)[:limit]:
+        for _, _, _, index, key, shared, checks in sorted(ranked)[:limit]:
             item = items[index]
             row = {
                 'id': item['id'],

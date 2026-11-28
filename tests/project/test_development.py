@@ -44,6 +44,29 @@ class ProductHistoryContextTests(unittest.TestCase):
         self.assertEqual(first['id'], original['id'])
         self.assertIn(original['diagnostic_reports'][0]['report_sha256'], first['original_diagnostic'])
 
+    def test_history_requires_evidence_for_the_individual_finding(self):
+        root = Path(__file__).resolve().parents[2]
+        context = task_context(root, 'M2-011', read_only=True)
+        history = context['product_history']['observations']
+        self.assertEqual('ordinary-refocus-private-correction-read-was-refused', history[0]['id'])
+        self.assertEqual(['workspace-timeframe'], history[0]['regression_checks'])
+        _, _, path, pointer = shlex.split(history[0]['full_record'])
+        self.assertEqual(history[0]['id'], resolve_source(root, {'path': path, 'pointer': pointer})['id'])
+        self.assertTrue({
+            'first-saved-chart-reopen-misses-focus-source-change',
+            'folder-revision-refresh-skips-temporary-access-recheck',
+            'folder-stage-single-revision-timeout-drops-supported-work',
+        }.isdisjoint(item['id'] for item in history))
+
+        context = task_context(root, 'M0-151', read_only=True)
+        self.assertNotIn('observations', context.get('product_history', {}))
+
+        context = task_context(root, 'M1-013', read_only=True)
+        first = context['product_history']['observations'][0]
+        self.assertEqual('hosted-selected-stock-history-disconnected', first['id'])
+        self.assertEqual('M1-025', first['task_id'])
+        self.assertEqual(['apps/desktop/ui/src/market.ts'], first['shared_paths'])
+
 
 class MaintenanceHandoffTests(ProjectFixture):
     def setUp(self):

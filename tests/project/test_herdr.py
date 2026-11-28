@@ -798,8 +798,9 @@ class DryRunTests(WorktreeFixture):
         for name in ('quotes.ts', 'transport.ts', 'unrelated.ts'):
             (self.worktree / 'product' / name).touch()
         scope = ['project/tasks.json', 'project/feedback.json', 'project/evidence']
-        check = 'market-workflow'
-        task = {'id': 'M0-025', 'status': 'active'}
+        check = 'quotes-workflow'
+        unrelated_check = 'layout-workflow'
+        task = {'id': 'M0-025', 'status': 'active', 'checks': ['quotes-fixtures', unrelated_check]}
         neighbors = [
             {'id': 'M0-020', 'scope': ['product', *scope]},
             {'id': 'M0-021', 'scope': ['product/quotes.ts', *scope]},
@@ -811,10 +812,13 @@ class DryRunTests(WorktreeFixture):
              'regression_checks': [check]}
             for row in neighbors
         ]
+        items.append(dict(items[-1], id='unrelated-layout', severity='critical',
+                          observation='The axis clipped the last label.', regression_checks=[unrelated_check]))
         (project / 'feedback.json').write_text(json.dumps({'items': items}), encoding='utf-8')
 
         def launch(paths, role='implement'):
-            rows = [dict(task, scope=paths), *(dict(row, status='done', checks=[check]) for row in neighbors)]
+            rows = [dict(task, scope=paths),
+                    *(dict(row, status='done', checks=[check, unrelated_check]) for row in neighbors)]
             (project / 'tasks.json').write_text(json.dumps({'tasks': rows}), encoding='utf-8')
             result = self.cli(task['id'], role, '--assignment', 'Inspect quote consumer', '--dry-run')
             self.assertEqual(0, result.returncode, result.stderr)

@@ -29723,7 +29723,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Repair the two observed unrelated first-prompt warnings from the independent review. Preserve the decision-note, financial data and live indicator matches and recheck through the public context and implementation launch.",
+      "next_action": "Independently verify the clean correction using the retained ordinary context, implementation prompts and task harness. Obtain a decision bound to the clean candidate and attach matching required evidence before closing the task.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
