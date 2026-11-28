@@ -12533,6 +12533,74 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "timing-named-publishing-order-loses-unnumbered-bounds",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent reviews of 829afd0b33d48304011d8e4c093a43874d517c57, recorded in c8a259009f847470ed1087404b5770504df34d78. M0-155: observations/repo-hygiene-20261125/independent-final-m0-155-829afd0b/original-assistant-response.jsonl (SHA-256 58944763bd574979971b2ce30f453b08dbf2d8599e8bd927e16d91d879506764). M0-150: observations/repo-hygiene-20261125/independent-final-m0-150-829afd0b/original-assistant-response.jsonl (SHA-256 ac5c6035f4835352849a50693c5701e116e922d46577c8d68d2c3e1a6e864369).",
+      "observation": "On genuine PR 123 run 45965137241, dropping the initialization, verification, or staging step number in the documented controls lets an out-of-window report acquire 983 runner-seconds and displace the original in either order. The original workflow establishes the initialization, writer, and staging order independently of the missing numbers.",
+      "task_ids": [
+        "M0-150",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-publishing-bound-intersection-loses-precise-clock",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent reviews of 829afd0b33d48304011d8e4c093a43874d517c57, recorded in c8a259009f847470ed1087404b5770504df34d78. M0-155: observations/repo-hygiene-20261125/independent-final-m0-155-829afd0b/original-assistant-response.jsonl (SHA-256 58944763bd574979971b2ce30f453b08dbf2d8599e8bd927e16d91d879506764). M0-150: observations/repo-hygiene-20261125/independent-final-m0-150-829afd0b/original-assistant-response.jsonl (SHA-256 ac5c6035f4835352849a50693c5701e116e922d46577c8d68d2c3e1a6e864369).",
+      "observation": "On PR 123 run 45965137241, a whole-second staging start or verification end masks the other exact upper bound at 08:38:31.900Z. A report one nanosecond late gains 983 runner-seconds and can withdraw the exact original in either order. Independent browser and Windows runner clocks remain measurable.",
+      "task_ids": [
+        "M0-150",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-collection-outcome-ignores-bound-attempt-with-unavailable-jobs",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent reviews of 829afd0b33d48304011d8e4c093a43874d517c57, recorded in c8a259009f847470ed1087404b5770504df34d78. M0-156: observations/repo-hygiene-20261125/independent-final-m0-156-829afd0b/original-assistant-response.jsonl (SHA-256 8964ad02361b4b9e35f46cb916df4567649b1390109931968c898bfd28d23635).",
+      "observation": "With PR 96 attempt 45563183277/1 and push 45838575346/1 both recorded as successful, changing the partial capture unsuccessful count from zero to one erases both push receipts after cold reopen. PR 96 has acquired reports and independent Actions outcome evidence but its job listing was unavailable to this collection, so it has no receipts of its own.",
+      "task_ids": [
+        "M0-156",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-collection-event-limit-contradicts-bound-members",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent reviews of 829afd0b33d48304011d8e4c093a43874d517c57, recorded in c8a259009f847470ed1087404b5770504df34d78. M0-155: observations/repo-hygiene-20261125/independent-final-m0-155-829afd0b/original-assistant-response.jsonl (SHA-256 58944763bd574979971b2ce30f453b08dbf2d8599e8bd927e16d91d879506764). M0-156: observations/repo-hygiene-20261125/independent-final-m0-156-829afd0b/original-assistant-response.jsonl (SHA-256 8964ad02361b4b9e35f46cb916df4567649b1390109931968c898bfd28d23635).",
+      "observation": "Archived weekly collections with two PR runs and limit one, or three PR runs and limit two, compete with their genuine versions and withdraw all receipts after cold reopen in either order. The same weekly recent limit applied to the original transport selects only that many runs per event.",
+      "task_ids": [
+        "M0-156",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
