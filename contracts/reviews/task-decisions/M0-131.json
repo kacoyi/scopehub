@@ -330,6 +330,35 @@
       "requested_at": "2026-11-27T11:41:29.517359+00:00",
       "request_id": "34a44d0183747746429202f8b0f68009b406200448f2e1588df283df020c8ddb",
       "evidence_sha256": "979bc0fc53fceff1419e495c20067699bd742f3341a6f42aa3810593c50b6af9"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "Producer and platform job identity, historical ownership, timed step and cache attribution, and independently usable clocks after a dispute. Re-evaluate the PR 84 recovery job, runner duration and cache while only browser and aggregate names conflict. Include the recorded report and elapsed clock precision.",
+      "supersedes": "34a44d0183747746429202f8b0f68009b406200448f2e1588df283df020c8ddb",
+      "requested_at": "2026-11-28T04:05:56.734614+00:00",
+      "request_id": "e2ed328252f83c80888258e78ca380a34c48dca07cb666ee722d6b0a9a36024f",
+      "evidence_sha256": "6b1a95e02d0202cbad72290ed40755df78b5ce65a4cccd6d69ba2718f988ffbc"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-131 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "CHANGES_REQUESTED M0-131 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "observation": "The PR 123 browser report copy claimed 793.422 seconds of elapsed work at the instant initialization finished, received 983 runner-seconds when read alone, and displaced the genuine report in both input orders after a cold reopen.",
+      "reviewer": "Independent Astra Standard (t1kz)",
+      "original_sha256": "f04d00af7c8f664ef7f132fab97c960c0f19b9ffafd92d9663267ed4ea48988c",
+      "response_id": "581630a765e1e25b9b17580785c89d1943b62a0685cef5c7db8306fb277b936a",
+      "response_sha256": "7dd3d4f8f91261950a677836442c8cae85331a98dc80f16f52e4f500f1aef0ba",
+      "legacy_response_sha256": "e1d17180256ab88a81525c5efe1c4a9635b8f589c62ef0b232f98f5d21bf7272",
+      "observation_body_sha256": "207ace76b46e87287f885a02d600d8f4c1e0fbddb455caafc9e7cffcbe3ec04e",
+      "event": {
+        "id": "msg_0fb260f331c698b3016b0a54f5cb6487d0bad78d33c05f92c9",
+        "timestamp": "2026-11-28T04:14:08.606Z"
+      },
+      "supersedes": "e2ed328252f83c80888258e78ca380a34c48dca07cb666ee722d6b0a9a36024f",
+      "evidence_sha256": "12af9b89283f466ccafe51342825aedc9cbf31102aa5e36c9e000e612b4d6246"
     }
   ]
 }

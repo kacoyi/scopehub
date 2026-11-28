@@ -330,6 +330,35 @@
       "requested_at": "2026-11-27T11:41:30.399371+00:00",
       "request_id": "c35add9ee93d2521cc4ff56783a4c821e40fa37acddea1d38426f47ae185d366",
       "evidence_sha256": "fb35034a4e20080e2eb8d17d01ac9a4160cf62ddc94dc7261513eb5d3ff700f4"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "Attempt and checkout reconciliation, bounded retained and current capture lookup, and dispute persistence through rotation and cold reopen.",
+      "supersedes": "c35add9ee93d2521cc4ff56783a4c821e40fa37acddea1d38426f47ae185d366",
+      "requested_at": "2026-11-28T04:05:57.699564+00:00",
+      "request_id": "4d0e2e4a55f328a0ab8357e01476ae097a4f1971c0d0d8607a66d837416e67fc",
+      "evidence_sha256": "fb8789c8ae1e83826f3236fbef030e79b6f5231640e9ba0ddbbef9150419bece"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "verdict": "approved",
+      "decision": "APPROVE M0-133 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "APPROVE M0-133 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "observation": "After twelve newer captures displaced PR 84, each lookup opened its original capture once, and a fresh process preserved the 804-second Windows wall time and 321-second recovery duration while leaving the disputed browser duration and Windows runner total unknown.",
+      "reviewer": "Independent Astra Standard (t1m0)",
+      "original_sha256": "685671fcc434d8a9a724b48c713d37547beaa31aa16ef2bfa3ac7bf8169a0275",
+      "response_id": "4dc17812e07629b4ace08ac00f1a6c6fead386e5ec90e21f8868d3d84aa8be5b",
+      "response_sha256": "33a20c37fdd57c0b5b38b3ce4e24e11139588c52dce1b5b71e6c644b0fe51b69",
+      "legacy_response_sha256": "3835b27190f82d90b47377abd0cff25a41589d6707b85c772e420a2405e90a4d",
+      "observation_body_sha256": "2d0b2ee2a23bef0f2309cfb5e45dc289a90968f40ac1b6526d44ac6bdf0f0e8b",
+      "event": {
+        "id": "msg_0afa06070661e6d3016b0a556280c887d0ac0ddde017ea7eaa",
+        "timestamp": "2026-11-28T04:15:55.019Z"
+      },
+      "supersedes": "4d0e2e4a55f328a0ab8357e01476ae097a4f1971c0d0d8607a66d837416e67fc",
+      "evidence_sha256": "f1f0cfb6f3d8628ecd6e501765281f33337179f9e26aede7aef3454ae730e719"
     }
   ]
 }
