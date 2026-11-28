@@ -755,6 +755,15 @@
       },
       "supersedes": "f0a56eba5ccc468e488e15319b74322c63bda10981d26c08131d38ab3a2e44e2",
       "evidence_sha256": "d5a247e6a13e1e034d8246c436546472dcd77e8a22b0e607e247b4c8c3c3f4bb"
+    },
+    {
+      "kind": "request",
+      "source_commit": "06fcb2ac978a3ea4918bcfef6aaedb159624e152",
+      "scope": "Review the fourth native Windows timeout in its actual budget finding, preservation of both reconciliation parents and the accepted M0-177 result, the public five-producer ownership and selection controls, and the exact limits of earlier measurements on this composed source.",
+      "supersedes": "a2d34d41cdf4c8e00aeef05baf36e82556285221dbb12a1bb967749b4bb342d8",
+      "requested_at": "2026-11-28T02:08:20.690048+00:00",
+      "request_id": "fa3890a62a6eea63e880f50618ba4b9bb0a26142401d05d211d2e3d238c23764",
+      "evidence_sha256": "b7612f7bf8fcfd1771f8b466ea423a54800912e0f2afb1ed1354650026387d40"
     }
   ]
 }
