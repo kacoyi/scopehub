@@ -30,6 +30,15 @@
       },
       "supersedes": "031052b2429da9259ea9e3237feeb851b99c36211326f74793225dfa7c72de0a",
       "evidence_sha256": "df0b841ff3d009415722169a7342fa9de32563a5bc51f480b559980dc8457d43"
+    },
+    {
+      "kind": "request",
+      "source_commit": "5bd5369bbe592d6563de25c7ecaff08d265b6c76",
+      "scope": "Recheck the actual M2-011 private-record and M0-151 unrelated warnings at the ordinary task and first implementation prompt. Verify the decision-note, financial, and live indicator matches, concise contributor guidance and prior evidence.",
+      "supersedes": "d7ac459358b202c56bd0aebfd2c61c27cc095c2fe66c2778cd8d2d3ccdacdb39",
+      "requested_at": "2026-11-28T10:11:35.943889+00:00",
+      "request_id": "6abd006bac989257f2c85d60afee32df14bda615a15eb0d730908775f9d76b23",
+      "evidence_sha256": "4c9aeca6cef314d1bec1b4708f764531bdd3963adf10556390093e6aac349cc4"
     }
   ]
 }
