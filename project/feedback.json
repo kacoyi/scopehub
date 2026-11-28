@@ -10920,6 +10920,36 @@
         "prevention": "The public dependency review rejects a reappearing unresolved advisory and rejects expired exceptions even on an empty query result. Offline and incomplete queries retain their distinct outcomes. The six-check M0-181 receipt and its independent review preserve these controls."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-leaf-matrix-preparation-subprocess-deadline",
+      "status": "open",
+      "severity": "major",
+      "source": "Ordinary PR 123 run 46111075105, attempt 1, submitted 9b1556c549980e35f8ecc81d28db0516e6da623a, actual checkout 590e08d0b8b978e60d0ebb5197886bec95ecc8c0. Original Windows and Ubuntu reports, the bound Windows journal and the preceding PR 123 attempt are retained.",
+      "observation": "In the Windows private-launcher handoff case, the synthetic leaf matrix preparation returned subprocess deadline exceeded at workspace_test_handoff_acl.mjs:231 before its subsequent per-case comparisons. The journal records 114 passed, two skipped and this single failed case. The same Windows case passed on its first attempt in run 46103840740 with the same fixture source. The Ubuntu peer passed its own platform path. Windows Python and both dependency checks passed. The internal last stage and underlying cause of the fixture timeout remain unobserved.",
+      "task_ids": [
+        "M0-182"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe",
+        "rust-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-46111075105-1",
+          "source_commit": "590e08d0b8b978e60d0ebb5197886bec95ecc8c0",
+          "report_sha256": "9322931dd5375fb58f8cd9d346990ec24ec8307cb15c64eb72909050a4d6c3c0"
+        },
+        {
+          "run_id": "20261128T051401.976712Z-c1245408",
+          "source_commit": "590e08d0b8b978e60d0ebb5197886bec95ecc8c0",
+          "report_sha256": "f7937aa8570a05a309ce907b53f86e20496103bb4305e34d81746fbb21b7e888"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

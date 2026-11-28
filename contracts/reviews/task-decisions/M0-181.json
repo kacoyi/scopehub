@@ -59,6 +59,35 @@
       },
       "supersedes": "063f7e568cbc259d5fb741c134a9a95ab631169a5ac5cf32ea4b588a528eed50",
       "evidence_sha256": "220f2909d1da636b79842cc4c750777e6fed79507637910fc35e98eac49e0ebb"
+    },
+    {
+      "kind": "request",
+      "source_commit": "947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "scope": "Review applicability of the accepted dependency advisory disposition on this fixture source. Compare the exact policy, workflow, dependency inputs and the newly separated fixed helper code. Exercise the established ordinary checker with the authentic accepted and retired/expired controls; use the two actual platform results from PR 123 and preserve their source and cadence.",
+      "supersedes": "c2a67a7d002b2a490785e21510fc949ae3d07725f5c52cd6cb4e71c801d658c3",
+      "requested_at": "2026-11-28T05:52:03.474733+00:00",
+      "request_id": "8a4ce809dedb45ba1c3a0aa2bf5aaf79eb66257e05f8f36e5e970ad4a36e2f5d",
+      "evidence_sha256": "6e48f60fac05aab59dc17b8cb964ef3c6fdc1cc49f073ee2146e76880e4d45d9"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "verdict": "approved",
+      "decision": "APPROVE M0-181 947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "scope": "APPROVE M0-181 947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "observation": "The candidate’s ordinary dependency checker accepted all four findings from each PR 123 platform log and returned exit code 1 when either retired advisory was added individually.",
+      "reviewer": "Independent Astra Standard (t1n6)",
+      "original_sha256": "42445e000a3254c9815244fa1909cd2bfb6141ac86d577709c5bda4c8add34e5",
+      "response_id": "1d92fbdb8d48f6cf03d1747eb24c6adb2b4340c328c89e56cc4226e51358e104",
+      "response_sha256": "97e0e7309f3bd1499c77266adcfd9ea12a5ac5abcc05db96f8499441f5537aee",
+      "legacy_response_sha256": "38114bfc47a4da0c7613217254f3e62603b1bdb326fd1b41febc08bd33a3a983",
+      "observation_body_sha256": "559bf44fa2f4de9814f79d4f7f143190f1c205eb236306a6479b08ddbe787423",
+      "event": {
+        "id": "msg_07b89db9dfe90064016b0a6d2a309087d09f3c0e9b007fd67e",
+        "timestamp": "2026-11-28T05:57:25.713Z"
+      },
+      "supersedes": "8a4ce809dedb45ba1c3a0aa2bf5aaf79eb66257e05f8f36e5e970ad4a36e2f5d",
+      "evidence_sha256": "53a70f67ddab99d0399faddd2956ef6531b0ae30e0647855b797cb36bd356a84"
     }
   ]
 }
