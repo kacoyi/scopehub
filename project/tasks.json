@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-186",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -29818,7 +29818,7 @@
       "id": "M0-186",
       "title": "Keep local import worker behavior and its native tests independently navigable",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-045"
       ],
@@ -29843,10 +29843,15 @@
         "rust-contracts-workers",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Compare the existing native test names and behavior at the real Rust module boundary, separate the test source, then verify the same tests and the affected task checks.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-186-2d38d7de5d2da9c3.json",
+          "sha256": "29a89fd1a75cedb115d5f2cee632f1fa068c3f21632b02b65c620627ad6f8beb"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The local import runtime remains at its public entry. All 18 native Cargo import tests retained their qualified names and passed before and after the move. Review compared the runtime prefix, assertion tokens and literal fixture bytes, and independently executed the stalled-cleanup case through the compiled test binary. All five selected local task checks passed on f8b2f85f4f32e57a72bebbc9701ebc9c7c391c9a. The production file now has 676 lines and the test module has 855 lines. Windows CI is tracked at the pull request.",
       "plan": {
         "outcome": "An engineer working on the local import runtime can inspect its process lifecycle and protocol without traversing the inline native fixture suite. The same tests continue to exercise published worker behavior.",
         "change_types": [
