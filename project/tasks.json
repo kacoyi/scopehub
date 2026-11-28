@@ -29724,7 +29724,7 @@
         "indicator-workflow"
       ],
       "evidence": [],
-      "next_action": "Correct the independently observed premature accepted-output success and the unconfirmed immediate approval delivery failure. Check the committed and rejected controls with a real writer before returning the revised source.",
+      "next_action": "Review the clean repair and matching task report. Compare the dispatched approvals, authoritative reads and durable writer rows for the held-output, lost-delivery and correlated-rejection controls before accepting the task.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -29741,7 +29741,9 @@
           "contracts/decisions/0017-indicator-acceptance-and-restore.json"
         ],
         "hypotheses": [
-          "The UI passes a timeout signal to the native bridge but the waiting promise does not settle before a withheld reply is released. The existing caller-side reply helper may supply the missing boundary."
+          "The UI passes a timeout signal to the native bridge but the waiting promise does not settle before a withheld reply is released. The existing caller-side reply helper may supply the missing boundary.",
+          "Recovery can claim success from the workspace revision while the accepted-layer list or its output is still in flight. Compare withheld output with immediate delivery for the same committed version.",
+          "A rejected transport promise can hide an already committed approval. Compare lost delivery after a real stored commit with a correlated operation rejection."
         ],
         "risks": [
           {
@@ -29753,6 +29755,20 @@
           },
           {
             "failure": "A timed-out write is presented as definitely uncommitted or repeated automatically, losing durable indicator or undo state.",
+            "checks": [
+              "desktop-workspace-transport",
+              "indicator-workflow"
+            ]
+          },
+          {
+            "failure": "Readback reports success before accepted output is visible, or a failed list or output removes the read-only retry.",
+            "checks": [
+              "desktop-workspace-transport",
+              "indicator-workflow"
+            ]
+          },
+          {
+            "failure": "An immediate delivery failure unlocks a new mutation without correlated rejection or an authoritative readback.",
             "checks": [
               "desktop-workspace-transport",
               "indicator-workflow"
@@ -29797,7 +29813,8 @@
             "Existing frozen-source binding, explicit approval, idempotency, authoritative workspace revision and undo."
           ],
           "change": [
-            "End the UI wait at its existing deadline and prevent an expired operation from repainting the active view."
+            "End the UI wait at its existing deadline and prevent an expired operation from repainting the active view.",
+            "Treat any write delivery failure without correlated rejection as uncertain. Complete readback only when the workspace and accepted layers with their available outputs can be displayed."
           ],
           "data_plan": "Use isolated disposable synthetic workspace data. Keep existing persisted schemas and the Rust single-writer path. An uncertain delivery cannot establish whether a mutation committed.",
           "cleanup": "Settle the caller, release listeners and timers, and dispose the native test workspace after each trial."

@@ -627,12 +627,13 @@ export function useLocalWorkspace() {
     }
   }
 
-  async function checkAfterIndicatorReply(workspaceId: string) {
+  async function checkAfterIndicatorReply(workspaceId: string, read: (snapshot: Snapshot, signal: AbortSignal) => Promise<void>) {
     const generation = focus.current.generation;
     const current = await run(async signal => {
       const readback = await readWorkspaceSnapshot(signal);
       if (readback.workspace.id !== workspaceId || snapshot && (readback.workspace.revision < snapshot.workspace.revision
         || readback.selection_revision < snapshot.selection_revision)) throw { code: 'OUTPUT_INVALID' };
+      await read(readback, signal);
       return readback;
     }, 'open');
     if (hasConfirmedFocus(generation)) return current;

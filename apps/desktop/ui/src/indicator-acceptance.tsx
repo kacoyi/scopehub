@@ -9,7 +9,7 @@ import type { IndicatorChartLayer } from './chart-adapter/history';
 import { IndicatorDiagnostics } from './indicator-diagnostics';
 import { IndicatorRegionValues } from './indicator-region-values';
 import { displayAccessDenied, type PublishedRevisionAccess } from './published-revision-access';
-import { withReplyDeadline } from './reply-deadline';
+import { waitForReply, withReplyDeadline } from './reply-deadline';
 import { exchangeWorkspace, type LocalWorkspace } from './use-local-workspace';
 
 type Layer = { layer_id: string; version_id: string; available: boolean };
@@ -21,6 +21,7 @@ type RemovalHint = {
   operation_id: string; layer_id: string; committed_workspace_revision: number;
 };
 type AcceptedLayers = { layers: Accepted[]; undo: RemovalHint | undefined };
+type WorkspaceSnapshot = NonNullable<LocalWorkspace['snapshot']>;
 type ActionReply = IndicatorAcceptVersionReply11 | IndicatorRemoveReply11 | WorkspaceUndoReply11;
 type ActionRequest = IndicatorAcceptVersionCommand11 | IndicatorRemoveCommand11
   | TrustedConfirmationDecision11 | WorkspaceUndoCommand11;
@@ -82,10 +83,18 @@ function matchesChart(input: FrozenSnapshot, chart: FrozenSnapshot) {
       input.series[key as keyof FrozenSnapshot['series']] === value);
 }
 
+function viewKey(snapshot: FrozenSnapshot, state: WorkspaceSnapshot) {
+  return `${snapshot.content_hash}:${state.workspace.id}:${state.workspace.revision}:${state.selection_revision}`;
+}
+
+function matchesRequest(reply: ActionReply, requestId: string) {
+  return reply?.protocol_version === '1.1' && reply.type === 'response' && reply.request_id === requestId;
+}
+
 function bodyOf<T extends ActionReply>(
   reply: T, requestId: string,
 ): T['outcome'] {
-  if (reply.request_id !== requestId) throw new Error();
+  if (!matchesRequest(reply, requestId)) throw new Error();
   if (reply.outcome.state === 'failed') throw reply.outcome.error;
   return reply.outcome;
 }
@@ -94,9 +103,8 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
   preview: PreviewReady11 | undefined; snapshot: FrozenSnapshot; workspace: LocalWorkspace;
   access?: PublishedRevisionAccess | undefined; clearPreview: () => void; showAccepted: (results: readonly IndicatorChartLayer[]) => void;
 }) {
-  const [layers, setLayers] = useState<Accepted[]>([]);
+  const [accepted, setAccepted] = useState<{ key: string; data: AcceptedLayers }>();
   const [confirmation, setConfirmation] = useState<{ challenge: ConfirmationChallenge11; preview: PreviewReady11 }>();
-  const [undo, setUndo] = useState<RemovalHint>();
   const [pending, setPending] = useState(false);
   const [uncertain, setUncertain] = useState<UncertainWrite>();
   const [message, setMessage] = useState<{ text: Message; failed?: boolean }>();
@@ -105,6 +113,10 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
   const canDisplay = access?.canDisplay;
   const verify = access?.verify;
   const revoked = access?.withheldStatus('csv', snapshot.dataset_id) === 'revoked';
+  const key = state && viewKey(snapshot, state);
+  const readable = !revoked && (!canDisplay || canDisplay('csv', snapshot.dataset_id));
+  const displayed = readable && accepted?.key === key ? accepted?.data : undefined;
+  const undo = displayed?.undo;
 
   useLayoutEffect(() => {
     const controller = new AbortController();
@@ -113,31 +125,30 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
   }, []);
 
   useLayoutEffect(() => {
-    setLayers([]);
-    setUndo(undefined);
-    showAccepted([]);
-    if (revoked) return;
+    if (!key || !readable || uncertain || displayed) return;
     const abort = new AbortController();
     void withReplyDeadline(replyDeadlineMs, signal => readLayers(snapshot, signal), abort.signal)
-      .then(({ layers: restored, undo: hint }) => {
+      .then(data => {
         if (abort.signal.aborted || canDisplay && !canDisplay('csv', snapshot.dataset_id)) return;
-        setLayers(restored);
-        setUndo(hint);
-        showAccepted(restored.flatMap(({ document }) => document && matchesChart(document.snapshot, snapshot)
-          ? [{
-            range: {
-              from_ms: Math.max(snapshot.from_ms, document.snapshot.from_ms),
-              to_ms: Math.min(snapshot.to_ms, document.snapshot.to_ms),
-            },
-            result: document.artifact.result,
-          }] : []));
+        setAccepted({ key, data });
       }).catch(error => {
         if (abort.signal.aborted) return;
         if (displayAccessDenied(error)) void verify?.('csv', snapshot.dataset_id);
         setMessage(previous => previous ?? { text: uiMessage('Accepted indicator output could not be restored.'), failed: true });
       });
     return () => abort.abort();
-  }, [snapshot, state?.workspace.revision, state?.selection_revision, canDisplay, verify, revoked, showAccepted]);
+  }, [key, snapshot, canDisplay, verify, readable, uncertain, displayed]);
+
+  useLayoutEffect(() => {
+    showAccepted(displayed?.layers.flatMap(({ document }) => document && matchesChart(document.snapshot, snapshot)
+      ? [{
+        range: {
+          from_ms: Math.max(snapshot.from_ms, document.snapshot.from_ms),
+          to_ms: Math.min(snapshot.to_ms, document.snapshot.to_ms),
+        },
+        result: document.artifact.result,
+      }] : []) ?? []);
+  }, [displayed, snapshot, showAccepted]);
 
   function scope(target: MutationScope11['target']): MutationScope11 {
     if (!state) throw new Error();
@@ -154,24 +165,26 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
     setMessage(undefined);
     let rejected = false;
     try {
-      const reply = await withReplyDeadline(replyDeadlineMs, deadline => {
-        if (!write) return exchangeWorkspace<T>(request, deadline);
+      const reply = await withReplyDeadline(replyDeadlineMs, async deadline => {
         // Only a correlated failure can settle a write at its original revision.
         // Keep observing delivery for that proof, without applying the late reply.
-        return exchangeWorkspace<T>(request, owner).then(result => {
-          rejected = result.request_id === request.request_id && result.outcome?.state === 'failed';
-          return result;
-        });
+        const result = await exchangeWorkspace<T>(request, write ? owner : deadline);
+        if (write && matchesRequest(result, request.request_id) && result.outcome?.state === 'failed') {
+          const { error } = result.outcome;
+          rejected = typeof error?.code === 'string' && typeof error.message === 'string'
+            && typeof error.retryable === 'boolean';
+        }
+        return result;
       }, owner);
       if (!owner.aborted) receive(reply);
     } catch (error) {
       if (owner.aborted) return;
       if (displayAccessDenied(error)) void verify?.('csv', snapshot.dataset_id);
-      if (error instanceof DOMException && error.name === 'TimeoutError') {
-        if (write) setUncertain({ ...write, wasRejected: () => rejected });
-        setMessage({ text: write
-          ? uiMessage('The indicator change could not be confirmed. Reload the workspace state to review accepted indicators.')
-          : uiMessage('The indicator confirmation reply did not arrive. You can try accepting the preview again.'), failed: true });
+      if (write && !rejected) {
+        setUncertain({ ...write, wasRejected: () => rejected });
+        setMessage({ text: uiMessage('The indicator change could not be confirmed. Reload the workspace state to review accepted indicators.'), failed: true });
+      } else if (error instanceof DOMException && error.name === 'TimeoutError') {
+        setMessage({ text: uiMessage('The indicator confirmation reply did not arrive. You can try accepting the preview again.'), failed: true });
       } else {
         setMessage({ text: uiMessage('The indicator change could not be completed. Refresh the workspace and try again.'), failed: true });
       }
@@ -183,14 +196,32 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
   async function reconcile() {
     const owner = lifetime.current?.signal;
     if (!owner || !uncertain || pending) return;
-    const minimumRevision = uncertain.revision + (uncertain.wasRejected() ? 0 : 1);
+    const reportReadFailure = (error: unknown) => {
+      if (owner.aborted) return;
+      if (displayAccessDenied(error)) void verify?.('csv', snapshot.dataset_id);
+      setMessage({ text: uiMessage('Accepted indicator output could not be restored.'), failed: true });
+    };
     setPending(true);
+    let restored: AcceptedLayers | undefined;
     try {
-      const current = await workspace.checkAfterIndicatorReply(uncertain.workspaceId);
-      if (!owner.aborted && current && current.workspace.revision >= minimumRevision) {
+      const current = await withReplyDeadline(replyDeadlineMs, deadline =>
+        workspace.checkAfterIndicatorReply(uncertain.workspaceId, async (readback, workspaceSignal) => {
+          // An unchanged revision does not fence a write that may still reach the writer.
+          if (readback.workspace.revision < uncertain.revision + (uncertain.wasRejected() ? 0 : 1)) return;
+          const signal = AbortSignal.any([deadline, workspaceSignal]);
+          try {
+            restored = await waitForReply(signal, () => readLayers(snapshot, signal));
+          } catch (error) {
+            if (!signal.aborted) reportReadFailure(error);
+          }
+        }), owner);
+      if (!owner.aborted && current && restored && (!canDisplay || canDisplay('csv', snapshot.dataset_id))) {
+        setAccepted({ key: viewKey(snapshot, current), data: restored });
         setUncertain(undefined);
         setMessage({ text: uiMessage('Workspace state reloaded. Review the accepted indicators.') });
       }
+    } catch (error) {
+      reportReadFailure(error);
     } finally {
       if (!owner.aborted) setPending(false);
     }
@@ -226,7 +257,7 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
     };
     setConfirmation(undefined);
     void act<IndicatorAcceptVersionReply11>(request, reply => {
-      if (decision === 'deny' && reply.request_id === request.request_id
+      if (decision === 'deny' && matchesRequest(reply, request.request_id)
         && reply.outcome.state === 'failed' && reply.outcome.error.code === 'CANCELLED') return;
       const outcome = bodyOf(reply, request.request_id);
       if (outcome.state !== 'committed') throw new Error();
@@ -256,17 +287,21 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
       intent: { operation: 'workspace.undo', arguments: { operation_id: undo.operation_id } },
     };
     void act<WorkspaceUndoReply11>(request, reply => {
-      if (reply.request_id === request.request_id && reply.outcome.state === 'failed'
+      if (matchesRequest(reply, request.request_id) && reply.outcome.state === 'failed'
         && reply.outcome.error.code === 'STALE_CONTEXT') {
-        setUndo(undefined);
+        clearUndo();
         workspace.reload();
       }
       const outcome = bodyOf(reply, request.request_id);
       if (outcome.state !== 'committed') throw new Error();
-      setUndo(undefined);
+      clearUndo();
       workspace.refreshAfterIndicatorCommit(outcome.receipt);
       setMessage({ text: uiMessage('Accepted layer restored.') });
     }, { workspaceId: request.scope.workspace_id, revision: request.scope.expected_workspace_revision });
+  }
+
+  function clearUndo() {
+    setAccepted(previous => previous && { ...previous, data: { ...previous.data, undo: undefined } });
   }
 
   const blocked = pending || !!uncertain || !state || !!workspace.pending || !!workspace.error;
@@ -285,9 +320,9 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
     {message && <p role={message.failed ? 'alert' : 'status'}>{t(message.text)}</p>}
     {uncertain && <button type="button" className="secondary-button" disabled={pending || !!workspace.pending}
       onClick={() => void reconcile()}>{t('Reload workspace state')}</button>}
-    {layers.length > 0 && <section aria-label={t('Accepted indicators')}>
+    {displayed && displayed.layers.length > 0 && <section aria-label={t('Accepted indicators')}>
       <h3>{t('Accepted indicators')}</h3>
-      <ul>{layers.map(layer => <li key={layer.layer_id}>
+      <ul>{displayed.layers.map(layer => <li key={layer.layer_id}>
         <span>{!layer.available ? t('Accepted version · source unavailable')
           : layer.document && !matchesChart(layer.document.snapshot, snapshot) ? t('Accepted version · different chart observation')
             : t('Accepted version')} </span>
