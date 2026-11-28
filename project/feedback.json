@@ -9795,6 +9795,21 @@
         "prevention": "Independent review verified the two original extra-field cases. Ordinary PR 151 run 45983202750 passed nine rejected replies on both platforms, including extra properties in the outcome, receipt and target, invalid values and mismatched bindings. Each trial stayed unverified until the explicit same-approval retry recovered the original receipt. The note and outcome stayed removed with one durable marker. Canonical peer deletion passed separately."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "completed-project-review-lock-blocks-retirement-observation",
+      "source": "Protected 742430e69246c8869732f12bb33742895dfe2d54, public worktree retirement inventory completed 2026-11-28T10:00:27Z (SHA-256 828b942e63f29d67e388f4f35e0e920a41ab538c7bbc377a775b1497a6337d6c). Released reproduction SHA-256 ec9f456fb3439a0704f6ec618ab3f0a7f6320682bc189d94c735cf1bc799534a.",
+      "observation": "64 of the 194 observed worktrees reported their project review lock as unrecognized Git metadata. In an isolated public retirement run, a clean registered checkout initially had only the process-visibility hold. After taking and releasing the ordinary project writer lock, the same checkout additionally reported incomplete observation. The lock file was empty. The held case also reported unrecognized metadata.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-184"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
