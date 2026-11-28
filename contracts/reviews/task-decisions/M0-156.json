@@ -697,6 +697,35 @@
       },
       "supersedes": "5c9b30e5040897205d40188c0b3bdc61f5fb52e561f1dda211ea4ed225ba1d42",
       "evidence_sha256": "f589562b90c52c2bd4680342b3a8d6f6252bbe060e08b2953fed15cb31d32f10"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "Check the changed historic publisher and collection admission against the genuine PR 96 and push acquisition controls. Verify receipts for a valid historical single-job acquisition and refusal under mismatched sourcing. Exercise input order, actual cold reopening, same-time conflicts and later partial collection while retaining independently supported clocks.",
+      "supersedes": "71586e59fc09e6abc1c507f120e252f315c1d1841c7b0e6f5703164322ccf56a",
+      "requested_at": "2026-11-28T03:57:32.300646+00:00",
+      "request_id": "06534544b42656563f7c479869182ee56fcccdf6721f680a7a4283206de00580",
+      "evidence_sha256": "f7525e825a5cfebb19ddbcb485f6081b07ccf65bb73693c1ee6960be0d3e9b55"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "verdict": "approved",
+      "decision": "APPROVE M0-156 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "APPROVE M0-156 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "observation": "Both collection modes issued one Windows receipt for run 45389970933 and zero for the same report under the Ubuntu artifact name, and a fresh process preserved both outcomes.",
+      "reviewer": "Independent Astra Standard (t1kx)",
+      "original_sha256": "c89419ad67e19e4d55ccbbcad421f87d7594ea214d21127ead8831fa0a8b9964",
+      "response_id": "a6813eed2c65d0cfecfad76e1cf33e5f0fbb9e93dbd3b66763b27d3f2bfdcf1a",
+      "response_sha256": "240c70caf4a8fca413c458bb2bee0c734cdacb6c93d6eb85cfb0b20af585f977",
+      "legacy_response_sha256": "8efadf2ef8e885a1e6e51607e651db51f7c41148ab162c1e8bea7e513e3913f1",
+      "observation_body_sha256": "158d03c0eaf1daa5067399c9e8b097f6b3bda91dfdade83eba2a3e80fe0d1861",
+      "event": {
+        "id": "msg_0730680c8ad72f5d016b0a52e8fd5c87d0a282e01e3d6a5b25",
+        "timestamp": "2026-11-28T04:05:15.830Z"
+      },
+      "supersedes": "06534544b42656563f7c479869182ee56fcccdf6721f680a7a4283206de00580",
+      "evidence_sha256": "7b5d9182d26f55f04913b57d11419000bfa8dfc8879da2465a55fcfa141eea48"
     }
   ]
 }

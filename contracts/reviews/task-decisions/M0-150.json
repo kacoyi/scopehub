@@ -688,6 +688,35 @@
       },
       "supersedes": "0ca1e381685c682f5be48dee5821b366db3baed5ba6f1d2a1bb7467f6212f690",
       "evidence_sha256": "a908840f7bf438c5c513c46ac10171700f6e73326012072092a21c2052a23b08"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "Check the changed timing rules against the accepted phase-clock and clock-precision decision, including the original PR 123 controls and PR 84 isolated recovery producer with missing or conflicting aggregate dependency evidence. Derive independently which stage, initialization and neighboring bounds survive and verify the used public entries on this source.",
+      "supersedes": "f098fe24dc4497ba47d71c2697341a3cf7e25c7a9ebe9f170587ee7924608a79",
+      "requested_at": "2026-11-28T03:57:31.315426+00:00",
+      "request_id": "01fe607dbc958a79f90a67c2a3fec8eee1f0da6fe9417fd0716a751f021bee3a",
+      "evidence_sha256": "928a8db6458a48dd0290dcc15b41c03322e9daafdbde9beb49cb81c6b7f200a4"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "verdict": "approved",
+      "decision": "APPROVE M0-150 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "APPROVE M0-150 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "observation": "With the PR 84 browser and aggregate job names swapped, the reader preserved the recovery report’s 321-second wall time and 319 runner-seconds in both input orders and after a cold reopen.",
+      "reviewer": "Independent Astra Standard (t1kw)",
+      "original_sha256": "f6fd9a7efd1a5d01d2b8afef1e666e14b8c60996f420b3d49e44c57a6127cb4e",
+      "response_id": "dd9e8e9540a1751b307e3aedab79c123e8c5670d314c90994a697fe5fb203138",
+      "response_sha256": "893b4d6753c104242f253fed36290045ac0dc8ba86c834a5e94e6a9d112ee1a2",
+      "legacy_response_sha256": "987e01fce45a0944be52ba916b3c817444608db8bae5a5a91a9f315a226b4fbb",
+      "observation_body_sha256": "fe8c70eb5e569eb27cbac28c3ee23a71ae906ca9d038245fd0360d24a044a87b",
+      "event": {
+        "id": "msg_0d2a6752e3100680016b0a52c54cdc87d08451377c888a80f5",
+        "timestamp": "2026-11-28T04:04:45.975Z"
+      },
+      "supersedes": "01fe607dbc958a79f90a67c2a3fec8eee1f0da6fe9417fd0716a751f021bee3a",
+      "evidence_sha256": "b504550aa38142f42411b696686081ae08a714c3047bb352a73ce7253479ac57"
     }
   ]
 }
