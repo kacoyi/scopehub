@@ -30771,7 +30771,7 @@
           "report_sha256": "f7937aa8570a05a309ce907b53f86e20496103bb4305e34d81746fbb21b7e888"
         }
       ],
-      "next_action": "Compare the failing and passing ordinary Windows PR 123 journals at the same fixture bytes. Examine the test-owned matrix preparation costs and its safe internal stage evidence before choosing a correction. Retain the bounded verifier, every existing comparison and cleanup, then qualify the exact source independently and on native Windows.",
+      "next_action": "Have the coordinator review the exact local candidate and submit the ordinary and guarded native checks. Inspect the separate helper build and matrix phase measurements, the 24 real Windows comparisons and the Rust parser cases. Verify the integrated source after independent review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -30780,14 +30780,17 @@
           "tooling"
         ],
         "context": [
+          "tests/ubuntu-preview/workspace.setup.mjs",
           "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+          "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.cs",
           "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.ps1",
           "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
           "tests/ubuntu-preview/workspace.spec.mjs",
           "project/checks.json"
         ],
         "hypotheses": [
-          "The outer fixture preparation exceeded its bounded time in the failing ordinary run. It passed in the preceding Windows run. The original journal identifies no last internal operation, fixture row or descriptor outcome."
+          "The failing and preceding ordinary Windows attempts used identical matrix source blobs. Only the case-level durations and outer deadline were observed. The last internal operation and historical cause remain unknown.",
+          "The matrix child compiled the same test-only C# helper before reading matrix inputs or descriptors. Build those exact helper bytes once during workspace setup, and measure the build and the ordered matrix stages separately on native Windows."
         ],
         "risks": [
           {
@@ -30807,7 +30810,9 @@
             "development-tooling"
           ],
           "entrypoints": [
+            "tests/ubuntu-preview/workspace.setup.mjs",
             "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+            "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.cs",
             "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.ps1",
             "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
             "tests/ubuntu-preview/workspace.spec.mjs"
@@ -30826,7 +30831,7 @@
             "Production permission semantics, private user data, broader browser startup and the Windows Python scheduling objective remain under their existing owners."
           ],
           "open_questions": [
-            "The outer fixture preparation exceeded its bounded time in the failing ordinary run. It passed in the preceding Windows run. The original journal identifies no last internal operation, fixture row or descriptor outcome."
+            "How much time does the first exact native run spend loading the prebuilt helper, preparing the matrix and checking each real file under the existing deadline?"
           ]
         },
         "evolution": {
@@ -30835,10 +30840,10 @@
             "The bounded test-only operation, existing real-file comparison coverage, independently known permission outcomes and cleanup on success or refusal."
           ],
           "change": [
-            "Correct or make observable the preparation work responsible for the new bounded failure, in proportion to the evidence."
+            "Prebuild the unchanged ACL interop helper under its own bounded test setup invocation. Report the last completed, ordered preparation milestone from bounded stdout when the matrix child runs out of time. Retain exact stderr refusal decoding."
           ],
           "data_plan": "Only temporary test-owned files and retained diagnostic observations are involved.",
-          "cleanup": "Remove redundant test preparation if verified equivalent. Retain original witnesses, diagnostic classification and the later native comparison."
+          "cleanup": "Dispose of the helper with the existing run directory. Retain original witnesses, exclusive matrix fixture creation and cleanup, and all later native comparisons."
         }
       }
     }
