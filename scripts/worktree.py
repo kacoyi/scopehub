@@ -189,7 +189,7 @@ def verify_checkout(common, entry):
     return git_dir
 
 
-def open_windows_lock(path):
+def open_windows_lock(path, *, read_only=False):
     import ctypes
     from ctypes import wintypes
     import msvcrt
@@ -203,15 +203,18 @@ def open_windows_lock(path):
     create_file.restype = wintypes.HANDLE
     kernel.CloseHandle.argtypes = (wintypes.HANDLE,)
     kernel.CloseHandle.restype = wintypes.BOOL
-    # GENERIC_READ | GENERIC_WRITE, exclusive sharing, OPEN_ALWAYS, OPEN_REPARSE_POINT.
-    handle = create_file(str(path), 0xC0000000, 0, None, 4, 0x00200000, None)
+    # GENERIC_READ / OPEN_EXISTING or GENERIC_READ | GENERIC_WRITE / OPEN_ALWAYS.
+    # Both use exclusive sharing and OPEN_REPARSE_POINT.
+    access, disposition = (0x80000000, 3) if read_only else (0xC0000000, 4)
+    handle = create_file(str(path), access, 0, None, disposition, 0x00200000, None)
     if handle == ctypes.c_void_p(-1).value:
         error = ctypes.WinError(ctypes.get_last_error())
         if error.winerror == 32:  # ERROR_SHARING_VIOLATION
             raise BlockingIOError(errno.EAGAIN, 'exclusive file is open', path) from error
         raise error
     try:
-        return msvcrt.open_osfhandle(handle, os.O_RDWR | os.O_BINARY | os.O_NOINHERIT)
+        mode = os.O_RDONLY if read_only else os.O_RDWR
+        return msvcrt.open_osfhandle(handle, mode | os.O_BINARY | os.O_NOINHERIT)
     except BaseException:
         kernel.CloseHandle(handle)
         raise
@@ -239,25 +242,33 @@ def check_lock_file(path, info):
 
 
 @contextmanager
-def exclusive_git_lock(path):
+def exclusive_git_lock(path, *, read_only=False):
     # Closing the last handle releases the OS lock, including after an interrupted process.
     fd = None
     try:
+        if read_only:
+            initial = path.lstat()
+            check_lock_file(path, initial)
         if os.name == 'nt':
-            fd = open_windows_lock(path)
-            check_lock_file(path, os.fstat(fd))
+            fd = open_windows_lock(path, read_only=read_only)
         else:
             import fcntl
 
-            try:
-                check_lock_file(path, path.lstat())
-            except FileNotFoundError:
-                pass
-            flags = os.O_RDWR | os.O_CREAT | os.O_NONBLOCK | getattr(os, 'O_NOFOLLOW', 0)
+            if not read_only:
+                try:
+                    check_lock_file(path, path.lstat())
+                except FileNotFoundError:
+                    pass
+            mode = os.O_RDONLY if read_only else os.O_RDWR | os.O_CREAT
+            flags = mode | os.O_NONBLOCK | getattr(os, 'O_NOFOLLOW', 0)
             fd = os.open(path, flags, 0o600)
-            opened = os.fstat(fd)
-            check_lock_file(path, opened)
+        opened = os.fstat(fd)
+        check_lock_file(path, opened)
+        if read_only and not os.path.samestat(initial, opened):
+            raise WorktreeError(f'Local lock changed at {path}. Inspect the path and retry.')
+        if os.name != 'nt':
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if read_only or os.name != 'nt':
             current = path.lstat()
             check_lock_file(path, current)
             if not os.path.samestat(opened, current):

@@ -29721,7 +29721,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Reproduce the released-lock obstruction alongside the held and clean controls. Make the smallest correction in the local retirement reader and verify with independent review.",
+      "next_action": "Independently review the clean implementation commit and its local retirement controls, then record the review decision and archive the matching task checks.",
       "blocker": null,
       "closure_reason": null,
       "plan": {

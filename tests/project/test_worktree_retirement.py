@@ -119,6 +119,51 @@ class WorktreeRetirementTests(unittest.TestCase):
         self.assertEqual(self.git('show-ref'), refs)
         self.assertEqual({path: (path.read_bytes(), path.stat().st_mtime_ns) for path in paths}, stored)
 
+    def test_project_review_lock_holds_only_while_writer_owns_it(self):
+        metadata = worktree.git_path(self.candidate, '--git-dir')
+        lock = metadata / 'scopehub-review-M0-184.lock'
+        partial_visibility = (set(), ['process_observation_incomplete'])
+        clean = self.row(partial_visibility)
+        self.assertTrue(clean['review_intake'])
+        self.assertFalse(lock.exists())
+
+        with worktree.exclusive_git_lock(lock):
+            held = self.row(partial_visibility)
+            self.assert_held(held, 'project_review_in_progress')
+            self.assertEqual(held['details']['project_review_in_progress'], [lock.name])
+            self.assertFalse(held['review_intake'])
+        before = lock.stat()
+        self.assertEqual(self.row(partial_visibility), clean)
+        after = lock.stat()
+        self.assertTrue(os.path.samestat(before, after))
+        self.assertEqual((after.st_size, after.st_mtime_ns), (0, before.st_mtime_ns))
+
+        (self.candidate / '.env').write_text('fixture evidence', encoding='ascii')
+        self.assert_held(self.row(partial_visibility), 'unretained_local_evidence')
+        (metadata / 'scopehub-review-unknown.lock').touch()
+        unknown = self.row(partial_visibility)
+        self.assert_held(unknown, 'checkout_observation_incomplete')
+        self.assertIn('scopehub-review-unknown.lock', unknown['details']['checkout_observation_incomplete'])
+
+    def test_ambiguous_project_review_lock_metadata_remains_held(self):
+        metadata = worktree.git_path(self.candidate, '--git-dir')
+        nonempty = metadata / 'scopehub-review-M0-182.lock'
+        directory = metadata / 'scopehub-review-M0-183.lock'
+        lock = metadata / 'scopehub-review-M0-184.lock'
+        nonempty.write_bytes(b'unexpected contents')
+        directory.mkdir()
+        with worktree.exclusive_git_lock(lock):
+            pass
+        row = self.row(IDLE)
+        self.assert_held(row, 'project_review_lock_unverified')
+        self.assertEqual(set(row['details']['project_review_lock_unverified']), {nonempty.name, directory.name})
+        self.assertEqual(nonempty.read_bytes(), b'unexpected contents')
+
+        with patch.object(worktree, 'exclusive_git_lock', side_effect=PermissionError('fixture unreadable')):
+            unreadable = self.row(IDLE)
+            self.assert_held(unreadable, 'project_review_lock_unverified')
+            self.assertIn(lock.name, unreadable['details']['project_review_lock_unverified'])
+
     def test_isolated_python_cli_reports_registered_checkouts(self):
         archive = self.directory / 'absent-archive'
         result = self.cli('--archive-root', str(archive))
