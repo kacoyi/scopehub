@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-187",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "903beb92fd0a9c9e03c6d01e19d2cf5b95c8b2f5",
+      "scope": "Check the ordinary due monthly dependency review on the actual protected graph, the historical and final proposal heads, the replacement pins, unresolved advisories, evidence, next review date and retained toolchain follow-ups.",
+      "supersedes": null,
+      "requested_at": "2026-11-28T10:59:24.936083+00:00",
+      "request_id": "0031e00188c5daeb3978d379c0c5a86a49cae2b3d9c4e2e5478866fbd4105797",
+      "evidence_sha256": "7d44c177a089013a99ecb71c4a2d456c9b09a41369b8121d765895189cc15388"
+    }
+  ]
+}
