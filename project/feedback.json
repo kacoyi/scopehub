@@ -10907,6 +10907,34 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-former-python-owner-control-did-not-exercise-former-partition",
+      "status": "open",
+      "severity": "major",
+      "source": "First ordinary full warm PR 123 run 46120026971, attempt 1, submitted cd966faf3ef27048d510748f88dd0a400698ee4e, tested checkout 63012842945fca8ad1e85e988a831628bd5e32c4. The genuine Windows recovery producer, final publisher, Linux control and their resolved diagnostics are retained.",
+      "observation": "Windows finished in 867 seconds from workflow creation through final publication, with 35 selections, 27 passes, seven planned omissions and a failed python-contracts-workers check. In test_full_windows_pr_workspace_producer_binds_checks_attachments_and_python_order at line 2779, the former-owner fixture expected test_processes in the Python log, but that execution contained only test_prefix and test_skipped. The 578-case current Python partition passed; the 405-case recovery partition recorded this one failure. The aggregate reproduced its original bytes and failed. The ordinary Ubuntu job passed. The genuine Windows workspace and its 24-file ACL matrix also passed. Determine why the controlled former runner produced the current partition before rerunning the authority check.",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-46120026971-1",
+          "source_commit": "63012842945fca8ad1e85e988a831628bd5e32c4",
+          "report_sha256": "4446e9433e0802a9191ae799b55b5ff6014ae7cd3d3284e0ba3246090c87eab1"
+        },
+        {
+          "run_id": "20261128T071234.811364Z-adb47dc1",
+          "source_commit": "63012842945fca8ad1e85e988a831628bd5e32c4",
+          "report_sha256": "3c7090c73dbac08ffca4e338e02a98b9aad47f996fe2342af93825bda5c3a90a"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
