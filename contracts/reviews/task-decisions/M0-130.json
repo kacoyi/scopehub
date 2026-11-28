@@ -397,6 +397,26 @@
       "requested_at": "2026-11-28T05:48:19.704694+00:00",
       "request_id": "2c5d06233a91370416439ea068789d998667c5c85c91b07fe518b7ede86119d7",
       "evidence_sha256": "f7851c82ea2bc99d5a6aa7fdf47c4171dffc1c42b9cabbb099b803da82ccfcf3"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "verdict": "approved",
+      "decision": "APPROVE M0-130 d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "APPROVE M0-130 d55f6907237d9af018decabd2f94fba43c198620",
+      "observation": "With the PR 84 browser and aggregate job names swapped, fresh processes recovered job 138978153088’s 321-second wall time and 319 runner-seconds in both input orders, and isolated recovery collection yielded zero Windows platform receipts.",
+      "reviewer": "Independent Astra Standard (t1my)",
+      "original_sha256": "340aea4d2ceea78644c259c1aa87867243fc4335b8821410d95c1693f74d99b2",
+      "response_id": "97a6a12ff761bac5d99411a0fd8126bdbca122eaf3bb691dc13961c3193b9450",
+      "response_sha256": "d38844cac5f0c94ba15d6df8af650bd46297641832ffb2dd5bb1c76f228dc104",
+      "legacy_response_sha256": "452657527ec0f711895398dee6c6b1cf40d44e6bcb90ded683485d6adbc0c097",
+      "observation_body_sha256": "2286503f19791b2883ca9c4c0da48c9ce330d13809ba047617e769324da834fa",
+      "event": {
+        "id": "msg_066893da9750ea7c016b0a6c47f77087d0beb0316d052fbfbd",
+        "timestamp": "2026-11-28T05:53:27.947Z"
+      },
+      "supersedes": "2c5d06233a91370416439ea068789d998667c5c85c91b07fe518b7ede86119d7",
+      "evidence_sha256": "c8bc7ebbe0ce2678dbfe06961b886ff10be06bfbcfbfdd55600b143d18d4451b"
     }
   ]
 }

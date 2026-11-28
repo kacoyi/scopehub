@@ -397,6 +397,26 @@
       "requested_at": "2026-11-28T05:48:20.527708+00:00",
       "request_id": "bd3e3fdad02de00fdeddab51d4943e2d8444795bc85d7678170a8b2badafde91",
       "evidence_sha256": "7cbea1766e8587545ec95af38f34a645c8a6d3c0686ef75858f9250d69bb74aa"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "verdict": "approved",
+      "decision": "APPROVE M0-131 d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "APPROVE M0-131 d55f6907237d9af018decabd2f94fba43c198620",
+      "observation": "In both input orders and after a cold reopen, the reader attributed 983 runner-seconds to the genuine PR 123 browser report for job 140391906947 and withheld job attribution from the raw and compact copies timestamped at initialization.",
+      "reviewer": "Independent Astra Standard (t1mz)",
+      "original_sha256": "5cafebedcbc8aad57a32869eb03a4700ab8dae417b9f611ead2dba529c19375e",
+      "response_id": "2069385a2c8f9f01b075758699c8ce19129f9279f0f0d4708e88bd22a4cbe9b4",
+      "response_sha256": "cee21e90a7b070b64aa4e762282023389a0190d9d2884d0c4099a968df75778e",
+      "legacy_response_sha256": "6ad67082280bb362e7f1e23c46c38b3bf98456a81a83ee8b05f41d76ae677bd8",
+      "observation_body_sha256": "c3fc1ae49a51fc27736d3914a787f944cb13a9cfda0b2d1205646f4d19b6aa52",
+      "event": {
+        "id": "msg_039584e836be7de3016b0a6d0436c087d09fcca3b2e1f47253",
+        "timestamp": "2026-11-28T05:56:42.326Z"
+      },
+      "supersedes": "bd3e3fdad02de00fdeddab51d4943e2d8444795bc85d7678170a8b2badafde91",
+      "evidence_sha256": "4226f5dc571c6d8d7c0129706400d1d01c665343700bae2858c3e4ee679d14bc"
     }
   ]
 }

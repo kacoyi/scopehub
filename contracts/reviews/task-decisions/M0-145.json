@@ -397,6 +397,26 @@
       "requested_at": "2026-11-28T05:48:22.202405+00:00",
       "request_id": "60dc38b3ab8c5b59017e58af5fabd7d1fc86d31653cc7034ccbd3be250d77117",
       "evidence_sha256": "c95e6715d66bc32559f93b106c10a9914032bf30ecad4ab2a776145cef6bf245"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "verdict": "approved",
+      "decision": "APPROVE M0-145 d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "APPROVE M0-145 d55f6907237d9af018decabd2f94fba43c198620",
+      "observation": "After a cold reopen, both collection modes preserved the exact Windows receipt for run 45389970933 and returned zero receipts for the split-layout and missing-download controls despite three eligible historical samples.",
+      "reviewer": "Independent Astra Standard (t1n1)",
+      "original_sha256": "fe80447d5c7c2b3778665a844ecb85368d25bcd9585b5abe50fc6f3482aa8d97",
+      "response_id": "48df6fc210bb7d06b9b8fc38bcdb6e6005cd0287d10d42e2da74e9ac4587904d",
+      "response_sha256": "49c028450c4ea553f098b00e884c6688b3bdc0db003af8fab5dc2d35f173b4c4",
+      "legacy_response_sha256": "7cf36afe32d27f3ef0c1e97058731aa598c5b0c37741933c67222429eb1c5328",
+      "observation_body_sha256": "990870028a6232092caa15e915387f52b9c345db8eab254e4369d7019984761c",
+      "event": {
+        "id": "msg_0cdd5c284d91d62c016b0a6c9e377c87d0a90ddbbee836cc74",
+        "timestamp": "2026-11-28T05:54:55.620Z"
+      },
+      "supersedes": "60dc38b3ab8c5b59017e58af5fabd7d1fc86d31653cc7034ccbd3be250d77117",
+      "evidence_sha256": "2f69383bff87a14640e40afd99e7002554066d954191f68a0c9cc38569b34ecf"
     }
   ]
 }
