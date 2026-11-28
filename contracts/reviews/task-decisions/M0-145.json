@@ -330,6 +330,15 @@
       "requested_at": "2026-11-27T11:41:31.281224+00:00",
       "request_id": "e0f26447fdf9c32aa36406e7769cf9d655395218eb048ac96e8aa287be0ae7b2",
       "evidence_sha256": "c0eb2bdb7bdccb65fbf16ddffbb74a66d415593eae0b3451c46a77a841542023"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "Exact current artifact receipt and weekly freshness, including missing downloads, partial job matrices and withheld promotion. Reproduce your previously accepted genuine run 45389970933 against the authenticated historical publisher. Check both recent collection modes, cold reopening and refusal of the corresponding invalid acquisition.",
+      "supersedes": "e0f26447fdf9c32aa36406e7769cf9d655395218eb048ac96e8aa287be0ae7b2",
+      "requested_at": "2026-11-28T04:05:58.654646+00:00",
+      "request_id": "d40a0768865ed9b6da93b82a347e83790bb6350875fd4b629eb17581afc0fc96",
+      "evidence_sha256": "5d89b78e8b27576c9f04474b401069aecc2ff70b5cb188ebeccdd5b1df3b224e"
     }
   ]
 }

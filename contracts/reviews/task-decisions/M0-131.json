@@ -330,6 +330,15 @@
       "requested_at": "2026-11-27T11:41:29.517359+00:00",
       "request_id": "34a44d0183747746429202f8b0f68009b406200448f2e1588df283df020c8ddb",
       "evidence_sha256": "979bc0fc53fceff1419e495c20067699bd742f3341a6f42aa3810593c50b6af9"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "Producer and platform job identity, historical ownership, timed step and cache attribution, and independently usable clocks after a dispute. Re-evaluate the PR 84 recovery job, runner duration and cache while only browser and aggregate names conflict. Include the recorded report and elapsed clock precision.",
+      "supersedes": "34a44d0183747746429202f8b0f68009b406200448f2e1588df283df020c8ddb",
+      "requested_at": "2026-11-28T04:05:56.734614+00:00",
+      "request_id": "e2ed328252f83c80888258e78ca380a34c48dca07cb666ee722d6b0a9a36024f",
+      "evidence_sha256": "6b1a95e02d0202cbad72290ed40755df78b5ce65a4cccd6d69ba2718f988ffbc"
     }
   ]
 }

@@ -330,6 +330,15 @@
       "requested_at": "2026-11-27T11:41:28.660321+00:00",
       "request_id": "42efe56edf5810777f6d720ceded8d21d13852bd2a200df24d5e62fa80430f82",
       "evidence_sha256": "310b94045bb2bd85f88574aec376c091c2140674771a7ae3c65efeb3a19da48c"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "Producer-only timing, including the source-bound empty ordinary Python selection. No Windows platform coverage from an isolated producer. Replay your prior PR 84 job-name swap at both input orders and cold reopen. Check independent recovery evidence and the absence of a platform receipt for the isolated producer.",
+      "supersedes": "42efe56edf5810777f6d720ceded8d21d13852bd2a200df24d5e62fa80430f82",
+      "requested_at": "2026-11-28T04:05:55.779693+00:00",
+      "request_id": "e6266b2c9a8f9d2738809855254ecfcfc7479edb614a9975dee159cb521cc8cd",
+      "evidence_sha256": "c1e1b9786af457937c6af10dc36564ed03caa41cea671fa3b1846163b35deb04"
     }
   ]
 }
