@@ -755,6 +755,15 @@
       },
       "supersedes": "7e652d2d29d5223d6503b9c2637104dfb95251fd000c6f899bff3330f8ec1490",
       "evidence_sha256": "06a929eabb63aaf4aa77b928149986df91c8ce12339b36e366f51fe0c78b312e"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a8795844d601cbbe5569329d2ae1b3554413d51f",
+      "scope": "Review the composed protected Windows verification topology and final publication, its five producer ownership and source qualifications. Compare the genuine protected 742430e6 old-topology observation and both parents, the observed ordinary return, and the actual coverage and rejection cases in the public integration replay. Distinguish protected-main timing and its required first observation.",
+      "supersedes": "6b8c3093c295809c95422f37470050d2c6b4e288c176746654f6f83800d6af21",
+      "requested_at": "2026-11-28T04:45:20.602247+00:00",
+      "request_id": "a3e7938d002585112c8e5174bcfcf3be00177f9006abf6d94a1b2eaf59a91655",
+      "evidence_sha256": "db72597bb8c13a8b56deb902ba348752ca530e3b4c599c29f2aea83aa003ab13"
     }
   ]
 }

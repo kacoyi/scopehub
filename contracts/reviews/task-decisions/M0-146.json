@@ -784,6 +784,15 @@
       },
       "supersedes": "fa3890a62a6eea63e880f50618ba4b9bb0a26142401d05d211d2e3d238c23764",
       "evidence_sha256": "ca2fde04c2f902c38a0fa656d02106a4e08a25e257a60377c863d07e38da92b5"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a8795844d601cbbe5569329d2ae1b3554413d51f",
+      "scope": "Review the genuine five-producer ordinary full warm PR 123 evidence on its precise prior source, the final job clock, all 35 selections and both failures attributed to M0-181. Verify the distinct fourth Windows Python timeout, earlier measured outcomes, ownership controls, records, and applicable 900-second gate on the composed material. Compare both parents and protected M0-177.",
+      "supersedes": "ee600a9dac0d2b0107f71fc87af3c312069212ea056dad2f84f17f8ec817b243",
+      "requested_at": "2026-11-28T04:45:21.366810+00:00",
+      "request_id": "13be28dbbf0e4af0202c41b78e6cb98718f690591c82d86b40385a9d4fc9a2ec",
+      "evidence_sha256": "9e5f89671f815a374d699b32a9ddc36a329a1978a94d938f6e3ca975e54eac66"
     }
   ]
 }

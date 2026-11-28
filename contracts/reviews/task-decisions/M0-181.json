@@ -30,6 +30,15 @@
       },
       "supersedes": "5f31395033cd267aa03a844a2f5d1ae0d8048fe734fba1730548fbc62c7b255c",
       "evidence_sha256": "33ca11258dfb3a1c2d5e9bedd5eed8c43be2e12bd245291d1d5bcd55255e83db"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a8795844d601cbbe5569329d2ae1b3554413d51f",
+      "scope": "Review the dependency disposition on the composed workflow, verifier and lock inputs. Independently check the prior ordinary two-platform expiry failure, exact accepted local receipt and prior original decision, source and dependency inputs across both parents, and the public dependency checker with its retained legitimate and rejecting controls. Distinguish the remaining exceptions, ordinary PR qualification, and protected native qualification.",
+      "supersedes": "9b068891722391d1c7881394cf56dec324615a2e8146862700b415f838efd978",
+      "requested_at": "2026-11-28T04:45:22.131673+00:00",
+      "request_id": "063f7e568cbc259d5fb741c134a9a95ab631169a5ac5cf32ea4b588a528eed50",
+      "evidence_sha256": "e084ef6c666105d0138c97c40a3aca23c8596abc61010e396a82d1f8c19b2160"
     }
   ]
 }
