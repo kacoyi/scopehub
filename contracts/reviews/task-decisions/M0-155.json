@@ -764,6 +764,26 @@
       "requested_at": "2026-11-28T06:21:53.714827+00:00",
       "request_id": "f22792bb3018901c85fb2a5bdebe62c4f8c819984d264f310b3f183fa5dd4f8b",
       "evidence_sha256": "6a894f2afc5bb3de2a05c9d09acb16da92a48773dd7241d44b9d932d3d0f238b"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "42e48a2c08fbb85efa740ae12ad1fdcf09e471ad",
+      "verdict": "approved",
+      "decision": "APPROVE M0-155 42e48a2c08fbb85efa740ae12ad1fdcf09e471ad",
+      "scope": "APPROVE M0-155 42e48a2c08fbb85efa740ae12ad1fdcf09e471ad",
+      "observation": "After twelve newer captures displaced PR 84, fresh processes reopened both arrival orders and preserved the 804-second Windows wall time and 321-second recovery wall time while leaving the disputed browser duration and Windows runner total unknown.",
+      "reviewer": "Independent Astra Standard (t1n9)",
+      "original_sha256": "a849a5c3716d864aaf3470340ac364dc6de58cb53e8dda469289ac285b451903",
+      "response_id": "06a8bebbbfadbe071dd32db7e41d67cddd66e69175cf9cc583e4ecd381d15326",
+      "response_sha256": "e25882144bf2d61d7dabe9259702e4ba75f94eba96001ba6e6a5063b564edeaf",
+      "legacy_response_sha256": "dca3d8ef366c66dc0ce599c8ceb9700a9360f4a46901fd48a7988d24eff656cd",
+      "observation_body_sha256": "9d928b5626988d839905e633539118096d17e3727fd626a46fe54ccf26c069a4",
+      "event": {
+        "id": "msg_0b03c68a0cff18b7016b0a7546c41487d09ba4336dd160eb79",
+        "timestamp": "2026-11-28T06:31:57.357Z"
+      },
+      "supersedes": "f22792bb3018901c85fb2a5bdebe62c4f8c819984d264f310b3f183fa5dd4f8b",
+      "evidence_sha256": "3c70a6db2bf7464d849852ed36c98857db3318e310fa801c7b516b602f5e40b9"
     }
   ]
 }

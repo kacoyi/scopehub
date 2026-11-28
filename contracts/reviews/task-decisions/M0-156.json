@@ -793,6 +793,26 @@
       "requested_at": "2026-11-28T06:21:55.368880+00:00",
       "request_id": "008e2a1ad674780164988149afd06b37c4001c490ea61734f33fce060ac09ca8",
       "evidence_sha256": "20fd4f9b1a919126814ffc2490f97bc8e75c6de2d3d4f6978848a9ba49889933"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "42e48a2c08fbb85efa740ae12ad1fdcf09e471ad",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 42e48a2c08fbb85efa740ae12ad1fdcf09e471ad",
+      "scope": "CHANGES_REQUESTED M0-156 42e48a2c08fbb85efa740ae12ad1fdcf09e471ad",
+      "observation": "In both input orders, adding the PR 96 success record after a cold reopen credited one Linux push receipt, while reading the same three equal-time collections with that record from the outset yielded zero receipts.",
+      "reviewer": "Independent Astra Standard (t1nc)",
+      "original_sha256": "b21d15bb6296995f8cda6d7fc0b4991ad56b24b19e3a3775e4e8406e5c356819",
+      "response_id": "edfdde44d7cc6de7108742833a95c97b1be06cfeebc155dccaf282389562562c",
+      "response_sha256": "b2137d9bde6a87d33131042fcc50d9ee69c062f55e20260546a2fc1a3f009386",
+      "legacy_response_sha256": "5ee2df4f2ef0cd6895e406c408010da4787ca874b82d12f632872f9b1a8a5a37",
+      "observation_body_sha256": "4f9bf68de6600f52239189a114b603f3db1bfc804f3877258f7cf67f7cbc13d0",
+      "event": {
+        "id": "msg_093c060a0c43f07d016b0a74a27d8087d0952124a7222e7fdc",
+        "timestamp": "2026-11-28T06:29:08.292Z"
+      },
+      "supersedes": "008e2a1ad674780164988149afd06b37c4001c490ea61734f33fce060ac09ca8",
+      "evidence_sha256": "33805a16f4bac3e895d723354c582e8ea5d61f566a1c7faf7e5717c55993cfa5"
     }
   ]
 }

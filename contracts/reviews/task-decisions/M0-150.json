@@ -784,6 +784,26 @@
       "requested_at": "2026-11-28T06:21:54.556339+00:00",
       "request_id": "66b036dcca14e11b820b50ecd4b04d8c3ffc334c57af5dddaf5c1635f11b8f9a",
       "evidence_sha256": "3eefcb8c6dbef0b7f09e64e3a3b4411619bc601586bcb3cdb312d7f305604553"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "42e48a2c08fbb85efa740ae12ad1fdcf09e471ad",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 42e48a2c08fbb85efa740ae12ad1fdcf09e471ad",
+      "scope": "CHANGES_REQUESTED M0-150 42e48a2c08fbb85efa740ae12ad1fdcf09e471ad",
+      "observation": "On PR 123 run 45965137241, two impossible browser reports each received 983 runner-seconds alone and displaced the genuine report in both input orders after a cold reopen.",
+      "reviewer": "Independent Astra Standard (t1nb)",
+      "original_sha256": "d1cb96df7c5a8d2f7765360de3f69a19404d81b5611936f98b2b49e0634d4996",
+      "response_id": "45169ec5e57b806f5581bacfda3431356eab96a5b8c6fcc86fcbdaaf5c415cfa",
+      "response_sha256": "6242f7570a95eed3e6a4d4b474b0fcfa687c63435e2ad040b60c35894e374b74",
+      "legacy_response_sha256": "0dabc392f20f0bd70f8bffb5764b9b0cc72923bdb807335c941b05e565baa5f7",
+      "observation_body_sha256": "4c89d80532d13f81b396090e4c1df2decdc7bfee2668cff74d9c657baa3b0b84",
+      "event": {
+        "id": "msg_0a4558c4919dfcb1016b0a744af65c87d08c464a706d43e558",
+        "timestamp": "2026-11-28T06:27:44.418Z"
+      },
+      "supersedes": "66b036dcca14e11b820b50ecd4b04d8c3ffc334c57af5dddaf5c1635f11b8f9a",
+      "evidence_sha256": "28f1475fc0edc9b4a7fd3d6207cf6012dbf4c930a52d3e7aebc9747049f7607c"
     }
   ]
 }
