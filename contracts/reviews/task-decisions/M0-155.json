@@ -677,6 +677,26 @@
       "requested_at": "2026-11-28T03:57:30.335282+00:00",
       "request_id": "73fd891836d17e72f3e917d8d5fc88b1a6d7c5bed55c0097926e0d8c36da0b47",
       "evidence_sha256": "943703c661ed505c00d54c601a42ff61dd89ea4399f09100edd5d7c21337494c"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "verdict": "approved",
+      "decision": "APPROVE M0-155 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "APPROVE M0-155 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "observation": "After cold reopen, PR 84 retained 321 seconds of recovery wall time, 319 runner-seconds and partial cache attribution in both report orders, and run 45389970933 retained its single Windows receipt.",
+      "reviewer": "Independent Astra Standard (t1kv)",
+      "original_sha256": "7137b1bf1573a073f6b5290b71b5994acc08b1dccb909f5a4c1cd31fd2618b0a",
+      "response_id": "788a8f14e6eeba9147cf9ec51ff0cc3757f144636d060748c6b341cc0ef7ae87",
+      "response_sha256": "b5e1cd07752267f569749c9bdb3afba9e84287d306587a3ec4b80586f33476cf",
+      "legacy_response_sha256": "4d6f105bbd57f05a540aef3229969317a6df18b40a07d3307493dcbdd7e81971",
+      "observation_body_sha256": "de0724761a4a6907e69443c5df27894384f06ddf5c3e682705ce12418f0f2f97",
+      "event": {
+        "id": "msg_0eaa6ed0b20f908f016b0a52ea333087d0b236d8d043156af4",
+        "timestamp": "2026-11-28T04:05:14.385Z"
+      },
+      "supersedes": "73fd891836d17e72f3e917d8d5fc88b1a6d7c5bed55c0097926e0d8c36da0b47",
+      "evidence_sha256": "7bda206156f94fff948c55e723b8085358c4da12d224d50e00df8ec5353a6c97"
     }
   ]
 }
