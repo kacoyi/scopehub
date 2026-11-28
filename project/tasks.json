@@ -27522,7 +27522,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Use .reports/m0-155-fb933345-reconciliation/handoff.json for the clean local correction and its exact evidence. Qualify that source separately for M0-150, M0-155 and M0-156 before downstream review. The coordinator owns hosted and native qualification and the scheduled observation on 2026-11-28 at 16:17 UTC.",
+      "next_action": "Use .reports/m0-155-e77724d0-reconciliation/handoff.json for the local report-interval correction and its exact evidence. The coordinator qualifies M0-150, M0-155 and M0-156 on that source before downstream review and owns protected, hosted, native and scheduled qualification.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -27583,7 +27583,8 @@
           "At the three ADR 0041 boundaries, normalize each input before it enters the reduction and keep proven facts distinct from assertions awaiting support. This changes three existing eligibility decisions and leaves the readers and archive format shared. Additional per-entry conditions have a smaller initial diff but repeat the same ownership logic in ordinary, weekly and cold reads and leave grouped or reordered inputs able to change authority.",
           "An unpositioned or clockless step should limit only its own contribution. Check the report instant at the existing publisher admission boundary with individually supported constraints from the writer and its ordered neighbors. At the existing collection admission boundary, a proven contradiction in local acquisition metadata should withhold only that collection's authority. Reuse both projections across public reads and saved reviews.",
           "The named workflow order and independently observed endpoint precision establish publishing feasibility even with missing step positions. Exact collection member identities allow independent Actions outcomes and per-event cardinality to qualify metadata before receipt reconciliation.",
-          "Use corroborated job-role evidence for cross-job publication bounds and the exact historical publisher closure for the previously accepted monolithic report. Both changes belong at the shared admission boundaries."
+          "Use corroborated job-role evidence for cross-job publication bounds and the exact historical publisher closure for the previously accepted monolithic report. Both changes belong at the shared admission boundaries.",
+          "A producer report carries both a recorded finish and elapsed harness work. Reserve that work inside the historical writer and independently observed job bounds at their recorded precision before any competing publisher claims are combined. Keep missing or disputed clocks independent of report admission."
         ],
         "risks": [
           {
@@ -27957,7 +27958,7 @@
             ]
           },
           {
-            "failure": "timing-report-recorded-outside-producer-verification-and-staging: On PR 123 run 45965137241, raw and compact browser reports recorded after setup but before required verification (08:25:16 versus 08:25:18 UTC), or after staging but before upload finished (08:38:36 versus 08:38:35 UTC), gain attribution alone and erase the genuine 983 runner-seconds in either order. The observed job clocks are independent. A report after upload is already rejected.",
+            "failure": "timing-report-recorded-outside-producer-verification-and-staging: On PR 123 run 45965137241, raw and compact browser reports recorded after setup but before required verification (08:25:16 versus 08:25:18 UTC), or after staging but before upload finished (08:38:36 versus 08:38:35 UTC), gain attribution alone and erase the genuine 983 runner-seconds in either order. The observed job clocks are independent. A report after upload is already rejected. Preserve the M0-131 rejection on e77724d0. A PR 123 browser copy timestamped at initialization completion implies work before the job began. Exercise raw and compact originals, the copy alone and both orders through ordinary, offline weekly and fresh-process reads, including the retained missing-clock and missing-number controls. Keep Actions measurements, genuine cache and phases, and the accepted PR 84, PR 96 and push and single-job receipt controls.",
             "checks": [
               "project-state",
               "python-contracts-workers"
@@ -29018,7 +29019,7 @@
             ]
           },
           {
-            "failure": "timing-report-recorded-outside-producer-verification-and-staging: On PR 123 run 45965137241, raw and compact browser reports recorded after setup but before required verification (08:25:16 versus 08:25:18 UTC), or after staging but before upload finished (08:38:36 versus 08:38:35 UTC), gain attribution alone and erase the genuine 983 runner-seconds in either order. The observed job clocks are independent. A report after upload is already rejected.",
+            "failure": "timing-report-recorded-outside-producer-verification-and-staging: On PR 123 run 45965137241, raw and compact browser reports recorded after setup but before required verification (08:25:16 versus 08:25:18 UTC), or after staging but before upload finished (08:38:36 versus 08:38:35 UTC), gain attribution alone and erase the genuine 983 runner-seconds in either order. The observed job clocks are independent. A report after upload is already rejected. Preserve the M0-131 rejection on e77724d0. A PR 123 browser copy timestamped at initialization completion implies work before the job began. Exercise raw and compact originals, the copy alone and both orders through ordinary, offline weekly and fresh-process reads, including the retained missing-clock and missing-number controls. Keep Actions measurements, genuine cache and phases, and the accepted PR 84, PR 96 and push and single-job receipt controls.",
             "checks": [
               "project-state",
               "python-contracts-workers"
