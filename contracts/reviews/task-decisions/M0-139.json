@@ -813,6 +813,15 @@
       },
       "supersedes": "414e0d3ddf2f70aa83aa1d881a38a68aaefbe18d37833cafb1ea94bd44a7a759",
       "evidence_sha256": "9a220c756f6b5932ca5a8420c235ab3e1082e73412f584e6438f1eedc9489190"
+    },
+    {
+      "kind": "request",
+      "source_commit": "c3364500d142837b2be4817f5429a8dafa5c3013",
+      "scope": "Review integration evidence ownership on the composed PR 152 source. Test the genuine protected and PR originals through the ordinary integration entry and the finite prior passing, refused and retained-failure controls, including mismatched run/attempt with original logs. Verify the four protected versus five PR producers, preserve the M0-177 accepted history and identify any changed consumer scope with real evidence.",
+      "supersedes": "5e7667ec37e581b49b1719b02364639c4da82342b94790b8a2b73c11694131b0",
+      "requested_at": "2026-11-28T06:22:28.344513+00:00",
+      "request_id": "0b47e85c9ada24a16dfe8419137f5eeba111bbdcdc325b1a6cee83675ce6b998",
+      "evidence_sha256": "f99ace598acb466b9c33e685fab4dc0766977dbb0f2e36605cb41cebdef5b8de"
     }
   ]
 }

@@ -88,6 +88,15 @@
       },
       "supersedes": "8a4ce809dedb45ba1c3a0aa2bf5aaf79eb66257e05f8f36e5e970ad4a36e2f5d",
       "evidence_sha256": "53a70f67ddab99d0399faddd2956ef6531b0ae30e0647855b797cb36bd356a84"
+    },
+    {
+      "kind": "request",
+      "source_commit": "c3364500d142837b2be4817f5429a8dafa5c3013",
+      "scope": "Verify the November 28 dependency dispositions on the composed PR 152 source using the previous review and actual Cargo graph observations. Preserve retired and remaining exceptions, due-day refusal and scope guards, and observe the dependency check and its genuine positive and negative controls in the applicable ordinary and protected topology.",
+      "supersedes": "1d92fbdb8d48f6cf03d1747eb24c6adb2b4340c328c89e56cc4226e51358e104",
+      "requested_at": "2026-11-28T06:22:29.916790+00:00",
+      "request_id": "10b9d19d20b7bc7a2107563ad7ee567356fb8bb568965957ca90ac8218e26597",
+      "evidence_sha256": "ed93a5b02652a69fad0eef9ffef35b4027df53e9a7d36e26ad6dfd4afd30cb25"
     }
   ]
 }

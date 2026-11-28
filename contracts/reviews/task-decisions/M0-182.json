@@ -30,6 +30,15 @@
       },
       "supersedes": "58bf76e322d7848de6eee649b3e852615a6cc6e620b09d9ca9a4da38d04c8a3c",
       "evidence_sha256": "12d4dc1c1d7b680185a371d2cbc85f725ff080eb1063551fde017dd58e764884"
+    },
+    {
+      "kind": "request",
+      "source_commit": "c3364500d142837b2be4817f5429a8dafa5c3013",
+      "scope": "Review the shared Windows helper setup and ACL matrix on the composed PR 152 fixture paths. Compare the unchanged helper, independent Rust parser, the 24 Windows file comparisons, ten-second matrix deadline, bounded failure and cleanup. Check the shared workspace setup and actual consumers against the PR 123 decision and the original PR 123 Windows failure, positive Windows witness and local Linux observations.",
+      "supersedes": "1ae7b1bbcc9b0ffc369caef647b0dc7c56bc3a298e7801705eab0077521cea36",
+      "requested_at": "2026-11-28T06:22:27.563141+00:00",
+      "request_id": "28b63d35d42b8ed5f9ef4b3defaaa22c3310731a00dfbe6f0c046b0876f0977e",
+      "evidence_sha256": "4bbccf0aeb745d5498de63dc6a741ca38d15448bb1d938414cfc1b27ec40f8af"
     }
   ]
 }

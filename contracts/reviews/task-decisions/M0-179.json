@@ -117,6 +117,15 @@
       },
       "supersedes": "b1509801ae4d65c3a48e58d64a43ad838beb2bb345bd58958304e7398f9168d0",
       "evidence_sha256": "dd6a19cecf2dcfb9afb8cddf60ad116c7587c7c134bd20d9fa47553985a1cd97"
+    },
+    {
+      "kind": "request",
+      "source_commit": "c3364500d142837b2be4817f5429a8dafa5c3013",
+      "scope": "Verify current launcher publication versus the stale same-port file, three service visits, rejection of a native revision with zero writes, latest frozen chart selection, and the M0-177 malformed operation with explicit retry, one durable deletion, refusal and cleanup on the composed PR 152 source. Replay the genuine journals through their actual consumers and distinguish the local adapter, native witnesses and the earlier unresolved stall.",
+      "supersedes": "8b2e20ffb46fa9ea7355cc0fda97442832fb026d20b5a278b4a08a0895ad0cba",
+      "requested_at": "2026-11-28T06:22:26.792243+00:00",
+      "request_id": "cf9fedbb6610f1939715537264785cb9f1a97e6a041d9cd063de09f83a9c6f39",
+      "evidence_sha256": "4101c3bd77c14d588a438dc17d322b00d7b9d6d02f3a7f545dc402fb266b893d"
     }
   ]
 }
