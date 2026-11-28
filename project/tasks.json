@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M3-009",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -29692,7 +29692,7 @@
       "id": "M3-009",
       "title": "Recover indicator acceptance controls when a desktop reply misses its deadline",
       "milestone": "M3",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M3-006"
       ],
@@ -29723,10 +29723,15 @@
         "desktop-workspace-transport",
         "indicator-workflow"
       ],
-      "evidence": [],
-      "next_action": "Review the clean repair and matching task report. Compare the dispatched approvals, authoritative reads and durable writer rows for the held-output, lost-delivery and correlated-rejection controls before accepting the task.",
+      "evidence": [
+        {
+          "path": "project/evidence/M3-009-7b34cbf89690afa4.json",
+          "sha256": "1e61137c6029dce88851cc43dceb4406e0c00147a8cfe0d38d110cd84e203030"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "All six selected local checks passed on independently approved source 0c9281b3d132c35ab578390039bdc0370eec545f. All 44 desktop transport cases passed on the first attempt. A held preparation or accepted-output reply no longer leaves the user waiting indefinitely. A read-only retry displayed the matching committed version and ignored the late reply. Real writer journals contained exactly one approved operation, one version and one active layer in committed cases, and zero mutations for cancellation and correlated rejection. Physical Windows and packaged WebView experience have separate acceptance gates.",
       "plan": {
         "outcome": "Users regain control of the indicator acceptance view within its existing reply budget and can reconcile an uncertain result without authorizing an unintended mutation.",
         "change_types": [

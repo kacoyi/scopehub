@@ -9801,7 +9801,7 @@
       "source": "Protected main 742430e69246c8869732f12bb33742895dfe2d54. Chromium rendered the built UI through a substituted Tauri delivery with a real Rust operation registry and isolated workspace. Retained observation SHA-256 6f61fbb76003a23de13c9ef165cb8fd1f65c714f1461fbdb55e4dd09cf52e08b.",
       "observation": "An on-time indicator.acceptVersion preparation reached awaiting_confirmation and a user cancellation left zero durable layers. Holding only the genuine response for 16,201 ms left Accept preview disabled with no alert after its 15-second deadline. Only releasing it allowed recovery. Neither trial confirmed the write.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M3-009"
       ],
@@ -9809,13 +9809,17 @@
         "desktop-workspace-transport",
         "indicator-workflow"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The indicator action awaited the desktop transport without settling the current interaction when delivery exceeded the reply budget.",
+        "correction": "Bound the wait, keep the original confirmation and selection identities, and reconcile uncertain writes through authoritative workspace reads.",
+        "prevention": "A real prepared candidate with its reply held past the deadline, timely preparation and cancellation, and delayed approval exercise the desktop, request counts and persisted state."
+      },
       "deferral_reason": null
     },
     {
       "id": "indicator-readback-reports-success-before-accepted-output",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "source": "Independent Astra Standard on 77b2b33311188b9c52e42f6b26bcb104ffd8008d. Original response SHA-256 9555b3d99a45aceed2d715ab87cf0c17a62b31924f564cf17d7ab31853d4c040.",
       "observation": "After the user approved once, the workspace snapshot and layer list supplied revision 1 and its committed version. With the accepted-output reply held for 36.6 seconds, the panel claimed the workspace was reloaded while showing no accepted layer, error or retry. With on-time output the same flow displayed the version.",
       "task_ids": [
@@ -9825,13 +9829,17 @@
         "desktop-workspace-transport",
         "indicator-workflow"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Recovery treated a returned workspace revision and accepted-layer list as sufficient while required indicator output was still pending.",
+        "correction": "Finish recovery after the required accepted output becomes available. Preserve the explicit read-only retry on failure and ignore superseded replies.",
+        "prevention": "The desktop holds an accepted-output reply for a committed layer, verifies the recovery state and retries reading it, then releases the stale reply and checks version, input and output identities."
+      },
       "deferral_reason": null
     },
     {
       "id": "indicator-approval-transport-failure-skips-authoritative-readback",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "source": "Independent Astra Standard on 77b2b33311188b9c52e42f6b26bcb104ffd8008d. Original response SHA-256 9555b3d99a45aceed2d715ab87cf0c17a62b31924f564cf17d7ab31853d4c040.",
       "observation": "An independent UI probe rejected delivery immediately after the simulated commit. With one explicit approval dispatch and no correlated refusal, the panel reported failure, re-enabled Accept preview, and offered no readback. The real isolated SQLite controls separately verified the one-write committed case.",
       "task_ids": [
@@ -9841,7 +9849,11 @@
         "desktop-workspace-transport",
         "indicator-workflow"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The desktop treated a transport rejection after approval dispatch as if the application had acknowledged that no mutation occurred.",
+        "correction": "Distinguish a correlated application refusal from unknown delivery and reconcile the latter without issuing another approval.",
+        "prevention": "A real SQLite commit followed by a lost approval reply retains one operation, one version and one active layer. A correlated refusal and cancelled preparation each leave zero writes."
+      },
       "deferral_reason": null
     }
   ]
