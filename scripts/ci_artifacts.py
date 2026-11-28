@@ -1,7 +1,9 @@
 """Select publishable evidence from a fresh hosted verification run."""
 
 import argparse
+import ast
 from datetime import datetime, timezone
+from functools import lru_cache
 import json
 import os
 from pathlib import Path
@@ -10,10 +12,16 @@ import shutil
 import tempfile
 
 if __package__:
-    from .check import (PRIVATE_CHECK_LOGS, WINDOWS_LANES, ci_provenance, redacted_check_log,
-                        windows_lane_checks, windows_lanes_run_id)
-    from .project import (ProjectError, digest, file_digest, json_bytes, load_project,
-                          project_definition_hash, source_identity, task_definition_hash, validate_model, windows_x64)
+    from . import windows_python
+    from .check import (ALL_WINDOWS_LANES, BROWSER_RESULTS_DIGEST, INTERRUPTED_BEFORE_START, PRIVATE_CHECK_LOGS,
+                        PYTHON_MANIFEST_INTERRUPTED, WINDOWS_LANES, WINDOWS_LANES_RUN_PREFIX,
+                        WINDOWS_WORKSPACE_LANE, WINDOWS_WORKSPACE_RESULT_CHECKS,
+                        check_failed, check_timeout, ci_provenance, redacted_check_log, select_checks,
+                        stops_after_check, windows_lane_checks, windows_lanes_run_id, windows_producer_interruption,
+                        windows_producer_interruptions)
+    from .project import (ProjectError, committed_source_identity, digest, file_digest, json_bytes, load_project,
+                          project_definition_hash, read_json, source_identity, task_definition_hash, validate_model, windows_x64)
+    from .review_tree import CommittedPath
     from .timing import (TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample,
                          windows_aggregate_cache)
     from .verification_evidence import (
@@ -22,12 +30,18 @@ if __package__:
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, integration_validation, release_artifacts, validate_notice,
     )
-    from .verification_scope import SCOPED_PROFILES, ci_base, ci_event_checkout, require_ancestor
+    from .verification_scope import SCOPED_PROFILES, ScopeError, ci_base, ci_event_checkout, exact_commit, require_ancestor
 else:
-    from check import (PRIVATE_CHECK_LOGS, WINDOWS_LANES, ci_provenance, redacted_check_log,
-                       windows_lane_checks, windows_lanes_run_id)
-    from project import (ProjectError, digest, file_digest, json_bytes, load_project,
-                         project_definition_hash, source_identity, task_definition_hash, validate_model, windows_x64)
+    import windows_python
+    from check import (ALL_WINDOWS_LANES, BROWSER_RESULTS_DIGEST, INTERRUPTED_BEFORE_START, PRIVATE_CHECK_LOGS,
+                       PYTHON_MANIFEST_INTERRUPTED, WINDOWS_LANES, WINDOWS_LANES_RUN_PREFIX,
+                       WINDOWS_WORKSPACE_LANE, WINDOWS_WORKSPACE_RESULT_CHECKS,
+                       check_failed, check_timeout, ci_provenance, redacted_check_log, select_checks,
+                       stops_after_check, windows_lane_checks, windows_lanes_run_id, windows_producer_interruption,
+                       windows_producer_interruptions)
+    from project import (ProjectError, committed_source_identity, digest, file_digest, json_bytes, load_project,
+                         project_definition_hash, read_json, source_identity, task_definition_hash, validate_model, windows_x64)
+    from review_tree import CommittedPath
     from timing import (TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample,
                         windows_aggregate_cache)
     from verification_evidence import (
@@ -36,13 +50,19 @@ else:
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, integration_validation, release_artifacts, validate_notice,
     )
-    from verification_scope import SCOPED_PROFILES, ci_base, ci_event_checkout, require_ancestor
+    from verification_scope import SCOPED_PROFILES, ScopeError, ci_base, ci_event_checkout, exact_commit, require_ancestor
 
 ROOT = Path(__file__).resolve().parents[1]
 SCOPE_FILE = 'verification-scope.json'
 WINDOWS_GENERATOR_SAMPLE = 'windows-generator-sample.json'
 SCOPE_FIELDS = {'profile', 'reason_code', 'base', 'checkout', 'change_count'}
 COMMIT_SHA = re.compile(r'(?!0{40})[0-9a-f]{40}')
+RUN_ID = re.compile(r'[a-zA-Z0-9_-][a-zA-Z0-9._-]*')
+PRODUCER_REPORT_DIGEST = 'producer_report_sha256'
+WINDOWS_PRODUCERS = 'windows_producers'
+WINDOWS_PRODUCER_JOBS = {f'windows_{lane}': lane for lane in ALL_WINDOWS_LANES}
+PROCESS_FIELDS = {'log', 'log_sha256', 'exit_code', 'duration_seconds'}
+DOWNLOAD_PLATFORMS = {'windows': 'Windows', 'windows-latest': 'Windows', 'linux': 'Linux', 'ubuntu-latest': 'Linux'}
 NATIVE_REVISION_ACCESS = 'windows-published-revision-access'
 NATIVE_REVISION_OBSERVATION_LIMIT = 128 * 1024
 NATIVE_REVISION_BINARY_LIMIT = 256 * 1024 * 1024
@@ -93,11 +113,26 @@ def optional_path(root, relative, *, directory=False):
         return None
 
 
-def browser_artifacts(reports, relative, check):
+def check_log_path(run, row):
+    key = row['id']
+    if 'log' not in row:
+        if row['status'] != 'blocked' or PROCESS_FIELDS.intersection(row):
+            raise PublicationError(f'The {key} result is missing its process log.')
+        return None
+    relative = f'{run}/{key}.log'
+    if row['log'] != '.reports/' + relative:
+        raise PublicationError('Check log is outside the current verification run.')
+    if 'log_sha256' not in row:
+        raise PublicationError(f'The {key} result is missing its process log digest.')
+    return relative
+
+
+def browser_artifacts(reports, relative, check, *, include_result=True):
     result_name, test_prefix, screenshots = BROWSER_OUTPUTS[check]
-    result = optional_path(reports, f'{relative}/{result_name}')
-    if result is not None:
-        yield result
+    if include_result:
+        result = optional_path(reports, f'{relative}/{result_name}')
+        if result is not None:
+            yield result
     browser = optional_path(reports, f'{relative}/browser', directory=True)
     if browser is None:
         return
@@ -131,6 +166,28 @@ def bound_bytes(path, sha256):
 def write_artifact(path, contents):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(contents)
+
+
+def validate_workspace_results(reports, run, rows, *, required, destination):
+    for row in rows:
+        check = row['id']
+        expected = required and check in WINDOWS_WORKSPACE_RESULT_CHECKS and 'log' in row
+        if (BROWSER_RESULTS_DIGEST in row) != expected:
+            raise PublicationError(f'Missing or unexpected browser results binding for {check}.')
+        if not expected:
+            continue
+        relative = f'{run}/{check}/results.json'
+        path = optional_path(reports, relative)
+        sha256 = row[BROWSER_RESULTS_DIGEST]
+        if sha256 is None:
+            if path is not None or row['status'] == 'passed':
+                raise PublicationError(f'Missing browser results binding for {check}.')
+        elif path is None:
+            raise PublicationError(f'Missing browser results for {check}.')
+        elif destination is not None:
+            copy_file(path, destination / relative, sha256=sha256)
+        elif file_digest(path) != sha256:
+            raise PublicationError(f'Changed browser results for {check}.')
 
 
 def scope_provenance(report, report_sha256, env):
@@ -310,7 +367,483 @@ def stage_candidate(reports, destination, run, report, policy, *, expected):
         release_artifacts(destination / run, source, policy, expected=expected, hosted=True)
 
 
-def stage_artifacts(root, destination, env, *, reports=None, lane=False):
+def python_producer_report_path(run, lane):
+    return f'{run}/{windows_python.part_id(lane)}.producer.json'
+
+
+def windows_producer_report_path(run, lane):
+    return f'{run}/windows-{lane}.producer.json'
+
+
+def validate_original_producer(root, project, reports, report, rows, lane, selected, relative, sha256, destination,
+                               *, part=None, recovery_overlap=False):
+    contents = bound_bytes(checked_path(reports, relative), sha256)
+    producer = evidence_json(contents)
+    validate_model(root, 'HostedHarnessReport', producer)
+    parts = {lane: {key: value for key, value in part.items() if key != PRODUCER_REPORT_DIGEST}} if part else {}
+    version = windows_python.REPORT_VERSION if part else '2.0'
+    if (producer['run_id'] != report['run_id'] or producer['report_version'] != version
+            or producer['environment']['python_executable'] != report['environment']['python_executable']
+            or producer.get('windows_python', {}) != parts or WINDOWS_PRODUCERS in producer):
+        raise PublicationError(f'Windows {lane} producer report differs from the run, attempt, role or part evidence.')
+    try:
+        validate_windows_lane(project, producer, report['source'], report['ci'], selected, lane, f'ci-windows-{lane}',
+                              recovery_overlap=recovery_overlap)
+    except (KeyError, PublicationError) as error:
+        raise PublicationError(f'Invalid original Windows {lane} producer report: {error}') from error
+    for row in producer['checks']:
+        key = row['id']
+        if key not in selected or project['checks'][key]['status'] != 'implemented':
+            continue
+        if row != rows[key]:
+            raise PublicationError(f'The Windows {key} result differs from its original {lane} producer report.')
+        if destination is None:
+            log = check_log_path(f"runs/{report['run_id']}", row)
+            if log and file_digest(checked_path(reports, log)) != row['log_sha256']:
+                raise PublicationError(f'The Windows {key} log differs from its original {lane} producer report.')
+    if part and 'log' in part:
+        validate_python_process_clock(part, producer)
+    if destination is not None:
+        write_artifact(destination / relative, contents)
+    return producer
+
+
+def validate_python_process_clock(record, report):
+    try:
+        start, end = windows_python.process_interval(record)
+        finish = datetime.fromisoformat(report['generated_at'])
+        span = duration(report['timing']['elapsed_seconds'])
+        if span is None or finish.utcoffset() is None:
+            raise ValueError('Invalid producer report clock.')
+        rounding = windows_python.CLOCK_ROUNDING
+        if ((finish - start).total_seconds() > span + rounding
+                or (end - finish).total_seconds() > rounding):
+            raise ValueError('Windows Python process clock is outside its harness interval.')
+    except (ValueError, TypeError, KeyError) as error:
+        raise PublicationError(str(error)) from error
+
+
+def python_parts(reports, report, lanes, destination=None, *, callback_records=None, cutoff=None):
+    """Validate and optionally retain native part evidence from one authenticated report."""
+    records = report.get('windows_python', {})
+    if set(records) != set(lanes):
+        raise PublicationError('Missing or unexpected Windows Python parts.')
+    if report['report_version'] != (windows_python.REPORT_VERSION if lanes else '2.0'):
+        raise PublicationError('The harness report version differs from its Windows Python evidence.')
+    if not RUN_ID.fullmatch(report['run_id']):
+        raise PublicationError('Invalid verification run identifier.')
+    parts = []
+    run = f"runs/{report['run_id']}"
+    for lane in lanes:
+        record = records[lane]
+        label = windows_python.part_id(lane)
+        command = windows_python.command(report['environment']['python_executable'], lane)
+        if record['id'] != label or record['command'] != command:
+            raise PublicationError('The Windows Python part command or identity differs from its producer.')
+        log = f'{run}/{label}.log'
+        manifest = f'{run}/{label}.json'
+        has_log = 'log' in record
+        passed = record['status'] == 'passed'
+        if has_log and record['log'] != '.reports/' + log:
+            raise PublicationError('The Windows Python part log is misplaced.')
+        if has_log and ('log_sha256' not in record or 'started_at' not in record
+                        or duration(record.get('duration_seconds')) is None
+                        or 'exit_code' not in record):
+            raise PublicationError('Incomplete Windows Python process evidence.')
+        if not has_log and (record.get('reason_code') not in {'earlier_failure', 'executable_unavailable'}
+                            or {'log_sha256', 'started_at', 'duration_seconds', 'exit_code'}.intersection(record)):
+            raise PublicationError('Missing Windows Python process log without a blocked launch.')
+        if passed and (not has_log or record.get('exit_code') != 0 or record.get('reason_code')
+                       or 'manifest_sha256' not in record):
+            raise PublicationError('Windows Python part claims a pass without complete successful evidence.')
+        if not passed and record.get('exit_code') == 0 and not record.get('reason_code'):
+            raise PublicationError('Windows Python part failure has no corresponding process result.')
+        if has_log:
+            validate_python_process_clock(record, report)
+        raw = bound_bytes(checked_path(reports, log), record['log_sha256']) if has_log else b''
+        manifest_path = optional_path(reports, manifest)
+        contents = manifest_value = None
+        if 'manifest_sha256' in record:
+            if not has_log:
+                raise PublicationError('Windows Python case manifest has no process log.')
+            if manifest_path is None:
+                raise PublicationError(f'Missing Windows Python case manifest: {manifest}.')
+            contents = bound_bytes(manifest_path, record['manifest_sha256'])
+            try:
+                manifest_value = evidence_json(contents)
+                windows_python.verify_original(record, raw, manifest_value, lane, callback_records=callback_records,
+                                               cutoff=cutoff)
+            except (TypeError, ValueError, KeyError) as error:
+                raise PublicationError(str(error)) from error
+        elif manifest_path is not None or windows_python.callback_record_digests(raw):
+            raise PublicationError(f'Missing Windows Python case manifest binding: {lane}.')
+        if report['status'] == 'passed' and not passed:
+            raise PublicationError('A successful Windows report contains a failed Python part.')
+        if destination is not None:
+            if has_log:
+                write_artifact(destination / log, raw)
+            if contents is not None:
+                write_artifact(destination / manifest, contents)
+        parts.append((record, raw, manifest_value))
+    return parts
+
+
+def combined_python(project, report, parts, *, cutoff=None):
+    try:
+        status, raw = windows_python.combine(parts, cutoff=cutoff)
+        elapsed = windows_python.elapsed_seconds(parts)
+    except (ValueError, KeyError, TypeError) as error:
+        raise PublicationError(str(error)) from error
+    python = report['environment']['python_executable']
+    check = project['checks'][windows_python.CHECK]
+    command = [python if arg == '{python}' else arg for arg in check['command']]
+    expired = status == 'passed' and elapsed > check_timeout(check, 'Windows')
+    if expired:
+        status = 'failed'
+        raw += b'\nThe combined Windows Python check exceeded its timeout.\n'
+    record = {'id': windows_python.CHECK, 'status': status, 'command': command,
+              'exit_code': 0, 'duration_seconds': elapsed,
+              'log': f".reports/runs/{report['run_id']}/{windows_python.CHECK}.log",
+              'log_sha256': digest(raw)}
+    if expired:
+        record.update(exit_code=None, reason_code='timeout')
+    elif status == 'failed':
+        failed = next(part for part, _, _ in parts if part['status'] != 'passed')
+        record.update(exit_code=failed.get('exit_code', 1))
+        if 'reason_code' in failed:
+            record['reason_code'] = failed['reason_code']
+    return record, raw
+
+
+def validate_combined_python(root, project, reports, report, rows, assignments, runner, producer_reports, destination,
+                             *, recovery_overlap):
+    cutoff = runner_partition_cutoff(runner)
+    parts = python_parts(reports, report, windows_python.LANES, destination,
+                         callback_records=runner_uses_callback_records(runner), cutoff=cutoff)
+    run = f"runs/{report['run_id']}"
+    interruptions = set()
+    for lane, (record, _, _) in zip(windows_python.LANES, parts, strict=True):
+        if (PRODUCER_REPORT_DIGEST in record) != producer_reports:
+            raise PublicationError('Missing or unexpected original Windows Python producer report.')
+        if producer_reports:
+            producer = validate_original_producer(
+                root, project, reports, report, rows, lane, assignments[lane],
+                python_producer_report_path(run, lane), record[PRODUCER_REPORT_DIGEST],
+                destination, part=record, recovery_overlap=recovery_overlap)
+            interruptions.update(windows_producer_interruptions(producer))
+    check, _ = combined_python(project, report, parts, cutoff=cutoff)
+    if rows[windows_python.CHECK] != check:
+        raise PublicationError('The Windows Python check differs from its original part results.')
+    return interruptions
+
+
+def validate_windows_run_id(report):
+    ci = report['ci']
+    if report['run_id'] != windows_lanes_run_id(ci):
+        raise PublicationError('The Windows aggregate run identifier differs from its CI run or attempt.')
+    if (ci['event'] not in {'push', 'pull_request'}
+            or (ci['event'] == 'push' and ci['head_sha'] != ci['checkout_sha'])):
+        raise PublicationError('The Windows aggregate event differs from its CI checkout.')
+
+
+def source_uses_windows_aggregate(source):
+    workflow = source / '.github/workflows/verify.yml'
+    return workflow.is_file() and _workflow_declares_windows_aggregate(workflow.read_text(encoding='utf-8'))
+
+
+@lru_cache(maxsize=8)
+def _workflow_declares_windows_aggregate(contents):
+    # Cache only the answer for exact workflow text. A new admission still
+    # reads its own committed blob and validates its own evidence.
+    import yaml
+
+    try:
+        steps = yaml.safe_load(contents)['jobs']['windows_change']['steps']
+    except KeyError:
+        return False
+    except (TypeError, yaml.YAMLError) as error:
+        raise PublicationError('Cannot read the recorded source Windows verification workflow.') from error
+    aggregate = {'scripts/check.py', '--require-windows', '--ci-windows-aggregate'}
+    return any(isinstance(step.get('run'), str) and aggregate.issubset(step['run'].split()) for step in steps)
+
+
+def source_uses_windows_python_parts(source):
+    return (source / 'scripts/windows_python.py').is_file() and source_uses_windows_aggregate(source)
+
+
+def _committed_windows_source(root, commit):
+    source = CommittedPath.at(root, commit)
+    # The schema, workflow and scheduler describe one committed allocation.
+    # Read them together without using any artifact-supplied declaration.
+    source.prefetch('contracts/schemas/project.schema.json', '.github/workflows/verify.yml', 'scripts/check.py')
+    return source
+
+
+def source_producer_bindings(source):
+    # Select the bindings from the tested source rather than from the submitted report.
+    definitions = read_json(source / 'contracts/schemas/project.schema.json')['$defs']
+    properties = definitions.get('HostedHarnessReport', {}).get('properties', {})
+    parts = properties.get('windows_python', {}).get('additionalProperties', {}).get('properties', {})
+    harness = definitions.get('HarnessReport', {}).get('properties', {})
+    checks = harness.get('checks', {}).get('items', {}).get('properties', {})
+    producer_lanes = properties.get(WINDOWS_PRODUCERS, {}).get('propertyNames', {}).get('enum', ())
+    return frozenset(producer_lanes), PRODUCER_REPORT_DIGEST in parts, BROWSER_RESULTS_DIGEST in checks
+
+
+def committed_windows_python(source):
+    return (source / 'scripts/windows_python.py').read_bytes()
+
+
+def runner_uses_callback_records(runner):
+    # The committed runner selects the manifest format, even if an edited
+    # manifest removes the version and still matches its mutable report digest.
+    return re.search(rb'^CALLBACK_RECORD_VERSION[ \t]*=', runner, re.MULTILINE) is not None
+
+
+def runner_partition_cutoff(runner):
+    cutoffs = re.findall(rb"^CUTOFF[ \t]*=[ \t]*'([^'\r\n]+)'[ \t]*\r?$", runner, re.MULTILINE)
+    supported = (windows_python.CUTOFF, windows_python.STORAGE_CUTOFF, windows_python.SCHEDULING_CUTOFF,
+                 windows_python.REVIEW_ACCEPTANCE_CUTOFF, windows_python.LEGACY_CUTOFF)
+    if len(cutoffs) != 1 or cutoffs[0] not in {value.encode('ascii') for value in supported}:
+        raise PublicationError('Unrecognized Windows Python partition in the recorded source.')
+    return cutoffs[0].decode('ascii')
+
+
+def runner_recovery_checks(runner):
+    if runner is None:
+        return set()
+    try:
+        declarations = [node.value for node in ast.parse(runner).body
+                        if isinstance(node, ast.Assign) and len(node.targets) == 1
+                        and isinstance(node.targets[0], ast.Name) and node.targets[0].id == 'RECOVERY_PR_CHECKS']
+        if declarations:
+            declaration, = declarations
+            checks = ast.literal_eval(declaration)
+            if not isinstance(checks, set) or not all(isinstance(key, str) for key in checks):
+                raise ValueError('Invalid recovery check selection.')
+            return checks
+    except (SyntaxError, TypeError, ValueError) as error:
+        raise PublicationError('Unrecognized Windows PR recovery selection in the recorded source.') from error
+    if re.search(rb'^RECOVERY_OWNS_MARKET_WORKFLOW[ \t]*=[ \t]*True[ \t]*\r?$', runner, re.MULTILINE):
+        return {'market-workflow'}
+    return set()
+
+
+def validate_hosted_platform(report, platform):
+    environment = report['environment']
+    if platform and (environment['system'] != platform or (platform == 'Windows' and not windows_x64(environment))):
+        raise PublicationError(f'The harness report platform differs from the expected {platform} platform.')
+
+
+def downloaded_platform(artifact_root, reports_root, ci):
+    # Authenticated downloads use .reports/ci/<run>/<platform>. Older, noncanonical locations
+    # remain readable without making an independent job or platform claim.
+    locations = ((Path(os.path.abspath(artifact_root)), reports_root), (artifact_root.resolve(), reports_root.resolve()))
+    platforms = set()
+    for path, parent in locations:
+        if path.is_relative_to(parent):
+            parts = path.relative_to(parent).parts
+            if len(parts) == 3 and parts[0].casefold() == 'ci' and parts[2].casefold() in DOWNLOAD_PLATFORMS:
+                if parts[1] != ci['run_id']:
+                    raise PublicationError('The report belongs to another downloaded CI run.')
+                platforms.add(DOWNLOAD_PLATFORMS[parts[2].casefold()])
+    if len(platforms) > 1:
+        raise PublicationError('The downloaded artifact location claims conflicting platforms.')
+    return next(iter(platforms), None)
+
+
+def validate_recorded_windows_evidence(root, project, reports, report, *, platform=None, aggregate_profile=None,
+                                       source=None, destination=None, lane_result=None):
+    validate_hosted_platform(report, platform)
+    ci = report.get('ci')
+    lanes_run = report['run_id'].startswith(WINDOWS_LANES_RUN_PREFIX)
+    if (aggregate_profile or lanes_run) and not ci:
+        raise PublicationError('A Windows aggregate requires CI provenance.')
+    profile = report.get('selection', {}).get('profile')
+    if aggregate_profile:
+        validate_hosted_platform(report, 'Windows')
+        if profile != aggregate_profile:
+            raise PublicationError('The Windows job has another aggregate selection.')
+    if (aggregate_profile or lanes_run) and profile in SCOPED_PROFILES:
+        validate_model(root, 'HostedHarnessReport', report)
+        if lanes_run:
+            validate_windows_run_id(report)
+        validate_scoped_windows_evidence(root, project, reports, report, profile,
+                                         source=source, destination=destination)
+        return
+    if aggregate_profile or lanes_run:
+        validate_model(root, 'HostedHarnessReport', report)
+        validate_windows_run_id(report)
+        commit = ci['checkout_sha'] if source is not None else ci['head_sha']
+        validate_windows_aggregate(root, project, reports, report, source or report['source'], commit,
+                                   destination, lane_result=lane_result)
+        return
+    if (report['report_version'] != '2.0' or 'windows_python' in report or WINDOWS_PRODUCERS in report):
+        raise PublicationError('The recorded source and run do not schedule Windows producer bindings.')
+    if ci and windows_x64(report['environment']) and ci['event'] in {'push', 'pull_request'}:
+        committed = (scoped_windows_source(root, report) if profile in SCOPED_PROFILES
+                     else CommittedPath.at(root, ci['head_sha']))
+        producer_reports, _, _ = source_producer_bindings(committed)
+        source_aggregate = source_uses_windows_aggregate(committed)
+        if (producer_reports or source_aggregate) and profile in SCOPED_PROFILES:
+            validate_scoped_windows_evidence(root, project, reports, report, profile,
+                                             committed=committed, destination=destination)
+        elif producer_reports or source_aggregate:
+            raise PublicationError('The recorded Windows run lacks its aggregate identifier.')
+
+
+def scoped_windows_source(root, report):
+    ci = report['ci']
+    checkout = ci['checkout_sha']
+    try:
+        exact_commit(root, checkout)
+    except ScopeError as error:
+        # A CI merge object may be absent during offline import. Use the
+        # retained head only when it reproduces the tested execution inputs.
+        head = ci['head_sha']
+        fallback = committed_source_identity(root, head)
+        if {**fallback, 'git_head': checkout} != report['source']:
+            raise PublicationError('The available head differs from the scoped Windows checkout.') from error
+        checkout = head
+    return CommittedPath.at(root, checkout)
+
+
+def validate_scoped_windows_evidence(root, project, reports, report, profile, *, source=None, committed=None,
+                                     destination=None):
+    if report['report_version'] != '2.0' or 'windows_python' in report or WINDOWS_PRODUCERS in report:
+        raise PublicationError('A scoped Windows run cannot declare full producer bindings.')
+    selected = select_checks(project, profile=profile)
+    validate_windows_lane(project, report, source or report['source'], report['ci'], selected, 'core', profile)
+    if committed is None:
+        committed = CommittedPath.at(root, source['git_head']) if source is not None else scoped_windows_source(root, report)
+    try:
+        declarations = committed_scheduler_declarations(committed) or {}
+        declaration = declarations.get('WINDOWS_SCOPED_BROWSER_RESULT_PROFILES')
+        profiles = ast.literal_eval(declaration) if declaration is not None else set()
+        if not isinstance(profiles, set) or not profiles <= SCOPED_PROFILES:
+            raise ValueError('Invalid scoped browser results profiles.')
+    except (SyntaxError, TypeError, ValueError) as error:
+        raise PublicationError('Unrecognized scoped browser results policy in the recorded source.') from error
+    validate_workspace_results(reports, f"runs/{report['run_id']}", report['checks'],
+                               required=profile in profiles, destination=destination)
+
+
+def committed_scheduler_declarations(source):
+    path = source / 'scripts/check.py'
+    if not path.is_file():
+        return None
+    return {
+        node.targets[0].id: node.value
+        for node in ast.parse(path.read_text(encoding='utf-8')).body
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name)
+    }
+
+
+def committed_lane_ownership(source, *, event):
+    # Read the scheduler declarations without executing historical source.
+    try:
+        declarations = committed_scheduler_declarations(source)
+        if declarations is None:
+            return None, {}
+        lanes = declarations.get('WINDOWS_LANE_CHECKS')
+        if lanes is None:
+            ownership = {
+                'browser': ast.literal_eval(declarations['WINDOWS_BROWSER_CHECKS']),
+                'python': ast.literal_eval(declarations['WINDOWS_PYTHON_CHECKS'])
+                if 'WINDOWS_PYTHON_CHECKS' in declarations else {windows_python.CHECK},
+            }
+        else:
+            ownership = {
+                ast.literal_eval(key): ast.literal_eval(declarations[value.id] if isinstance(value, ast.Name) else value)
+                for key, value in zip(lanes.keys, lanes.values, strict=True)
+            }
+        if (not {'browser', 'python'} <= ownership.keys() <= set(WINDOWS_LANES) - {'core'}
+                or any(not isinstance(checks, set) for checks in ownership.values())
+                or len(set().union(*ownership.values())) != sum(len(checks) for checks in ownership.values())):
+            raise ValueError('Invalid Windows lane ownership.')
+        transfers = {}
+        if event == 'pull_request' and 'WINDOWS_PR_CHECK_TRANSFERS' in declarations:
+            transfers = ast.literal_eval(declarations['WINDOWS_PR_CHECK_TRANSFERS'])
+            if not isinstance(transfers, dict):
+                raise ValueError('Invalid Windows PR transfers.')
+            if transfers:
+                if (not {WINDOWS_WORKSPACE_LANE} <= transfers.keys() <= {'browser', WINDOWS_WORKSPACE_LANE}
+                        or any(not isinstance(checks, set) or not checks for checks in transfers.values())):
+                    raise ValueError('Invalid Windows PR transfers.')
+                moving = set().union(*transfers.values())
+                if not moving <= set().union(*ownership.values()) or len(moving) != sum(map(len, transfers.values())):
+                    raise ValueError('Invalid Windows PR transfers.')
+        return ownership, transfers
+    except (SyntaxError, AttributeError, KeyError, TypeError, ValueError) as error:
+        raise PublicationError('Unrecognized Windows lane ownership in the recorded source.') from error
+
+
+def windows_assignments(source, selected, *, event, split, recovery_checks):
+    ownership, transfers = committed_lane_ownership(source, event=event)
+    return {lane: windows_lane_checks(
+        selected, lane, python_split=split, recovery_checks=recovery_checks, ownership=ownership, pr_transfers=transfers,
+    ) for lane in (ALL_WINDOWS_LANES if transfers else WINDOWS_LANES)}
+
+
+def ordinary_producer_lanes(assignments, split, retained):
+    return {lane for lane in retained if assignments.get(lane) and not (split and lane in windows_python.LANES)}
+
+
+def validate_windows_aggregate(root, project, reports, report, source, source_commit, destination=None,
+                               *, lane_result=None):
+    selected = select_checks(project)
+    ci = report['ci']
+    committed = _committed_windows_source(root, source_commit)
+    split = (windows_python.enabled(project, ci, selected)
+             and source_uses_windows_python_parts(committed))
+    retained_lanes, part_reports, workspace_results = source_producer_bindings(committed)
+    runner = committed_windows_python(committed) if split else None
+    recovery_checks = runner_recovery_checks(runner)
+    assignments = windows_assignments(committed, selected, event=ci['event'], split=split, recovery_checks=recovery_checks)
+    rows = {row['id']: row for row in report['checks']}
+    native = rows.get('windows-native-build', {})
+    native_ok = native.get('status') == 'passed' and native.get('exit_code') == 0
+    validate_windows_lane(project, report, source, ci, selected, 'aggregate', 'full',
+                          native_requirement={'requested': True, 'satisfied': native_ok})
+    recovery_overlap = bool(recovery_checks)
+    for lane, lane_selection in assignments.items():
+        validate_producer_outcomes(report, lane_selection, lane, recovery_overlap=recovery_overlap)
+    required = project['catalog']['required_change_checks']
+    unverified = [key for key in required if rows[key]['status'] != 'passed' or rows[key].get('exit_code') != 0]
+    expected_gates = {'requested': True, 'required': required, 'unverified': unverified,
+                      'status': 'blocked' if unverified else 'passed'}
+    actual_selected = [rows[key] for key in selected if project['checks'][key]['status'] == 'implemented']
+    lane_failed = (lane_result != 'success' if lane_result is not None
+                   else 'At least one Windows lane job did not succeed.' in report.get('limitations', ()))
+    reported_interruptions = windows_producer_interruptions(report)
+    failed = lane_failed or reported_interruptions or any(check_failed(row) for row in actual_selected)
+    blocked = unverified or not native_ok or any(row['status'] == 'blocked' for row in actual_selected)
+    verdict = 'failed' if failed else 'blocked' if blocked else 'passed'
+    if report['status'] != verdict or report.get('integration_gates') != expected_gates:
+        raise PublicationError('The Windows aggregate verdict differs from its selected check results.')
+    original_interruptions = set()
+    if split:
+        original_interruptions.update(validate_combined_python(
+            root, project, reports, report, rows, assignments, runner, part_reports, destination,
+            recovery_overlap=recovery_overlap))
+    else:
+        python_parts(reports, report, ())
+
+    original_reports = report.get(WINDOWS_PRODUCERS, {})
+    if set(original_reports) != ordinary_producer_lanes(assignments, split, retained_lanes):
+        raise PublicationError('Missing or unexpected original Windows ordinary producer report.')
+    run = f"runs/{report['run_id']}"
+    for lane in original_reports:
+        producer = validate_original_producer(root, project, reports, report, rows, lane, assignments[lane],
+                                             windows_producer_report_path(run, lane), original_reports[lane], destination)
+        original_interruptions.update(windows_producer_interruptions(producer))
+    if original_interruptions != reported_interruptions:
+        raise PublicationError('The Windows aggregate interruption differs from its original producer reports.')
+    validate_workspace_results(reports, run, report['checks'], required=workspace_results, destination=destination)
+
+
+def stage_artifacts(root, destination, env, *, reports=None, lane=None, collection_profile=None,
+                    project=None, source=None, assignments=None, runner=None, workspace_results=False):
     reports = root / '.reports' if reports is None else reports
     latest = optional_path(reports, 'test-report.json')
     if latest is None:
@@ -322,17 +855,84 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False):
     if not expected or report.get('ci') != expected or expected['checkout_sha'] != env['GITHUB_SHA']:
         raise PublicationError('Report provenance does not match the current hosted job.')
     run_id = report['run_id']
-    if not re.fullmatch(r'[a-zA-Z0-9_-][a-zA-Z0-9._-]*', run_id):
+    if not RUN_ID.fullmatch(run_id):
         raise PublicationError('Invalid verification run identifier.')
     run = f'runs/{run_id}'
     named_report = checked_path(reports, run + '/test-report.json')
     if named_report.read_bytes() != contents:
         raise PublicationError('The latest and per-run harness reports differ.')
 
+    job = env.get('GITHUB_JOB')
+    hosted_aggregate = not lane and (job == 'windows_change' or (
+        not job and 'SCOPEHUB_WINDOWS_LANE_RESULT' in env))
+    platform = 'Windows' if lane or hosted_aggregate or job in WINDOWS_PRODUCER_JOBS else env.get('RUNNER_OS')
+    validate_hosted_platform(report, platform)
     scope = None if lane else scope_provenance(report, digest(contents), env)
-    project = load_project(root)
+    if project is None:
+        project = load_project(root)
     native_host = windows_x64(report['environment'])
     destination.mkdir()
+    checkout = expected['checkout_sha']
+    if lane and not collection_profile:
+        validate_windows_run_id(report)
+        if assignments is None:
+            selected = select_checks(project)
+            committed = _committed_windows_source(root, checkout)
+            _, _, workspace_results = source_producer_bindings(committed)
+            split = (windows_python.enabled(project, expected, selected)
+                     and source_uses_windows_python_parts(committed))
+            runner = committed_windows_python(committed) if split else None
+            recovery_checks = runner_recovery_checks(runner)
+            assignments = windows_assignments(committed, selected, event=expected['event'],
+                                              split=split, recovery_checks=recovery_checks)
+        else:
+            # Collection has already derived ownership. Only the recovery lane
+            # needs its overlap rule to recheck interrupted or omitted results.
+            recovery_checks = runner_recovery_checks(runner) if lane == 'recovery' else ()
+        if lane not in assignments:
+            raise PublicationError(f'Windows {lane} lane is inactive for the recorded source and event.')
+        lane_selection = assignments[lane]
+        profile = f'ci-windows-{lane}'
+        recovery_overlap = bool(recovery_checks)
+        identity_failure = not report['source_unchanged'] or not report['project_unchanged']
+        if source is None and identity_failure:
+            # Retain a finalized diagnostic for the failed producer. Collection
+            # still requires every producer to match the aggregate's inputs.
+            if report['selection'] != {'profile': profile, 'task_id': None, 'checks': sorted(lane_selection)}:
+                raise PublicationError(f'Windows {lane} lane has a different selection.')
+            validate_producer_outcomes(report, lane_selection, lane, recovery_overlap=recovery_overlap)
+            validate_lane_verdict(project, report, lane_selection, lane, profile)
+        else:
+            validate_windows_lane(project, report, source or source_identity(root), expected, lane_selection, lane, profile,
+                                  recovery_overlap=recovery_overlap)
+        if WINDOWS_PRODUCERS in report:
+            raise PublicationError('A Windows lane cannot declare its own aggregate binding.')
+        required_parts = (lane,) if runner is not None and lane in windows_python.LANES else ()
+        parts = python_parts(reports, report, required_parts, destination,
+                             callback_records=runner_uses_callback_records(runner) if required_parts else None,
+                             cutoff=runner_partition_cutoff(runner) if required_parts else None)
+        if any(PRODUCER_REPORT_DIGEST in record for record, _, _ in parts):
+            raise PublicationError('A Windows Python lane cannot declare its own aggregate binding.')
+        validate_workspace_results(reports, run, report['checks'], required=workspace_results, destination=destination)
+    elif hosted_aggregate:
+        source = source_identity(root)
+        _, head, _ = ci_event_checkout(root, source['git_head'], env)
+        if expected['head_sha'] != head or checkout != source['git_head']:
+            raise PublicationError('The Windows aggregate has another event checkout.')
+        validate_recorded_windows_evidence(
+            root, project, reports, report, aggregate_profile=scope['profile'] if scope else 'full',
+            source=source, destination=destination, lane_result=env.get('SCOPEHUB_WINDOWS_LANE_RESULT'),
+        )
+    elif collection_profile or job in WINDOWS_PRODUCER_JOBS:
+        profile = collection_profile or (scope and scope['profile'])
+        if (lane or WINDOWS_PRODUCER_JOBS[job]) != 'core' or profile not in SCOPED_PROFILES:
+            raise PublicationError('The Windows producer job requires its configured lane or scoped selection.')
+        if report['selection']['profile'] != profile:
+            raise PublicationError('The Windows core producer has a different scoped selection.')
+        validate_scoped_windows_evidence(root, project, reports, report, profile,
+                                         source=source or source_identity(root), destination=destination)
+    else:
+        validate_recorded_windows_evidence(root, project, reports, report, destination=destination)
     executed = {}
     # The hosted producer logs synthetic inputs and redacted outcomes. The catalog owns check identities.
     for result in report['checks']:
@@ -341,7 +941,8 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False):
         if (('observation' in result and (check not in RUN_OBSERVATION_CHECKS or not passed))
                 or ('field_observation' in result and (check not in FIELD_ACTIONS or not passed))):
             raise PublicationError('The check has an unexpected observation.')
-        if 'log' not in result:
+        relative = check_log_path(run, result)
+        if relative is None:
             continue
         catalog_check = project['checks'].get(check, {})
         if catalog_check.get('status') != 'implemented' or check in executed:
@@ -349,9 +950,6 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False):
         if (check == NATIVE_REVISION_ACCESS and passed
                 and catalog_check['platforms'] == 'windows-x64' and not native_host):
             raise PublicationError(f'A passing {check} check requires Windows x64.')
-        relative = f'{run}/{check}.log'
-        if result['log'] != '.reports/' + relative:
-            raise PublicationError('Check log is outside the current verification run.')
         log = checked_path(reports, relative)
         if check in PRIVATE_CHECK_LOGS:
             data = bound_bytes(log, result['log_sha256'])
@@ -376,10 +974,11 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False):
     if native_status == 'passed' or (native_status is not None and native_host):
         stage_native_revision_access(reports, destination, run, report['source'], required=native_status == 'passed')
     browser_roots = {'chart-history': f'chart-history/{run}', 'ubuntu-preview': f'ubuntu-preview/{run_id}'}
+    bound_results = {row['id'] for row in report['checks'] if BROWSER_RESULTS_DIGEST in row}
     for check in BROWSER_OUTPUTS:
         if check in executed:
             directory = browser_roots.get(check, f'{run}/{check}')
-            for path in browser_artifacts(reports, directory, check):
+            for path in browser_artifacts(reports, directory, check, include_result=check not in bound_results):
                 copy_file(path, destination / path.relative_to(reports))
     if 'chart-history' in executed:
         relative = browser_roots['chart-history']
@@ -407,17 +1006,19 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False):
     return True
 
 
-def validate_windows_lane(project, report, source, ci, selected, lane, profile):
+def validate_windows_lane(project, report, source, ci, selected, lane, profile, *, native_requirement=None,
+                          recovery_overlap=False):
     check_ids = [check['id'] for check in project['catalog']['checks']]
-    if (report['ci'] != ci or report['source'] != source or report['source_end'] != source
+    if (report['ci'] != ci or report['source'] != source or report.get('source_end') != source
             or not report['source_unchanged'] or not report['project_unchanged']
             or report['project_definition_sha256'] != project_definition_hash(project)
             or report['task_definitions'] != {key: task_definition_hash(task) for key, task in project['tasks'].items()}
             or not windows_x64(report['environment'])):
         raise PublicationError(f'Windows {lane} lane has another checkout, run, platform or project definition.')
+    native = native_requirement or {'requested': False, 'satisfied': True}
     if (report['selection'] != {'profile': profile, 'task_id': None, 'checks': sorted(selected)}
             or [row['id'] for row in report['checks']] != check_ids
-            or report['native_requirement'] != {'requested': False, 'satisfied': True}):
+            or report['native_requirement'] != native):
         raise PublicationError(f'Windows {lane} lane has a different selection or catalog order.')
     python = report['environment']['python_executable']
     for row in report['checks']:
@@ -431,15 +1032,75 @@ def validate_windows_lane(project, report, source, ci, selected, lane, profile):
                 'not_implemented' if check['status'] == 'planned' else 'retired', 'earlier_failure',
             }
             if (row['status'] != 'blocked' or row.get('reason_code') not in reasons
-                    or {'log', 'log_sha256', 'exit_code'}.intersection(row)):
+                    or PROCESS_FIELDS.intersection(row)):
                 raise PublicationError(f'Windows {lane} lane has an unexpected result for {key}.')
+        elif row.get('reason_code') in {'not_selected', 'not_implemented', 'retired'}:
+            raise PublicationError(f'Windows {lane} lane has an unexpected omission for selected check {key}.')
+        elif row['status'] == 'blocked' and 'log' not in row:
+            if (row.get('reason_code') not in {'earlier_failure', 'executable_unavailable', INTERRUPTED_BEFORE_START}
+                    or PROCESS_FIELDS.intersection(row)):
+                raise PublicationError(f'Windows {lane} lane has an unexpected blocked result for {key}.')
         elif row['status'] == 'passed' and (row.get('reason_code') or duration(row.get('duration_seconds')) is None):
             raise PublicationError(f'Windows {lane} lane has an incomplete passing result for {key}.')
-    if profile in SCOPED_PROFILES:
-        statuses = {row['status'] for row in report['checks'] if row['id'] in selected}
-        expected = 'failed' if 'failed' in statuses else 'passed' if statuses == {'passed'} else 'blocked'
-        if report['status'] != expected:
-            raise PublicationError(f'Windows {lane} lane summary differs from its selected check results.')
+    if profile != 'full':
+        validate_producer_outcomes(report, selected, lane, recovery_overlap=recovery_overlap)
+        validate_lane_verdict(project, report, selected, lane, profile)
+
+
+def producer_stopped(row):
+    if not stops_after_check(row):
+        return False
+    if row['status'] == 'blocked' and row.get('reason_code') == 'executable_unavailable' and 'log' not in row:
+        return True
+    if row['status'] != 'failed' or not PROCESS_FIELDS <= row.keys():
+        raise PublicationError(f"Windows producer stop for {row['id']} has no executed process evidence.")
+    return True
+
+
+def validate_producer_outcomes(report, selected, lane, *, recovery_overlap=False):
+    """An executed producer may omit only a suffix after a stop in that producer."""
+    part = report.get('windows_python', {}).get(lane)
+    marker = windows_producer_interruption(lane, selected, python_part=part is not None)
+    terminal_stop = marker in windows_producer_interruptions(report)
+    parallel_stop = (recovery_overlap and lane == 'recovery' and part
+                     and part.get('reason') != PYTHON_MANIFEST_INTERRUPTED and producer_stopped(part))
+    stopped = False
+    for row in report['checks']:
+        key = row['id']
+        if key not in selected:
+            continue
+        if row.get('reason_code') == 'earlier_failure':
+            if (row['status'] != 'blocked' or PROCESS_FIELDS.intersection(row)
+                    or not (stopped or parallel_stop)):
+                raise PublicationError(f'Windows {lane} has earlier_failure for {key} without a producer stop.')
+            stopped = True
+        elif stopped:
+            raise PublicationError(f'Windows {lane} has a result for {key} after its producer stopped.')
+        elif row.get('reason_code') == INTERRUPTED_BEFORE_START:
+            if not ((terminal_stop or recovery_overlap and lane == 'recovery' and part) and not parallel_stop
+                    and row['status'] == 'blocked' and not PROCESS_FIELDS.intersection(row)):
+                raise PublicationError(f'Windows {lane} has an invalid interruption before {key} started.')
+            stopped = True
+        else:
+            stopped = producer_stopped(row)
+    if part and part.get('reason_code') == 'earlier_failure' and (not stopped or 'log' in part):
+        raise PublicationError(f'Windows {lane} Python part has earlier_failure without a producer stop.')
+
+
+def validate_lane_verdict(project, report, selected, lane, profile):
+    statuses = {'failed' if check_failed(row) else row['status'] for row in report['checks'] if row['id'] in selected
+                and (profile in SCOPED_PROFILES or project['checks'][row['id']]['status'] == 'implemented')}
+    parts = report.get('windows_python', {})
+    interrupted = windows_producer_interruptions(report)
+    marker = windows_producer_interruption(lane, selected, python_part=lane in parts)
+    if interrupted and interrupted != {marker}:
+        raise PublicationError('A Windows producer interruption requires its matching producer.')
+    if (not report['source_unchanged'] or not report['project_unchanged']
+            or interrupted or any(part['status'] != 'passed' for part in parts.values())):
+        statuses.add('failed')
+    expected = 'failed' if 'failed' in statuses else 'blocked' if 'blocked' in statuses else 'passed'
+    if report['status'] != expected:
+        raise PublicationError(f'Windows {lane} producer verdict differs from its selected check results and parts.')
 
 
 def matching_lane_timing(incoming, report):
@@ -467,28 +1128,43 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
     if ci['head_sha'] != head:
         raise PublicationError('Windows lane provenance differs from the event head.')
     if profile:
+        if profile not in SCOPED_PROFILES:
+            raise PublicationError('Unrecognized scoped Windows aggregate profile.')
         base = ci_base(root, checkout, env)
         require_ancestor(root, base, checkout)
-    names = ('core',) if profile else WINDOWS_LANES
+    reports = root / '.reports'
+    run_id = windows_lanes_run_id(ci)
+    rows = {}
+    committed = CommittedPath.at(root, checkout) if profile else _committed_windows_source(root, checkout)
+    partitioned = (not profile and windows_python.enabled(project, ci, selected)
+                   and source_uses_windows_python_parts(committed))
+    retained_lanes, retain_part_producers, workspace_results = (
+        source_producer_bindings(committed) if not profile else (frozenset(), False, False))
+    runner = committed_windows_python(committed) if partitioned else None
+    cutoff = runner_partition_cutoff(runner) if partitioned else None
+    assignments = windows_assignments(committed, selected, event=ci['event'], split=partitioned,
+                                      recovery_checks=runner_recovery_checks(runner))
+    names = ('core',) if profile else assignments
     prefix = 'verification-windows-' + ci['run_attempt'] + '-'
     expected_names = {prefix + lane for lane in names}
     if not downloads.is_dir() or {path.name for path in downloads.iterdir()} != expected_names:
         raise PublicationError('Missing or unexpected Windows lane artifacts. Rerun all jobs for this attempt.')
-
-    reports = root / '.reports'
-    run_id = windows_lanes_run_id(ci)
-    rows = {}
+    retained_lanes = ordinary_producer_lanes(assignments, partitioned, retained_lanes)
     started = []
     caches = {}
+    producer_parts = {}
+    producer_reports = {}
     with tempfile.TemporaryDirectory(prefix='scopehub-windows-', dir=env.get('RUNNER_TEMP')) as directory:
         for lane in names:
             incoming = checked_path(downloads, prefix + lane, directory=True)
             staged = Path(directory) / lane
-            if not stage_artifacts(root, staged, env, reports=incoming, lane=not profile):
+            if not stage_artifacts(root, staged, env, reports=incoming, lane=lane, collection_profile=profile,
+                                   project=project, source=source, assignments=assignments, runner=runner,
+                                   workspace_results=workspace_results):
                 raise PublicationError(f'Windows {lane} lane has no finalized report.')
-            report = evidence_json((staged / 'test-report.json').read_bytes())
-            lane_selection = selected if profile else windows_lane_checks(selected, lane)
-            validate_windows_lane(project, report, source, ci, lane_selection, lane, profile or f'ci-windows-{lane}')
+            contents = (staged / 'test-report.json').read_bytes()
+            report = evidence_json(contents)
+            lane_selection = selected if profile else assignments[lane]
             if profile and report['status'] == 'passed' and env.get('SCOPEHUB_WINDOWS_LANE_RESULT') != 'success':
                 raise PublicationError('The scoped Windows lane job did not succeed.')
             if lane == 'core':
@@ -499,6 +1175,17 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
                     raise PublicationError(f'Windows {lane} lane has another report identity or Python executable.')
                 started.append(datetime.fromisoformat(report['generated_at']).timestamp() - report['timing']['elapsed_seconds'])
                 rows.update((row['id'], row) for row in report['checks'] if lane == 'core' or row['id'] in lane_selection)
+                if lane != 'core':
+                    core.setdefault('limitations', []).extend(sorted(windows_producer_interruptions(report)))
+                if lane in retained_lanes:
+                    write_artifact(reports / windows_producer_report_path(f'runs/{run_id}', lane), contents)
+                    producer_reports[lane] = digest(contents)
+                if partitioned and lane in windows_python.LANES:
+                    (record, raw, manifest), = python_parts(staged, report, (lane,), cutoff=cutoff)
+                    if retain_part_producers:
+                        write_artifact(reports / python_producer_report_path(f'runs/{run_id}', lane), contents)
+                        record = {**record, PRODUCER_REPORT_DIGEST: digest(contents)}
+                    producer_parts[lane] = record, raw, manifest
             for file in staged.rglob('*'):
                 if file.is_file() and (profile or file.name != 'test-report.json'):
                     relative = file.relative_to(staged)
@@ -517,6 +1204,14 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
                 stream.write(f'windows_caches={json.dumps(caches, sort_keys=True)}\n')
     if profile:
         return core, 0
+    if producer_reports:
+        core[WINDOWS_PRODUCERS] = producer_reports
+    if partitioned:
+        parts = [producer_parts[lane] for lane in windows_python.LANES]
+        core['windows_python'] = {lane: part[0] for lane, part in zip(windows_python.LANES, parts, strict=True)}
+        python_result, raw = combined_python(project, core, parts, cutoff=cutoff)
+        write_artifact(root / python_result['log'], raw)
+        rows[windows_python.CHECK] = python_result
     core['checks'] = [rows[check['id']] for check in project['catalog']['checks']]
     (reports / 'runs' / run_id).mkdir(parents=True, exist_ok=True)
     return core, max(0, datetime.now(timezone.utc).timestamp() - min(started))
@@ -569,7 +1264,12 @@ def main():
             prepare_reports(ROOT)
             return
         destination = Path(tempfile.mkdtemp(prefix='scopehub-ci-', dir=os.environ['RUNNER_TEMP'])) / 'verification'
-        has_report = stage_artifacts(ROOT, destination, os.environ, lane=args.action == 'stage-windows-lane')
+        lane = None
+        if args.action == 'stage-windows-lane':
+            lane = WINDOWS_PRODUCER_JOBS.get(os.environ.get('GITHUB_JOB'))
+            if lane is None:
+                raise PublicationError('The current job is not a configured Windows producer.')
+        has_report = stage_artifacts(ROOT, destination, os.environ, lane=lane)
         with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
             if has_report:
                 output.write(f'path={destination}\n')

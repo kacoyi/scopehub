@@ -1,0 +1,102 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-182",
+  "task_definition_sha256": "f0ad2e41c36f946116f6e3e09eac95784945fa865db584cbde94c891dadbfa99",
+  "run_id": "20261128T101925.213987Z-38dfec61",
+  "recorded_at": "2026-11-28T10:28:25.886701+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "6cd625c56b5de609172ad3607c37b36b1f4fcc45d0259a2d702067b3baaf5f0c",
+    "file_count": 641,
+    "git_head": "0a7f59b7fef46b02514f2f2bcc67ec2f618325c6",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "4dc67648942c4a5571b27723b01302157d6e9f118d4b2fa555a7b246056da9f1",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-44-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/windows-warm-pr-python/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/windows-warm-pr-python/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "96239d172ee9d00d258b198fef4bf66363bb5927221e983ae5ae705e5c435e7c"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/windows-warm-pr-python/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "53e79dfe520ac9d8db61c004e10dbe573159746a77586eb9b335bd44d34648d4"
+    },
+    {
+      "id": "workspace-timeframe",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "6e17b1eede7bb6b9745b71e20aa86f891216b87d326bf58309df334ea30547c8"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/windows-warm-pr-python/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "dc42f9b38392c4f15df8d50aa84b2726ca4427715b707584ea8ff720cd76920b"
+    }
+  ],
+  "project_definition_sha256": "460a42d614fc439ef883d21ef49c102fe932d283ff9082c0bb5a08c14d6e43ac",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "12595ee8e0236aceef7be1c873f1f8f6971cf146a2e11c029a085f274fc20a2e",
+    "c3bf74f73dc14a13c5b692d1a321a0d4055632acd9497212632c4195cdbc3dc4"
+  ]
+}

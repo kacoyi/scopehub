@@ -435,7 +435,13 @@ class DeliveryTests(ProjectFixture):
         self.assertEqual(2, len(progress['evidence']['untraced_tips']))
         self.assertLess(set(progress['evidence']['untraced_tips']), set(first['evidence']['untraced_tips']))
         for args in (('check',), ('history', '--base', accepted), ('history', '--base', initial)):
-            self.assertEqual('passed', self.project_command(*args)['status'])
+            with patch.object(project_cli, 'feedback_git', wraps=project_cli.feedback_git) as queries:
+                self.assertEqual('passed', self.project_command(*args)['status'])
+            # Each distinct source's immutable policy is needed even when several accepted
+            # predecessors and the candidate refer to it in a single public comparison.
+            policies = [call.args[-1] for call in queries.call_args_list
+                        if call.args[1] == 'show' and call.args[-1].endswith(':project/branch-protection.json')]
+            self.assertCountEqual(policies, [f'{source}:project/branch-protection.json' for source in (old, advanced)])
         self.assertEqual('checks_needed', self.project_command('status')['periodic_reviews'][2]['state'])
         self.assertEqual(original_bytes, original_path.read_bytes())
 

@@ -1,0 +1,166 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-182",
+  "task_definition_sha256": "6733abfaf42cdc0266e5e7d9624ef497761374ce8df3eabb1e1fc6c503d6cc71",
+  "run_id": "windows-change-46131733216-1",
+  "recorded_at": "2026-11-28T10:01:50.754786+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "6cd625c56b5de609172ad3607c37b36b1f4fcc45d0259a2d702067b3baaf5f0c",
+    "file_count": 641,
+    "git_head": "f1f9edfb40c685ce780a1c7c006b7b666241990c",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "f541f1e4ca620bc6f1404b5fbf43e3a5f9a420f6f7f9ed3d15b901fc9f2d0502",
+  "environment": {
+    "system": "Windows",
+    "release": "2025Server",
+    "machine": "AMD64",
+    "python": "3.12.10",
+    "python_executable": "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (6b2d39dcc 2026-11-17 x86_64-pc-windows-msvc)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a3b416d8588704dccf6f70a872b862799fb5a5e994929d3b5804b4d07d528aca"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a9dca423fbf4c51eeae95d31acc7001dd5fafc6d978cc195e72171a9f60b5e3a"
+    },
+    {
+      "id": "workspace-timeframe",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "24aa7c8d8f3836942ea296d75976281806323577c155bf3dc073c842a8b89c37"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f49a7f839527bf6f44001e41c8f8a41609799cf652dae41d222b57b72569e89c"
+    }
+  ],
+  "project_definition_sha256": "fdc354f53597d50a330eb2c3f08f5fc3de0e7546b51d7d72ebdf0667df9b914a",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "06dee0e5683ab3bc9f3e6375bdcf5bb8987b0996a4c1cdf0b543b63dd662209a",
+    "0989d45f037746ab2b484db34c519d57a84ad8d02df071244086364276a95108",
+    "110a778c7c50d56b4b10706ae46b929d3dc9dc09f4258400d4e3ec196c130fa0",
+    "12595ee8e0236aceef7be1c873f1f8f6971cf146a2e11c029a085f274fc20a2e",
+    "150c81db59d66e7d1e680a002451ae90d5021639e7fd4aec5e4805559d4d1583",
+    "225be12fd7dfcd8c72bd05ffd46b5041ee13f8cbbfdde5afe424ea8b93639b38",
+    "268e8e641d3f94aa83624f278a2321004799a27de6b53bc293dd97a31aa3c7b8",
+    "33fed4957201e93032d286135ab45dcd314c003bb7533fc5507dcbffb52a08e9",
+    "47627cc51aa5fa20102cda3f24e7d5a1f790f164d7c805d20a0161f0518d016e",
+    "4afb5406f22cf29b408af979006898528a45f1e6c04ad8ee7a0df09b058026d6",
+    "4f14eeb922b6aed7badafcbc8941ae4618baf5c5cc3a1609d98c7891f4fb7244",
+    "4f929366f8da654b8df850310fe1e23e5be582e8e5a0267388b5e1d0cc64086d",
+    "585f7ecb788c61e2b43c91c338d33f8df0256cd6d97814c4beac10ff73690dc9",
+    "5921f18e5ba2260df6aac67c0f6dc13cb47bb3a3ef5f6a03090666149078a220",
+    "5b4d6106f0a3a9b7e7a8f3cab688739f7af4fb107dad888de3ae0f696f7fcd53",
+    "5d4b4c1212bce50717985be0f9c2c8bb3f5ae23cbc67954c41484f63fee96868",
+    "6293310f15f461fa92702fbb8f894cd307c4db1ff6cdc59c158d0380f6e74af0",
+    "6b801ea7e3a3095c4cd4ad0e299ceb14f59247f2d849454cb11491c37d52bb4a",
+    "734268cab6282fd483a47daad0d35c5a81e542d04d45dfae07140427dbf968b9",
+    "78dc9e937259d1509c0cdc7bbf30d39c197d9d4a97ce3890d848dff1e8f61809",
+    "8283255a411940c56fd6764f582a42f6344d4b52c767235951078d8231b23171",
+    "88b95a67c3fe6869ce36d78948424663c12b29cf6ab650fbe26745a2c67ea23d",
+    "96370bab2c10d1c91e97ce650cc625435debda0c8d35755586d6b01d27d69ea6",
+    "99812964e4abcbd1eecf98f0292edfd449dda80a41c96395cec6e2294cdfdc71",
+    "9a10b2137acd660f7d85a864894ba1e0952e0fd72cac9cdf3bec36a62ee37f24",
+    "9c1385f42a0db4d865a1be2975f326b3c4ae7e7b0ef7d1ad1c72fcbb4003962a",
+    "9edcbabbbfb4c9347f7478e4233b18126e839c348b08262a0ab868ee9c682485",
+    "9f20b5b7300297d75bcaca9ce38eac156d72a1086fb50758b76866e2e315cc17",
+    "a1b073ed642d1839bd6202c7f13c06c1614a68b45f8781e992270cf62751f372",
+    "aaf6a66327a5ad250fa0c9dfdd84f2541bf8119f4e48eedf7148d74f1c4bf5b4",
+    "ad5e1ac945a961cd2f95a38e122f8e0146c6b30f68d647a17876721d1074e60d",
+    "ad7bb7e167b195e08df87da93729121fc855dff7f9a76fdf13e4601aaa7b5936",
+    "b5ae58479ac6d33d2ce41b7fde67c0ba51a1593465ffd8d22fd2fd6370d8e2af",
+    "bb4a38b4445b530f29b73f24b48d239ea4a0009da43508dc50aeae6474f8773e",
+    "bb75fdad4be01994b6800babd5e5da34f2aec1c7dba88a8d872495fa4092cd2f",
+    "bd2f658bd3ae731a204524ce051ccff111fbad683bb6ccdbad2a05631620fb71",
+    "c3bf74f73dc14a13c5b692d1a321a0d4055632acd9497212632c4195cdbc3dc4",
+    "c579a271a979cfb14986dfa6ea86f3e0c98f7a823a1f8c231a5fd977fb518b13",
+    "c744a1075ecff7cdf245b4dee420a0ab4bac60c984b08633d8e0a304731b0390",
+    "c961b5adc90324c02e886e9d39518e35e5e3fdedba445e1a6ad1a655dee71693",
+    "cb7e59c55bb3d96f9c504dc0b4f0f49ff826d99fd2636b635124426cdb4522f7",
+    "ce52fe0f45355a2c33b3a14196938b9728bd23ba71017f84dbb64b3a2d76cc75",
+    "d1b92f3c0b649b63ae2211613d5f445c6009e3b39e98b101573d8cfc474877d0",
+    "d2c27be43ccbca9b637f3334273f842599b6953aadb4d8ab3007f46a852cde80",
+    "d8b72dc38c683c4964ab285b9a0139d57ff5b4d282a952dcccd4b8aff2ef9bab",
+    "db7b9f61429abcc18ed46530a5b0cf4a5481f1f6cac3d1f41416053e49a40cbd",
+    "e15f28818661ae61078637dee70c9f919c5c3b7cb0ca5a2e14a5ba0fa754e7d1",
+    "e3b95d10c1789597b72795fd0ffbe7349ff62702a3a6630e5f51c4f9a8ea2a25",
+    "e3cc97b33dd20b37a7ced55df2118f488a130f9d31666a5372b8d3a63bed6642",
+    "e63923c333408a1f5a3dfece605c319caf6173cbf6fd516c8bd460b18ca4a319",
+    "e9aaeb378f0d39042e53f1c9506125793725660e91c61ceb41d9338d10ca85ed",
+    "f197115c24087abdea255eeaedbb7ac93735513aeea9004d1da950c1da5b454f",
+    "f32e2a2365b5bb64a138539651ace5c1add62ae93d2a05987ba8d75749121767",
+    "f54d1e3df53d70de106214ad73b47d6ce67fef79698d38464d640db58cc77765",
+    "fa932d5d9e5b8946619b52edf879dc23c1ae2af41d5c8bc2833868f103f11849",
+    "fed1ce63ba044513a6a763c0ebac4a184df3b40e714233902b0b9163629aa203"
+  ],
+  "ci": {
+    "provider": "github-actions",
+    "repository": "kacoyi/scopehub",
+    "run_id": "46131733216",
+    "run_attempt": "1",
+    "event": "pull_request",
+    "head_sha": "049b10133e19c225f44799839d0093b34806de72",
+    "checkout_sha": "f1f9edfb40c685ce780a1c7c006b7b666241990c",
+    "run_url": "https://github.com/kacoyi/scopehub/actions/runs/46131733216"
+  }
+}

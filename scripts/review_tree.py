@@ -1,12 +1,13 @@
 """Read the project records of one exact Git commit without checking it out."""
 
 from dataclasses import dataclass, field, replace
+from io import BytesIO
 from pathlib import Path, PurePath, PurePosixPath
 
 if __package__:
-    from .verification_scope import exact_commit, git, nul_fields
+    from .verification_scope import ScopeError, exact_commit, git, nul_fields
 else:
-    from verification_scope import exact_commit, git, nul_fields
+    from verification_scope import ScopeError, exact_commit, git, nul_fields
 
 
 @dataclass(frozen=True)
@@ -69,6 +70,33 @@ class CommittedPath:
         for path in self.entries:
             if path != self.relative and path.parent == self.relative and path.match(pattern):
                 yield replace(self, relative=path)
+
+    def prefetch(self, *paths):
+        """Read the selected regular blobs into this tree's local cache."""
+        objects = {}
+        for relative in paths:
+            path = self / relative
+            if path.is_file():
+                _, object_id = self.entries[path.relative]
+                if object_id not in self.blobs:
+                    objects[object_id] = path
+        if not objects:
+            return
+        requests = b''.join(object_id + b'\n' for object_id in objects)
+        contents = BytesIO(git(self.checkout, 'cat-file', '--batch', input=requests))
+        loaded = {}
+        for object_id, path in objects.items():
+            header = contents.readline().split()
+            if len(header) != 3 or header[:2] != [object_id, b'blob'] or not header[2].isdigit():
+                raise ScopeError(f'Cannot read regular committed file at {path}.')
+            size = int(header[2])
+            data = contents.read(size)
+            if len(data) != size or contents.read(1) != b'\n':
+                raise ScopeError(f'Incomplete regular committed file at {path}.')
+            loaded[object_id] = data
+        if contents.read(1):
+            raise ScopeError(f'Unexpected committed objects at {self}.')
+        self.blobs.update(loaded)
 
     def read_bytes(self):
         if not self.is_file():

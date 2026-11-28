@@ -9666,6 +9666,1241 @@
       "deferral_reason": null
     },
     {
+      "id": "verification-windows-warm-main-browser-lane-budget",
+      "source": "Authenticated ordinary full Windows main pushes. Original controls, check selections and job clocks are indexed by archives/observations/repo-hygiene-20261125/resumed-coordination-87dd079/windows-warm-push-intake.json (SHA-256 d6240590f7a24af345059e69000ebe256cc0c85d5aafbd8c64aae64007c441a5). The newer authenticated warm main push controls are retained in .reports/audit-20261127/m0-146-boundaries/protected/protected-reconciliation.json (SHA-256 9c41648a2f0d1e48c93e60d1cd8631632f7509328f51e1689ad2cc934516fb43), with original job records, report and Python log digests. M0-141 retains their three diagnostic locators. Run 45852539879 attempt one took 1143 seconds from the first Windows job start to aggregate finish against the 900-second objective. Python finished last. Its separate serial check passed in 1044.25 seconds against the 1200-second process deadline owned by M0-153.",
+      "observation": "Three successful warm main pushes with 35 identical selected outcomes took 886, 938 and 913 seconds against the 900-second objective. The Windows browser harness steps took 638, 672 and 659 seconds, and their cache restores took 75, 85 and 105 seconds. The browser producer was the last required producer in the two overruns. These events use the existing four-producer scheduler. The previous serial-scheduler recovery and the partial-cache findings retain their own evidence.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-139",
+        "M0-141"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45603929191-1",
+          "source_commit": "6cf0d0dc87b344203ab194a2cd047d36bf801f3c",
+          "report_sha256": "9a7580d885232498a7ba971891936b05ec96929c970bff74d6c1a3cd82dabd10"
+        },
+        {
+          "run_id": "windows-change-45633169286-1",
+          "source_commit": "21bb9dcf89b1044341cc0d37f40d537481286987",
+          "report_sha256": "ef5a6ad6bbc1af8a86db6f87fec457678a79048c0f6d81c9b51bbe07d077f315"
+        },
+        {
+          "run_id": "windows-change-45636810364-1",
+          "source_commit": "87dd07963b5dfbc648473e8a4f021ff5b8384203",
+          "report_sha256": "7da9ecf4cc71dd85f3f05ee76f33a65b9a85c348e7c1843b5539a8e495edd620"
+        }
+      ],
+      "verification_budget": {
+        "repository": "kacoyi/scopehub",
+        "event": "push",
+        "profile": "full",
+        "platform": "Windows",
+        "repair_commit": "903ce1a0e34525b7c09f7a36ee98405c37545a6d"
+      },
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "verification-windows-warm-pr-python-budget",
+      "source": "Authenticated ordinary full Windows pull requests 45665595957, 45666385494 and 45667368453, with full reports, original logs and clocks indexed in archives/observations/repo-hygiene-20261125/windows-warm-pr-python-20261125/intake.json (SHA-256 8b8c89a6a46b440de8ec51fef266e6b8760250250242ae4cda276c8f5d8cf298). Original jobs, both verified native artifacts and timing inputs for PR111 and PR133 are indexed in archives/observations/repo-hygiene-20261125/warm-windows-pr-intake-45762646887/intake.json (SHA-256 c7caf588cb9234a1e65b373e3421ffd003505d060d15fe5a763a2540e94b2728). PR137 attempt one archive report archives/runs/windows-change-45823962357-1/test-report.json, with the incident and resolver input retained as .reports/audit-20261126/m0-146-callback-identity/originals/pr137/pr137-first-ordinary-incidents.json (SHA-256 5dd03164d5141d1badf71515fee8bbe0c41c2817e909d2c1db85ef9fc6b15bb7) and .reports/audit-20261126/m0-146-callback-identity/originals/pr137/M0-166-aggregate-resolution.json (SHA-256 661b56cb54ec9e9471baa116906f9e63fcd9f98d83b2836f8fc01f77225eb734). Its original Python log SHA-256 is de753a913aad0fe4967d3060f3b701a4dfc5945be089df144217f62f22470a8e. PR134 and PR138 attempt-one Windows reports archives/runs/windows-change-45830238324-1/test-report.json and archives/runs/windows-change-45829931168-1/test-report.json are indexed by .reports/audit-20261126/m0-146-windows-timeout-diagnostics/originals/pr134-pr138-first-windows-python-incidents.json (SHA-256 50f3f3d12cf2894d1080029b27de595299070e29cf41b085168c12ac19db51ad). Authenticated ordinary full warm Windows PR123 attempt one on 450a715ac6b59d355e54a0efdd78cfbe7769d8e6. Original report archives/runs/windows-change-45839731781-1/test-report.json. Windows, Linux and split producer originals are indexed in archives/observations/repo-hygiene-20261125/pr123-native-original-45839731781/manifest.json (SHA-256 9f231353f2510c2ea4cae140f99615d1cfb8a12eee0a06b13886a88ba500abe1). PR140 ordinary Windows attempt one on df70907e2ed45273a1c1a2a3c796a9c46293a749: original archives/runs/windows-change-45841386990-1/test-report.json, with Windows and Linux artifact files in archives/observations/repo-hygiene-20261125/pr140-native-original-45841386990/manifest.json (SHA-256 08a7e276c5785f3bd022cfc12c17973b751316a49ba6bc32bced51acdecd31a3). Authenticated ordinary full warm Windows PR123 attempt one, head 55b73d8b714d49bf8b15698abbd3256a76cbbf8e, verified checkout 4c6907e67c50eadfa95308b46594f92722e2490b. The diagnostic is archives/runs/windows-change-45933801256-1/test-report.json. The native original file index is archives/observations/repo-hygiene-20261125/pr123-native-original-45933801256/manifest.json (SHA-256 1c7999a4d37d4976091603fa5272d322c77bed4270fbf00c33aa4c7e9a8c294e). Authenticated PR123 attempt one warm run 45939870623, head 32c73e673b8934d12ce279266139cbdcd441dabb, verified checkout 59c12a3758c18546550cf2e8e180fe142da7e585. The authenticated original index is archives/observations/repo-hygiene-20261125/pr123-native-original-45939870623/manifest.json (SHA-256 fa19b31025bc09ec413b25de72541df0791273ccf2c89695eb4df123efac0727). Authenticated ordinary full warm PR123 run 45949560212 used head b63fdd2eb41e4f3e5d57245d24ff89767bd52d16 and tested checkout cb6fc9ebd50aefd2af1bb590f087236132c7267d. The original diagnostic is archives/runs/windows-change-45949560212-1/test-report.json. The native files are indexed by archives/observations/repo-hygiene-20261125/pr123-native-original-45949560212/manifest.json (SHA-256 8fc5e79d221450039d073835b048ec7a0313ca10d23106f72d5b940b63d1a0e4). Five-run original Windows producer comparison: archives/observations/repo-hygiene-20261125/pr123-warm-comparison-45965137241/lanes.json (SHA-256 6206f9265667be23e48c2c07db5bad6e26cba3b052f4eff980ab07a8641b8645). Checkout-local original copies, first-attempt job clocks, per-case and per-check data, producer and publisher evidence and both actual task receipts are indexed by .reports/audit-20261127/m0-146-windows-path/originals-sha256.json (SHA-256 1196fed139939e5b4097030bb11dcbbc34638bccba396febda2f639b3565eb8f). The authenticated timeout indexes are retained under .reports/audit-20261127/m0-146-21595229-repair/performance/originals/: pr147-cold-and-timeout-45976655959.json (SHA-256 edf3be80ed3e9f689c42516317342421f3ca84adc696feb9554527e9e4425f80), pr138-protected-policy-ordinary-45980506038.json (SHA-256 16a814fe2a010feb5ce9ec3cd6aba28e0e60a624f1d967cfd41229ff05398dd1), and pr138-guarded-timeout-45983683319.json (SHA-256 d80739781769e31d55c1fdbb2fc2bc1d2b6f3998398daf1fe93bd5d5b3affe0e). Ordinary PR 152 first attempt 45989306963 is retained at archives/runs/windows-change-45989306963-1/test-report.json (report SHA-256 c7dcb3b951b6567c8dad286f41d619aa7a8ba7d069386dcbacf5587cf804792b). Ordinary PR 123 attempt 1 of run 46103840740 retains the original uploads, job clocks and source binding in archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261127-t1k1/pr123-46103840740/first-attempt-intake.json (SHA-256 d49080bd8c4ba0a48e4a5faf88e92288285392c636a3cbfc9b4c77a50cf82b24). The two original platform reports are archives/runs/windows-change-46103840740-1/test-report.json and archives/runs/20261128T033946.183750Z-259784c9/test-report.json. Independent M0-146 changes-requested decision on a8795844d601cbbe5569329d2ae1b3554413d51f, contracts/reviews/task-decisions/M0-146.json#/events/55. Original response SHA-256 7fee29d8adde87288804a6d1d2906e6387286f5fcb129044d726db04a6b45a12. The successful PR 120 threshold control uses the retained Windows report and Actions clocks for run 45666385494. Original artifact inventory archives/observations/repo-hygiene-20261125/pr120-native-original-45666385494/manifest.json (SHA-256 58c686208733990bd8540a65f718da23f5a0484ccfe5e19e36a5f6fbde3e7066). Ordinary PR 123 run 46115517382 attempt 1 tested fa0f311cd637f5d3466a1f0ed5b1ec985127cede from submitted adffe2b0e83d43ffecbf65aeb597b1f71f027545. Both platform originals and the five producer clocks and publisher are retained. Ordinary full warm PR 123 run 46127361251 attempt 1 submitted fae7480d2de1b6453a2546e2b14e295eb2f19052 and tested 632e4c8f3cfcbf47f9b2e8d5cf07972ee638d652. The first-attempt gate and authenticated native inputs are retained in archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261127-t1k1/pr123-46127361251/gate-observation.json (SHA-256 aec4398703e7c88095c034b98b4be3e9a04f69a84ff4cf6022408c726f234865) and archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261127-t1k1/pr123-46127361251/artifact-manifest.json (SHA-256 334c6c60481a6a040198e7ea35a5e6f9bc1752335127550e81bd421e10966519). The manifest indexes nine authenticated artifacts and the full job logs. Both original platform reports are retained as archives/runs/windows-change-46127361251-1/test-report.json and archives/runs/20261128T084724.175303Z-2544c8fc/test-report.json.",
+      "observation": "The three comparable full warm Windows pull requests took 1075, 868 and 999 seconds against the 900-second objective. The Python checks took 966.594, 776.266 and 899.781 seconds, and the Python producer finished last before aggregation each time. Each report selected the same 35 outcomes with 28 passes and seven planned omissions. Interleaved run 45666697288 used a partial Cargo cache and belongs to M0-128. Ordinary warm Windows PR run 45674883737 on the first repair selected the same 35 checks: 28 passed and seven planned checks were omitted. The full run took 975 seconds elapsed and 2851 runner seconds, with 889.719 seconds in python-contracts-workers. The Python producer finished last. The first repair eliminated measured redundant reads but this run remained 75 seconds over the existing objective. The next repair distributes a contiguous Python suffix to the existing PR recovery producer. The complete local test and artifact evidence belongs to M0-146. Two ordinary warm PRs on sources preceding the partition also exceeded the 900-second objective with the same 35 outcomes. PR111 took 958 seconds and the browser producer finished last. PR133 took 1245 seconds and the Python producer finished last, with 1134.688 seconds in the Python check. PR137 ordinary full warm Windows attempt one selected 35 checks, with 26 passes, two failures and seven planned omissions. The unsplit python-contracts-workers check timed out after 1200.047 seconds, and the original log has no terminal case count. This is a failed ordinary PR observation. Successful comparable verification of the partition within 900 seconds remains pending. M0-166 owns the independent workspace-timeframe failure and M0-153 owns the first protected push. PR134 and PR138 each selected 35 checks in their first ordinary full Windows pull request attempt, with 27 passes, seven planned omissions and an unsplit python-contracts-workers timeout at 1200.047 seconds. Neither original log has a terminal case count. These are separate failed observations alongside PR137. The 1200-second Python execution deadline and the 900-second ordinary full warm Windows pull request objective are distinct. The first split PR123 attempt one selected the same 35 checks with 27 passes, one failure and seven planned omissions. The Windows producer-to-aggregate span was 1158 seconds. The Python producer took 1058.453 seconds for its part (755 tests, 62 skips and two failures). The recovery producer took 197.922 seconds for its part (126 tests, 10 skips and no failures) after its assigned recovery checks. Both parts returned terminal inventories. This remains an over-budget failed observation independent of the three unsplit timeouts. PR140 attempt one on the earlier unsplit path selected 35 Windows checks with 27 passes, seven planned omissions and a python-contracts-workers timeout at 1200.047 seconds. The original has no terminal Python case inventory. M0-146 owns the recurring timeout and the python-contracts-workers regression. The PR123 split assertion failure is a separate observation. PR123 run 45933801256 retained the same 35 selected checks (27 passed, one failed and seven planned omissions). The complete warm Windows span was 1074 seconds, 174 over the objective. Recovery was the last producer at 1043 seconds from the first producer start; aggregation completed 31 seconds later. The Python and recovery partitions passed in 683.734 and 857.782 seconds, and the combined python-contracts-workers check passed in 985.543 seconds. The browser calibration failure is assigned to M0-171. On the observed clocks the recovery producer has to give back at least 174 seconds, equivalent to a recovery Python process of at most 683.782 seconds if other work and aggregation stay fixed. This failed workflow does not qualify the budget. Ordinary full warm PR123 run 45939870623 passed the workflow with the same 35 selected checks (28 passed and seven planned omissions). The full Windows span fell from 1074 to 922 seconds. The browser producer finished last at 877 seconds, with recovery at 834 and the publisher completion at 922. The remaining 22 seconds are an open budget miss. The unchanged desktop-localization command ran in 28.922 seconds on the browser producer after the earlier 23.015-second observation. Two subsequent first ordinary Windows PR attempts on the unsplit path timed out in python-contracts-workers with no terminal case inventory: PR145 run 45940565728 at 1200.032 seconds and PR147 run 45943406153 at 1200.047 seconds. Both selected 35 checks with 27 passes and seven planned omissions. On PR147 the Windows recovery producer passed all 41 market-recovery tests in a separate process. The Python timeout remains with M0-146. PR123 run 45949560212 retained a complete authenticated aggregate with 28 passes and seven planned omissions across the same 35 checks. From the first producer start at 06:04:44 UTC to publisher completion at 06:22:18, the span was 1054 seconds, 154 over the 900-second goal and 132 above run 45939870623. Recovery finished last at 1012 seconds. Its Python part ran for 821.938 seconds and the separate Python part ran for 425.344 seconds. Recovery scheduling tests spent 404.169, 269.854 and 381.690 measured case seconds across runs 45933801256, 45939870623 and 45949560212. The data identifies repeated work and a changing critical path. The measured budget remains open. First ordinary full warm PR 123 run 45958135087 on tested commit 1c0ef4218d2719981d1d1e39743676ae7041e557 covered the same 35 selections with 28 passes and seven planned omissions. First Windows producer start 07:23:38 UTC to publisher completion 07:40:51 UTC was 1033 seconds, 21 lower than 1054 and 133 above the 900-second objective. Recovery finished last at 988 seconds, compared with 613 for the Python job, 744 for browser and 772 for core. The two Python parts took 796.859 and 568.687 seconds. The complete four-sample comparison is retained at archives/observations/repo-hygiene-20261125/pr123-warm-comparison-45958135087/comparison.json. Ordinary PR130 run 45958460881 corroborates the unsplit timeout at 1200.047 seconds in archives/runs/windows-change-45958460881-1/test-report.json. Both market interruption controls and all six workspace controls passed on both platforms. This observation is separate from the four split warm PR123 samples. The contiguous transfer through the timing module accounts for 174.526 and 166.310 recorded case seconds on the two latest split runs. Holding the observed setup, other producers and publisher fixed estimates 858.474 and 887.690 seconds through publication. The earlier 922-second browser-limited run remains unchanged in this model. The next exact ordinary full warm Windows PR must establish the actual cost and outcome. Authenticated PR123 ordinary full warm run 45965137241 used reviewed head a46b0f8a6e3edd9cfea7144f1c9b234ca30c6286 and tested merge 4a591cae9868346a8967b3a262592e04fe24fc29. The Windows span was 1028 seconds, 128 over budget. Browser finished at 983 seconds, Python at 868, recovery at 844 and core at 600. The publisher completed 45 seconds after the final producer. The reports retained all 35 selections (28 passes and seven planned omissions), 965 Python cases (772 plus 193) and two task receipts. Run 45933801256 supplies clocks only because workspace preparation failed. The four successful runs took 922, 1054, 1033 and 1028 seconds. The publisher tail was 42 to 45 seconds. Moving an individual browser check or removing repeated startup cannot address both latest critical producers. Trial an isolated workspace producer on full PRs and keep both Python partitions on light toolchain runners with an ordered cutoff at the storage module. Preserve the protected push layout, source checks and original evidence semantics. Keep this finding open pending the next comparable exact native attempt. Authenticated PR147 run 45976655959 timed out in Windows Python at 1200.047 seconds after the separate market recovery producer passed its 41 cases. PR138 ordinary run 45980506038 timed out at 1200.062 seconds and guarded task dispatch 45983683319 timed out at 1200.015 seconds. The PR138 runs exercise different workflows on the same submitted head e9ff23ddcf7a2d862337d64104f7a2e5583c5825. Both policy-specific tests passed on Linux and Windows in both runs. Neither Windows suite returned a terminal inventory. The final printed test identifies progress only and the timeout cause remains unknown. M0-146 and python-contracts-workers retain ownership of the recurring timeout. Measure the smallest plausible correction or coverage-preserving placement locally, then hand the exact candidate to the coordinator for ordinary and guarded observations. The isolated retirement fixture reuse from 53720cd8f069b07082f473667c401f2b5b5fa175 removed 276 Git launches from each 47-case local crossover arm. Median 47-case wall time was 22.148 to 16.368 seconds, with the same 47 ordered passes and independent fixture cleanup. The original completed Windows cohort spent 132.038 to 169.047 seconds in the retirement module. A separate prior six-case native Windows crossover measured reduced setup with effectively flat whole-process time. Retain the native and local comparisons in .reports/audit-20261127/m0-146-21595229-repair/performance/. These observations identify a removable cost and leave the timeout cause, native effect on the complete suite and 900-second outcome open. On ordinary PR 152 first attempt 45989306963 the Windows Python check reached its 1200-second limit after 1200.062 seconds. The log ends before a suite summary or a named failing test. All five workspace-preparation cases passed on each platform. The last partially printed case does not identify the cause. Measurement of the five-producer candidate remains due. The first ordinary full warm PR 123 attempt after the five-producer reconciliation, run 46103840740 attempt 1, submitted e862b3eb6731f4821629d7508ea5dafb6fa0a98a and tested 91e419f12ee4fafc275bf6cf8dd4c521813acef3. The five Windows producers and final publisher retained all 35 selections. The workflow was created at 03:38:40 UTC on 2026-11-28, the earliest Windows producers started at 03:38:42 UTC, and the Windows publisher completed at 03:52:38 UTC. Windows seconds.total was 838 seconds, with 2 seconds of initial queue and an 836-second first-producer-to-publisher span. Workspace finished last at 03:51:56 UTC. Windows recorded 27 passes, one dependency-review failure and seven planned omissions. The Python check passed in 684.672 seconds. Both protected platform jobs failed dependency review. M0-181 owns both dependency failures and retains its local correction and closure receipt. PR 123 falls within the timing threshold and fails ordinary qualification because both protected jobs failed. The earlier PR 152 first-attempt Windows Python timeout at 1200.062 seconds remains a separate open M0-146 observation. Its log has no terminal suite summary or named failing test, and the cause remains open. M0-146 owns the independently confirmed acceptance error in its task and timing feedback: the previous rule excluded the initial queue. On successful PR 120 the independent replay held the producer span at 866 seconds and varied only initial queue. The public timing command reported no breach at 900 total seconds and one at 901. The previous record would admit both. The coordinator obtains fresh source-bound decisions where required and owns the next ordinary full warm PR observation. Bind the submitted head and actual tested checkout containing the corrective revision, require both protected job conclusions to pass, and retain workflow creation, all five Windows producer clocks, the Windows publisher clock, original attachments, ordered Python outcomes and all 35 selections with 28 passes and seven planned omissions. Require Windows seconds.total <= 900, measured from workflow creation through Windows publisher completion. Retain initial queue and the first-producer-to-publisher span for critical-path diagnosis. Keep M0-146 active until that qualifying run and the applicable first protected adoption evidence are retained. Retain the fourth Python timeout and the first ordinary dependency rejection. The full warm Windows sample took 973 seconds from workflow creation to final publication, including 2 seconds of initial queue and 971 seconds from the first producer. The Python producer finished last. Python passed in 892.760 seconds, and its 666- and 317-case original partitions reconstruct the published log byte for byte. Windows selected 35 checks: 27 passed, seven were planned omissions and workspace-timeframe failed in the separate broad fixture preparation owned by M0-182. Ubuntu passed its required job. This sample exceeds the 900-second objective by 73 seconds. The genuine runner callbacks account for 882.739 case seconds on the Python producer and 472.628 on recovery. The latest Python shortfall is a scheduling imbalance. A cutoff at test_processes transfers 88 cases with 143.711 observed case seconds to recovery. Holding non-Python producer clocks, publisher tail and runner rates fixed, the projected total is 829.289 seconds for this attempt. The same replay gives 816.000 and 839.020 seconds on the other two ordinary attempts. Retain the replay, source-bound original outputs and local publication controls in .reports/audit-20261128/m0-146-pr123-46115517382/handoff.json. Keep the budget finding open pending a successful native observation and protected adoption. Ordinary full warm PR 123 run 46127361251 attempt 1 passed both required platform jobs and exceeded the Windows budget by 21 seconds. Workflow creation at 08:46:21 UTC through Windows publication at 09:01:42 UTC on 2026-11-28 took 921 seconds, including 2 seconds of initial queue and 919 seconds from the earliest producer. Windows retained 28 passes and seven planned omissions across all 35 selections. The two ordered Python parts passed with 578 and 405 cases and reproduced the published log byte for byte. Recovery finished last, at 09:00:51 UTC, 63 seconds after workspace, and its Python check took 814.766 seconds versus 413.718 seconds for the sibling. The recovery callbacks include approximately 389 seconds in verification scheduling, 151 in worktree retirement and 111 in review acceptance. The prior former-allocation failure passed on this attempt. The three M0-182 receipts remain attached to M0-182; protected adoption and a qualifying ordinary Windows timing observation remain open.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45665595957-1",
+          "source_commit": "e5616997231794386ccf8a0a0966e7d9c3bfe263",
+          "report_sha256": "73eac4d40ec039769490fd41b5544076ea8a9b865de7fae8b3f3656fe4b093d7"
+        },
+        {
+          "run_id": "windows-change-45666385494-1",
+          "source_commit": "025ab3d0795fa075f184d796e52b2081f622d810",
+          "report_sha256": "4d30be363e019f8ef0a1b859bfe74e05a1d0d948f4ea10aaf098f38c9e630bb8"
+        },
+        {
+          "run_id": "windows-change-45667368453-1",
+          "source_commit": "08457feb3e6ee8a049aa70f652d35455de73765e",
+          "report_sha256": "99b9ccca4c5baec4abbb303f12cea70349bf6ed13c5a8a8bcd60347b99a4b07f"
+        },
+        {
+          "run_id": "windows-change-45674883737-1",
+          "source_commit": "89668fa44ffb56cf848518c5959329ef89992ba9",
+          "report_sha256": "00703b6bfc35ee5dd6ba35e2550efc3726e1f4a6a4fbd868c292d1def4fee7d2"
+        },
+        {
+          "run_id": "windows-change-45601205813-1",
+          "source_commit": "b2838310471c9c405d9fcdbaaf66d62c4f2cb4b8",
+          "report_sha256": "8e283fb387cc424716c06321148ff14ee1ed2ae0a67ce70ca74a34247c36b123"
+        },
+        {
+          "run_id": "windows-change-45762646887-1",
+          "source_commit": "b1097e82c981fce3573d06ee82e0cc5c438ef113",
+          "report_sha256": "208f6516a8eb67754aa4595c68ef8a7737d0b5eca6f81f2441fe2eeb36f41de0"
+        },
+        {
+          "run_id": "windows-change-45823962357-1",
+          "source_commit": "9f3a91950aee9e7c81819a0d27027fa2b9cc7514",
+          "report_sha256": "078717eb8956e711ef6b2262f43f70349a0d1d0901983b395af324135ec03f8c"
+        },
+        {
+          "run_id": "windows-change-45830238324-1",
+          "source_commit": "1d8808c08b66c50079176446d1e8966a39582c52",
+          "report_sha256": "fb3d430b88fddc3cd1126ee7ea7da1e8a814d23a60e482dc2e1b5bc478305058"
+        },
+        {
+          "run_id": "windows-change-45829931168-1",
+          "source_commit": "814b6544ea3745dca9cf6787cb90ad22a3adff58",
+          "report_sha256": "cd2815f80683fd943251a1a2ba08fc4b9b5691a66157b8f649044be362ff43fe"
+        },
+        {
+          "run_id": "windows-change-45839731781-1",
+          "source_commit": "450a715ac6b59d355e54a0efdd78cfbe7769d8e6",
+          "report_sha256": "b819f768979dbd94b4b5f0646ee9cd4f6bca141332f11280b4c0a403010d78b8"
+        },
+        {
+          "run_id": "windows-change-45841386990-1",
+          "source_commit": "df70907e2ed45273a1c1a2a3c796a9c46293a749",
+          "report_sha256": "ff4907892831f18aadabe6d5b1267cf770d4830b899684696ad18e3341165cc2"
+        },
+        {
+          "run_id": "windows-change-45933801256-1",
+          "source_commit": "4c6907e67c50eadfa95308b46594f92722e2490b",
+          "report_sha256": "2b4e4c9dce03a68efcfe32ed9dd49a0efdb48287a8f9a9195f55c689d4cb0657"
+        },
+        {
+          "run_id": "windows-change-45939870623-1",
+          "source_commit": "59c12a3758c18546550cf2e8e180fe142da7e585",
+          "report_sha256": "b5418be78bb726973af2170df01b04b456a95f0e9ebe8e30d70ba66f3bdbe979"
+        },
+        {
+          "run_id": "windows-change-45949560212-1",
+          "source_commit": "cb6fc9ebd50aefd2af1bb590f087236132c7267d",
+          "report_sha256": "046b5421af51f8726b9508897f443a58b84818c1a55f5bb49b6c1a3d716eb63a"
+        },
+        {
+          "run_id": "windows-change-45958135087-1",
+          "source_commit": "1c0ef4218d2719981d1d1e39743676ae7041e557",
+          "report_sha256": "ba47a4e924cb8f6df0623eda24da0d37d06ddf8932ff245bac06d6b82dfd95ad"
+        },
+        {
+          "run_id": "windows-change-45958460881-1",
+          "source_commit": "4cd37974b53d681230ce2332481c0a0d3c22e5f6",
+          "report_sha256": "89fddcafae133a5bbcdfbf7956b267fea2fc63cdef72749256650899ed50cf54"
+        },
+        {
+          "run_id": "windows-change-45965137241-1",
+          "source_commit": "4a591cae9868346a8967b3a262592e04fe24fc29",
+          "report_sha256": "8da04e107746894f2e1fa3108756cc9247dabb852194568cc57f14c78d798d94"
+        },
+        {
+          "source_commit": "035752be3a673ed25cea5f805e4421a7e0ed7dab",
+          "run_id": "windows-change-45976655959-1",
+          "report_sha256": "8367f95e640d8f4ba79fde931548f6781823c3d2384bad56f41b6e6e6fb6ae88"
+        },
+        {
+          "run_id": "windows-change-45980506038-1",
+          "source_commit": "15582b714015cc344b9c816e030cc9ff5039ff8d",
+          "report_sha256": "2c11260708df559875fe24cda2225fc2f03faa779706bdc361deb5b2b4f46b9f"
+        },
+        {
+          "run_id": "20261127T103857.971092Z-584f876c",
+          "source_commit": "e9ff23ddcf7a2d862337d64104f7a2e5583c5825",
+          "report_sha256": "78e1f1fac3a23917be2c1f592910a2446f1179de6ef0c932e8d9b419d3de21f1"
+        },
+        {
+          "run_id": "windows-change-45989306963-1",
+          "source_commit": "48890c66d6ce3f465d49a54bcf5b2fa689f9c999",
+          "report_sha256": "c7dcb3b951b6567c8dad286f41d619aa7a8ba7d069386dcbacf5587cf804792b"
+        },
+        {
+          "run_id": "windows-change-46103840740-1",
+          "source_commit": "91e419f12ee4fafc275bf6cf8dd4c521813acef3",
+          "report_sha256": "1cd1994e02b816b3879a8c76e44addc8f9fbf81788f30d8aa6172ae96e4a183c"
+        },
+        {
+          "run_id": "20261128T033946.183750Z-259784c9",
+          "source_commit": "91e419f12ee4fafc275bf6cf8dd4c521813acef3",
+          "report_sha256": "9dfd3e179d35d27fee620e016f2c702ee0ff6677a3fc62111ee89d8c4ec0524b"
+        },
+        {
+          "run_id": "windows-change-46115517382-1",
+          "source_commit": "fa0f311cd637f5d3466a1f0ed5b1ec985127cede",
+          "report_sha256": "7c636646bee78f3720f2e2048c63ad2e06d78aee5744a2b6e8a7f152c6e74cbe"
+        },
+        {
+          "run_id": "20261128T084724.175303Z-2544c8fc",
+          "source_commit": "632e4c8f3cfcbf47f9b2e8d5cf07972ee638d652",
+          "report_sha256": "6c62059cd5ed3c7c038719bfe2e2e9e092e18dc41b1b5d4f0c4b3cc773a53676"
+        },
+        {
+          "run_id": "windows-change-46127361251-1",
+          "source_commit": "632e4c8f3cfcbf47f9b2e8d5cf07972ee638d652",
+          "report_sha256": "174bda2aba9ebe23501de8d9dea8878b975974df06408ddc42f94b6c914a4638"
+        }
+      ],
+      "verification_budget": {
+        "repository": "kacoyi/scopehub",
+        "event": "pull_request",
+        "profile": "full",
+        "platform": "Windows",
+        "repair_commit": "6d469097d7703ff9d8870c025ef6ef0944f74262"
+      },
+      "resolution": {
+        "cause": "Repeated committed-source reads and independent lane fixture setup added work on the Windows verification path.",
+        "correction": "Batch the required immutable reads and reuse isolated producer fixture setup at ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc.",
+        "prevention": "PR 123 attempt 46131733216 finished Windows in 826 seconds from creation, including 2 seconds of queue, versus the 921-second overrun. Both required jobs passed. The same 35 Windows selections and 578/405 ordered case outcomes were retained. The four-producer protected main observation remains with M0-141."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-composed-recovery-selection",
+      "source": "Exact independent Astra Standard review of 8adbc265e010e6b8b49306ffe818838dcea543b1 at archives/observations/repo-hygiene-20261125/independent-final-m0-146-8adbc265/final-response.txt (SHA-256 ea1f5ba88c7bd534e041ae12bec8b20858e6646e534715609a303c01bebd9af2; raw response SHA-256 12233b871b0de8a08847ad165cb2eb39beff0a2399f3a6c88cac2893c5c186e1). Original exact-source failed report: .reports/runs/20261125T192346.344910Z-fec7c225/test-report.json.",
+      "observation": "The exact combined source ran 804 Python tests with one failure and four skips. The regression fixture still expected only market-recovery, while reviewed M0-139 also assigns market-recovery-ui to recovery. Prove that both checks execute exactly once and preserve their outcomes.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The split Python fixture assumed the earlier recovery ownership.",
+        "correction": "Use committed recovery ownership and require each moved check exactly once.",
+        "prevention": "The four-producer positive control includes both recovery checks and rejects missing or duplicate recovery UI ownership."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T192346.344910Z-fec7c225",
+          "source_commit": "8adbc265e010e6b8b49306ffe818838dcea543b1",
+          "report_sha256": "63fc5e16598c43b4128c5cb86c2f1388a72cbad90632b396f890f9189266b5e3"
+        }
+      ]
+    },
+    {
+      "id": "windows-python-raw-log-verdict-mismatch",
+      "source": "Exact independent Astra Standard review of 8adbc265e010e6b8b49306ffe818838dcea543b1 at archives/observations/repo-hygiene-20261125/independent-final-m0-146-8adbc265/final-response.txt (SHA-256 ea1f5ba88c7bd534e041ae12bec8b20858e6646e534715609a303c01bebd9af2; raw response SHA-256 12233b871b0de8a08847ad165cb2eb39beff0a2399f3a6c88cac2893c5c186e1).",
+      "observation": "A genuine archived unittest import failure with two tests and FAILED (errors=1) replaced an otherwise successful part log with its correct digest. Staging accepted it and emitted exit 0, Ran 801 tests and OK (skipped=4) while retaining the RuntimeError. Reconcile ordered raw outcomes, test totals, skips, and verdict before accepting either part.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "A matching digest did not establish the original subprocess verdict.",
+        "correction": "Compare the raw unittest record, callback evidence, manifest and process result.",
+        "prevention": "The public paths retain genuine failed and interrupted outputs and reject the substituted import failure in an otherwise successful publication."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-published-selection-and-summary-mismatch",
+      "source": "Exact independent Astra Standard review of 8adbc265e010e6b8b49306ffe818838dcea543b1 at archives/observations/repo-hygiene-20261125/independent-final-m0-146-8adbc265/final-response.txt (SHA-256 ea1f5ba88c7bd534e041ae12bec8b20858e6646e534715609a303c01bebd9af2; raw response SHA-256 12233b871b0de8a08847ad165cb2eb39beff0a2399f3a6c88cac2893c5c186e1).",
+      "observation": "Staging published a passing full Windows PR with the Python check absent from selection, including an empty selection. A separately reconstructed failed Python timeout row also published under a passing top-level verdict. Bind the full selected catalog, unique ordered rows and aggregate verdict to the native event.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The publisher trusted the report selection and top-level verdict independently of executed Python parts.",
+        "correction": "Bind full selection, terminal part evidence and aggregate outcome together.",
+        "prevention": "The passing control stages, while missing or empty selection and the contradictory timeout outcome fail admission."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-contradictory-process-clocks",
+      "source": "Exact independent Astra Standard review of 8adbc265e010e6b8b49306ffe818838dcea543b1 at archives/observations/repo-hygiene-20261125/independent-final-m0-146-8adbc265/final-response.txt (SHA-256 ea1f5ba88c7bd534e041ae12bec8b20858e6646e534715609a303c01bebd9af2; raw response SHA-256 12233b871b0de8a08847ad165cb2eb39beff0a2399f3a6c88cac2893c5c186e1).",
+      "observation": "The independent staging comparison kept two real unittest logs, manifests and digests that recorded 94.689 s and 20.834 s. Setting both outer process durations to zero still published Ran 801 tests in 0.000s. Validate process and runner duration bounds and source clocks before applying the shared timeout.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Outer process spans could contradict the original runner clocks.",
+        "correction": "Check the original process interval and aggregate duration against the retained part signals.",
+        "prevention": "The original pair stages and zero or impossible process timing is rejected with original logs intact."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-discovery-boundary-without-cases",
+      "source": "Exact independent Astra Standard review of 8adbc265e010e6b8b49306ffe818838dcea543b1 at archives/observations/repo-hygiene-20261125/independent-final-m0-146-8adbc265/final-response.txt (SHA-256 ea1f5ba88c7bd534e041ae12bec8b20858e6646e534715609a303c01bebd9af2; raw response SHA-256 12233b871b0de8a08847ad165cb2eb39beff0a2399f3a6c88cac2893c5c186e1).",
+      "observation": "Actual serial discovery retains the ImportError when tests.project cannot import and passes both adjacent tests when the boundary module supplies no cases. Both candidate parts instead failed early without recording those discovered outcomes. Partition by module position, preserving original loader IDs and allowing an empty side with complete evidence.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The partition boundary depended on discovery producing a case inside the boundary module.",
+        "correction": "Use discovered ownership and preserve genuine discovery failures and neighboring cases.",
+        "prevention": "The serial and split executions agree for an import failure and an empty boundary module."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-scoped-collection-profile",
+      "source": "Exact independent Astra t10d review of fc1027eb769fdf385d5a0fd7752d371b05a0a5b6 at archives/observations/repo-hygiene-20261125/independent-final-m0-146-fc1027eb/final-response.txt (SHA-256 224cb771405c39db80a1bbd5143547fd4447bbbd913d129acc92703573b07735; raw response SHA-256 fda0f69fd817bb0c660343a6b01828bd663c023411d6d8f0350a8c1664f387ca).",
+      "observation": "The ordinary Windows records collector rejected the four genuine PR112 originals under its workflow environment, then accepted them with scope provenance available only to the publisher. Validate records, tooling and localization against the collector's selected profile before the publication stage.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The normal collector lacked the scope provenance available later to the publisher.",
+        "correction": "Use authenticated profile inputs at collection and publication.",
+        "prevention": "The workflow-shaped scope controls admit valid records, tooling and localization inputs and reject mismatched comparisons."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-terminal-producer-verdict",
+      "source": "Exact independent Astra t10d review of fc1027eb769fdf385d5a0fd7752d371b05a0a5b6 at archives/observations/repo-hygiene-20261125/independent-final-m0-146-fc1027eb/final-response.txt (SHA-256 224cb771405c39db80a1bbd5143547fd4447bbbd913d129acc92703573b07735; raw response SHA-256 fda0f69fd817bb0c660343a6b01828bd663c023411d6d8f0350a8c1664f387ca).",
+      "observation": "The normal aggregate published all 35 checks as passed when the Python producer reported failed but the part and hosted job status both said passed. Reconcile every producer's top-level result, owned rows and part before accepting a complete aggregate.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The producer top-level failure could be hidden by a passing part and job result.",
+        "correction": "Reconcile producer status with result rows and original part verdict.",
+        "prevention": "The ordinary collector refuses a failed producer with a passing part and retains the successful control."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-case-output-and-multiple-events",
+      "source": "Exact independent Astra t10d review of fc1027eb769fdf385d5a0fd7752d371b05a0a5b6 at archives/observations/repo-hygiene-20261125/independent-final-m0-146-fc1027eb/final-response.txt (SHA-256 224cb771405c39db80a1bbd5143547fd4447bbbd913d129acc92703573b07735; raw response SHA-256 fda0f69fd817bb0c660343a6b01828bd663c023411d6d8f0350a8c1664f387ca).",
+      "observation": "Real unittest output from print('ok') was mistaken for an extra result. One case with an assertion failure and a cleanup error was also rejected. Verify independently captured outcome events and retain the original merged output.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "User stdout was interpreted as unittest status and a test could emit more than one terminal event.",
+        "correction": "Use independently captured unittest callbacks and retain original text and diagnostics.",
+        "prevention": "The real runner keeps standalone status-like stdout and both the assertion failure and cleanup error."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-diagnostic-case-identity",
+      "source": "Exact independent Astra t10d review of fc1027eb769fdf385d5a0fd7752d371b05a0a5b6 at archives/observations/repo-hygiene-20261125/independent-final-m0-146-fc1027eb/final-response.txt (SHA-256 224cb771405c39db80a1bbd5143547fd4447bbbd913d129acc92703573b07735; raw response SHA-256 fda0f69fd817bb0c660343a6b01828bd663c023411d6d8f0350a8c1664f387ca).",
+      "observation": "Moving a genuine diagnostic heading from the failed case to a passing case and rehashing the raw log was accepted. A genuine exception containing a heading-shaped line was rejected. Bind each diagnostic to the originating unittest callback and preserve multiline exception text.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Diagnostic headings could be reassigned to a different executed case.",
+        "correction": "Require the original diagnostic owner and distinguish exception text from headings.",
+        "prevention": "The genuine heading-shaped exception remains accepted as evidence, while a reassigned diagnostic is rejected."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-receipt-missing-part-originals",
+      "source": "Independent Astra t10d decision on a3d2030997def2937ac28e961a243809fe0b40fb, retained at archives/observations/repo-hygiene-20261125/independent-final-m0-146-a3d20309/final-response.txt (SHA-256 fd4168da699c62b7d2071b5e24800e7d54ad826285d1e86e6faab9ead539596f, raw response SHA-256 3ec33e1112bc02ad035fcc3f792765388804f90b29824e928cb7abb723eae6a2, decision 0862c3663aa0d3f768de24b91f334f895c7e9a140f55c5fae89396bcb651f0c4).",
+      "observation": "The ordinary hosted version 2.1 task record accepted a previously staged full report with all four part originals missing or with a damaged recovery manifest. Require both exact part identities, paths and digests before accepting Python completion evidence, preserving the legacy version 2.0 route.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The hosted recorder could admit a staged current report without reopening both part originals.",
+        "correction": "Require both original logs and manifests with their recorded identity and digests.",
+        "prevention": "The current receipt opens and reopens with the originals and refuses missing or tampered parts."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-package-fixture-ownership",
+      "source": "Independent Astra t10d decision on a3d2030997def2937ac28e961a243809fe0b40fb, retained at archives/observations/repo-hygiene-20261125/independent-final-m0-146-a3d20309/final-response.txt (SHA-256 fd4168da699c62b7d2071b5e24800e7d54ad826285d1e86e6faab9ead539596f, raw response SHA-256 3ec33e1112bc02ad035fcc3f792765388804f90b29824e928cb7abb723eae6a2, decision 0862c3663aa0d3f768de24b91f334f895c7e9a140f55c5fae89396bcb651f0c4).",
+      "observation": "A real tests.project package setup skip caused publication to reject a successful submodule case because the package name was used as a prefix. Bind each fixture effect to the actual discovered module or class and retain original skips and execution order.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Package setup effects were matched by a name prefix and applied to independently discovered submodules.",
+        "correction": "Use actual discovery ownership and retain continuation after a setup skip.",
+        "prevention": "The real package skip and passing submodule both appear in the correct order."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-producer-identity-drift-diagnostics",
+      "source": "Independent Astra t10d decision on a3d2030997def2937ac28e961a243809fe0b40fb, retained at archives/observations/repo-hygiene-20261125/independent-final-m0-146-a3d20309/final-response.txt (SHA-256 fd4168da699c62b7d2071b5e24800e7d54ad826285d1e86e6faab9ead539596f, raw response SHA-256 3ec33e1112bc02ad035fcc3f792765388804f90b29824e928cb7abb723eae6a2, decision 0862c3663aa0d3f768de24b91f334f895c7e9a140f55c5fae89396bcb651f0c4).",
+      "observation": "Ordinary Windows main producers correctly reported failed when the source snapshot changed or the final project identity could not be read, while Python passed. Producer staging rejected the honest failed reports. Include both identity verdicts and preserve failed originals without admitting them into a successful aggregate.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The producer stager could not retain a legitimate execution or final identity failure.",
+        "correction": "Stage the honest failed report and prevent it from qualifying as a successful producer.",
+        "prevention": "Source drift and unreadable final state retain their diagnostic artifacts while collection refuses the failed producers."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-post-interpreter-original-log",
+      "source": "Independent Astra t10d decision on a3d2030997def2937ac28e961a243809fe0b40fb, retained at archives/observations/repo-hygiene-20261125/independent-final-m0-146-a3d20309/final-response.txt (SHA-256 fd4168da699c62b7d2071b5e24800e7d54ad826285d1e86e6faab9ead539596f, raw response SHA-256 3ec33e1112bc02ad035fcc3f792765388804f90b29824e928cb7abb723eae6a2, decision 0862c3663aa0d3f768de24b91f334f895c7e9a140f55c5fae89396bcb651f0c4).",
+      "observation": "A genuine module destructor wrote final stderr bytes after atexit, leaving both successful native-shaped parts unpublished. Verify the independently captured runner output and bind the closed original log after interpreter cleanup without discarding valid output.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The final stream digest was computed before interpreter teardown bytes could be written.",
+        "correction": "Seal the original stream after execution and bind it to the separately recorded runner output.",
+        "prevention": "A real destructor emits retained stderr and the genuine successful part can publish with the closed log."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-receipt-producer-mismatch",
+      "source": "Independent Astra Standard t10d decision on 3f74a1e9b149464a35c4b31657bc624ae1f47b47, retained at archives/observations/repo-hygiene-20261125/independent-final-m0-146-3f74a1e9/final-response.txt (SHA-256 9e5b8211beaf26178292b5daf872ba7c4d2c609b477b3570eafee27e5168b4e9; original response SHA-256 ca1b96c7da455f7d5c8d5dfc2ba4e5d491fc8fdc66889b2f53b40ac72a886c16; decision 7e30766ba9be6d8a58073e8b630257072852cf631362da2aafd7e071244e7633).",
+      "observation": "The public 2.1 task record accepted a recovery manifest taken from the Python producer after its attachment digest was updated. It also accepted a recovery command ending in python with all four original attachments intact. The normal publication entry rejected the substituted manifest. Exercise the same producer identity and recomputed Python check at both entries, with authentic 2.0 receipt import as a compatibility control.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The recorder could accept a sibling manifest or command with updated attachment digests.",
+        "correction": "Bind each original to its lane, command, producer report and reconstructed aggregate.",
+        "prevention": "The public recording controls refuse substitution of the Python original into recovery and a recovery command ending in python."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-unstable-runner-log-prefix",
+      "source": "Independent Astra Standard t10d decision on 3f74a1e9b149464a35c4b31657bc624ae1f47b47, retained at archives/observations/repo-hygiene-20261125/independent-final-m0-146-3f74a1e9/final-response.txt (SHA-256 9e5b8211beaf26178292b5daf872ba7c4d2c609b477b3570eafee27e5168b4e9; original response SHA-256 ca1b96c7da455f7d5c8d5dfc2ba4e5d491fc8fdc66889b2f53b40ac72a886c16; decision 7e30766ba9be6d8a58073e8b630257072852cf631362da2aafd7e071244e7633).",
+      "observation": "A real background stderr write landed after the worker read the log to compute its digest and before it separately measured the file size. Both successful workers then recorded a length and digest for different prefixes, and publication rejected their originals. Measure the length of the same bytes fed to the digest and verify publication with bytes appended during worker finalization.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Two reads could capture different lengths of a growing log prefix.",
+        "correction": "Measure and hash the same captured prefix before sealing the final log.",
+        "prevention": "The callback witness remains valid when a real writer appends stderr after the prefix boundary."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-interrupted-manifest-finalization",
+      "source": "Independent Astra Standard t10d decision on 3f74a1e9b149464a35c4b31657bc624ae1f47b47, retained at archives/observations/repo-hygiene-20261125/independent-final-m0-146-3f74a1e9/final-response.txt (SHA-256 9e5b8211beaf26178292b5daf872ba7c4d2c609b477b3570eafee27e5168b4e9; original response SHA-256 ca1b96c7da455f7d5c8d5dfc2ba4e5d491fc8fdc66889b2f53b40ac72a886c16; decision 7e30766ba9be6d8a58073e8b630257072852cf631362da2aafd7e071244e7633).",
+      "observation": "A real SIGINT during the Python producer manifest finalization escaped the process and left both retained and latest reports absent. A signal during final report writing retained both diagnostics. Exercise interruption during final log data and manifest sealing and preserve the interrupted producer result, raw originals and report.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Interruption in finalization could escape before reports were retained or replace a completed check.",
+        "correction": "Preserve sealed originals and record interruption at the proper boundary.",
+        "prevention": "Real SIGINT controls preserve both reports and manifest bytes without upgrading the interrupted publication."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-legacy-nested-fixture-ownership",
+      "source": "Independent Astra Standard t10d decision on 3f74a1e9b149464a35c4b31657bc624ae1f47b47, retained at archives/observations/repo-hygiene-20261125/independent-final-m0-146-3f74a1e9/final-response.txt (SHA-256 9e5b8211beaf26178292b5daf872ba7c4d2c609b477b3570eafee27e5168b4e9; original response SHA-256 ca1b96c7da455f7d5c8d5dfc2ba4e5d491fc8fdc66889b2f53b40ac72a886c16; decision 7e30766ba9be6d8a58073e8b630257072852cf631362da2aafd7e071244e7633).",
+      "observation": "An original no-owners 2.1 manifest from the a3d20309 runner recorded a legitimate module setup skip for a nested TestCase. Serial unittest and the old publisher accepted it, while current publication rejected it after inferring the wrong module from the ID. Accept the legacy nested-module skip and prove continued execution after a package fixture skips.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Legacy ownership inferred from nested case names misattributed a legitimate setup skip.",
+        "correction": "Recover identifiable module and class ownership for historical originals.",
+        "prevention": "The original no-owners format preserves a real nested module skip and live package continuation."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-receipt-source-membership-and-attempt",
+      "source": "Independent Astra Standard t11t decision 09ed0aecd290b1c246d773e3cbd79c87e787e7b5cba4fb62050711db0d5e197e on 6f57130d70af1b971c1a268edb4065e5b7895c05, retained at archives/observations/repo-hygiene-20261125/independent-final-m0-139-6f57130d/final-response.txt (SHA-256 d68729f6c1b84241a056c8d35ec9001f1e77effe31f5b1dffbbe0dca25fdac59; original response SHA-256 69dd0ac1491d25f966859519b5e96509f0531da1e784259786d8fb5d62501a5f).",
+      "observation": "The public M0-139 importer accepted a partitioned full Windows pull-request report after marking it as 2.0 and removing both Python parts and all four originals. It also accepted a separate 2.1 report with all originals intact when ci.run_attempt was 3 and the run ID was windows-change-10-2. Publication rejected both. Bind part membership to the verified source and run selection, and bind attempts to the original run identity. Preserve authentic historical 2.0 import.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-139",
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "A report version or attempt could be relabeled without rechecking source-declared part ownership.",
+        "correction": "Determine the required report format and parts from the committed source and bind the original attempt.",
+        "prevention": "The original historical report remains admissible. A downgraded current report and originals from another attempt are refused."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-legacy-executed-case-completeness",
+      "source": "Independent Astra Standard t11v decision 5500dccf92e91cd51dae038bcd497b33297a79abd7f9cbc76ae86cbdacdf85dd on 6f57130d70af1b971c1a268edb4065e5b7895c05, retained at archives/observations/repo-hygiene-20261125/independent-final-m0-146-6f57130d/final-response.txt (SHA-256 3140c637a75272692c88c5160c5e90957ffe7cf94285942047397857a9c11521; original response SHA-256 89ff70f36607f2dbc7f48af3ad36382d43ed16696afbfda894200e6e7b144845).",
+      "observation": "Public part and aggregate publication accepted a legacy 2.1 manifest after one executed submodule test and its callbacks were removed and the manifest digest was recomputed. The original two-part log and serial control recorded three executed tests. The aggregate published two tests as passing. Verify executed case completeness against the original runner output while preserving real nested-module and package fixture skips.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The accepted part inventory could omit a genuinely executed historical case.",
+        "correction": "Compare the claimed ordered inventory and callback sequence against the original unittest execution.",
+        "prevention": "The genuine continuation passes, while removed or invented case claims fail validation."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-original-log-attempt-and-check",
+      "source": "Independent Astra Standard t12f decision cff237850ce522ab9c76951c6328786509f4df88db93738665d78e5563582b97 on 6c4effe33210598993fcd8bf7bca26d40d8569ba, recorded in contracts/reviews/task-decisions/M0-139.json#/events/8. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-139-6c4effe3/final-response.txt (SHA-256 f7325652659a16d692f950615aa7192d1cfda52cedfaad1a51c025d34f5904c6) and original-assistant-response.jsonl (SHA-256 066e5ba2a2ebfcc70e04607bda287ac2dd411b3b5a3c404d121f82e032729b24).",
+      "observation": "The ordinary M0-139 importer issued an attempt-two receipt for genuine 2.0 run 45680128413 after the report run ID and CI attempt changed together, with both required logs still named for attempt one. Separately it accepted the unchanged environment log under project-state. Windows push staging also accepted the genuine 45603929191 attempt-one report namespace after both the report and the simulated hosted environment claimed attempt two. The preceding regression changed only the attempt field and checked generic path containment and digests, allowing the mutually consistent report claims and misattributed original bytes to escape. Regress ordinary import, reopened evidence and protected publication with the original and same-shape rejected cases.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-139",
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Required log paths did not bind both the requested hosted attempt and actual check.",
+        "correction": "Require the expected original attempt and exact check-relative path for each legacy log.",
+        "prevention": "The public recorder rejects both false attempt relabeling and a same-attempt sibling log, and reopens the exact restored receipt."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-legacy-original-case-outcomes",
+      "source": "Independent Astra Standard t12g decision 56fc37cf49f8aaec6cd0e8b37fe09d354f70f30cf2aff0b5221e1d08d4ce7500 on 6c4effe33210598993fcd8bf7bca26d40d8569ba, recorded in contracts/reviews/task-decisions/M0-146.json#/events/8. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-146-6c4effe3/final-response.txt (SHA-256 c6f469d1fb70150523c6c037187089759729509c67dbe25b3f83144fcb93e5ae) and original-assistant-response.jsonl (SHA-256 8ddb16dc5ac9f8ec3890a12dedccc3351dbd502b19dc6e94327359540620c4e4).",
+      "observation": "The legacy structured 2.1 producer and aggregate publisher accepted a passing manifest after a passing test and a skipped test exchanged outcomes, with names, order, totals and both original logs unchanged. It also accepted an equal-count substitution of the unexecuted non-ASCII name test_未执行. A genuine interpreter-exit unittest footer after the primary footer made a valid legacy part fail. The preceding completeness regression removed an execution and changed the totals. Its validation compared names without their verdicts, waived display checks for non-ASCII names, and used the final footer, leaving these differences undetected. Regress the owning publisher, ordinary receipt import and reopened evidence against genuine samples with the same names and counts.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The same aggregate totals hid exchanges between named passing and skipped legacy cases.",
+        "correction": "Bind identifiable per-case outcomes to both original legacy streams.",
+        "prevention": "Genuine outcomes reopen and same-count exchanges in either stream fail admission."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-inline-test-output-outcome",
+      "source": "Local genuine unittest subprocess replay on the reviewed 6c4effe33210598993fcd8bf7bca26d40d8569ba and interim e919bcfb207c0fdefef705d2b1f0352560f8e11f. Retained .reports/audit-20261125/m0-146-exact-review-6c4effe3/inline-stdout-reviewed/observation.json (SHA-256 868e1538e84ebf64b225cac7a39f3a240fbd17670deba888380f1a985095ef00) and .reports/audit-20261125/m0-146-exact-review-6c4effe3/inline-stdout-current/observation.json (SHA-256 7c73cac9bc296d167d051923d4b6b7573989309ac47fb09a7824ef27be1d26df).",
+      "observation": "A synchronous test printed progress without a newline. Both real runners exited zero and produced the identical original log with progressok on the named test line. The interim verifier rejected it at producer publication, while the reviewed verifier accepted it. Earlier output coverage printed standalone lines that matched the actual outcome and missed both inline output and misleading standalone test text. Verify the actual terminal outcome, preserving synchronous output and the rejection of an exchanged pass and skip.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-146"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": {
+        "cause": "Synchronous progress could share the line containing its actual unittest outcome.",
+        "correction": "Recognize identifiable inline status in legacy streams and require the producer callback witness for current streams.",
+        "prevention": "The genuine inline-output execution qualifies and exchanged terminal outcomes are refused."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-cleanup-output-case-outcomes",
+      "source": "Independent M0-146 decision df45b5c167a419e03363bf86a59839b89050de30688df3f32adc0fab49e64180 on ba27e2478d6bdbfe7736ac0f390b640f8a7fb9a4, recorded at contracts/reviews/task-decisions/M0-146.json#/events/10 on decision head 9607ec8aa557e520e7dc967f8536dbe7e9a95c8a. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-146-ba27e247/original-assistant-response.jsonl (SHA-256 abf441234963e5ebec5714f888e221f039c97092f385ffa82b084aabc9c99613).",
+      "observation": "Both the a3d20309 and ba27e247 runners recorded a passing case and a skipped case, followed by ordinary tearDownClass stderr ending in skipped 'fixture' and ok respectively. Publication rejected the genuine manifests. Exchanging the case outcomes and durations while preserving both original logs and the order, count and summary allowed producer publication, aggregate publication, receipt import and reopen. Exercise these public boundaries with the same real tests and intact or exchanged outcomes, and preserve the independent M0-139 attempt controls.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-146"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": {
+        "cause": "Class cleanup status-like output could be assigned to a neighboring case.",
+        "correction": "Bind identifiable legacy status to its original context and current status to the runner callback.",
+        "prevention": "Real cleanup output remains byte-preserved, and a changed same-count outcome inventory does not publish or reopen."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-legacy-multiline-cleanup-outcomes",
+      "source": "Independent M0-146 decision 6cb654e3272d9dac21ffd5ca0414e55a626cd1fa7f2d7b2800aaf93726a2d36c on a47fe65ae18064d3147f86e6a3cb32784bca4d9d, recorded at contracts/reviews/task-decisions/M0-146.json#/events/13 by 48c81e51d5931635d568eec2ab7fe6c76a913e69. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-146-a47fe65a/final-response.txt (SHA-256 1b8c4cc5c80e255aa6425dd9548a9ce8bbc03d3d4446436a0fd745b2aeb20ab0) and original-assistant-response.jsonl (SHA-256 624cd9af629eb0bf378210d7ca3203e15a263faee6f7b223c188eeab016d984f).",
+      "observation": "With the original a3d20309 legacy runner, a test writes several progress lines and the real outcome closes an unterminated progress line. Class cleanup then prints a standalone status that looks like the opposite outcome. The genuine pass and skip inventory is rejected, while swapping only the two outcomes and their skip flags allows producer publication, aggregation, aggregate publication, ordinary receipt import and reopen. Both original logs, ordered cases, duration values and footer totals are unchanged. Regress those public entries for both inventories, and retain the unambiguous legacy and current callback controls.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-146"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": {
+        "cause": "Multiline progress and cleanup created competing legacy callback assignments.",
+        "correction": "Reject ambiguous original streams at publication and receipt admission while preserving diagnostics.",
+        "prevention": "The genuine opposite assignments are exercised against identical raw text and neither ambiguous inventory can issue or reopen a receipt."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-legacy-identical-logs-opposite-callbacks",
+      "source": "Independent M0-146 decision 66752e14e7428cdc46abdb25705832c86ac1bf9b695b70bb899eca68b3d1fa2e on 2ba0355110d2610107199475c719eb2874cb6088, recorded at contracts/reviews/task-decisions/M0-146.json#/events/15 by c2dfcae5067fc5012fdc8ed81cc263d1d7983209. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-146-2ba03551/original-assistant-response.jsonl (SHA-256 ec46ecd8fc6cf480b36bc64eaccbe974642874e69cb08bde1643f90cc22e2fd1), .reports/audit-20261126/m0-146-legacy-qualification/originals/indistinguishable-legacy/observations.json, .reports/audit-20261126/m0-146-legacy-qualification/originals/nested-diagnostic-collision/observations.json (SHA-256 02168928857621284ac325608bff59e01117b05124f4aa7922648a6bc9b8d533), and .reports/audit-20261126/m0-146-legacy-qualification/originals/outer-footer-collision/observations.json (SHA-256 e7dafc0130d56e3fdda2428c32e1cf03832e66c18f5bdafba8d027b1ccddabf2).",
+      "observation": "Two actual executions with the a3d20309 runner emitted byte-identical merged logs while exchanging the pass and skip of two named tests. Under 2ba03551, a same-order, same-duration change to those outcomes and skip flags passed producer publication, aggregation, aggregate publication, receipt import and reopen, while the genuine manifest was rejected. Further same-byte original runner pairs showed b3360c1a accepting an assignment after discarding an outcome suffix in an apparent nested traceback and ac09ae9c accepting an assignment by cutting off at the first of two plausible primary footers with identical case names, totals and rounded durations. Regress both readings of each collision and retain the actual callbacks as diagnostic observations.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Opposite named outcomes could share the same original legacy bytes and summary counts.",
+        "correction": "Refuse qualification when the legacy originals cannot prove either claimed assignment.",
+        "prevention": "Two real executions produce the same bytes with opposite callbacks. Both claims are rejected while current callback evidence remains admissible."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-legacy-nested-runner-summary",
+      "source": "Independent M0-146 decision 66752e14e7428cdc46abdb25705832c86ac1bf9b695b70bb899eca68b3d1fa2e on 2ba0355110d2610107199475c719eb2874cb6088, recorded at contracts/reviews/task-decisions/M0-146.json#/events/15. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-146-2ba03551/original-assistant-response.jsonl (SHA-256 ec46ecd8fc6cf480b36bc64eaccbe974642874e69cb08bde1643f90cc22e2fd1). Local nested rendering originals on b3360c1a870cc50e4423d899a58d29e2ebacaa87 are in .reports/audit-20261126/m0-146-legacy-qualification/originals/nested-rendering.",
+      "observation": "A passing inner unittest run printed its progress and Ran 1 test footer before the outer case's skip callback. Both actual legacy producers exited zero, but the candidate rejected the genuine outer case result during aggregation, publication, import and reopen. The same case passed with the current callback witness. A later real unittest replay also reproduced rejection of uniquely assignable nested results when the inner case had a short description or wrote inline progress before the callback. Regress the genuine nested result and an exchanged outcome through both producer formats, preserving the prior cleanup and interpreter-exit controls.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "A nested unittest footer could displace the outer callback and summary.",
+        "correction": "Identify the outer result where the original evidence supports one assignment.",
+        "prevention": "An identifiable inner pass followed by the outer skip qualifies, and competing outer assignments are refused."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-legacy-teardown-footer-ownership",
+      "source": "Independent M0-146 decision 012995bd5db7f93328e8f67a6ba42f900afadb4aae1f042e8bbf5544f503250b on 482fc9e542308392095cae7e87d7820d50391435, recorded at contracts/reviews/task-decisions/M0-146.json#/events/17 by c1bfd234935d7468a686f1d46f01f8bc50df9038. The original is retained in archives/observations/repo-hygiene-20261125/independent-final-m0-146-482fc9e5/original-assistant-response.jsonl and .reports/audit-20261126/m0-146-callback-identity/originals/independent-final-m0-146-482fc9e5/original-assistant-response.jsonl (SHA-256 c86194093f6fd493f35e6aa93156f85a42c16f81c4e6ea193d45551456bcc123).",
+      "observation": "With the genuine a3d20309 runner, tearDownModule used TextTestResult to write two named child progress lines and no child summary. Two executions reversed the outer pass and skip while the raw Python log stayed byte-identical (SHA-256 b32271592c5d611377e6d17719b5bca5733f0443f998742879a6a7cb9ce41ac4). The verifier paired child progress with the outer summary, discarded the real outer callbacks after an earlier compatible footer and rejected the genuine inventory. Swapping only the per-case outcomes and skip flags while retaining both original logs, durations and totals passed producer publication, collection, aggregate publication, receipt import and reopen. Exercise both interpretations through those entries, preserve diagnostic-only reopening of ambiguous originals, and retain authentic 2.0, identifiable legacy 2.1 and current versioned callback controls.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "A later compatible footer could be assigned to teardown progress and hide another valid outer assignment.",
+        "correction": "Check competing outer summaries before accepting historical per-case claims.",
+        "prevention": "The named teardown-child outputs preserve both possible real executions and neither ambiguous candidate can issue or reopen a receipt."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-verification-retry-restores-different-report-bytes",
+      "source": "Authenticated ordinary full warm Windows PR123 attempt one on 450a715ac6b59d355e54a0efdd78cfbe7769d8e6. Original report archives/runs/windows-change-45839731781-1/test-report.json. Windows, Linux and split producer originals are indexed in archives/observations/repo-hygiene-20261125/pr123-native-original-45839731781/manifest.json (SHA-256 9f231353f2510c2ea4cae140f99615d1cfb8a12eee0a06b13886a88ba500abe1).",
+      "observation": "The first split Windows PR123 ran 881 tests with 72 skips and two assertion failures. test_current_split_receipt_binds_the_original_producer_attempt received a different receipt path and SHA-256 after restoring the report. test_full_windows_main_push_publication_rejects_a_different_attempt compared the initial native CRLF report against a restored LF encoding. The two invalid-attempt rejections precede the failing positive assertions.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45839731781-1",
+          "source_commit": "450a715ac6b59d355e54a0efdd78cfbe7769d8e6",
+          "report_sha256": "b819f768979dbd94b4b5f0646ee9cd4f6bca141332f11280b4c0a403010d78b8"
+        }
+      ],
+      "resolution": {
+        "cause": "Reserializing a native CRLF report during restoration changed the original receipt identity.",
+        "correction": "Restore and compare preserved original bytes on retry.",
+        "prevention": "Both current split and historical Windows publication retain exact bytes, reject the wrong attempt and reuse the original receipt after restoration."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "linux-storage-fixture-empty-collection-during-recovery-overlap",
+      "source": "Local Linux recovery overlap originals from 2026-11-26 and isolated, exact full and suffix replay controls are byte-preserved in .reports/audit-20261126/m0-146-composition-qualification/originals.json (SHA-256 967fce3bf888d3311bcf35a87d6bc5c82467e8ffa1c09e99b45336f1fc9f6cc5). The working-copy driver used check.run_overlapped with Windows timeout selection and the actual scripts/windows_python.py recovery process plus three serial Playwright checks. The first run started before 8b79d175 was committed, has no clean source binding, and recorded no failing storage report. The storage script and fixture are byte-identical in 8b79d175 and clean composition 81f4bdc7. The first full and suffix controls are separate 8b79d175 observations.",
+      "observation": "On Linux, test_managed_collection_retains_actual_nested_and_mounted_paths received collected=[] for its expected disposable normal target while the real recovery Python suffix overlapped market checks. Python exited 1 with one failure and one skip across 331 cases. The three market checks passed. The fixture passed in isolation and in the later exact full and recovery suffix suites. The first assertion printed only the collected paths, so its first collection hold or error is unknown. PR123 skipped this Linux-only case and separately failed two byte-restoration assertions. Keep the original Windows results and the 900-second ordinary full warm PR objective distinct from the 1200-second Python deadline and the local Linux overlap.",
+      "severity": "minor",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-selected-market-check-dropped-at-publication",
+      "source": "Independent M0-146 changes-requested decision on 07cc51a941fe209608fa32b69663f0f47a17420c, contracts/reviews/task-decisions/M0-146.json#/events/23. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-146-07cc51a9/original-assistant-response.jsonl (SHA-256 3d69a0b8823a737092be8da5dafd3b545a0930765b432d0c6b89466b26a0348e).",
+      "observation": "The exact 07cc51a9 publisher accepted the core lane not_selected rows in place of the passed market-workflow and market-recovery rows from their respective browser and recovery owners in the original Windows PR 45839731781. All 35 selection identifiers remained present, but the passed results and original logs disappeared from publication. Regress actual owner assignments, selected and unselected rows, and genuine interrupted earlier_failure omissions through the hosted report boundary.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "An unselected core result could displace a check owned and executed by a sibling.",
+        "correction": "Retain the committed source's exact producer selection and each selected outcome.",
+        "prevention": "The present and historical ownership controls publish their genuine checks and reject the substituted unselected rows."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-market-producer-result-diverges-from-aggregate",
+      "source": "Independent M0-139 changes-requested decision on 07cc51a941fe209608fa32b69663f0f47a17420c, contracts/reviews/task-decisions/M0-139.json#/events/23. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-139-07cc51a9/original-assistant-response.jsonl (SHA-256 f118679fa8d91e488f78ffa35fc2573006cd62917320deb568740f280b718494).",
+      "observation": "The exact 07cc51a9 publisher accepted a market-recovery-ui log from Windows run 45680128413 after the aggregate digest was edited, despite the unchanged 45839731781 recovery producer digest. Ordinary 2.1 receipt import accepted a passing aggregate exit 0 for the same check while its recovery producer reported exit 7. Verify original market rows at both entries, including receipts for tasks that do not require the combined Python check, and repeat the import after restoring the original bytes.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "A different run's check log could replace a producer-owned result after rehashing.",
+        "correction": "Bind the selected row and original log to the declared producer.",
+        "prevention": "Ordinary receipt import preserves the original pair and refuses a row or log swapped from another producer."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-publication-accepts-linux-report",
+      "source": "Independent M0-139 changes-requested decision on fd02515180726e0b843e590b62d0aeef404aed48, contracts/reviews/task-decisions/M0-139.json#/events/25. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-139-fd025151/original-assistant-response.jsonl (SHA-256 281f1f603d7eb47717aa318a3bee177f8a64cf2b75592057b9bfff3931f1539f). Independent M0-146 changes-requested decision on fd02515180726e0b843e590b62d0aeef404aed48, contracts/reviews/task-decisions/M0-146.json#/events/25. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-146-fd025151/original-assistant-response.jsonl (SHA-256 5b7148dc576d3017a0d99cd5ec0a4f8ab888996a15ae1fd7a463877d1bdc82aa).",
+      "observation": "Both independent reviews of fd025151 staged all 57 files of the unchanged Linux artifact from PR 123 run 45839731781 attempt 1 in the full Windows aggregate job environment. The genuine Windows aggregate retained 64 files and its failed verdict. Report-controlled routing diverted the Linux original to generic validation. Regress the authoritative job and platform at publication and authenticated artifact import, including the unchanged Linux artifact in its valid Linux job and Windows originals at supported historical boundaries.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Windows publication accepted a report whose original platform was Linux.",
+        "correction": "Bind the report environment and attempt to the Windows publication entry.",
+        "prevention": "The Windows aggregate retains its original results and attachments. The Linux report is refused under the Windows staging environment."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-earlier-failure-omits-original-producer-result",
+      "source": "Independent M0-146 changes-requested decision on fd02515180726e0b843e590b62d0aeef404aed48, contracts/reviews/task-decisions/M0-146.json#/events/25. Retained archives/observations/repo-hygiene-20261125/independent-final-m0-146-fd025151/original-assistant-response.jsonl (SHA-256 5b7148dc576d3017a0d99cd5ec0a4f8ab888996a15ae1fd7a463877d1bdc82aa).",
+      "observation": "The independent M0-146 review of fd025151 replaced the first selected browser check, the passed market-workflow result (95.750 seconds), with a genuine earlier_failure omission from a different interrupted report. The lane and historical aggregate validators accepted the omission and lost the original log even though the following nine browser checks passed. Regress the stopping condition and causal order in the actual producer, including retained originals and real interrupted recovery results, at publication, import and receipt reopen.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "An earlier-failure omission could replace an already executed selected check.",
+        "correction": "Require a genuine preceding stop and bind later omissions to producer order.",
+        "prevention": "The normal first completed browser row is retained and the invented early omission fails publication."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-legacy-timing-fixture-claims-binding-schema",
+      "source": "Exact Linux M0-146 harness on e8876dd666e853f7ea8d6d6fc2a39c95d744833d. Original .reports/runs/20261126T155336.330534Z-c7df6b09/test-report.json.",
+      "observation": "Four protected main-push timing receipt controls stopped before their verdict assertions. The synthetic historical 2.0 report uses the pre-aggregate run layout but inherited the current source schema declaring required Windows producer bindings. Model the historical source explicitly and rerun the unchanged closed, missing and wrong-event timing verdict assertions.",
+      "severity": "minor",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261126T155336.330534Z-c7df6b09",
+          "source_commit": "e8876dd666e853f7ea8d6d6fc2a39c95d744833d",
+          "report_sha256": "5260fc5a79213f7e4d4e2384a3657df0c83ac3cf44b15ccac2e54c4056b24764"
+        }
+      ],
+      "resolution": {
+        "cause": "The historical 2.0 timing fixture inherited the current producer-binding schema.",
+        "correction": "Model the committed historical report layout explicitly.",
+        "prevention": "The original closure, missing or unsuccessful protected timing and wrong-event controls reach their verdict assertions."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-executed-failure-loses-original-log-and-browser-report",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent Astra Standard t1dd on 115a410bcaebde3f9d782862701d86e957a75be9. Original response at archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1dd/original-assistant-response.jsonl (SHA-256 9f4581ce71861b8cef2ba37cae6e173d001da2399b2f58c21aba3eab5d7e7c9e).",
+      "observation": "Windows PR123 run 45933801256 attempt one recorded workspace-timeframe failing with exit 1 after 209.875 seconds. Both the producer stager and aggregate publisher accepted a copy with the executed row log path and digest removed, even when the aggregate binding was recomputed. Publication dropped the 19,079-byte original log and Playwright results JSON.",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45933801256-1",
+          "source_commit": "4c6907e67c50eadfa95308b46594f92722e2490b",
+          "report_sha256": "2b4e4c9dce03a68efcfe32ed9dd49a0efdb48287a8f9a9195f55c689d4cb0657"
+        }
+      ],
+      "resolution": {
+        "cause": "Executed failure rows could pass publication with their original artifacts removed.",
+        "correction": "Require attachment integrity for executed failures as well as successes.",
+        "prevention": "The genuine failure stages with its attachments and incomplete copies are refused at both evidence boundaries."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-recovery-interruption-between-checks-loses-report",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent Astra Standard t1df on 115a410bcaebde3f9d782862701d86e957a75be9. Original response at archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1df/original-assistant-response.jsonl (SHA-256 67648e56ebc6cfab3dd48834ff060e972c7a6502f10a80cdfd008040e084933a).",
+      "observation": "In a replay of the ordinary Windows recovery producer using original results, the Python suffix and three serial checks finished before SIGINT was delivered just before desktop-localization. The scheduler skipped the unstarted check and raised KeyboardInterrupt before either harness report could be written. Completed results were unavailable to local recovery and aggregate diagnostics. The independent t1dp replay on b1541b819e0116f7c844684a2d9390940a55fd6f confirmed the earlier boundary is fixed and reproduced the same loss when SIGINT arrived after all five results were available. The scheduler raised KeyboardInterrupt and neither report was written. Original response at archives/observations/repo-hygiene-20261125/independent-final-m0-146-b1541b81/original-assistant-response.jsonl (SHA-256 5aa696bdf54fadb026bbaffcee001273c6f5c4e1ca75cacc320d5e2e186d274b).",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "A real interruption between serial checks could bypass final publication.",
+        "correction": "Finalize completed results and publish an interrupted diagnostic with explicit unstarted work.",
+        "prevention": "The overlap controls retain completed Python and browser results and originals for interruptions before localization and after the last check."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-integration-uses-unverified-producer-topology",
+      "source": "Independent M0-139 changes-requested decision on 17cbf7c7dbe7290f3728eb6e4987a03df5aee973, the final event in contracts/reviews/task-decisions/M0-139.json. Original archives/observations/repo-hygiene-20261125/independent-final-m0-139-17cbf7c7/original-assistant-response.jsonl (SHA-256 43bc5e3fb64b1ce3594117eeb6f86e73ade66e8159814533dab984f7dea0bd07).",
+      "observation": "The tested merge declares five Windows producers while its PR head declares four. Using authenticated attempt-one jobs from 45965137241, the independent public integration replay went from blocked to passed when only the tested merge workflow became unavailable. The fallback read the head and omitted the workspace producer from the decision without establishing that the tested tree was equivalent.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-146"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": {
+        "cause": "Integration inferred topology from the submitted head or observed jobs alone.",
+        "correction": "Read the topology from the verified tested merge tree.",
+        "prevention": "The current five-producer and supported historical topology controls qualify only against their own source and all declared producers."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-interruption-final-publication-passes",
+      "source": "Independent M0-146 changes-requested decision on 17cbf7c7dbe7290f3728eb6e4987a03df5aee973, the final event in contracts/reviews/task-decisions/M0-146.json. Original archives/observations/repo-hygiene-20261125/independent-final-m0-146-17cbf7c7/original-assistant-response.jsonl (SHA-256 bf35c8b51886624f0c2c81475f4b3c0cc7c1d8e88e86e8723e3281e765b68ef4).",
+      "observation": "The independent recovery producer replay completed 310 Python cases with one skip. A real SIGINT during final source revalidation raised KeyboardInterrupt and left neither report. A real SIGINT during the first publication write exited 1 while both reports said passed and lacked an interruption marker. The new isolated partition has no overlap window, but interruption accounting still depends on it.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-146"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": {
+        "cause": "Late SIGINT could leave no report or leave a passing report after a failed exit.",
+        "correction": "Handle finalization interruption while retaining completed original evidence and a failed publication outcome.",
+        "prevention": "The actual interruption controls cover final identity and report publication without yielding a successful producer."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-workspace-publication-accepts-missing-original-results",
+      "source": "Independent M0-146 changes-requested decision on 17cbf7c7dbe7290f3728eb6e4987a03df5aee973. Original archives/observations/repo-hygiene-20261125/independent-final-m0-146-17cbf7c7/original-assistant-response.jsonl (SHA-256 bf35c8b51886624f0c2c81475f4b3c0cc7c1d8e88e86e8723e3281e765b68ef4).",
+      "observation": "The workspace producer artifact and aggregate reopen accepted the authentic passed and failed workspace-timeframe outcomes after removal of their 926288-byte and 872015-byte Playwright results respectively. Removing the neighboring process log was rejected in each case. The original results were present in the controls and were omitted by collection after removal.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-146"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": {
+        "cause": "Workspace results were optional even when produced and required for evidence.",
+        "correction": "Bind the Playwright journal and its digest through staging, collection and diagnostic reopening.",
+        "prevention": "Genuine pass and failure results are retained. Removing a recorded journal fails admission, and a real reporter failure without a journal remains a failure."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-integration-tested-commit-tree-conflict",
+      "source": "Independent M0-139 changes-requested decision on 3f5485af1e44cf9e85ed60bd024d182755a47f72, the latest event in contracts/reviews/task-decisions/M0-139.json. Original archives/observations/repo-hygiene-20261125/independent-final-m0-139-3f5485af/original-assistant-response.jsonl (SHA-256 264ea9573a5e289a02de94c021d12f9be00ab94db6fa8f018a824bda33cfa193).",
+      "observation": "The public integration replay for tested merge 770b2481 blocked three Windows producers with the actual tree 55a3d6e1 and passed them when only the API tree changed to bdff87e4. Qualify the reported tree against the available tested commit and preserve the verified tree-only historical route when the commit object is missing.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "A contradictory API tree could override the actual tested checkout identity.",
+        "correction": "Verify observed commit and tree against local Git or the independently computed integration tree.",
+        "prevention": "The topology control rejects inconsistent trees and accepts matching checkout, parents and tree."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-integration-unsplit-workflow-accepts-split-results",
+      "source": "Independent M0-139 changes-requested decision on 3f5485af1e44cf9e85ed60bd024d182755a47f72, the latest event in contracts/reviews/task-decisions/M0-139.json. Original archives/observations/repo-hygiene-20261125/independent-final-m0-139-3f5485af/original-assistant-response.jsonl (SHA-256 264ea9573a5e289a02de94c021d12f9be00ab94db6fa8f018a824bda33cfa193).",
+      "observation": "The public integration replay for historical source b3475fa7 passed the single verify job control and also passed after substituting split Windows jobs and aggregation. Setting the substituted browser job to failure still passed. Apply declared topology and genuine checkout qualification to the supported unsplit route as well.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "An unsplit workflow could qualify with a different split job layout.",
+        "correction": "Require the topology declared in the committed tested workflow.",
+        "prevention": "The genuine single-job route qualifies and substituted split jobs are refused."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-integration-producer-checkout-can-be-skipped",
+      "source": "Independent M0-139 changes-requested decision on 3f5485af1e44cf9e85ed60bd024d182755a47f72, the latest event in contracts/reviews/task-decisions/M0-139.json. Original archives/observations/repo-hygiene-20261125/independent-final-m0-139-3f5485af/original-assistant-response.jsonl (SHA-256 264ea9573a5e289a02de94c021d12f9be00ab94db6fa8f018a824bda33cfa193).",
+      "observation": "Native Windows run 45965137241 qualified through the public integration command with all original jobs. Changing only the browser producer pinned checkout conclusion to skipped still qualified. The adjacent wrong head_sha control blocked. Require the successful declared checkout and its tested-source evidence for all source producers.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "A producer could participate without a successful pinned checkout.",
+        "correction": "Require successful pinned checkout for each declared producer and bind its resulting PR revision.",
+        "prevention": "A skipped or mismatched producer checkout fails; the genuine checkout and attempt qualify."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-workspace-terminal-interruption-publication-disagrees",
+      "source": "Independent M0-146 changes-requested decision on 3f5485af1e44cf9e85ed60bd024d182755a47f72, the latest event in contracts/reviews/task-decisions/M0-146.json. Original archives/observations/repo-hygiene-20261125/independent-final-m0-146-3f5485af/original-assistant-response.jsonl (SHA-256 f0243522ddfb59ffe232a731d9b4041fed7254abd4ba710c9ad511d78fe9389b).",
+      "observation": "The normal workspace public replay exited 0 with two passing reports. SIGINT during final source validation raised KeyboardInterrupt and lost both reports. SIGINT during either publication write exited 1 and left two passing reports accepted by publication and diagnostic reopen. Retain the four executed results and reconcile exit and both report copies through a shared producer terminal rule.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "An interruption during workspace finalization could lose both reports or leave an inconsistent passing result.",
+        "correction": "Reconcile final workspace publication with the terminal process outcome and preserve completed results.",
+        "prevention": "SIGINT during final source validation and publication writes produces consistent retained diagnostic reports."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-failed-publication-drops-generated-manifest",
+      "source": "Independent M0-146 changes-requested decision on 3f5485af1e44cf9e85ed60bd024d182755a47f72, the latest event in contracts/reviews/task-decisions/M0-146.json. Original archives/observations/repo-hygiene-20261125/independent-final-m0-146-3f5485af/original-assistant-response.jsonl (SHA-256 f0243522ddfb59ffe232a731d9b4041fed7254abd4ba710c9ad511d78fe9389b).",
+      "observation": "A real failed recovery partition retained 310 cases, one error and one skip. A single OSError at the first digest read after sealing caused the failed report to publish only the log, even though the original 535678-byte manifest later verified. Preserve the recoverable manifest or reject incomplete publication; retain passed, failed and interrupted controls.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "A failure after sealing could drop the original manifest from publication.",
+        "correction": "Retain and verify manifest bytes independently of the failed terminal check.",
+        "prevention": "The real failed recovery execution publishes the sealed manifest and missing or altered originals are refused."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-integration-required-artifact-steps-skipped",
+      "source": "Independent M0-139 changes-requested decision on f5ba8771b485118ef017c75f5b184bb61991a90e, final event in contracts/reviews/task-decisions/M0-139.json. Original archives/observations/repo-hygiene-20261125/independent-final-m0-139-f5ba8771/original-assistant-response.jsonl (SHA-256 e3123160d43a8ff0a835a36148c1492491f917d738c4ea390ddcbbc30843fa4d).",
+      "observation": "The exact f5ba8771 public integration replay qualified the native four-producer Windows run 45965137241 and the candidate five-producer route after separately changing the required browser artifact upload, full producer artifact download or final verification report upload to skipped. A skipped browser check was rejected. Regress all required artifact transfers as declared by the tested workflow and preserve the legitimately optional timing artifact.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Integration allowed skipped evidence steps on required producer and aggregate paths.",
+        "correction": "Require successful producer upload, artifact transfer, and final report staging and upload when declared.",
+        "prevention": "The four- and five-producer controls refuse skipped required steps and preserve omission of the optional timing upload."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-integration-producer-branch-conflict",
+      "source": "Independent M0-139 changes-requested decision on f5ba8771b485118ef017c75f5b184bb61991a90e, final event in contracts/reviews/task-decisions/M0-139.json. Original archives/observations/repo-hygiene-20261125/independent-final-m0-139-f5ba8771/original-assistant-response.jsonl (SHA-256 e3123160d43a8ff0a835a36148c1492491f917d738c4ea390ddcbbc30843fa4d).",
+      "observation": "The exact f5ba8771 public integration replay qualified both Windows routes after changing only the browser job head_branch to the unrelated branch in PR 112. The same replay rejected an unrelated job run_id. Qualify explicit job branch identity with its run and tested checkout.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "A producer job could claim an unrelated branch and still be accepted.",
+        "correction": "Bind each named job to the attempt and branch that owns the tested checkout.",
+        "prevention": "A changed producer branch or run identity fails while the matching job qualifies."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-producer-final-git-interruption-loses-reports",
+      "source": "Independent M0-146 changes-requested decision on f5ba8771b485118ef017c75f5b184bb61991a90e, final event in contracts/reviews/task-decisions/M0-146.json. Original archives/observations/repo-hygiene-20261125/independent-final-m0-146-f5ba8771/original-assistant-response.jsonl (SHA-256 93c291a708386d5154604f9d50436e99077f9f18c3180991a791b330708db592).",
+      "observation": "A process-group SIGINT during the last git ls-files caused the final source read to exit -2 and raise CalledProcessError on f5ba8771. The Python and workspace producers completed their checks and wrote logs and attachments but wrote neither per-run nor latest report. Regress final metadata, the child process exit and both atomic report boundaries through real process-group interruption, retaining completed results and their failed verdict through publication and cold reopen.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "A process-group SIGINT in final Git reads could escape report preservation.",
+        "correction": "Handle interrupted terminal source validation and keep completed check evidence.",
+        "prevention": "Python and workspace controls retain both final reports and their original logs on the injected final source interruption."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-scoped-localization-publication-drops-results",
+      "source": "Independent M0-146 changes-requested decision on f5ba8771b485118ef017c75f5b184bb61991a90e, final event in contracts/reviews/task-decisions/M0-146.json. Original archives/observations/repo-hygiene-20261125/independent-final-m0-146-f5ba8771/original-assistant-response.jsonl (SHA-256 93c291a708386d5154604f9d50436e99077f9f18c3180991a791b330708db592).",
+      "observation": "The exact f5ba8771 full workspace producer published and reopened the original 25323-byte localization artifact with 16 passing cases on normal and interrupted runs. The scoped core producer invoked with --profile localization published only its log for both a passed and a qualified failed replay. Regress source-owned attachment binding and exact bytes through actual workspace and scoped localization producer, publisher and cold reopen entries.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Scoped core publication did not bind the localization journal produced by that route.",
+        "correction": "Retain and validate the journal for normal and interrupted scoped execution.",
+        "prevention": "The localization control preserves original results through the scoped path and refuses incomplete publication."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-integration-artifact-ownership",
+      "source": "Independent M0-139 changes-requested decision on 215952297bc76e1b5459a2a94bb24d3637a78cb8. Original archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1hg/original-assistant-response.jsonl (SHA-256 9ce56c8d0690afe86512ebcb8706de1b82227eda589bf0053bcb09be37a2c2da). Original review intake and both decisions are retained in .reports/audit-20261127/m0-146-21595229-repair/originals/.",
+      "observation": "The ordinary integration entry qualified a final report uploaded under the optional timing name in both the four- and five-producer workflow controls. The wrong-path controls blocked. Substituting the genuine PR112 Python job log for the same-attempt browser job also qualified, even though it recorded verification-windows-1-python with artifact ID 15018258325 instead of the browser's ID 15019311423. The integration regression must bind the expected downloadable asset, owning run and producer job to the workflow committed at the tested source, with genuine and substituted PR112 originals and final-name and sibling-log controls under both topologies.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "An optional timing asset or a sibling producer's upload could stand in for the required report.",
+        "correction": "Bind required artifact name, owning job and run, upload declaration, and asset identity.",
+        "prevention": "Current and historical split controls refuse substituted artifact paths, names and producer job upload evidence."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-integration-historical-direct-upload",
+      "source": "Independent M0-139 changes-requested decision on 215952297bc76e1b5459a2a94bb24d3637a78cb8. Original archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1hg/original-assistant-response.jsonl (SHA-256 9ce56c8d0690afe86512ebcb8706de1b82227eda589bf0053bcb09be37a2c2da). Original review intake and both decisions are retained in .reports/audit-20261127/m0-146-21595229-repair/originals/.",
+      "observation": "The ordinary integration entry rejected the pinned direct .reports/ upload on the supported source of PR run 44459224190 because the report preparation and staging steps were required unconditionally. The prior control and later staged workflow at c2761f685f7408f8f887474a6f18ac6e0e1117d9 admitted their supported delivery. Qualify the format from the tested committed workflow and exercise the original direct Windows artifact, the later staged format and their mismatched delivery controls while preserving the accepted M0-139 task and receipt.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Supported historical direct delivery was judged against newer staging steps.",
+        "correction": "Read pinned delivery and upload rules from the committed tested workflow.",
+        "prevention": "The original direct report path qualifies, while a timing-only destination and invalid topology fail."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "integration-required-ubuntu-report-ownership",
+      "source": "Independent M0-139 changes-requested decision on d38d2fe205d98f92cfc71c3d9be33c070fd5e08a, contracts/reviews/task-decisions/M0-139.json#/events/49. Original archives/observations/repo-hygiene-20261125/independent-final-m0-139-d38d2fe2/original-assistant-response.jsonl (SHA-256 26a7b1280236902e6584860b118a80e3b5c7ea98290b6e9c363eb9e7776647cd). Both decisions and the original task report are indexed in .reports/audit-20261127/m0-146-d38d2fe2-repair/originals/manifest.json.",
+      "observation": "In the public PR 112 integration replay, removing the required verification-ubuntu-latest artifact 15018613291 or substituting the same-attempt Windows publisher log for the Ubuntu job 139179473440 still gave technical_ready true. The earliest direct upload, later staged upload and controlled five-producer workflow also admitted missing or misattributed Ubuntu evidence. A genuinely skipped optional timing upload qualified, as did an incorrectly skipped required upload with the report missing. Bind required report steps, artifacts and producer identities for both platforms through the public entry.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Linux report existence and upload ownership were not verified by the ordinary integration path.",
+        "correction": "Require an original named Ubuntu report and a matching upload from its pinned required job.",
+        "prevention": "The public CLI controls reject a missing Ubuntu archive, skipped required upload, and a substituted Windows job log. Optional timing may be absent."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "integration-required-report-digest-conflict",
+      "source": "Independent M0-139 changes-requested decision on d38d2fe205d98f92cfc71c3d9be33c070fd5e08a, contracts/reviews/task-decisions/M0-139.json#/events/49. Original archives/observations/repo-hygiene-20261125/independent-final-m0-139-d38d2fe2/original-assistant-response.jsonl (SHA-256 26a7b1280236902e6584860b118a80e3b5c7ea98290b6e9c363eb9e7776647cd). Both decisions and the original task report are indexed in .reports/audit-20261127/m0-146-d38d2fe2-repair/originals/manifest.json.",
+      "observation": "The public PR 112 integration replay qualified the Windows aggregate after changing only its inventory digest to the genuine browser ZIP digest f3c7859ed811b3db0f3ea94dd426694329206aeb8bac1c5556622639e269eb8f. The aggregate ZIP and its publisher log both record c5aa02f3fdb95a8c135d4543fb402827024d57bf1144d6723cb083cafa337e9c. Name, ID, size and URL stayed genuine. Require consistent observed digests for each required report and preserve producer ownership checks and supported partial historical records.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The artifact inventory digest could conflict with the owning upload log without affecting integration.",
+        "correction": "Compare available upload and asset ZIP digests for both platforms.",
+        "prevention": "Public integration controls refuse sibling digests on both required reports while preserving supported historical partial metadata."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "verified-peer-note-deletion-missing-approval-delivery",
       "status": "addressed",
       "severity": "major",
@@ -9828,6 +11063,98 @@
         "cause": "The two November 28 dispositions still required renewal after the published block-buffer affected range was corrected and the picomatch advisory was withdrawn. The expiry rule rejected them on both native reports.",
         "correction": "Verified the corrected ranges, locked Cargo graphs and actual npm build consumers. Retired both exceptions, the dedicated block-buffer prefetch and the picomatch parser patch.",
         "prevention": "The public dependency review rejects a reappearing unresolved advisory and rejects expired exceptions even on an empty query result. Offline and incomplete queries retain their distinct outcomes. The six-check M0-181 receipt and its independent review preserve these controls."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-leaf-matrix-preparation-subprocess-deadline",
+      "status": "open",
+      "severity": "major",
+      "source": "Ordinary PR 123 run 46111075105, attempt 1, submitted 9b1556c549980e35f8ecc81d28db0516e6da623a, actual checkout 590e08d0b8b978e60d0ebb5197886bec95ecc8c0. Original Windows and Ubuntu reports, the bound Windows journal and the preceding PR 123 attempt are retained.",
+      "observation": "In the Windows private-launcher handoff case, the synthetic leaf matrix preparation returned subprocess deadline exceeded at workspace_test_handoff_acl.mjs:231 before its subsequent per-case comparisons. The journal records 114 passed, two skipped and this single failed case. The same Windows case passed on its first attempt in run 46103840740 with the same fixture source. The Ubuntu peer passed its own platform path. Windows Python and both dependency checks passed. The internal last stage and underlying cause of the fixture timeout remain unobserved.",
+      "task_ids": [
+        "M0-182"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe",
+        "rust-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-46111075105-1",
+          "source_commit": "590e08d0b8b978e60d0ebb5197886bec95ecc8c0",
+          "report_sha256": "9322931dd5375fb58f8cd9d346990ec24ec8307cb15c64eb72909050a4d6c3c0"
+        },
+        {
+          "run_id": "20261128T051401.976712Z-c1245408",
+          "source_commit": "590e08d0b8b978e60d0ebb5197886bec95ecc8c0",
+          "report_sha256": "f7937aa8570a05a309ce907b53f86e20496103bb4305e34d81746fbb21b7e888"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-broad-handoff-fixture-preparation-subprocess-deadline",
+      "status": "open",
+      "severity": "major",
+      "source": "Ordinary PR 123 run 46115517382 attempt 1, submitted adffe2b0e83d43ffecbf65aeb597b1f71f027545 and tested fa0f311cd637f5d3466a1f0ed5b1ec985127cede. The final Windows report and authenticated workspace producer log and Playwright journal match byte for byte. Previously retained PR 123 run 46111075105 reached the later leaf matrix with this same broad fixture implementation.",
+      "observation": "The first Windows launcher case stopped at workspace_test_handoff_acl.mjs:180 while preparing the broad synthetic ACL fixture, before its native expected rejection, the explicit-only control and the 24-file leaf matrix. The earlier real helper build completed in 1518 ms. The separate 68 ms matrix calibration is controlled input. The browser journal records 115 passed, two skipped and one failure without retries. The last internal operation of this child and the reason it exceeded the deadline remain unobserved.",
+      "task_ids": [
+        "M0-182"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe",
+        "rust-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-46115517382-1",
+          "source_commit": "fa0f311cd637f5d3466a1f0ed5b1ec985127cede",
+          "report_sha256": "7c636646bee78f3720f2e2048c63ad2e06d78aee5744a2b6e8a7f152c6e74cbe"
+        },
+        {
+          "run_id": "20261128T061336.251887Z-259a37c9",
+          "source_commit": "fa0f311cd637f5d3466a1f0ed5b1ec985127cede",
+          "report_sha256": "73cc569bffada336ac008915e18db36312df531540e5342c6d24f3ccd98d0647"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-former-python-owner-control-did-not-exercise-former-partition",
+      "status": "addressed",
+      "severity": "major",
+      "source": "First ordinary full warm PR 123 run 46120026971, attempt 1, submitted cd966faf3ef27048d510748f88dd0a400698ee4e, tested checkout 63012842945fca8ad1e85e988a831628bd5e32c4. The genuine Windows recovery producer, final publisher, Linux control and their resolved diagnostics are retained.",
+      "observation": "Windows finished in 867 seconds from workflow creation through final publication, with 35 selections, 27 passes, seven planned omissions and a failed python-contracts-workers check. In test_full_windows_pr_workspace_producer_binds_checks_attachments_and_python_order at line 2779, the former-owner fixture expected test_processes in the Python log, but that execution contained only test_prefix and test_skipped. The 578-case current Python partition passed; the 405-case recovery partition recorded this one failure. The aggregate reproduced its original bytes and failed. The ordinary Ubuntu job passed. The genuine Windows workspace and its 24-file ACL matrix also passed. Determine why the controlled former runner produced the current partition before rerunning the authority check.",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-46120026971-1",
+          "source_commit": "63012842945fca8ad1e85e988a831628bd5e32c4",
+          "report_sha256": "4446e9433e0802a9191ae799b55b5ff6014ae7cd3d3284e0ba3246090c87eab1"
+        },
+        {
+          "run_id": "20261128T071234.811364Z-adb47dc1",
+          "source_commit": "63012842945fca8ad1e85e988a831628bd5e32c4",
+          "report_sha256": "3c7090c73dbac08ffca4e338e02a98b9aad47f996fe2342af93825bda5c3a90a"
+        }
+      ],
+      "resolution": {
+        "cause": "Native CRLF prevented the former-allocation fixture from applying its replacement, leaving the current boundary active.",
+        "correction": "Preserve line endings and verify the moved module actually executes in the intended former lane.",
+        "prevention": "LF and CRLF replays refuse genuine former-allocation bytes at staging and aggregation. The ordinary native test passed with the unchanged 578/405 current order."
       },
       "deferral_reason": null
     }

@@ -30,6 +30,151 @@
       },
       "supersedes": "5f31395033cd267aa03a844a2f5d1ae0d8048fe734fba1730548fbc62c7b255c",
       "evidence_sha256": "33ca11258dfb3a1c2d5e9bedd5eed8c43be2e12bd245291d1d5bcd55255e83db"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a8795844d601cbbe5569329d2ae1b3554413d51f",
+      "scope": "Review the dependency disposition on the composed workflow, verifier and lock inputs. Independently check the prior ordinary two-platform expiry failure, exact accepted local receipt and prior original decision, source and dependency inputs across both parents, and the public dependency checker with its retained legitimate and rejecting controls. Distinguish the remaining exceptions, ordinary PR qualification, and protected native qualification.",
+      "supersedes": "9b068891722391d1c7881394cf56dec324615a2e8146862700b415f838efd978",
+      "requested_at": "2026-11-28T04:45:22.131673+00:00",
+      "request_id": "063f7e568cbc259d5fb741c134a9a95ab631169a5ac5cf32ea4b588a528eed50",
+      "evidence_sha256": "e084ef6c666105d0138c97c40a3aca23c8596abc61010e396a82d1f8c19b2160"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a8795844d601cbbe5569329d2ae1b3554413d51f",
+      "verdict": "approved",
+      "decision": "APPROVE M0-181 a8795844d601cbbe5569329d2ae1b3554413d51f",
+      "scope": "APPROVE M0-181 a8795844d601cbbe5569329d2ae1b3554413d51f",
+      "observation": "On the reviewed commit, the public dependency checker accepted all four retained findings and returned exit code 1 when I restored either retired advisory individually.",
+      "reviewer": "Independent Astra Standard (t1md)",
+      "original_sha256": "0b35fcea0f376282a3d18e1e354f0e3239239ecca4a4c69cd7f032e2dffcaa52",
+      "response_id": "c2a67a7d002b2a490785e21510fc949ae3d07725f5c52cd6cb4e71c801d658c3",
+      "response_sha256": "7feeba80da27bd793e896c4120b51b0d145b8afb17b2a5ae07ab0626ba6341ac",
+      "legacy_response_sha256": "345b39fcc6863956c86a81a7808f48c62f1f876e43c12f1ce053c1696bcbeac6",
+      "observation_body_sha256": "d3343f994aa8f482a624a3c71038dc6dd9a68c7b536831297076d123bfad84a7",
+      "event": {
+        "id": "msg_0a3b159ffc017776016b0a5e4cc79487d09fc58f1d7abed49a",
+        "timestamp": "2026-11-28T04:53:54.445Z"
+      },
+      "supersedes": "063f7e568cbc259d5fb741c134a9a95ab631169a5ac5cf32ea4b588a528eed50",
+      "evidence_sha256": "220f2909d1da636b79842cc4c750777e6fed79507637910fc35e98eac49e0ebb"
+    },
+    {
+      "kind": "request",
+      "source_commit": "947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "scope": "Review applicability of the accepted dependency advisory disposition on this fixture source. Compare the exact policy, workflow, dependency inputs and the newly separated fixed helper code. Exercise the established ordinary checker with the authentic accepted and retired/expired controls; use the two actual platform results from PR 123 and preserve their source and cadence.",
+      "supersedes": "c2a67a7d002b2a490785e21510fc949ae3d07725f5c52cd6cb4e71c801d658c3",
+      "requested_at": "2026-11-28T05:52:03.474733+00:00",
+      "request_id": "8a4ce809dedb45ba1c3a0aa2bf5aaf79eb66257e05f8f36e5e970ad4a36e2f5d",
+      "evidence_sha256": "6e48f60fac05aab59dc17b8cb964ef3c6fdc1cc49f073ee2146e76880e4d45d9"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "verdict": "approved",
+      "decision": "APPROVE M0-181 947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "scope": "APPROVE M0-181 947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "observation": "The candidate’s ordinary dependency checker accepted all four findings from each PR 123 platform log and returned exit code 1 when either retired advisory was added individually.",
+      "reviewer": "Independent Astra Standard (t1n6)",
+      "original_sha256": "42445e000a3254c9815244fa1909cd2bfb6141ac86d577709c5bda4c8add34e5",
+      "response_id": "1d92fbdb8d48f6cf03d1747eb24c6adb2b4340c328c89e56cc4226e51358e104",
+      "response_sha256": "97e0e7309f3bd1499c77266adcfd9ea12a5ac5abcc05db96f8499441f5537aee",
+      "legacy_response_sha256": "38114bfc47a4da0c7613217254f3e62603b1bdb326fd1b41febc08bd33a3a983",
+      "observation_body_sha256": "559bf44fa2f4de9814f79d4f7f143190f1c205eb236306a6479b08ddbe787423",
+      "event": {
+        "id": "msg_07b89db9dfe90064016b0a6d2a309087d09f3c0e9b007fd67e",
+        "timestamp": "2026-11-28T05:57:25.713Z"
+      },
+      "supersedes": "8a4ce809dedb45ba1c3a0aa2bf5aaf79eb66257e05f8f36e5e970ad4a36e2f5d",
+      "evidence_sha256": "53a70f67ddab99d0399faddd2956ef6531b0ae30e0647855b797cb36bd356a84"
+    },
+    {
+      "kind": "request",
+      "source_commit": "7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "scope": "Review applicability of the accepted dependency advisory dispositions on the combined Python allocator and workspace fixture source. Check the actual verification workflow, dependency policy, relevant lockfiles and new test-only helper. Replay accepted and retired/expired cases with the established public checker and its genuine archived material, plus both successful ordinary dependency outcomes on 46115517382. Keep scheduled and protected adoption in their own scopes.",
+      "supersedes": "1d92fbdb8d48f6cf03d1747eb24c6adb2b4340c328c89e56cc4226e51358e104",
+      "requested_at": "2026-11-28T06:52:43.764498+00:00",
+      "request_id": "fc5dadc081b773d8dc502ec76a958ffa4d4ac3495717d75cd0c079ac7bc4c4f9",
+      "evidence_sha256": "881c87959630a776e033b505d38078d67f44caac5f44bf7cb1b58c5cb6fd8310"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "verdict": "approved",
+      "decision": "APPROVE M0-181 7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "scope": "APPROVE M0-181 7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "observation": "The candidate’s ordinary dependency checker accepted all four findings from each platform log in PR 123 run 46115517382 and exited with code 1 in all four replays that added one retired advisory.",
+      "reviewer": "Independent Astra Standard (t1ns)",
+      "original_sha256": "c759c0bdacec192061ea0db92a1819b450d8e0204611735ff59874c3529ae6da",
+      "response_id": "893ca9ee1dc9f876cfd3c5009d52e7ad077c7b539f9bcfc2a4d87651b4ff918a",
+      "response_sha256": "7741567f20705fbedaaa12cbebabb08ce55ef856556fc37dcda62573303cdbb3",
+      "legacy_response_sha256": "1fb5834be26f8a78bfd178d4710eabd8815ae086112735d886f13b8ac2ff7043",
+      "observation_body_sha256": "6864bc1c301c2ebec54faf4747a1b4acd83ab1ed6fa2404792594c60ee12664a",
+      "event": {
+        "id": "msg_03a66d60ba0953d9016b0a7bb2221887d0a0472b2220de6aec",
+        "timestamp": "2026-11-28T06:59:21.710Z"
+      },
+      "supersedes": "fc5dadc081b773d8dc502ec76a958ffa4d4ac3495717d75cd0c079ac7bc4c4f9",
+      "evidence_sha256": "85e5574e952ca841f85a15ef18d266759a3849f6ab01e854dc5bbaedd75fe441"
+    },
+    {
+      "kind": "request",
+      "source_commit": "22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "scope": "Review dependency disposition applicability on the former-allocation fixture correction. Inspect the actual diff, policy, relevant lockfiles, accepted and expired controls and both ordinary native dependency outcomes. Assess the candidate on its own source and distinguish any outstanding protected adoption.",
+      "supersedes": "893ca9ee1dc9f876cfd3c5009d52e7ad077c7b539f9bcfc2a4d87651b4ff918a",
+      "requested_at": "2026-11-28T08:40:04.327584+00:00",
+      "request_id": "94d835846c06e5d45d8290a1c1fc6af5500403f379b39dc9a8551feb784c156b",
+      "evidence_sha256": "f01a8314cffc83f33323407a3d3d47516d725cd984cf696cf0eaad40896888aa"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "verdict": "approved",
+      "decision": "APPROVE M0-181 22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "scope": "APPROVE M0-181 22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "observation": "On the reviewed candidate, the ordinary dependency checker accepted the four findings recorded in each platform log from PR 123 run 46120026971 and exited with code 1 in all four replays that added either retired advisory as the sole unresolved finding.",
+      "reviewer": "Independent Astra Standard (t1pf)",
+      "original_sha256": "9ebbc2ae1267063a5ae6fa7d2f264767e1c1b2472e5120fe61db70320162536d",
+      "response_id": "622d0035bfa207a02ded825d37e402b43614c29047ace8aa61783ae99a707ae8",
+      "response_sha256": "2ef94dd30b7edd881f89a37e90802d8cd0307979d674e4e9a8db6bdff16a5b59",
+      "legacy_response_sha256": "3f3420b29f04566934cbf5907314af24981bde15dfa04681eb4af109c8004004",
+      "observation_body_sha256": "5c94faee7aa3710ee4d1542865dc28905b624c69e19b44c801a8289ba6bd7aa0",
+      "event": {
+        "id": "msg_04ec9979b9551618016b0a940987f487d2b1a6a411ada4aeed",
+        "timestamp": "2026-11-28T08:43:13.547Z"
+      },
+      "supersedes": "94d835846c06e5d45d8290a1c1fc6af5500403f379b39dc9a8551feb784c156b",
+      "evidence_sha256": "079b7c14b86d301c9f0b64339076983d7c78848ee1291f25f4893d7d05708180"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc",
+      "scope": "Determine applicability of the previous dependency review on this new material. Compare dependency policy, lockfiles, genuine current and expired disposition controls, routine check invocation and the previously observed Windows and Ubuntu dependency results. Examine whether the changed object and tree admission path alters dependency evidence.",
+      "supersedes": "622d0035bfa207a02ded825d37e402b43614c29047ace8aa61783ae99a707ae8",
+      "requested_at": "2026-11-28T09:30:48.121662+00:00",
+      "request_id": "31519559c870b7bfd98acf6f15d645f10c889b334f10bedd5d54952202c55c71",
+      "evidence_sha256": "31b54fdde6e22ba172c3818501f4959fab73257e815f5729af9aea7804056d73"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc",
+      "verdict": "approved",
+      "decision": "APPROVE M0-181 ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc",
+      "scope": "APPROVE M0-181 ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc",
+      "observation": "The candidate’s evidence validator accepted the original Windows dependency log, rejected it when one newline was added in memory, and accepted the original bytes again.",
+      "reviewer": "Independent Astra Standard (t1q0)",
+      "original_sha256": "7412733256ef45dea521737f88059b2e3fa5866ed7fa9e9c000450414c0676ef",
+      "response_id": "02079a101333121ea73f28394628316724bda8d081cffbcdda7320d8b46b09d7",
+      "response_sha256": "8b3d405745e66f396fe8158d36b333c2a932d949ee59e85253824c1ac16df682",
+      "legacy_response_sha256": "6203b158bf6c9d5ee06812df93a229893ab00846d31958b3f18bb6fe0d977e8b",
+      "observation_body_sha256": "7d64e34a2f602add7278071f0b83be6b2fede6bbc7b83765344dbb5f693fc8f5",
+      "event": {
+        "id": "msg_0fe5af4df4d10e82016b0aa0a8ea3c87d182f13633ac90e80e",
+        "timestamp": "2026-11-28T09:37:05.375Z"
+      },
+      "supersedes": "31519559c870b7bfd98acf6f15d645f10c889b334f10bedd5d54952202c55c71",
+      "evidence_sha256": "a141ccfc7ef54a3fd3538bf50d0ac3d9b94c049909416c38553288cb94a09b5e"
     }
   ]
 }

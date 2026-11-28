@@ -109,7 +109,7 @@ def _json_document(data):
 def _parse_report(data, report_sha256):
     report = _json_document(data)
     status = report.get('status')
-    if report.get('report_version') == '2.0' and isinstance(report.get('source'), dict):
+    if report.get('report_version') in ('2.0', '2.1') and isinstance(report.get('source'), dict):
         kind = 'harness'
         run_id = report.get('run_id')
         source_commit = report['source'].get('git_head')
@@ -177,6 +177,21 @@ def _checked_observations(root, directory, checks):
     verified = []
     for check in checks:
         check_id = check['id']
+        if 'browser_results_sha256' in check:
+            relative = f'{check_id}/results.json'
+            sha256 = check['browser_results_sha256']
+            if 'log' not in check or (check['status'] == 'passed' and sha256 is None):
+                raise DiagnosticArchiveError(f'Missing browser results binding: {check_id}')
+            if sha256 is not None:
+                _verify_file(directory, relative, sha256)
+                verified.append(relative)
+            else:
+                try:
+                    _path(directory, relative)
+                except FileNotFoundError:
+                    pass
+                else:
+                    raise DiagnosticArchiveError(f'Unexpected unbound diagnostic bytes: {relative}')
         if 'observation' in check:
             binding = check['observation']
             relative = f'{check_id}.observation.json'
@@ -214,6 +229,63 @@ def _checked_observations(root, directory, checks):
                 _parts(path)
                 _verify_file(observation_root, f'{observation_dir}/{path}', ref.get('sha256'))
             verified.append(relative)
+    return verified
+
+
+def _checked_windows_python(directory, report):
+    records = report.get('windows_python', {})
+    if not isinstance(records, dict) or records.keys() - {'python', 'recovery'}:
+        raise DiagnosticArchiveError('Invalid Windows Python diagnostic part identities')
+    verified = []
+    for lane, part in records.items():
+        name = f'windows-python-{lane}'
+        if not isinstance(part, dict) or part.get('id') != name or part.get('status') not in _HARNESS_STATUSES:
+            raise DiagnosticArchiveError(f'Invalid Windows Python diagnostic part: {lane}')
+        log = name + '.log'
+        manifest = name + '.json'
+        if part['status'] == 'passed' and not {'log', 'log_sha256', 'manifest_sha256'} <= part.keys():
+            raise DiagnosticArchiveError(f'Missing passing Windows Python diagnostic evidence: {lane}')
+        has_log = bool({'log', 'log_sha256', 'manifest_sha256'}.intersection(part))
+        if has_log:
+            if part.get('log') != f".reports/runs/{report['run_id']}/{log}":
+                raise DiagnosticArchiveError(f'Missing or misplaced Windows Python diagnostic log: {lane}')
+            _verify_file(directory, log, part.get('log_sha256'))
+            verified.append(log)
+        if 'manifest_sha256' in part:
+            _verify_file(directory, manifest, part['manifest_sha256'])
+            verified.append(manifest)
+        else:
+            try:
+                _path(directory, manifest)
+                missing_binding = True
+            except FileNotFoundError:
+                missing_binding = has_log and _has_python_callback_record(_path(directory, log))
+            if missing_binding:
+                raise DiagnosticArchiveError(f'Missing Windows Python case manifest binding: {lane}.')
+        if 'producer_report_sha256' in part:
+            producer = name + '.producer.json'
+            _verify_file(directory, producer, part['producer_report_sha256'])
+            verified.append(producer)
+    return verified
+
+
+def _has_python_callback_record(log):
+    if __package__:
+        from .windows_python import callback_record_digests
+    else:
+        from windows_python import callback_record_digests
+    return bool(callback_record_digests(log.read_bytes()))
+
+
+def _checked_windows_producers(directory, report):
+    records = report.get('windows_producers', {})
+    if not isinstance(records, dict) or records.keys() - {'browser', 'python', 'recovery', 'workspace'}:
+        raise DiagnosticArchiveError('Invalid Windows diagnostic producer identities')
+    verified = []
+    for lane, sha256 in records.items():
+        relative = f'windows-{lane}.producer.json'
+        _verify_file(directory, relative, sha256)
+        verified.append(relative)
     return verified
 
 
@@ -350,6 +422,9 @@ def resolve_diagnostic(locator, archive_root):
         directory = report_path.parent
         logs = _checked_logs(directory, report) if kind == 'harness' else []
         observations = _checked_observations(root, directory, report['checks']) if kind == 'harness' else []
+        if kind == 'harness':
+            observations.extend(_checked_windows_python(directory, report))
+            observations.extend(_checked_windows_producers(directory, report))
         candidate_manifest = _verify_candidate(directory, report) if kind == 'harness' else False
         originals = _verified_originals(directory, report) if kind == 'recovery' else []
         manifest = _verify_checksums(directory)

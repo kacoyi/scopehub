@@ -1,0 +1,963 @@
+{
+  "version": 3,
+  "task_id": "M0-146",
+  "events": [
+    {
+      "kind": "decision",
+      "source_commit": "fc1027eb769fdf385d5a0fd7752d371b05a0a5b6",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 fc1027eb769fdf385d5a0fd7752d371b05a0a5b6",
+      "scope": "CHANGES_REQUESTED M0-146 fc1027eb769fdf385d5a0fd7752d371b05a0a5b6",
+      "observation": "I reproduced a valid scoped Windows report being rejected and a full aggregate being published as passed while its Python producer report said failed.",
+      "reviewer": "Independent Astra Standard (t10d)",
+      "original_sha256": "fda0f69fd817bb0c660343a6b01828bd663c023411d6d8f0350a8c1664f387ca",
+      "response_id": "8c4996ac74773cda44ad24b8bd6e62f20ce124758c50215ac543d5e1e83c2d09",
+      "response_sha256": "2059bf22206ec9567504065ed7b8722d3364d97ff955758f2a66a61fafe2b014",
+      "legacy_response_sha256": "7753722fabebfec3b40a6079cc8081e41b2ddad731e1e6594aa0af9104a0c47c",
+      "observation_body_sha256": "7deca8b2e16cc185919822258de79f1f819c305c791519bfdcbf337e661fa2bc",
+      "event": {
+        "id": "msg_0009ccfe113b430d016b074bc0c81487d08f9ccfbfb8b18cfa",
+        "timestamp": "2026-11-25T20:58:03.804Z"
+      },
+      "supersedes": null,
+      "evidence_sha256": "0a89cbb4644e54c39ae4567d26a0576a0c189de4eaf236e730f1da672994a6cb"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a3d2030997def2937ac28e961a243809fe0b40fb",
+      "scope": "Review the exact current Windows PR Python partition with its verified main-push scheduler, reject unsupported events, stale logs and missing runner exits, reconstruct ordered coverage and authenticate the original producer inventory and clocks.",
+      "supersedes": "8c4996ac74773cda44ad24b8bd6e62f20ce124758c50215ac543d5e1e83c2d09",
+      "requested_at": "2026-11-25T22:01:21.594204+00:00",
+      "request_id": "ae68dac1ede08fc747c8c141f486ef9d1f84fdedb54ed5e37cc2ab50eb069323",
+      "evidence_sha256": "bbab3bab48776cdb9754d8a06a7e55b6243214cafb3a633aeb9479219c623d3f"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a3d2030997def2937ac28e961a243809fe0b40fb",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 a3d2030997def2937ac28e961a243809fe0b40fb",
+      "scope": "CHANGES_REQUESTED M0-146 a3d2030997def2937ac28e961a243809fe0b40fb",
+      "observation": "I reproduced a version 2.1 task receipt with all four original Python part files missing and a publication failure for a unittest suite that passed with one package-level skip.",
+      "reviewer": "Independent Astra Standard (t10d)",
+      "original_sha256": "3ec33e1112bc02ad035fcc3f792765388804f90b29824e928cb7abb723eae6a2",
+      "response_id": "0862c3663aa0d3f768de24b91f334f895c7e9a140f55c5fae89396bcb651f0c4",
+      "response_sha256": "a388519842e6ec16e1c1119efdd20368dec7e5c5beaaa528c626dd97249a6115",
+      "legacy_response_sha256": "b1e7068c20e19cc0c0c11a5b84280f80ddbe464059435a2cf581d88953786007",
+      "observation_body_sha256": "783d40857108c61dfccf7f83adcd648869257098da93abc496eddfe7269f4f80",
+      "event": {
+        "id": "msg_0009ccfe113b430d016b075e02179487d0835b901ca973c576",
+        "timestamp": "2026-11-25T22:16:02.279Z"
+      },
+      "supersedes": "ae68dac1ede08fc747c8c141f486ef9d1f84fdedb54ed5e37cc2ab50eb069323",
+      "evidence_sha256": "e50e3aef638e54758ab82cf157a46f270a7f8d0968fb34bcfc6a5b57add259ea"
+    },
+    {
+      "kind": "request",
+      "source_commit": "3f74a1e9b149464a35c4b31657bc624ae1f47b47",
+      "scope": "Recheck all four rejected raw log, legitimate skip, producer drift and shutdown output boundaries after the integrated fixes. Verify the ordinary Windows pull request and parent warm push paths, serial and split per-case equivalence, and retained source-bound evidence for the 900-second ordinary pull request objective.",
+      "supersedes": "0862c3663aa0d3f768de24b91f334f895c7e9a140f55c5fae89396bcb651f0c4",
+      "requested_at": "2026-11-25T23:01:43.189356+00:00",
+      "request_id": "64ae20e8b0ab7bfbc6c4510215c2f36c12768097dc648aa5bac8683c505bfb0e",
+      "evidence_sha256": "8c0c2274f1bb9528634b9696a46368a9253ae407f8df1d5a4560b99bf15aefa7"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "3f74a1e9b149464a35c4b31657bc624ae1f47b47",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 3f74a1e9b149464a35c4b31657bc624ae1f47b47",
+      "scope": "CHANGES_REQUESTED M0-146 3f74a1e9b149464a35c4b31657bc624ae1f47b47",
+      "observation": "I reproduced a passing task receipt with the wrong recovery manifest and a publication failure from two workers that both exited successfully.",
+      "reviewer": "Independent Astra Standard (t10d)",
+      "original_sha256": "ca1b96c7da455f7d5c8d5dfc2ba4e5d491fc8fdc66889b2f53b40ac72a886c16",
+      "response_id": "7e30766ba9be6d8a58073e8b630257072852cf631362da2aafd7e071244e7633",
+      "response_sha256": "641c5feeed52f78abb32473635e1a8da4a009ff44c02929820f3a46724e5e1ac",
+      "legacy_response_sha256": "6670efb04d5c12be0c316fb687099b19e9a2e833758377d77ff2f9ac581ac2a3",
+      "observation_body_sha256": "b09ee0360cc8bb40198c0cd6c358c254bf9d2a707fb8ccf769e569e34e1ac5b0",
+      "event": {
+        "id": "msg_0009ccfe113b430d016b076c8ae84087d0a5360ea6b8926757",
+        "timestamp": "2026-11-25T23:17:58.518Z"
+      },
+      "supersedes": "64ae20e8b0ab7bfbc6c4510215c2f36c12768097dc648aa5bac8683c505bfb0e",
+      "evidence_sha256": "7c0227f91f1299e987d154453926d031e6e57b418cabb214d577eeb3823d6366"
+    },
+    {
+      "kind": "request",
+      "source_commit": "6f57130d70af1b971c1a268edb4065e5b7895c05",
+      "scope": "Reproduce the previous four independent receipt, legacy compatibility, stderr and interrupted publication findings at their supported entries. Recheck positive and rejected 2.1 publication, real 2.0 import, both original 2.1 compatibility controls, and the genuine 975-second warm Windows PR against its 900-second target.",
+      "supersedes": "7e30766ba9be6d8a58073e8b630257072852cf631362da2aafd7e071244e7633",
+      "requested_at": "2026-11-26T03:00:25.952030+00:00",
+      "request_id": "869cbce8113844e8eb03d344ef27abadf459fcc4c37b0919381c80fa7a58be2a",
+      "evidence_sha256": "9d841535a95f97fa87aad698a7747a103632ddfc9b41c31554df3066764fb27b"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "6f57130d70af1b971c1a268edb4065e5b7895c05",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 6f57130d70af1b971c1a268edb4065e5b7895c05",
+      "scope": "CHANGES_REQUESTED M0-146 6f57130d70af1b971c1a268edb4065e5b7895c05",
+      "observation": "The candidate published a passing two-test aggregate after I removed one executed case from a legacy manifest whose original log still recorded all three tests across the two partitions.",
+      "reviewer": "Independent Astra Standard (t11v)",
+      "original_sha256": "89ff70f36607f2dbc7f48af3ad36382d43ed16696afbfda894200e6e7b144845",
+      "response_id": "5500dccf92e91cd51dae038bcd497b33297a79abd7f9cbc76ae86cbdacdf85dd",
+      "response_sha256": "9bc0c402630f4b5d57f486cd4a2847b937c712248957940db7bb9297ccfd0a37",
+      "legacy_response_sha256": "5519e7ad698cf28781e2ff18640ded8bac6dfae6f773bf5a3a22476105d5b6b9",
+      "observation_body_sha256": "9f41915e9908251d18d1a5cada4997acc29468b95f10f633a033120abddf24a4",
+      "event": {
+        "id": "msg_009ade1dfa287268016b07a6f7e93887d1b503b2b1f9b43ac7",
+        "timestamp": "2026-11-26T03:27:18.486Z"
+      },
+      "supersedes": "869cbce8113844e8eb03d344ef27abadf459fcc4c37b0919381c80fa7a58be2a",
+      "evidence_sha256": "d09728a07e1ce019a363d25febcb257a08062634ad0be43eaeda4d2339ae94b6"
+    },
+    {
+      "kind": "request",
+      "source_commit": "6c4effe33210598993fcd8bf7bca26d40d8569ba",
+      "scope": "Reproduce the previous four independent receipt, legacy compatibility, stderr and interrupted publication findings at their supported entries. Recheck positive and rejected 2.1 publication, real 2.0 import, both original 2.1 compatibility controls, and the genuine 975-second warm Windows PR against its 900-second target.",
+      "supersedes": "5500dccf92e91cd51dae038bcd497b33297a79abd7f9cbc76ae86cbdacdf85dd",
+      "requested_at": "2026-11-26T03:52:31.359471+00:00",
+      "request_id": "b5fe41be658cf661f864c09fce25f290876076cc8598ac3c0055f83a4c13ce9e",
+      "evidence_sha256": "d0580fa20c62ceabde58c3aefb802d8b243cb97a591cac197adbd3fae1e355b6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "6c4effe33210598993fcd8bf7bca26d40d8569ba",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 6c4effe33210598993fcd8bf7bca26d40d8569ba",
+      "scope": "CHANGES_REQUESTED M0-146 6c4effe33210598993fcd8bf7bca26d40d8569ba",
+      "observation": "The candidate published a passing aggregate that marked a skipped test as passed and a passed test as skipped while both original producer logs remained unchanged.",
+      "reviewer": "Independent Astra Standard (t12g)",
+      "original_sha256": "8ddb16dc5ac9f8ec3890a12dedccc3351dbd502b19dc6e94327359540620c4e4",
+      "response_id": "56fc37cf49f8aaec6cd0e8b37fe09d354f70f30cf2aff0b5221e1d08d4ce7500",
+      "response_sha256": "8ed16e4b4dc170dd29e8ca4db75433624e4596f5d7ad787f14f18a189c71bd31",
+      "legacy_response_sha256": "e60c8052641c5efae559a529711aa0c9c8d14233a43525b6faf85a20ffa684dc",
+      "observation_body_sha256": "128205cad5d048e4b49cb5363a6d9a6543fd6fb5e068b4325b60eb2d62a0fa17",
+      "event": {
+        "id": "msg_04d9ffc176f599b4016b07b177fe9487d1bdbbe9b489ec6b6b",
+        "timestamp": "2026-11-26T04:12:04.090Z"
+      },
+      "supersedes": "b5fe41be658cf661f864c09fce25f290876076cc8598ac3c0055f83a4c13ce9e",
+      "evidence_sha256": "cca2cbabe1f0b50720de797ed9fb03bbcf2f0d505fe8552a855fc55793b84944"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ba27e2478d6bdbfe7736ac0f390b640f8a7fb9a4",
+      "scope": "Exercise genuine historical and current two-part outputs at import, publication and reopen. Hold names, counts and totals constant while changing per-case skip/pass outcomes in the derived document or the part attempt of one original. Check predecessor stderr, interrupted publication and valid compatibility controls. Derive results independently from the original producers and keep warm native timing distinct.",
+      "supersedes": "56fc37cf49f8aaec6cd0e8b37fe09d354f70f30cf2aff0b5221e1d08d4ce7500",
+      "requested_at": "2026-11-26T04:33:39.859204+00:00",
+      "request_id": "14980db4a1bd11b6dc75a75e41268e39b14f55780583c3985fa21d1ccc3cb312",
+      "evidence_sha256": "a16ad702486356c120d6e0197ed08efda646b7787a229b89e274be1f9c30c960"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ba27e2478d6bdbfe7736ac0f390b640f8a7fb9a4",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 ba27e2478d6bdbfe7736ac0f390b640f8a7fb9a4",
+      "scope": "CHANGES_REQUESTED M0-146 ba27e2478d6bdbfe7736ac0f390b640f8a7fb9a4",
+      "observation": "The candidate published reversed pass and skip outcomes and reopened the resulting receipt while both original producer logs remained unchanged.",
+      "reviewer": "Independent Astra Standard (t136)",
+      "original_sha256": "abf441234963e5ebec5714f888e221f039c97092f385ffa82b084aabc9c99613",
+      "response_id": "df45b5c167a419e03363bf86a59839b89050de30688df3f32adc0fab49e64180",
+      "response_sha256": "117632399bdacabcd53c1f7b82fdbbc79ea02b157328351d491c7d0e3dac7dcf",
+      "legacy_response_sha256": "ce392f2d1b134b6c27e6558cdebf1329b8de9252db5ff3e72911f682ea1ca7d3",
+      "observation_body_sha256": "1d944eb6fbfdcaae2bc42b3e6b24768708d382d120bfa08ad00b6b4258fb6731",
+      "event": {
+        "id": "msg_0979fc721a724a7d016b07bd63ffb887d1b672e9ec0d4b605f",
+        "timestamp": "2026-11-26T05:02:43.541Z"
+      },
+      "supersedes": "14980db4a1bd11b6dc75a75e41268e39b14f55780583c3985fa21d1ccc3cb312",
+      "evidence_sha256": "1a79194628714b6d2164660c9c5fa26e8aaf111e9cef12c8e1dcf521739adecc"
+    },
+    {
+      "kind": "request",
+      "source_commit": "4fe1500358d55f36b39855739ed69422b8975105",
+      "scope": "Exercise genuine historical and current two-part outputs at import, publication and reopen. Hold names, counts and totals constant while changing per-case skip/pass outcomes in the derived document or the part attempt of one original. Check predecessor stderr, interrupted publication and valid compatibility controls. Derive results independently from the original producers and keep warm native timing distinct. Recheck the original decision on ba27e247.",
+      "supersedes": "df45b5c167a419e03363bf86a59839b89050de30688df3f32adc0fab49e64180",
+      "requested_at": "2026-11-26T06:07:08.617023+00:00",
+      "request_id": "91213af24bc2f77de758219d32ed9803e8aa31d3dc062ce0714e7116f92cbc30",
+      "evidence_sha256": "2e4c3ae378fe6fe2aaab39619096c2d1a58c43bab20fae741c10e9b8da355718"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a47fe65ae18064d3147f86e6a3cb32784bca4d9d",
+      "scope": "Exercise actual retained and current producer outputs through aggregation, import and reopen. Challenge false outcomes and failures across case output, fixture cleanup, attempt identity and clocks. Verify the newly linked warm PRs against the original job timings and distinguish comparable observations before and after the partition.",
+      "supersedes": "91213af24bc2f77de758219d32ed9803e8aa31d3dc062ce0714e7116f92cbc30",
+      "requested_at": "2026-11-26T06:21:22.815615+00:00",
+      "request_id": "7d56f8db8864dc969f748cbcc55d7c91678bc930b2d956349220b1025c1366ba",
+      "evidence_sha256": "fb0ea287b70553a1f635314b371566806a10497ba58b22d61dd3a6670f30328c"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a47fe65ae18064d3147f86e6a3cb32784bca4d9d",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 a47fe65ae18064d3147f86e6a3cb32784bca4d9d",
+      "scope": "CHANGES_REQUESTED M0-146 a47fe65ae18064d3147f86e6a3cb32784bca4d9d",
+      "observation": "The candidate published reversed pass and skip outcomes from a legacy runner and reopened the resulting receipt while both original producer logs and all per-case durations remained unchanged.",
+      "reviewer": "Independent Astra Standard (t14f)",
+      "original_sha256": "624cd9af629eb0bf378210d7ca3203e15a263faee6f7b223c188eeab016d984f",
+      "response_id": "6cb654e3272d9dac21ffd5ca0414e55a626cd1fa7f2d7b2800aaf93726a2d36c",
+      "response_sha256": "740b02933b5a036cd58695f4ae6b791f6e180b50e21c9d5ca7f5d3335c6b65a3",
+      "legacy_response_sha256": "8d8de0511af16b62ae481bf98bebd5487c24db9733dae6d0aa04f68d12489a63",
+      "observation_body_sha256": "c8819aeef95b032b0fab4085dc5a7de23e425240524b3cea0e39e3564e665251",
+      "event": {
+        "id": "msg_0cd8169d362279a1016b07d7a05ce087d287ec0afdaa054b95",
+        "timestamp": "2026-11-26T06:54:45.865Z"
+      },
+      "supersedes": "7d56f8db8864dc969f748cbcc55d7c91678bc930b2d956349220b1025c1366ba",
+      "evidence_sha256": "ba7753cb59e83d03ad295aab60d6428d5812d54ce082e57ba7c3b9f42845d341"
+    },
+    {
+      "kind": "request",
+      "source_commit": "2ba0355110d2610107199475c719eb2874cb6088",
+      "scope": "Exercise genuine historical and current two-part outputs at import, publication and reopen. Hold names, counts and totals constant while changing per-case skip/pass outcomes in the derived document or the part attempt of one original. Check predecessor stderr, interrupted publication and valid compatibility controls. Derive results independently from the original producers and keep warm native timing distinct. Recheck the original decision on a47fe65a.",
+      "supersedes": "6cb654e3272d9dac21ffd5ca0414e55a626cd1fa7f2d7b2800aaf93726a2d36c",
+      "requested_at": "2026-11-26T12:29:27.175358+00:00",
+      "request_id": "73aec35f306344a8104ac8fe868677a75265db50bb66dfe5dc5b02b4c014fffc",
+      "evidence_sha256": "74c563d6ed81704bc1a3788eb738078ba18938006025636dbee0c4cb5d7b9e87"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "2ba0355110d2610107199475c719eb2874cb6088",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 2ba0355110d2610107199475c719eb2874cb6088",
+      "scope": "CHANGES_REQUESTED M0-146 2ba0355110d2610107199475c719eb2874cb6088",
+      "observation": "The candidate rejected the genuine legacy result and reopened a receipt with the pass and skip reversed while both original producer logs and all three case durations stayed unchanged.",
+      "reviewer": "Independent Astra Standard (t15h)",
+      "original_sha256": "ec46ecd8fc6cf480b36bc64eaccbe974642874e69cb08bde1643f90cc22e2fd1",
+      "response_id": "66752e14e7428cdc46abdb25705832c86ac1bf9b695b70bb899eca68b3d1fa2e",
+      "response_sha256": "4acaaea0c0cda5769f2201e2f936623da6b3d3a3ec9b8367f1d34a1b7543cd60",
+      "legacy_response_sha256": "be62464027472033dcba5c38664de2a2240ff14cd57d21debc4d453d01a4ecf0",
+      "observation_body_sha256": "0872e79c8e4f488114689aba45b98fa147bebdc4413cc4bde6f0bb52fb8881a6",
+      "event": {
+        "id": "msg_0e3c325987f6e1cc016b0829d08b0487d29eb0acab881a4840",
+        "timestamp": "2026-11-26T12:45:23.652Z"
+      },
+      "supersedes": "73aec35f306344a8104ac8fe868677a75265db50bb66dfe5dc5b02b4c014fffc",
+      "evidence_sha256": "152dab0064e3794c9a2e299ce4c51dc6ba1f309efbde38351408ccd262b70b5d"
+    },
+    {
+      "kind": "request",
+      "source_commit": "482fc9e542308392095cae7e87d7820d50391435",
+      "scope": "Exercise genuine historical and current two-part outputs at import, publication and reopen. Hold names, counts and totals constant while changing per-case skip/pass outcomes in the derived document or the part attempt of one original. Check predecessor stderr, interrupted publication and valid compatibility controls. Derive results independently from the original producers and keep warm native timing distinct. Recheck the original decision on a47fe65a.",
+      "supersedes": "66752e14e7428cdc46abdb25705832c86ac1bf9b695b70bb899eca68b3d1fa2e",
+      "requested_at": "2026-11-26T13:20:00.206683+00:00",
+      "request_id": "d14b540924708c65cef0a20916b8e4524ffca47e160f1419cbebbe878a95370d",
+      "evidence_sha256": "0cbb34980011e729e964b9cd3539680e6ba776fc1a9478cf04fa55e9760ce986"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "482fc9e542308392095cae7e87d7820d50391435",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 482fc9e542308392095cae7e87d7820d50391435",
+      "scope": "CHANGES_REQUESTED M0-146 482fc9e542308392095cae7e87d7820d50391435",
+      "observation": "The candidate published and reopened a receipt with two legacy case outcomes reversed while both original producer logs, all case durations, and the skip total stayed unchanged.",
+      "reviewer": "Independent Astra Standard (t173)",
+      "original_sha256": "c86194093f6fd493f35e6aa93156f85a42c16f81c4e6ea193d45551456bcc123",
+      "response_id": "012995bd5db7f93328e8f67a6ba42f900afadb4aae1f042e8bbf5544f503250b",
+      "response_sha256": "2cee38eb4fa9e1fcc0bc88335482c1f95ef909bf3b640ac5dff5ede66e3ad675",
+      "legacy_response_sha256": "e10a6b1aed005d9d56cffe6b6bde525820337d5dbd130ac1f12504c62cf3fa9c",
+      "observation_body_sha256": "c4f9d6d9f4445d665c876aea74b981ac8dc5d7f52bc3a89ea4a81c82ce7f33b8",
+      "event": {
+        "id": "msg_071c9284106a7406016b0833b4f71c87d18c6d7d2cc1842171",
+        "timestamp": "2026-11-26T13:27:40.115Z"
+      },
+      "supersedes": "d14b540924708c65cef0a20916b8e4524ffca47e160f1419cbebbe878a95370d",
+      "evidence_sha256": "935cf0c01c8d1706aa1fca73f376ca097cb21e929c6861c5faf5f22d51e54d73"
+    },
+    {
+      "kind": "request",
+      "source_commit": "c6e7f9e4932adf54856d3bd53344e11e3ea2f935",
+      "scope": "Exercise genuine historical and current two-part outputs at import, publication and reopen. Hold names, counts and totals constant while changing per-case skip/pass outcomes in the derived document or the part attempt of one original. Check predecessor stderr, interrupted publication and valid compatibility controls. Derive results independently from the original producers and keep warm native timing distinct.",
+      "supersedes": "012995bd5db7f93328e8f67a6ba42f900afadb4aae1f042e8bbf5544f503250b",
+      "requested_at": "2026-11-26T13:58:53.236241+00:00",
+      "request_id": "dfb7268849aa893802a4f59bd3e7f3f527f2370622f3286207fd3546377fdef1",
+      "evidence_sha256": "f913cf4b483dce5600b6bf6b0823fa54df18bb0920c14ab129be963ca20bf75b"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c6e7f9e4932adf54856d3bd53344e11e3ea2f935",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 c6e7f9e4932adf54856d3bd53344e11e3ea2f935",
+      "scope": "APPROVE M0-146 c6e7f9e4932adf54856d3bd53344e11e3ea2f935",
+      "observation": "I reproduced opposite pass and skip outcomes with byte-identical legacy logs, and the candidate rejected both assignments while accepting and reopening both independently witnessed current outcomes.",
+      "reviewer": "Independent Astra Standard (t17s)",
+      "original_sha256": "aba4d3d5e79cc2c8eaab6d926ba8c75bb5cc18f1cec5336db7bbc9715363983b",
+      "response_id": "adc4825eb5d5c5fc2ee61e277a3eef5400e5848852a581ebd0b0bd9deaad3e33",
+      "response_sha256": "9db663648e94f37c7f2a58abeada06656021e764b7354c2a8f65d5e9601d78c4",
+      "legacy_response_sha256": "8d9ce59214ebc140d244f0cd92e0cd037126fbfe68f1d5fbfa71a56749534e27",
+      "observation_body_sha256": "6a7901a084660c7edc6fe678d07baf379990b8cf51d162c2014a2ea20d230c83",
+      "event": {
+        "id": "msg_0940973a2e160613016b083cfca3a087d1815f965bdead23a4",
+        "timestamp": "2026-11-26T14:07:21.725Z"
+      },
+      "supersedes": "dfb7268849aa893802a4f59bd3e7f3f527f2370622f3286207fd3546377fdef1",
+      "evidence_sha256": "92dd0e97fa58a0299c9a3b8e0c8ad4af09cc655b4b4acac18c1476e4b9da2380"
+    },
+    {
+      "kind": "request",
+      "source_commit": "15a5553c1b649d70390e65f04e0b5e2d883f4382",
+      "scope": "Exercise genuine historical and current two-part outputs at import, publication and reopen. Hold names, counts and totals constant while changing per-case skip/pass outcomes in the derived document or the part attempt of one original. Check predecessor stderr, interrupted publication and valid compatibility controls. Derive results independently from the original producers and keep warm native timing distinct.",
+      "supersedes": "adc4825eb5d5c5fc2ee61e277a3eef5400e5848852a581ebd0b0bd9deaad3e33",
+      "requested_at": "2026-11-26T14:16:58.065812+00:00",
+      "request_id": "3e8b9846ee1a77dd0469247d23177f790b57987fe1d99b921c312cd01ee62981",
+      "evidence_sha256": "ada77a3cb88035c64519d4a2e258eb6857fc423cd64065629da2d91c0af0b389"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "15a5553c1b649d70390e65f04e0b5e2d883f4382",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 15a5553c1b649d70390e65f04e0b5e2d883f4382",
+      "scope": "APPROVE M0-146 15a5553c1b649d70390e65f04e0b5e2d883f4382",
+      "observation": "The merged verifier published, imported and reopened both genuine current outcomes, and rejected a pass/skip swap that preserved case names, durations and totals.",
+      "reviewer": "Independent Astra Standard (t18b)",
+      "original_sha256": "9ccd19fe175b07bffc35e1679889b46a93d01bfe9218287387bdfb7ef85049c2",
+      "response_id": "bd171f5cae20106208af764acc9a886e0dad738ead45812f78e0d30a398e45f9",
+      "response_sha256": "30c673576cfe994129fd9880bf39514b51254e9472658b9c9616c42a9837e538",
+      "legacy_response_sha256": "de025a60b8113762e0d981c334d54377875b57f7649e96ac9438d0aeda075a55",
+      "observation_body_sha256": "ce2ea215ec2a14a5e2de96925b6398908aa8efef19d788726041f81a9fd2489f",
+      "event": {
+        "id": "msg_04d8fed258ce8911016b0842119f5c87d2844c78a052b55df3",
+        "timestamp": "2026-11-26T14:28:58.917Z"
+      },
+      "supersedes": "3e8b9846ee1a77dd0469247d23177f790b57987fe1d99b921c312cd01ee62981",
+      "evidence_sha256": "b48ae07361a388ce99f6b188194ea1733fadb48dad9bcdedde6a6d418db41df1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "07cc51a941fe209608fa32b69663f0f47a17420c",
+      "scope": "Review the actual Windows run 45839731781, both CRLF failures and new candidate qualifications at the normal producer and consumer. Verify the contiguous Python suffix and market-workflow move, case-level skip/pass and attempt compatibility, overlap controls against actual original sequential outcomes, clean lock observation, and all 35 selected checks. Distinguish prior missing cause, 1200-second Python timeout and the unmeasured 900-second warm target.",
+      "supersedes": "bd171f5cae20106208af764acc9a886e0dad738ead45812f78e0d30a398e45f9",
+      "requested_at": "2026-11-26T15:30:30.123205+00:00",
+      "request_id": "a278bfb20b4bdc236983f4d27befb0cafa4fa70c3a69e28d92484e94d75e1536",
+      "evidence_sha256": "a88dcc92a530c513043daf4e0b91f0f2bdf72ed4bee75e430e669988303f3881"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "07cc51a941fe209608fa32b69663f0f47a17420c",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 07cc51a941fe209608fa32b69663f0f47a17420c",
+      "scope": "CHANGES_REQUESTED M0-146 07cc51a941fe209608fa32b69663f0f47a17420c",
+      "observation": "The candidate publisher accepted the core lane’s not_selected row for market-workflow and omitted the passing browser lane’s original log.",
+      "reviewer": "Independent Astra Standard (t19n)",
+      "original_sha256": "3d69a0b8823a737092be8da5dafd3b545a0930765b432d0c6b89466b26a0348e",
+      "response_id": "aad75298a445c8c126e3d5579ced8187b8787e34d0dd9fdfe7a2549866265153",
+      "response_sha256": "ca1b4f9fd69ef751ccf4e880d1661cc8f17110b98e5361f54ff8551a969aa96a",
+      "legacy_response_sha256": "8973502ccd69994bea6c5fd378e3533afb3c247d08d72fb9b8297828df4b29ae",
+      "observation_body_sha256": "d85fb45fe7dc2e0f420bdcdea44e1b185fce358439bbe197bea5bb97236aa223",
+      "event": {
+        "id": "msg_061f815ce1258290016b085274146087d2b297e5ce386a6cd3",
+        "timestamp": "2026-11-26T15:38:52.072Z"
+      },
+      "supersedes": "a278bfb20b4bdc236983f4d27befb0cafa4fa70c3a69e28d92484e94d75e1536",
+      "evidence_sha256": "e5fccd3288504b2a63687e14498b37d2600c8de497c7ecb3996ea5e3b3b53118"
+    },
+    {
+      "kind": "request",
+      "source_commit": "fd02515180726e0b843e590b62d0aeef404aed48",
+      "scope": "Review the exact source at the common Windows boundary with the original browser-owned and current recovery-owned market-workflow and both retained recovery rows. Repeat selected and unselected substitution, valid skips and real earlier_failure controls, match all original reports and current isolated and overlapped Linux callbacks, and verify that composing e593f4f3 and correcting the legacy test fixture preserved the full 35-check schedule and 1200-second Python deadline. Keep the first ordinary full warm Windows PR and its 900-second objective open until directly measured.",
+      "supersedes": "aad75298a445c8c126e3d5579ced8187b8787e34d0dd9fdfe7a2549866265153",
+      "requested_at": "2026-11-26T16:05:04.511995+00:00",
+      "request_id": "bdee55a93bd4f8b9500ca23e8b4b515acc991bb418fe0c0c1ed189cba948c18b",
+      "evidence_sha256": "ee1297b9ec4a0cd89f5ea1587795c57ee86ffcf9ab3fa9f0887221071a2fa11a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "fd02515180726e0b843e590b62d0aeef404aed48",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 fd02515180726e0b843e590b62d0aeef404aed48",
+      "scope": "CHANGES_REQUESTED M0-146 fd02515180726e0b843e590b62d0aeef404aed48",
+      "observation": "The Windows publisher accepted the unchanged Linux artifact from run 45839731781, and the browser producer validator accepted an earlier_failure substitution that removed the original market-workflow log.",
+      "reviewer": "Independent Astra Standard (t1b2)",
+      "original_sha256": "5b7148dc576d3017a0d99cd5ec0a4f8ab888996a15ae1fd7a463877d1bdc82aa",
+      "response_id": "239eb83abffdeecfee0bd50b980d0a03fe0ec982ba552965907d14b20186a0a5",
+      "response_sha256": "2fb3ca7024629ed0784dacfdcce5b19d3b829664ce472f83c332fe3b45ed9bfd",
+      "legacy_response_sha256": "2d668f291668591913e94f1830c632a4731e8bf4c913b56f996755a7da9fb8f5",
+      "observation_body_sha256": "5a09dd841dd341f804a786ab8e4c0698220c503a185a1f7e89374847119c81b7",
+      "event": {
+        "id": "msg_0cd1cb0a0e961fd1016b08f070425087d0a2bc7e2831f1fcd4",
+        "timestamp": "2026-11-27T02:52:49.269Z"
+      },
+      "supersedes": "bdee55a93bd4f8b9500ca23e8b4b515acc991bb418fe0c0c1ed189cba948c18b",
+      "evidence_sha256": "9058a0e3e26d6fd63671cea0f456b204a32ca4da9736ddfaedbd624925f4cc03"
+    },
+    {
+      "kind": "request",
+      "source_commit": "cba1e6e4e71eb5c6564e3d8edced38057bfd7880",
+      "scope": "Review the exact source at the common Windows boundary with the original browser-owned and current recovery-owned market-workflow and both retained recovery rows. Repeat selected and unselected substitution, valid skips and real earlier_failure controls, match all original reports and current isolated and overlapped Linux callbacks, and verify that composing e593f4f3 and correcting the legacy test fixture preserved the full 35-check schedule and 1200-second Python deadline. Keep the first ordinary full warm Windows PR and its 900-second objective open until directly measured.",
+      "supersedes": "239eb83abffdeecfee0bd50b980d0a03fe0ec982ba552965907d14b20186a0a5",
+      "requested_at": "2026-11-27T03:12:06.730424+00:00",
+      "request_id": "3466d977e31fca07610f5b0857fc36a80f52d556bad96c0e8736cb1aa632eadf",
+      "evidence_sha256": "7b897d9cf2deaddb2ef8abff324ca832e74d08e7520ee45bbd4b710d7e04e9be"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "cba1e6e4e71eb5c6564e3d8edced38057bfd7880",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 cba1e6e4e71eb5c6564e3d8edced38057bfd7880",
+      "scope": "APPROVE M0-146 cba1e6e4e71eb5c6564e3d8edced38057bfd7880",
+      "observation": "The Windows publisher rejected the unchanged Linux artifact from run 45839731781, and the browser producer rejected the replacement of its passed market-workflow result with an earlier_failure row.",
+      "reviewer": "Independent Astra Standard (t1bm)",
+      "original_sha256": "72d52aa72233544485b152d2bdf8ef1ce3ab211760b2ac27e29252cb8978b241",
+      "response_id": "d7d6d7aa0917dc5dc14b3d79f2f18045a5cf3e34332ac3973609075271fb382f",
+      "response_sha256": "3f661c80389f7b494a4ba46bd2fa8ea19e108bac8d16b04e619a7c4d116cd89d",
+      "legacy_response_sha256": "8348baf9f00dbf90d69da6eda4be8e5c4f52c99f2b969777239153f0cb428a43",
+      "observation_body_sha256": "d866cdaf218f7cf16c60dc6e5cb222ee051271d1b482587b7383a5009bb8ff55",
+      "event": {
+        "id": "msg_01e3d9bc1c89a03f016b08f6948a7887d0bd56f42ec460166b",
+        "timestamp": "2026-11-27T03:19:01.886Z"
+      },
+      "supersedes": "3466d977e31fca07610f5b0857fc36a80f52d556bad96c0e8736cb1aa632eadf",
+      "evidence_sha256": "be6beb25ba66b480737ee19c7727f9f426223176bb299453f0cdb3778f20a45a"
+    },
+    {
+      "kind": "request",
+      "source_commit": "1d7e14978847af2a74af4fc02087d4e55cfb5b1b",
+      "scope": "Review the single shared Windows PR publication/cost change on 1d7e1497. Judge the observed cost reduction and continued admission of each original producer, including the recovery job that finished last in PR 123.",
+      "supersedes": "d7d6d7aa0917dc5dc14b3d79f2f18045a5cf3e34332ac3973609075271fb382f",
+      "requested_at": "2026-11-27T04:17:44.465232+00:00",
+      "request_id": "0cc41629101bba8c9fb124e8d5e2953f41e05d1191cd78abdd523d2a434b04da",
+      "evidence_sha256": "c093c9a3cb117a33fce3816833e5d394c43d7aac14a03577373ca13234494df6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "1d7e14978847af2a74af4fc02087d4e55cfb5b1b",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 1d7e14978847af2a74af4fc02087d4e55cfb5b1b",
+      "scope": "APPROVE M0-146 1d7e14978847af2a74af4fc02087d4e55cfb5b1b",
+      "observation": "The reviewed code accepted the original recovery producer from run 45933801256 and rejected the recovery producer from run 45839731781 when checked against the same aggregate.",
+      "reviewer": "Independent Astra Standard (t1cm)",
+      "original_sha256": "9613834a35cb03b582714f93780beb2a8ea293b3da56431674d548380003e307",
+      "response_id": "51debf900a3ca9e2ecfa55d0d935572d3cb0f0b81d0142dda84a9b25ea41f91c",
+      "response_sha256": "0532c1e995b339c68b7b254e90831db09d461ff193acab700dcf08eaa60408a8",
+      "legacy_response_sha256": "78a77101ad52e72c10745b528b9b07b3f67672e7dcd7348551b836f57dc8aee1",
+      "observation_body_sha256": "b9c991969ddd608a881ef483c2d4c0c3f80ee66675cc209cd1c2f68ccc7fc0c3",
+      "event": {
+        "id": "msg_03458ca225866e14016b090538fd9087d08320b3a905e8a3c9",
+        "timestamp": "2026-11-27T04:21:30.391Z"
+      },
+      "supersedes": "0cc41629101bba8c9fb124e8d5e2953f41e05d1191cd78abdd523d2a434b04da",
+      "evidence_sha256": "7c7c1f810fd105a2e15fde4a8c11b0122b181e746ae9b52cd97c4564bf1ab8d4"
+    },
+    {
+      "kind": "request",
+      "source_commit": "115a410bcaebde3f9d782862701d86e957a75be9",
+      "scope": "Full warm Windows PR scheduling and cost, both Python parts, the localization handoff to recovery, the 35-check aggregate, and the same publication and receipt validation for the changed PR assignment.",
+      "supersedes": "51debf900a3ca9e2ecfa55d0d935572d3cb0f0b81d0142dda84a9b25ea41f91c",
+      "requested_at": "2026-11-27T05:19:25.761491+00:00",
+      "request_id": "f501fb5ddf4a251be691648421d17914a1be94b473c04a09eb0dc48b8deb1189",
+      "evidence_sha256": "228c5af8b02d617b8abfe103c06429e4a67dde464739b566646fec4dd7053f27"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "115a410bcaebde3f9d782862701d86e957a75be9",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 115a410bcaebde3f9d782862701d86e957a75be9",
+      "scope": "CHANGES_REQUESTED M0-146 115a410bcaebde3f9d782862701d86e957a75be9",
+      "observation": "In a local replay, SIGINT immediately before desktop localization caused the recovery producer to exit without writing either harness report.",
+      "reviewer": "Independent Astra Standard (t1df)",
+      "original_sha256": "67648e56ebc6cfab3dd48834ff060e972c7a6502f10a80cdfd008040e084933a",
+      "response_id": "840e9ce099174fa67b8da928c2edb33c0ae5b93adc2bb739932264ccc068d6ad",
+      "response_sha256": "a4bcae6ac22ce0cc18cb8c110a141f96521c64c04e74f481ed3a7ebe97c1398c",
+      "legacy_response_sha256": "ee66841aed67d369579be68740092f2bc4e1a5fca9f663e381ad6ab35f133326",
+      "observation_body_sha256": "37053781db8dfb267379b838095a0f4fd150f89315e08bf90869533bfdc808d0",
+      "event": {
+        "id": "msg_0bb5b8b0cfa70109016b0913f7b65087d09c96c746cfc23d3e",
+        "timestamp": "2026-11-27T05:24:26.283Z"
+      },
+      "supersedes": "f501fb5ddf4a251be691648421d17914a1be94b473c04a09eb0dc48b8deb1189",
+      "evidence_sha256": "9e617f429b4a71b07a568c6cae933de57c3cb7c791e663d5299a0f188edf4166"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b1541b819e0116f7c844684a2d9390940a55fd6f",
+      "scope": "Reconcile the previous t1df changes_requested decision at the recovery scheduler interruption immediately before desktop localization.",
+      "supersedes": "840e9ce099174fa67b8da928c2edb33c0ae5b93adc2bb739932264ccc068d6ad",
+      "requested_at": "2026-11-27T05:37:27.350655+00:00",
+      "request_id": "83e2803a55bfb361698016f16c29c22a7b49b771de3ad61bd04cbd12fe97a05e",
+      "evidence_sha256": "ba6aed0b8a39a2e2201fad05fad108a3f9da3123550e75f8c66e9ff179c3f395"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b1541b819e0116f7c844684a2d9390940a55fd6f",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 b1541b819e0116f7c844684a2d9390940a55fd6f",
+      "scope": "CHANGES_REQUESTED M0-146 b1541b819e0116f7c844684a2d9390940a55fd6f",
+      "observation": "In an independent replay through the recovery lane, SIGINT after all five results were available raised KeyboardInterrupt before either harness report was written.",
+      "reviewer": "Independent Astra Standard (t1dp)",
+      "original_sha256": "5aa696bdf54fadb026bbaffcee001273c6f5c4e1ca75cacc320d5e2e186d274b",
+      "response_id": "2c7a5f663cc18629cf747c03b18eab4b42f955f0c13a3b693a0283b3295c0aa1",
+      "response_sha256": "f098402cdf5ec2d1810f8f4c8d1e6ec4479b5542d43d7eb6fe26dc2a4b3c424d",
+      "legacy_response_sha256": "be9e4cd4c544d52183f1e2373b1bff66d1a13b1766f0115d2ee58dea27955e82",
+      "observation_body_sha256": "ab89042208ea809a663136bc2ae4aa6f698e37de66dc7af122351fe3abe59a5a",
+      "event": {
+        "id": "msg_0c206b09a6e8d825016b09181dee1487d0b88e4fc544bc1a64",
+        "timestamp": "2026-11-27T05:42:10.051Z"
+      },
+      "supersedes": "83e2803a55bfb361698016f16c29c22a7b49b771de3ad61bd04cbd12fe97a05e",
+      "evidence_sha256": "4dc6b9950b3b5f79913f8feaf5b72da66fa197eb6f90be93d2e7bb26bfd6b842"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ba097a02695d7623b60fe8324d01455ec261b8c3",
+      "scope": "Verify the recovery producer and published verdict across the two observed SIGINT boundaries and a normal run on the corrected candidate.",
+      "supersedes": "2c7a5f663cc18629cf747c03b18eab4b42f955f0c13a3b693a0283b3295c0aa1",
+      "requested_at": "2026-11-27T05:56:59.629736+00:00",
+      "request_id": "35fbe9ee6e6f7fcbee17a47bbd1ff12a9103fe8f1536a82951c80e62010396fe",
+      "evidence_sha256": "5205aaf0a1d7f6b6262e4612844aa7c1a0a4a1b6a1e89d9b5184f6e6a6d63885"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ba097a02695d7623b60fe8324d01455ec261b8c3",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 ba097a02695d7623b60fe8324d01455ec261b8c3",
+      "scope": "APPROVE M0-146 ba097a02695d7623b60fe8324d01455ec261b8c3",
+      "observation": "After SIGINT followed the fifth completed result, the corrected producer returned 1 and both the producer and published aggregate reports preserved all five passes while recording the invocation as failed.",
+      "reviewer": "Independent Astra Standard (t1ds)",
+      "original_sha256": "30a5a0f0ea7ab1e5b53324d2ff6a2714fae3c119831f12fb9121f8167202ed90",
+      "response_id": "9a7836a16d6b753989717041b20810b3e8e700edcc446bc90da49c48d9b93597",
+      "response_sha256": "7e709151c12098351f0a9b3bc3d9b6b29057c1f351c69dc57ff276beb4ce4330",
+      "legacy_response_sha256": "2e1e87fb7827b5c4eb691568ac65e9403ec7b8b1f8bfa456419cf3e0ea25b9f0",
+      "observation_body_sha256": "7c979b2bf37d4787668e308b8e140543563571d7e8f6ebfd15a471c2c7b2f7ef",
+      "event": {
+        "id": "msg_0dca97cb26e86cc6016b091c7d044487d09eb35cdd358b8b4c",
+        "timestamp": "2026-11-27T06:00:43.800Z"
+      },
+      "supersedes": "35fbe9ee6e6f7fcbee17a47bbd1ff12a9103fe8f1536a82951c80e62010396fe",
+      "evidence_sha256": "a6a13d8128d09cdf12fba5781ba48b2915edf4519d2d696c2d954c64e7941cb0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ad62ed0d49128539c309312c6f23bec137e9874a",
+      "scope": "Review removal of the redundant history-baseline override in the Windows scheduling fixture against the real workflow and the observed Git process burden.",
+      "supersedes": "9a7836a16d6b753989717041b20810b3e8e700edcc446bc90da49c48d9b93597",
+      "requested_at": "2026-11-27T07:10:26.912567+00:00",
+      "request_id": "9c96db1990052235268ef4708551292ee059c102ba12112f314fb6a107371aa5",
+      "evidence_sha256": "c1965ac2e7dd889ab7281676fe79fddf7b8312dfe472026f53c3d2a4e835aa45"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ad62ed0d49128539c309312c6f23bec137e9874a",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 ad62ed0d49128539c309312c6f23bec137e9874a",
+      "scope": "APPROVE M0-146 ad62ed0d49128539c309312c6f23bec137e9874a",
+      "observation": "With and without an inherited review-base override, I observed four fewer Git subprocesses in the fixture preflight and rejection of reversed pull request parents.",
+      "reviewer": "Independent Astra Standard (t1f0)",
+      "original_sha256": "94b10e0ab2c5348a4a1cc5ca7892131222becfa1787e07f985e380964d2d1ffe",
+      "response_id": "85ceaafe55631d8a72f54743a0d3197c7fe9df8c1ca307616135d0860c31c817",
+      "response_sha256": "62b3cd18e0a1f53db7435f86c34d27e923442f2af710aa5fe22c7c24ca4225f9",
+      "legacy_response_sha256": "dc5c3e6e9e41d8628c45b12bac8a865f74089780254653019b2fa9b9606b04d3",
+      "observation_body_sha256": "b5f1d6baad8a6d8f87e6ee06f5432a7ab991eebbcee364629f2f0d029163f7a0",
+      "event": {
+        "id": "msg_0fc3f1efeb4f447a016b092e56206487d0a97c2c6169072bfa",
+        "timestamp": "2026-11-27T07:16:55.991Z"
+      },
+      "supersedes": "9c96db1990052235268ef4708551292ee059c102ba12112f314fb6a107371aa5",
+      "evidence_sha256": "939215547689df33f686cc32d39db03e04f0408afa394a639e47bffba1c1258a"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ce6c2b3e3f8ba091378a7161fc77bf18cb20053d",
+      "scope": "Independently review the ordered repartition on ce6c2b3e against the actual four Windows first-attempt clocks, full test discovery, source-declared partition and producer setup.",
+      "supersedes": "85ceaafe55631d8a72f54743a0d3197c7fe9df8c1ca307616135d0860c31c817",
+      "requested_at": "2026-11-27T08:01:57.221828+00:00",
+      "request_id": "e75f0f982ba2f5e799bf60f54045fd3d9be927211626f75903106b96e7d0d264",
+      "evidence_sha256": "f30fdcef005c297a9ae8e8de4eb77bf54ef2051b9188751ec049331c0849eec7"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ce6c2b3e3f8ba091378a7161fc77bf18cb20053d",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 ce6c2b3e3f8ba091378a7161fc77bf18cb20053d",
+      "scope": "APPROVE M0-146 ce6c2b3e3f8ba091378a7161fc77bf18cb20053d",
+      "observation": "I verified that moving 146 consecutive cases from recovery to Python preserved the order and unique ownership of all 965 discovered tests.",
+      "reviewer": "Independent Astra Standard (t1fd)",
+      "original_sha256": "461f7f743eadc7721c8c130a02e4e0eb6702ad00b5b148edc7a0f4d31f5d6158",
+      "response_id": "4264765cb6db841b3c474f0a52f7a6bac4349cc3d48390204231f7c67ea34e34",
+      "response_sha256": "1d485d866d2ec555bb12f8ebbf3e6ce01c0c51b83d40991622204e14f66921f3",
+      "legacy_response_sha256": "14e69bba5302c0479873d4081cf97de2fd4e12795fbe75be26553286ef78098c",
+      "observation_body_sha256": "8f2937c8baa36fa37ac830b61e7aec003d1eebb9a088822084b0c87017489293",
+      "event": {
+        "id": "msg_002c36a150154492016b093a4c421c87d084b1c367f0a7fc0c",
+        "timestamp": "2026-11-27T08:08:12.409Z"
+      },
+      "supersedes": "e75f0f982ba2f5e799bf60f54045fd3d9be927211626f75903106b96e7d0d264",
+      "evidence_sha256": "108025ed0203f6fd93c33fe59d08d429a38968b1411a9d5889d75bef01451fb8"
+    },
+    {
+      "kind": "request",
+      "source_commit": "17cbf7c7dbe7290f3728eb6e4987a03df5aee973",
+      "scope": "Independently recheck the full Windows PR schedule and public verifier on this source. Recalculate the service and cost tradeoff against the four comparable originals and the separately failed clock. Verify selection, ordered Python case outcomes, failures, skips and recovery, the added workspace producer and what is required to publish. Inspect the normal full versus protected or scoped paths and retain the known 1028-second actual versus 887.950-second maximum projected estimate. Native 900-second acceptance still requires a genuine complete warm PR attempt.",
+      "supersedes": "4264765cb6db841b3c474f0a52f7a6bac4349cc3d48390204231f7c67ea34e34",
+      "requested_at": "2026-11-27T09:02:38.026653+00:00",
+      "request_id": "3b14b6eab5e5000c5660eade2eae1e0e768f4db5cfbf628115e5421e220019f7",
+      "evidence_sha256": "ee44db4851f2aa5b0ab1a1fb5d111feadf19cfc2207224bad710a378a8c5b15d"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "17cbf7c7dbe7290f3728eb6e4987a03df5aee973",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 17cbf7c7dbe7290f3728eb6e4987a03df5aee973",
+      "scope": "CHANGES_REQUESTED M0-146 17cbf7c7dbe7290f3728eb6e4987a03df5aee973",
+      "observation": "The recovery producer exited with code 1 and wrote two passing reports when I delivered SIGINT during report publication.",
+      "reviewer": "Independent Astra Standard (t1fz)",
+      "original_sha256": "bf35c8b51886624f0c2c81475f4b3c0cc7c1d8e88e86e8723e3281e765b68ef4",
+      "response_id": "a0f3283a3e7f53611f7edaec7becda97ef6932b847566c3e56699f7f5d652c4f",
+      "response_sha256": "182844d2af614c6de7f02eac2601c7751282586fb74516a6de0c92e36b51636f",
+      "legacy_response_sha256": "60e3717748fb7f5d8191d2f3476934b88cac1ae4c2f5de15d7111f6477c810c2",
+      "observation_body_sha256": "a8f6c0834e5071445ebe04054f6c05adc94703dc0ca5db11da497b7cfa3ff115",
+      "event": {
+        "id": "msg_0ed488c40984c2c8016b0948c74f3887d085af410e77a4b99e",
+        "timestamp": "2026-11-27T09:09:50.461Z"
+      },
+      "supersedes": "3b14b6eab5e5000c5660eade2eae1e0e768f4db5cfbf628115e5421e220019f7",
+      "evidence_sha256": "556fd6bc0c0ed74abf2f39b086a98e35a91808385453b29d6d39a20dc98f674e"
+    },
+    {
+      "kind": "request",
+      "source_commit": "3f5485af1e44cf9e85ed60bd024d182755a47f72",
+      "scope": "Independently assess the producer interruption/publication, selected-case partition, log and workspace attachment preservation and reopened reports on this five-lane candidate. Compare the ordinary four-lane protected path and the original native samples.",
+      "supersedes": "a0f3283a3e7f53611f7edaec7becda97ef6932b847566c3e56699f7f5d652c4f",
+      "requested_at": "2026-11-27T09:26:59.241360+00:00",
+      "request_id": "2d747b05a66c3c8307a6905efa1eafe6303d3d28ee9a086d9a0e5657927aaabd",
+      "evidence_sha256": "df0eed3ba0db2d2a05ab0fcf1623c8cb8c5d6a1a0430d34858cd15ea20b6b0c8"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "3f5485af1e44cf9e85ed60bd024d182755a47f72",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 3f5485af1e44cf9e85ed60bd024d182755a47f72",
+      "scope": "CHANGES_REQUESTED M0-146 3f5485af1e44cf9e85ed60bd024d182755a47f72",
+      "observation": "During my local replay, the workspace producer exited with code 1 after SIGINT, yet both published reports reopened as passed.",
+      "reviewer": "Independent Astra Standard (t1gh)",
+      "original_sha256": "f0243522ddfb59ffe232a731d9b4041fed7254abd4ba710c9ad511d78fe9389b",
+      "response_id": "e1931f32cfebb5be7637b872923e6ae9a3deca7e5787b21c46cd6694b9192692",
+      "response_sha256": "1ed63131668c76144a8d1c8793df9dc7d22d488fe899567eade37b188719ffe5",
+      "legacy_response_sha256": "15c7834ab8715b1a76c8a22009438af67ff4c5e199da5995a3a4999c9a0837f6",
+      "observation_body_sha256": "2682037f75ec24083098249fa5abc19352f4a21dd0fd39dd969f1039d162c2f4",
+      "event": {
+        "id": "msg_0171721e012949d4016b094f038e1887d0894daa9e854516bf",
+        "timestamp": "2026-11-27T09:36:26.866Z"
+      },
+      "supersedes": "2d747b05a66c3c8307a6905efa1eafe6303d3d28ee9a086d9a0e5657927aaabd",
+      "evidence_sha256": "60e3f9ed99c45f79301834d74da65ec6af1acdb7c9485349ba83ebee242952e9"
+    },
+    {
+      "kind": "request",
+      "source_commit": "f5ba8771b485118ef017c75f5b184bb61991a90e",
+      "scope": "Independently assess the producer interruption/publication, selected-case partition, log and workspace attachment preservation and reopened reports on this five-lane candidate. Compare the ordinary four-lane protected path and the original native samples.",
+      "supersedes": "e1931f32cfebb5be7637b872923e6ae9a3deca7e5787b21c46cd6694b9192692",
+      "requested_at": "2026-11-27T09:52:00.671095+00:00",
+      "request_id": "b9fba548a9e2ddbe19b5b42a7920a38a80af21975eaffe4de7328cd4ee8923f6",
+      "evidence_sha256": "d50917b5b461b745cfffb65cac85c5fa4433807109e814917128dca3762c34ad"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "f5ba8771b485118ef017c75f5b184bb61991a90e",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 f5ba8771b485118ef017c75f5b184bb61991a90e",
+      "scope": "CHANGES_REQUESTED M0-146 f5ba8771b485118ef017c75f5b184bb61991a90e",
+      "observation": "In my offline replay, interrupting the final Git read left both the Python and workspace producers with completed logs and attachments but no finalized report.",
+      "reviewer": "Independent Astra Standard (t1h4)",
+      "original_sha256": "93c291a708386d5154604f9d50436e99077f9f18c3180991a791b330708db592",
+      "response_id": "31de753014209d81b3f2ad817c891aaae867dbfeb159156d1d3df0ef71814ae6",
+      "response_sha256": "c86a6f77ef1f9351e9e94e338ef56247304c2744fefc93c23a248fd96e418d93",
+      "legacy_response_sha256": "40496a15dbfade91d5baeb5ed77d77101fb2e4db6d537e0a4a189f91525b9033",
+      "observation_body_sha256": "49feddac367e18e0d0d11d50d8dd50fd41cd282aaa937cd0836dbd3d50fab03d",
+      "event": {
+        "id": "msg_0758eb79212c6c82016b0954b7369c87d0904e01bbff2aa204",
+        "timestamp": "2026-11-27T10:00:43.925Z"
+      },
+      "supersedes": "b9fba548a9e2ddbe19b5b42a7920a38a80af21975eaffe4de7328cd4ee8923f6",
+      "evidence_sha256": "216b9a0fd8095a65f98e68b52ca7d635011008e0c122662b9e51714eb86556bb"
+    },
+    {
+      "kind": "request",
+      "source_commit": "215952297bc76e1b5459a2a94bb24d3637a78cb8",
+      "scope": "Independently evaluate the warm Windows Python topology, verification transport, serial/partition parity and actual timing eligibility.",
+      "supersedes": "31de753014209d81b3f2ad817c891aaae867dbfeb159156d1d3df0ef71814ae6",
+      "requested_at": "2026-11-27T10:14:37.565888+00:00",
+      "request_id": "a3f9f4613ab9895590b8bd2840c4e28df335de0524fc34715eac95a34ce4148f",
+      "evidence_sha256": "69b7e286045c0a59c0023611a83eb6cf1a3ea5c8cb57ae76a787ebeededf4a44"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "215952297bc76e1b5459a2a94bb24d3637a78cb8",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 215952297bc76e1b5459a2a94bb24d3637a78cb8",
+      "scope": "APPROVE M0-146 215952297bc76e1b5459a2a94bb24d3637a78cb8",
+      "observation": "Both workflow replays rejected the Python producer when only its optional timing upload succeeded.",
+      "reviewer": "Independent Astra Standard (t1hh)",
+      "original_sha256": "4fd75c0395239e2ea451e74406a32cf627e1a99253018db2b57a9b81b6a8d501",
+      "response_id": "afc7fcb8ae64ba493dfcf8f7ec5bbade2fcd1f495fae83b14b6ff66893e3cc48",
+      "response_sha256": "c7a9b4b25403ca7e211475963cfc816a0deb9b9ee081762c9ec50c054f50f7b2",
+      "legacy_response_sha256": "30b78bf324b61ae8d901a3e50b3042f8b43d9829775757e401676f078ee67591",
+      "observation_body_sha256": "393c1d730553d24c3e5b4483787d9bb6ef880b630dfa780d7983993ccdf90c56",
+      "event": {
+        "id": "msg_0a87064a46f984e7016b09642619ac87d08a9cb94a1601d006",
+        "timestamp": "2026-11-27T11:06:33.533Z"
+      },
+      "supersedes": "a3f9f4613ab9895590b8bd2840c4e28df335de0524fc34715eac95a34ce4148f",
+      "evidence_sha256": "d80353681ad0be8a45ae267dd9fb4e2889127db2579d9ec2d3879e7194fb2493"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d38d2fe205d98f92cfc71c3d9be33c070fd5e08a",
+      "scope": "Independently assess the five-job Windows warm Python verification change on the current candidate, including stable behavior across artifact ownership repair and the scope of its observed costs.",
+      "supersedes": "afc7fcb8ae64ba493dfcf8f7ec5bbade2fcd1f495fae83b14b6ff66893e3cc48",
+      "requested_at": "2026-11-27T11:19:12.977924+00:00",
+      "request_id": "a61fd9eb0273d17738a2c1d2a5117ef277b2528f84853d699a6dcfa99c0e6ba5",
+      "evidence_sha256": "bb8f8996823105168873539b396155edd9c1f8e3999282a9a8b44f8d6b442af4"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d38d2fe205d98f92cfc71c3d9be33c070fd5e08a",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 d38d2fe205d98f92cfc71c3d9be33c070fd5e08a",
+      "scope": "APPROVE M0-146 d38d2fe205d98f92cfc71c3d9be33c070fd5e08a",
+      "observation": "I replayed all 73 public controls on the reviewed source and matched all 57 original decisions.",
+      "reviewer": "Independent Astra Standard (t1jc)",
+      "original_sha256": "8bb6823e1567d46f0a9de24c64a09d9db4d113f3fd58565572ff23c51ac6889d",
+      "response_id": "c291fe63fc9b90839ba82f5db0506d39f40c679bdb9768cb444421c80c01d551",
+      "response_sha256": "81da93809fb3c228a413082e0d9b7d303ce72607979818263222c381d7694b8c",
+      "legacy_response_sha256": "298412b99f858f4b3e7252376043dbc9f7fa4d74238da2a226fceb758b0405c6",
+      "observation_body_sha256": "0975ead2be9b5aecfef7cec178d005f5fa7637558c91d377f288a05d5cbc4026",
+      "event": {
+        "id": "msg_0e5ba43d3b5288f3016b0968ae5a7487d0a573ee1f02bf905c",
+        "timestamp": "2026-11-27T11:25:55.264Z"
+      },
+      "supersedes": "a61fd9eb0273d17738a2c1d2a5117ef277b2528f84853d699a6dcfa99c0e6ba5",
+      "evidence_sha256": "785bb31a566620ccf98e4bdd64e2c3829641019e9c01dd1e39bb46d309b5f37b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "6c851d7271ea97db2fbef0ccf18bbbc32e5f067c",
+      "scope": "Independently qualify the five-producer warm PR Python distribution, ordered results, retained report evidence and costs on this corrected source with the shared integration entry.",
+      "supersedes": "c291fe63fc9b90839ba82f5db0506d39f40c679bdb9768cb444421c80c01d551",
+      "requested_at": "2026-11-27T11:41:56.010995+00:00",
+      "request_id": "f0a56eba5ccc468e488e15319b74322c63bda10981d26c08131d38ab3a2e44e2",
+      "evidence_sha256": "be9878123e94b6449ce7a1a707866ad6f12b4922615e15ef79c909e0927a7235"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "6c851d7271ea97db2fbef0ccf18bbbc32e5f067c",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 6c851d7271ea97db2fbef0ccf18bbbc32e5f067c",
+      "scope": "APPROVE M0-146 6c851d7271ea97db2fbef0ccf18bbbc32e5f067c",
+      "observation": "I independently replayed all 125 integration controls and matched all 992 ordered Python outcomes across the serial run and both partitions.",
+      "reviewer": "Independent Astra Standard (t1js)",
+      "original_sha256": "e7d9193482193303a8f9521b79c9193e4f09836cbc70b9b509467fedfa698b8e",
+      "response_id": "a2d34d41cdf4c8e00aeef05baf36e82556285221dbb12a1bb967749b4bb342d8",
+      "response_sha256": "80afd7156a3d20197ae2cdee62ab42e8d47ce0bb151a6e283444fde3dbdf4545",
+      "legacy_response_sha256": "d68d998425a84c7af2bdd2dc6a38519d00b74fa102c67d625abf37d93431f27b",
+      "observation_body_sha256": "6052d808550e779a3d0a33808aa004825e6c5cfced6b9da5b6df912be2f76c01",
+      "event": {
+        "id": "msg_0ac5a4728dbe90cd016b096dcd9dcc87d0ae43d92c5e8a40e0",
+        "timestamp": "2026-11-27T11:47:54.264Z"
+      },
+      "supersedes": "f0a56eba5ccc468e488e15319b74322c63bda10981d26c08131d38ab3a2e44e2",
+      "evidence_sha256": "d5a247e6a13e1e034d8246c436546472dcd77e8a22b0e607e247b4c8c3c3f4bb"
+    },
+    {
+      "kind": "request",
+      "source_commit": "06fcb2ac978a3ea4918bcfef6aaedb159624e152",
+      "scope": "Review the fourth native Windows timeout in its actual budget finding, preservation of both reconciliation parents and the accepted M0-177 result, the public five-producer ownership and selection controls, and the exact limits of earlier measurements on this composed source.",
+      "supersedes": "a2d34d41cdf4c8e00aeef05baf36e82556285221dbb12a1bb967749b4bb342d8",
+      "requested_at": "2026-11-28T02:08:20.690048+00:00",
+      "request_id": "fa3890a62a6eea63e880f50618ba4b9bb0a26142401d05d211d2e3d238c23764",
+      "evidence_sha256": "b7612f7bf8fcfd1771f8b466ea423a54800912e0f2afb1ed1354650026387d40"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "06fcb2ac978a3ea4918bcfef6aaedb159624e152",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 06fcb2ac978a3ea4918bcfef6aaedb159624e152",
+      "scope": "APPROVE M0-146 06fcb2ac978a3ea4918bcfef6aaedb159624e152",
+      "observation": "The candidate accepted the original PR 112 uploads and rejected the same attempt’s browser log when I supplied it for the final Windows publisher.",
+      "reviewer": "Independent Astra Standard (t1k5)",
+      "original_sha256": "d2cdc0fad60a285bb30a5d9cf5d3e6de8456e0d9e277e5389ff350e05eb5f6fc",
+      "response_id": "ee600a9dac0d2b0107f71fc87af3c312069212ea056dad2f84f17f8ec817b243",
+      "response_sha256": "81e2fc764f443ebf87588f35edfae9b251a3339d55661e6e894da3709935bf1d",
+      "legacy_response_sha256": "e502418161fe286ee7b3f6bdd69be2a2ad01390fe1dbab993ab02f9c608b5dac",
+      "observation_body_sha256": "3c7dc58be3215ae032bc4fc195cd5c5c59cf60e0a99cc2d10e207eb7fbc95e4f",
+      "event": {
+        "id": "msg_0ce65c888a6ed177016b0a38ef257087d0bf4c9a3a65e4f89f",
+        "timestamp": "2026-11-28T02:14:28.563Z"
+      },
+      "supersedes": "fa3890a62a6eea63e880f50618ba4b9bb0a26142401d05d211d2e3d238c23764",
+      "evidence_sha256": "ca2fde04c2f902c38a0fa656d02106a4e08a25e257a60377c863d07e38da92b5"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a8795844d601cbbe5569329d2ae1b3554413d51f",
+      "scope": "Review the genuine five-producer ordinary full warm PR 123 evidence on its precise prior source, the final job clock, all 35 selections and both failures attributed to M0-181. Verify the distinct fourth Windows Python timeout, earlier measured outcomes, ownership controls, records, and applicable 900-second gate on the composed material. Compare both parents and protected M0-177.",
+      "supersedes": "ee600a9dac0d2b0107f71fc87af3c312069212ea056dad2f84f17f8ec817b243",
+      "requested_at": "2026-11-28T04:45:21.366810+00:00",
+      "request_id": "13be28dbbf0e4af0202c41b78e6cb98718f690591c82d86b40385a9d4fc9a2ec",
+      "evidence_sha256": "9e5f89671f815a374d699b32a9ddc36a329a1978a94d938f6e3ca975e54eac66"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a8795844d601cbbe5569329d2ae1b3554413d51f",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 a8795844d601cbbe5569329d2ae1b3554413d51f",
+      "scope": "CHANGES_REQUESTED M0-146 a8795844d601cbbe5569329d2ae1b3554413d51f",
+      "observation": "In a controlled replay of successful PR 120, the public timing checker recorded a budget breach at 901 seconds while the first-producer-to-publisher span stayed at 866 seconds.",
+      "reviewer": "Independent Astra Standard (t1mc)",
+      "original_sha256": "7fee29d8adde87288804a6d1d2906e6387286f5fcb129044d726db04a6b45a12",
+      "response_id": "28432463478bf5ab7430bf9a74815cc276ece5caed2b636cdf240d8c7f5f259d",
+      "response_sha256": "2bed415a12c4b6877d11d11cdfb5e42d78c5896839ad023fa430e0ba03c2659d",
+      "legacy_response_sha256": "fc25fa3b99ea9b4dc8e0ef075229dae0e80bb0c74e1e4cd0900d59085a50587e",
+      "observation_body_sha256": "88ebbe81e26809f5b5666482a16aa258e8c6da085db92dac99fb1ea7aa65a297",
+      "event": {
+        "id": "msg_0f53e27b99b94333016b0a5e88707c87d089287ec1a2f8a0bd",
+        "timestamp": "2026-11-28T04:54:53.345Z"
+      },
+      "supersedes": "13be28dbbf0e4af0202c41b78e6cb98718f690591c82d86b40385a9d4fc9a2ec",
+      "evidence_sha256": "45907e915079db2eb98db8910d60329fc10b2dd74c9553d910510e5871182447"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ede385d261fefd14148d5162ffc7e10cdd293b2e",
+      "scope": "Verify the M0-146 acceptance-record correction from the previous independent refusal. Using the actual ordinary public Windows timing reader, compare PR 120 run 45666385494 under queue-only controls through the inclusive Windows seconds.total boundary of 900 seconds and distinguish the producer span. Reconcile failed PR 123 run 46103840740, the original fourth Python timeout, local source and task history, and confirm the precise pending ordinary and protected gates.",
+      "supersedes": "28432463478bf5ab7430bf9a74815cc276ece5caed2b636cdf240d8c7f5f259d",
+      "requested_at": "2026-11-28T05:07:28.534518+00:00",
+      "request_id": "0afe24aa3d59d65932b5ad18106f219526554069aba098c476d8e04394d8167e",
+      "evidence_sha256": "c1109cf2ea409f58999de234a71a9c04a16a9ce3b54f1e12283766c6545d06fa"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ede385d261fefd14148d5162ffc7e10cdd293b2e",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 ede385d261fefd14148d5162ffc7e10cdd293b2e",
+      "scope": "APPROVE M0-146 ede385d261fefd14148d5162ffc7e10cdd293b2e",
+      "observation": "With the PR 120 job clocks fixed, the public Windows timing reader recorded zero breaches at 900 seconds and one at 901 seconds while the first-producer-to-publisher span stayed at 866 seconds.",
+      "reviewer": "Independent Astra Standard (t1mp)",
+      "original_sha256": "7453e19351e0584df46d0717ed93b8b576c9edbcf61ded0a64ad98933ed28be7",
+      "response_id": "8d2541db95178b5fcb3583588a0da71624fa7b58a641470c7213fc620613ae85",
+      "response_sha256": "22e777df0a36f8b325fc66306dc618b09dfa5138676f5f45979d988303ae176d",
+      "legacy_response_sha256": "c510f6cf155db679515fac8c67e4d584e6660736e0e3097679480d1b27b76ec6",
+      "observation_body_sha256": "900ab16c3f04733f86044cb18ed1c73a449e2beb6f63e8a549cf68293a66d36d",
+      "event": {
+        "id": "msg_03ad9ee1e0dd52a6016b0a62789ddc87d0b9cd27f84ef71d90",
+        "timestamp": "2026-11-28T05:11:45.294Z"
+      },
+      "supersedes": "0afe24aa3d59d65932b5ad18106f219526554069aba098c476d8e04394d8167e",
+      "evidence_sha256": "9942b58a5fdbba5ed7d9a1069aa4f6b58784265f83400003d851e684d492ae16"
+    },
+    {
+      "kind": "request",
+      "source_commit": "947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "scope": "Review whether this new ordinary PR source preserves the full warm Windows five-producer selection, the ordered Python partitions and the 900-second creation-to-final-publisher calculation. Use the real PR 123 run 46111075105, its preceding observation and the PR 120 900/901 boundary controls. Locate the workspace fixture change and its setup cost relative to the actual workflow. Keep this candidate’s first ordinary run and protected adoption open.",
+      "supersedes": "8d2541db95178b5fcb3583588a0da71624fa7b58a641470c7213fc620613ae85",
+      "requested_at": "2026-11-28T05:52:02.685541+00:00",
+      "request_id": "e5ce81c95d150b36108a2a5fb88679dae1a05f80ab46d77ffa62cecc6ec217f4",
+      "evidence_sha256": "97b489c2bddd45efc274e86d00b1656b067fcbe643eabcf756de980fb747448b"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "scope": "APPROVE M0-146 947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "observation": "On the reviewed source, all five Windows producer selections matched PR 123 run 46111075105, and its 666-case and 317-case Python partitions reproduced the published log byte for byte.",
+      "reviewer": "Independent Astra Standard (t1n5)",
+      "original_sha256": "2a80e505311c8487d8ce558d28d0107bb1739f5636c3562feed0d8ce6b78efcc",
+      "response_id": "3a274394a9bf70309c3eb27c708c91cb717006942a739bf5c6e9b7c381c576bf",
+      "response_sha256": "0712956b0f10b936d4d72c35c33c9fe1cc27c839ef88c5b79f78fd7e857db93e",
+      "legacy_response_sha256": "57ac8761f78551f538bc018c35602aa8100a5fb3cae1e1586240c88f3b36686b",
+      "observation_body_sha256": "07ca8c071361020f67be20dd1fb32f1d82a3cd34af4ba297dc7e9058bc8a60b9",
+      "event": {
+        "id": "msg_0a3f7a195cc29ba5016b0a6cfe2d4c87d0824865bcea2a2489",
+        "timestamp": "2026-11-28T05:56:45.247Z"
+      },
+      "supersedes": "e5ce81c95d150b36108a2a5fb88679dae1a05f80ab46d77ffa62cecc6ec217f4",
+      "evidence_sha256": "bb8f38d0f2dcdc46070c7c71f63b53aa311ab5374672c3a81fd11d4324b6f290"
+    },
+    {
+      "kind": "request",
+      "source_commit": "7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "scope": "Review the actual Windows PR Python allocation, the authentic timed contiguous module cutoff in three ordinary full warm runs, the retained fourth timeout, the 973-second source and the 900/901 boundary controls. Verify that all actual discovered IDs remain in order, 578/405 on the latest 983, the raw output and interrupted and rejected outcomes still have a single correct owner, and the duration calculation includes initial queue. Compare the exact integrated fixture build placement and cost. Assess the offline 829.289 projection within its observed limits and the gated native/protected follow-through.",
+      "supersedes": "3a274394a9bf70309c3eb27c708c91cb717006942a739bf5c6e9b7c381c576bf",
+      "requested_at": "2026-11-28T06:52:41.416882+00:00",
+      "request_id": "fde9ba8ca43d68cde55a532925c69705fbdde0dfc4ea7cc2ba9496742aa794d8",
+      "evidence_sha256": "f52f5fef8bbe94d970a255e431c17e5ab0599dc074b23520bf0d3df7f2ccc837"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "scope": "APPROVE M0-146 7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "observation": "I independently verified that the candidate assigns all 983 discovered test IDs exactly once and in their original order, with 578 on Python and 405 on recovery.",
+      "reviewer": "Independent Astra Standard (t1np)",
+      "original_sha256": "5e7e7bf6f1105abfaeb6e0f5d9b580e16fadb0799d07ebcb4fc958fc87fdf9e0",
+      "response_id": "78d95f79dd88c99a112cfb1979260f0d9e5c46abba407e97ebe796a3a7a00f32",
+      "response_sha256": "253755c84dc3dcb85491ebd84e6f547ca88226e4b923360bb642baa907b41081",
+      "legacy_response_sha256": "df6fe49816687b2a3bf99584cb644079fb9f6ae6ee3f261cd0fcef9f5ab9eaea",
+      "observation_body_sha256": "330ce34070669b9c9c2d72f3ce2eb54b8e78f1bbdbbe73368d9fbb044e6a00f4",
+      "event": {
+        "id": "msg_0e0ebf516a4aeed0016b0a7b70d5d087d090217137495f5466",
+        "timestamp": "2026-11-28T06:58:27.442Z"
+      },
+      "supersedes": "fde9ba8ca43d68cde55a532925c69705fbdde0dfc4ea7cc2ba9496742aa794d8",
+      "evidence_sha256": "805a45648220d99c41e0ede3d7c948c9de4a2e286ce1fdf73f556a16a34c7c47"
+    },
+    {
+      "kind": "request",
+      "source_commit": "22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "scope": "Review the repaired former Windows Python allocation fixture on both LF and CRLF, the selected and rejected controls at staging and aggregation, the real old Windows failure, and the actual current ordered 578/405 inventory. Compare the measured 867 seconds with the 900-second threshold, including queue, and verify the two native statuses and the outstanding exact-head test.",
+      "supersedes": "78d95f79dd88c99a112cfb1979260f0d9e5c46abba407e97ebe796a3a7a00f32",
+      "requested_at": "2026-11-28T08:40:02.002700+00:00",
+      "request_id": "5379faa6684bd75f314c4bd524f7bb9649d5cb4424dae3db8f297aa3c76cee1c",
+      "evidence_sha256": "499c1bfde308b2e0418976b471a75eea823d3fe47e949413c5861ad20899e2c4"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "scope": "APPROVE M0-146 22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "observation": "For both LF and CRLF inputs, I verified that the repaired fixture ran the former storage allocation and that staging and aggregation each rejected its genuine four-case output.",
+      "reviewer": "Independent Astra Standard (t1pb)",
+      "original_sha256": "9f0e34fe316f1367a5ff27614f888e8502042d24827a125c9e8f702d59da34aa",
+      "response_id": "f2c0eabfdf8b5e95eb14799e645c69d9cb3d67e77df93a4c692c2f8b16249ec9",
+      "response_sha256": "17fffe7996574f3da95383ebdc934e312ff190d2193ee0341a266836965cd78c",
+      "legacy_response_sha256": "086e8379bde2488291742a9bb492b7802569c0904f2e9b506c930132be47d070",
+      "observation_body_sha256": "2a477ecea9aa712d1de27b094e29d2248c7eca7e7bfb06b8aac95cd57ea2f1ca",
+      "event": {
+        "id": "msg_06b9366554d53f33016b0a93e6328c87d28cfc83d6f32dff4f",
+        "timestamp": "2026-11-28T08:42:39.758Z"
+      },
+      "supersedes": "5379faa6684bd75f314c4bd524f7bb9649d5cb4424dae3db8f297aa3c76cee1c",
+      "evidence_sha256": "ea3ca0340da7cbc9c81e9d1fc721ace3165d2285ea589fae2a5d6de20e50e4c8"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc",
+      "scope": "Review the measured 921-second Windows budget repair. Derive the 35 checks, both ordered partitions, the 900/901 elapsed rule and critical path from genuine ordinary originals. Inspect fixture isolation, cache invalidation, and the reported 62-case and complete 405-case improvements using independent positive and rejected controls. State what still needs the new ordinary Windows attempt.",
+      "supersedes": "f2c0eabfdf8b5e95eb14799e645c69d9cb3d67e77df93a4c692c2f8b16249ec9",
+      "requested_at": "2026-11-28T09:30:47.325924+00:00",
+      "request_id": "436ac1ad807d058582b976a8e21493e223635104b1b467c73068ff065dfe262d",
+      "evidence_sha256": "ef3f22e14f82ec1601b6102621947845dd40037557a977527d1140ca0eb65e1c"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc",
+      "scope": "APPROVE M0-146 ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc",
+      "observation": "I reconstructed the published Python log byte for byte from the 578-case and 405-case originals and verified that receipt admission rejected an altered recovery log.",
+      "reviewer": "Independent Astra Standard (t1pz)",
+      "original_sha256": "c98585996a88579140fd6cc4fe10dfd050322d08fd709599b7834670eb07a3c6",
+      "response_id": "5a71fd9a7dc35e0b7973404c519b021784e1acab3b9649cc4615e0ca45b32550",
+      "response_sha256": "5c7c2c1ff6c7e8e78ef94ec570c08456c6627e714241f73224b142d9529737b9",
+      "legacy_response_sha256": "04f734e8e315e092c7066a8b280dfa9b79d2dba38adf9674014230b3925cc1d0",
+      "observation_body_sha256": "5adca6a22af1619eb7e4993f9365f915566fad79e294f7421923c59a88b625e1",
+      "event": {
+        "id": "msg_032e303de08eb6e1016b0aa0ffefa487d2b170760f5f401091",
+        "timestamp": "2026-11-28T09:38:29.052Z"
+      },
+      "supersedes": "436ac1ad807d058582b976a8e21493e223635104b1b467c73068ff065dfe262d",
+      "evidence_sha256": "e59184ae5ca6c5316ce4b88e3049e783ce588ba61d1bb971a99adc60ad0889f9"
+    }
+  ]
+}
