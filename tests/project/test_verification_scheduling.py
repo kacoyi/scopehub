@@ -2763,9 +2763,10 @@ class WindowsLaneTests(ProjectFixture):
         # Run the former allocation under the same command, then validate its
         # genuine output against the committed current allocation.
         runner = Path('scripts/windows_python.py')
-        former = (self.root / runner).read_bytes().replace(
-            f"\nCUTOFF = {self.current_cutoff!r}\n".encode('ascii'),
-            f"\nCUTOFF = {windows_python.STORAGE_CUTOFF!r}\n".encode('ascii'), 1)
+        current = (self.root / runner).read_text(encoding='utf-8')
+        cutoff = f"\nCUTOFF = {self.current_cutoff!r}\n"
+        self.assertEqual(1, current.count(cutoff))
+        former = current.replace(cutoff, f"\nCUTOFF = {windows_python.STORAGE_CUTOFF!r}\n", 1).encode('utf-8')
         execute = harness.execute
 
         def execute_former(*args, **kwargs):
