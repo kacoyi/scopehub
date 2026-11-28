@@ -59,6 +59,15 @@
       },
       "supersedes": "712212ffe3b963ff71b145ab3f316a48de6cdf259970ed42c8d6eac005e66289",
       "evidence_sha256": "fd0d3a030586eb42330c038ed54ca801b0a712456712c20109c98bf16124aa53"
+    },
+    {
+      "kind": "request",
+      "source_commit": "22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "scope": "Review whether the former-allocation fixture repair preserves the genuine Windows workspace broad, explicit-only and 24-file outcomes and independent assertions, the timeouts, refusal and cleanup. Compare the actual 46120026971 observations to the candidate and verify the limits of prior Linux and Windows evidence.",
+      "supersedes": "f0bc77aee2b4775d49f172f9962a1c49026ad30037ad2972d38d94adb0411a03",
+      "requested_at": "2026-11-28T08:40:03.557584+00:00",
+      "request_id": "baebf6d34ebc1029225c6f2f96dddbd1ebd50b8480223cbee0eb23b86809c978",
+      "evidence_sha256": "96db6dad259e43ae0895fdf19c383e0bbfbb42b844a5fb292aee38321bbc5c36"
     }
   ]
 }

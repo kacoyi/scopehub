@@ -842,6 +842,15 @@
       },
       "supersedes": "db6978ba06ed1fddeb322ee63cd472e242265654a41d13f35c73efe5d9f6cfd8",
       "evidence_sha256": "e8738cc3eb34d2d826fbd7228f1803fd9b74f6dcbe7cd88fc8c78baf15cabda0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "scope": "Review the four-producer protected and five-producer PR aggregation contract at the repaired material. Verify the ordered 35 selections, LF/CRLF exercise of the real former allocation with publication and aggregation refusals, current accepted partition, and original failed-producer and interrupted cases.",
+      "supersedes": "8b895f8e7247c94d9f5ea83ea1b334df5b964af002f93971f371d83bd03e3402",
+      "requested_at": "2026-11-28T08:40:02.786571+00:00",
+      "request_id": "5266c7ebe928655ccd3b752167b73c1ca2190959d58d6e630351e3a40f512922",
+      "evidence_sha256": "9ede2a18969ed723b77223a9abaf7d68971370a97cba67dd1e5e51b31d431010"
     }
   ]
 }

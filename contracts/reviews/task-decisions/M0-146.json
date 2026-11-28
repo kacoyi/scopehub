@@ -900,6 +900,15 @@
       },
       "supersedes": "fde9ba8ca43d68cde55a532925c69705fbdde0dfc4ea7cc2ba9496742aa794d8",
       "evidence_sha256": "805a45648220d99c41e0ede3d7c948c9de4a2e286ce1fdf73f556a16a34c7c47"
+    },
+    {
+      "kind": "request",
+      "source_commit": "22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "scope": "Review the repaired former Windows Python allocation fixture on both LF and CRLF, the selected and rejected controls at staging and aggregation, the real old Windows failure, and the actual current ordered 578/405 inventory. Compare the measured 867 seconds with the 900-second threshold, including queue, and verify the two native statuses and the outstanding exact-head test.",
+      "supersedes": "78d95f79dd88c99a112cfb1979260f0d9e5c46abba407e97ebe796a3a7a00f32",
+      "requested_at": "2026-11-28T08:40:02.002700+00:00",
+      "request_id": "5379faa6684bd75f314c4bd524f7bb9649d5cb4424dae3db8f297aa3c76cee1c",
+      "evidence_sha256": "499c1bfde308b2e0418976b471a75eea823d3fe47e949413c5861ad20899e2c4"
     }
   ]
 }

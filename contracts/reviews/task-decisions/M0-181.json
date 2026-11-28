@@ -117,6 +117,15 @@
       },
       "supersedes": "fc5dadc081b773d8dc502ec76a958ffa4d4ac3495717d75cd0c079ac7bc4c4f9",
       "evidence_sha256": "85e5574e952ca841f85a15ef18d266759a3849f6ab01e854dc5bbaedd75fe441"
+    },
+    {
+      "kind": "request",
+      "source_commit": "22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "scope": "Review dependency disposition applicability on the former-allocation fixture correction. Inspect the actual diff, policy, relevant lockfiles, accepted and expired controls and both ordinary native dependency outcomes. Assess the candidate on its own source and distinguish any outstanding protected adoption.",
+      "supersedes": "893ca9ee1dc9f876cfd3c5009d52e7ad077c7b539f9bcfc2a4d87651b4ff918a",
+      "requested_at": "2026-11-28T08:40:04.327584+00:00",
+      "request_id": "94d835846c06e5d45d8290a1c1fc6af5500403f379b39dc9a8551feb784c156b",
+      "evidence_sha256": "f01a8314cffc83f33323407a3d3d47516d725cd984cf696cf0eaad40896888aa"
     }
   ]
 }
