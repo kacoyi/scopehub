@@ -388,6 +388,15 @@
       },
       "supersedes": "8d97c18c10f2a1fdc7b6e02ade4105bd15cc98101397160af7e8c2ba65b5a346",
       "evidence_sha256": "bdf64caaa3f52ed8a8192ad3949cf73aaa4226928a54e793ae2bab3b4c73f8a3"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "Immutable historical source closure, committed catalog and execution inputs, exact report selection, and coverage qualification. Compare the actual historical publisher and ordered selection on push 45838575346, including the reversed selection and the unregistered composed publisher.",
+      "supersedes": "19fd5bbfc3a8c710e1fe44ac7053ba20a7e01e2d8bd806351ff47521a708c5b4",
+      "requested_at": "2026-11-28T05:48:23.034850+00:00",
+      "request_id": "f901d74916b34649dd94115d45dddc26c402e5291650cdbd4e7da6d9c3e38296",
+      "evidence_sha256": "5e4eda3ec648efb78d97ca82c7b920651656028764be6461115ea4ec8b246cf1"
     }
   ]
 }

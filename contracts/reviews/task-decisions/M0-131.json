@@ -388,6 +388,15 @@
       },
       "supersedes": "af9d893ece94076aae7debd0fefeab0569c42c3e82e664459ec198a4e204e679",
       "evidence_sha256": "3df9b55db9f7db876f467a03a1a8ad38eef7da29ea2eb22d897ce96619557251"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "Producer and platform job identity, historical ownership, timed step and cache attribution, and independently usable clocks after a dispute. Check the genuine PR 123 browser job against the recorded impossible raw and compact copies, with the original precision, both orders and cold reopening.",
+      "supersedes": "432d3224fc1e5dbaaeda4ceced1cafd78ef38b4652de90ed802f6de054d1d9a3",
+      "requested_at": "2026-11-28T05:48:20.527708+00:00",
+      "request_id": "bd3e3fdad02de00fdeddab51d4943e2d8444795bc85d7678170a8b2badafde91",
+      "evidence_sha256": "7cbea1766e8587545ec95af38f34a645c8a6d3c0686ef75858f9250d69bb74aa"
     }
   ]
 }

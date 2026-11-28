@@ -755,6 +755,35 @@
       },
       "supersedes": "c8d178da02218c2f90a5ad4374e7d7615fc3c63f1329508014a48a38d8997dec",
       "evidence_sha256": "79461ea643dc33b88e69caf65351c9519725c7c266dbd06ec2fc5c227b212620"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "Review receipt authority and the distinct composed publisher identity. Replay the retained PR 96/push and partial-collection controls in both orders with actual cold reopening. Check individually supported receipts, independent clocks, same-time conflict and later valid coverage using the actual member runs.",
+      "supersedes": "267a3d6354e54dfb60b45dc827bb4891ac81852c9be1ca16eef4a825590f14d5",
+      "requested_at": "2026-11-28T05:37:28.321247+00:00",
+      "request_id": "17a21d063a4efd30412b4f436e559efc8557888f6fb4451fe6a03bd5098880ca",
+      "evidence_sha256": "3e31a4ed27a81d6ff7de3c293e7b2f91ca6b9d9bc1e6f110744ebb23abff99a8"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "verdict": "approved",
+      "decision": "APPROVE M0-156 d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "APPROVE M0-156 d55f6907237d9af018decabd2f94fba43c198620",
+      "observation": "In both input orders, a fresh process recovered the two push receipts when the PR 96 job listing was missing, all four receipts with both listings, and three receipts after the later partial capture.",
+      "reviewer": "Independent Astra Standard (t1mw)",
+      "original_sha256": "c696202b96916da90ab00c6d9068f3ed15e179c3cba822a1f01f0dacf9112930",
+      "response_id": "fc22742592d7c5dbcbc89fb0e2fd14ae94bab537aa407dce77a27bb00ddfb083",
+      "response_sha256": "30783dacf71c71bb55d12600d03c2fd512618f499e5c042563340749604223d8",
+      "legacy_response_sha256": "907633c3255097b9dda8611e777e8a87ee33b5522ecb8773f4e7d4e0fc74c31e",
+      "observation_body_sha256": "a91d0214df7f15104c071026f32621353a91ed8748349bfc8044617b514676df",
+      "event": {
+        "id": "msg_0f07e45d62468089016b0a6a2eeb1087d083631dd1f757a08e",
+        "timestamp": "2026-11-28T05:44:32.811Z"
+      },
+      "supersedes": "17a21d063a4efd30412b4f436e559efc8557888f6fb4451fe6a03bd5098880ca",
+      "evidence_sha256": "e91ab63f3f137d9245a4900f4043c8b0741cb769aaf4a58ba27ff778b14dfc23"
     }
   ]
 }

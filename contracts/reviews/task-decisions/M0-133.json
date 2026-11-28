@@ -388,6 +388,15 @@
       },
       "supersedes": "ce36cebc20ace59436e89d3919a84562e68b205a00403bd52bd35f5c049aa331",
       "evidence_sha256": "4f9f61138136eafb5d84abb388559fe8eca1e4213a113183fc2f3be40a13e7cb"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "Attempt and checkout reconciliation, bounded retained and current capture lookup, and dispute persistence through rotation and cold reopen. Check the PR 84 rotation beyond twelve captures, both input orders, the checkout dispute and actual cold reopening.",
+      "supersedes": "53fa5dca0b4f7fa7c075f31185b7968e6f4c23c877bc40efed4c7d6801619390",
+      "requested_at": "2026-11-28T05:48:21.366946+00:00",
+      "request_id": "1190fa954a8f854b4e81dc246be60fa1b6c29aa0018af5b57822cf0eaba8dec0",
+      "evidence_sha256": "8dafa22ff9248beef63e58865b354184424924cd8f82ad2bffa7692612a2dbe5"
     }
   ]
 }

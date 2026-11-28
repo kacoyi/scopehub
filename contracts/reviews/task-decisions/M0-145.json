@@ -388,6 +388,15 @@
       },
       "supersedes": "ef93e6f383708a95d6b68004f1903b294bee8cc37a14b2790e3ca444dac8060b",
       "evidence_sha256": "217702660a66aa5db206a1565ac3cc3037d33ae34e639b3b74cf56bf58663790"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "Exact current artifact receipt and weekly freshness, including missing downloads, partial job matrices and withheld promotion. Reopen the accepted historical single-job receipt for 45389970933 and its two rejected acquisition controls using both collection modes.",
+      "supersedes": "31ac8a210bb4e4268c0c8bb57aac184082809620e1518f0d7badf8ce05d87761",
+      "requested_at": "2026-11-28T05:48:22.202405+00:00",
+      "request_id": "60dc38b3ab8c5b59017e58af5fabd7d1fc86d31653cc7034ccbd3be250d77117",
+      "evidence_sha256": "c95e6715d66bc32559f93b106c10a9914032bf30ecad4ab2a776145cef6bf245"
     }
   ]
 }
