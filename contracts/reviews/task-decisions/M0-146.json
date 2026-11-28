@@ -764,6 +764,26 @@
       "requested_at": "2026-11-28T02:08:20.690048+00:00",
       "request_id": "fa3890a62a6eea63e880f50618ba4b9bb0a26142401d05d211d2e3d238c23764",
       "evidence_sha256": "b7612f7bf8fcfd1771f8b466ea423a54800912e0f2afb1ed1354650026387d40"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "06fcb2ac978a3ea4918bcfef6aaedb159624e152",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 06fcb2ac978a3ea4918bcfef6aaedb159624e152",
+      "scope": "APPROVE M0-146 06fcb2ac978a3ea4918bcfef6aaedb159624e152",
+      "observation": "The candidate accepted the original PR 112 uploads and rejected the same attempt’s browser log when I supplied it for the final Windows publisher.",
+      "reviewer": "Independent Astra Standard (t1k5)",
+      "original_sha256": "d2cdc0fad60a285bb30a5d9cf5d3e6de8456e0d9e277e5389ff350e05eb5f6fc",
+      "response_id": "ee600a9dac0d2b0107f71fc87af3c312069212ea056dad2f84f17f8ec817b243",
+      "response_sha256": "81e2fc764f443ebf87588f35edfae9b251a3339d55661e6e894da3709935bf1d",
+      "legacy_response_sha256": "e502418161fe286ee7b3f6bdd69be2a2ad01390fe1dbab993ab02f9c608b5dac",
+      "observation_body_sha256": "3c7dc58be3215ae032bc4fc195cd5c5c59cf60e0a99cc2d10e207eb7fbc95e4f",
+      "event": {
+        "id": "msg_0ce65c888a6ed177016b0a38ef257087d0bf4c9a3a65e4f89f",
+        "timestamp": "2026-11-28T02:14:28.563Z"
+      },
+      "supersedes": "fa3890a62a6eea63e880f50618ba4b9bb0a26142401d05d211d2e3d238c23764",
+      "evidence_sha256": "ca2fde04c2f902c38a0fa656d02106a4e08a25e257a60377c863d07e38da92b5"
     }
   ]
 }
