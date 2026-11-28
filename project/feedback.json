@@ -9795,6 +9795,35 @@
         "prevention": "Independent review verified the two original extra-field cases. Ordinary PR 151 run 45983202750 passed nine rejected replies on both platforms, including extra properties in the outcome, receipt and target, invalid values and mismatched bindings. Each trial stayed unverified until the explicit same-approval retry recovered the original receipt. The note and outcome stayed removed with one durable marker. Canonical peer deletion passed separately."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "dependency-review-nov28-expired-dispositions",
+      "status": "open",
+      "severity": "major",
+      "source": "Ordinary PR 123 first attempt 46103840740 on preview 91e419f12ee4fafc275bf6cf8dd4c521813acef3. Both failed native reports and their dependency-review logs are retained under the diagnostic references.",
+      "observation": "The public dependency review refused both native reports at the November 28 deadline. The same policy and validator blobs are present on protected 742430e6. In date-matched controls the day before passes, the two exceptions for block-buffer and picomatch refuse individually on the due date, and the other three pass individually.",
+      "task_ids": [
+        "M0-181"
+      ],
+      "regression_checks": [
+        "project-state",
+        "dependency-review",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-46103840740-1",
+          "source_commit": "91e419f12ee4fafc275bf6cf8dd4c521813acef3",
+          "report_sha256": "1cd1994e02b816b3879a8c76e44addc8f9fbf81788f30d8aa6172ae96e4a183c"
+        },
+        {
+          "run_id": "20261128T033946.183750Z-259784c9",
+          "source_commit": "91e419f12ee4fafc275bf6cf8dd4c521813acef3",
+          "report_sha256": "9dfd3e179d35d27fee620e016f2c702ee0ff6677a3fc62111ee89d8c4ec0524b"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

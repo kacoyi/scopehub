@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-181",
   "tasks": [
     {
       "id": "M0-001",
@@ -29685,6 +29685,120 @@
           ],
           "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
           "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
+        }
+      }
+    },
+    {
+      "id": "M0-181",
+      "title": "Requalify the two expired dependency advisory dispositions",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-017",
+        "M0-019"
+      ],
+      "scope": [
+        "scripts/dependencies.py",
+        "project/dependencies.json",
+        "project/dependency-inventory.json",
+        "project/tasks.json",
+        "project/feedback.json",
+        "Cargo.toml",
+        "Cargo.lock",
+        "pnpm-lock.yaml",
+        "pnpm-workspace.yaml",
+        "patches",
+        "THIRD_PARTY_NOTICES",
+        "tests/project"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain both observed November 28 dependency-review failures and verify the first-party advisory, graph and patch status of each expired disposition.",
+        "Verify applicable positive and rejected dependency controls. Preserve the expiry gate and scope the native, timing and integrated evidence separately."
+      ],
+      "checks": [
+        "project-state",
+        "dependency-review",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-46103840740-1",
+          "source_commit": "91e419f12ee4fafc275bf6cf8dd4c521813acef3",
+          "report_sha256": "1cd1994e02b816b3879a8c76e44addc8f9fbf81788f30d8aa6172ae96e4a183c"
+        },
+        {
+          "run_id": "20261128T033946.183750Z-259784c9",
+          "source_commit": "91e419f12ee4fafc275bf6cf8dd4c521813acef3",
+          "report_sha256": "9dfd3e179d35d27fee620e016f2c702ee0ff6677a3fc62111ee89d8c4ec0524b"
+        }
+      ],
+      "next_action": "Assess each expired disposition using the current first-party advisory, the exact locked graph and existing patch evidence. Apply a supported dependency correction or substantiate the eligible disposition. Verify the public command and positive and rejected controls on the exact candidate.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Both expired dependency dispositions have a verified, source-supported outcome and the ordinary checker still refuses expired or unqualified exceptions.",
+        "change_types": [
+          "dependencies",
+          "tooling"
+        ],
+        "context": [
+          "scripts/dependencies.py",
+          "project/dependencies.json",
+          "project/dependency-inventory.json",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "The exact policy passes before the deadline and refuses the two expiring dispositions independently on November 28. The suitable update or replacement for each is unverified."
+        ],
+        "risks": [
+          {
+            "failure": "Extending a date alone could admit an unsupported graph, while indiscriminate upgrades can change callers. Check locked dependencies, provenance and the relevant supported outcomes.",
+            "checks": [
+              "project-state",
+              "dependency-review",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain the earlier lockfiles, patches and the original failed reports when comparing a replacement.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/dependencies.py",
+            "project/dependencies.json",
+            "project/dependency-inventory.json"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            }
+          ],
+          "non_goals": [
+            "Keep the expiry rule, advisory coverage and previous task evidence. M0-146 owns the independent warm Windows objective."
+          ],
+          "open_questions": [
+            "The exact policy passes before the deadline and refuses the two expiring dispositions independently on November 28. The suitable update or replacement for each is unverified."
+          ]
+        },
+        "evolution": {
+          "kind": "replacement",
+          "preserve": [
+            "Preserve dependency review, expiry and the existing supported callers."
+          ],
+          "change": [
+            "Qualify the exact locked dependencies or a supported, evidence-bound disposition."
+          ],
+          "data_plan": "Engineering dependency policy and reproducible locks are affected.",
+          "cleanup": "Retire superseded patches and dispositions once the new graph and affected callers are verified."
         }
       }
     }
