@@ -9798,7 +9798,7 @@
     },
     {
       "id": "dependency-review-nov28-expired-dispositions",
-      "status": "open",
+      "status": "addressed",
       "severity": "major",
       "source": "Ordinary PR 123 first attempt 46103840740 on preview 91e419f12ee4fafc275bf6cf8dd4c521813acef3. Both failed native reports and their dependency-review logs are retained under the diagnostic references.",
       "observation": "The public dependency review refused both native reports at the November 28 deadline. The same policy and validator blobs are present on protected 742430e6. In date-matched controls the day before passes, the two exceptions for block-buffer and picomatch refuse individually on the due date, and the other three pass individually.",
@@ -9824,7 +9824,11 @@
           "report_sha256": "9dfd3e179d35d27fee620e016f2c702ee0ff6677a3fc62111ee89d8c4ec0524b"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The two November 28 dispositions still required renewal after the published block-buffer affected range was corrected and the picomatch advisory was withdrawn. The expiry rule rejected them on both native reports.",
+        "correction": "Verified the corrected ranges, locked Cargo graphs and actual npm build consumers. Retired both exceptions, the dedicated block-buffer prefetch and the picomatch parser patch.",
+        "prevention": "The public dependency review rejects a reappearing unresolved advisory and rejects expired exceptions even on an empty query result. Offline and incomplete queries retain their distinct outcomes. The six-check M0-181 receipt and its independent review preserve these controls."
+      },
       "deferral_reason": null
     }
   ]

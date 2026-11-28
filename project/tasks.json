@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-181",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -29692,7 +29692,7 @@
       "id": "M0-181",
       "title": "Requalify the two expired dependency advisory dispositions",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-017",
         "M0-019"
@@ -29728,7 +29728,12 @@
         "python-contracts-workers",
         "ui-build"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-181-5b3ba67a3c012b3c.json",
+          "sha256": "18ed5cde5b5b6efff68fc644422c1ae7ca16ff3fd89373496f3e3a6b74d979e0"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "windows-change-46103840740-1",
@@ -29741,9 +29746,9 @@
           "report_sha256": "9dfd3e179d35d27fee620e016f2c702ee0ff6677a3fc62111ee89d8c4ec0524b"
         }
       ],
-      "next_action": "Review the clean local candidate and retained M0-181 results through the coordinator-owned independent review before integration. Keep the full warm Windows timing qualification in M0-146.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Independent review approved 3526adefdf612b62bc6492dee2a89eb8b342a5dc. The six selected Linux task checks passed, including the public dependency review. The original November 28 refusals, current supported graphs and package sources, upstream advisory changes and expiry controls are retained. Protected Ubuntu and Windows adoption and the M0-146 timing objective have separate verification.",
       "plan": {
         "outcome": "Both expired dependency dispositions have a verified, source-supported outcome and the ordinary checker still refuses expired or unqualified exceptions.",
         "change_types": [
