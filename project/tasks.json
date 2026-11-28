@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-146",
+  "focus_task_id": "M0-182",
   "tasks": [
     {
       "id": "M0-001",
@@ -26835,6 +26835,14 @@
         {
           "path": "project/evidence/M0-139-9544d66731ab928b.json",
           "sha256": "d30779e3b9a2e60e05ce2a8d1573d10d5d1ecdd43c8e15ddaf2c19a13084caef"
+        },
+        {
+          "path": "project/evidence/M0-139-f541f1e4ca620bc6.json",
+          "sha256": "f9e55e00a924f9b1babfb3faf348ec5920367e669ba0875aca58b78fdaef1d42"
+        },
+        {
+          "path": "project/evidence/M0-139-63b9451464de0245.json",
+          "sha256": "814d4da33efc3750432b5ade17548908bc946cf58b312036bb04a9ff4ee154b8"
         }
       ],
       "diagnostic_reports": [
@@ -27050,7 +27058,7 @@
       "id": "M0-146",
       "title": "Recover the Windows Python critical path on full warm pull requests",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-143"
       ],
@@ -27076,10 +27084,23 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Verify the batched committed-source reads and isolated Windows lane fixture reuse against the unchanged 578/405 partition. Retain local crossover, public native evidence replay and task-harness results. Obtain independent review of the exact corrective source and a new first-attempt ordinary full warm Windows PR with both required jobs passing, 28 applicable Windows passes and seven planned omissions across the 35 selected checks, and publication by 900 seconds including queue. The 921-second recurrence remains open and the three M0-182 receipts remain separate. First protected four-producer adoption remains pending.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-146-0f784d81496cc9dd.json",
+          "sha256": "5a77fb75ea4227a647e8b9aa03f75ca939e5cd89f84eb951a545f2c23c654445"
+        },
+        {
+          "path": "project/evidence/M0-146-f541f1e4ca620bc6.json",
+          "sha256": "517c9c56bf3a0108783559061e6b14fb5931b3f2f118cba4c8f35e1c86b58c0a"
+        },
+        {
+          "path": "project/evidence/M0-146-63b9451464de0245.json",
+          "sha256": "aeeb4cf1f10b6228b36a90fde6b5eba896b3601a4e7a46e9424a0946aa25db07"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Independent review approved ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc. Ordinary full warm PR 123 run 46131733216 attempt 1 submitted 049b10133e19c225f44799839d0093b34806de72 and tested f1f9edfb40c685ce780a1c7c006b7b666241990c. Both required jobs passed. Windows finished in 826 seconds from workflow creation, including 2 seconds of initial queue, compared with the previous 921-second overrun. The 35 Windows selections still yielded 28 passes and seven planned omissions. The 578-case and 405-case originals preserve their complete ordered inventory and outcomes and reproduce the published Python log byte for byte. The focused crossover and original artifact controls retained positive, rejected and interrupted behavior. The open minor Linux overlap observation retains its original unknown collection decision. M0-141 retains the first four-producer protected main-push observation and its independent timing finding. M0-182 retains the integrated workspace recheck.",
       "diagnostic_reports": [
         {
           "run_id": "windows-change-45940565728-1",
@@ -30807,6 +30828,18 @@
         {
           "path": "project/evidence/M0-182-6c62059cd5ed3c7c.json",
           "sha256": "e55bcb250a9d592cb9c9716ebdd34c27de24dab7140a2934a7ae27721052ec40"
+        },
+        {
+          "path": "project/evidence/M0-182-0f784d81496cc9dd.json",
+          "sha256": "63b725609aa883315c1a2c03fd7f951fc05d2498807cab7e38ecc416a74e23ef"
+        },
+        {
+          "path": "project/evidence/M0-182-f541f1e4ca620bc6.json",
+          "sha256": "520f5c061b4b41dd08bb330b71a96e55e3c1f004852196b794c7daa29b01e418"
+        },
+        {
+          "path": "project/evidence/M0-182-63b9451464de0245.json",
+          "sha256": "80832931e7d15f2f4ba9d1c8ee92f1e85236cba7e053b30b82635ba0a73009c3"
         }
       ],
       "diagnostic_reports": [
@@ -30831,7 +30864,7 @@
           "report_sha256": "73cc569bffada336ac008915e18db36312df531540e5342c6d24f3ccd98d0647"
         }
       ],
-      "next_action": "Local verification and the ordinary PR 123 first attempt 46127361251 passed the full workspace journey on both native platforms at the reviewed source. The broad and explicit-only Windows ACL fixtures, independent 24-file matrix, refusals and cleanup reached their checks. Retain these three task receipts and the historical failures, then recheck the integrated revision. M0-146 separately owns the 921-second ordinary Windows timing.",
+      "next_action": "Recheck the bounded ACL preparation in the actual integrated main revision using the ordinary required Windows and Ubuntu workspace results and matching evidence receipts. The exact reviewed PR 123 attempt 46131733216 passed on both platforms on the first journey, with the real Windows broad and explicit-only fixtures and all 24 independent leaf comparisons and cleanup. The matching local and native receipts qualify the ordinary workspace repair. The two fixture findings remain open through the integrated recheck. The existing integration and feedback gates require completed delivery work, so the coordinator must arrange the scoped pre-merge delivery and protected recheck handoff before merging.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
