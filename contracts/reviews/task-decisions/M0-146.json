@@ -874,32 +874,61 @@
     },
     {
       "kind": "request",
-      "source_commit": "c3364500d142837b2be4817f5429a8dafa5c3013",
-      "scope": "Review the five-producer ordinary/full warm Windows budget on this composed PR 152 source. Preserve per-lane selection, genuine PR 123 ordered Python partitions and original failures, the fourth historical PR 152 timeout and the 900/901 inclusive workflow-to-final-publisher boundary with initial queue. Compare genuine evidence and the known failure and interruption controls. Distinguish current local browser results and the separate ordinary PR 123 parent.",
+      "source_commit": "7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "scope": "Review the actual Windows PR Python allocation, the authentic timed contiguous module cutoff in three ordinary full warm runs, the retained fourth timeout, the 973-second source and the 900/901 boundary controls. Verify that all actual discovered IDs remain in order, 578/405 on the latest 983, the raw output and interrupted and rejected outcomes still have a single correct owner, and the duration calculation includes initial queue. Compare the exact integrated fixture build placement and cost. Assess the offline 829.289 projection within its observed limits and the gated native/protected follow-through.",
       "supersedes": "3a274394a9bf70309c3eb27c708c91cb717006942a739bf5c6e9b7c381c576bf",
-      "requested_at": "2026-11-28T06:22:29.133830+00:00",
-      "request_id": "ccf818c69c1c46b2f18057dbe3ed4b15a3f03e8435a8371aa296f14cc14e204d",
-      "evidence_sha256": "05a64b666bf0d75f22453c4fa83c7595339f2d850760868740d3af14b6e247a8"
+      "requested_at": "2026-11-28T06:52:41.416882+00:00",
+      "request_id": "fde9ba8ca43d68cde55a532925c69705fbdde0dfc4ea7cc2ba9496742aa794d8",
+      "evidence_sha256": "f52f5fef8bbe94d970a255e431c17e5ab0599dc074b23520bf0d3df7f2ccc837"
     },
     {
       "kind": "decision",
-      "source_commit": "c3364500d142837b2be4817f5429a8dafa5c3013",
+      "source_commit": "7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
       "verdict": "approved",
-      "decision": "APPROVE M0-146 c3364500d142837b2be4817f5429a8dafa5c3013",
-      "scope": "APPROVE M0-146 c3364500d142837b2be4817f5429a8dafa5c3013",
-      "observation": "With the producer-to-publisher span fixed at 866 seconds, the candidate recorded zero budget breaches at 900 seconds and one breach at 901 seconds.",
-      "reviewer": "Independent Astra Standard (t1nh)",
-      "original_sha256": "1747a6ada5ab7bf7e6e641371666263301ea912de4d5bc1e96d5073c99368772",
-      "response_id": "f62353904c6e65999d9ffef4cbd4425f8f9894d807274f0ca4a692df3a067d36",
-      "response_sha256": "665ad9bb6f0d6c13454ed64c80008c87ea338b3b9adf2a37f5b8789366d2b2b7",
-      "legacy_response_sha256": "195552faa780d234d4406db84b9400a4823d9ee6b53a0f99d611ddb8ade26b5a",
-      "observation_body_sha256": "a437f2497a00ce39a3c6526b78753f237b1dcb577a8f7729344c13671dbeab6c",
+      "decision": "APPROVE M0-146 7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "scope": "APPROVE M0-146 7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "observation": "I independently verified that the candidate assigns all 983 discovered test IDs exactly once and in their original order, with 578 on Python and 405 on recovery.",
+      "reviewer": "Independent Astra Standard (t1np)",
+      "original_sha256": "5e7e7bf6f1105abfaeb6e0f5d9b580e16fadb0799d07ebcb4fc958fc87fdf9e0",
+      "response_id": "78d95f79dd88c99a112cfb1979260f0d9e5c46abba407e97ebe796a3a7a00f32",
+      "response_sha256": "253755c84dc3dcb85491ebd84e6f547ca88226e4b923360bb642baa907b41081",
+      "legacy_response_sha256": "df6fe49816687b2a3bf99584cb644079fb9f6ae6ee3f261cd0fcef9f5ab9eaea",
+      "observation_body_sha256": "330ce34070669b9c9c2d72f3ce2eb54b8e78f1bbdbbe73368d9fbb044e6a00f4",
       "event": {
-        "id": "msg_0e4a4d3c27046e67016b0a74ade00087d0b8256690da10204c",
-        "timestamp": "2026-11-28T06:29:28.283Z"
+        "id": "msg_0e0ebf516a4aeed0016b0a7b70d5d087d090217137495f5466",
+        "timestamp": "2026-11-28T06:58:27.442Z"
       },
-      "supersedes": "ccf818c69c1c46b2f18057dbe3ed4b15a3f03e8435a8371aa296f14cc14e204d",
-      "evidence_sha256": "5c099433d18a7a254fd142940a99534eea2fafd00894638930d4012fd37c62ae"
+      "supersedes": "fde9ba8ca43d68cde55a532925c69705fbdde0dfc4ea7cc2ba9496742aa794d8",
+      "evidence_sha256": "805a45648220d99c41e0ede3d7c948c9de4a2e286ce1fdf73f556a16a34c7c47"
+    },
+    {
+      "kind": "request",
+      "source_commit": "22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "scope": "Review the repaired former Windows Python allocation fixture on both LF and CRLF, the selected and rejected controls at staging and aggregation, the real old Windows failure, and the actual current ordered 578/405 inventory. Compare the measured 867 seconds with the 900-second threshold, including queue, and verify the two native statuses and the outstanding exact-head test.",
+      "supersedes": "78d95f79dd88c99a112cfb1979260f0d9e5c46abba407e97ebe796a3a7a00f32",
+      "requested_at": "2026-11-28T08:40:02.002700+00:00",
+      "request_id": "5379faa6684bd75f314c4bd524f7bb9649d5cb4424dae3db8f297aa3c76cee1c",
+      "evidence_sha256": "499c1bfde308b2e0418976b471a75eea823d3fe47e949413c5861ad20899e2c4"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "scope": "APPROVE M0-146 22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "observation": "For both LF and CRLF inputs, I verified that the repaired fixture ran the former storage allocation and that staging and aggregation each rejected its genuine four-case output.",
+      "reviewer": "Independent Astra Standard (t1pb)",
+      "original_sha256": "9f0e34fe316f1367a5ff27614f888e8502042d24827a125c9e8f702d59da34aa",
+      "response_id": "f2c0eabfdf8b5e95eb14799e645c69d9cb3d67e77df93a4c692c2f8b16249ec9",
+      "response_sha256": "17fffe7996574f3da95383ebdc934e312ff190d2193ee0341a266836965cd78c",
+      "legacy_response_sha256": "086e8379bde2488291742a9bb492b7802569c0904f2e9b506c930132be47d070",
+      "observation_body_sha256": "2a477ecea9aa712d1de27b094e29d2248c7eca7e7bfb06b8aac95cd57ea2f1ca",
+      "event": {
+        "id": "msg_06b9366554d53f33016b0a93e6328c87d28cfc83d6f32dff4f",
+        "timestamp": "2026-11-28T08:42:39.758Z"
+      },
+      "supersedes": "5379faa6684bd75f314c4bd524f7bb9649d5cb4424dae3db8f297aa3c76cee1c",
+      "evidence_sha256": "ea3ca0340da7cbc9c81e9d1fc721ace3165d2285ea589fae2a5d6de20e50e4c8"
     }
   ]
 }

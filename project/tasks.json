@@ -27077,7 +27077,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "The coordinator obtains fresh source-bound decisions where required and owns the next ordinary full warm PR observation. Bind the submitted head and actual tested checkout containing the corrective revision, require both protected job conclusions to pass, and retain workflow creation, all five Windows producer clocks, the Windows publisher clock, original attachments, ordered Python outcomes and all 35 selections with 28 passes and seven planned omissions. Require Windows seconds.total <= 900, measured from workflow creation through Windows publisher completion. Retain initial queue and the first-producer-to-publisher span for critical-path diagnosis. Keep M0-146 active until that qualifying run and the applicable first protected adoption evidence are retained. Retain the fourth Python timeout and the first ordinary dependency rejection.",
+      "next_action": "PR 123 run 46120026971 met the timing objective at 867 seconds, with 2 seconds of initial queue and 865 seconds from the first producer to publication. The Windows requirement failed on the former-allocation control in the recovery Python partition. The original test reproduced the missed cutoff replacement with CRLF, and the fixture repair locally runs the former allocation and reaches both publication refusals with LF and CRLF input. Retain the original failed verdict and separate passing M0-182 workspace evidence. Obtain source-bound independent review and a successful comparable ordinary full warm Windows PR at or below 900 seconds, with both required jobs passing, all 35 selections and the ordered 578/405 allocation. First protected four-producer adoption remains pending.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -27195,6 +27195,11 @@
           "run_id": "20261128T033946.183750Z-259784c9",
           "source_commit": "91e419f12ee4fafc275bf6cf8dd4c521813acef3",
           "report_sha256": "9dfd3e179d35d27fee620e016f2c702ee0ff6677a3fc62111ee89d8c4ec0524b"
+        },
+        {
+          "run_id": "windows-change-46115517382-1",
+          "source_commit": "fa0f311cd637f5d3466a1f0ed5b1ec985127cede",
+          "report_sha256": "7c636646bee78f3720f2e2048c63ad2e06d78aee5744a2b6e8a7f152c6e74cbe"
         }
       ],
       "plan": {
@@ -27283,7 +27288,8 @@
           "The first ordinary warm run after the localization transfer and interruption repair, 45949560212, passed its 28 applicable checks and retained seven planned omissions. Its 1054-second span is 154 seconds over budget and 132 seconds above the previous run. Recovery finished last. Its Python process took 821.938 seconds and the separate Python process took 425.344 seconds. The verification-scheduling module spent 404.169, 269.854 and 381.690 observed case seconds across the three sources. Compare moving contiguous Python modules against these three producer profiles and measure the unrelated explicit feedback-history comparison repeated by the Windows lane fixture.",
           "A contiguous transfer of whole discovery modules to the shorter Python job may reduce the measured recovery critical path. Four native samples expose variable host costs; compare the alternatives, original ordering, older partition boundaries and all producer intervals before choosing. Treat modeled gains as estimates pending the next full native observation.",
           "Committed workflow declarations and authenticated artifact and owning-job evidence can qualify both direct and staged delivery. Use the genuine PR112 siblings and distinguish a same-name downloadable report from optional timing output. Compare observed recurring fixture cost or coverage-preserving placement without treating a final printed test as causal.",
-          "The reviewed M0-153 retirement fixture patch avoids redundant Git bootstrap by copying one unmodified standalone seed into independently owned fixtures. Eight local crossover arms ran all 47 cases in identical order and removed 276 Git starts per arm. The earlier six-case Windows probe reduced setup with effectively flat whole-process time. Verify whether larger Windows workloads show a meaningful end-to-end change."
+          "The reviewed M0-153 retirement fixture patch avoids redundant Git bootstrap by copying one unmodified standalone seed into independently owned fixtures. Eight local crossover arms ran all 47 cases in identical order and removed 276 Git starts per arm. The earlier six-case Windows probe reduced setup with effectively flat whole-process time. Verify whether larger Windows workloads show a meaningful end-to-end change.",
+          "The three authenticated five-producer ordinary PR 123 attempts expose enough idle recovery capacity to move a contiguous suffix beginning at test_processes. Compare whole-module alternatives using the original clocks and retain the limits of replay."
         ],
         "risks": [
           {
@@ -27636,6 +27642,12 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "An apparently successful producer could omit or retain cases belonging to the other lane after the cutoff changes. The former-allocation control silently kept the current cutoff when the temporary runner had native CRLF line endings. Exercise the existing control with LF and CRLF input, confirm the moved case ran, and require staging and aggregation to refuse its genuine bytes against the new committed allocation. Compare the complete serial order with both published parts and retain incomplete and interrupted controls.",
+            "checks": [
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain the original reports, revert a change that loses coverage or increases measured cost, and keep the open budget finding assigned until a qualifying observation is available.",
@@ -27678,7 +27690,8 @@
             "Can a disposable Linux replay reproduce the first empty collection and identify its inventory, eligibility or revalidation reason?",
             "With a 31-second aggregate tail, can repeated publisher setup yield a material portion of the 174-second recovery producer reduction required on the observed job clocks?",
             "Does the desktop localization transfer keep the existing recovery cold check first and fit inside the native Python overlap without delaying recovery enough to lose the warm Windows gain?",
-            "How much of the removed synthetic feedback-history work translates to native recovery time, and which producer sets the next critical path?"
+            "How much of the removed synthetic feedback-history work translates to native recovery time, and which producer sets the next critical path?",
+            "Can the revised cutoff move 88 observed cases while retaining the full ordered inventory, committed source qualification, prior cutoff imports, and failure and interruption semantics?"
           ]
         },
         "evolution": {
@@ -27710,7 +27723,8 @@
             "Use the additional workspace producer on full Windows PRs and retain its source-bound original report. Reassign the existing checks across two independent browser runners and give the ordered storage and later Python modules to the light recovery runner. Keep the four-producer protected push, serial Python on push, cache seeding, and earlier source declarations importable.",
             "Verify the producer declarations from the tested merge tree. Keep both Python producer verdicts coherent when interrupted during finalization and use the existing reports for workspace result digests. Preserve the narrower attachment evidence supported by authentic historical sources.",
             "Qualify the complete declared producer set and pinned checkout for each source-producing job from the verified tested merge tree. Verify the local commit and tree against the hosted record, and retain historical tree-backed qualification when the commit object is unavailable.",
-            "Use one terminal report rule across hosted Windows producers that own workspace or Python outcomes, including scoped and protected paths. Preserve completed rows and bound attachments, freeze the verdict after both report copies, retry one sealed manifest digest read, and reject publication when generated case evidence cannot be verified."
+            "Use one terminal report rule across hosted Windows producers that own workspace or Python outcomes, including scoped and protected paths. Preserve completed rows and bound attachments, freeze the verdict after both report copies, retry one sealed manifest digest read, and reject publication when generated case evidence cannot be verified.",
+            "Start the ordinary Windows PR Python recovery suffix at test_processes. Keep the tested-source rule for the former storage boundary and all older boundaries. Preserve the existing producer topology, protected and serial paths, and all original attachments."
           ],
           "data_plan": "Use synthetic fixtures, read-only hosted originals and matching check logs. Preserve actual job durations, original identifiers and coverage for comparison. Archived 2.0 and legacy 2.1 evidence depends on authenticated retrieval for attempt lineage within canonical paths. Legacy merged output supports identifiable printed events under the historical runner format. The stream cannot prove unprinted discovery members or recover ambiguous callbacks. Diagnostic resolution checks the pinned report bytes, identities and attachment digests and returns the recorded check outcome. This path can reopen an ambiguous legacy original with all its bound attachments and grants no per-case receipt. The record command revalidates the supplied report and originals before returning either a new or existing receipt. The two genuine teardown executions with identical merged output and opposite outer callbacks establish that historical per-case recovery is mathematically impossible for those bytes. A newly submitted manifest or a chosen prefix cannot supply the missing ownership. Qualification relies on the supported historical runner's visible standard writes. Exact high-resolution durations, unprinted details and overridden or obscured runner writes require independently bound evidence.",
           "cleanup": "Remove temporary profiling from the delivery path, archive the focused comparison and retain any unresolved timing investigation with its next observable action."
@@ -30643,7 +30657,7 @@
         }
       ],
       "evidence": [],
-      "next_action": "Obtain fresh independent review of the composed source and both shared fixture paths, then obtain first-attempt native Windows and Linux task checks and the protected recheck. The first ordinary PR 152 native browser producers passed the five workspace preparation controls. Linux Python passed and Windows Python timed out at 1200.062 s without a named failing test. M0-146 owns the verification cost and its eligible warm observation. The original private handoff stopped on the first service visit. Compare safe file and publication observations independently from direct bridge exit and ACL observations.",
+      "next_action": "The local composition retains the PR 152 publication and frozen preparation controls and the reviewed PR 123 synthetic ACL helper and 578/405 partition. Obtain fresh independent decisions on the exact composed source and qualify the later PR 152 first-attempt Linux and Windows task checks and protected recheck separately from the PR 123 native repair. The initial PR 152 browser producers passed the five workspace preparation controls, Linux Python passed, and Windows Python timed out at 1200.062 s without a named failing test. M0-146 owns that verification cost. Compare the initial private handoff file and publication observations independently from the direct bridge exit and ACL observations.",
       "plan": {
         "outcome": "Both affected fixture preparations admit the real successful journey and report the observed failing stage without exposing the private capability or discarding cleanup. Qualify the exact Linux and Windows paths and integrated source.",
         "change_types": [
@@ -30899,9 +30913,19 @@
           "run_id": "20261128T051401.976712Z-c1245408",
           "source_commit": "590e08d0b8b978e60d0ebb5197886bec95ecc8c0",
           "report_sha256": "f7937aa8570a05a309ce907b53f86e20496103bb4305e34d81746fbb21b7e888"
+        },
+        {
+          "run_id": "windows-change-46115517382-1",
+          "source_commit": "fa0f311cd637f5d3466a1f0ed5b1ec985127cede",
+          "report_sha256": "7c636646bee78f3720f2e2048c63ad2e06d78aee5744a2b6e8a7f152c6e74cbe"
+        },
+        {
+          "run_id": "20261128T061336.251887Z-259a37c9",
+          "source_commit": "fa0f311cd637f5d3466a1f0ed5b1ec985127cede",
+          "report_sha256": "73cc569bffada336ac008915e18db36312df531540e5342c6d24f3ccd98d0647"
         }
       ],
-      "next_action": "Have the coordinator review the exact local candidate and submit the ordinary and guarded native checks. Inspect the separate helper build and matrix phase measurements, the 24 real Windows comparisons and the Rust parser cases. Verify the integrated source after independent review.",
+      "next_action": "Review the local candidate that moves both managed synthetic ACL preparations into the existing prebuilt helper and reports completed stages at the ordinary workspace entry. Obtain the first applicable native Windows and Linux evidence on the reviewed source, then recheck the integrated source. Compare the broad and explicit-only fixture child clocks with the real matrix and retain the 46115517382 broad failure and 46111075105 leaf failure as separate observations with unknown internal causes.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -30912,6 +30936,7 @@
         "context": [
           "tests/ubuntu-preview/workspace.setup.mjs",
           "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+          "tests/ubuntu-preview/workspace_test_handoff_prepare_acl.cs",
           "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.cs",
           "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.ps1",
           "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
@@ -30919,8 +30944,8 @@
           "project/checks.json"
         ],
         "hypotheses": [
-          "The failing and preceding ordinary Windows attempts used identical matrix source blobs. Only the case-level durations and outer deadline were observed. The last internal operation and historical cause remain unknown.",
-          "The matrix child compiled the same test-only C# helper before reading matrix inputs or descriptors. Build those exact helper bytes once during workspace setup, and measure the build and the ordered matrix stages separately on native Windows."
+          "The original leaf matrix compiled fixed interop code inside its deadline. Prebuilding that code remains useful. The later broad failure hit an unchanged separate PowerShell preparation before any of the ordinary matrix progress could be observed. The last internal operation and cause of either historical timeout remain unknown.",
+          "Both simple fixtures use a fixed sequence of managed file ACL operations. Running those same operations in the existing prebuilt helper removes two PowerShell starts from the ordinary journey. Measure each child envelope and its managed stages separately on native Windows."
         ],
         "risks": [
           {
@@ -30942,6 +30967,7 @@
           "entrypoints": [
             "tests/ubuntu-preview/workspace.setup.mjs",
             "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+            "tests/ubuntu-preview/workspace_test_handoff_prepare_acl.cs",
             "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.cs",
             "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.ps1",
             "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
@@ -30961,7 +30987,7 @@
             "Production permission semantics, private user data, broader browser startup and the Windows Python scheduling objective remain under their existing owners."
           ],
           "open_questions": [
-            "How much time does the first exact native run spend loading the prebuilt helper, preparing the matrix and checking each real file under the existing deadline?"
+            "How much time does the first exact native run spend starting the fixture executable, preparing both simple fixtures, loading the matrix interop and checking each real file under the existing deadlines?"
           ]
         },
         "evolution": {
@@ -30970,7 +30996,7 @@
             "The bounded test-only operation, existing real-file comparison coverage, independently known permission outcomes and cleanup on success or refusal."
           ],
           "change": [
-            "Prebuild the unchanged ACL interop helper under its own bounded test setup invocation. Report the last completed, ordered preparation milestone from bounded stdout when the matrix child runs out of time. Retain exact stderr refusal decoding."
+            "Prebuild the matrix interop together with the simple fixture executable in the existing bounded workspace setup call. Move the broad and explicit-only managed ACL operations out of PowerShell and record ordered preparation milestones from bounded stdout. Preserve the matrix progress and exact stderr refusal decoding."
           ],
           "data_plan": "Only temporary test-owned files and retained diagnostic observations are involved.",
           "cleanup": "Dispose of the helper with the existing run directory. Retain original witnesses, exclusive matrix fixture creation and cleanup, and all later native comparisons."

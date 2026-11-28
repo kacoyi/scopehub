@@ -816,32 +816,61 @@
     },
     {
       "kind": "request",
-      "source_commit": "c3364500d142837b2be4817f5429a8dafa5c3013",
-      "scope": "Review integration evidence ownership on the composed PR 152 source. Test the genuine protected and PR originals through the ordinary integration entry and the finite prior passing, refused and retained-failure controls, including mismatched run/attempt with original logs. Verify the four protected versus five PR producers, preserve the M0-177 accepted history and identify any changed consumer scope with real evidence.",
+      "source_commit": "7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "scope": "Review the protected four-producer and ordinary five-producer contract as composed. Verify 35 selections, ordered new Python partition ownership through genuine publishing and aggregation, rejection of the true former split, and evidence preservation for interrupted and failed producers. Use the retained 125 original integration controls and both platform reports, and verify the fixture remains under the intended workspace or protected browser owner.",
       "supersedes": "5e7667ec37e581b49b1719b02364639c4da82342b94790b8a2b73c11694131b0",
-      "requested_at": "2026-11-28T06:22:28.344513+00:00",
-      "request_id": "0b47e85c9ada24a16dfe8419137f5eeba111bbdcdc325b1a6cee83675ce6b998",
-      "evidence_sha256": "f99ace598acb466b9c33e685fab4dc0766977dbb0f2e36605cb41cebdef5b8de"
+      "requested_at": "2026-11-28T06:52:42.980602+00:00",
+      "request_id": "db6978ba06ed1fddeb322ee63cd472e242265654a41d13f35c73efe5d9f6cfd8",
+      "evidence_sha256": "bb358fb98ddf030e8b9e8cad9be920656712d3acc4e462fc6585840b44dd11d5"
     },
     {
       "kind": "decision",
-      "source_commit": "c3364500d142837b2be4817f5429a8dafa5c3013",
+      "source_commit": "7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
       "verdict": "approved",
-      "decision": "APPROVE M0-139 c3364500d142837b2be4817f5429a8dafa5c3013",
-      "scope": "APPROVE M0-139 c3364500d142837b2be4817f5429a8dafa5c3013",
-      "observation": "The Windows publisher accepted the original report from protected run 45990676162 and rejected it when I changed both the run and attempt identifiers while retaining the original logs.",
-      "reviewer": "Independent Astra Standard (t1ng)",
-      "original_sha256": "5cbb85f6ca07121d9df91f175f2d24fbb9ccec287432fcc17c46505148ce668b",
-      "response_id": "bfb050138d00d5c76af07272b64b7349b12a187ffc26cc5067408717673baa44",
-      "response_sha256": "2fe221271a7c5913f88dff89982d92776c1e1400f791a8ec29ead6dec204dec0",
-      "legacy_response_sha256": "1caa695400b58b4934d35ade5a2607fd810a908cb100513d098403b8f78f10e0",
-      "observation_body_sha256": "4737a6fdba6393289bac6ec4beda86f26b20ef07fc34964bd7e13516ac2a1a42",
+      "decision": "APPROVE M0-139 7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "scope": "APPROVE M0-139 7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "observation": "The current integration entry reproduced all 125 retained verdicts, and the joined Linux controls showed that both publication and aggregation rejected genuine Python output from the former storage cutoff.",
+      "reviewer": "Independent Astra Standard (t1nr)",
+      "original_sha256": "154c73798c240e1256259f9460e4eef852d2b7179d5e9551b9592d47427d7cbd",
+      "response_id": "8b895f8e7247c94d9f5ea83ea1b334df5b964af002f93971f371d83bd03e3402",
+      "response_sha256": "8dffe088454d209b5c8a8052e83cf81e421f855e09bb3e500e5ad318ff2205e1",
+      "legacy_response_sha256": "75a2ccb486f66029b7db86bdcb06f5f73271184ea773808b59220fd23a340c9d",
+      "observation_body_sha256": "64336f8a75fb33ca3fad2edaf7193d6c45fe8723de43070dc2bb5796f4f8d1eb",
       "event": {
-        "id": "msg_0c6b211340c4c839016b0a75cf902087d0908e2a17c20a56cd",
-        "timestamp": "2026-11-28T06:34:14.718Z"
+        "id": "msg_02a0954bcb274b96016b0a7c1e4c9087d0b243abaaee7c2c40",
+        "timestamp": "2026-11-28T07:01:05.047Z"
       },
-      "supersedes": "0b47e85c9ada24a16dfe8419137f5eeba111bbdcdc325b1a6cee83675ce6b998",
-      "evidence_sha256": "fcbc0900445a43a37dfc024323654a4b88b5626474868f3440b1cb1c4049b5f4"
+      "supersedes": "db6978ba06ed1fddeb322ee63cd472e242265654a41d13f35c73efe5d9f6cfd8",
+      "evidence_sha256": "e8738cc3eb34d2d826fbd7228f1803fd9b74f6dcbe7cd88fc8c78baf15cabda0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "scope": "Review the four-producer protected and five-producer PR aggregation contract at the repaired material. Verify the ordered 35 selections, LF/CRLF exercise of the real former allocation with publication and aggregation refusals, current accepted partition, and original failed-producer and interrupted cases.",
+      "supersedes": "8b895f8e7247c94d9f5ea83ea1b334df5b964af002f93971f371d83bd03e3402",
+      "requested_at": "2026-11-28T08:40:02.786571+00:00",
+      "request_id": "5266c7ebe928655ccd3b752167b73c1ca2190959d58d6e630351e3a40f512922",
+      "evidence_sha256": "9ede2a18969ed723b77223a9abaf7d68971370a97cba67dd1e5e51b31d431010"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "verdict": "approved",
+      "decision": "APPROVE M0-139 22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "scope": "APPROVE M0-139 22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "observation": "For both LF and CRLF input, the candidate fixture produced the same former-allocation runner bytes, and the retained runs showed that publication and aggregation each rejected its genuine `test_processes` output while accepting the current partition.",
+      "reviewer": "Independent Astra Standard (t1pc)",
+      "original_sha256": "261aba5b5f87eea12bc450e24f754fc2ad013b2763da9c76ed34f08c48d271ff",
+      "response_id": "ba7e4383cdf34ee04c980a4e69d8f5d1e5dd65306a142c188180755147d3cce7",
+      "response_sha256": "7f69550932d7426faa10c96cf6c194923e2bff8b24988dc0796b2070971d6f30",
+      "legacy_response_sha256": "7a59825620956b2e461904f5298595d27dae233add702ac7bb90025ba813e227",
+      "observation_body_sha256": "afdeaf401d90c99206036511c53232b3a86a59212294046ff40b60d211bda580",
+      "event": {
+        "id": "msg_0b8e51291f8dc73d016b0a9434b0a487d185d4d82f6396b600",
+        "timestamp": "2026-11-28T08:43:56.788Z"
+      },
+      "supersedes": "5266c7ebe928655ccd3b752167b73c1ca2190959d58d6e630351e3a40f512922",
+      "evidence_sha256": "85ff6dda227435d62d1b33e4a29330d824b9617654f1d7a23ec8403e5d67bbbd"
     }
   ]
 }

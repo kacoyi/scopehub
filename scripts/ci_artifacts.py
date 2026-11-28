@@ -588,7 +588,7 @@ def runner_uses_callback_records(runner):
 
 def runner_partition_cutoff(runner):
     cutoffs = re.findall(rb"^CUTOFF[ \t]*=[ \t]*'([^'\r\n]+)'[ \t]*\r?$", runner, re.MULTILINE)
-    supported = (windows_python.CUTOFF, windows_python.SCHEDULING_CUTOFF,
+    supported = (windows_python.CUTOFF, windows_python.STORAGE_CUTOFF, windows_python.SCHEDULING_CUTOFF,
                  windows_python.REVIEW_ACCEPTANCE_CUTOFF, windows_python.LEGACY_CUTOFF)
     if len(cutoffs) != 1 or cutoffs[0] not in {value.encode('ascii') for value in supported}:
         raise PublicationError('Unrecognized Windows Python partition in the recorded source.')

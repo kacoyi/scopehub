@@ -791,6 +791,10 @@ class WindowsLaneTests(ProjectFixture):
                 'class ReviewAcceptance(unittest.TestCase):\n'
                 '    def test_review_acceptance(self): pass\n', encoding='utf-8')
             if workspace_layout:
+                (self.root / 'tests/project/test_processes.py').write_text(
+                    'import unittest\n'
+                    'class Processes(unittest.TestCase):\n'
+                    '    def test_processes(self): pass\n', encoding='utf-8')
                 (self.root / 'tests/project/test_storage.py').write_text(
                     'import unittest\n'
                     'class Storage(unittest.TestCase):\n'
@@ -2719,7 +2723,8 @@ class WindowsLaneTests(ProjectFixture):
                                 capture_output=True, text=True, encoding='utf-8', check=True)
         self.assertEqual([line for line in serial.stderr.splitlines() if ' ... ' in line],
                          [line for line in combined.splitlines() if ' ... ' in line])
-        for lane, case in (('python', 'test_review_acceptance'), ('recovery', 'test_storage')):
+        for lane, case in (('python', 'test_prefix'), ('recovery', 'test_processes'),
+                           ('recovery', 'test_review_acceptance'), ('recovery', 'test_storage')):
             manifest = read_json(self.reports / run / f'windows-python-{lane}.json')
             self.assertIn(case, {row[0].rsplit('.', 1)[-1] for row in manifest['cases']})
 
@@ -2754,6 +2759,39 @@ class WindowsLaneTests(ProjectFixture):
         diagnostic = resolve_diagnostic(diagnostic_locator(good / 'test-report.json'), good)
         self.assertIn('windows-workspace.producer.json', diagnostic['verified_observations'])
         shutil.rmtree(self.reports)
+
+        # Run the former allocation under the same command, then validate its
+        # genuine output against the committed current allocation.
+        runner = Path('scripts/windows_python.py')
+        current = (self.root / runner).read_text(encoding='utf-8')
+        cutoff = f"\nCUTOFF = {self.current_cutoff!r}\n"
+        self.assertEqual(1, current.count(cutoff))
+        former = current.replace(cutoff, f"\nCUTOFF = {windows_python.STORAGE_CUTOFF!r}\n", 1).encode('utf-8')
+        execute = harness.execute
+
+        def execute_former(*args, **kwargs):
+            with self.replace_artifact_bytes(self.root, {runner: former}):
+                return execute(*args, **kwargs)
+
+        with patch.object(harness, 'execute', side_effect=execute_former):
+            code, wrong_owner = self.run_harness('--ci-windows-lane', 'python')
+        self.assertEqual((0, 'passed'), (code, wrong_owner['status']))
+        raw = self.root / wrong_owner['windows_python']['python']['log']
+        self.assertIn(b'test_processes (', raw.read_bytes())
+        rejection = 'unexpected, duplicate or reordered tests'
+        with self.assertRaisesRegex(ci_artifacts.PublicationError, rejection):
+            ci_artifacts.stage_artifacts(self.root, published / 'wrong-python-owner', os.environ, lane='python')
+        self.assertFalse((published / 'wrong-python-owner/test-report.json').exists())
+        python_producer = self.downloads / 'verification-windows-2-python'
+        saved_python = python_producer.rename(published / 'python')
+        self.reports.rename(python_producer)
+        try:
+            with self.assertRaisesRegex(ci_artifacts.PublicationError, rejection):
+                self.run_harness(*aggregate)
+        finally:
+            shutil.rmtree(python_producer)
+            saved_python.rename(python_producer)
+            shutil.rmtree(self.reports, ignore_errors=True)
 
         # Reuse actual producer executions to reject a missing or earlier attempt.
         backup = passed_workspace.rename(published / 'workspace')

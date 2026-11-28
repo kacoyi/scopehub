@@ -91,32 +91,61 @@
     },
     {
       "kind": "request",
-      "source_commit": "c3364500d142837b2be4817f5429a8dafa5c3013",
-      "scope": "Verify the November 28 dependency dispositions on the composed PR 152 source using the previous review and actual Cargo graph observations. Preserve retired and remaining exceptions, due-day refusal and scope guards, and observe the dependency check and its genuine positive and negative controls in the applicable ordinary and protected topology.",
+      "source_commit": "7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "scope": "Review applicability of the accepted dependency advisory dispositions on the combined Python allocator and workspace fixture source. Check the actual verification workflow, dependency policy, relevant lockfiles and new test-only helper. Replay accepted and retired/expired cases with the established public checker and its genuine archived material, plus both successful ordinary dependency outcomes on 46115517382. Keep scheduled and protected adoption in their own scopes.",
       "supersedes": "1d92fbdb8d48f6cf03d1747eb24c6adb2b4340c328c89e56cc4226e51358e104",
-      "requested_at": "2026-11-28T06:22:29.916790+00:00",
-      "request_id": "10b9d19d20b7bc7a2107563ad7ee567356fb8bb568965957ca90ac8218e26597",
-      "evidence_sha256": "ed93a5b02652a69fad0eef9ffef35b4027df53e9a7d36e26ad6dfd4afd30cb25"
+      "requested_at": "2026-11-28T06:52:43.764498+00:00",
+      "request_id": "fc5dadc081b773d8dc502ec76a958ffa4d4ac3495717d75cd0c079ac7bc4c4f9",
+      "evidence_sha256": "881c87959630a776e033b505d38078d67f44caac5f44bf7cb1b58c5cb6fd8310"
     },
     {
       "kind": "decision",
-      "source_commit": "c3364500d142837b2be4817f5429a8dafa5c3013",
+      "source_commit": "7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
       "verdict": "approved",
-      "decision": "APPROVE M0-181 c3364500d142837b2be4817f5429a8dafa5c3013",
-      "scope": "APPROVE M0-181 c3364500d142837b2be4817f5429a8dafa5c3013",
-      "observation": "The candidate’s dependency checker accepted the four findings replayed from the archived platform logs and returned exit code 1 with exactly one unresolved finding when either retired advisory was restored individually.",
-      "reviewer": "Independent Astra Standard (t1nj)",
-      "original_sha256": "62b6c4482f85b2ebb0669e13ce67584759c58c8cbdff3872291a3e54b764456c",
-      "response_id": "40886ec98adc4e660f117373c49b9183299d784354ee0f0316695c6456befb68",
-      "response_sha256": "df4d21c2fe773906755deb6dc5ae36a1cf6d71f8cbe1cfba7a0bf1b45680daf5",
-      "legacy_response_sha256": "6d4e3daacef3fe24e1ae52966db65937317985b073d76f75dd5a51fd952569f8",
-      "observation_body_sha256": "60ef43bc261b0f1b8c293178ad4bdb83c7d6425c96ad2fc550422bd1d858156b",
+      "decision": "APPROVE M0-181 7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "scope": "APPROVE M0-181 7db2f91e4a267c690e18bb4f5e4ae7c4115aab49",
+      "observation": "The candidate’s ordinary dependency checker accepted all four findings from each platform log in PR 123 run 46115517382 and exited with code 1 in all four replays that added one retired advisory.",
+      "reviewer": "Independent Astra Standard (t1ns)",
+      "original_sha256": "c759c0bdacec192061ea0db92a1819b450d8e0204611735ff59874c3529ae6da",
+      "response_id": "893ca9ee1dc9f876cfd3c5009d52e7ad077c7b539f9bcfc2a4d87651b4ff918a",
+      "response_sha256": "7741567f20705fbedaaa12cbebabb08ce55ef856556fc37dcda62573303cdbb3",
+      "legacy_response_sha256": "1fb5834be26f8a78bfd178d4710eabd8815ae086112735d886f13b8ac2ff7043",
+      "observation_body_sha256": "6864bc1c301c2ebec54faf4747a1b4acd83ab1ed6fa2404792594c60ee12664a",
       "event": {
-        "id": "msg_039fb1aa5d6ac4c6016b0a74b1890487d082e3bf6cc4833832",
-        "timestamp": "2026-11-28T06:29:27.407Z"
+        "id": "msg_03a66d60ba0953d9016b0a7bb2221887d0a0472b2220de6aec",
+        "timestamp": "2026-11-28T06:59:21.710Z"
       },
-      "supersedes": "10b9d19d20b7bc7a2107563ad7ee567356fb8bb568965957ca90ac8218e26597",
-      "evidence_sha256": "bf6b3d7ba3785df562cf8ac8b6a216125e95012b7c9a40e8a6cc3ac5cf853d8d"
+      "supersedes": "fc5dadc081b773d8dc502ec76a958ffa4d4ac3495717d75cd0c079ac7bc4c4f9",
+      "evidence_sha256": "85e5574e952ca841f85a15ef18d266759a3849f6ab01e854dc5bbaedd75fe441"
+    },
+    {
+      "kind": "request",
+      "source_commit": "22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "scope": "Review dependency disposition applicability on the former-allocation fixture correction. Inspect the actual diff, policy, relevant lockfiles, accepted and expired controls and both ordinary native dependency outcomes. Assess the candidate on its own source and distinguish any outstanding protected adoption.",
+      "supersedes": "893ca9ee1dc9f876cfd3c5009d52e7ad077c7b539f9bcfc2a4d87651b4ff918a",
+      "requested_at": "2026-11-28T08:40:04.327584+00:00",
+      "request_id": "94d835846c06e5d45d8290a1c1fc6af5500403f379b39dc9a8551feb784c156b",
+      "evidence_sha256": "f01a8314cffc83f33323407a3d3d47516d725cd984cf696cf0eaad40896888aa"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "verdict": "approved",
+      "decision": "APPROVE M0-181 22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "scope": "APPROVE M0-181 22f14d95e24e3ab1aaaefda43a1e288063210cfe",
+      "observation": "On the reviewed candidate, the ordinary dependency checker accepted the four findings recorded in each platform log from PR 123 run 46120026971 and exited with code 1 in all four replays that added either retired advisory as the sole unresolved finding.",
+      "reviewer": "Independent Astra Standard (t1pf)",
+      "original_sha256": "9ebbc2ae1267063a5ae6fa7d2f264767e1c1b2472e5120fe61db70320162536d",
+      "response_id": "622d0035bfa207a02ded825d37e402b43614c29047ace8aa61783ae99a707ae8",
+      "response_sha256": "2ef94dd30b7edd881f89a37e90802d8cd0307979d674e4e9a8db6bdff16a5b59",
+      "legacy_response_sha256": "3f3420b29f04566934cbf5907314af24981bde15dfa04681eb4af109c8004004",
+      "observation_body_sha256": "5c94faee7aa3710ee4d1542865dc28905b624c69e19b44c801a8289ba6bd7aa0",
+      "event": {
+        "id": "msg_04ec9979b9551618016b0a940987f487d2b1a6a411ada4aeed",
+        "timestamp": "2026-11-28T08:43:13.547Z"
+      },
+      "supersedes": "94d835846c06e5d45d8290a1c1fc6af5500403f379b39dc9a8551feb784c156b",
+      "evidence_sha256": "079b7c14b86d301c9f0b64339076983d7c78848ee1291f25f4893d7d05708180"
     }
   ]
 }
