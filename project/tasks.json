@@ -27077,7 +27077,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "The coordinator obtains fresh source-bound decisions where required and owns the next ordinary full warm PR observation. Bind the submitted head and actual tested checkout containing the corrective revision, require both protected job conclusions to pass, and retain workflow creation, all five Windows producer clocks, the Windows publisher clock, original attachments, ordered Python outcomes and all 35 selections with 28 passes and seven planned omissions. Require Windows seconds.total <= 900, measured from workflow creation through Windows publisher completion. Retain initial queue and the first-producer-to-publisher span for critical-path diagnosis. Keep M0-146 active until that qualifying run and the applicable first protected adoption evidence are retained. Retain the fourth Python timeout and the first ordinary dependency rejection.",
+      "next_action": "The coordinator obtains fresh source-bound decisions where required and owns the next ordinary full warm PR observation. Bind the submitted head and actual tested checkout containing the corrective revision, require both protected job conclusions to pass, and retain workflow creation, all five Windows producer clocks, the Windows publisher clock, original attachments, ordered Python outcomes and all 35 selections with 28 passes and seven planned omissions. Require Windows seconds.total <= 900, measured from workflow creation through Windows publisher completion. Retain initial queue and the first-producer-to-publisher span for critical-path diagnosis. Keep M0-146 active until that qualifying run and the applicable first protected adoption evidence are retained. Retain the fourth Python timeout and the first ordinary dependency rejection. Use ordinary PR 123 run 46115517382 and its retained passing Python partitions to identify and reduce measured critical-path work. Compare the 973-second sample with the earlier 816- and 838-second ordinary samples on their own sources, preserving full selection, ordered work, omission and refusal semantics. Keep the distinct Windows fixture failure with M0-182.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -27195,6 +27195,11 @@
           "run_id": "20261128T033946.183750Z-259784c9",
           "source_commit": "91e419f12ee4fafc275bf6cf8dd4c521813acef3",
           "report_sha256": "9dfd3e179d35d27fee620e016f2c702ee0ff6677a3fc62111ee89d8c4ec0524b"
+        },
+        {
+          "run_id": "windows-change-46115517382-1",
+          "source_commit": "fa0f311cd637f5d3466a1f0ed5b1ec985127cede",
+          "report_sha256": "7c636646bee78f3720f2e2048c63ad2e06d78aee5744a2b6e8a7f152c6e74cbe"
         }
       ],
       "plan": {
@@ -30769,9 +30774,19 @@
           "run_id": "20261128T051401.976712Z-c1245408",
           "source_commit": "590e08d0b8b978e60d0ebb5197886bec95ecc8c0",
           "report_sha256": "f7937aa8570a05a309ce907b53f86e20496103bb4305e34d81746fbb21b7e888"
+        },
+        {
+          "run_id": "windows-change-46115517382-1",
+          "source_commit": "fa0f311cd637f5d3466a1f0ed5b1ec985127cede",
+          "report_sha256": "7c636646bee78f3720f2e2048c63ad2e06d78aee5744a2b6e8a7f152c6e74cbe"
+        },
+        {
+          "run_id": "20261128T061336.251887Z-259a37c9",
+          "source_commit": "fa0f311cd637f5d3466a1f0ed5b1ec985127cede",
+          "report_sha256": "73cc569bffada336ac008915e18db36312df531540e5342c6d24f3ccd98d0647"
         }
       ],
-      "next_action": "Have the coordinator review the exact local candidate and submit the ordinary and guarded native checks. Inspect the separate helper build and matrix phase measurements, the 24 real Windows comparisons and the Rust parser cases. Verify the integrated source after independent review.",
+      "next_action": "Follow the genuine first ordinary PR 123 Windows run 46115517382 on adffe2b0. Determine the bounded failure at the first broad synthetic ACL preparation before continuing to the explicit-only and real 24-file comparisons. Preserve the earlier separate leaf-matrix timeout, current helper build, finite calibration and public passing, rejected and cleanup controls. Investigate the shared fixture preparation cost at its actual input. Obtain applicable independent source review, ordinary native Windows and Linux evidence, then recheck the integrated source.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
