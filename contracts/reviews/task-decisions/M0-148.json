@@ -330,6 +330,44 @@
       "requested_at": "2026-11-27T11:41:32.137344+00:00",
       "request_id": "f954c33e3e699f2649bb3f7f7560bfb895bda39a54408020e6134f8c14e4c227",
       "evidence_sha256": "a6012ef5dabf4e8fb00fc881196bfc5d572b3d1b76c4713f37f84fa5c3ec514b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "Immutable historical source closure, committed catalog and execution inputs, exact report selection, and coverage qualification.",
+      "supersedes": "f954c33e3e699f2649bb3f7f7560bfb895bda39a54408020e6134f8c14e4c227",
+      "requested_at": "2026-11-28T04:05:59.604277+00:00",
+      "request_id": "d87f6e71bd4485a930c2f9864bf9b649eab82ede49d6e2b54d838dca85d4cf1d",
+      "evidence_sha256": "c4aadd2931213fdf42850782b9a3d05615ea1baf8ce9842ccfb2c0bd0181eb51"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "verdict": "approved",
+      "decision": "APPROVE M0-148 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "APPROVE M0-148 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "observation": "For push run 45838575346, the Windows report matched all 35 checks selected at the publishing commit, and changing only its execution-input digest left exactly the original Linux receipt after a cold reopen.",
+      "reviewer": "Independent Astra Standard (t1m2)",
+      "original_sha256": "7e48e2d80662b4027672ab274ad4912a968bffe88e9d508af683fa7a98f5b432",
+      "response_id": "6ff1213167f4fc7677febe894546416c727190caf855e5a18a987a55dceefd35",
+      "response_sha256": "c8e80bea9a22e90d6f7e67809e14734bd98c83f39c2e49d86171a97f62b65007",
+      "legacy_response_sha256": "e12a5657e9cfa5d356c01fae5f5931a96ca3645346432913859ea9ab9f329811",
+      "observation_body_sha256": "4f989f532ebfcef7f8ffcbba75810962ece4274405d33b4491cf0e2e22186ebb",
+      "event": {
+        "id": "msg_027cb74f74d8b8a2016b0a551e783c87d0baa13e8eb3c0df9c",
+        "timestamp": "2026-11-28T04:14:46.369Z"
+      },
+      "supersedes": "d87f6e71bd4485a930c2f9864bf9b649eab82ede49d6e2b54d838dca85d4cf1d",
+      "evidence_sha256": "03389c7624ea493740716322b486ca632a7c9ae775c16b8f009ebf1955949a4c"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d226171f0d21bf65109416128a68bea9c8577b2d",
+      "scope": "Immutable historical source closure, committed catalog and execution inputs, exact report selection, and coverage qualification.",
+      "supersedes": "6ff1213167f4fc7677febe894546416c727190caf855e5a18a987a55dceefd35",
+      "requested_at": "2026-11-28T04:46:25.361773+00:00",
+      "request_id": "8d97c18c10f2a1fdc7b6e02ade4105bd15cc98101397160af7e8c2ba65b5a346",
+      "evidence_sha256": "d3f83864664f381b81de3866cc9c606f6ad735b9338be090832294c00eaf4fa5"
     }
   ]
 }
