@@ -1,0 +1,134 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-176",
+  "task_definition_sha256": "1777f57dbfa700073a8d92b775baed16745088279f73c013121ad93146eb3fdc",
+  "run_id": "20261127T091015.211745Z-7492ff68",
+  "recorded_at": "2026-11-27T09:38:58.354761+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "90bca08c0b9e3859e5141e7ce8b3d424bd8653c9685a8dd3c55c9a1d41af1b4c",
+    "file_count": 639,
+    "git_head": "fcdc4f462f8912dbfa4587cacc921b8fb0672272",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "d0231e81166f1e4ba40297e0070fe8b81f2fad50baaa86d9d3e6182cc7968fcf",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-1020-azure",
+    "machine": "x86_64",
+    "python": "3.12.16",
+    "python_executable": "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "9cd54dcc72a4939645b6c2fcaa72d6ad8e58257e8c1eec046f561444f1803b77"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d90f1523d7b342ef6ceae6784a175b08d62a62dedd608c2e04f653d233699032"
+    },
+    {
+      "id": "workspace-timeframe",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "6ec695058f38aa75f2d4078d07b134b9b3d84daa8c65fc183f6af8b370f9fc33"
+    },
+    {
+      "id": "indicator-declarative-preview",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs",
+        "--grep",
+        "indicator-preview",
+        "--grep-invert",
+        "runs trusted Python once"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a88f106f70353c53b8374aed50bea45f1b6cd94c9422d3e9f71adb199ac1b591"
+    },
+    {
+      "id": "indicator-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs",
+        "--grep",
+        "indicator-preview runs trusted Python once"
+      ],
+      "exit_code": 0,
+      "log_sha256": "cf52ec1f57ebb7f1ad09c84a6e41b2348a9114179a4f4af863bd0627eea498ef"
+    }
+  ],
+  "project_definition_sha256": "46816d9c1a539af66282dd36e0c8a7091f5eb5ff768cfd4d0f9002452901a1e1",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "dc52f75df9cc04c6de60c9ce66e11abfdc69b3148276659bd686847a466e1eca"
+  ],
+  "ci": {
+    "provider": "github-actions",
+    "repository": "kacoyi/scopehub",
+    "run_id": "45971267739",
+    "run_attempt": "1",
+    "event": "workflow_dispatch",
+    "head_sha": "fcdc4f462f8912dbfa4587cacc921b8fb0672272",
+    "checkout_sha": "fcdc4f462f8912dbfa4587cacc921b8fb0672272",
+    "run_url": "https://github.com/kacoyi/scopehub/actions/runs/45971267739"
+  }
+}

@@ -9,10 +9,11 @@ import { prepareProfilePool } from './workspace_profile_pool.mjs';
 
 export default async function setup() {
   const root = fileURLToPath(new URL('../../', import.meta.url));
+  const exec = promisify(execFile);
   const windows = process.platform === 'win32';
   const witness = windows ? ['-p', 'scopehub-platform', '--example', 'windows_handoff_probe'] : [];
   // Build before either worker opens the binaries, including on Windows.
-  await promisify(execFile)('cargo', [
+  await exec('cargo', [
     'build', '--locked', '-p', 'scopehub-persistence', '--bin', 'workspace_bridge',
     '-p', 'scopehub-worker-host', '--example', 'history_bridge', '--bin', 'scopehub-indicator-child', ...witness, '--target-dir', 'target',
   ], { cwd: root, timeout: 295_000 });

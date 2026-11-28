@@ -1,0 +1,93 @@
+{
+  "version": 3,
+  "task_id": "M0-176",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "c494a94b013a655a6034ee73c13f2612b449c581",
+      "scope": "Review single preparation of the run-owned native local import executable and both concurrent Windows workspace consumers at the normal fixture entry.",
+      "supersedes": null,
+      "requested_at": "2026-11-27T08:40:07.725251+00:00",
+      "request_id": "1bfbea2d83552ac89d9436afe4984ef202c3fc4104f5e7d852e46c41022528c4",
+      "evidence_sha256": "2de3a4b0dccdf3df61ca9235d18beddddabad4b64f4e900a386227acb9e95c56"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c494a94b013a655a6034ee73c13f2612b449c581",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-176 c494a94b013a655a6034ee73c13f2612b449c581",
+      "scope": "CHANGES_REQUESTED M0-176 c494a94b013a655a6034ee73c13f2612b449c581",
+      "observation": "Playwright listed 17 tests for `indicator-declarative-preview` and three for `indicator-workflow`, and neither selection included a CSV bridge consumer.",
+      "reviewer": "Independent Astra Standard (t1fp)",
+      "original_sha256": "9d0aa481cdf5b4a692f99a6a94fb608db362c2f1c7415ceefc6ee4054806fec2",
+      "response_id": "a98edd3cd7ac5d92baf0eaba5ac4f0d9ec9e3b06930f019b91286a4837ee609e",
+      "response_sha256": "766c262469b671000a3d028a4c112c244f89328cf7e87edd2168bfc1f3ad1e0c",
+      "legacy_response_sha256": "b305887a96c678f523bf688c96ffb5ec49fb13e282f4741ddaebce77ebed178c",
+      "observation_body_sha256": "818cb2ca97d475acb88a2c6191c21b55a90605e6eaea3e250ab58baa864010aa",
+      "event": {
+        "id": "msg_0ab75cae54d59ef5016b094397a0c487d0a8c063c05ad910fd",
+        "timestamp": "2026-11-27T08:47:44.546Z"
+      },
+      "supersedes": "1bfbea2d83552ac89d9436afe4984ef202c3fc4104f5e7d852e46c41022528c4",
+      "evidence_sha256": "a2cb23192f3520c9eecef9489439ad1b6b555cdceee3f0058a8090c204c9180b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ca0d16eb5aa8d5f05d9e0b8f369c297c2a959c09",
+      "scope": "Independently recheck the three genuine changes requested on c494a94b. Confirm selected real CSV workflows prepare the actual Cargo-emitted image once, unrelated 17 and 3 indicator selections can succeed with CSV build rejection armed, and early port and service failure reclaim the live child and temporary fixture. Check the successful, rejected and concurrent cases via the public workspace entry. Keep the original Windows LNK1104 cause and future native evidence at their observed scope.",
+      "supersedes": "a98edd3cd7ac5d92baf0eaba5ac4f0d9ec9e3b06930f019b91286a4837ee609e",
+      "requested_at": "2026-11-27T09:02:36.142494+00:00",
+      "request_id": "6946b2fd8443e2bce34bbdf96298b75016086c83db100e9e23382ed5789ff8d7",
+      "evidence_sha256": "aa3ffeebb0e40d9b2342d7b2c1d456269c935438881cd81a6b4e586c1236a1f7"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ca0d16eb5aa8d5f05d9e0b8f369c297c2a959c09",
+      "verdict": "approved",
+      "decision": "APPROVE M0-176 ca0d16eb5aa8d5f05d9e0b8f369c297c2a959c09",
+      "scope": "APPROVE M0-176 ca0d16eb5aa8d5f05d9e0b8f369c297c2a959c09",
+      "observation": "Playwright listed exactly one preparation case when either CSV journey was selected alone or both were selected together, and neither indicator selection included it.",
+      "reviewer": "Independent Astra Standard (t1fx)",
+      "original_sha256": "dee62cb4119c8793f4a89242430512485f40495d97bb2030cd1eb26ecf1f62e3",
+      "response_id": "810e8d0d8edc5b303553fcd99bcc297e243e3bbece4eebad42d559dba91b7beb",
+      "response_sha256": "5d8241084e7f27d9b629c9e944a73e2ba0066697f6b7b940c050cfc8e0937629",
+      "legacy_response_sha256": "73847f692326b111c2bcf86386f7378e715f19570e0acfe59d221940b3431cc9",
+      "observation_body_sha256": "6975e05211d0f81b19847f336bae3a02606944fc3fcda2539affb1fc2a1e1b70",
+      "event": {
+        "id": "msg_077544666e146e73016b09484502e087d0af731288813d5ee7",
+        "timestamp": "2026-11-27T09:07:39.030Z"
+      },
+      "supersedes": "6946b2fd8443e2bce34bbdf96298b75016086c83db100e9e23382ed5789ff8d7",
+      "evidence_sha256": "836c79440a91d3290ab8d04572a0366129d694a7d6e6dbba08423059c626e7cc"
+    },
+    {
+      "kind": "request",
+      "source_commit": "38cb8777a2dba6ffbd1cec8fc14c456874cddbc2",
+      "scope": "Independently qualify the existing PR 150 CSV bridge preparation on the actual protected deletion-repair composition and the shared native workspace consumer. Verify the behavior of both prior fixes and the preservation of the accepted records.",
+      "supersedes": "810e8d0d8edc5b303553fcd99bcc297e243e3bbece4eebad42d559dba91b7beb",
+      "requested_at": "2026-11-27T11:41:54.428234+00:00",
+      "request_id": "d7c29e5dd6006be1be9e71d600bb25061b53cfe7f0b47143ea085a9932bdd92f",
+      "evidence_sha256": "bf43463c2df3debeaa5eed415a9fed8ba35ada4c9effb2ea3d0bc90f656348cf"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "38cb8777a2dba6ffbd1cec8fc14c456874cddbc2",
+      "verdict": "approved",
+      "decision": "APPROVE M0-176 38cb8777a2dba6ffbd1cec8fc14c456874cddbc2",
+      "scope": "APPROVE M0-176 38cb8777a2dba6ffbd1cec8fc14c456874cddbc2",
+      "observation": "The candidate rejected all nine recorded invalid deletion replies and returned the original receipt on every explicit retry with the same approval.",
+      "reviewer": "Independent Astra Standard (t1jq)",
+      "original_sha256": "660833d002484edd19f7bd546a5a2475691048c1f235ae7b0d006bd6f47ea831",
+      "response_id": "10b184ed95df7940ec962bf3f72d4cea23260dea0366db8755f86260af22b24f",
+      "response_sha256": "01a24e5e7743ebf99716732925d07604d127f19a681db7457917511ec05e0c3a",
+      "legacy_response_sha256": "1bc7b2bbf94137446a00b73a07356a104b75e93d73243d8152549312167afbd5",
+      "observation_body_sha256": "a8856db8082f0a1c19f60c598a742923f616dde1c80dd988ccf9ac52f96e0155",
+      "event": {
+        "id": "msg_089d4d0fe908bb32016b096e40668487d08f010b2403f83b7b",
+        "timestamp": "2026-11-27T11:49:42.602Z"
+      },
+      "supersedes": "d7c29e5dd6006be1be9e71d600bb25061b53cfe7f0b47143ea085a9932bdd92f",
+      "evidence_sha256": "156c0072c05af05610139da318fcb5345a1d3189e8afc84e6e8bc12eec27f145"
+    }
+  ]
+}
