@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-186",
   "tasks": [
     {
       "id": "M0-001",
@@ -29811,6 +29811,107 @@
           ],
           "data_plan": "Engineering dependency policy and reproducible locks are affected.",
           "cleanup": "Remove the retired scope guards and the hosted publisher prefetch used only by the block-buffer discrepancy. Remove the patch references from the pnpm lock and rebind the inventory to the new lock hash. Retain the exact package set, license records, original diagnostics and previous task receipts."
+        }
+      }
+    },
+    {
+      "id": "M0-186",
+      "title": "Keep local import worker behavior and its native tests independently navigable",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M1-045"
+      ],
+      "scope": [
+        "crates/worker-host/src/local_import.rs",
+        "crates/worker-host/src/local_import/tests.rs",
+        "project/tasks.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "The local import implementation remains at its existing module and public entry. Its native test suite is independently navigable with the same module-qualified test names.",
+        "Compare the names and first-run results of all 18 native import tests before and after the change. Preserve the original validation assertions, synthetic inputs, worker cleanup and cancellation behavior.",
+        "Verify runtime compilation and module boundaries with the project checks. Retain the first native results and an independent exact-source review."
+      ],
+      "checks": [
+        "project-state",
+        "architecture",
+        "rust-contracts-workers",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Compare the existing native test names and behavior at the real Rust module boundary, separate the test source, then verify the same tests and the affected task checks.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "An engineer working on the local import runtime can inspect its process lifecycle and protocol without traversing the inline native fixture suite. The same tests continue to exercise published worker behavior.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "crates/worker-host/src/local_import.rs",
+          "crates/worker-host/src/lib.rs",
+          "project/development.json"
+        ],
+        "hypotheses": [
+          "The self-contained test module occupies 855 lines of the 1,530-line worker file and uses a crate-root fixture path. It can move as one Rust test module while preserving test identity and behavior."
+        ],
+        "risks": [
+          {
+            "failure": "Relocating the test source changes its Rust name, relative fixtures, test discovery or coverage for cancellation and worker cleanup.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The reorganization changes production code or exports test-only helpers through the worker public surface.",
+            "checks": [
+              "architecture",
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Restore the original inline module and re-run the named worker suite if any case, fixture or runtime entry changes.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "worker-host"
+          ],
+          "entrypoints": [
+            "crates/worker-host/src/local_import.rs",
+            "crates/worker-host/src/lib.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/evolution"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/implementation_policy/first_test"
+            }
+          ],
+          "non_goals": [
+            "Changing runtime control flow, introducing a shared async abstraction, changing the worker protocol, or reorganizing the desktop and persistence code."
+          ],
+          "open_questions": [
+            "Does the normal Rust test runner discover exactly the original qualified tests after the move?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Rust worker entrypoints and process lifetime rules, fixture lookup, the full set of assertions and test names."
+          ],
+          "change": [
+            "Store the test-only module separately from its runtime module."
+          ],
+          "data_plan": "No persistent data or wire format changes. The original synthetic fixtures and temporary worker resources keep their established lifecycle.",
+          "cleanup": "Remove the old inline test body after the moved suite passes through the existing Cargo entrypoint."
         }
       }
     }
