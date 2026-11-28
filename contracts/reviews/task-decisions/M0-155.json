@@ -784,6 +784,15 @@
       },
       "supersedes": "f22792bb3018901c85fb2a5bdebe62c4f8c819984d264f310b3f183fa5dd4f8b",
       "evidence_sha256": "3c70a6db2bf7464d849852ed36c98857db3318e310fa801c7b516b602f5e40b9"
+    },
+    {
+      "kind": "request",
+      "source_commit": "1f6c7cda14379ab28241796e38c490d4de716771",
+      "scope": "Independently test the shared ordinary and weekly reader on the composed repair. Check the original PR 84 beyond-rotation conflict, preserved Windows and recovery clocks, the fixed PR 123 attribution and the PR 96 late-outcome cold reopen. Inspect both genuine input orders, saved archive compatibility and the six measured pairs against 42e48a2c. Distinguish the historical six pairs and their measured inputs.",
+      "supersedes": "06a8bebbbfadbe071dd32db7e41d67cddd66e69175cf9cc583e4ecd381d15326",
+      "requested_at": "2026-11-28T07:08:37.203677+00:00",
+      "request_id": "354e469ba85d2b11c9e444dd38d27d362c20772bb1037f11b1b050865a303f65",
+      "evidence_sha256": "668581ae1113f2a5625d8e1d10417c049b4b643c3cc6abd1c6d2fc85bb7762c6"
     }
   ]
 }

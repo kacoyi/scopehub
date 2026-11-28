@@ -813,6 +813,15 @@
       },
       "supersedes": "008e2a1ad674780164988149afd06b37c4001c490ea61734f33fce060ac09ca8",
       "evidence_sha256": "33805a16f4bac3e895d723354c582e8ea5d61f566a1c7faf7e5717c55993cfa5"
+    },
+    {
+      "kind": "request",
+      "source_commit": "1f6c7cda14379ab28241796e38c490d4de716771",
+      "scope": "Independently resolve the original three-way equal-time acquisition conflict using actual PR 96 attempt 45563183277 and push 45838575346. Reproduce A/B/C from the original reviewer command: A acquired both push platforms, B Linux only, C claimed one unsuccessful run. Compare upfront versus late corroboration in a fresh process in both orders, exact receipts and per-attempt clocks. Check genuine missing/full/contested/later-partial, publisher order, old archive recovery limits, and measured cost on its actual five inputs.",
+      "supersedes": "edfdde44d7cc6de7108742833a95c97b1be06cfeebc155dccaf282389562562c",
+      "requested_at": "2026-11-28T07:08:38.977679+00:00",
+      "request_id": "ce4f68408851602e79d5da58cf435b0620ec33384379163f58b882cbeaa966c0",
+      "evidence_sha256": "dce90dd85ed7e06852f18652ebb00b20aad7bbcae19de138f51870c091527079"
     }
   ]
 }

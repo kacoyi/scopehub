@@ -804,6 +804,15 @@
       },
       "supersedes": "66b036dcca14e11b820b50ecd4b04d8c3ffc334c57af5dddaf5c1635f11b8f9a",
       "evidence_sha256": "28f1475fc0edc9b4a7fd3d6207cf6012dbf4c930a52d3e7aebc9747049f7607c"
+    },
+    {
+      "kind": "request",
+      "source_commit": "1f6c7cda14379ab28241796e38c490d4de716771",
+      "scope": "Independently resolve the two registered PR 123 clock-bound failures on 42e48a2c through the public entry on the new composition. Check genuine report and impossible copies alone and both orders, exact precision and one nanosecond late, usable numbered predecessor and unnamed successor, attribution, neighboring staging/verification bounds and independent runner clocks. Inspect the 129 cases across ordinary, weekly and cold reads and original writer-role controls applicable to this change.",
+      "supersedes": "45169ec5e57b806f5581bacfda3431356eab96a5b8c6fcc86fcbdaaf5c415cfa",
+      "requested_at": "2026-11-28T07:08:38.087084+00:00",
+      "request_id": "f3395f64cb53a86485ac6b3a7fbf902d0c7829aa3483d027a5f1895761d8e271",
+      "evidence_sha256": "b058befb2562fb4069d3a275a9e2df8ab046d848fc62e035d523a25b531cc5e1"
     }
   ]
 }
