@@ -842,6 +842,15 @@
       },
       "supersedes": "ce4f68408851602e79d5da58cf435b0620ec33384379163f58b882cbeaa966c0",
       "evidence_sha256": "492ccd401f75328a9b153d469e029d83634842e83db1fefcd3797590684dc1ce"
+    },
+    {
+      "kind": "request",
+      "source_commit": "2e7fd0b6b156115ef087f4e209494caa6015cb7d",
+      "scope": "Assess collection authority on this changed timing source. Verify genuine PR 96 and push receipts for unavailable/full/contested/later partial acquisition and the three equal-time ABC/CBA observations up front and after a fresh-process cold reopen with late real PR 96 success. Independently check receipt identities, publisher order controls, competing or unavailable clocks, old archive information loss and paired costs on the actual five archives. Check interaction with the current PR 123 public reader without requiring unobserved native or calendar results.",
+      "supersedes": "cbca93f732ad9dc1150d6ce63ee59eb7dc5b54e39e370c9ea5223bc511a85da1",
+      "requested_at": "2026-11-28T07:42:34.019776+00:00",
+      "request_id": "890a905fbd2d11c043f23dacf764944a130788cc33e1f383da415e831821fe9d",
+      "evidence_sha256": "b1be809a1c67bb6e0da1027d406df2ab01947d40aa6d7377fc6a0c8bf832e2c3"
     }
   ]
 }

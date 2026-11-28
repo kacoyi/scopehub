@@ -833,6 +833,15 @@
       },
       "supersedes": "f3395f64cb53a86485ac6b3a7fbf902d0c7829aa3483d027a5f1895761d8e271",
       "evidence_sha256": "8ab0831f7f3d30ba9d566ad9c744ef97270d8425e2bcd02483f4714d53bddb54"
+    },
+    {
+      "kind": "request",
+      "source_commit": "2e7fd0b6b156115ef087f4e209494caa6015cb7d",
+      "scope": "Check the three registered PR 123 timing failures on job 140391906947 using both original reviewers' commands. Replay genuine and altered raw/compact inputs, both orders, ordinary, weekly and cold. Judge the 32 single-listing pairs with an unavailable distinguishing clock. Check both competing writer ends, unnamed successor 25, the 08:38:31.900Z boundary and one nanosecond later. Verify remaining staging, initialization and verification bounds, 983/3337 independent runner-seconds and the 516 prior controls.",
+      "supersedes": "b30ac2929bf0f91eb6677e5808932ccf5abc5199c706363f8b5de9c372c792b9",
+      "requested_at": "2026-11-28T07:42:33.139650+00:00",
+      "request_id": "a5bf59af2d5b29d5fa64ba0e3b9c99a4f86dab0235c6b4b27ca156128dcfa331",
+      "evidence_sha256": "3eed4fd18257b2c5d9e2e6c5b85203fdf484b9b00549cc38b90544ac59a0c705"
     }
   ]
 }
