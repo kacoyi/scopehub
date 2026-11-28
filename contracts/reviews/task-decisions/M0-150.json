@@ -746,6 +746,15 @@
       },
       "supersedes": "5e39a19fdd18020ad3147eb9c2e1cdf217e4cf4a07f330b4e82a9138b9a7c2ed",
       "evidence_sha256": "578da206792181cb84ff96cdf88bf4ed8d2db42418309752329556ce0132ce2f"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "Review the merged timing and publishing boundaries, the PR five-producer and protected four-producer workflows, and the recorded timestamp precision. Replay the PR 123 genuine and impossible bounds in both orders with cold reopen, including the effects on independent stage, initialization, runner and neighboring clocks.",
+      "supersedes": "8ba87e94e6fe0a88c26892d7bb9ae45581ca5f4211936a55692edaf80cdacd61",
+      "requested_at": "2026-11-28T05:37:27.509871+00:00",
+      "request_id": "5b68f8406d267f2f44fac241ff342f02030a1a60d038b8e09611495c07b9507b",
+      "evidence_sha256": "b3a02ce4ef97e800b5083fdfbfabc21b99b9a133281c76f8ee561a65b37ed35b"
     }
   ]
 }

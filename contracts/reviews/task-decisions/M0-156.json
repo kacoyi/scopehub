@@ -755,6 +755,15 @@
       },
       "supersedes": "c8d178da02218c2f90a5ad4374e7d7615fc3c63f1329508014a48a38d8997dec",
       "evidence_sha256": "79461ea643dc33b88e69caf65351c9519725c7c266dbd06ec2fc5c227b212620"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "Review receipt authority and the distinct composed publisher identity. Replay the retained PR 96/push and partial-collection controls in both orders with actual cold reopening. Check individually supported receipts, independent clocks, same-time conflict and later valid coverage using the actual member runs.",
+      "supersedes": "267a3d6354e54dfb60b45dc827bb4891ac81852c9be1ca16eef4a825590f14d5",
+      "requested_at": "2026-11-28T05:37:28.321247+00:00",
+      "request_id": "17a21d063a4efd30412b4f436e559efc8557888f6fb4451fe6a03bd5098880ca",
+      "evidence_sha256": "3e31a4ed27a81d6ff7de3c293e7b2f91ca6b9d9bc1e6f110744ebb23abff99a8"
     }
   ]
 }

@@ -726,6 +726,15 @@
       },
       "supersedes": "ea3063853fdcc5e4dff4c754dd3657527c5ab847946890e341863a1e07374570",
       "evidence_sha256": "44a38cfb0a806dbfb2f4871f923080caf1aeae7acd30c6ce0d99653332af9326"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "Review the reconciled ordinary/public and weekly reader with both parent programs. Replay the real PR 84 rotation and independently ordered PR 123 reports in both arrival orders and cold recovery. Check the original six paired costs on their measured source and whether the two disjoint publisher identities and the new source are distinguished.",
+      "supersedes": "dc4fc1aa3e1c5cdc442f05d254757990866f550bde3ba25d223030a298ee4d9f",
+      "requested_at": "2026-11-28T05:37:26.690277+00:00",
+      "request_id": "9cc506aaf00627f531cabd737ec38cfe6612d6e625c6fb06f74d7f7ae581f7ef",
+      "evidence_sha256": "db9c4c7fc788dd61c82993f4eae9504ce53eb98462895d1758b9101e3dfd8a2e"
     }
   ]
 }
