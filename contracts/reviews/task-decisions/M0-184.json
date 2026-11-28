@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-184",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "ec55d5ae2ee0cd4b2ac3c3f558491aedfb9fb533",
+      "scope": "Verify normal released, genuinely held, and unrecognized metadata through worktree retirement. Confirm the reader preserves the persistent file and unrelated holds and uses the writer lock semantics.",
+      "supersedes": null,
+      "requested_at": "2026-11-28T10:18:12.338849+00:00",
+      "request_id": "a93401d8aa07a179fb7aeb6c4779383498a618043fa56a5b3f295f8f07ecc21c",
+      "evidence_sha256": "3f2205878e5989bc0301ad7236ddd36bf559f9f06de6d9e74df7d7799a07c858"
+    }
+  ]
+}
