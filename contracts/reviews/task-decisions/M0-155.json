@@ -880,6 +880,26 @@
       "requested_at": "2026-11-28T09:21:48.056747+00:00",
       "request_id": "eb21bee9dfcd15d5c84c5fe856837f9f008791cd6cb0de706db6d8608c051e01",
       "evidence_sha256": "bb1b03a5dc3702e19720b3ca3f443c1e9219b59871dd64aaac1f1649f760daf9"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "2b87a34bb164b68cff2830996664a3797774b1ed",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 2b87a34bb164b68cff2830996664a3797774b1ed",
+      "scope": "CHANGES_REQUESTED M0-155 2b87a34bb164b68cff2830996664a3797774b1ed",
+      "observation": "A fresh process credited the PR 123 browser report copy recorded at 08:38:34Z with 983 runner-seconds even though numbered step 25 started at 08:38:31Z.",
+      "reviewer": "Independent Astra Standard (t1pw)",
+      "original_sha256": "54a61d2403588245a20dd2e3f77407d2ea06ab850aeb29815246e94c62dac950",
+      "response_id": "f293f3dd092834c5d82535470f48e0dede76a6d3cb136cdfceaa879c49a3ad4e",
+      "response_sha256": "93a2f1d12cf66a05712e71bee77838aee69a4cc59bddde7ae5b634dfd5a5df99",
+      "legacy_response_sha256": "f2d2f368e75c1c3fde298b9c2acb10cf796453f6e4042dcda436b34eb0697c28",
+      "observation_body_sha256": "65f15ffbb6afc0d6601500a6ef84d12b5b5be6fc5b8deba5c3c7742d67c5e7e5",
+      "event": {
+        "id": "msg_0fbe9b72791558fd016b0a9f007e3087d183dde8dd8b2a3e97",
+        "timestamp": "2026-11-28T09:30:04.849Z"
+      },
+      "supersedes": "eb21bee9dfcd15d5c84c5fe856837f9f008791cd6cb0de706db6d8608c051e01",
+      "evidence_sha256": "7af5af96cbf3474b8cebaf78a1d9e4641a1e1a3bcd7e1bfe7dc88b648c4b27e5"
     }
   ]
 }

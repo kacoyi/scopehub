@@ -909,6 +909,26 @@
       "requested_at": "2026-11-28T09:21:48.995078+00:00",
       "request_id": "ae15c44f5998fd7638998513121b0b50c22ed79a2f5e785f2fab93b3fab25abb",
       "evidence_sha256": "40a3bc5e0618394e1e32cd13ab01db6bbb41409a43293eec9fdd3e9233fc5561"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "2b87a34bb164b68cff2830996664a3797774b1ed",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 2b87a34bb164b68cff2830996664a3797774b1ed",
+      "scope": "CHANGES_REQUESTED M0-156 2b87a34bb164b68cff2830996664a3797774b1ed",
+      "observation": "When the weekly collection downloaded no reports and Git could not confirm the current checkout, the reader credited four historical PR 96 and push receipts, and a fresh process preserved all four.",
+      "reviewer": "Independent Astra Standard (t1px)",
+      "original_sha256": "19870daba978e675b42ce949d7cff6cdfedf7c207c7976034bcc62ca49382676",
+      "response_id": "8c62455c24c268ea18dbb4c720c983eea57030460c27a1c39ed9c2e139915813",
+      "response_sha256": "a9a9f4ffa85e1fbd6d3850c8531d37a87d677b989a16d4eb82570733f6cc2d97",
+      "legacy_response_sha256": "c072a2f0d5261fd89521998fe0c0e23606753d7cb0efc5fa731e98099a860f43",
+      "observation_body_sha256": "85fe518b09b4c10d996564295abd1d14175b1ad6128c4da270b53e880a50778c",
+      "event": {
+        "id": "msg_0b31dc0fa1df8b36016b0a9ee6804887d2adf7241b01852dfa",
+        "timestamp": "2026-11-28T09:29:29.929Z"
+      },
+      "supersedes": "ae15c44f5998fd7638998513121b0b50c22ed79a2f5e785f2fab93b3fab25abb",
+      "evidence_sha256": "589e88db45df1fb1e9050ca95a0f4d053d2a0ef4d9b179e261e24da587ca9317"
     }
   ]
 }

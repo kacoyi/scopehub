@@ -900,6 +900,26 @@
       "requested_at": "2026-11-28T09:21:47.080429+00:00",
       "request_id": "f613a681f07e63762fa721ef421207bff32a93b81cab82db44c626b2f2a853b0",
       "evidence_sha256": "a7a16eefcb5990ea5d2a28331afd0473bec720fccb23bff69c019e43d9bc51d4"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "2b87a34bb164b68cff2830996664a3797774b1ed",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 2b87a34bb164b68cff2830996664a3797774b1ed",
+      "scope": "CHANGES_REQUESTED M0-150 2b87a34bb164b68cff2830996664a3797774b1ed",
+      "observation": "Changing only the PR 123 staging start to three seconds before job setup completed caused a cold read to reject the genuine browser report.",
+      "reviewer": "Independent Astra Standard (t1pv)",
+      "original_sha256": "acea4c04d471613e6455f02afd60949e62185ef1aa5e65be83566dc1deb19cd7",
+      "response_id": "32e3da621a9b29cc0b9581082bfd7fc0f3c641a1d2dbe6b03df874170c582b00",
+      "response_sha256": "cc365e4903c7d38d3d88879bfefc1de5b66227474e80563cfd5f6249f1de2c55",
+      "legacy_response_sha256": "17a2212623c979190da34c6fd23a2e357f0bbf8e703bc5edf786bb947da9dc71",
+      "observation_body_sha256": "d692217cd511d96821c5df58dd8ba12894bd68f8c273689099633ed0e1679eb0",
+      "event": {
+        "id": "msg_0dfe1cabc7afbe83016b0a9e92a95887d292191528a5b2619f",
+        "timestamp": "2026-11-28T09:28:13.765Z"
+      },
+      "supersedes": "f613a681f07e63762fa721ef421207bff32a93b81cab82db44c626b2f2a853b0",
+      "evidence_sha256": "d5c5c4fc98ef9176fba6cedb801fba29dae6d6364b88a1155f004cb2b4189ac0"
     }
   ]
 }
