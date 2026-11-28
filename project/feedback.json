@@ -10854,6 +10854,7 @@
       ],
       "regression_checks": [
         "project-state",
+        "python-contracts-workers",
         "workspace-timeframe",
         "rust-contracts-workers"
       ],

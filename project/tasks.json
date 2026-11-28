@@ -30754,6 +30754,7 @@
       ],
       "checks": [
         "project-state",
+        "python-contracts-workers",
         "workspace-timeframe",
         "rust-contracts-workers"
       ],
@@ -30793,6 +30794,7 @@
             "failure": "Changing fixture setup could stop testing the same on-disk behavior or obscure the real stage of a timeout. Witness both existing accepted and rejected outcomes, and verify teardown after a failure.",
             "checks": [
               "project-state",
+              "python-contracts-workers",
               "workspace-timeframe",
               "rust-contracts-workers"
             ]
