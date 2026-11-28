@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-187",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -29818,7 +29818,7 @@
       "id": "M0-187",
       "title": "Complete the November dependency review on the integrated repository",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-181"
       ],
@@ -29847,9 +29847,9 @@
           "sha256": "117e7b184201a6125b32e23d55d71297b498e774665864806660b721ddd17c26"
         }
       ],
-      "next_action": "Obtain independent review of the clean monthly records source and use matching scoped evidence for closure. Track the source-linked uv, Python, pnpm and Rust follow-ups in the November dependency maintenance record.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The November 28 review reconciled seven closed proposals with their original runs and replacement commits. The protected graph contained 588 locked packages, nine audited Action pins and no unresolved findings under the recorded target guards. The three changed final heads and separate toolchain follow-ups are recorded. An independent review of 903beb92fd0a9c9e03c6d01e19d2cf5b95c8b2f5 checked the native evidence and the scoped passing receipt. The next monthly review is due December 28 or earlier under the recorded triggers.",
       "plan": {
         "outcome": "The monthly dependency status describes the actual protected repository on its due date with retrievable original checks and explicit dispositions.",
         "change_types": [
