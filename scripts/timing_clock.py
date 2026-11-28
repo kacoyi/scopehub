@@ -79,6 +79,14 @@ def elapsed(start, end):
         return end - start
 
 
+def latest_harness_start(recorded, elapsed_seconds):
+    # The verification writer rounds its monotonic elapsed time to milliseconds.
+    elapsed = Decimal(str(elapsed_seconds))
+    half_millisecond = Decimal('0.0005')
+    with exact_arithmetic((recorded, elapsed, half_millisecond)):
+        return recorded - max(0, elapsed - half_millisecond)
+
+
 def seconds(bounds):
     if bounds is None or bounds[0] != bounds[1]:
         return None

@@ -188,7 +188,8 @@ def lane_sample(sample, lane):
     ]
     return {**sample, 'profile': f'ci-windows-{lane}', 'selected': [key], 'checks': checks,
             'recorded_at': '2026-11-20T00:04:25Z',
-            'seconds': {**sample['seconds'], 'check_work': row['duration_seconds']}}
+            'seconds': {**sample['seconds'], 'harness': row['duration_seconds'] + 2,
+                        'check_work': row['duration_seconds']}}
 
 
 def split_linux_sample(windows, *, report_day=20):
@@ -1376,7 +1377,7 @@ class HostedTimingTests(unittest.TestCase):
                 self.assertEqual([], issues)
 
         clock = timing.hosted_timing(hosted_run(), self.split_windows_jobs(scoped=True))
-        scoped_report = split_harness_report(675, profile='records')
+        scoped_report = split_harness_report(34, profile='records')
         scoped_report['ci'] = report['ci']
         scoped = timing.report_sample(scoped_report)
         view = timing.timing_view([scoped, scoped], hosted=[clock])

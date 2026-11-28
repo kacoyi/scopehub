@@ -21,8 +21,8 @@ if __package__:
     from .doctor import tool_version
     from .execution_inputs import committed_project_definition_claims, committed_source_identity, is_source_input
     from .timing_clock import (
-        can_order, encode_timestamp, extrema, interval_bounds, ordered_choices, ordered_limit, paired_minima,
-        seconds as interval_seconds, sum_intervals, timestamp,
+        can_order, encode_timestamp, extrema, interval_bounds, latest_harness_start, ordered_choices,
+        ordered_limit, paired_minima, seconds as interval_seconds, sum_intervals, timestamp,
     )
     from .verification_report import (
         RUN_OBSERVATION_CHECKS, RUN_OBSERVATION_POLICIES, passed_observation_checks,
@@ -43,8 +43,8 @@ else:
     from doctor import tool_version
     from execution_inputs import committed_project_definition_claims, committed_source_identity, is_source_input
     from timing_clock import (
-        can_order, encode_timestamp, extrema, interval_bounds, ordered_choices, ordered_limit, paired_minima,
-        seconds as interval_seconds, sum_intervals, timestamp,
+        can_order, encode_timestamp, extrema, interval_bounds, latest_harness_start, ordered_choices,
+        ordered_limit, paired_minima, seconds as interval_seconds, sum_intervals, timestamp,
     )
     from verification_report import (
         RUN_OBSERVATION_CHECKS, RUN_OBSERVATION_POLICIES, passed_observation_checks,
@@ -2219,11 +2219,11 @@ def publishing_phase_bounds(fact, verification, floor, ceiling):
 def outside_report_bound(recorded, bound, *, latest):
     if bound is None or not bound.is_finite():
         return False
-    point = int(recorded) if bound == int(bound) else recorded
+    point = int(recorded) if latest and bound == int(bound) else recorded
     return point > bound if latest else point < bound
 
 
-def job_outside_report(fact, recorded, *, verification=None, dependent=None):
+def job_outside_report(fact, recorded, *, verification=None, elapsed_work=None, dependent=None):
     if verification:
         # Admission uses the raw phase clocks. Interval projection can set a
         # phase clock aside when its precise instant disagrees with a coarse
@@ -2263,7 +2263,8 @@ def job_outside_report(fact, recorded, *, verification=None, dependent=None):
     # Actions exposes whole-second bounds while the publisher records
     # fractional seconds. Coarse bounds cover their whole second; precise
     # bounds can be compared directly.
-    return (any(outside_report_bound(recorded, bound, latest=False) for bound in lowers)
+    start = latest_harness_start(recorded, elapsed_work) if elapsed_work is not None else recorded
+    return (any(outside_report_bound(start, bound, latest=False) for bound in lowers)
             or any(outside_report_bound(recorded, bound, latest=True) for bound in uppers))
 
 
@@ -2303,8 +2304,12 @@ def report_job_issue(sample, attempt, run, evidence):
     parent = (windows_dependency_job(evidence.jobs, attempt, run)
               if producing_role[0] == 'producer'
               and WINDOWS_PRODUCER_LANES[producing_role[1]] in windows_clock_lanes(run) else None)
+    # Lane writers measure work in their own verification process. A full
+    # aggregate's elapsed time instead spans work in its prerequisite jobs.
+    elapsed_work = (sample['seconds']['harness']
+                    if windows_publication and producing_role[0] == 'producer' else None)
     if job_outside_report(fact, timestamp(sample['recorded_at']), verification=step if windows_publication else None,
-                          dependent=parent):
+                          elapsed_work=elapsed_work, dependent=parent):
         error = 'The recorded report creation is outside the publishing job boundaries.'
     elif windows_publication and step in fact.successful_harness_steps and status in ('failed', 'blocked'):
         error = 'The timing report status contradicts the successful verification step.'

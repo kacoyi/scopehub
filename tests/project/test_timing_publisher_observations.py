@@ -317,7 +317,7 @@ class PublicPublisherObservationTests(unittest.TestCase):
         legacy = timing.report_sample(browser)
         original = timing.report_sample(browser, original_sha256=correct_digest)
         contradicted = timing.report_sample(
-            dict(browser, generated_at='2026-11-20T00:11:24.5Z'), original_sha256=other_digest,
+            dict(browser, generated_at='2026-11-20T00:11:25.5Z'), original_sha256=other_digest,
         )
         cases = ((legacy,), (original,), (contradicted,), (original, contradicted), (contradicted, original))
         with patch.object(timing, 'committed_windows_publisher', return_value=publisher):
@@ -415,12 +415,12 @@ class PublicPublisherObservationTests(unittest.TestCase):
             original = self.write_variant(f'publisher-{label}-original', transform(browser))
             for case, observed, at, admitted in (
                 ('before verification', intact, '00:01:59', False),
-                ('at verification', intact, '00:02:00', True),
+                ('elapsed work before the job despite a valid finish', intact, '00:02:00', False),
                 ('within verification end second', intact, '00:11:25.999999', True),
                 ('after verification', intact, '00:11:26', False),
                 ('after staging without setup number', missing_number, '00:11:28', False),
                 ('before initialization without verification clocks', missing_clocks, '00:01:48', False),
-                ('at initialization without verification clocks', missing_clocks, '00:01:50', True),
+                ('at initialization without verification clocks', missing_clocks, '00:01:50', False),
                 ('within staging start second without verification clocks', missing_clocks, '00:11:25.999999', True),
                 ('before unnumbered initialization', unnumbered_init, '00:01:48', False),
                 ('after staging without writer position and clocks', unnumbered_writer, '00:11:27', False),
