@@ -851,6 +851,26 @@
       "requested_at": "2026-11-28T05:52:02.685541+00:00",
       "request_id": "e5ce81c95d150b36108a2a5fb88679dae1a05f80ab46d77ffa62cecc6ec217f4",
       "evidence_sha256": "97b489c2bddd45efc274e86d00b1656b067fcbe643eabcf756de980fb747448b"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "scope": "APPROVE M0-146 947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "observation": "On the reviewed source, all five Windows producer selections matched PR 123 run 46111075105, and its 666-case and 317-case Python partitions reproduced the published log byte for byte.",
+      "reviewer": "Independent Astra Standard (t1n5)",
+      "original_sha256": "2a80e505311c8487d8ce558d28d0107bb1739f5636c3562feed0d8ce6b78efcc",
+      "response_id": "3a274394a9bf70309c3eb27c708c91cb717006942a739bf5c6e9b7c381c576bf",
+      "response_sha256": "0712956b0f10b936d4d72c35c33c9fe1cc27c839ef88c5b79f78fd7e857db93e",
+      "legacy_response_sha256": "57ac8761f78551f538bc018c35602aa8100a5fb3cae1e1586240c88f3b36686b",
+      "observation_body_sha256": "07ca8c071361020f67be20dd1fb32f1d82a3cd34af4ba297dc7e9058bc8a60b9",
+      "event": {
+        "id": "msg_0a3f7a195cc29ba5016b0a6cfe2d4c87d0824865bcea2a2489",
+        "timestamp": "2026-11-28T05:56:45.247Z"
+      },
+      "supersedes": "e5ce81c95d150b36108a2a5fb88679dae1a05f80ab46d77ffa62cecc6ec217f4",
+      "evidence_sha256": "bb8f38d0f2dcdc46070c7c71f63b53aa311ab5374672c3a81fd11d4324b6f290"
     }
   ]
 }
