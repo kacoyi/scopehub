@@ -13842,6 +13842,40 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "timing-ordered-neighbor-bounds-lost-with-partial-step-metadata",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 review of 42e48a2c08fbb85efa740ae12ad1fdcf09e471ad, recorded at 09c9ca3cfd0883e0cc1753710981d91fe9406255. Original response in .reports/m0-155-pr123-adffe2b0/coordinator-recovery/primary-42e48a2c/M0-150/original-assistant-response.jsonl (SHA-256 d1cb96df7c5a8d2f7765360de3f69a19404d81b5611936f98b2b49e0634d4996). The original observed commands and outputs are retained alongside it.",
+      "observation": "On genuine PR 123 run 45965137241, the public readers credited impossible browser reports and let them displace the original in both input orders after a cold reopen. With initialization clocks and the writer start absent, the completed installation at 08:25:14Z leaves only 783 seconds for the reported 793.422 seconds before 08:38:17Z. With the writer end and following step name absent, numbered step 25 still starts at 08:38:31Z and rules out 08:38:34Z. The original obtained 983 runner-seconds, and independent browser and Windows totals remained 983 and 3337 seconds.",
+      "task_ids": [
+        "M0-150",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-cold-reopen-drops-valid-equal-time-collection-conflict",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-156 review of 42e48a2c08fbb85efa740ae12ad1fdcf09e471ad, recorded at 09c9ca3cfd0883e0cc1753710981d91fe9406255. Original response in .reports/m0-155-pr123-adffe2b0/coordinator-recovery/primary-42e48a2c/M0-156/original-assistant-response.jsonl (SHA-256 b21d15bb6296995f8cda6d7fc0b4991ad56b24b19e3a3775e4e8406e5c356819). The original observed commands and outputs are retained alongside it.",
+      "observation": "With three equal-time acquisitions of PR 96 attempt 45563183277/1 and push 45838575346/1, late corroboration of PR 96 success correctly disqualifies the one-failure count. The two competing zero-failure acquisitions each retained a different push platform. In both input orders the ordinary reader, given all inputs up front, credited zero receipts. After serialization and actual new-process reopening, the same late corroboration instead credited the Linux push receipt. Independent clocks were preserved.",
+      "task_ids": [
+        "M0-156",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

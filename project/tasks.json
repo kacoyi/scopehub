@@ -27522,7 +27522,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Use .reports/m0-155-pr123-9b1556c5/handoff.json for the local timing and Windows producer composition, source-bound independent review applicability and retained controls. Coordinate fresh timing-owner review before downstream review, with separate ordinary PR, protected, native Windows and scheduled qualification.",
+      "next_action": "Reconcile the M0-150 and M0-156 public reader corrections with the M0-155 approval on 42e48a2c, the known positive and negative controls and the retained six-pair cost. Renew all three decisions on one clean material candidate before the five downstream reviews. Hosted, native, protected and scheduled observations remain separate.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -28247,7 +28247,7 @@
         }
       ],
       "evidence": [],
-      "next_action": "Use .reports/m0-156-53449702-collection/handoff.json for the local collection correction and evidence. Keep the five downstream scopes gated on three independent approvals on the same material source. The coordinator owns hosted and native qualification and the scheduled observation on 2026-11-28 at 16:17 UTC.",
+      "next_action": "Restore the three-way equal-time collection conflict when the genuine PR 96 success arrives after reopening; retain corroborated acquisitions, independent clocks and the later valid partial collection. See the original M0-156 response and native replay in .reports/m0-155-pr123-adffe2b0/coordinator-recovery/primary-42e48a2c/M0-156/.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -28664,7 +28664,7 @@
         "On PR 123, bound the recorded report instant by the ordered historical writer and its independently observed neighbors. Match the aggregate original's producer role when compact reports explicitly claim a digest. Preserve the authentic raw and compact reports, recorded precision and legacy compact forms without a digest.",
         "Use the original workflow order and intersect independently observed initialization, verification, staging and surrounding job boundaries at their recorded precision. Retain exact genuine PR 123 success and failure producer reports through both input orders and reject confirmed out-of-window and wrong-role claims."
       ],
-      "next_action": "Use .reports/m0-155-829afd0b-reconciliation/handoff.json for the clean material source and local evidence. Keep the five downstream scopes gated on three independent approvals on that source. The coordinator owns hosted and native qualification and the scheduled observation on 2026-11-28 at 16:17 UTC.",
+      "next_action": "Repair the retained PR 123 predecessor-duration and unnamed numbered successor controls on the public timing entry; preserve independently ordered bounds and recorded precision. See the original M0-150 response and native replay in .reports/m0-155-pr123-adffe2b0/coordinator-recovery/primary-42e48a2c/M0-150/.",
       "blocker": null,
       "evidence": [],
       "closure_reason": null,
