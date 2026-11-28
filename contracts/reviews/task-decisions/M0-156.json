@@ -648,6 +648,26 @@
       "requested_at": "2026-11-28T02:10:52.982406+00:00",
       "request_id": "770bc595ff5708f8979e01ce0fda3f997cc91629b44e88b98eb4447a8e349da7",
       "evidence_sha256": "d1a29570f54c74e4fda9495b0a161c727bd4642fc4a98955ebaaf45bb84f2294"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "829afd0b33d48304011d8e4c093a43874d517c57",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 829afd0b33d48304011d8e4c093a43874d517c57",
+      "scope": "CHANGES_REQUESTED M0-156 829afd0b33d48304011d8e4c093a43874d517c57",
+      "observation": "Changing the unsuccessful run count from zero to one erased both push receipts after cold reopen in either input order, although both member attempts had recorded successful outcomes.",
+      "reviewer": "Independent Astra Standard (t1k8)",
+      "original_sha256": "8964ad02361b4b9e35f46cb916df4567649b1390109931968c898bfd28d23635",
+      "response_id": "54ea1cfaa5139dbbaf488af03e021b7cc3bb72c08ae9ff6902d53caf44a6bcf0",
+      "response_sha256": "126f333daf9fbc9c033b4d8c3441c6c58a8fe60882256bb56ca22d937259f065",
+      "legacy_response_sha256": "5d151cbfe3a44cc2fee64a8e4edd3bf5b6857134d29e4d3499f4692e5d956a84",
+      "observation_body_sha256": "66876b558e74e6e8f88e2cb659f62bcc570ada1153853c8e7bcdf6000d9fc1f7",
+      "event": {
+        "id": "msg_0517cc93e6a365b8016b0a3a0fe6ac87d0ae2583b6db0ac37e",
+        "timestamp": "2026-11-28T02:19:23.609Z"
+      },
+      "supersedes": "770bc595ff5708f8979e01ce0fda3f997cc91629b44e88b98eb4447a8e349da7",
+      "evidence_sha256": "56f1731d6423245f844cc0b2fd51015ee8105cedd4a964e4dda56b59ead842d1"
     }
   ]
 }

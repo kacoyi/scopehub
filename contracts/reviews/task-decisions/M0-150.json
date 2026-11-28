@@ -639,6 +639,26 @@
       "requested_at": "2026-11-28T02:10:52.087280+00:00",
       "request_id": "c3918a49686e58385281045bcb3091de6e6ef009ac40e8ee8c81910b05010caa",
       "evidence_sha256": "ccc59dc620ecde4447a049fe896cbdf58a94d71b7f5bc0193212a5f5f3450168"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "829afd0b33d48304011d8e4c093a43874d517c57",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 829afd0b33d48304011d8e4c093a43874d517c57",
+      "scope": "CHANGES_REQUESTED M0-150 829afd0b33d48304011d8e4c093a43874d517c57",
+      "observation": "A PR 123 browser report dated one nanosecond after the controlled staging start received 983 runner-seconds and displaced the genuine browser report in both input orders.",
+      "reviewer": "Independent Astra Standard (t1k7)",
+      "original_sha256": "ac5c6035f4835352849a50693c5701e116e922d46577c8d68d2c3e1a6e864369",
+      "response_id": "2eb2bbe58bf37200be52152eb89045c3b3794d41a431e84caace6622e8fae729",
+      "response_sha256": "8d9244bd6dd8a0fad12fd8af92490b5a9eeb32bc4929e0bbbc67743e33b82d48",
+      "legacy_response_sha256": "94f9df28e2f170afb30df8cb80d3e9b714099390d8f873852aacd2e282c21d69",
+      "observation_body_sha256": "2e397507b227c1782a938e8d8294a72d896a1788023f46d1f082d838a422af11",
+      "event": {
+        "id": "msg_089e88855d6b7710016b0a3a22783487d09e8cd1817d05a530",
+        "timestamp": "2026-11-28T02:19:42.858Z"
+      },
+      "supersedes": "c3918a49686e58385281045bcb3091de6e6ef009ac40e8ee8c81910b05010caa",
+      "evidence_sha256": "dea5696240ab3a97592532fa66ebd58072d958208de8805fd9d6e72ee2edd1a3"
     }
   ]
 }
