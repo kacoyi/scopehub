@@ -9811,6 +9811,38 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "indicator-readback-reports-success-before-accepted-output",
+      "severity": "major",
+      "status": "open",
+      "source": "Independent Astra Standard on 77b2b33311188b9c52e42f6b26bcb104ffd8008d. Original response SHA-256 9555b3d99a45aceed2d715ab87cf0c17a62b31924f564cf17d7ab31853d4c040.",
+      "observation": "After the user approved once, the workspace snapshot and layer list supplied revision 1 and its committed version. With the accepted-output reply held for 36.6 seconds, the panel claimed the workspace was reloaded while showing no accepted layer, error or retry. With on-time output the same flow displayed the version.",
+      "task_ids": [
+        "M3-009"
+      ],
+      "regression_checks": [
+        "desktop-workspace-transport",
+        "indicator-workflow"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-approval-transport-failure-skips-authoritative-readback",
+      "severity": "major",
+      "status": "open",
+      "source": "Independent Astra Standard on 77b2b33311188b9c52e42f6b26bcb104ffd8008d. Original response SHA-256 9555b3d99a45aceed2d715ab87cf0c17a62b31924f564cf17d7ab31853d4c040.",
+      "observation": "An independent UI probe rejected delivery immediately after the simulated commit. With one explicit approval dispatch and no correlated refusal, the panel reported failure, re-enabled Accept preview, and offered no readback. The real isolated SQLite controls separately verified the one-write committed case.",
+      "task_ids": [
+        "M3-009"
+      ],
+      "regression_checks": [
+        "desktop-workspace-transport",
+        "indicator-workflow"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
