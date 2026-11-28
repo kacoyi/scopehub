@@ -15,7 +15,7 @@ import tempfile
 from unittest.mock import patch
 
 from scripts import check_chart_history, ci_artifacts, timing, verification_evidence
-from scripts.check import PRIVATE_CHECK_LOGS, ci_provenance, redacted_check_log
+from scripts.check import PRIVATE_CHECK_LOGS, ci_provenance, redacted_check_log, windows_lanes_run_id
 from scripts.ci_artifacts import SCOPE_FILE, PublicationError, prepare_reports, stage_artifacts
 from scripts.diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic
 from scripts.project import ProjectError, archive_evidence, digest, json_bytes, load_project, product_progress, read_json, source_identity, validate_model, verified_candidate_files
@@ -46,7 +46,7 @@ class PublicationTests(ProjectFixture):
         return subprocess.run(['git', *args], cwd=self.root, capture_output=True, text=True, check=True).stdout.strip()
 
     def save_report(self, report):
-        for relative in ['test-report.json', 'runs/fixture/test-report.json']:
+        for relative in ['test-report.json', f"runs/{report['run_id']}/test-report.json"]:
             self.write(relative, json_bytes(report))
 
     def add_catalog_checks(self, *checks, command=None):
@@ -65,8 +65,13 @@ class PublicationTests(ProjectFixture):
         ]
         path.write_bytes(json_bytes(catalog))
 
-    def hosted_report(self, *, system='Linux', event='pull_request'):
+    def hosted_report(self, *, system='Linux', event='pull_request', scope=None):
         prepare_reports(self.root)
+        if scope:
+            path = self.root / 'project/checks.json'
+            catalog = read_json(path)
+            catalog['profiles'][scope] = ['project-state', 'rust-lints']
+            path.write_bytes(json_bytes(catalog))
         self.git('add', '.')
         self.git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
                  '-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', 'Retain synthetic evidence inputs')
@@ -75,7 +80,7 @@ class PublicationTests(ProjectFixture):
         self.env = {
             'GITHUB_ACTIONS': 'true', 'GITHUB_SHA': head, 'SCOPEHUB_SOURCE_HEAD': head,
             'GITHUB_REPOSITORY': 'fixture/scopehub', 'GITHUB_RUN_ID': '10',
-            'GITHUB_RUN_ATTEMPT': '2', 'GITHUB_EVENT_NAME': event,
+            'GITHUB_RUN_ATTEMPT': '2', 'GITHUB_EVENT_NAME': event, 'GITHUB_JOB': 'verify', 'RUNNER_OS': system,
         }
         report = read_json(self.report(system=system))
         for result in report['checks']:
@@ -90,10 +95,23 @@ class PublicationTests(ProjectFixture):
         }
         return report
 
+    def complete_windows_selection(self, report, profile):
+        python = report['environment']['python_executable']
+        executed = {result['id']: result for result in report['checks']}
+        report['checks'] = [
+            {**executed[check['id']], 'duration_seconds': 0.1} if check['id'] in executed else {
+                'id': check['id'], 'status': 'blocked', 'reason_code': 'not_selected',
+                'command': [python if arg == '{python}' else arg for arg in check['command'] or []],
+            } for check in load_project(self.root)['catalog']['checks']
+        ]
+        report['source_end'] = report['source']
+        report['native_requirement'] = {'requested': False, 'satisfied': True}
+        report['selection'] = {'profile': profile, 'task_id': None, 'checks': sorted(executed)}
+
     def add_result(self, report, check, *, status='passed'):
         exit_code = {'passed': 0, 'failed': 1, 'blocked': 77}[status]
         log = redacted_check_log(exit_code) if check in PRIVATE_CHECK_LOGS else b'Synthetic check output.\n'
-        relative = f'runs/fixture/{check}.log'
+        relative = f"runs/{report['run_id']}/{check}.log"
         self.write(relative, log)
         report['checks'].append({
             'id': check, 'status': status, 'command': ['synthetic-check'],
@@ -106,6 +124,31 @@ class PublicationTests(ProjectFixture):
         with self.assertRaisesRegex(PublicationError, 'fresh .reports directory'):
             prepare_reports(self.root)
         self.assertEqual(self.sentinel, saved.read_bytes())
+
+    def test_unchanged_linux_report_requires_a_linux_job_and_download(self):
+        report = self.hosted_report()
+        report['selection'] = {'profile': 'full', 'task_id': None,
+                               'checks': sorted(row['id'] for row in report['checks'])}
+        self.save_report(report)
+        outputs, _, _ = self.stage_job(self.env)
+        published = Path(outputs['path'])
+        original = (self.reports / 'test-report.json').read_bytes()
+        self.assertEqual(original, (published / 'test-report.json').read_bytes())
+
+        windows = self.destination.with_name('windows-stage')
+        with self.assertRaisesRegex(PublicationError, 'expected Windows platform'):
+            stage_artifacts(self.root, windows, {**self.env, 'GITHUB_JOB': 'windows_change', 'RUNNER_OS': 'Windows'})
+        self.assertFalse(windows.exists())
+
+        downloads = self.reports / 'ci' / self.env['GITHUB_RUN_ID']
+        linux = shutil.copytree(published, downloads / 'linux')
+        windows = shutil.copytree(published, downloads / 'windows')
+        receipt = archive_evidence(self.root, 'M0-001', linux / 'test-report.json', linux)
+        receipt_bytes = (self.root / receipt['path']).read_bytes()
+        with self.assertRaisesRegex(ProjectError, 'expected Windows platform'):
+            archive_evidence(self.root, 'M0-001', windows / 'test-report.json', windows)
+        self.assertEqual(receipt, archive_evidence(self.root, 'M0-001', linux / 'test-report.json', linux))
+        self.assertEqual(receipt_bytes, (self.root / receipt['path']).read_bytes())
 
     def test_hosted_artifact_preserves_the_public_acceptance_rows(self):
         self.add_catalog_checks('ai-workflow')
@@ -216,10 +259,10 @@ class PublicationTests(ProjectFixture):
 
     @patch.dict(os.environ, {'SCOPEHUB_WINDOWS_LANE': 'python'})
     def test_windows_bundle_contains_typed_scope_and_retains_the_original_failed_report(self):
-        report = self.hosted_report(system='Windows', event='push')
+        report = self.hosted_report(system='Windows', event='push', scope='tooling')
         report['status'] = 'failed'
-        report['selection'] = {'profile': 'tooling', 'task_id': None,
-                               'checks': [row['id'] for row in report['checks']]}
+        next(row for row in report['checks'] if row['id'] == 'rust-lints').update(status='failed', exit_code=1)
+        self.complete_windows_selection(report, 'tooling')
         self.save_report(report)
         source = self.write(SCOPE_FILE, self.sentinel)
         env = self.scope_env(profile='tooling', reason='reviewed_changes')
@@ -238,21 +281,22 @@ class PublicationTests(ProjectFixture):
     @patch.dict(os.environ, {'SCOPEHUB_WINDOWS_LANE': 'python'})
     def test_records_and_split_lane_use_explicit_staging_under_inherited_lane_environment(self):
         self.add_catalog_checks('python-contracts-workers')
-        report = self.hosted_report(system='Windows')
-        report['selection'] = {'profile': 'records', 'task_id': None,
-                               'checks': [row['id'] for row in report['checks']]}
+        report = self.hosted_report(system='Windows', scope='records')
+        self.complete_windows_selection(report, 'records')
         self.save_report(report)
         outputs, _, _ = self.stage_job(self.scope_env(profile='records', reason='reviewed_changes'))
         self.assert_core_artifacts_retained(outputs, report)
         scope = read_json(Path(outputs['path']) / SCOPE_FILE)
         self.assertEqual(('records', self.env['GITHUB_SHA']), (scope['profile'], scope['checkout']))
 
+        report['run_id'] = windows_lanes_run_id(report['ci'])
         report['checks'] = []
         self.add_result(report, 'python-contracts-workers', status='failed')
         report['status'] = 'failed'
-        report['selection'] = {'profile': 'ci-windows-python', 'task_id': None, 'checks': ['python-contracts-workers']}
+        self.complete_windows_selection(report, 'ci-windows-python')
         self.save_report(report)
-        outputs, _, _ = self.stage_job(self.scope_env(), action='stage-windows-lane')
+        outputs, _, _ = self.stage_job({**self.scope_env(), 'GITHUB_JOB': 'windows_python'},
+                                      action='stage-windows-lane')
         self.assert_core_artifacts_retained(outputs, report)
         self.assertFalse((Path(outputs['path']) / SCOPE_FILE).exists())
         self.assertEqual('ci-windows-python', read_json(Path(outputs['timing_path']))['profile'])
@@ -330,9 +374,12 @@ class PublicationTests(ProjectFixture):
 
     def assert_core_artifacts_retained(self, outputs, report):
         staged = Path(outputs['path'])
-        for relative in ('test-report.json', 'runs/fixture/test-report.json'):
+        for relative in ('test-report.json', f"runs/{report['run_id']}/test-report.json"):
             self.assertEqual(json_bytes(report), (staged / relative).read_bytes())
         for check in report['checks']:
+            if 'log' not in check:
+                self.assertFalse((staged / f"runs/{report['run_id']}/{check['id']}.log").exists())
+                continue
             relative = check['log'].removeprefix('.reports/')
             self.assertEqual((self.reports / relative).read_bytes(), (staged / relative).read_bytes())
 
@@ -549,13 +596,15 @@ class PublicationTests(ProjectFixture):
 
     def test_passing_native_revision_access_requires_a_supported_host(self):
         report, directory = self.native_revision_report(status='passed')
+        # Exercise the native check even when no separate runner platform is available.
+        env = {key: value for key, value in self.env.items() if key != 'RUNNER_OS'}
         for system, machine in (('Windows', 'ARM64'), ('Linux', 'x86_64')):
             with self.subTest(system=system, machine=machine):
                 report['environment'].update(system=system, machine=machine)
                 self.save_report(report)
                 destination = self.destination.with_name(f'{system}-{machine}')
                 with self.assertRaisesRegex(PublicationError, 'requires Windows x64'):
-                    stage_artifacts(self.root, destination, self.env)
+                    stage_artifacts(self.root, destination, env)
                 self.assertFalse((destination / 'test-report.json').exists())
                 self.assertFalse((destination / (directory + '.log')).exists())
                 self.assertFalse((destination / directory).exists())
@@ -577,7 +626,15 @@ class PublicationTests(ProjectFixture):
                 report['status'] = 'passed' if reason_code == 'not_selected' else 'blocked'
                 self.save_report(report)
                 destination = self.destination.with_name(f'{system}-{machine}')
-                self.assertTrue(stage_artifacts(self.root, destination, self.env))
+                env = {**self.env, 'RUNNER_OS': system}
+                if system == 'Windows' and machine == 'ARM64':
+                    # The hosted Windows boundary claims x64. Without that claim,
+                    # the native check's blocked diagnostic is still publishable.
+                    with self.assertRaisesRegex(PublicationError, 'expected Windows platform'):
+                        stage_artifacts(self.root, destination, env)
+                    self.assertFalse(destination.exists())
+                    del env['RUNNER_OS']
+                self.assertTrue(stage_artifacts(self.root, destination, env))
                 contents = (self.reports / 'test-report.json').read_bytes()
                 self.assertEqual(contents, (destination / 'test-report.json').read_bytes())
                 self.assertEqual(contents, (destination / 'runs/fixture/test-report.json').read_bytes())

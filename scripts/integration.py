@@ -8,6 +8,8 @@ import re
 import subprocess
 import tempfile
 
+import yaml
+
 if __package__:
     from . import timing
     from .ci import WORKFLOW, classify_runs, command, github_identity
@@ -35,11 +37,28 @@ ROOT = Path(__file__).resolve().parents[1]
 PR_FIELDS = ('number,url,state,isDraft,headRefOid,headRefName,baseRefOid,baseRefName,'
              'mergeable,mergeStateStatus,reviewDecision')
 REVISION = r'(?:[0-9a-f]{40}|[0-9a-f]{64})'
+SHA256 = r'[0-9a-f]{64}'
+PINNED_CHECKOUT = r'actions/checkout@[0-9a-f]{40}'
+PINNED_UPLOAD = r'actions/upload-artifact@[0-9a-f]{40}'
+UBUNTU_JOB = 'verify (ubuntu-latest)'
+WINDOWS_PUBLISHER = 'verify (windows-latest)'
 FULL_HARNESS_STEPS = {
-    'verify (ubuntu-latest)': 'Run pnpm check',
-    'verify (windows-latest)': 'Run uv run python scripts/check.py --require-windows',
+    UBUNTU_JOB: 'Run pnpm check',
+    WINDOWS_PUBLISHER: 'Run uv run python scripts/check.py --require-windows',
 }
 SCOPED_HARNESS_STEPS = {f'Verify {profile} changes': profile for profile in SCOPED_PROFILES}
+UBUNTU_ARTIFACT = 'verification-ubuntu-latest'
+WINDOWS_ARTIFACT = 'verification-windows-latest'
+MATRIX_ARTIFACT = 'verification-${{ matrix.os }}'
+LANE_ARTIFACT = (
+    "${{ matrix.lane && format('verification-windows-{0}-{1}', github.run_attempt, matrix.lane)"
+    " || format('verification-{0}', matrix.os) }}"
+)
+WINDOWS_PRODUCER_LAYOUTS = {
+    timing.WINDOWS_AGGREGATE_MARKER: timing.LEGACY_WINDOWS_LANES,
+    timing.WINDOWS_RECOVERY_MARKER: timing.WINDOWS_RECOVERY_LANES,
+    timing.WINDOWS_WORKSPACE_MARKER: timing.WINDOWS_WORKSPACE_LANES,
+}
 MAIN_PUSH_BUDGET_POLICY = 'post_merge_main_push_budget'
 RECURRING_PUSH_BUDGET_POLICY = 'recurring_main_push_budget'
 # This exception belongs to one reviewed repair. The first policy PR cannot
@@ -52,11 +71,13 @@ MAIN_PUSH_BUDGET_BINDING = {
 }
 
 
-def checked_pull_request(log):
+def checked_pull_request(log, checkout_step=None):
     """Read the ref and actual HEAD printed by the pinned checkout step on Linux or Windows."""
     messages = (line.rstrip('\r\n').partition(' ')[2] for line in log)
     for message in messages:
-        if re.fullmatch(r'##\[group\]Run actions/checkout@[0-9a-f]{40}', message):
+        if re.fullmatch(rf'##\[group\]Run {PINNED_CHECKOUT}', message):
+            if checkout_step is not None and message != f'##[group]{checkout_step}':
+                raise ProjectError('The checkout log uses a different pinned action than the job record.')
             break
     number = None
     for message in messages:
@@ -72,9 +93,8 @@ def checked_pull_request(log):
     raise ProjectError('The checkout log does not identify the checked pull request and merge commit.')
 
 
-def job_checkout(root, repository, job_id):
-    # A job log can be large and contain arbitrary text from later checks.
-    # Keep its bytes off the terminal and read only the checkout prefix as UTF-8.
+def job_checkout(root, repository, job_id, checkout_step=None):
+    # Keep large job logs off the terminal and retain only checkout and upload records.
     with tempfile.TemporaryFile(mode='w+', encoding='utf-8', errors='replace') as log:
         result = subprocess.run(['gh', 'api', '--allow-escape-sequences',
                                  f'repos/{repository}/actions/jobs/{job_id}/logs'],
@@ -83,26 +103,56 @@ def job_checkout(root, repository, job_id):
             detail = result.stderr.decode('utf-8', errors='replace').strip()
             raise ProjectError(f'Cannot read checkout evidence for GitHub job {job_id}: {detail}')
         log.seek(0)
-        return checked_pull_request(log)
+        return (*checked_pull_request(log, checkout_step), tuple(job_uploads(log)))
+
+
+def job_uploads(log):
+    action = name = uploaded = sha256 = None
+    for line in log:
+        stamp, _, message = line.rstrip('\r\n').partition(' ')
+        if message.startswith('##[group]Run '):
+            header = message.removeprefix('##[group]')
+            action = header if re.fullmatch(rf'Run {PINNED_UPLOAD}', header) else None
+            name = uploaded = sha256 = None
+        elif action:
+            if message.startswith('  name: '):
+                name = message.removeprefix('  name: ')
+            elif match := re.fullmatch(r'SHA256 digest of uploaded artifact(?: zip)? is(?: (.*))?', message):
+                # Both pinned uploader formats print the ZIP digest before the upload receipt.
+                sha256 = (match[1] or '') if sha256 is None else ''
+            elif match := re.fullmatch(
+                r'Artifact (.+) has been successfully uploaded! Final size is ([1-9][0-9]*) bytes\. '
+                r'Artifact ID is ([1-9][0-9]*)', message,
+            ):
+                if (match[1] == name and
+                        re.fullmatch(r'[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?Z', stamp)):
+                    # The attempt's step clocks are recorded to whole seconds.
+                    uploaded = (name, int(match[2]), int(match[3]), stamp[:19] + 'Z')
+            elif uploaded and message.startswith('Artifact download URL: '):
+                yield (action, *uploaded, message.removeprefix('Artifact download URL: '), sha256)
+                uploaded = sha256 = None
 
 
 def required_checkouts(root, repository, jobs, contexts):
-    observed = []
+    observed, uploads = [], {}
     for name in contexts:
         matches = [job for job in jobs if job.get('name') == name]
         if len(matches) != 1:
             raise ProjectError(f'Expected one required job named {name}.')
         job = matches[0]
-        if not any(step.get('conclusion') == 'success' and
-                   re.fullmatch(r'Run actions/checkout@[0-9a-f]{40}', step['name']) for step in job['steps']):
+        checkout = [step for step in job.get('steps', ()) if re.fullmatch(rf'Run {PINNED_CHECKOUT}', step['name'])]
+        if (len(checkout) != 1 or checkout[0].get('status') != 'completed'
+                or checkout[0].get('conclusion') != 'success'):
             raise ProjectError(f'Required job {name} has no successful pinned checkout.')
-        number, commit = job_checkout(root, repository, job['id'])
-        observed.append({'name': name, 'job_id': job['id'], 'pull_request': number, 'commit': commit})
+        step = checkout[0]['name']
+        number, commit, claimed = job_checkout(root, repository, job['id'], step)
+        uploads[job['id']] = claimed
+        observed.append({'name': name, 'job_id': job['id'], 'pull_request': number, 'commit': commit, 'step': step})
     if not observed or len({item['job_id'] for item in observed}) != len(observed):
         raise ProjectError('Expected distinct required jobs for the pull request checkout.')
     if len({(item['pull_request'], item['commit']) for item in observed}) != 1:
         raise ProjectError('Required jobs checked different pull requests or merge commits.')
-    return observed
+    return observed, uploads
 
 
 def job_verification_profile(job):
@@ -120,16 +170,45 @@ def job_verification_profile(job):
     return None
 
 
-def expected_verification_profile(root, base, head, tested):
-    """Use the head comparison only when it represents the checked merge tree."""
-    tree = tested.get('tree')
-    merge_tree = tree.get('sha') if isinstance(tree, dict) else None
-    if not isinstance(merge_tree, str) or not re.fullmatch(REVISION, merge_tree):
-        return 'full', 'The checked merge tree was unavailable.'
+def verified_merge_source(root, commit, tested):
+    if tested['sha'] != commit or not re.fullmatch(REVISION, commit):
+        raise ProjectError('The observed merge commit differs from the checkout log.')
+    parents = [parent['sha'] for parent in tested['parents']]
+    record = tested.get('tree')
+    reported_tree = record.get('sha') if isinstance(record, dict) else None
+    if 'tree' in tested and (not isinstance(reported_tree, str) or not re.fullmatch(REVISION, reported_tree)):
+        raise ProjectError('The tested merge reports an invalid Git tree.')
     try:
-        head_tree = command(['git', '--no-replace-objects', 'rev-parse', '--verify', '--end-of-options',
-                             f'{head}^{{tree}}'], root)
-    except (ProjectError, OSError, subprocess.SubprocessError, UnicodeError):
+        kind = git(root, 'cat-file', '--batch-check=%(objecttype)', input=f'{commit}\n'.encode('ascii')).strip()
+        if kind == b'commit':
+            # Read the commit object directly so grafts, shallow parents and refs cannot change its lineage.
+            headers = git(root, 'cat-file', 'commit', commit).partition(b'\n\n')[0].splitlines()
+            tree, = (line[5:].decode('ascii') for line in headers if line.startswith(b'tree '))
+            local_parents = [line[7:].decode('ascii') for line in headers if line.startswith(b'parent ')]
+            authority = 'local_commit'
+        elif kind == f'{commit} missing'.encode('ascii'):
+            # An authenticated historical merge may have been collected locally. Its tree must still be verifiable.
+            tree = reported_tree
+            authority = 'hosted_commit_with_local_tree'
+        else:
+            raise ValueError('Expected a Git commit object or an absent object.')
+    except (ScopeError, OSError, subprocess.SubprocessError, ValueError) as error:
+        raise ProjectError('The tested merge commit and tree could not be verified locally.') from error
+    if kind == b'commit' and ((reported_tree is not None and tree != reported_tree) or parents != local_parents):
+        raise ProjectError('The hosted tested merge tree or parents conflict with the local commit object.')
+    try:
+        if tree is None or git(root, 'cat-file', '-t', tree).strip() != b'tree':
+            raise ScopeError('Expected a Git tree.')
+    except (ScopeError, OSError, subprocess.SubprocessError) as error:
+        raise ProjectError('The tested merge commit and tree could not be verified locally.') from error
+    return parents, tree, authority
+
+
+def expected_verification_profile(root, base, head, merge_tree):
+    """Use the head comparison only when it represents the checked merge tree."""
+    try:
+        head_tree = git(root, 'rev-parse', '--verify', '--end-of-options', f'{head}^{{tree}}').strip().decode('ascii')
+    except (ScopeError, OSError, subprocess.SubprocessError, UnicodeError):
         return 'full', 'The local PR head tree could not be verified.'
     if not re.fullmatch(REVISION, head_tree):
         return 'full', 'The local PR head tree could not be verified.'
@@ -137,6 +216,223 @@ def expected_verification_profile(root, base, head, tested):
         return 'full', 'The checked merge tree differs from the local PR head tree.'
     scope = committed_scope(root, base, head)
     return scope['profile'], scope.get('reason')
+
+
+def declared_checkout(job):
+    action, = (step.get('uses') for step in job['steps']
+               if str(step.get('uses', '')).startswith('actions/checkout@'))
+    if not re.fullmatch(PINNED_CHECKOUT, action):
+        raise ValueError('Expected a pinned checkout action.')
+    return f'Run {action}'
+
+
+def committed_producers(root, tree):
+    try:
+        jobs = yaml.safe_load(git(root, 'cat-file', 'blob', f'{tree}:{WORKFLOW}'))['jobs']
+        verify = jobs['verify']
+        publisher = jobs.get('windows_change', verify)
+        marker = None
+        if 'windows_change' in jobs:
+            marker, = (step.get('name') for step in publisher['steps']
+                       if step.get('name') in WINDOWS_PRODUCER_LAYOUTS)
+        lanes = {f'windows_{lane}': lane for lane in WINDOWS_PRODUCER_LAYOUTS.get(marker, ())}
+        lane_ids = {job_id for job_id in jobs if job_id.startswith('windows_') and job_id != 'windows_change'}
+        if lane_ids != lanes.keys():
+            raise ValueError('The workflow declarations disagree with the Windows producer layout.')
+        if marker:
+            needs = publisher['needs']
+            if not isinstance(needs, list) or len(needs) != len(lanes) or set(needs) != lanes.keys():
+                raise ValueError('The publisher dependencies disagree with the Windows producer layout.')
+        declarations = {UBUNTU_JOB: verify, WINDOWS_PUBLISHER: publisher}
+        for job_id, lane in lanes.items():
+            producer = jobs[job_id]
+            name = timing.WINDOWS_PRODUCERS[lane]
+            if (producer['strategy']['matrix']['lane'] != [lane] or producer['runs-on'] != 'windows-latest'
+                    or producer['name'] not in ('Windows change checks (${{ matrix.lane }})', name)):
+                raise ValueError('The Windows producer declaration disagrees with its expected lane.')
+            declarations[name] = producer
+        declared = {name: (declared_checkout(job), job['steps']) for name, job in declarations.items()}
+        # Historical workflows can report skipped administrative jobs outside the PR verification matrix.
+        inactive = {job['name'] for job_id, job in jobs.items()
+                    if job_id not in {'verify', 'windows_change', *lanes} and 'if' in job
+                    and 'name' in job and '${{' not in job['name']}
+    except (ScopeError, OSError, subprocess.SubprocessError, yaml.YAMLError, RecursionError,
+            AttributeError, KeyError, TypeError, ValueError) as error:
+        raise ProjectError('The Windows producer layout could not be verified from the tested merge tree.') from error
+    return marker, declared, inactive
+
+
+def verified_windows_producers(run, repository, jobs, marker):
+    windows, = (row for row in jobs if row.get('name') == WINDOWS_PUBLISHER)
+    guards = [step for step in windows.get('steps', ()) if step.get('name') in timing.WINDOWS_MARKERS]
+    result = timing.hosted_timing({**run, 'repository': {'full_name': repository}}, jobs)
+    workflow = result['workflow']
+    if not (workflow['matrix_complete'] and workflow['identity_complete']):
+        return False
+    if marker is None:
+        return not guards and not workflow.get('windows_split')
+    if (not workflow.get('windows_split') or len(guards) != 1 or guards[0]['name'] != marker
+            or guards[0].get('status') != 'completed' or guards[0].get('conclusion') != 'success'):
+        return False
+    profile = windows['verification_profile']
+    for lane in WINDOWS_PRODUCER_LAYOUTS[marker]:
+        job, = (row for row in jobs if row.get('name') == timing.WINDOWS_PRODUCERS[lane])
+        if job['conclusion'] != 'success':
+            return False
+        harness = f'Verify the Windows {lane} lane'
+        expected = (harness if profile == 'full' else
+                    f'Verify {profile} changes' if lane == 'core' else 'Select the Windows lane work')
+        successful = {step['name'] for step in job.get('steps', [])
+                      if step.get('status') == 'completed' and step.get('conclusion') == 'success'}
+        if expected not in successful or (profile != 'full' and lane != 'core' and harness in successful):
+            return False
+    return True
+
+
+def declared_artifact_step(steps, action, **inputs):
+    step, = (step for step in steps
+             if re.fullmatch(rf'actions/{action}-artifact@[0-9a-f]{{40}}', step.get('uses', ''))
+             and all(step.get('with', {}).get(field) == value for field, value in inputs.items())
+             and step.get('continue-on-error', False) is False)
+    return step
+
+
+def declared_publication_step(steps, step_id):
+    step, = (step for step in steps if step.get('id') == step_id and step.get('name')
+             and step.get('continue-on-error', False) is False)
+    return step
+
+
+def workflow_step_name(step):
+    if 'name' in step:
+        return step['name']
+    if 'uses' in step:
+        return f"Run {step['uses']}"
+    return None
+
+
+def require_completed_steps(job, steps, checkout, required):
+    checkout_index, = (index for index, step in enumerate(steps) if workflow_step_name(step) == checkout)
+    checkout_observed, = (step for step in job['steps'] if step.get('name') == checkout)
+    names = [workflow_step_name(step) for step in steps]
+    confirmed = []
+    for declaration in required:
+        name = workflow_step_name(declaration)
+        matches = [step for step in job['steps'] if step.get('name') == name]
+        # GitHub gives identically named actions separate numbers, including when one is skipped.
+        # Anchor their declared positions at the verified checkout to distinguish the required transfer.
+        if names.count(name) > 1:
+            number = checkout_observed.get('number')
+            if type(number) is not int:
+                raise ProjectError(f"Required job {job['name']} has no numbered evidence for {name}.")
+            expected = number + steps.index(declaration) - checkout_index
+            matches = [step for step in matches if step.get('number') == expected]
+        if len(matches) != 1 or matches[0].get('status') != 'completed' or matches[0].get('conclusion') != 'success':
+            raise ProjectError(f"Required job {job['name']} has no successful {name} evidence step.")
+        confirmed.append(matches[0])
+    return confirmed
+
+
+def downloadable_run_artifacts(root, repository, run_id):
+    endpoint = f'repos/{repository}/actions/runs/{run_id}/artifacts?per_page=100'
+    try:
+        pages = json.loads(command(['gh', 'api', '--paginate', '--slurp', endpoint], root))
+        available = {}
+        for page in pages:
+            for artifact in page['artifacts']:
+                # gh run download selects the first live asset with the requested name.
+                if artifact['expired'] is False:
+                    available.setdefault(artifact['name'], artifact)
+    except (AttributeError, KeyError, TypeError, ValueError) as error:
+        raise ProjectError('Could not read the downloadable artifact inventory for this run.') from error
+    return available
+
+
+def require_upload_owner(repository, run, job, name, step, artifacts, uploads):
+    asset = artifacts.get(name, {})
+    asset_id, size, owner = asset.get('id'), asset.get('size_in_bytes'), asset.get('workflow_run')
+    archive_url = f'https://api.github.com/repos/{repository}/actions/artifacts/{asset_id}/zip'
+    hosted_url = f"https://github.com/{repository}/actions/runs/{run['id']}/artifacts/{asset_id}"
+    if (type(asset_id) is not int or asset_id <= 0 or type(size) is not int or size <= 0
+            or not isinstance(owner, dict) or owner.get('id') != run['id']
+            or owner.get('head_sha') != run['head_sha'] or asset.get('archive_download_url') != archive_url):
+        raise ProjectError(f'The run lacks the expected downloadable evidence artifact {name}.')
+    started, completed = step.get('started_at'), step.get('completed_at')
+    claims = [(stamp, sha256) for action, artifact, byte_count, claim_id, stamp, url, sha256 in uploads[job['id']]
+              if (action, artifact, byte_count, claim_id, url) == (step['name'], name, size, asset_id, hosted_url)]
+    if (len(claims) != 1 or not isinstance(started, str) or not isinstance(completed, str)
+            or not started <= claims[0][0] <= completed):
+        raise ProjectError(f"Required job {job['name']} did not publish the downloadable evidence artifact {name}.")
+    _, uploaded_sha = claims[0]
+    api_digest = asset.get('digest')
+    if api_digest is not None and (not isinstance(api_digest, str) or not re.fullmatch(rf'sha256:{SHA256}', api_digest)):
+        raise ProjectError(f'The downloadable evidence artifact {name} has an invalid SHA-256 digest.')
+    listed_sha = api_digest.removeprefix('sha256:') if api_digest is not None else None
+    if uploaded_sha is not None and not re.fullmatch(SHA256, uploaded_sha):
+        raise ProjectError(f"Required job {job['name']} reported an invalid SHA-256 digest for {name}.")
+    if uploaded_sha is not None and listed_sha is not None and uploaded_sha != listed_sha:
+        raise ProjectError(f"The SHA-256 digest for {name} conflicts with the upload by required job {job['name']}.")
+    owned = {'name': name, 'id': asset_id, 'job_id': job['id'], 'archive_download_url': archive_url}
+    if sha256 := uploaded_sha or listed_sha:
+        owned['sha256'] = sha256
+    return owned
+
+
+def require_report_publications(root, repository, run, jobs, declared, marker, uploads):
+    by_name = {job['name']: job for job in jobs}
+    profile = by_name[WINDOWS_PUBLISHER]['verification_profile']
+    publishers = [(WINDOWS_PUBLISHER, WINDOWS_ARTIFACT, WINDOWS_ARTIFACT if marker else MATRIX_ARTIFACT)]
+    if marker:
+        lanes = WINDOWS_PRODUCER_LAYOUTS[marker] if profile == 'full' else ('core',)
+        publishers.extend((timing.WINDOWS_PRODUCERS[lane], f"verification-windows-{run['run_attempt']}-{lane}",
+                           LANE_ARTIFACT) for lane in lanes)
+    publishers.append((UBUNTU_JOB, UBUNTU_ARTIFACT, LANE_ARTIFACT if marker else MATRIX_ARTIFACT))
+    expected = []
+    for job_name, artifact, declared_name in publishers:
+        checkout, steps = declared[job_name]
+        try:
+            staged = marker or any(step.get('id') in {'reports', 'artifacts'} for step in steps)
+            path = '${{ steps.artifacts.outputs.path }}' if staged else '.reports/'
+            required = []
+            if staged:
+                required.extend(declared_publication_step(steps, key) for key in ('reports', 'artifacts'))
+            if marker and job_name == WINDOWS_PUBLISHER:
+                field, value = ('pattern', 'verification-windows-${{ github.run_attempt }}-*') if profile == 'full' else (
+                    'name', 'verification-windows-${{ github.run_attempt }}-core')
+                required.append(declared_artifact_step(steps, 'download', **{field: value}))
+            required.append(declared_artifact_step(steps, 'upload', name=declared_name, path=path))
+        except (AttributeError, TypeError, ValueError) as error:
+            raise ProjectError(f"The tested workflow does not declare the required evidence steps for {job_name}.") from error
+        job = by_name[job_name]
+        upload = require_completed_steps(job, steps, checkout, required)[-1]
+        expected.append((job, artifact, upload))
+    artifacts = downloadable_run_artifacts(root, repository, run['id'])
+    return [require_upload_owner(repository, run, job, artifact, upload, artifacts, uploads)
+            for job, artifact, upload in expected]
+
+
+def qualified_producer_checkouts(root, repository, jobs, run, tree, observed, uploads):
+    marker, declared, inactive = committed_producers(root, tree)
+    active = [job['name'] for job in jobs if not (
+        job['name'] in inactive and job.get('status') == 'completed' and job.get('conclusion') == 'skipped')]
+    protected = {row['name'] for row in observed}
+    if (sorted(active) != sorted(declared) or not protected <= declared.keys()
+            or not all(required_job_succeeded(jobs, name, run['head_sha']) for name in declared)
+            or not verified_windows_producers(run, repository, jobs, marker)):
+        raise ProjectError('The run lacks the committed Windows producer layout.')
+    remaining = [name for name in declared if name not in protected]
+    if remaining:
+        additional, additional_uploads = required_checkouts(root, repository, jobs, remaining)
+        observed.extend(additional)
+        uploads.update(additional_uploads)
+    if (len({row['job_id'] for row in observed}) != len(declared)
+            or len({(row['pull_request'], row['commit']) for row in observed}) != 1):
+        raise ProjectError('Required jobs checked different pull requests or merge commits.')
+    for row in observed:
+        if row['step'] != declared[row['name']][0]:
+            raise ProjectError(f"Required job {row['name']} used a different pinned checkout than the tested workflow.")
+    required_artifacts = require_report_publications(root, repository, run, jobs, declared, marker, uploads)
+    return observed, required_artifacts
 
 
 def verified_pr_run(root, repository, pr, runs, dirty, contexts):
@@ -152,7 +448,7 @@ def verified_pr_run(root, repository, pr, runs, dirty, contexts):
         pages = json.loads(command(['gh', 'api', '--paginate', '--slurp', endpoint], root))
         jobs = [job for page in pages for job in page['jobs']]
         try:
-            observed = required_checkouts(root, repository, jobs, contexts)
+            observed, uploads = required_checkouts(root, repository, jobs, contexts)
         except ProjectError as error:
             result.update(status='blocked', reason=f"Run {run['id']}: {error}")
             return result, jobs
@@ -161,9 +457,11 @@ def verified_pr_run(root, repository, pr, runs, dirty, contexts):
             reason = f"Verification exists for this head, but no checked run matches PR #{pr['number']}."
             continue
         tested = json.loads(command(['gh', 'api', f'repos/{repository}/git/commits/{commit}'], root))
-        if tested['sha'] != commit:
-            raise ProjectError('The observed merge commit differs from the checkout log.')
-        parents = [parent['sha'] for parent in tested['parents']]
+        try:
+            parents, tree, authority = verified_merge_source(root, commit, tested)
+        except ProjectError as error:
+            result.update(status='blocked', reason=f"Run {run['id']}: {error}")
+            return result, jobs
         if len(parents) != 2 or parents[1] != run['head_sha']:
             result.update(status='blocked', reason=f"Run {run['id']} checked a merge that does not match its declared head.")
             return result, jobs
@@ -171,8 +469,9 @@ def verified_pr_run(root, repository, pr, runs, dirty, contexts):
             reason = f"Run {run['id']} checked PR #{number} at a different base."
             continue
         result['checkout'] = {'pull_request': number, 'commit': commit, 'base': base, 'head': head}
+        result['tested_tree'] = {'sha': tree, 'authority': authority}
         result['required_checkouts'] = observed
-        expected, scope_reason = expected_verification_profile(root, base, head, tested)
+        expected, scope_reason = expected_verification_profile(root, base, head, tree)
         result['expected_profile'] = expected
         result['expected_profile_reason'] = scope_reason
         checked_ids = {item['job_id'] for item in observed}
@@ -184,6 +483,13 @@ def verified_pr_run(root, repository, pr, runs, dirty, contexts):
         if result['status'] == 'passed' and insufficient:
             result.update(status='blocked', reason=f"Run {run['id']} requires {expected} verification. "
                           f"Required jobs with insufficient coverage: {', '.join(insufficient)}.")
+        if result['status'] == 'passed':
+            try:
+                producers, artifacts = qualified_producer_checkouts(root, repository, jobs, run, tree, observed, uploads)
+                result.update(required_checkouts=producers, required_artifacts=artifacts)
+            except ProjectError as error:
+                result.update(status='blocked', reason=f"Run {run['id']}: {error}")
+                return result, jobs
         return result, jobs
     return {'status': 'blocked', 'reason': reason, 'run': None}, []
 
