@@ -880,6 +880,26 @@
       "requested_at": "2026-11-28T08:52:14.163557+00:00",
       "request_id": "a13245e2fbac13734a91e98c96f16a68d55b2322c50ba7bb8d611e900f2a8d10",
       "evidence_sha256": "1c73ce0aad84a2314f8aba13ef8519bd9c6db2c6fce142ea573ada430247bf9d"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "12e20ac4b69dbd149aabc26bd3fedc45c853c576",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 12e20ac4b69dbd149aabc26bd3fedc45c853c576",
+      "scope": "CHANGES_REQUESTED M0-156 12e20ac4b69dbd149aabc26bd3fedc45c853c576",
+      "observation": "With the one-failure acquisition dated one second later, a cold reopen with genuine PR 96 success and a repeated partial acquisition credited the push Linux receipt, while reading the same evidence together yielded zero receipts.",
+      "reviewer": "Independent Astra Standard (t1pk)",
+      "original_sha256": "c390005113c55a46cce3baf1f2a2410258d2342601bc8a281326984c71b58369",
+      "response_id": "ae73c4e429b183f08249da256d0b1627f65c520afe2f0dbdbc950c3fc61e9961",
+      "response_sha256": "fbd5896d89f30fdfad83b9bf86aaf4f74b1b48c4fd4616d2b3c0ac1fa8cd16b7",
+      "legacy_response_sha256": "7af1ecb66018b5b823ebb3d41c881b47b7d5e6b721034266cc6fb151591f744f",
+      "observation_body_sha256": "ce0c844cec5fbf1e970737c44bac5444caa28e8bd4d613786254573ca26792a7",
+      "event": {
+        "id": "msg_0f4fa36cb67c99c1016b0a9796845087d29c0ea9a01cd7178a",
+        "timestamp": "2026-11-28T08:58:26.192Z"
+      },
+      "supersedes": "a13245e2fbac13734a91e98c96f16a68d55b2322c50ba7bb8d611e900f2a8d10",
+      "evidence_sha256": "166473bd7280dfd6d13e9c206fe03a8ed6943b9570ac353384529a35e432f359"
     }
   ]
 }

@@ -871,6 +871,26 @@
       "requested_at": "2026-11-28T08:52:12.097539+00:00",
       "request_id": "f4aa5f285d597998a4197307b4de503da5dccb85086306e935c4ea7a9ed83f69",
       "evidence_sha256": "3426fc4fece254c67502ffd0acaf54a763e06948ed4b52054e404b5ef5cca13a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "12e20ac4b69dbd149aabc26bd3fedc45c853c576",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 12e20ac4b69dbd149aabc26bd3fedc45c853c576",
+      "scope": "CHANGES_REQUESTED M0-150 12e20ac4b69dbd149aabc26bd3fedc45c853c576",
+      "observation": "After a cold reopen, the PR 123 browser report copy recorded at 08:38:34Z received 983 runner-seconds even though the named staging step started at 08:38:31Z.",
+      "reviewer": "Independent Astra Standard (t1ph)",
+      "original_sha256": "7f81d173f2fd9713372f44b3ac68efefad5902f6a4014af9f3fd5860f4926f20",
+      "response_id": "99713d315f1bab31233170b0eb8ec5130879cbcda6d60ef074df1bd241fc83e9",
+      "response_sha256": "38343b72264efe26408778f8240a88b56fed9fba69f3bf088f85a8eab9496cb4",
+      "legacy_response_sha256": "72861177e1052e0e56d715ef18f6c873306e2a681b45e208f6ad776364526c4f",
+      "observation_body_sha256": "b29e1e3ff571ead40931a43298775699e133097b9f4f3538a0148c6572018522",
+      "event": {
+        "id": "msg_01012d1c0792c757016b0a976c789887d2be61464fbd80c7fd",
+        "timestamp": "2026-11-28T08:57:38.938Z"
+      },
+      "supersedes": "f4aa5f285d597998a4197307b4de503da5dccb85086306e935c4ea7a9ed83f69",
+      "evidence_sha256": "e86498c7145458cfde29c1a2cdcac6e1b1c44788c92b819062cc719ba3955c87"
     }
   ]
 }

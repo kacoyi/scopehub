@@ -851,6 +851,26 @@
       "requested_at": "2026-11-28T08:52:13.059557+00:00",
       "request_id": "e9c859237ff51e6f07e87fe65f217a359c79a7d13953c1c4b9b640b7734c7c26",
       "evidence_sha256": "f40ee373a8e3685ab3315e6fc73857588436fc75a69245949683ca8d0c2fecec"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "12e20ac4b69dbd149aabc26bd3fedc45c853c576",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 12e20ac4b69dbd149aabc26bd3fedc45c853c576",
+      "scope": "CHANGES_REQUESTED M0-155 12e20ac4b69dbd149aabc26bd3fedc45c853c576",
+      "observation": "With staging recorded at 08:38:31Z, a fresh-process reopen credited the 08:38:34Z PR 123 copy with 983 runner-seconds alone and left both reports unattributed when paired.",
+      "reviewer": "Independent Astra Standard (t1pj)",
+      "original_sha256": "ffff9a04735f6c6fdab71de1e12290b470a3fa121f1f95d1e16b0451d92635de",
+      "response_id": "21af3fec83a6c025dcbc08c80db2925eedc52f504f2d4239b8215c3c59b542f8",
+      "response_sha256": "5354f18c54ecad83ac2e9251a3832f7fb2d25e7963eda95c155847780cecf6a6",
+      "legacy_response_sha256": "23ed9fdb3c22372fde567288adf437d630fa1a5c2d98d06cd0add5d18775b2cb",
+      "observation_body_sha256": "61deb20482b4232315b7025283089ca43c2bea076314a2b654176ece266e14bc",
+      "event": {
+        "id": "msg_0ed69f60ea335473016b0a985730b887d2b139305dc45f53fd",
+        "timestamp": "2026-11-28T09:01:37.098Z"
+      },
+      "supersedes": "e9c859237ff51e6f07e87fe65f217a359c79a7d13953c1c4b9b640b7734c7c26",
+      "evidence_sha256": "4bce24b89249087eaf7fe029696336ff1ea2a088ba6159aaa810861d5e3b9f2d"
     }
   ]
 }
