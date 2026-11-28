@@ -668,6 +668,15 @@
       },
       "supersedes": "770bc595ff5708f8979e01ce0fda3f997cc91629b44e88b98eb4447a8e349da7",
       "evidence_sha256": "56f1731d6423245f844cc0b2fd51015ee8105cedd4a964e4dda56b59ead842d1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "534497026f29fdd9ea3973fc0564ccdfa1c0d528",
+      "scope": "Audit member-run authority, corroboration-only contradictions, all valid receipts and independent clocks on genuine PR 96 and push, same-time disputes, later valid partial collection, cold reopen and the previously identified PR 84 coverage and checkout controls.",
+      "supersedes": "54ea1cfaa5139dbbaf488af03e021b7cc3bb72c08ae9ff6902d53caf44a6bcf0",
+      "requested_at": "2026-11-28T02:33:52.486908+00:00",
+      "request_id": "5c9b30e5040897205d40188c0b3bdc61f5fb52e561f1dda211ea4ed225ba1d42",
+      "evidence_sha256": "8a51abbe32f800517f868aa4a3195f4f4253e02effdc741c68dcc98be46e9054"
     }
   ]
 }

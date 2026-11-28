@@ -639,6 +639,15 @@
       },
       "supersedes": "4e53ae6ff18a80ce4703d224f041ae9b20cd65c2983647f8c7fad910dbac45f6",
       "evidence_sha256": "bcf97772bf197aafe31d29ec73b09660c29afdefc072335adaaaecb09b095305"
+    },
+    {
+      "kind": "request",
+      "source_commit": "534497026f29fdd9ea3973fc0564ccdfa1c0d528",
+      "scope": "Reopen original timing conflicts through the public entry, including independent bounds, timestamp precision, role ownership, surviving receipts and runner clocks. Verify cold, offline weekly and ordinary reads, rotations and comparable six-pair cost on the same material source.",
+      "supersedes": "ff45cbf1851d73451ad140cf4db98a787ea9be2b740ceec4e4fee594ec54a49d",
+      "requested_at": "2026-11-28T02:33:50.560732+00:00",
+      "request_id": "4669c7246467c06a03a32880c3001f7b4ab33e8909940c1afa597e5b142d75d1",
+      "evidence_sha256": "277fb489e8b9398d6e396b5d4ffabbea91f02d032ce8475f65fb7eaf572843ef"
     }
   ]
 }
