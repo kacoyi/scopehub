@@ -4882,8 +4882,11 @@ def unresolved_collection(point):
 
 def uncertain_collection(point, witnesses=()):
     record = {**unresolved_collection(point), 'collection_order_uncertain': True}
-    if witnesses:
+    if len(witnesses) == 2:
         record['collection_order_witnesses'] = list(witnesses)
+    elif witnesses:
+        # Older readers see the unresolved summary when they cannot read the full witness set.
+        record['collection_order_acquisitions'] = list(witnesses)
     return record
 
 
@@ -4896,11 +4899,12 @@ def archive_collections(record, samples, clocks, attempt_outcomes, issues, label
         return []
     records = [record]
     if record.get('collection_order_uncertain'):
-        witnesses = record.get('collection_order_witnesses')
+        acquisitions = record.get('collection_order_acquisitions')
+        witnesses = record.get('collection_order_witnesses') if acquisitions is None else acquisitions
         if witnesses is None:
             # An older summary supplies a visible uncertainty without acquisition evidence.
             return [CollectionObservation(uncertain_collection(timestamp(record.get('collected_at'))), False)]
-        if (not isinstance(witnesses, list) or len(witnesses) != 2
+        if (not isinstance(witnesses, list) or (len(witnesses) != 2 if acquisitions is None else len(witnesses) < 3)
                 or not all(isinstance(witness, dict) and not witness.get('collection_order_uncertain')
                            for witness in witnesses)):
             issues.append({'file': label, 'source': 'timing_collection', 'error': 'Invalid timing collection witnesses.'})
@@ -4914,9 +4918,9 @@ def archive_collections(record, samples, clocks, attempt_outcomes, issues, label
             issues.append({'file': label, 'source': 'timing_collection', 'error': str(error)})
     if record.get('collection_order_uncertain'):
         # A saved disagreement carries independent acquisition witnesses.
-        # New attempt evidence can disqualify one without invalidating its peer.
+        # New attempt evidence can disqualify a witness without invalidating its peers.
         observations = [item for item in observations if item.qualified]
-        if len(observations) != 2:
+        if len(observations) < len(records):
             return observations
         result = reconcile_collection_order(observations)
         if not result.get('collection_order_uncertain') or result['collected_at'] != record.get('collected_at'):
@@ -4950,7 +4954,7 @@ def reconcile_collection_order(observations):
     ordered = sorted(facts, key=lambda key: (facts[key]['collected_at'] or '', key))
     witnesses = [
         {**facts[key], 'collected_samples': [row for _, row in sorted(receipts[key].items())]}
-        for key in (ordered[0], ordered[-1])
+        for key in ordered
     ]
     return uncertain_collection(point, witnesses)
 

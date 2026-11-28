@@ -28247,7 +28247,7 @@
         }
       ],
       "evidence": [],
-      "next_action": "Restore the three-way equal-time collection conflict when the genuine PR 96 success arrives after reopening; retain corroborated acquisitions, independent clocks and the later valid partial collection. See the original M0-156 response and native replay in .reports/m0-155-pr123-adffe2b0/coordinator-recovery/primary-42e48a2c/M0-156/.",
+      "next_action": "Review the retained PR 96 late-corroboration and PR 123 publisher controls on the composed timing source. The coordinator obtains all three primary approvals on that exact source before releasing the five downstream requests. See .reports/m0-156-dff1eef8-collection/handoff.json.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -28294,7 +28294,7 @@
           "Raw Git commit headers keep exact parent and tree facts available at the shallow boundary. An unavailable object cannot contradict a properly bound proof, while a known inconsistent object or impossible parent relation can.",
           "Apply shared invariants to original facts before projection. Verify stable metrics and report attribution independently on the real producer pairs and cold readers.",
           "Only claims surviving independent report admission can participate in attempt-wide checkout reduction.",
-          "Qualify collection counts using completed outcomes for locally bound member attempts across all admitted inputs before comparing collection times. Keep receipt qualification tied to each acquisition and reopen disagreement witnesses independently."
+          "Qualify collection counts using completed outcomes for locally bound member attempts across all admitted inputs before comparing collection times. Keep receipt qualification tied to each acquisition and retain all distinct current witnesses for independent requalification on reopen."
         ],
         "risks": [
           {

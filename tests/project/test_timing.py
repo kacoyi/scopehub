@@ -1096,6 +1096,29 @@ class HostedTimingTests(unittest.TestCase):
             })
             self.assertEqual(expected, reopen(tied, evidence))
 
+            linux, = (row for row in collection['collected_samples'] if row['platform'] == 'Linux')
+            windows, = (row for row in collection['collected_samples'] if row['platform'] == 'Windows')
+            partial = save('partial-without-outcome.json', {
+                **genuine, 'recent_collection': {
+                    **collection, 'collected_samples': [linux],
+                    'downloaded_compact_inputs_sha256': [
+                        digest for digest in collection['downloaded_compact_inputs_sha256']
+                        if digest != windows['report_input_sha256']
+                    ],
+                },
+            })
+            inputs = (unsupported, partial, contradicted)
+            for index, ordered in enumerate((inputs, inputs[::-1])):
+                with self.subTest(order=index):
+                    upfront = reopen(*ordered, evidence)
+                    self.assertTrue(upfront['collection_order_uncertain'])
+                    self.assertEqual([], upfront['collected_samples'])
+                    saved = folder / f'three-way-{index}.json'
+                    initial = reopen(*ordered, save_to=saved)
+                    self.assertEqual(initial, reopen(saved))
+                    self.assertEqual(upfront, reopen(saved, evidence))
+                    self.assertEqual(3, len(initial.get('collection_order_acquisitions', [])))
+
     def test_recent_collection_requires_original_layout_and_publishing_qualification(self):
         run = hosted_run()
         split_clock = timing.hosted_timing(run, self.split_windows_jobs())
