@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M3-009",
   "tasks": [
     {
       "id": "M0-001",
@@ -29685,6 +29685,121 @@
           ],
           "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
           "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
+        }
+      }
+    },
+    {
+      "id": "M3-009",
+      "title": "Recover indicator acceptance controls when a desktop reply misses its deadline",
+      "milestone": "M3",
+      "status": "active",
+      "depends_on": [
+        "M3-006"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/indicator-acceptance.tsx",
+        "apps/desktop/ui/src/reply-deadline.ts",
+        "apps/desktop/ui/src/use-local-workspace.ts",
+        "tests/ui/desktop-workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0017"
+      ],
+      "acceptance": [
+        "A genuine indicator preparation with an on-time desktop reply enters confirmation on the displayed frozen source. Cancelling it authorizes no write.",
+        "When the native delivery is held beyond the existing reply budget, the active view leaves its busy state, reports the uncertain outcome and exposes an appropriate recovery action without waiting for release. A late reply cannot reopen an old confirmation or overwrite newer state.",
+        "Preserve the existing approval and durable revision semantics of explicit writes. Verify dispatch counts and the authoritative workspace for the applicable on-time, missing and late replies at the desktop consumer."
+      ],
+      "checks": [
+        "project-state",
+        "ui-build",
+        "market-workflow",
+        "desktop-workspace-transport",
+        "indicator-workflow"
+      ],
+      "evidence": [],
+      "next_action": "Reproduce the held desktop preparation beside its on-time control and repair the owning indicator UI path. Obtain independent review and native and integrated regression observations.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Users regain control of the indicator acceptance view within its existing reply budget and can reconcile an uncertain result without authorizing an unintended mutation.",
+        "change_types": [
+          "ui",
+          "indicators"
+        ],
+        "context": [
+          "apps/desktop/ui/src/indicator-acceptance.tsx",
+          "apps/desktop/ui/src/reply-deadline.ts",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "tests/ui/desktop-workspace.spec.mjs",
+          "contracts/decisions/0017-indicator-acceptance-and-restore.json"
+        ],
+        "hypotheses": [
+          "The UI passes a timeout signal to the native bridge but the waiting promise does not settle before a withheld reply is released. The existing caller-side reply helper may supply the missing boundary."
+        ],
+        "risks": [
+          {
+            "failure": "A withheld preparation leaves the user permanently busy or a late challenge repaints a newer action.",
+            "checks": [
+              "desktop-workspace-transport",
+              "ui-build"
+            ]
+          },
+          {
+            "failure": "A timed-out write is presented as definitely uncommitted or repeated automatically, losing durable indicator or undo state.",
+            "checks": [
+              "desktop-workspace-transport",
+              "indicator-workflow"
+            ]
+          }
+        ],
+        "rollback": "Restore the prior caller and preserve the original positive and negative observations if a valid confirmation or stored outcome regresses.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/indicator-acceptance.tsx",
+            "apps/desktop/ui/src/reply-deadline.ts",
+            "tests/ui/desktop-workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/implementation_policy/first_test"
+            },
+            {
+              "path": "contracts/decisions/0017-indicator-acceptance-and-restore.json",
+              "pointer": ""
+            }
+          ],
+          "non_goals": [
+            "Adding operations, changing provider or trading permissions, changing the deadline, or introducing a general state-machine framework."
+          ],
+          "open_questions": [
+            "Which current indicator actions share the same unresolved wait, and what does the authoritative snapshot show if a write commits before its reply is released?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing frozen-source binding, explicit approval, idempotency, authoritative workspace revision and undo."
+          ],
+          "change": [
+            "End the UI wait at its existing deadline and prevent an expired operation from repainting the active view."
+          ],
+          "data_plan": "Use isolated disposable synthetic workspace data. Keep existing persisted schemas and the Rust single-writer path. An uncertain delivery cannot establish whether a mutation committed.",
+          "cleanup": "Settle the caller, release listeners and timers, and dispose the native test workspace after each trial."
         }
       }
     }

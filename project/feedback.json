@@ -9795,6 +9795,22 @@
         "prevention": "Independent review verified the two original extra-field cases. Ordinary PR 151 run 45983202750 passed nine rejected replies on both platforms, including extra properties in the outcome, receipt and target, invalid values and mismatched bindings. Each trial stayed unverified until the explicit same-approval retry recovered the original receipt. The note and outcome stayed removed with one durable marker. Canonical peer deletion passed separately."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "indicator-acceptance-held-native-reply-keeps-controls-busy",
+      "source": "Protected main 742430e69246c8869732f12bb33742895dfe2d54. Chromium rendered the built UI through a substituted Tauri delivery with a real Rust operation registry and isolated workspace. Retained observation SHA-256 6f61fbb76003a23de13c9ef165cb8fd1f65c714f1461fbdb55e4dd09cf52e08b.",
+      "observation": "An on-time indicator.acceptVersion preparation reached awaiting_confirmation and a user cancellation left zero durable layers. Holding only the genuine response for 16,201 ms left Accept preview disabled with no alert after its 15-second deadline. Only releasing it allowed recovery. Neither trial confirmed the write.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M3-009"
+      ],
+      "regression_checks": [
+        "desktop-workspace-transport",
+        "indicator-workflow"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
