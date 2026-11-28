@@ -330,6 +330,35 @@
       "requested_at": "2026-11-27T11:41:31.281224+00:00",
       "request_id": "e0f26447fdf9c32aa36406e7769cf9d655395218eb048ac96e8aa287be0ae7b2",
       "evidence_sha256": "c0eb2bdb7bdccb65fbf16ddffbb74a66d415593eae0b3451c46a77a841542023"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "Exact current artifact receipt and weekly freshness, including missing downloads, partial job matrices and withheld promotion. Reproduce your previously accepted genuine run 45389970933 against the authenticated historical publisher. Check both recent collection modes, cold reopening and refusal of the corresponding invalid acquisition.",
+      "supersedes": "e0f26447fdf9c32aa36406e7769cf9d655395218eb048ac96e8aa287be0ae7b2",
+      "requested_at": "2026-11-28T04:05:58.654646+00:00",
+      "request_id": "d40a0768865ed9b6da93b82a347e83790bb6350875fd4b629eb17581afc0fc96",
+      "evidence_sha256": "5d89b78e8b27576c9f04474b401069aecc2ff70b5cb188ebeccdd5b1df3b224e"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "verdict": "approved",
+      "decision": "APPROVE M0-145 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "APPROVE M0-145 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "observation": "Both recent collection modes issued the original Windows receipt for run 45389970933, and a fresh process preserved that receipt while the split-layout and missing-download controls retained zero receipts.",
+      "reviewer": "Independent Astra Standard (t1m1)",
+      "original_sha256": "9cf9b363b3c2e907b497606fa4875c92affae1d16ae98ee5ba78b6da80b230a2",
+      "response_id": "420f44f69e1fe05e8950938224a519217f9e6e2fd22229454d4a77c780e27529",
+      "response_sha256": "1ae4a8eebe331c5a7381043f1313d6b2770b130a314ffbcebe9e708be2ef7e07",
+      "legacy_response_sha256": "375154f85f79776c9bd3ef78fd078b0fc3af573425c6b92b644d440e72a6b36f",
+      "observation_body_sha256": "743a552a6336119e3391e01bf304d779a67d5b4c5c336e200418213689b5cfac",
+      "event": {
+        "id": "msg_03f99f59701373e1016b0a557470f887d0935e881a3b347c70",
+        "timestamp": "2026-11-28T04:16:08.537Z"
+      },
+      "supersedes": "d40a0768865ed9b6da93b82a347e83790bb6350875fd4b629eb17581afc0fc96",
+      "evidence_sha256": "d8fcf764fe5b7430e2f3f923c80804d5191a382e007010a020fbe84287350d32"
     }
   ]
 }

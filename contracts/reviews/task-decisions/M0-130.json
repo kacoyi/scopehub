@@ -330,6 +330,35 @@
       "requested_at": "2026-11-27T11:41:28.660321+00:00",
       "request_id": "42efe56edf5810777f6d720ceded8d21d13852bd2a200df24d5e62fa80430f82",
       "evidence_sha256": "310b94045bb2bd85f88574aec376c091c2140674771a7ae3c65efeb3a19da48c"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "Producer-only timing, including the source-bound empty ordinary Python selection. No Windows platform coverage from an isolated producer. Replay your prior PR 84 job-name swap at both input orders and cold reopen. Check independent recovery evidence and the absence of a platform receipt for the isolated producer.",
+      "supersedes": "42efe56edf5810777f6d720ceded8d21d13852bd2a200df24d5e62fa80430f82",
+      "requested_at": "2026-11-28T04:05:55.779693+00:00",
+      "request_id": "e6266b2c9a8f9d2738809855254ecfcfc7479edb614a9975dee159cb521cc8cd",
+      "evidence_sha256": "c1e1b9786af457937c6af10dc36564ed03caa41cea671fa3b1846163b35deb04"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "verdict": "approved",
+      "decision": "APPROVE M0-130 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "APPROVE M0-130 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "observation": "With the PR 84 browser and aggregate job names swapped, both report orders preserved the recovery job’s 321-second wall time and 319 runner-seconds after a cold reopen, and the isolated producer earned zero Windows platform receipts.",
+      "reviewer": "Independent Astra Standard (t1ky)",
+      "original_sha256": "ced956fec7f8f98970a84cc4c7be156deb1fee0d5ecde73cc4f8695685975249",
+      "response_id": "d35f114ce5d450a141891618a2841fb61527ad2ae916aa0bc38f6fa2f88f8c0f",
+      "response_sha256": "4c7eb44ec7b333a533fd31102cc2fcde29984e1109cd3b35d9336f3886d883a6",
+      "legacy_response_sha256": "13d56ee94223f6940568584af5d01eeaa10f3ad821324485d741fcf912653b49",
+      "observation_body_sha256": "40454ad5002c86deec918b852e4ece5270942ff3e875c4f5e96fb28d23ff7f57",
+      "event": {
+        "id": "msg_0b9cde237eab1d1e016b0a55122b5487d0afa18b0b6daa4ffb",
+        "timestamp": "2026-11-28T04:14:27.943Z"
+      },
+      "supersedes": "e6266b2c9a8f9d2738809855254ecfcfc7479edb614a9975dee159cb521cc8cd",
+      "evidence_sha256": "9f308a13f1f5d4e82acd3399ae90a8dc0e4390b0e88979e27bcff0fe72a88101"
     }
   ]
 }
