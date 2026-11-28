@@ -986,6 +986,36 @@ class HostedTimingTests(unittest.TestCase):
                     self.assertEqual([], current['collected_samples'])
                     self.assertEqual(current, reopen(saved, genuine))
 
+    def test_collection_metadata_checks_bound_runs_without_borrowing_receipts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            reports, collect, reopen = self.collection_replay(folder)
+            path, _ = collect('one-listing.json', reports)
+            genuine = json.loads(path.read_bytes())
+            collection = genuine['recent_collection']
+            peer_id = str(int(genuine['hosted'][0]['run_id']) + 1)
+            peer = {**reports[0], 'ci': {**reports[0]['ci'], 'run_id': peer_id}}
+            genuine['samples'].append(peer)
+            genuine['hosted'].append({**genuine['hosted'][0], 'run_id': peer_id, 'jobs': [], 'sibling_jobs': []})
+            collection['downloaded_compact_inputs_sha256'].append(timing.report_input_sha256(peer))
+            collection.update(completed_runs_considered=2, runs_with_compact=2, limit_per_event=2)
+            full = folder / 'genuine.json'
+            timing.save_review_archive(full, genuine)
+            receipts = collection['collected_samples']
+            self.assertEqual(2, len(receipts))
+            self.assertEqual(receipts, reopen(full)['collected_samples'])
+
+            for field in ('unsuccessful_runs', 'limit_per_event'):
+                bad = folder / f'{field}.json'
+                timing.save_review_archive(bad, {**genuine, 'recent_collection': {**collection, field: 1}})
+                self.assertIsNone(reopen(bad))
+                for index, inputs in enumerate(((full, bad), (bad, full))):
+                    with self.subTest(field=field, order=index):
+                        saved = folder / f'{field}-{index}.json'
+                        selected = reopen(*inputs, save_to=saved)
+                        self.assertEqual(receipts, selected['collected_samples'])
+                        self.assertEqual(selected, reopen(saved))
+
     def test_recent_collection_requires_original_layout_and_publishing_qualification(self):
         run = hosted_run()
         split_clock = timing.hosted_timing(run, self.split_windows_jobs())

@@ -139,7 +139,9 @@ BROWSER_STEPS = {
 TIMED_STEPS = HARNESS_STEPS | BROWSER_STEPS | {f'Verify the Windows {lane} lane' for lane in WINDOWS_LANES}
 ACTIONS_ORDER_STEPS = {'Set up job': 'setup', 'Complete job': 'cleanup'}
 PHASE_FIELDS = {kind: (f'{kind}_start', f'{kind}_end') for kind in STEP_KINDS}
-OBSERVED_STEPS = TIMED_STEPS | ACTIONS_ORDER_STEPS.keys() | WINDOWS_ROLE_STEPS | WINDOWS_PROFILE_STEPS.keys()
+PUBLISHING_BOUNDARY_STEPS = {WINDOWS_INITIALIZATION_STEP, WINDOWS_STAGING_STEP}
+OBSERVED_STEPS = (TIMED_STEPS | ACTIONS_ORDER_STEPS.keys() | WINDOWS_ROLE_STEPS
+                  | WINDOWS_PROFILE_STEPS.keys() | PUBLISHING_BOUNDARY_STEPS)
 PENDING_STEP_STATUSES = {'queued', 'pending', 'waiting'}
 EXPECTED_FULL_OMISSIONS = {'not_implemented', 'unsupported_platform'}
 WINDOW = 3
@@ -1461,7 +1463,7 @@ def reconcile_steps(jobs, *, skipped=False):
             statuses[name].add(row['status'])
         if name in WINDOWS_LAYOUT_STEPS:
             recorded.add(name)
-        if name in TIMED_STEPS or name in ACTIONS_ORDER_STEPS:
+        if name in TIMED_STEPS or name in ACTIONS_ORDER_STEPS or name in PUBLISHING_BOUNDARY_STEPS:
             endpoints = step_timestamps(row)
             if endpoints:
                 clocks[name].append(endpoints)
@@ -2157,11 +2159,69 @@ def missing_independent_job_clock(evidence, attempt):
                for role in roles)
 
 
+def publishing_phase_bounds(fact, verification, floor, ceiling):
+    steps = fact.steps or {}
+    initialization = steps.get(WINDOWS_INITIALIZATION_STEP)
+    writer = steps.get(verification)
+    staging = steps.get(WINDOWS_STAGING_STEP)
+    # The historical workflow initializes the report directory, writes in
+    # verification, and stages the existing bytes. These relations do not
+    # depend on Actions returning a number or a clock for each step.
+    before = [steps.get('Set up job'), initialization]
+    after = [staging, steps.get('Complete job')]
+    if writer and writer.eligible and writer.number is not None:
+        first = last = writer.number
+    else:
+        first = initialization.number if initialization and initialization.eligible else None
+        last = staging.number if staging and staging.eligible else None
+    for number, (name, step) in (fact.visible_steps or {}).items():
+        if name in ACTIONS_ORDER_STEPS or name in PUBLISHING_BOUNDARY_STEPS or name in TIMED_STEPS:
+            continue
+        if first is not None and number < first:
+            before.append(step)
+        if (last is not None and number > last
+                or name.startswith('Run actions/upload-artifact@')):
+            after.append(step)
+    lowers = [min(points) for step in before if step and step.eligible
+              for points in step.endpoints.values() if points]
+    uppers = [max(points) for step in after if step and step.eligible
+              for points in step.endpoints.values() if points]
+    if writer and writer.eligible:
+        def within_job(points):
+            return (point for point in points or ()
+                    if (floor is None or not floor.is_finite() or not outside_report_bound(floor, point, latest=True))
+                    and not outside_report_bound(point, ceiling, latest=True))
+
+        start = min(within_job(writer.endpoints['start']), default=None)
+        end = max(within_job(writer.endpoints['end']), default=None)
+        # An infeasible writer interval cannot establish either writer bound.
+        # An independently placed phase or job endpoint can still constrain
+        # publication and supply its own measurement.
+        if start is None or end is None or not outside_report_bound(start, end, latest=True):
+            lowers.append(start)
+            uppers.append(end)
+    return lowers, uppers
+
+
+def outside_report_bound(recorded, bound, *, latest):
+    if bound is None or not bound.is_finite():
+        return False
+    point = int(recorded) if bound == int(bound) else recorded
+    return point > bound if latest else point < bound
+
+
 def job_outside_report(fact, recorded, *, verification=None, dependent=None):
-    measured = clock_choices(fact)
-    choices = measured if fact.positioned_bounds is None else {
-        field: measured.get(field, values) for field, values in fact.positioned_bounds.items()
-    }
+    if verification:
+        # Admission uses the raw phase clocks. Interval projection can set a
+        # phase clock aside when its precise instant disagrees with a coarse
+        # ordering anchor, even though both constrain report creation.
+        endpoints = job_endpoint_choices(fact.job)
+        choices = {field: endpoints[field] for field in ('requested', 'start', 'end')}
+    else:
+        measured = clock_choices(fact)
+        choices = measured if fact.positioned_bounds is None else {
+            field: measured.get(field, values) for field, values in fact.positioned_bounds.items()
+        }
     order = local_job_order(choices)
     deadline = None
     if dependent is not None:
@@ -2174,47 +2234,24 @@ def job_outside_report(fact, recorded, *, verification=None, dependent=None):
     if not can_order(choices, order):
         return True
 
-    lower_fields = ['setup_end' if 'setup_end' in order else 'start']
-    upper_fields = ['cleanup_start' if 'cleanup_start' in order else 'end']
-    visible = fact.visible_steps or {}
-    uploads = [number for number, (name, step) in visible.items()
-               if name.startswith('Run actions/upload-artifact@') and step.eligible]
-    if uploads:
-        upper_fields.append((max(uploads), 'end'))
-    unpositioned_lower, unpositioned_upper = None, None
+    lower = 'setup_end' if 'setup_end' in order else 'start'
+    upper = 'cleanup_start' if 'cleanup_start' in order else 'end'
+    lowers = [ordered_limit(choices, order, lower)]
+    uppers = [ordered_limit(choices, order, upper, latest=True), deadline]
     if verification:
-        # The publisher initializes the output directory, writes the report
-        # in the required verification step, and stages the existing bytes.
-        step = (fact.steps or {}).get(verification)
-        if step and step.eligible:
-            if (step.number, 'start') in order:
-                lower_fields.append((step.number, 'start'))
-                upper_fields.append((step.number, 'end'))
-            elif step.supports_clock:
-                if step.number is not None:
-                    lower_fields.append('harness_start')
-                    upper_fields.append('harness_end')
-                else:
-                    # An unnumbered verification clock provides its own bounds
-                    # without placing it relative to numbered neighbors.
-                    unpositioned_lower = min(measured.get('harness_start') or (), default=None)
-                    unpositioned_upper = max(measured.get('harness_end') or (), default=None)
-        for name, fields in ((WINDOWS_INITIALIZATION_STEP, lower_fields), (WINDOWS_STAGING_STEP, upper_fields)):
-            witnesses = [number for number, (label, step) in visible.items() if label == name and step.supports_clock]
-            if len(witnesses) == 1:
-                fields.append((witnesses[0], 'end'))
-    lowers = [ordered_limit(choices, order, field) for field in lower_fields if field in order]
-    uppers = [ordered_limit(choices, order, field, latest=True) for field in upper_fields if field in order]
-    lowers.append(unpositioned_lower)
-    uppers.extend((unpositioned_upper, deadline))
+        phase_lowers, phase_uppers = publishing_phase_bounds(fact, verification, lowers[0], uppers[0])
+        lowers.extend(phase_lowers)
+        uppers.extend(phase_uppers)
+    else:
+        uploads = [number for number, (name, step) in (fact.visible_steps or {}).items()
+                   if name.startswith('Run actions/upload-artifact@') and step.eligible]
+        if uploads:
+            uppers.append(ordered_limit(choices, order, (max(uploads), 'end'), latest=True))
     # Actions exposes whole-second bounds while the publisher records
     # fractional seconds. Coarse bounds cover their whole second; precise
     # bounds can be compared directly.
-    second = int(recorded)
-    return (any(bound is not None and bound.is_finite() and bound > (second if bound == int(bound) else recorded)
-                for bound in lowers)
-            or any(bound is not None and bound.is_finite() and bound < (second if bound == int(bound) else recorded)
-                   for bound in uppers))
+    return (any(outside_report_bound(recorded, bound, latest=False) for bound in lowers)
+            or any(outside_report_bound(recorded, bound, latest=True) for bound in uppers))
 
 
 def report_clock_role(sample):
@@ -4681,12 +4718,26 @@ def collection_acquisitions(facts, samples, clocks):
             or 'downloaded_compact_inputs_sha256' in facts
             and not len(downloaded) <= downloaded_count <= len(downloaded) + missing_reports):
         raise TimingError('Timing collection counts disagree with its acquisition evidence.')
+    attempts = {ci_key(sample['ci']) for sample in reports.values()} | {ci_key(clock) for clock in listings.values()}
+    run_events = defaultdict(set)
+    for _, run_id, _, event, _ in attempts:
+        if event in NORMAL_EVENTS:
+            run_events[run_id].add(event)
     outcomes = defaultdict(set)
-    for clock in listings.values():
-        if clock.get('status') == 'completed' and clock['conclusion'] is not None:
-            outcomes[clock['run_id']].add(clock['conclusion'] == 'success')
-    successful = sum(values == {True} for values in outcomes.values())
-    unsuccessful = sum(values == {False} for values in outcomes.values())
+    for clock in clocks:
+        attempt = ci_key(clock)
+        if clock['run_id'] in missing and clock['event'] in NORMAL_EVENTS:
+            run_events[clock['run_id']].add(clock['event'])
+        if attempt in attempts and clock.get('status') == 'completed' and clock['conclusion'] is not None:
+            outcomes[clock['run_id']].add(clock['conclusion'])
+    if (limit := facts.get('limit_per_event')) is not None and any(
+            sum(events == {event} for events in run_events.values()) > limit for event in NORMAL_EVENTS):
+        raise TimingError('Timing collection exceeds its recorded distinct run limit per event.')
+    # A downloaded report can bind the same attempt as an independently
+    # observed Actions conclusion. Only the collection's own listing can
+    # qualify the report for a receipt.
+    successful = sum(values == {'success'} for values in outcomes.values())
+    unsuccessful = sum(len(values) == 1 and 'success' not in values for values in outcomes.values())
     # Count each run once and leave unavailable or disputed outcomes open.
     if not unsuccessful <= facts['unsuccessful_runs'] <= facts['completed_runs_considered'] - successful:
         raise TimingError('Timing collection unsuccessful run count disagrees with its recorded outcomes.')

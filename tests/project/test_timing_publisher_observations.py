@@ -396,6 +396,21 @@ class PublicPublisherObservationTests(unittest.TestCase):
         del verification['started_at'], verification['completed_at']
         setup['number'] = 10
         missing_clocks = self.write_variant('publishing-missing-verification-clocks', jobs)
+        del producer['steps'][-1]['number']
+        unnumbered_init = self.write_variant('publishing-unnumbered-init', jobs)
+        del verification['number']
+        unnumbered_writer = self.write_variant('publishing-unnumbered-writer', jobs)
+        jobs = json.loads(intact.read_bytes())
+        steps = {step['number']: step for job in jobs if job['id'] == 33 for step in job['steps']}
+        del steps[13]['number'], steps[12]['completed_at'], steps[14]['started_at']
+        unnumbered_stage = self.write_variant('publishing-unnumbered-stage', jobs)
+        jobs = json.loads(intact.read_bytes())
+        steps = {step['number']: step for job in jobs if job['id'] == 33 for step in job['steps']}
+        steps[13]['started_at'] = '2026-11-20T00:11:25.900Z'
+        precise_stage = self.write_variant('publishing-precise-stage', jobs)
+        steps[13]['started_at'] = '2026-11-20T00:11:25Z'
+        steps[12]['completed_at'] = '2026-11-20T00:11:25.900Z'
+        precise_writer = self.write_variant('publishing-precise-writer', jobs)
         for label, transform in (('raw', lambda report: report), ('compact', timing.report_sample)):
             original = self.write_variant(f'publisher-{label}-original', transform(browser))
             for case, observed, at, admitted in (
@@ -407,6 +422,13 @@ class PublicPublisherObservationTests(unittest.TestCase):
                 ('before initialization without verification clocks', missing_clocks, '00:01:48', False),
                 ('at initialization without verification clocks', missing_clocks, '00:01:50', True),
                 ('within staging start second without verification clocks', missing_clocks, '00:11:25.999999', True),
+                ('before unnumbered initialization', unnumbered_init, '00:01:48', False),
+                ('after staging without writer position and clocks', unnumbered_writer, '00:11:27', False),
+                ('after unnumbered staging', unnumbered_stage, '00:11:28', False),
+                ('at precise staging start', precise_stage, '00:11:25.900', True),
+                ('after precise staging start', precise_stage, '00:11:25.900000001', False),
+                ('at precise writer end', precise_writer, '00:11:25.900', True),
+                ('after precise writer end', precise_writer, '00:11:25.900000001', False),
             ):
                 changed = dict(browser, generated_at=f'2026-11-20T{at}Z')
                 variant = self.write_variant(f'publisher-{label}-{case}', transform(changed))
@@ -425,6 +447,10 @@ class PublicPublisherObservationTests(unittest.TestCase):
                             attributed = [row for row in view['samples'] if row['profile'] == 'ci-windows-browser'
                                           and row['job']]
                             self.assertEqual([680] * expected, [row['seconds']['runner'] for row in attributed])
+                            if expected:
+                                recorded = (changed if len(inputs) == 1 else browser)['generated_at']
+                                self.assertEqual(timing.timestamp(recorded),
+                                                 timing.timestamp(attributed[0]['recorded_at']))
                             job, = (job for job in view['hosted'][0]['sibling_jobs'] if job['job_id'] == '33')
                             self.assertEqual(680, job['seconds']['runner'])
                             diagnostic = any('outside the publishing job' in row['error'] for row in view['input_issues'])
