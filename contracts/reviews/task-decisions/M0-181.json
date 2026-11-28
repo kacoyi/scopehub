@@ -1,0 +1,64 @@
+{
+  "version": 3,
+  "task_id": "M0-181",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "3526adefdf612b62bc6492dee2a89eb8b342a5dc",
+      "scope": "Verify the two November 28 advisory-disposition retirements against the original native reports, authoritative publisher and package evidence, locked dependencies and actual build consumers. Check preservation of ordinary advisory, expiry, dependency graph and offline refusal behavior, the changed prefetch in both protected workflow jobs, and the failed and corrected local task checks.",
+      "supersedes": null,
+      "requested_at": "2026-11-28T04:24:30.852450+00:00",
+      "request_id": "5f31395033cd267aa03a844a2f5d1ae0d8048fe734fba1730548fbc62c7b255c",
+      "evidence_sha256": "0b0bbf324b9ad4a6c1b2d4f089d9e15794ef7aa58ec5d00e68ae63ed4f3fef46"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "3526adefdf612b62bc6492dee2a89eb8b342a5dc",
+      "verdict": "approved",
+      "decision": "APPROVE M0-181 3526adefdf612b62bc6492dee2a89eb8b342a5dc",
+      "scope": "APPROVE M0-181 3526adefdf612b62bc6492dee2a89eb8b342a5dc",
+      "observation": "The public dependency checker accepted the four retained findings and rejected each retired advisory as unresolved when I replayed it individually.",
+      "reviewer": "Independent Astra Standard (t1m5)",
+      "original_sha256": "655ac5f8bc4b08d3fe5eff156790e4c6b6162fac8815813d5c22712e5d8f56a5",
+      "response_id": "9b068891722391d1c7881394cf56dec324615a2e8146862700b415f838efd978",
+      "response_sha256": "9afe1ce4709426fc7cb3c5838a13281b85cd9b940aebcee35ab0925cfcb33329",
+      "legacy_response_sha256": "00a8fa962c58f20481fddde3449921bd1b9892cb10b4ffc3d62cd1b4b1031369",
+      "observation_body_sha256": "f096b574f788e76a079491a03d03416482e103556a0f5e1b61e25babd10c02e1",
+      "event": {
+        "id": "msg_05324811e7836c8a016b0a5855dd3487d0be24a0bc80f3c0f9",
+        "timestamp": "2026-11-28T04:28:31.999Z"
+      },
+      "supersedes": "5f31395033cd267aa03a844a2f5d1ae0d8048fe734fba1730548fbc62c7b255c",
+      "evidence_sha256": "33ca11258dfb3a1c2d5e9bedd5eed8c43be2e12bd245291d1d5bcd55255e83db"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a8795844d601cbbe5569329d2ae1b3554413d51f",
+      "scope": "Review the dependency disposition on the composed workflow, verifier and lock inputs. Independently check the prior ordinary two-platform expiry failure, exact accepted local receipt and prior original decision, source and dependency inputs across both parents, and the public dependency checker with its retained legitimate and rejecting controls. Distinguish the remaining exceptions, ordinary PR qualification, and protected native qualification.",
+      "supersedes": "9b068891722391d1c7881394cf56dec324615a2e8146862700b415f838efd978",
+      "requested_at": "2026-11-28T04:45:22.131673+00:00",
+      "request_id": "063f7e568cbc259d5fb741c134a9a95ab631169a5ac5cf32ea4b588a528eed50",
+      "evidence_sha256": "e084ef6c666105d0138c97c40a3aca23c8596abc61010e396a82d1f8c19b2160"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a8795844d601cbbe5569329d2ae1b3554413d51f",
+      "verdict": "approved",
+      "decision": "APPROVE M0-181 a8795844d601cbbe5569329d2ae1b3554413d51f",
+      "scope": "APPROVE M0-181 a8795844d601cbbe5569329d2ae1b3554413d51f",
+      "observation": "On the reviewed commit, the public dependency checker accepted all four retained findings and returned exit code 1 when I restored either retired advisory individually.",
+      "reviewer": "Independent Astra Standard (t1md)",
+      "original_sha256": "0b35fcea0f376282a3d18e1e354f0e3239239ecca4a4c69cd7f032e2dffcaa52",
+      "response_id": "c2a67a7d002b2a490785e21510fc949ae3d07725f5c52cd6cb4e71c801d658c3",
+      "response_sha256": "7feeba80da27bd793e896c4120b51b0d145b8afb17b2a5ae07ab0626ba6341ac",
+      "legacy_response_sha256": "345b39fcc6863956c86a81a7808f48c62f1f876e43c12f1ce053c1696bcbeac6",
+      "observation_body_sha256": "d3343f994aa8f482a624a3c71038dc6dd9a68c7b536831297076d123bfad84a7",
+      "event": {
+        "id": "msg_0a3b159ffc017776016b0a5e4cc79487d09fc58f1d7abed49a",
+        "timestamp": "2026-11-28T04:53:54.445Z"
+      },
+      "supersedes": "063f7e568cbc259d5fb741c134a9a95ab631169a5ac5cf32ea4b588a528eed50",
+      "evidence_sha256": "220f2909d1da636b79842cc4c750777e6fed79507637910fc35e98eac49e0ebb"
+    }
+  ]
+}

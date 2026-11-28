@@ -2,6 +2,7 @@
 
 import argparse
 from datetime import date, datetime, timedelta, timezone
+from functools import cached_property, partial
 from graphlib import CycleError, TopologicalSorter
 import hashlib
 import json
@@ -331,9 +332,13 @@ def committed_source_identity(root, commit):
 
 
 def validate_model(root, name, value):
-    schema = read_json(root / 'contracts/schemas/project.schema.json')
+    definitions = read_json(root / 'contracts/schemas/project.schema.json')['$defs']
+    _validate_project_model(definitions, name, value)
+
+
+def _validate_project_model(definitions, name, value):
     validator = Draft202012Validator(
-        {'$ref': f'#/$defs/{name}', '$defs': schema['$defs']}, format_checker=FormatChecker(),
+        {'$ref': f'#/$defs/{name}', '$defs': definitions}, format_checker=FormatChecker(),
     )
     errors = list(validator.iter_errors(value))
     if errors:
@@ -375,8 +380,10 @@ def load_project(root=ROOT):
         catalog = decode_publishing_catalog(catalog_path.read_bytes())
     except (OSError, ValueError) as error:
         raise ProjectError(f'Cannot read JSON record {catalog_path}: {error}') from error
-    validate_model(root, 'TaskLedger', ledger)
-    validate_model(root, 'CheckCatalog', catalog)
+    definitions = read_json(root / 'contracts/schemas/project.schema.json')['$defs']
+    validate = partial(_validate_project_model, definitions)
+    validate('TaskLedger', ledger)
+    validate('CheckCatalog', catalog)
     tasks = indexed(ledger['tasks'], 'task')
     gates = indexed(catalog['milestones'], 'milestone')
     if set(gates) != {item['id'] for item in spec['milestones']}:
@@ -414,7 +421,7 @@ def load_project(root=ROOT):
     decision_paths = {}
     for path in sorted((root / 'contracts/decisions').glob('*.json'), key=lambda path: path.name):
         decision = read_json(path)
-        validate_model(root, 'Decision', decision)
+        validate('Decision', decision)
         if not path.name.startswith(decision['id'] + '-'):
             raise ProjectError(f'Decision ID does not match filename: {path.name}')
         decisions.append(decision)
@@ -465,7 +472,7 @@ def load_project(root=ROOT):
             if digest(path.read_bytes()) != ref['sha256']:
                 raise ProjectError(f"Evidence digest mismatch: {ref['path']}")
             receipt = read_json(path)
-            validate_model(root, 'Evidence', receipt)
+            validate('Evidence', receipt)
             if receipt['task_id'] != task['id']:
                 raise ProjectError(f"Evidence belongs to another task: {task['id']}")
             observed = indexed(receipt['checks'], 'evidence check')
@@ -499,7 +506,7 @@ def load_project(root=ROOT):
         raise ProjectError('The focus must identify active work when active tasks exist')
     project = {'spec': spec, 'ledger': ledger, 'catalog': catalog, 'tasks': tasks, 'checks': checks,
                'decisions': decisions, 'decision_paths': decision_paths, 'replacements': replacements}
-    validate_delivery(root, project)
+    validate_delivery(root, project, validate)
     primary = spec.get('ai', {}).get('model_connections', {}).get('primary_cloud_route')
     if primary is not None:
         if (not isinstance(primary, dict) or not isinstance(primary.get('task'), str)
@@ -529,7 +536,7 @@ def load_project(root=ROOT):
         else:
             from development import validate_record
         record = read_json(local_path(root, development_path))
-        validate_model(root, 'Development', record)
+        validate('Development', record)
         try:
             validate_record(root, project, record)
         except (ValueError, OSError) as error:
@@ -549,11 +556,11 @@ def read_maintenance_engagement(root, maintenance_policy):
         raise ProjectError(f'Invalid maintenance engagement: {error}') from error
 
 
-def validate_delivery(root, project):
+def validate_delivery(root, project, validate):
     delivery = read_json(root / 'project/delivery.json')
     feedback = read_json(root / 'project/feedback.json')
-    validate_model(root, 'Delivery', delivery)
-    validate_model(root, 'Feedback', feedback)
+    validate('Delivery', delivery)
+    validate('Feedback', feedback)
     maintenance_policy = delivery['scaffold_maintenance']
     indexed(maintenance_policy['periodic_reviews'], 'periodic review')
     if engagement := read_maintenance_engagement(root, maintenance_policy):
@@ -812,15 +819,15 @@ def periodic_policy(root, source):
     return json.loads(response.stdout)
 
 
-def project_periodic_facts(root, key, facts, source):
+def project_periodic_facts(key, facts, policy):
     if __package__:
         from .protection import violations
     else:
         from protection import violations
-    return maintenance.project_facts(key, facts, periodic_policy(root, source), violations)
+    return maintenance.project_facts(key, facts, policy, violations)
 
 
-def periodic_record_facts(root, key, record):
+def periodic_record_facts(history, key, record):
     if key == 'compatibility-and-recovery':
         evidence = record['evidence']
         return evidence, sorted(row['receipt'] for row in evidence['observations']) or [
@@ -829,7 +836,7 @@ def periodic_record_facts(root, key, record):
     if (digest(json_bytes(facts)) != record['report_sha256'] or record['source_commit'] != facts['source_commit']
             or record['observed_at'] != facts['observed_at']):
         raise ValueError('The record does not match its hash-bound observation facts.')
-    evidence, identity, adverse = project_periodic_facts(root, key, facts, record['source_commit'])
+    evidence, identity, adverse = project_periodic_facts(key, facts, history.policy(record['source_commit']))
     return evidence, identity, adverse, facts['input_sha256']
 
 
@@ -837,15 +844,48 @@ class ObservationIntakePending(ValueError):
     """A proposed projection has not yet arrived through protected review."""
 
 
-def require_protected_observation(root, relative, record_sha):
-    head = feedback_commit(root, 'HEAD')
-    protected = protected_feedback_base(root, head).get('commit')
-    if protected:
-        accepted = feedback_git(root, 'show', f'{protected}:{relative}')
-        if accepted.returncode == 0 and digest(accepted.stdout) == record_sha:
-            return protected
-    raise ObservationIntakePending(
-        'Verify the supplied originals with verify-maintenance and retain the exact record through protected intake before attaching it.')
+class _PeriodicReviewHistory:
+    """Pin read-only Git inputs for one maintenance comparison."""
+
+    def __init__(self, root):
+        self.root = root
+        self._policies = {}
+        self._records = {}
+
+    @cached_property
+    def head(self):
+        return feedback_commit(self.root, 'HEAD')
+
+    @cached_property
+    def protected_basis(self):
+        return protected_feedback_base(self.root, self.head)
+
+    def policy(self, source):
+        source = self.head if source is None else source
+        if source not in self._policies:
+            self._policies[source] = periodic_policy(self.root, source)
+        return self._policies[source]
+
+    def records_at(self, base):
+        if base in self._records:
+            return self._records[base]
+        records = committed_periodic_records(self.root, base)
+        if records is not None:
+            self._records[base] = records
+        return records
+
+    def source_available(self, key, source):
+        head = self.head if maintenance.git_commit(source) else None
+        return observation_source_available(self.root, key, source, head=head)
+
+    def require_protected_observation(self, relative, record_sha):
+        protected = self.protected_basis.get('commit')
+        if protected:
+            accepted = feedback_git(self.root, 'show', f'{protected}:{relative}')
+            if accepted.returncode == 0 and digest(accepted.stdout) == record_sha:
+                return
+        raise ObservationIntakePending(
+            'Verify the supplied originals with verify-maintenance and retain the exact record through protected intake before attaching it.')
 
 
 def traced_branch_tips(root, data, disposition_reference):
@@ -960,7 +1000,8 @@ def verify_maintenance(root, project, path, reports, staging, staging_digest, di
             'next_action': 'Independently review and retain these exact record bytes through protected intake before raising the claimed date.'}
 
 
-def review_record(root, project, item):
+def review_record(history, project, item):
+    root = history.root
     relative = item.get('review_record')
     if not relative:
         if item['reviewed_on'] == maintenance.REVIEW_SOURCES[item['id']][0]:
@@ -975,16 +1016,16 @@ def review_record(root, project, item):
     key = item['id']
     if (record['kind'] != maintenance.REVIEW_KIND or record['review_id'] != key
             or not re.fullmatch('[a-f0-9]{64}', record['report_sha256'])
-            or not observation_source_available(root, key, record['source_commit'])):
+            or not history.source_available(key, record['source_commit'])):
         raise ValueError('The observation category, source or original digest does not match.')
     observed = maintenance.utc(record['observed_at'])
     if observed.date().isoformat() != item['reviewed_on'] or observed > datetime.now(timezone.utc):
         raise ValueError('The review date must match the actual observation time.')
-    evidence, identity, adverse, original_digests = periodic_record_facts(root, key, record)
+    evidence, identity, adverse, original_digests = periodic_record_facts(history, key, record)
     if evidence != record['evidence']:
         raise ValueError('The claim does not match the observation facts.')
     if key != 'compatibility-and-recovery':
-        require_protected_observation(root, relative, record_sha)
+        history.require_protected_observation(relative, record_sha)
     if key == 'compatibility-and-recovery':
         receipts = [entry['receipt'] for entry in evidence['observations']]
         scoped, clock, sha = compatibility_claim(root, project, receipts, evidence['compared_from'],
@@ -1079,9 +1120,9 @@ def comparable_same_day_source(root, key, previous, current):
             and feedback_git(root, 'merge-base', '--is-ancestor', before, after).returncode == 0)
 
 
-def validate_review_progress(root, key, previous, current, feedback, *, branch_tips, admitted_timing):
-    old_evidence, old_identity, old_adverse, old_inputs = periodic_record_facts(root, key, previous)
-    new_evidence, new_identity, new_adverse, new_inputs = periodic_record_facts(root, key, current)
+def validate_review_progress(history, key, previous, current, feedback, *, branch_tips, admitted_timing):
+    old_evidence, old_identity, old_adverse, old_inputs = periodic_record_facts(history, key, previous)
+    new_evidence, new_identity, new_adverse, new_inputs = periodic_record_facts(history, key, current)
     if key == 'verification-timing':
         admitted_timing.update(old_identity)
     old_clock = maintenance.utc(previous['observed_at'])
@@ -1096,7 +1137,7 @@ def validate_review_progress(root, key, previous, current, feedback, *, branch_t
         if not fresh or current['report_sha256'] == previous['report_sha256']:
             raise ValueError('The new date needs a fresh comparable observation.')
         return
-    if not comparable_same_day_source(root, key, previous, current):
+    if not comparable_same_day_source(history.root, key, previous, current):
         raise ValueError('A same-day observation needs the same source or a verified descendant of the same default branch.')
     inputs = set(new_inputs) - set(old_inputs)
     previous_links = {link['id']: link['fingerprint'] for link in previous['findings']}
@@ -1109,10 +1150,10 @@ def validate_review_progress(root, key, previous, current, feedback, *, branch_t
         raise ValueError('Keep the accepted observation or add a later same-day improvement or bound adverse finding.')
 
 
-def historical_review(root, project, key, path):
-    record, _ = read_review_report(local_path(root, path), 64 * 1024)
+def historical_review(history, project, key, path):
+    record, _ = read_review_report(local_path(history.root, path), 64 * 1024)
     day = maintenance.utc(record['observed_at']).date().isoformat()
-    return review_record(root, project, {'id': key, 'review_record': path, 'reviewed_on': day})[0]
+    return review_record(history, project, {'id': key, 'review_record': path, 'reviewed_on': day})[0]
 
 
 def require_retirement_calendar(root, old, candidate, result, today):
@@ -1145,21 +1186,21 @@ def require_retirement_calendar(root, old, candidate, result, today):
         raise ValueError(f'Transfer the scheduled observation with retired_due_on set to {due.isoformat()}.')
 
 
-def validate_review_chain(root, project, key, admitted_paths, appended_paths, current, feedback):
-    chain = [historical_review(root, project, key, path) for path in appended_paths]
+def validate_review_chain(history, project, key, admitted_paths, appended_paths, current, feedback):
+    chain = [historical_review(history, project, key, path) for path in appended_paths]
     chain.append(current)
     branch_tips, admitted_timing = set(), set()
     for path in admitted_paths:
         if key in {'branches-and-pull-requests', 'verification-timing'}:
-            record, _ = read_review_report(local_path(root, path), 64 * 1024)
+            record, _ = read_review_report(local_path(history.root, path), 64 * 1024)
             if key == 'branches-and-pull-requests':
                 branch_tips = maintenance.branch_obligation_tips(branch_tips, record['facts'])
             else:
-                admitted_timing.update(periodic_record_facts(root, key, record)[1])
+                admitted_timing.update(periodic_record_facts(history, key, record)[1])
     for before, after in zip(chain, chain[1:]):
         if key == 'branches-and-pull-requests':
             branch_tips = maintenance.branch_obligation_tips(branch_tips, before['facts'])
-        validate_review_progress(root, key, before, after, feedback,
+        validate_review_progress(history, key, before, after, feedback,
                                  branch_tips=branch_tips, admitted_timing=admitted_timing)
 
 
@@ -1170,9 +1211,9 @@ def committed_periodic_records(root, base):
     return None
 
 
-def require_periodic_transition(root, project, base, only=None, *, previous=None):
-    if previous is None:
-        previous = committed_periodic_records(root, base)
+def require_periodic_transition(history, project, base, only=None):
+    root = history.root
+    previous = history.records_at(base)
     if previous is None:
         return
     current = maintenance.periodic_records(project['delivery'])
@@ -1188,13 +1229,13 @@ def require_periodic_transition(root, project, base, only=None, *, previous=None
                 if date_advanced or candidate.get('retired_reason'):
                     raise ValueError('Define how the new rule verifies and retains its obligations before changing its disposition.')
                 continue
-            result = review_record(root, project, candidate)
+            result = review_record(history, project, candidate)
             extra_paths = accepted_review_paths(root, old, candidate, base)
             prior_path = old.get('review_record')
             pending = review_obligations(root, key, candidate, result)
             changed = prior_path != candidate.get('review_record')
             if changed and result:
-                validate_review_chain(root, project, key, old.get('review_history', []), extra_paths, result[0], feedback)
+                validate_review_chain(history, project, key, old.get('review_history', []), extra_paths, result[0], feedback)
             if date_advanced and key == 'compatibility-and-recovery':
                 accepted_source = compatibility_initial_base(root, base)
                 if prior_path:
@@ -1212,8 +1253,8 @@ def require_periodic_transition(root, project, base, only=None, *, previous=None
             if old.get('retired_reason') and (not candidate.get('retired_reason') or old.get('follow_through_task') != successor):
                 raise ValueError('Keep the accepted retirement and its successor identity.')
             if old.get('retired_reason') and changed and prior_path:
-                prior_record = historical_review(root, project, key, prior_path)
-                old_result = (prior_record, *periodic_record_facts(root, key, prior_record)[1:3],
+                prior_record = historical_review(history, project, key, prior_path)
+                old_result = (prior_record, *periodic_record_facts(history, key, prior_record)[1:3],
                               {link['id']: feedback[link['id']] for link in prior_record['findings']})
                 if not review_obligations(root, key, old, old_result):
                     raise ValueError('The transferred review was already discharged at its accepted observation.')
@@ -1235,18 +1276,14 @@ def require_periodic_transition(root, project, base, only=None, *, previous=None
             raise ProjectError(f'Periodic review {key}: {error}') from error
 
 
-def observed_periodic_reviews(root, project, *, compare=False, timing_recovery=()):
+def observed_periodic_reviews(history, project, *, compare=False, timing_recovery=()):
+    root = history.root
     reviews = periodic_reviews(project['delivery'])
-    head = feedback_commit(root, 'HEAD') if compare and (root / '.git').exists() else None
-    bases = dict.fromkeys([head, protected_feedback_base(root, head).get('commit') if head else None])
+    bases = dict.fromkeys([history.head, history.protected_basis.get('commit')]) if compare and (root / '.git').exists() else {}
     present = {item['id'] for item in reviews}
-    # Each base is a resolved commit. Share its policy with the per-rule
-    # comparisons while leaving candidate reads and ref checks live.
-    committed_records = {}
     for base in filter(None, bases):
-        previous = committed_periodic_records(root, base)
+        previous = history.records_at(base)
         if previous is not None:
-            committed_records[base] = previous
             missing = previous.keys() - present
             for key in sorted(missing):
                 reviews.append({'id': key, 'state': 'evidence_invalid', 'review_due': True,
@@ -1264,13 +1301,13 @@ def observed_periodic_reviews(root, project, *, compare=False, timing_recovery=(
         item.update(owner='coordinator', trigger='Next comparable observation or scheduled review',
                     command=maintenance.REVIEW_SOURCES[key][1])
         try:
-            result = review_record(root, project, item)
+            result = review_record(history, project, item)
             obligations = review_obligations(root, key, item, result)
             successor = retirement_successor(project, item, obligations)
             if item.get('retired_reason') and key == 'worktrees-and-evidence' and not successor:
                 raise ValueError('External staging requires an explicit successor task.')
             for base in filter(None, bases):
-                require_periodic_transition(root, project, base, only=key, previous=committed_records.get(base))
+                require_periodic_transition(history, project, base, only=key)
         except ObservationIntakePending as error:
             item.update(state='intake_needed', review_due=True, next_review_by=None, problem=str(error),
                         command='uv run python scripts/project.py verify-maintenance --help')
@@ -1355,8 +1392,8 @@ def observed_periodic_reviews(root, project, *, compare=False, timing_recovery=(
     return reviews
 
 
-def require_periodic_reviews(root, project):
-    for item in observed_periodic_reviews(root, project):
+def require_periodic_reviews(history, project):
+    for item in observed_periodic_reviews(history, project):
         if item.get('state') in {'evidence_missing', 'evidence_invalid', 'intake_needed'}:
             raise ProjectError(f"Periodic review {item['id']}: {item['problem']}")
 
@@ -1365,11 +1402,11 @@ def observation_linked(sha, entry):
     return sha in entry['source'] or any(row['report_sha256'] == sha for row in entry.get('diagnostic_reports', []))
 
 
-def observation_source_available(root, key, source):
+def observation_source_available(root, key, source, *, head='HEAD'):
     if source is None:
         return key == 'verification-timing'
-    return maintenance.git_commit(source) and not feedback_git(
-        root, 'merge-base', '--is-ancestor', source, 'HEAD').returncode
+    return bool(head and maintenance.git_commit(source) and not feedback_git(
+        root, 'merge-base', '--is-ancestor', source, head).returncode)
 
 
 def observe_maintenance(root, project, key, reports, finding_ids, *, staging=None, staging_digest=None,
@@ -1437,10 +1474,11 @@ def observe_maintenance(root, project, key, reports, finding_ids, *, staging=Non
                     raise ValueError('The named stage is missing its matching accepted task and source.')
                 del stage['task_evidence']
                 original_digests.append(staging_digest)
-            facts = maintenance.prepare_facts(key, data, source, original_digests, periodic_policy(root, source),
+            policy = periodic_policy(root, source)
+            facts = maintenance.prepare_facts(key, data, source, original_digests, policy,
                                               protection=protection, staging=stage, product_timing=product_timing,
                                               traced_tips=traced_tips)
-            evidence, _, adverse = project_periodic_facts(root, key, facts, source)
+            evidence, _, adverse = project_periodic_facts(key, facts, policy)
             observed = maintenance.utc(facts['observed_at'])
             sha = digest(json_bytes(facts))
         if not observation_source_available(root, key, source):
@@ -1517,7 +1555,7 @@ def workfront(root=ROOT, *, report_path=None, retained_detail=None):
         'proposed_decisions': [item['id'] for item in project['decisions'].values() if item['status'] == 'proposed'],
         'decision_replacements': project['replacements'],
         'dependency_maintenance': maintenance_status(root),
-        'periodic_reviews': observed_periodic_reviews(root, project, compare=True,
+        'periodic_reviews': observed_periodic_reviews(_PeriodicReviewHistory(root), project, compare=True,
                                                       timing_recovery=budget.get('budget_recovery', ())),
         'purpose': project['spec'].get('product', {}).get('purpose'),
         'verification_budget': budget,
@@ -1643,7 +1681,7 @@ def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement', re
         elif transfers:
             context['transferred_reviews'] = [
                 {'id': row['id'], 'obligations': row.get('problem'), 'trigger': row.get('trigger')}
-                for row in observed_periodic_reviews(root, project, compare=True)
+                for row in observed_periodic_reviews(_PeriodicReviewHistory(root), project, compare=True)
                 if row.get('follow_through_task') == key and row['state'] == 'owned_action'
             ]
         return attach_review_context(context, project, task, review, source_commit)
@@ -2103,11 +2141,27 @@ def validate_feedback_changes(root, project, commit, old_items, items, *, inheri
             raise ProjectError(f'Closing feedback {key} requires new regression evidence for {sorted(missing)}')
 
 
-def validate_feedback_checkpoint(root, project, commit, inherited=None):
+class _FeedbackRulePredecessor:
+    """The fixed rule introduction's accepted parent, read only after proving ancestry."""
+
+    def __init__(self, root):
+        self.root = root
+        self.commit = f'{FEEDBACK_RECEIPT_INTRODUCTION}^1'
+
+    @cached_property
+    def feedback(self):
+        return feedback_at(self.root, self.commit)
+
+    @cached_property
+    def tasks(self):
+        return tasks_at_feedback_checkpoint(self.root, self.commit)
+
+
+def validate_feedback_checkpoint(root, project, commit, predecessor, inherited=None):
     """Recognize an older closure only across the actual protected rule transition."""
     old_items = feedback_at(root, commit)
     items = indexed(project['feedback']['items'], 'feedback')
-    last_legacy = f'{FEEDBACK_RECEIPT_INTRODUCTION}^1'
+    last_legacy = predecessor.commit
     # A shallow or unrelated checkout may not prove the crossing. Its ordinary
     # comparison still requires full current evidence for every changed closure.
     def ancestor(earlier, later):
@@ -2115,8 +2169,8 @@ def validate_feedback_checkpoint(root, project, commit, inherited=None):
 
     legacy = None
     if ancestor(commit, last_legacy) and ancestor(FEEDBACK_RECEIPT_INTRODUCTION, 'HEAD'):
-        legacy = feedback_at(root, last_legacy)
-        verify_accepted_tasks(root, project, tasks_at_feedback_checkpoint(root, last_legacy).values())
+        legacy = predecessor.feedback
+        verify_accepted_tasks(root, project, predecessor.tasks.values())
         # Compare this endpoint too: the caller's older base cannot see a deletion,
         # edit or recurrence of a finding introduced before the rules changed.
         validate_feedback_changes(root, project, last_legacy, legacy, items)
@@ -2282,24 +2336,26 @@ def record_task_review(root, task, source, transcript, reviewer, scope, observat
 
 def local_feedback_history(root, project):
     """Report the local comparison inputs. A cached tracking ref only supplies its common history."""
-    require_periodic_reviews(root, project)
+    periodic = _PeriodicReviewHistory(root)
+    require_periodic_reviews(periodic, project)
     if not (root / '.git').exists():
         return {'status': 'not_applicable', 'reason': 'No Git checkout available.'}
     try:
-        head = feedback_commit(root, 'HEAD')
+        head = periodic.head
     except FileNotFoundError:
         return {'status': 'not_applicable', 'reason': 'The Git executable is unavailable.'}
     explicit = os.environ.get('SCOPEHUB_REVIEW_BASE')
     basis = ({'source': 'explicit', 'commit': feedback_commit(root, explicit)} if explicit
-             else protected_feedback_base(root, head))
+             else periodic.protected_basis)
     reviewed = basis.get('commit')
     checkpoint = feedback_commit(root, os.environ.get('SCOPEHUB_CHECKPOINT_BASE'))
     compared = []
     imports = {}
+    predecessor = _FeedbackRulePredecessor(root)
     for sha in dict.fromkeys([reviewed, head, checkpoint]):
         if sha:
-            require_periodic_transition(root, project, sha)
-            records = validate_feedback_checkpoint(root, project, sha, imports)
+            require_periodic_transition(periodic, project, sha)
+            records = validate_feedback_checkpoint(root, project, sha, predecessor, imports)
             if explicit and sha == reviewed:
                 imports = reviewed_feedback_imports(records, reviewed, head)
             compared.append(sha)
@@ -2309,18 +2365,20 @@ def local_feedback_history(root, project):
 
 
 def review_history(root=ROOT, base=None, *, checkpoint_base=None, fetch_missing_checkpoint=False):
-    result, records = compare_history(root, base)
+    predecessor = _FeedbackRulePredecessor(root)
+    result, records = compare_history(root, base, predecessor=predecessor)
     if checkpoint_base and checkpoint_base != base:
         if fetch_missing_checkpoint:
             if os.environ.get('GITHUB_ACTIONS') != 'true':
                 raise ProjectError('Checkpoint recovery requires the GitHub Actions job context')
             recover_hosted_checkpoint(root, checkpoint_base, os.environ.get('GITHUB_REPOSITORY', ''))
+            predecessor = _FeedbackRulePredecessor(root)
         imports = reviewed_feedback_imports(records, result.get('base_commit'), feedback_commit(root, 'HEAD'))
-        result['previous_checkpoint'], _ = compare_history(root, checkpoint_base, imports)
+        result['previous_checkpoint'], _ = compare_history(root, checkpoint_base, imports, predecessor=predecessor)
     return result
 
 
-def compare_history(root, base, inherited=None):
+def compare_history(root, base, inherited=None, *, predecessor=None):
     """Return the reviewed base ledger only after the complete history comparison passes."""
     if not base or set(base) == {'0'}:
         return {'status': 'not_applicable', 'reason': 'No previous revision supplied; no history comparison was performed.'}, {}
@@ -2333,15 +2391,17 @@ def compare_history(root, base, inherited=None):
         result = subprocess.run(['git', 'show', f'{resolved}:{path}'], cwd=root, env=env, capture_output=True)
         return json.loads(result.stdout) if result.returncode == 0 else None
 
-    require_periodic_reviews(root, project)
-    require_periodic_transition(root, project, resolved)
+    periodic = _PeriodicReviewHistory(root)
+    require_periodic_reviews(periodic, project)
+    require_periodic_transition(periodic, project, resolved)
     ledger = previous('project/tasks.json')
     old_tasks = indexed(ledger['tasks'], 'previous task') if ledger else {}
     for key, task in project['tasks'].items():
         old = old_tasks.get(key, {})
         if old.get('status') not in {'done', 'cancelled'}:
             validate_report_references(root, task, f'Task {key}')
-    feedback = validate_feedback_checkpoint(root, project, resolved, inherited)
+    feedback = validate_feedback_checkpoint(root, project, resolved, predecessor or _FeedbackRulePredecessor(root),
+                                            inherited)
     task_review_status(root, project, base=resolved, enforce=True)
     review_operational_report_paths(root, resolved)
     catalog = previous('project/checks.json')
@@ -2400,7 +2460,7 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
         raise ProjectError(f'Cannot read JSON record {report_path}: {error}') from error
     if not isinstance(report, dict):
         raise ProjectError('Expected a structured verification report')
-    if report.get('report_version') != '2.0' or not report.get('source_unchanged'):
+    if report.get('report_version') not in ('2.0', '2.1') or not report.get('source_unchanged'):
         raise ProjectError('Report lacks an unchanged version-bound execution snapshot')
     validate_model(root, 'HarnessReport', report)
     if report.get('status') == 'failed' or any(item.get('status') == 'failed' for item in report.get('checks', [])):
@@ -2411,6 +2471,7 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
     ci = report.get('ci')
     checkout = root.resolve()
     reports_root = (checkout / '.reports').resolve()
+    download_location = artifact_root
     if artifact_root is None and report_path.is_relative_to((reports_root / 'ci').resolve()):
         raise ProjectError('Specify the downloaded CI artifact root')
     if ci:
@@ -2448,15 +2509,24 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
         raise ProjectError('Task completion has unfinished dependencies')
     results = indexed(report['checks'], 'report check')
     if __package__:
+        from .ci_artifacts import PublicationError, downloaded_platform, validate_recorded_windows_evidence
         from .verification_evidence import (
             EXTERNAL_CLIENT_CHECK, FIELD_ACTIONS, RUN_OBSERVATION_CHECKS,
-            collect_run_observation, field_observation, redacted_check_log,
+            collect_run_observation, field_observation, hosted_artifact_path, redacted_check_log,
         )
     else:
+        from ci_artifacts import PublicationError, downloaded_platform, validate_recorded_windows_evidence
         from verification_evidence import (
             EXTERNAL_CLIENT_CHECK, FIELD_ACTIONS, RUN_OBSERVATION_CHECKS,
-            collect_run_observation, field_observation, redacted_check_log,
+            collect_run_observation, field_observation, hosted_artifact_path, redacted_check_log,
         )
+    try:
+        validate_recorded_windows_evidence(
+            root, project, artifact_root if artifact_root is not None else reports_root, report,
+            platform=downloaded_platform(download_location, checkout / '.reports', ci) if download_location and ci else None,
+        )
+    except (PublicationError, OSError) as error:
+        raise ProjectError(str(error)) from error
     selected = []
     field_records = {}
     external_client_observation = None
@@ -2470,15 +2540,17 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
             raise ProjectError(f'Executed command differs from the check catalog: {key}')
         if project['checks'][key]['platforms'] == 'windows-x64' and not windows_x64(report['environment']):
             raise ProjectError(f'Native Windows proof requires Windows x64: {key}')
-        if not result.get('log', '').startswith('.reports/runs/'):
-            raise ProjectError(f'Expected an isolated verification log: {key}')
-        log = (local_path(artifact_root, result['log'].removeprefix('.reports/'))
-               if artifact_root is not None else local_path(root, result['log']))
+        relative = f"runs/{report['run_id']}/{key}.log"
+        if result.get('log') != '.reports/' + relative:
+            raise ProjectError(f'Expected a repository-relative path to the current run and check log: {key}')
+        try:
+            log = (hosted_artifact_path(artifact_root, relative)
+                   if artifact_root is not None else local_path(root, '.reports/' + relative))
+        except FileNotFoundError as error:
+            raise ProjectError(f'Missing verification log: {key}') from error
         if not log.is_file():
             raise ProjectError(f'Missing verification log: {key}')
         if key in RUN_OBSERVATION_CHECKS:
-            if result['log'] != f".reports/runs/{report['run_id']}/{key}.log":
-                raise ProjectError(f'External-session log belongs to another run: {key}')
             observation = collect_run_observation(root, log.parent, key, report['source'])
             if result.get('observation') != observation:
                 raise ProjectError(f'Changed external-session evidence: {key}')

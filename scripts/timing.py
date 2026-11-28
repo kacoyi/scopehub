@@ -95,11 +95,14 @@ WORKFLOW_SECONDS = ('total_elapsed_seconds', 'runner_work_seconds')
 CACHE_STATES = {'cold', 'partial', 'warm', 'not_requested', 'not_restored'}
 NORMAL_EVENTS = {'pull_request', 'push'}
 PLATFORMS = {'ubuntu-latest': 'Linux', 'windows-latest': 'Windows'}
-WINDOWS_PRODUCERS = {lane: f'Windows change checks ({lane})' for lane in WINDOWS_LANES}
-WINDOWS_PRODUCER_LANES = {name: lane for lane, name in WINDOWS_PRODUCERS.items()}
-WINDOWS_PRODUCER_PROFILES = {f'ci-windows-{lane}': name for lane, name in WINDOWS_PRODUCERS.items()}
+WINDOWS_RECOVERY_LANES = WINDOWS_LANES
+WINDOWS_WORKSPACE_LANES = (*WINDOWS_RECOVERY_LANES, 'workspace')
+WINDOWS_PRODUCERS = {lane: f'Windows change checks ({lane})' for lane in WINDOWS_WORKSPACE_LANES}
 WINDOWS_AGGREGATE_MARKER = 'Require successful Windows lane jobs'
 WINDOWS_RECOVERY_MARKER = 'Require successful Windows lane jobs (four producers)'
+WINDOWS_WORKSPACE_MARKER = 'Require successful Windows lane jobs (PR workspace producer)'
+WINDOWS_PRODUCER_LANES = {name: lane for lane, name in WINDOWS_PRODUCERS.items()}
+WINDOWS_PRODUCER_PROFILES = {f'ci-windows-{lane}': name for lane, name in WINDOWS_PRODUCERS.items()}
 # A split stage depends on member endpoints, or comparable interval facts in
 # older captures that predate endpoints. Copied metrics retain their source.
 WINDOWS_COPIED_STAGES = {'browser_step': ('browser', 'browser_step')}
@@ -119,9 +122,9 @@ SCOPED_HARNESS_STEPS = {f'Verify {profile} changes' for profile in SCOPED_PROFIL
 WINDOWS_FULL_STEP = 'Run uv run python scripts/check.py --require-windows'
 WINDOWS_LANE_SELECTOR = 'Select the Windows lane work'
 WINDOWS_LANE_STEPS = {f'Verify the Windows {lane} lane': role for lane, role in WINDOWS_PRODUCERS.items()}
-WINDOWS_LAYOUT_STEPS = {WINDOWS_AGGREGATE_MARKER: False, WINDOWS_RECOVERY_MARKER: True}
+WINDOWS_MARKERS = {WINDOWS_AGGREGATE_MARKER, WINDOWS_RECOVERY_MARKER, WINDOWS_WORKSPACE_MARKER}
 WINDOWS_PROFILE_STEPS = {WINDOWS_FULL_STEP: 'full', **{f'Verify {key} changes': key for key in SCOPED_PROFILES}}
-WINDOWS_ROLE_STEPS = {*WINDOWS_LAYOUT_STEPS, *WINDOWS_LANE_STEPS, WINDOWS_LANE_SELECTOR}
+WINDOWS_ROLE_STEPS = {*WINDOWS_MARKERS, *WINDOWS_LANE_STEPS, WINDOWS_LANE_SELECTOR}
 WINDOWS_INITIALIZATION_STEP = 'Initialize CI verification reports'
 WINDOWS_STAGING_STEP = 'Stage current verification evidence'
 HARNESS_STEPS = {
@@ -136,7 +139,7 @@ BROWSER_STEPS = {
     'Start the pinned chart-test browser on Linux',
     'Install and start the pinned chart-test browser',
 }
-TIMED_STEPS = HARNESS_STEPS | BROWSER_STEPS | {f'Verify the Windows {lane} lane' for lane in WINDOWS_LANES}
+TIMED_STEPS = HARNESS_STEPS | BROWSER_STEPS | WINDOWS_LANE_STEPS.keys()
 ACTIONS_ORDER_STEPS = {'Set up job': 'setup', 'Complete job': 'cleanup'}
 PHASE_FIELDS = {kind: (f'{kind}_start', f'{kind}_end') for kind in STEP_KINDS}
 PUBLISHING_BOUNDARY_STEPS = {WINDOWS_INITIALIZATION_STEP, WINDOWS_STAGING_STEP}
@@ -713,7 +716,7 @@ def job_intervals(choices):
     return intervals
 
 
-def job_identity(run_id, attempt, head_sha, repository, job):
+def job_identity(run_id, attempt, head_sha, repository, head_branch, job):
     missing, conflicts = [], []
     repository_field = job.get('repository')
     if isinstance(repository_field, dict):
@@ -733,6 +736,12 @@ def job_identity(run_id, attempt, head_sha, repository, job):
             missing.append(field)
         elif str(observed) != str(expected):
             conflicts.append(field)
+    branch = job.get('head_branch')
+    if branch is not None:
+        if head_branch is None:
+            missing.append('head_branch')
+        elif branch != head_branch:
+            conflicts.append('head_branch')
     if not positive_id(job.get('id')):
         missing.append('job_id')
     return missing, conflicts
@@ -769,11 +778,14 @@ def observe_job(job, *, identity, requested, label=None, harness_steps=HARNESS_S
 
 
 def windows_aggregate_cache(caches):
-    if (not isinstance(caches, dict) or caches.keys() != WINDOWS_PRODUCERS.keys()
+    if (not isinstance(caches, dict)
+            or caches.keys() not in (set(WINDOWS_LANES), set(WINDOWS_WORKSPACE_LANES))
             or not all(isinstance(state, str) and state in CACHE_STATES | {'unknown'} for state in caches.values())):
         raise ValueError('Expected one cache state per Windows producer.')
-    required = {state for lane, state in caches.items() if lane != 'python'}
-    if caches['python'] == 'not_requested' and len(required) == 1 and 'not_requested' not in required:
+    without_cache = {'python', 'recovery'} if 'workspace' in caches else {'python'}
+    required = {state for lane, state in caches.items() if lane not in without_cache}
+    if (all(caches[lane] == 'not_requested' for lane in without_cache)
+            and len(required) == 1 and 'not_requested' not in required):
         return next(iter(required))
     return 'unknown'
 
@@ -917,7 +929,17 @@ def windows_clock_lanes(run, *, identified=False):
     # matrix already required an identified layout and all of its members.
     if identified and not workflow.get('windows_layout_identified', workflow['matrix_complete']):
         return ()
+    if workflow.get('windows_workspace_producer'):
+        return WINDOWS_WORKSPACE_LANES
     return WINDOWS_LANES if workflow.get('windows_recovery_producer') else LEGACY_WINDOWS_LANES
+
+
+def windows_cache_for_layout(sample, run):
+    workflow, caches = run['workflow'], sample.get('windows_caches', {})
+    if (workflow.get('windows_recovery_producer') and not caches
+            or bool(workflow.get('windows_workspace_producer')) != ('workspace' in caches)):
+        return 'unknown'
+    return sample['cache']
 
 
 def split_windows_clock(run):
@@ -947,7 +969,7 @@ def hosted_timing(run, jobs):
     attempt = str(run['run_attempt']) if run.get('run_attempt') is not None else None
     run_id = str(run['id'])
     requested = timestamp(run.get('created_at')) if attempt == '1' else None
-    identity = (run_id, attempt, run.get('head_sha'), repository)
+    identity = (run_id, attempt, run.get('head_sha'), repository, run.get('head_branch'))
     rows, siblings = [], []
     for job in jobs:
         name = job.get('name')
@@ -1058,7 +1080,8 @@ def valid_sample(sample):
         return False
     if 'windows_caches' in sample and (
             sample['platform'] != 'Windows' or sample['profile'] != 'full'
-            or windows_aggregate_cache(sample['windows_caches']) != sample['cache']):
+            or windows_aggregate_cache(sample['windows_caches']) != sample['cache']
+            or ('workspace' in sample['windows_caches'] and (not ci or ci['event'] != 'pull_request'))):
         return False
     if 'windows_lineage' in sample and not valid_windows_lineage(sample):
         return False
@@ -1173,6 +1196,9 @@ def valid_clock(run):
                     for flag in ('windows_layout_identified', 'windows_layout_disputed', 'windows_profile_disputed'))
             and ('windows_recovery_producer' not in workflow
                  or (workflow.get('windows_split') is True and workflow['windows_recovery_producer'] is True))
+            and ('windows_workspace_producer' not in workflow
+                 or (workflow.get('windows_recovery_producer') is True
+                     and workflow['windows_workspace_producer'] is True and run['event'] == 'pull_request'))
             and isinstance(jobs, list) and isinstance(siblings, list) and all(
                 labels(job, ('job_id', 'platform', 'runner_label', 'status', 'conclusion'))
                 and (job.get('name') is None or isinstance(job['name'], str))
@@ -1188,7 +1214,7 @@ def valid_clock(run):
                      and all(isinstance(step, str) and step in WINDOWS_ROLE_STEPS | WINDOWS_PROFILE_STEPS.keys()
                              for step in job.get('publishing_steps', ())))
                 and (isinstance(job.get('executed_layout_steps', []), list)
-                     and all(isinstance(step, str) and step in WINDOWS_LAYOUT_STEPS
+                     and all(isinstance(step, str) and step in WINDOWS_MARKERS
                              and step in job.get('publishing_steps', ())
                              for step in job.get('executed_layout_steps', ())))
                 and valid_step_facts(job)
@@ -1461,7 +1487,7 @@ def reconcile_steps(jobs, *, skipped=False):
             conclusions[name].add(row['conclusion'])
         if 'status' in row:
             statuses[name].add(row['status'])
-        if name in WINDOWS_LAYOUT_STEPS:
+        if name in WINDOWS_MARKERS:
             recorded.add(name)
         if name in TIMED_STEPS or name in ACTIONS_ORDER_STEPS or name in PUBLISHING_BOUNDARY_STEPS:
             endpoints = step_timestamps(row)
@@ -1644,7 +1670,7 @@ def windows_dependency_job(observed, attempt, layout):
         # observed dependency check establishes that the job consumes lanes.
         steps = parent.steps or {}
         if any(step.eligible and step.conclusions in ({'success'}, {'failure'})
-               for name, step in steps.items() if name in WINDOWS_LAYOUT_STEPS):
+               for name, step in steps.items() if name in WINDOWS_MARKERS):
             return parent
     return None
 
@@ -1704,7 +1730,7 @@ def job_claim_outcome(claims):
 
 
 def publishing_step(name, step):
-    if name in WINDOWS_LAYOUT_STEPS:
+    if name in WINDOWS_MARKERS:
         # A skipped layout marker can describe the shape after the aggregate
         # was independently identified.
         return step.recorded and not step.disputed
@@ -1736,7 +1762,7 @@ def job_role_claims(claims, event, issues):
     if event not in NORMAL_EVENTS or skipped:
         return JobClaims(claims, roles, False, set(), False, joined, outcome)
     steps = {name for name, step in evidence.items() if publishing_step(name, step)}
-    executed_layout = any(evidence[name].succeeded for name in steps & WINDOWS_LAYOUT_STEPS.keys())
+    executed_layout = any(evidence[name].succeeded for name in steps & WINDOWS_MARKERS)
     labels = {label for _, _, job in claims for label in job.get('runner_labels', ())}
     aggregate_role = ('platform', 'Windows')
     windows = 'windows-latest' in labels or any(role == aggregate_role or role[0] == 'producer'
@@ -1748,7 +1774,7 @@ def job_role_claims(claims, event, issues):
     # Older captures retained layout names even when the steps were skipped.
     # Their names describe the layout once other evidence identifies the aggregate.
     if aggregate_role not in roles | step_roles:
-        steps.difference_update(WINDOWS_LAYOUT_STEPS)
+        steps.difference_update(WINDOWS_MARKERS)
     producer_family = WINDOWS_LANE_SELECTOR in steps or any(job.get('producer_family') for _, _, job in claims)
     disputed = bool(roles and step_roles - roles)
     return JobClaims(claims, roles or step_roles, producer_family, steps, disputed, joined, outcome)
@@ -1766,12 +1792,20 @@ def disputed_runner_labels(role, claims):
 
 def joined_job_claims(by_id, attempt, layout):
     by_role = defaultdict(list)
+    workspace = ('producer', WINDOWS_PRODUCERS['workspace'])
+    inactive_workspace = (attempt[3] == 'push' and not layout['workflow'].get('windows_layout_disputed')
+                          and any(WINDOWS_WORKSPACE_MARKER in claims.steps for claims in by_id.values())
+                          and sum(workspace in claims.roles for claims in by_id.values()) == 1)
     for job_id, (claims, roles, producer_family, _, step_conflict, step_evidence, outcome) in by_id.items():
         if not roles:
             if not producer_family:
                 continue
             roles = {('sibling', job_id)}
         conclusion, outcome_conflict = outcome
+        if inactive_workspace and roles == {workspace} and conclusion == 'skipped':
+            # Keep the original skipped job in the capture. A later claim
+            # that it ran must still be reconciled with this observation.
+            continue
         if all(role[0] == 'sibling' for role in roles) and (not split_windows_clock(layout) or conclusion == 'skipped'):
             continue
         conflicts = {field for _, _, job in claims for field in job['identity_issues']['conflicts']}
@@ -1866,28 +1900,35 @@ def attempt_layout(runs, by_id, attempt, issues):
     if disputed:
         timing_issue(issues, {'run_id': attempt[1], 'fields': disputed, 'error': 'Conflicting complete attempt clocks.'})
     older = [row for row in runs if not row.get('job_facts') and split_windows_clock(row)]
-    roles, widths, scopes = set(), set(), set()
+    roles, markers, scopes = set(), set(), set()
     split = bool(older)
     disputed_profile_step = False
     for claims in by_id.values():
         roles.update(claims.roles)
         split |= claims.producer_family
-        widths.update(WINDOWS_LAYOUT_STEPS[step] for step in claims.steps & WINDOWS_LAYOUT_STEPS.keys())
+        markers.update(claims.steps & WINDOWS_MARKERS)
         if ('platform', 'Windows') in claims.roles:
             scopes.update(WINDOWS_PROFILE_STEPS[step] for step in claims.steps & WINDOWS_PROFILE_STEPS.keys())
             named = claims.step_evidence.named
             disputed_profile_step |= any(named[name].identity_disputed
                                          for name in WINDOWS_PROFILE_STEPS.keys() & named.keys())
     has_recovery = ('producer', WINDOWS_PRODUCERS['recovery']) in roles
-    split |= bool(widths or any(scope == 'producer' for scope, _ in roles))
+    split |= bool(markers or any(scope == 'producer' for scope, _ in roles))
     if attempt[3] not in NORMAL_EVENTS:
         return {**workflow, 'windows_split': False}
     old_workflows = [row['workflow'] for row in older]
-    widths.update(bool(row.get('windows_recovery_producer')) for row in old_workflows
-                  if row.get('windows_layout_identified', row['matrix_complete']))
-    if has_recovery:
-        widths.add(True)
-    recovery, layout_disputed = known_value(widths)
+    marker_lanes = {
+        WINDOWS_AGGREGATE_MARKER: LEGACY_WINDOWS_LANES,
+        WINDOWS_RECOVERY_MARKER: WINDOWS_LANES,
+        WINDOWS_WORKSPACE_MARKER: WINDOWS_WORKSPACE_LANES if attempt[3] == 'pull_request' else WINDOWS_LANES,
+    }
+    widths = {len(marker_lanes[marker]) for marker in markers}
+    widths.update(len(windows_clock_lanes(row, identified=True)) for row in older
+                  if windows_clock_lanes(row, identified=True))
+    if has_recovery and len(WINDOWS_WORKSPACE_LANES) not in widths:
+        widths.add(len(WINDOWS_LANES))
+    width, layout_disputed = known_value(widths)
+    layout_disputed |= len(markers) > 1
     layout_disputed |= any(row.get('windows_layout_disputed') for row in old_workflows)
     # Early captures retained an observed scope at attempt level. Its explicit
     # value remains a claim alongside newer per-job publishing observations.
@@ -1901,9 +1942,11 @@ def attempt_layout(runs, by_id, attempt, issues):
     if profile_disputed:
         timing_issue(issues, {'run_id': attempt[1], 'platform': 'Windows',
                               'error': 'Conflicting Windows publishing profiles.'})
-    return {**workflow, 'windows_split': split, 'windows_layout_identified': recovery is not None and not layout_disputed,
-            'windows_recovery_producer': True in widths or any(row.get('windows_recovery_producer')
-                                                               for row in old_workflows),
+    workspace_claimed = len(WINDOWS_WORKSPACE_LANES) in widths
+    return {**workflow, 'windows_split': split, 'windows_layout_identified': width is not None and not layout_disputed,
+            'windows_recovery_producer': workspace_claimed or len(WINDOWS_LANES) in widths
+            or any(row.get('windows_recovery_producer') for row in old_workflows),
+            'windows_workspace_producer': attempt[3] == 'pull_request' and workspace_claimed,
             'windows_profile': profile, 'windows_profile_disputed': profile_disputed,
             'windows_layout_disputed': layout_disputed}
 
@@ -2015,10 +2058,9 @@ def project_listed_clocks(run):
     clock = evidence.attempts[attempt]
     workflow = run['workflow']
     workflow.update({field: value for field, value in clock['workflow'].items() if value is not None})
-    if not workflow['windows_split']:
-        workflow.pop('windows_recovery_producer', None)
-    elif not workflow['windows_recovery_producer']:
-        workflow.pop('windows_recovery_producer', None)
+    for field in ('windows_recovery_producer', 'windows_workspace_producer'):
+        if not workflow.get(field):
+            workflow.pop(field, None)
     parents = [job for job in run['jobs'] if job['platform'] == 'Windows']
     fact = None
     if split_windows_clock(clock):
@@ -2565,13 +2607,23 @@ def reconcile_cache_metadata(sample, observations, matched, issues):
     conflict = scalar_disputed
     if scalar_disputed:
         cache_conflict_issue(sample, windows_producer_job_name(sample), issues)
+    layouts = {frozenset(vector) for vector in vectors}
+    if len(layouts) > 1:
+        cache_conflict_issue(sample, None, issues)
+        result.pop('windows_caches', None)
+        result.update(cache='unknown', cache_conflict=True)
+        return result
+    lanes = (WINDOWS_WORKSPACE_LANES if any('workspace' in layout for layout in layouts)
+             else WINDOWS_LANES)
+    without_cache = {'python', 'recovery'} if 'workspace' in lanes else {'python'}
     resolved = {}
-    for lane, role in WINDOWS_PRODUCERS.items():
+    for lane in lanes:
+        role = WINDOWS_PRODUCERS[lane]
         claims = [vector[lane] for vector in vectors] + matched.get(lane, [])
         value, disputed = known_value(claims, 'unknown')
         # A legacy scalar class can disagree with a lane, but cannot supply
-        # any individual field of a four-producer cache vector.
-        expected = 'not_requested' if lane == 'python' else scalar
+        # any individual field of a producer cache vector.
+        expected = 'not_requested' if lane in without_cache else scalar
         if disputed or (value != 'unknown' and expected != 'unknown' and value != expected):
             cache_conflict_issue(sample, role, issues)
             conflict = True
@@ -2600,7 +2652,7 @@ def matched_producer_caches(sample, producers, run):
         return {}
     # A component vector names its cache fields independently of job clocks.
     # A partial listing can lack the recovery job without disproving its report.
-    lanes = WINDOWS_LANES if 'windows_caches' in sample else windows_clock_lanes(run)
+    lanes = sample.get('windows_caches') or windows_clock_lanes(run)
     if not lanes:
         return {}
     rows = {row['id']: row for row in sample['checks'] if row['id'] in sample['selected']}
@@ -3047,9 +3099,8 @@ def merge_samples(samples, hosted, issues):
         seconds.update({key: job['seconds'][key] if job else None for key in ATTEMPT_SECONDS})
         seconds.update({key: duration(job['seconds'].get(key)) if job else None for key in SPLIT_SECONDS})
         cache = 'unknown' if unqualified else sample['cache']
-        if (run and run['workflow'].get('windows_recovery_producer') and sample['platform'] == 'Windows'
-                and sample['profile'] == 'full' and 'windows_caches' not in sample):
-            cache = 'unknown'
+        if not unqualified and run and sample['platform'] == 'Windows' and sample['profile'] == 'full':
+            cache = windows_cache_for_layout(sample, run)
         origins = {}
         if job and sample['profile'] == 'full':
             # Coalescing can enrich a report with compatible cache or proof metadata.
