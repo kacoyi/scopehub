@@ -13927,6 +13927,40 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "timing-in-job-predecessor-alternative-crosses-earlier-step",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 and M0-155 CHANGES_REQUESTED on 2e7fd0b6b156115ef087f4e209494caa6015cb7d, registered at d86f7c6ed94c0680162cfd3c25ae301246e8ea18. See .reports/m0-150-neighbor-order-d86f7c6e/intake-sources.json and the original native command/output files under .reports/m0-150-1f6c7cda-bounds/coordinator-recovery/primary-2e7fd0b6: M0-150 (SHA-256 b0e2202cd01425df62c932015b10baf7782df59b75351ab5257f215808742cde) and M0-155 (SHA-256 2d633d29b8c9c979571924c6c9c9f4328420203399eecff4bf042bf10f80a273).",
+      "observation": "In PR 123 run 45965137241, browser job 140391906947, step 14 ends at 08:24:49Z in both listings. Step 15 offers the genuine 08:25:14Z end and an impossible 08:24:48Z end. The conflicting copy is observed both without a step 15 start and with an alternate 08:24:47Z start. The feasible end leaves only 783 seconds before the altered report at 08:38:17Z, less than its 793.422 measured seconds. The copy still receives 983 runner-seconds alone and displaces the genuine report when paired. Raw and compact reports reproduce this on ordinary, offline weekly and new-process archive reads while independent clocks stay 983/3337.",
+      "task_ids": [
+        "M0-150",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-in-job-successor-alternative-crosses-later-step",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 and M0-155 CHANGES_REQUESTED on 2e7fd0b6b156115ef087f4e209494caa6015cb7d, registered at d86f7c6ed94c0680162cfd3c25ae301246e8ea18. See .reports/m0-150-neighbor-order-d86f7c6e/intake-sources.json and the original native command/output files under .reports/m0-150-1f6c7cda-bounds/coordinator-recovery/primary-2e7fd0b6: M0-150 (SHA-256 b0e2202cd01425df62c932015b10baf7782df59b75351ab5257f215808742cde) and M0-155 (SHA-256 2d633d29b8c9c979571924c6c9c9f4328420203399eecff4bf042bf10f80a273).",
+      "observation": "In the same browser job, step 26 starts at 08:38:35Z in both listings. Unnamed step 25 offers the genuine 08:38:31Z start and an impossible 08:38:36Z start. The conflicting copy is observed both without a step 25 end and with an alternate 08:38:37Z end. The copy recorded at 08:38:34Z still receives 983 runner-seconds alone and displaces the genuine report when paired. Raw and compact reports reproduce this on ordinary, offline weekly and new-process archive reads while independent clocks stay 983/3337. Single listings that lack the distinguishing evidence and pairs with feasible competing clocks remain ambiguous.",
+      "task_ids": [
+        "M0-150",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
