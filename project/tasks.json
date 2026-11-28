@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-155",
+  "focus_task_id": "M0-156",
   "tasks": [
     {
       "id": "M0-001",
@@ -28208,7 +28208,8 @@
         "Replay PR 96 legacy partial-platform acquisition, a failed current jobs request beside retained jobs, repeated save of a partial equal-time copy, and boolean acquisition counts in both input orders.",
         "Qualify a collection before it can contribute to receipt authority or withdraw it. At the public entry, preserve genuine PR 96 and push receipts through permutation, duplicate malformed inputs and save/reopen. Distinguish unavailable, malformed and independently supported disagreement, and verify summary reopen with the previous supported reader.",
         "Use each collection's own run membership to qualify the unsuccessful count, apply the weekly acquisition limit and distinguish a known non-commit object from an unavailable historical commit. Reopen both orders of the genuine PR 96 and push archive against the contradictory copies, and preserve real equal-time uncertainty and later valid partial coverage.",
-        "Reject counts contradicting independently known outcomes of exact collection member attempts and reject per-event limits smaller than the actual bound distinct run counts. Require the collection job listing for each receipt and preserve qualified genuine ties and partial recovery."
+        "Reject counts contradicting independently known outcomes of exact collection member attempts and reject per-event limits smaller than the actual bound distinct run counts. Require the collection job listing for each receipt and preserve qualified genuine ties and partial recovery.",
+        "Replay the unchanged PR 96 unavailable-listing, missing-outcome and full-collection inputs through scripts/timing.py in both orders and a separate cold process. Reject the contradicted collection before chronology reduction and retain the original two or four exact receipts, independent runner clocks, genuine disagreements and later partial collections."
       ],
       "checks": [
         "project-state",
@@ -28227,7 +28228,7 @@
         }
       ],
       "evidence": [],
-      "next_action": "Use .reports/m0-155-829afd0b-reconciliation/handoff.json for the clean material source and local evidence. Keep the five downstream scopes gated on three independent approvals on that source. The coordinator owns hosted and native qualification and the scheduled observation on 2026-11-28 at 16:17 UTC.",
+      "next_action": "Use .reports/m0-156-53449702-collection/handoff.json for the local collection correction and evidence. Keep the five downstream scopes gated on three independent approvals on the same material source. The coordinator owns hosted and native qualification and the scheduled observation on 2026-11-28 at 16:17 UTC.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -28266,13 +28267,15 @@
           "contracts/decisions/0041-qualify-ordered-timing-provenance.json",
           "observations/repo-hygiene-20261125/independent-final-m0-156-343bb62e/original-assistant-response.jsonl",
           "observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261126T1226Z/assignments/t1jp/original-assistant-response.jsonl",
-          "observations/repo-hygiene-20261125/independent-final-m0-156-829afd0b/original-assistant-response.jsonl"
+          "observations/repo-hygiene-20261125/independent-final-m0-156-829afd0b/original-assistant-response.jsonl",
+          ".reports/m0-156-53449702-collection/originals/M0-156/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "The substitute Git fingerprint is computable with the standard library; importing the full project entry brings an unrelated parser into the weekly job.",
           "Raw Git commit headers keep exact parent and tree facts available at the shallow boundary. An unavailable object cannot contradict a properly bound proof, while a known inconsistent object or impossible parent relation can.",
           "Apply shared invariants to original facts before projection. Verify stable metrics and report attribution independently on the real producer pairs and cold readers.",
-          "Only claims surviving independent report admission can participate in attempt-wide checkout reduction."
+          "Only claims surviving independent report admission can participate in attempt-wide checkout reduction.",
+          "Qualify collection counts using completed outcomes for locally bound member attempts across all admitted inputs before comparing collection times. Keep receipt qualification tied to each acquisition and reopen disagreement witnesses independently."
         ],
         "risks": [
           {
@@ -28497,6 +28500,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "timing-collection-outcome-authority-isolated-by-archive: Independent review of 534497026f29fdd9ea3973fc0564ccdfa1c0d528 read the two unchanged PR 96 collection controls with bound attempts 45563183277/1 and 45838575346/1. Both orders treated a one-failure claim as a same-time disagreement despite independent success observations for both attempts, withdrawing two genuine push receipts. Cold reopen discarded the genuine collection. With the full acquisition instead, the contradicted claim reduced four receipts to two and cold reopen left none.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain the recorded evidence and archived identities; revert an extraction that changes the validated execution inputs or weekly runtime requirements.",
@@ -28557,7 +28567,8 @@
             "When a PR preview is unavailable, compare the claimed merge tree with locally observable direct ancestry from the event head header, including at shallow boundaries.",
             "Use local Git parent observations to distinguish proved ancestry, examined boundaries and inconclusive traversal before evaluating either missing-preview fallback.",
             "Allow only admitted report claims to participate in cross-platform checkout and receipt comparison.",
-            "Bind saved receipts to successful acquisition for their own run in that collection and compare missing-run membership as a set."
+            "Bind saved receipts to successful acquisition for their own run in that collection and compare missing-run membership as a set.",
+            "Use independent ordered-read evidence for the same bound attempts before reconciling saved collection chronology. Preserve a qualified witness and its acquired receipt claims when a sibling cannot be admitted."
           ],
           "data_plan": "Use the retained real run and the existing committed-tree fingerprint format. Compare old and new identity results on supported inputs. Read existing proof shapes through the shared Git checks with system Python. Keep original reports and distinguish unsupported attribution from independently measured harness time.",
           "cleanup": "Share the authoritative identity calculation and remove redundant imports and transitional code after both call sites pass. The coordinator commissions three material decisions first, one for job facts, one for historical publisher selection and outcomes, and one for checkout proof, each with an ordinary genuine positive. Reuse originals by digest and consolidate reproducers and risk assertions under each owner. Hold downstream reviews while a primary decision is red. Obtain the remaining formal decisions before acceptance, and compare against the next genuine capture or product change when available."

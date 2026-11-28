@@ -12601,6 +12601,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "timing-collection-outcome-authority-isolated-by-archive",
+      "status": "open",
+      "severity": "major",
+      "source": "M0-156 independent decision on material 534497026f29fdd9ea3973fc0564ccdfa1c0d528, recorded in c03f2108455134e74aa1787b81467ac33f3a8ced. Original final response: .reports/m0-156-53449702-collection/originals/M0-156/original-assistant-response.jsonl (SHA-256 222d736ea4b010fbbca72f277cfb4ba55090a3f79925252d8e903acab85e79da).",
+      "observation": "Independent review of 534497026f29fdd9ea3973fc0564ccdfa1c0d528 read the two unchanged PR 96 collection controls with bound attempts 45563183277/1 and 45838575346/1. Both orders treated a one-failure claim as a same-time disagreement despite independent success observations for both attempts, withdrawing two genuine push receipts. Cold reopen discarded the genuine collection. With the full acquisition instead, the contradicted claim reduced four receipts to two and cold reopen left none.",
+      "task_ids": [
+        "M0-156"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
