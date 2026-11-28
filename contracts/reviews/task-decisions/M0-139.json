@@ -880,6 +880,26 @@
       "requested_at": "2026-11-28T08:56:27.546366+00:00",
       "request_id": "5cf19986a7604e4087dc03315a5e9027eabe7488403d472af69472a7fee27536",
       "evidence_sha256": "d445ee2017ab3bfcd2f52c5e9638181957a7d01803f9c03ff1fcc664e5bdb27c"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ce2fdc6c58642f7665627b771085c1673eb49be5",
+      "verdict": "approved",
+      "decision": "APPROVE M0-139 ce2fdc6c58642f7665627b771085c1673eb49be5",
+      "scope": "APPROVE M0-139 ce2fdc6c58642f7665627b771085c1673eb49be5",
+      "observation": "On the reviewed commit, all 983 independently discovered Python test IDs matched the two original Windows manifests from PR 123 run 46127361251 in order, with 578 assigned to Python and 405 to recovery.",
+      "reviewer": "Independent Astra Standard (t1pq)",
+      "original_sha256": "79d7b24efe893f519e77adbbe6a685e897476d06915921906410ec21ecae7ed3",
+      "response_id": "ddb39136e53724b9a53c552458eb683093f7183305d1f20b7852f00b4a90f7da",
+      "response_sha256": "46e8542d4543c5f5506292773fe0a98088c5c6c178fd76cf3369a64dec1909c6",
+      "legacy_response_sha256": "f6e1dc0c7d3f7337bfa991dc0b4c5a563f8f4a6c513791762cbb46f70c838fdf",
+      "observation_body_sha256": "4b07b4fa2ac70359364f5980819ec0c04bdc5d0966ddbf57bbee15595ff149fb",
+      "event": {
+        "id": "msg_0a6d73b1dccc9d4f016b0a9a8a48d887d1a1f3038f1d3b365d",
+        "timestamp": "2026-11-28T09:10:57.735Z"
+      },
+      "supersedes": "5cf19986a7604e4087dc03315a5e9027eabe7488403d472af69472a7fee27536",
+      "evidence_sha256": "85e137642ddd8c34197b6a812f198265b11b6eca75823095b74388d3974c70a1"
     }
   ]
 }

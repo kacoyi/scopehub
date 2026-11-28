@@ -938,6 +938,26 @@
       "requested_at": "2026-11-28T08:56:28.321862+00:00",
       "request_id": "efbfa18ca44b1d19cafca7ec457b202ee44265dd73a8df69ee6a1aa912d78d30",
       "evidence_sha256": "9f087218aa00bae142e2dd3fe3da700da7197366390d3d9ec31c23ee6a7be49f"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ce2fdc6c58642f7665627b771085c1673eb49be5",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 ce2fdc6c58642f7665627b771085c1673eb49be5",
+      "scope": "APPROVE M0-146 ce2fdc6c58642f7665627b771085c1673eb49be5",
+      "observation": "I independently reproduced the ordered 578/405 split and verified that the publication validator rejected the genuine four-case output from both the LF and CRLF former-allocation controls.",
+      "reviewer": "Independent Astra Standard (t1pr)",
+      "original_sha256": "d22e09a0d602a1de7335b2c8bda298af80422bdcb9553849cbf7aeb74779425d",
+      "response_id": "705f2edf3be8ed86380201fcfd6a4e43e52c383a819645b5869daa136194ab01",
+      "response_sha256": "e254fe2eaeaa1795bb2b40116891f8c0407bcc26807d5ea1cae1b601f0bb8efa",
+      "legacy_response_sha256": "9429d4d492249076e4742d9d5cbefbf9b951beab42ce5fbf704d907bd304bf8b",
+      "observation_body_sha256": "9154314e9759229043eb06fb1340564316a93ad4f008af2beebba3d790b73901",
+      "event": {
+        "id": "msg_02a8931f712a7055016b0a9b184d1487d18b4aa90043456e1c",
+        "timestamp": "2026-11-28T09:13:22.475Z"
+      },
+      "supersedes": "efbfa18ca44b1d19cafca7ec457b202ee44265dd73a8df69ee6a1aa912d78d30",
+      "evidence_sha256": "c9b67cfa882c44f7a49eb521ef3e0ff74ad1993c8223f5550d54a23ce0cb9682"
     }
   ]
 }

@@ -155,6 +155,26 @@
       "requested_at": "2026-11-28T08:56:29.119494+00:00",
       "request_id": "b4d0d43ebe8ac066b3b895a4699280cf2bc16c0c3135e1ae4648bc7d3917a679",
       "evidence_sha256": "bc1e3c21da04a6b06b4eb9af0c0b8b55dc6577207a1bb387368bf58ed72a13eb"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ce2fdc6c58642f7665627b771085c1673eb49be5",
+      "verdict": "approved",
+      "decision": "APPROVE M0-179 ce2fdc6c58642f7665627b771085c1673eb49be5",
+      "scope": "APPROVE M0-179 ce2fdc6c58642f7665627b771085c1673eb49be5",
+      "observation": "With the same synthetic document readable throughout, the handoff helper returned ready for a matching publication notice, rejected an explicit refusal, and reached its 12-second deadline when the notice named another port.",
+      "reviewer": "Independent Astra Standard (t1pn)",
+      "original_sha256": "5a30857271e2690b92d26d10fe87c2f5d40d66f6603c4fd3887311644c933e8d",
+      "response_id": "d3aec04b7bf3d8f82357e2b3a73b5be9ccc06b984ed3196d6a7de8b93cbcaf01",
+      "response_sha256": "95caf28e2f40671bf6a696e1c18d54622866dede0c502e7ede2c31878337e28d",
+      "legacy_response_sha256": "b23b98a6cc396bea5403c5bc9d18d378c27dbcc528a4c6c4d79d1835da34ec69",
+      "observation_body_sha256": "f148a27c68fdd247c11c7878f7a552177fdce46336d198c52114c87b271c221a",
+      "event": {
+        "id": "msg_0f8e8f4d987d4bca016b0a9a222fc487d29cabe4fdd8e95267",
+        "timestamp": "2026-11-28T09:09:16.284Z"
+      },
+      "supersedes": "b4d0d43ebe8ac066b3b895a4699280cf2bc16c0c3135e1ae4648bc7d3917a679",
+      "evidence_sha256": "43e296ed6b201f682566929d81acfc3d66a3e81235284563b09289bbdaa0ce9f"
     }
   ]
 }
