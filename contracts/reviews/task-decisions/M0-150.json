@@ -668,6 +668,26 @@
       "requested_at": "2026-11-28T02:33:51.523178+00:00",
       "request_id": "0ca1e381685c682f5be48dee5821b366db3baed5ba6f1d2a1bb7467f6212f690",
       "evidence_sha256": "95718613806e1fd362f30e185dfcd8f559e27b02940cb7400f4e0a22e8ca1b5f"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "534497026f29fdd9ea3973fc0564ccdfa1c0d528",
+      "verdict": "approved",
+      "decision": "APPROVE M0-150 534497026f29fdd9ea3973fc0564ccdfa1c0d528",
+      "scope": "APPROVE M0-150 534497026f29fdd9ea3973fc0564ccdfa1c0d528",
+      "observation": "On PR 123 run 45965137241, the reader rejected a browser report one nanosecond past the verified upper bound and preserved the genuine report’s 983 runner-seconds in both input orders and after cold reopen.",
+      "reviewer": "Independent Astra Standard (t1kc)",
+      "original_sha256": "d2c16ba41b3fba6bf3b006fb5902c18324c63d71e0434da51a6922d2b8fb3db0",
+      "response_id": "f098fe24dc4497ba47d71c2697341a3cf7e25c7a9ebe9f170587ee7924608a79",
+      "response_sha256": "0dc2990e5f53e6a92a45a19657016700942677f38650c29ae7d7fbb016f8be89",
+      "legacy_response_sha256": "a288762124b25de1d05add306ef19f1845fd812745bdb69adc10f42f6ebf1e8c",
+      "observation_body_sha256": "0ea917daa870f7c50cbb87b547d194fc46c091aa779899488acca3281d8f3042",
+      "event": {
+        "id": "msg_043d6cccf48933d1016b0a3ed5e79487d09612af19347ce0a2",
+        "timestamp": "2026-11-28T02:39:39.821Z"
+      },
+      "supersedes": "0ca1e381685c682f5be48dee5821b366db3baed5ba6f1d2a1bb7467f6212f690",
+      "evidence_sha256": "a908840f7bf438c5c513c46ac10171700f6e73326012072092a21c2052a23b08"
     }
   ]
 }

@@ -677,6 +677,26 @@
       "requested_at": "2026-11-28T02:33:52.486908+00:00",
       "request_id": "5c9b30e5040897205d40188c0b3bdc61f5fb52e561f1dda211ea4ed225ba1d42",
       "evidence_sha256": "8a51abbe32f800517f868aa4a3195f4f4253e02effdc741c68dcc98be46e9054"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "534497026f29fdd9ea3973fc0564ccdfa1c0d528",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 534497026f29fdd9ea3973fc0564ccdfa1c0d528",
+      "scope": "CHANGES_REQUESTED M0-156 534497026f29fdd9ea3973fc0564ccdfa1c0d528",
+      "observation": "Reading the two retained PR 96 controls together in either order suppressed both genuine push receipts, and reopening the saved archive discarded the valid collection.",
+      "reviewer": "Independent Astra Standard (t1kd)",
+      "original_sha256": "222d736ea4b010fbbca72f277cfb4ba55090a3f79925252d8e903acab85e79da",
+      "response_id": "71586e59fc09e6abc1c507f120e252f315c1d1841c7b0e6f5703164322ccf56a",
+      "response_sha256": "323be87e9e47eee49909629205512d774cfdb61d4bacd622d530638917b68cdd",
+      "legacy_response_sha256": "fc41305cc7b138338ceb53900003bd66a7f31bedb90108e5554384565a3199f6",
+      "observation_body_sha256": "497fd54a0fab780baff362d92520641f7fc671142b209640fdc1b702c4ad56bd",
+      "event": {
+        "id": "msg_09c8478b8dfadbe2016b0a3eb914dc87d0b9474a54ae9cc357",
+        "timestamp": "2026-11-28T02:39:11.458Z"
+      },
+      "supersedes": "5c9b30e5040897205d40188c0b3bdc61f5fb52e561f1dda211ea4ed225ba1d42",
+      "evidence_sha256": "f589562b90c52c2bd4680342b3a8d6f6252bbe060e08b2953fed15cb31d32f10"
     }
   ]
 }
