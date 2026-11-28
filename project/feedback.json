@@ -9809,7 +9809,8 @@
         "project-state",
         "dependency-review",
         "architecture",
-        "python-contracts-workers"
+        "python-contracts-workers",
+        "ui-build"
       ],
       "diagnostic_reports": [
         {

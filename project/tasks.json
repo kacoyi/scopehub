@@ -29709,7 +29709,9 @@
         "pnpm-workspace.yaml",
         "patches",
         "THIRD_PARTY_NOTICES",
-        "tests/project"
+        "tests/project",
+        "scripts/publisher_advisory.py",
+        ".github/workflows/verify.yml"
       ],
       "decision_refs": [
         "0004",
@@ -29723,7 +29725,8 @@
         "project-state",
         "dependency-review",
         "architecture",
-        "python-contracts-workers"
+        "python-contracts-workers",
+        "ui-build"
       ],
       "evidence": [],
       "diagnostic_reports": [
@@ -29738,7 +29741,7 @@
           "report_sha256": "9dfd3e179d35d27fee620e016f2c702ee0ff6677a3fc62111ee89d8c4ec0524b"
         }
       ],
-      "next_action": "Assess each expired disposition using the current first-party advisory, the exact locked graph and existing patch evidence. Apply a supported dependency correction or substantiate the eligible disposition. Verify the public command and positive and rejected controls on the exact candidate.",
+      "next_action": "Review the clean local candidate and retained M0-181 results through the coordinator-owned independent review before integration. Keep the full warm Windows timing qualification in M0-146.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -29754,7 +29757,7 @@
           "project/checks.json"
         ],
         "hypotheses": [
-          "The exact policy passes before the deadline and refuses the two expiring dispositions independently on November 28. The suitable update or replacement for each is unverified."
+          "The original policy fails on November 28 even without a matching OSV finding. With the retired entries removed, the ordinary review should pass against current OSV and refuse either finding if OSV returns it again."
         ],
         "risks": [
           {
@@ -29763,7 +29766,8 @@
               "project-state",
               "dependency-review",
               "architecture",
-              "python-contracts-workers"
+              "python-contracts-workers",
+              "ui-build"
             ]
           }
         ],
@@ -29776,7 +29780,9 @@
           "entrypoints": [
             "scripts/dependencies.py",
             "project/dependencies.json",
-            "project/dependency-inventory.json"
+            "project/dependency-inventory.json",
+            ".github/workflows/verify.yml",
+            "pnpm-workspace.yaml"
           ],
           "rules": [
             {
@@ -29787,9 +29793,7 @@
           "non_goals": [
             "Keep the expiry rule, advisory coverage and previous task evidence. M0-146 owns the independent warm Windows objective."
           ],
-          "open_questions": [
-            "The exact policy passes before the deadline and refuses the two expiring dispositions independently on November 28. The suitable update or replacement for each is unverified."
-          ]
+          "open_questions": []
         },
         "evolution": {
           "kind": "replacement",
@@ -29797,10 +29801,11 @@
             "Preserve dependency review, expiry and the existing supported callers."
           ],
           "change": [
-            "Qualify the exact locked dependencies or a supported, evidence-bound disposition."
+            "Retire the block-buffer 0.10.4 discrepancy disposition. RustCrypto and OSV now agree on >=0.11.0,<0.12.1. The portable and Windows graphs use 0.10.4, and the Windows graph also uses the fixed 0.12.1.",
+            "Retire the picomatch 4.0.7 disposition and local patch. GitHub withdrew GHSA-fc5q-39xc-vjpf and OSV omits it for 4.0.7. npm still publishes 4.0.7 as latest. The resolved consumers are build tools and ScopeHub supplies source-controlled glob patterns."
           ],
           "data_plan": "Engineering dependency policy and reproducible locks are affected.",
-          "cleanup": "Retire superseded patches and dispositions once the new graph and affected callers are verified."
+          "cleanup": "Remove the retired scope guards and the hosted publisher prefetch used only by the block-buffer discrepancy. Remove the patch references from the pnpm lock and rebind the inventory to the new lock hash. Retain the exact package set, license records, original diagnostics and previous task receipts."
         }
       }
     }
