@@ -53,6 +53,11 @@ class RecoveryTests(unittest.TestCase):
         for name in names:
             shutil.copyfile(REPO / 'scripts' / name, self.root / 'scripts' / name)
 
+    def harness_scripts(self):
+        self.scripts('check.py', 'recovery.py', 'doctor.py', 'processes.py',
+                     'process_tree.py', 'storage.py', 'verification_evidence.py',
+                     'verification_report.py', 'verification_scope.py')
+
     def invoke(self, script, *args):
         # -S excludes site packages; a bad project.py cannot disable recovery.py.
         return subprocess.run([sys.executable, '-S', str(self.root / 'scripts' / script), *args],
@@ -220,8 +225,7 @@ class RecoveryTests(unittest.TestCase):
         self.assertEqual(original, (snapshot.parent / 'originals/project/tasks.json').read_bytes())
 
     def test_harness_import_failures_preserve_original_error_and_old_report(self):
-        self.scripts('check.py', 'recovery.py', 'doctor.py', 'processes.py',
-                     'process_tree.py', 'storage.py', 'verification_evidence.py')
+        self.harness_scripts()
         latest = (self.root / '.reports/test-report.json').read_bytes()
         for source, expected in [('import jsonschema\n', 'ModuleNotFoundError'),
                                  ('not valid Python !!!\n', 'SyntaxError')]:
@@ -239,8 +243,7 @@ class RecoveryTests(unittest.TestCase):
                 self.assertEqual((self.root / '.reports/test-report.json').read_bytes(), latest)
 
     def test_failure_before_run_creation_is_preserved(self):
-        self.scripts('check.py', 'recovery.py', 'doctor.py', 'processes.py',
-                     'process_tree.py', 'storage.py', 'verification_evidence.py')
+        self.harness_scripts()
         # A minimal project interface isolates the entry point from the live task ledger.
         (self.root / 'scripts/project.py').write_text(
             'class ProjectError(Exception): pass\n'
@@ -258,8 +261,7 @@ class RecoveryTests(unittest.TestCase):
         self.assertFalse((self.root / '.reports/runs').exists())
 
     def test_bootstrap_failure_retains_explicit_task_instead_of_unrelated_focus(self):
-        self.scripts('check.py', 'recovery.py', 'doctor.py', 'processes.py',
-                     'process_tree.py', 'storage.py', 'verification_evidence.py')
+        self.harness_scripts()
         (self.root / 'scripts/project.py').write_text('import jsonschema\n', encoding='utf-8')
         for arguments in [('--task', 'TEST-002'), ('--task=TEST-002',)]:
             with self.subTest(arguments=arguments):

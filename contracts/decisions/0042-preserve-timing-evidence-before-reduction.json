@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "id": "0042",
+  "title": "Preserve publishing bounds and acquisition observations before timing reduction",
+  "status": "accepted",
+  "recorded_at": "2026-11-28",
+  "context": "Independent reviews of 12e20ac4 found that a numbered step conflict unrelated to the report erased an independently observed initialization or staging bound. Saving the selected collection also discarded older acquisitions and candidates temporarily disqualified by the currently visible workflow outcomes. Adding outcome observations after reopen could produce receipts that a direct read withheld.",
+  "decision": "Keep independently qualified publishing boundary roles available when numbered step order cannot supply an additional bound. Continue using the step parser and feasible clock choices to qualify endpoint alternatives. Save distinct normalized acquisition observations with references to the exact available inputs in each observation's scope. On read, qualify receipts inside that scope, apply all available bound workflow outcomes, and then select a collection or express unresolved chronology.",
+  "authority": "ADR 0007 and the M0-150, M0-155 and M0-156 acceptance rules. Exact-source independent reviews and matching verification remain acceptance gates.",
+  "alternatives": [
+    {
+      "option": "Persist only the winning collection or the witnesses to the latest tie.",
+      "reason": "A subsequent workflow outcome can invalidate the winner or weaken a formerly decisive contradiction. The reduction would permanently discard candidates still needed by the next read."
+    },
+    {
+      "option": "Replace step parsing and migrate every compact timing archive to a new kind.",
+      "reason": "The existing parser retains the semantic roles, numbered alternatives and raw job facts needed to assess publishing bounds. Replacing it would increase historical compatibility work. A supplementary collection field carries the missing acquisition provenance without duplicating reports and job listings or changing their fingerprints."
+    }
+  ],
+  "consequences": [
+    "The existing archive kind, current summary and input fingerprints remain readable. An older reader can display the current summary. The newer reader uses the supplemental observations when available and can read older single collections and explicit tie witnesses.",
+    "A prior archive can contribute the acquisition evidence it retained. Recovering discarded acquisitions requires their original inputs. New saves deduplicate equivalent acquisition observations and keep the existing bounded archive writer.",
+    "Incomplete owning inputs remain scoped on reopen. Other inputs can corroborate or dispute a workflow outcome and can qualify historical clocks. Their presence supplies no additional receipt authority to an acquisition that lacked them."
+  ],
+  "supersedes": [],
+  "related_decisions": ["0032", "0038", "0040", "0041"],
+  "revisit_when": [
+    "A publisher changes the semantic order of setup, initialization, verification, staging or cleanup.",
+    "Retained acquisitions approach the archive size ceiling or require a new independently verifiable form of receipt provenance."
+  ]
+}

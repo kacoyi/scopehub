@@ -225,8 +225,8 @@ class StorageReportTests(RepositoryFixture):
 @unittest.skipUnless(sys.platform == 'linux', 'Collection fixtures exercise Linux filesystem locks.')
 class CollectionTests(RepositoryFixture):
     def collect(self, high_bytes=1, low_bytes=0, *, mounts=None, active_paths=(), inaccessible=0):
-        # The fixture supplies namespace visibility. Real file locks and deletion
-        # continue to operate on the temporary repositories.
+        # Supply process visibility and mount listings. Descriptor mount checks,
+        # file locks and deletion still use the temporary repositories.
         context = storage.LinuxContext(mounts or {Path('/'): 'ext4'}, set(active_paths),
                                        inaccessible_processes=inaccessible)
         with patch.object(storage, 'linux_context', return_value=context):
@@ -355,7 +355,7 @@ class CollectionTests(RepositoryFixture):
         result = self.collect(mounts={Path('/'): 'ext4', mounted_cache.parent: 'ext4',
                                       mounted_checkout: 'ext4'})
 
-        self.assertEqual([entry['path'] for entry in result['collected']], [str(normal.parents[2])])
+        self.assertEqual([entry['path'] for entry in result['collected']], [str(normal.parents[2])], result)
         self.assertEqual(self.report_entry(result, container.parents[2])['reason'], 'nested_repository_or_evidence')
         self.assertIsNone(self.report_entry(result, nested.parents[2])['allocated_bytes'])
         self.assertEqual(self.report_entry(result, mounted_cache.parents[2])['reason'], 'mount_boundary')
@@ -468,6 +468,7 @@ class CollectionTests(RepositoryFixture):
                 with (locked_tree / 'target/debug' / lock).open('rb') as held:
                     fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
                     result = self.collect()
+                    self.assertEqual(self.report_entry(result, protected.parents[2])['reason'], 'cargo_locked', result)
                     self.assertTrue(protected.exists(), result)
                     self.assertFalse(other.exists(), result)
 

@@ -1,0 +1,905 @@
+{
+  "version": 3,
+  "task_id": "M0-155",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "Review ownership and bounds of exact-attempt lookup in capture, ordinary review, linked budgets and reopened saved timing. Reproduce rotation past 12 records, both conflict orders and a valid control. Check wrong or corrupt identities, oversized or unavailable records, partial attribution, archive-only reopening and whether an older saved review can restore a disputed value.",
+      "supersedes": null,
+      "requested_at": "2026-11-25T22:53:03.073631+00:00",
+      "request_id": "21a7e8b1cec1eccdbcb76a6e4fa633be454388d41906a14d91b0caed4380b244",
+      "evidence_sha256": "35ee16df69ab02a0e500b65245b2bbd63a717179ed037ab78be0e05d5381816e"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "CHANGES_REQUESTED M0-155 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "observation": "With only 1024 bytes left in its read budget, the ordinary timing reader counted the old 804-second Windows measurement after reporting that it could not read the retained checkout conflict.",
+      "reviewer": "Independent Astra Standard (t10p)",
+      "original_sha256": "983e3a86d684ca77aac3a3735519438a2261ee348aa5f85cfc54bbc130282e6f",
+      "response_id": "1685675e03064e359c7bae3c190f9d2b4e8dccf54d34e31b20f2034f91e876c2",
+      "response_sha256": "ca9d74c16827a56d088d3a0c53ffb4327322926f2b5272ea614ea993efe670e5",
+      "legacy_response_sha256": "147dbac8be9eada4a99b0e0e8bafda1cf6b004a01186e75093184162126a0a10",
+      "observation_body_sha256": "3f1067e55655e28f811ec2dbf98d07f1610babe47137f053a464c375a7acaae6",
+      "event": {
+        "id": "msg_04375d6da88d3747016b076c7c569087d08b2efb739bffd954",
+        "timestamp": "2026-11-25T23:17:39.131Z"
+      },
+      "supersedes": "21a7e8b1cec1eccdbcb76a6e4fa633be454388d41906a14d91b0caed4380b244",
+      "evidence_sha256": "e4041a4bac138f28463cf90bcf99903ff2e835101b23c4c71f2bfceca7a967eb"
+    },
+    {
+      "kind": "request",
+      "source_commit": "caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "scope": "Review the complete combined public behavior for authentic failed push 45565130414, retained rotations, conflicts, partial evidence and the committed identity. Exercise the earlier independent findings on ordinary capture, save, cold read and budget lookup. Check whether the shared ownership removed recurrence across consumers.",
+      "supersedes": "1685675e03064e359c7bae3c190f9d2b4e8dccf54d34e31b20f2034f91e876c2",
+      "requested_at": "2026-11-26T04:10:32.632808+00:00",
+      "request_id": "8da4230128db0cbd345e6b44093d0d9fc253613679bc5a318cb8be44bc39f323",
+      "evidence_sha256": "e9ca7e4be99f2e7abb1c7473ddd975a26fdc8f1c1de174fd462f9a280f6c2022"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "scope": "CHANGES_REQUESTED M0-155 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "observation": "After twelve newer captures, the linked budget reader counted 804 seconds of Windows wall time and 2467 runner-seconds for run 45546767887 while its retained checkout conflict remained readable.",
+      "reviewer": "Independent Astra Standard (t12v)",
+      "original_sha256": "eedd4a0622131f502ea21d760988c467c726250784b7f9f0eb9d37d20a834072",
+      "response_id": "229f9ed94cc7b0ca2e7b38be563a7c5b37f55a41075ee30015dd3ef88cf24304",
+      "response_sha256": "603060bdbc671dab286e812e9a75d589189fe260a0b31a45f5976b12af056aa9",
+      "legacy_response_sha256": "ea3e12cc045746729b11941f7d5b06b6f3932fd17d8a6689d4b2fb34f17848bb",
+      "observation_body_sha256": "039ace58efeb3183028483011a3a42969a2eec146cefcd9b79b3d61296a405f3",
+      "event": {
+        "id": "msg_0ae6caa57366e1c4016b07b7c8408487d295ac7fe9f5b29eb8",
+        "timestamp": "2026-11-26T04:38:50.406Z"
+      },
+      "supersedes": "8da4230128db0cbd345e6b44093d0d9fc253613679bc5a318cb8be44bc39f323",
+      "evidence_sha256": "800f8dbaaba8f7d43d8d53ae755b6b47d9bd35871f490550c03cc06e5c9417c8"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "scope": "Review the complete combined public behavior for authentic failed push 45565130414, retained rotations, conflicts, partial evidence and the committed identity. Exercise the earlier independent findings on ordinary capture, save, cold read and budget lookup. Check whether the shared ownership removed recurrence across consumers. Recheck the original decision on caea2a0a.",
+      "supersedes": "229f9ed94cc7b0ca2e7b38be563a7c5b37f55a41075ee30015dd3ef88cf24304",
+      "requested_at": "2026-11-26T05:01:42.323476+00:00",
+      "request_id": "ee8099a3bf22ad15e9435f8001105ca27a8ff34dce8eb03d321973e118888275",
+      "evidence_sha256": "0d8eef610742a774f83e90729c47b37069169d6e42ec14073895b334d9834dae"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "scope": "CHANGES_REQUESTED M0-155 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "observation": "The weekly reader issued a Windows timing receipt for run 45546767887 after a skipped row claimed a different checkout for the same browser job ID.",
+      "reviewer": "Independent Astra Standard (t13p)",
+      "original_sha256": "9e7d45dd8aca96351b2570ca8edd4671f17363945982ffd6696eea7fc1e38cae",
+      "response_id": "868f3c576ac6ec6962501ed24619e8f3a4e98dd477dd71e2e3058aaa0c23c2b7",
+      "response_sha256": "6126b279f83eaf6c240a1067e2869e523f63c219a68916288bf821e2cee10fa5",
+      "legacy_response_sha256": "9ac6920332c5d81d5b0cd3053c747759f89a574cff63a66e3b1b3fc8ae9dc260",
+      "observation_body_sha256": "7cf250b35a383e31388914b3740cb5b9762d4f6f41a375896b4052460cfbb011",
+      "event": {
+        "id": "msg_0243a6678fc4f07e016b07c4606a9c87d2ba0fb279a3c1f919",
+        "timestamp": "2026-11-26T05:32:35.520Z"
+      },
+      "supersedes": "ee8099a3bf22ad15e9435f8001105ca27a8ff34dce8eb03d321973e118888275",
+      "evidence_sha256": "87c74476f5bc137e9f426232d8be4bf84c6e60e93f899665887eea503ee03177"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "scope": "Review the complete combined public behavior for authentic failed push 45565130414, retained rotations, conflicts, partial evidence and the committed identity. Exercise the earlier independent findings on ordinary capture, save, cold read and budget lookup. Check whether the shared ownership removed recurrence across consumers. Recheck the original decision on b12aefdc.",
+      "supersedes": "868f3c576ac6ec6962501ed24619e8f3a4e98dd477dd71e2e3058aaa0c23c2b7",
+      "requested_at": "2026-11-26T06:32:13.908018+00:00",
+      "request_id": "f598af8d2a15f2fd27b7fe0dd45be410016f406cbb185738ce589e7e2bd331df",
+      "evidence_sha256": "4a0d030a50cf6433c5a69b7485f55a325d02fda0454553999ddd3a4fb287b649"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "scope": "CHANGES_REQUESTED M0-155 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "observation": "For run 45546767887, the weekly reader issued zero Windows receipts when conflicting publishing profiles appeared in one job listing and one receipt when the same rows were split across two listings.",
+      "reviewer": "Independent Astra Standard (t14q)",
+      "original_sha256": "aa3bd34b1b9ae6e3e510ef028b4ac7f7c1d91f5f8c362a561df4436d5deee7f2",
+      "response_id": "df0f378202b373e0f94e9189ad5e9439065f33bdb08ec0d25ec98893594c41d5",
+      "response_sha256": "1383ab3ac8940cba36ffc5888b99b11cf1538a5535ab2f65fbf177ea1f6396ab",
+      "legacy_response_sha256": "04b3e7c3dad281a2dedcfffe30241d8cf9298584589038742c01e2be9cec197d",
+      "observation_body_sha256": "a6d7e829c9a629b864ac70c1cf188a7c505be8c5509f2326f96ce7cdde2efcd2",
+      "event": {
+        "id": "msg_045cc39a2259d609016b07dbd86a3c87d1af468018587f2283",
+        "timestamp": "2026-11-26T07:12:51.558Z"
+      },
+      "supersedes": "f598af8d2a15f2fd27b7fe0dd45be410016f406cbb185738ce589e7e2bd331df",
+      "evidence_sha256": "16f5092b2753a7009fc620d1480695da14c5fa7446a1717fd47e3a2b0df8e039"
+    },
+    {
+      "kind": "request",
+      "source_commit": "39413fd304e8575605dc5b70a352d2e394ae1e35",
+      "scope": "Review the complete combined public behavior for authentic failed push 45565130414, retained rotations, conflicts, partial evidence and the committed identity. Exercise the earlier independent findings on ordinary capture, save, cold read and budget lookup. Check whether the shared ownership removed recurrence across consumers. Recheck the original decision on e00b088b.",
+      "supersedes": "df0f378202b373e0f94e9189ad5e9439065f33bdb08ec0d25ec98893594c41d5",
+      "requested_at": "2026-11-26T12:29:22.551486+00:00",
+      "request_id": "5226aa8773615f911b71785e389245e5ca566694e7c7e1cd2ec92be524e38f9f",
+      "evidence_sha256": "172d55b6de8c8a7dec7d4108b8a3db215afbc681d3b6f8007739f1d5897c33a1"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "39413fd304e8575605dc5b70a352d2e394ae1e35",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 39413fd304e8575605dc5b70a352d2e394ae1e35",
+      "scope": "CHANGES_REQUESTED M0-155 39413fd304e8575605dc5b70a352d2e394ae1e35",
+      "observation": "For run 45546767887, the weekly reader issued one Windows receipt when the conflicting tooling profile came from an archive saved by e00b088b and zero when it read the same job observations directly.",
+      "reviewer": "Independent Astra Standard (t15d)",
+      "original_sha256": "ea22127bb95eccdfb5fbb322af3a37275e83d618d2df2b0da60c81468d625e02",
+      "response_id": "822f777e44f5cdc328d5aea12c851a7ae08bb86c3b54c1e8cd87bd149a4ede49",
+      "response_sha256": "a54e04e575c8186c215de2d2d77b3415ac33be35fe3295383a9a6df788933b2c",
+      "legacy_response_sha256": "9f91f48c74f74265fe71a9a4785a352ee91109f0be3874d551cc76bd6e54b929",
+      "observation_body_sha256": "fb709238a9f9133d2c92efd51fae7515d4478c74c60f9e207f070afd225be338",
+      "event": {
+        "id": "msg_0343c5f573a1f986016b082815881487d299a30116d83f5ad6",
+        "timestamp": "2026-11-26T12:38:01.950Z"
+      },
+      "supersedes": "5226aa8773615f911b71785e389245e5ca566694e7c7e1cd2ec92be524e38f9f",
+      "evidence_sha256": "5bef397c4175a351a7db763c7da4469644d0f96945d1e153afdf7004568a0e5f"
+    },
+    {
+      "kind": "request",
+      "source_commit": "3eeb59bc39219905204e6aab95bd16af4d22a65e",
+      "scope": "Review the complete combined public behavior for authentic failed push 45565130414, retained rotations, conflicts, partial evidence and the committed identity. Exercise the earlier independent findings on ordinary capture, save, cold read and budget lookup. Check whether the shared ownership removed recurrence across consumers. Recheck the original decision on e00b088b.",
+      "supersedes": "822f777e44f5cdc328d5aea12c851a7ae08bb86c3b54c1e8cd87bd149a4ede49",
+      "requested_at": "2026-11-26T12:55:49.335131+00:00",
+      "request_id": "d339b3f7bfa441c2724ff47eeebbfcc771c6d0e7fcb17ca59a8e138abf5c775a",
+      "evidence_sha256": "2de8b5f3ed4aa374eb80707b7673b54763dd4de032a1d5d798cd88edfefcd7dc"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "3eeb59bc39219905204e6aab95bd16af4d22a65e",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 3eeb59bc39219905204e6aab95bd16af4d22a65e",
+      "scope": "CHANGES_REQUESTED M0-155 3eeb59bc39219905204e6aab95bd16af4d22a65e",
+      "observation": "The weekly reader issued one Windows receipt for run 45546767887 when the only step identifying the aggregate job was recorded as both successful and skipped.",
+      "reviewer": "Independent Astra Standard (t167)",
+      "original_sha256": "03f744883a1b237ac950b85b8a0b7d619e3ac5951f451fa344258dab899448c0",
+      "response_id": "2d105334fa9373c774b9f50ebbfe8afa921cb8486034d0211a9720e8a31c1819",
+      "response_sha256": "c1371d08294633b2f4153caf2a0bacfc9e3cf6a79b3fbe502aa92604e126a5fd",
+      "legacy_response_sha256": "86503557379d6abddc60603094c4b869c28fc58b5835e9adce28da326f96c0cb",
+      "observation_body_sha256": "b372c0730737291541916ece099965f23623bef5f978de32a002f178cc23cf23",
+      "event": {
+        "id": "msg_0e1b46f892a13cd7016b082e0797c087d189694b7f19051455",
+        "timestamp": "2026-11-26T13:03:20.571Z"
+      },
+      "supersedes": "d339b3f7bfa441c2724ff47eeebbfcc771c6d0e7fcb17ca59a8e138abf5c775a",
+      "evidence_sha256": "9f4006ee6523964e07845191edee9a050a85e062005f91831984d53db706e7e7"
+    },
+    {
+      "kind": "request",
+      "source_commit": "9ea5b5140042ac013e022c2edd7d0a79e93fee67",
+      "scope": "Review the complete combined public behavior for authentic failed push 45565130414, retained rotations, conflicts, partial evidence and the committed identity. Exercise the earlier independent findings on ordinary capture, save, cold read and budget lookup. Check whether the shared ownership removed recurrence across consumers. Recheck the original decision on e00b088b.",
+      "supersedes": "2d105334fa9373c774b9f50ebbfe8afa921cb8486034d0211a9720e8a31c1819",
+      "requested_at": "2026-11-26T13:20:04.021943+00:00",
+      "request_id": "57176d91352a49cc8f5d6d1461b6ddec3596304b92119d35ca658f9e79b775d9",
+      "evidence_sha256": "73e68a4234ba196a8ada53d73bdbfa2ce3c4dd399f8945bbff1e70869bceaf1c"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "9ea5b5140042ac013e022c2edd7d0a79e93fee67",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 9ea5b5140042ac013e022c2edd7d0a79e93fee67",
+      "scope": "CHANGES_REQUESTED M0-155 9ea5b5140042ac013e022c2edd7d0a79e93fee67",
+      "observation": "For PR 84, the weekly reader issued zero Windows receipts when two step observations shared one browser job row and one receipt when the same observations were split across two rows with the same job ID.",
+      "reviewer": "Independent Astra Standard (t174)",
+      "original_sha256": "5aff4274d512309336c0c68e69116827b63f10852cee9ca35098b7080cd11b03",
+      "response_id": "537cc10e55d19c9a95842a96e390a665ce0194132782e6f4807a396ec02f4da1",
+      "response_sha256": "cc5b9c3dfe3d46f0f8ef48464b18f66faba44e4708d245669f9824f0952e5e54",
+      "legacy_response_sha256": "08707d6c52119cc6788c29c13e584483f2f6ff6270446281c098a6ba807adb14",
+      "observation_body_sha256": "4e8c1358a3a7fccb03579e90d4393d778ee5ed1899b62bafef10c3bc677ed0ee",
+      "event": {
+        "id": "msg_067275778dc7152e016b0833f9736487d2abf2c5349e77379a",
+        "timestamp": "2026-11-26T13:28:52.754Z"
+      },
+      "supersedes": "57176d91352a49cc8f5d6d1461b6ddec3596304b92119d35ca658f9e79b775d9",
+      "evidence_sha256": "7ebb99ce7b3dce3ded63ba18bf1290dfd9a2dfdcfb8aed707a4febb7c4cb8acd"
+    },
+    {
+      "kind": "request",
+      "source_commit": "438302ef9ebb720039a5f0dd77e6b051c5010560",
+      "scope": "Review the complete combined public behavior for authentic failed push 45565130414, retained rotations, conflicts, partial evidence and the committed identity. Exercise the earlier independent findings on ordinary capture, save, cold read and budget lookup. Check whether the shared ownership removed recurrence across consumers.",
+      "supersedes": "537cc10e55d19c9a95842a96e390a665ce0194132782e6f4807a396ec02f4da1",
+      "requested_at": "2026-11-26T13:58:56.830307+00:00",
+      "request_id": "d706465e9923a6f59e153acd92bc2b7148ccd3533dd38974eac9f25558e139f6",
+      "evidence_sha256": "6aa1262d39eaa65c7bd4d342e37e17dbbb3df62a7427746936c31fff27f24d5d"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "438302ef9ebb720039a5f0dd77e6b051c5010560",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 438302ef9ebb720039a5f0dd77e6b051c5010560",
+      "scope": "CHANGES_REQUESTED M0-155 438302ef9ebb720039a5f0dd77e6b051c5010560",
+      "observation": "For archived push 45765544396, splitting a skipped step’s conclusion and timestamps across two rows of the same Linux job changed the reported duration of a separate successful step from 864 seconds to unknown.",
+      "reviewer": "Independent Astra Standard (t17r)",
+      "original_sha256": "d6bd71d73c2749b640b8ee4300dd83ab8f41723be8829ad266f20834d341d3e6",
+      "response_id": "417d3f3d74e5feb22075fa48415b81588f4c73b4b763c01064a316d01e3128ed",
+      "response_sha256": "1ae6fdf74067637a7fedca1ec2cf6f4ce19002c43342bc8c2b7775b1a4847c78",
+      "legacy_response_sha256": "3850872657a501dac4fc8a743b2c6d37facc490f930597ad791421a843e3fedc",
+      "observation_body_sha256": "0d88d391f3f911e6ee04d124af0e7d90221d73a30e44245dbd603ae04a24e089",
+      "event": {
+        "id": "msg_0eb34120a495990d016b083cc10cb887d19727e46359b2cd9f",
+        "timestamp": "2026-11-26T14:06:13.312Z"
+      },
+      "supersedes": "d706465e9923a6f59e153acd92bc2b7148ccd3533dd38974eac9f25558e139f6",
+      "evidence_sha256": "61da175b926697f47d47900e2b2c22d76f990e0c71a224d6b9ea36cf09e4aef8"
+    },
+    {
+      "kind": "request",
+      "source_commit": "da5d83da108ab15a6e10965452457457390899a0",
+      "scope": "Independently review whether normalized per-job and per-step facts preserve every supported clock through ordinary reads, offline weekly acquisition, cold reopen and attempt rotation. Recheck 45765544396 and use independently chosen full, partial and contrary controls. Preserve independent job attribution and keep the actual November 28 observation separate.",
+      "supersedes": "417d3f3d74e5feb22075fa48415b81588f4c73b4b763c01064a316d01e3128ed",
+      "requested_at": "2026-11-26T14:21:25.646137+00:00",
+      "request_id": "a3dcc61e3af197fc3d95ddf1a0f0ebc3cb2cbe9d1e4d094333a53cdd520e0e64",
+      "evidence_sha256": "97aeed00efc099951bec1c115bd8fdb1ffc86cfcda57c763ff404e1957cb25f7"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "da5d83da108ab15a6e10965452457457390899a0",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 da5d83da108ab15a6e10965452457457390899a0",
+      "scope": "CHANGES_REQUESTED M0-155 da5d83da108ab15a6e10965452457457390899a0",
+      "observation": "For archived push 45765544396, moving Linux step 21’s completion time into a second row with the same job ID and step number but no repeated step name changed its 864-second execution and 9-second tail to unknown.",
+      "reviewer": "Independent Astra Standard (t18g)",
+      "original_sha256": "1479905e03923be0350e4ce6840056eb9ae3d9df17c385f6780749be9e4345a9",
+      "response_id": "401acb2b43a50a36f979d144fa7cc49eed7cb656a0aea1bcd1444f8e58abfb73",
+      "response_sha256": "a589d1f934797c54147b1834238a137b1cdc8f61eb17e1c1d1a1a8133824f241",
+      "legacy_response_sha256": "9bd3d7ef7d8bc39a75c5ff1a9dfebe06efbf047dc6872697657661b5d44b7daf",
+      "observation_body_sha256": "333a251089277cd0e3934e19329b0f514057ca6864b837758fbb4284570ae273",
+      "event": {
+        "id": "msg_0f124574b252be65016b0841de7f3c87d187b3b72e370af8fe",
+        "timestamp": "2026-11-26T14:27:56.451Z"
+      },
+      "supersedes": "a3dcc61e3af197fc3d95ddf1a0f0ebc3cb2cbe9d1e4d094333a53cdd520e0e64",
+      "evidence_sha256": "a898abc11e713d813497093be42dec549e087933f09edb1013f33214a7e44d52"
+    },
+    {
+      "kind": "request",
+      "source_commit": "318f54c82e50a38c4310724b55e3e9ee6539afb8",
+      "scope": "Independently qualify bound numbered Actions steps, absent and contrary endpoints, rotation and preserved independent clocks.",
+      "supersedes": "401acb2b43a50a36f979d144fa7cc49eed7cb656a0aea1bcd1444f8e58abfb73",
+      "requested_at": "2026-11-26T14:56:24.152892+00:00",
+      "request_id": "bbfce7a015d837509f885297d2bfcccbdaf122a6086a11b6d530c9b141b518ab",
+      "evidence_sha256": "c97167fad5ba1e716414662064feaae5e526dd281652f9bc5afc4bf3fdec550a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "318f54c82e50a38c4310724b55e3e9ee6539afb8",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 318f54c82e50a38c4310724b55e3e9ee6539afb8",
+      "scope": "CHANGES_REQUESTED M0-155 318f54c82e50a38c4310724b55e3e9ee6539afb8",
+      "observation": "In an offline replay of PR 133, each browser-lane start time independently yielded 37 seconds of Windows setup and 1195 seconds of execution, but supplying both made both durations unknown.",
+      "reviewer": "Independent Astra Standard (t18w)",
+      "original_sha256": "bff913d2a944fa11f5f2cd15db02b151d99f3d33166bbc838e7c2480f46cfd44",
+      "response_id": "fc96cc6ce7ec192ebec923cf0308e4f0ef231102669eff68deb3307cf4d2126f",
+      "response_sha256": "d8519a760f296b8cb5d7561c156099e4ae0d0401a86f4dea44a220f581714a5c",
+      "legacy_response_sha256": "7114fc58f6b5bb9039f99a1fcaf7eb3b5702b7eae30c357b4dded5f51bf3b19b",
+      "observation_body_sha256": "e1fe693c89dbdf654cfffc3e1deeb9f8b9228f5ce5dc1d05907f8cd17fc62480",
+      "event": {
+        "id": "msg_07ade0c973b21ada016b084a0d117887d1a1fa6f0224ac1c3b",
+        "timestamp": "2026-11-26T15:02:58.235Z"
+      },
+      "supersedes": "bbfce7a015d837509f885297d2bfcccbdaf122a6086a11b6d530c9b141b518ab",
+      "evidence_sha256": "3aa07e95046582d2efd45b6f15e003a8987e634cb14045a0b226c71cdc1284b5"
+    },
+    {
+      "kind": "request",
+      "source_commit": "de7e2376d216e0fe943c1301c336ef837b58c48a",
+      "scope": "Independently qualify bound numbered Actions steps, absent and contrary endpoints, rotation and preserved independent clocks. Check nanosecond ambiguity, preserved provably-equal phase totals and unaffected independent clocks through ordinary and weekly intake. Use the previous rejection and the archived originals for PR 96 and the later actual first-attempt run 45838575346, with all seven original jobs. Verify both protected-parent semantics survived the composition and use an independent rejected control.",
+      "supersedes": "fc96cc6ce7ec192ebec923cf0308e4f0ef231102669eff68deb3307cf4d2126f",
+      "requested_at": "2026-11-26T15:31:03.486920+00:00",
+      "request_id": "133ca40065632598934aa3bf5b67829831156bdacda9775573bde244b16447ad",
+      "evidence_sha256": "d52e1176bef375532e2d724a94e831ad3d62f2bbafe0da022cfeef0de1ea1415"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "de7e2376d216e0fe943c1301c336ef837b58c48a",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 de7e2376d216e0fe943c1301c336ef837b58c48a",
+      "scope": "CHANGES_REQUESTED M0-155 de7e2376d216e0fe943c1301c336ef837b58c48a",
+      "observation": "Removing only the recovery job’s start time from run 45838575346 made both readers report an unknown Windows execution duration even though its two endpoints still established 1242 seconds.",
+      "reviewer": "Independent Astra Standard (t19r)",
+      "original_sha256": "0a05cf443dcc923861c7efb02150fd2a64f56e638fba72f93be52e08bd46c204",
+      "response_id": "228b1bece5972835df5d2a2d46e8c83a04fabf46103931651e8f0c224cb79a10",
+      "response_sha256": "5387513517fd50403893492e42285aeb66d39301f948a74291dd84f9c91d2f22",
+      "legacy_response_sha256": "c0e6f057f5ae4d10c86079a0e91420418a6a7f3db524962b3aaa4b6483ba89d5",
+      "observation_body_sha256": "d703c9502358ff36569a0dd6187c5da754817327f887a2cdec53832129680ce6",
+      "event": {
+        "id": "msg_0aa616ef6ed95d91016b085261088087d1bef4830b54049f4e",
+        "timestamp": "2026-11-26T15:38:28.287Z"
+      },
+      "supersedes": "133ca40065632598934aa3bf5b67829831156bdacda9775573bde244b16447ad",
+      "evidence_sha256": "5f9ca3735c4a07b1112fe50cddbb5cb0619c35f97b2603d61aac5842504b451b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "4c4865fa8db31cd57c84a8061d8abc00e03d1a01",
+      "scope": "Independently qualify bound numbered Actions steps, absent and contrary endpoints, rotation and preserved independent clocks. Check nanosecond ambiguity, preserved provably-equal phase totals and unaffected independent clocks through ordinary and weekly intake. Use the previous rejection and the archived originals for PR 96 and the later actual first-attempt run 45838575346, with all seven original jobs. Verify both protected-parent semantics survived the composition and use an independent rejected control.",
+      "supersedes": "228b1bece5972835df5d2a2d46e8c83a04fabf46103931651e8f0c224cb79a10",
+      "requested_at": "2026-11-27T02:45:58.663395+00:00",
+      "request_id": "0cab0818acfccce0f2aa4f1b197e11cdd7ade0cc56b4f875c5d8bc2ee709157e",
+      "evidence_sha256": "b13d878c8690eaf1d4c9b23f664df0d952d3775e1b64c31a0e460d7161bbb0df"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "4c4865fa8db31cd57c84a8061d8abc00e03d1a01",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 4c4865fa8db31cd57c84a8061d8abc00e03d1a01",
+      "scope": "CHANGES_REQUESTED M0-155 4c4865fa8db31cd57c84a8061d8abc00e03d1a01",
+      "observation": "Removing only the Windows aggregate job’s start time from run 45838575346 made both readers discard the 1242-second execution interval established by the original steps.",
+      "reviewer": "Independent Astra Standard (t1b4)",
+      "original_sha256": "ffe97e411f81ca13646a1cc18ade6a2b96bf8a1d225950ba7a73a11fb5891f4e",
+      "response_id": "84317e3573363666aefdf1a43f41d2e11db456c0f1ce4a6e413c47b746ea6f0f",
+      "response_sha256": "c38b670f4632d3f7c1b272c697d5dd76f30da84dcdadcad0faabd4e2bdc9580c",
+      "legacy_response_sha256": "da6d446992521c05b93138d03745888f2eceefa30128ff3dd9442f8c1ec40209",
+      "observation_body_sha256": "43a915296c5273010740a76e377b031ca57a3424d0dce743254934ac09d2951a",
+      "event": {
+        "id": "msg_081079b0e1b27203016b08f0804d2487d0b3b9fbd2a69d13c7",
+        "timestamp": "2026-11-27T02:53:12.133Z"
+      },
+      "supersedes": "0cab0818acfccce0f2aa4f1b197e11cdd7ade0cc56b4f875c5d8bc2ee709157e",
+      "evidence_sha256": "4049e6092657d83864563f649643e38cc9ad5c7681be2152931adfb99bf39e23"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b6cd4be5ccb66c7eaad60cfc2ac81c97e51f63fa",
+      "scope": "Independently qualify bound numbered Actions steps, absent and contrary endpoints, rotation and preserved independent clocks. Check nanosecond ambiguity, preserved provably-equal phase totals and unaffected independent clocks through ordinary and weekly intake. Use the previous rejection and the archived originals for PR 96 and the later actual first-attempt run 45838575346, with all seven original jobs. Verify both protected-parent semantics survived the composition and use an independent rejected control.",
+      "supersedes": "84317e3573363666aefdf1a43f41d2e11db456c0f1ce4a6e413c47b746ea6f0f",
+      "requested_at": "2026-11-27T03:12:13.964332+00:00",
+      "request_id": "eb87110bc91f1de4601871acf13140d05c66cbc9c5d24dcc65206eda6fe0965a",
+      "evidence_sha256": "59ff1da4d8f9f4637c6522291f63c05d88a41f77e142462af456fc95c4588041"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b6cd4be5ccb66c7eaad60cfc2ac81c97e51f63fa",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 b6cd4be5ccb66c7eaad60cfc2ac81c97e51f63fa",
+      "scope": "CHANGES_REQUESTED M0-155 b6cd4be5ccb66c7eaad60cfc2ac81c97e51f63fa",
+      "observation": "For run 45838575346, both readers counted 1242 seconds of Windows execution even though the aggregate setup step had already finished 13 seconds before its prerequisite job completed.",
+      "reviewer": "Independent Astra Standard (t1bp)",
+      "original_sha256": "4748111feb8308fba96477962a55915b39ebd9b7fe5ef9c8f8e112636feb6fe8",
+      "response_id": "192f268274a821657e5d9873250e9e9fa9ba9a3152114785faef510b97c215a2",
+      "response_sha256": "f1c56120a4e3db0159aaa2cc9b0d20f0f559062f6f0b9bc10bdfc234691f498c",
+      "legacy_response_sha256": "fd4cb2e24ba6155d1cc1351d3b2f09f708eb1ac4d1f436185cc3f80836b6b6f4",
+      "observation_body_sha256": "ba9230492592d2943ed4f8854e365ffb3085d0c4b7d9e4f4936f9d219d13bb78",
+      "event": {
+        "id": "msg_0cb967431e79bc3a016b08f667b3b887d089fb2238f3f6fb45",
+        "timestamp": "2026-11-27T03:18:29.109Z"
+      },
+      "supersedes": "eb87110bc91f1de4601871acf13140d05c66cbc9c5d24dcc65206eda6fe0965a",
+      "evidence_sha256": "94b1f6859fa80e612ab3dbc276ce6a57b790ec33b4e4d49cd2778cff167bf613"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "Check the corrected Windows producer/aggregate chronological cut against the public weekly sample decision. Reuse the observed thirteen-second contradiction, the valid 1242 and 827 second samples with missing unrelated job envelopes, and the independently established clocks. Judge the shared chronological ordering rule by the actual supported workflow and the retained records.",
+      "supersedes": "192f268274a821657e5d9873250e9e9fa9ba9a3152114785faef510b97c215a2",
+      "requested_at": "2026-11-27T03:36:23.682279+00:00",
+      "request_id": "727b1eb1d78cb266cde6bc10d43d137334b5da1b47cc2e087144a52437051e49",
+      "evidence_sha256": "5054ec9c815dcb0e4d7edf75682b9df2e795765337b447aeebddc3b2e6d40eff"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-155 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "APPROVE M0-155 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "observation": "The public timing reader excluded the Windows execution sample for the 13-second ordering contradiction and retained the valid 1242-second and 827-second samples.",
+      "reviewer": "Independent Astra Standard (t1bx)",
+      "original_sha256": "bbec1cf726cadd28b2ac9d7b13b9487293d7213ec9bdcf911acbc6379aee92a2",
+      "response_id": "eafb830f61614a35d8474564d9e7401500a7455672d5b212f9c096d868a1c4db",
+      "response_sha256": "15d631738164ac057c1659b088badce46dca831248f52b16d30565a7985dbb00",
+      "legacy_response_sha256": "867e28d2a4387fc5f1844e9b6bd008c5747206fbaa818917278e45f39143f611",
+      "observation_body_sha256": "3573bf4d57de35f1bce1fa2c32959f33e1be88c56db87aa0779229715dbc2ded",
+      "event": {
+        "id": "msg_06d8aba8645ecc19016b08fb4b387c87d086d73fd443eb4336",
+        "timestamp": "2026-11-27T03:39:09.377Z"
+      },
+      "supersedes": "727b1eb1d78cb266cde6bc10d43d137334b5da1b47cc2e087144a52437051e49",
+      "evidence_sha256": "29db7591edbaf446628e5f9cc9cc861054b5254fb01663d80a213f770f1241dd"
+    },
+    {
+      "kind": "request",
+      "source_commit": "5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "scope": "Confirm that the previously approved M0-155 timing behavior and acceptance assertions survive the Windows test-fixture repair on this source.",
+      "supersedes": "eafb830f61614a35d8474564d9e7401500a7455672d5b212f9c096d868a1c4db",
+      "requested_at": "2026-11-27T04:25:44.429404+00:00",
+      "request_id": "4b154cc95aa929c93c3d22e48efe05df2b482342cca0c6b5964edf3f02086128",
+      "evidence_sha256": "dee8baf2edd2299859e525d26503d6ad74919d94fcee8039573bdfe896837b83"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-155 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "scope": "APPROVE M0-155 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "observation": "The fixture repair clears the read-only attribute before the same four Git object deletions and preserves every timing assertion.",
+      "reviewer": "Independent Astra Standard (t1d0)",
+      "original_sha256": "01bbf5b4329917ee42d4918c88a9de7d06c8315be52b8f882b362ee0e84d73e5",
+      "response_id": "b3f29a8d591d69d8dedc32dc5098daa05a9329c4dd371b3decc20b1d515d34b0",
+      "response_sha256": "0788a0387a3670ba94e9be60de26b88f455b467d984821687d3976575fdc3073",
+      "legacy_response_sha256": "b74bea8c1f8cfb472685201a15c1d292209a3644d3192dad309a44ac8fede52a",
+      "observation_body_sha256": "562b40bdbf2872ed3869872cf5c3a3e51155d1c5fe0748631896552c88afbc17",
+      "event": {
+        "id": "msg_014f0630c1dc930a016b090742ca1487d0897629cfb0a7ccf6",
+        "timestamp": "2026-11-27T04:30:06.928Z"
+      },
+      "supersedes": "4b154cc95aa929c93c3d22e48efe05df2b482342cca0c6b5964edf3f02086128",
+      "evidence_sha256": "a8b8e27f63e0c53f418e1a622c037b1271951be30d53524614e864a832f81a02"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e6f12373277d8aa05a734a1a1c9648f0cf489577",
+      "scope": "Ordinary, weekly and cold restoration of conflicting and independent timing, feasible prerequisite order, and observed historical publication inputs.",
+      "supersedes": "b3f29a8d591d69d8dedc32dc5098daa05a9329c4dd371b3decc20b1d515d34b0",
+      "requested_at": "2026-11-27T09:24:40.942611+00:00",
+      "request_id": "06be243f06e84cfafa955bf5418c524483650ae90cb68c328c7d95c415c8c99e",
+      "evidence_sha256": "69042964511a47afa90e3e2bdb2b1e3f27dade928bce1ea2f6dade0b6e75d350"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e6f12373277d8aa05a734a1a1c9648f0cf489577",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 e6f12373277d8aa05a734a1a1c9648f0cf489577",
+      "scope": "CHANGES_REQUESTED M0-155 e6f12373277d8aa05a734a1a1c9648f0cf489577",
+      "observation": "On protected push 45838575346, ordinary, offline weekly, and cold reads all dropped the uniquely supported 3260 Windows runner-seconds when I added an infeasible Python job completion time.",
+      "reviewer": "Independent Astra Standard (t1gb)",
+      "original_sha256": "b563c698cb6a1f404cf08287843409ad0a25f7865c87fc6f740a6cc705c3c601",
+      "response_id": "eb46ca19518676104f439fb61447bdb4f55d874a3c4ed907881a6f496a9b6e38",
+      "response_sha256": "0cfe84e13a1d42a01b8e8f520c1e68db679f253719fcace2ff3ea10bd70b6ca3",
+      "legacy_response_sha256": "326f492489fe415b7a8a341b7eef7207e4dd9f41c78e222000a607307c7d140d",
+      "observation_body_sha256": "516f12d4b09b6fceced5ca22a3b23bfcb3985d10651cfec3857cc6a9518c58dd",
+      "event": {
+        "id": "msg_070a281f02056de6016b094e38e6fc87d0868006f799a9ab6b",
+        "timestamp": "2026-11-27T09:33:04.000Z"
+      },
+      "supersedes": "06be243f06e84cfafa955bf5418c524483650ae90cb68c328c7d95c415c8c99e",
+      "evidence_sha256": "a9d914b7d5af9d4038fa494fbc1b3101a358e5b84d390a06c81539beab0ae29a"
+    },
+    {
+      "kind": "request",
+      "source_commit": "1024b35f34c1065dc4f75389e78a4d699d32627b",
+      "scope": "Ordinary, weekly and cold restoration of conflicting and independent timing, feasible prerequisite order, and observed historical publication inputs.",
+      "supersedes": "eb46ca19518676104f439fb61447bdb4f55d874a3c4ed907881a6f496a9b6e38",
+      "requested_at": "2026-11-27T09:51:08.751950+00:00",
+      "request_id": "8ccea605d97169e26d8fb8719f48187f2445a66f181b3ddbc515a3834d0f012d",
+      "evidence_sha256": "6fe00ce933d1f2d5244ad57662e7449f28e794be254d2895efc97245de6a3d96"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "1024b35f34c1065dc4f75389e78a4d699d32627b",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 1024b35f34c1065dc4f75389e78a4d699d32627b",
+      "scope": "CHANGES_REQUESTED M0-155 1024b35f34c1065dc4f75389e78a4d699d32627b",
+      "observation": "On run 45838575346, ordinary, offline weekly, and cold reads all lost the 24-second aggregate setup time when I added a candidate start one second before the last prerequisite finished.",
+      "reviewer": "Independent Astra Standard (t1h0)",
+      "original_sha256": "1d721d2595e4837f70ebed644e874a52d78c5cba2bb6405e6466130a8170555b",
+      "response_id": "f8d97e840d9425351fe2bf54f8d509470b472088015d13cd11734277ed02a7ad",
+      "response_sha256": "291c073943515c32dd4ba8a6b592a3c292e1852b37de6c6ca980ec85880a986f",
+      "legacy_response_sha256": "ffb030b99be87156f5d96d00778c87e87f7ef4c621403787c72569c5389a364c",
+      "observation_body_sha256": "c8ce54945c54d5775c20b4954c58709225bd3d0740beb6dead0610a7340c5104",
+      "event": {
+        "id": "msg_0eabb0a7bd3b4acf016b0954e8dd6487d0a307ccdbbea09f90",
+        "timestamp": "2026-11-27T10:01:34.320Z"
+      },
+      "supersedes": "8ccea605d97169e26d8fb8719f48187f2445a66f181b3ddbc515a3834d0f012d",
+      "evidence_sha256": "6f106cf19b1d579d2ea23d80fe8eb3ec43b21c47324acdc71e6719a2f151dc2b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "17cd39cfc82e095f341f9b2f3a4c20022e36996d",
+      "scope": "Ordinary, weekly and cold restoration of conflicting and independent timing, feasible prerequisite order, and observed historical publication inputs.",
+      "supersedes": "f8d97e840d9425351fe2bf54f8d509470b472088015d13cd11734277ed02a7ad",
+      "requested_at": "2026-11-27T10:17:01.174066+00:00",
+      "request_id": "d9b2c2a9309e6790f69f0e84e5ba77c9337b71e6c1a889e9a9060ff4dd04c9bc",
+      "evidence_sha256": "7129f63abdabc8fc0cb7d30b20e381fa0624d2ff5e2b0d7ab5edd537ad88981c"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "17cd39cfc82e095f341f9b2f3a4c20022e36996d",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 17cd39cfc82e095f341f9b2f3a4c20022e36996d",
+      "scope": "CHANGES_REQUESTED M0-155 17cd39cfc82e095f341f9b2f3a4c20022e36996d",
+      "observation": "On run 45838575346, ordinary, offline weekly, and cold reads all lost the 1291-second Windows wall time when I added an aggregate job completion one second before its successful cleanup step finished.",
+      "reviewer": "Independent Astra Standard (t1hj)",
+      "original_sha256": "a6eaaad18ad6bf5f6e56c9ed65885d872179aba4ccb7db82e0ea3432ef6c8bb6",
+      "response_id": "8ad55186cd607406c5db60553a4c1ade0e6444c50c5b5626a7ca801e20e7214d",
+      "response_sha256": "c0167ebcd90ad8b0fe7954cd7b57d831f5e2efd5ca8360eb335b1a8b6733697c",
+      "legacy_response_sha256": "083edfe3c821e2cfdf2055eaa532ec391ce0610d51df1e988321d86a100cde8c",
+      "observation_body_sha256": "5a78e0d545b06d42ea69d5b3a835af5c7891c3aacd0b86c4d5e661728abd9fe3",
+      "event": {
+        "id": "msg_0c5ccd9219f6d9a0016b095a6bcffc87d0969cd2e7f9c73b21",
+        "timestamp": "2026-11-27T10:25:09.421Z"
+      },
+      "supersedes": "d9b2c2a9309e6790f69f0e84e5ba77c9337b71e6c1a889e9a9060ff4dd04c9bc",
+      "evidence_sha256": "5dd3f0fd34b31bdea2ed59eadc810d9504324489e7771733c77f03e761180abe"
+    },
+    {
+      "kind": "request",
+      "source_commit": "6491b83725eb2b1ac60ebe2e6854f51941fe6e83",
+      "scope": "Ordinary, weekly and cold restoration of conflicting and independent timing, feasible prerequisite order, and observed historical publication inputs.",
+      "supersedes": "8ad55186cd607406c5db60553a4c1ade0e6444c50c5b5626a7ca801e20e7214d",
+      "requested_at": "2026-11-27T10:49:17.686438+00:00",
+      "request_id": "8dc26b3651a811f19ac05e79e4ee57e9ca490dcd2cb344e57882f0fb6033e693",
+      "evidence_sha256": "72f5e89e37712db9adc950de7ab39eaf5f16d3593dfcad7ced36931ffde714a6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "6491b83725eb2b1ac60ebe2e6854f51941fe6e83",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 6491b83725eb2b1ac60ebe2e6854f51941fe6e83",
+      "scope": "CHANGES_REQUESTED M0-155 6491b83725eb2b1ac60ebe2e6854f51941fe6e83",
+      "observation": "On run 45838575346, ordinary, offline weekly, and cold reads all lost the 24-second Windows setup when a competing verification start preceded completion of the required artifact download by one second.",
+      "reviewer": "Independent Astra Standard (t1hs)",
+      "original_sha256": "a45f8c02e24dcf0153fdf4d862a9630a4dd60074965aeca1d1f1dec836e2ea2d",
+      "response_id": "c1b3e62ea4b1dd86596f119f0646bbc75247913f6823ec6badb027746dbcc225",
+      "response_sha256": "c70e2ee17ee786f03e88d32aca1bcc418804eb02fb2d5ba4cd565ac106d2edee",
+      "legacy_response_sha256": "9fdb3f84c655880e23203092ea3bd31a5b644be31083cfc56f7bd1b0108abcf2",
+      "observation_body_sha256": "fd048deb79896db693752a7fdcc0a3af2d07c5e6f2290a4c9d7c615ff5292bed",
+      "event": {
+        "id": "msg_0dba16b48a9a3abd016b0962465a1c87d0a9ae19aa859cf3cc",
+        "timestamp": "2026-11-27T10:58:39.096Z"
+      },
+      "supersedes": "8dc26b3651a811f19ac05e79e4ee57e9ca490dcd2cb344e57882f0fb6033e693",
+      "evidence_sha256": "32b46e5567556e53935bfdae5e07021b35978a05d4adb5fad56d8174c5c9baa1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "343bb62e8ef179abf4fa9f98bd960e3066070a19",
+      "scope": "Ordinary, weekly and cold restoration of conflicting and independent timing, feasible prerequisite order, and observed historical publication inputs.",
+      "supersedes": "c1b3e62ea4b1dd86596f119f0646bbc75247913f6823ec6badb027746dbcc225",
+      "requested_at": "2026-11-27T11:13:05.147503+00:00",
+      "request_id": "a3c82e801ab73fed5ac39fc71b5484bf9eb093b874c02a7399b747620c677a8e",
+      "evidence_sha256": "7f47b5aa036d2182eeb71855789efed1bf7e993770813d5bdf69baab1d10ec00"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "343bb62e8ef179abf4fa9f98bd960e3066070a19",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 343bb62e8ef179abf4fa9f98bd960e3066070a19",
+      "scope": "CHANGES_REQUESTED M0-155 343bb62e8ef179abf4fa9f98bd960e3066070a19",
+      "observation": "On run 45838575346, ordinary, offline weekly, and cold reads all reported 3,258 Windows runner-seconds when the aggregate job start was placed one second after its first recorded step began.",
+      "reviewer": "Independent Astra Standard (t1j5)",
+      "original_sha256": "45079133c9f951b21bf5b21dc3252ae939d90c9479cec577f9e2096e3edd1c1b",
+      "response_id": "23112516b46f138039922fd28e67b9b17f070743851526e55e3ec862c4f6c7ee",
+      "response_sha256": "d19b5258750252444af3d474ae23e11c792694ee61324a5f6abbba7b063aaa4e",
+      "legacy_response_sha256": "23852cfbff5436ce3a0086279e4a2c0247e5702f047f8bed94cf5131f4476ab0",
+      "observation_body_sha256": "11816b7b8fa74e2bda3491c393b037659bd983494c961de80f43b22a71aff709",
+      "event": {
+        "id": "msg_098f1f1ea27e0fff016b09671264b087d08d02d78075f4c224",
+        "timestamp": "2026-11-27T11:19:02.689Z"
+      },
+      "supersedes": "a3c82e801ab73fed5ac39fc71b5484bf9eb093b874c02a7399b747620c677a8e",
+      "evidence_sha256": "577b46b9f4c7c38d9a9648921d22939c357d4e6bde1bdd01e22640a780002582"
+    },
+    {
+      "kind": "request",
+      "source_commit": "fea9a19095db891b76a2f30d8ee65763c2e880fe",
+      "scope": "Ordinary, weekly and cold restoration of conflicting and independent timing, feasible prerequisite order, and observed historical publication inputs.",
+      "supersedes": "23112516b46f138039922fd28e67b9b17f070743851526e55e3ec862c4f6c7ee",
+      "requested_at": "2026-11-27T11:41:33.884802+00:00",
+      "request_id": "58efb7defd8a85a98809585d1cf6f54e9bfa5b4ee18977177efb3f6c2c3bc832",
+      "evidence_sha256": "2817f1c3f88bb98dce8afc821148ae86d7092910ba1362cbbad3dd4a5fd60cbc"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "fea9a19095db891b76a2f30d8ee65763c2e880fe",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 fea9a19095db891b76a2f30d8ee65763c2e880fe",
+      "scope": "CHANGES_REQUESTED M0-155 fea9a19095db891b76a2f30d8ee65763c2e880fe",
+      "observation": "With only the browser setup step number omitted, ordinary, offline weekly, and cold reads credited 983 runner-seconds to a PR 123 report dated one second after staging finished.",
+      "reviewer": "Independent Astra Standard (t1jm)",
+      "original_sha256": "31d43c7f17ba166555ddf4c0fa39f68efa30769a7238a658d58eeabab8eb4ed8",
+      "response_id": "764fea6499522bf4064023d44008e6b652eb35d7cf11ee57ae5d1fa25e471dbd",
+      "response_sha256": "0b47c70ea0522eb567b9d21b20d09dcf73c8ac56f3a7653746b26e306228d142",
+      "legacy_response_sha256": "a1ea2efb20b6182c5938a99309f3989270da17a2efa5ff9dbe4ebd8637f2c913",
+      "observation_body_sha256": "09be94785cff6ea7af9bf33ffe3208d7b0962ebece8b12329d9674e0487c656a",
+      "event": {
+        "id": "msg_06456fbb53d914e5016b096e1d77d887d08784d6fdddab6054",
+        "timestamp": "2026-11-27T11:49:07.928Z"
+      },
+      "supersedes": "58efb7defd8a85a98809585d1cf6f54e9bfa5b4ee18977177efb3f6c2c3bc832",
+      "evidence_sha256": "d0e4b1cf03f2dd33054f2316e6d3b17ffc8e05153281856cf3b1ca7d678794c9"
+    },
+    {
+      "kind": "request",
+      "source_commit": "829afd0b33d48304011d8e4c093a43874d517c57",
+      "scope": "Reopen original timing conflicts through the public entry, including independent bounds, timestamp precision, role ownership, surviving receipts and runner clocks. Verify cold, offline weekly and ordinary reads, rotations and comparable six-pair cost on the same material source.",
+      "supersedes": "764fea6499522bf4064023d44008e6b652eb35d7cf11ee57ae5d1fa25e471dbd",
+      "requested_at": "2026-11-28T02:10:51.198629+00:00",
+      "request_id": "4e53ae6ff18a80ce4703d224f041ae9b20cd65c2983647f8c7fad910dbac45f6",
+      "evidence_sha256": "9ac4f80e73f9ce58053a12e2dc4e3b712343b340f519188a31adc447c9a6de0b"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "829afd0b33d48304011d8e4c093a43874d517c57",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 829afd0b33d48304011d8e4c093a43874d517c57",
+      "scope": "CHANGES_REQUESTED M0-155 829afd0b33d48304011d8e4c093a43874d517c57",
+      "observation": "With the initialization step number and verification timestamps omitted, ordinary, offline weekly, and cold reads credited 983 runner-seconds to a PR 123 browser report dated two seconds before initialization completed.",
+      "reviewer": "Independent Astra Standard (t1k6)",
+      "original_sha256": "58944763bd574979971b2ce30f453b08dbf2d8599e8bd927e16d91d879506764",
+      "response_id": "ff45cbf1851d73451ad140cf4db98a787ea9be2b740ceec4e4fee594ec54a49d",
+      "response_sha256": "2aa81913553622a3603dbc4f94e63f39e6cc051d1de5264ffda635ee5886db2c",
+      "legacy_response_sha256": "7d30e5eadf1f0f33e6eb79498b5b131b425f86fbe2d5642f83a5145c2c7dbb2d",
+      "observation_body_sha256": "5248aab86de9804811793f91aeb18fcec292b41be89113963c841cfda7b48ecd",
+      "event": {
+        "id": "msg_0b08cb512038d4fe016b0a3a24f40887d0ad747db9039573ec",
+        "timestamp": "2026-11-28T02:19:47.707Z"
+      },
+      "supersedes": "4e53ae6ff18a80ce4703d224f041ae9b20cd65c2983647f8c7fad910dbac45f6",
+      "evidence_sha256": "bcf97772bf197aafe31d29ec73b09660c29afdefc072335adaaaecb09b095305"
+    },
+    {
+      "kind": "request",
+      "source_commit": "534497026f29fdd9ea3973fc0564ccdfa1c0d528",
+      "scope": "Reopen original timing conflicts through the public entry, including independent bounds, timestamp precision, role ownership, surviving receipts and runner clocks. Verify cold, offline weekly and ordinary reads, rotations and comparable six-pair cost on the same material source.",
+      "supersedes": "ff45cbf1851d73451ad140cf4db98a787ea9be2b740ceec4e4fee594ec54a49d",
+      "requested_at": "2026-11-28T02:33:50.560732+00:00",
+      "request_id": "4669c7246467c06a03a32880c3001f7b4ab33e8909940c1afa597e5b142d75d1",
+      "evidence_sha256": "277fb489e8b9398d6e396b5d4ffabbea91f02d032ce8475f65fb7eaf572843ef"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "534497026f29fdd9ea3973fc0564ccdfa1c0d528",
+      "verdict": "approved",
+      "decision": "APPROVE M0-155 534497026f29fdd9ea3973fc0564ccdfa1c0d528",
+      "scope": "APPROVE M0-155 534497026f29fdd9ea3973fc0564ccdfa1c0d528",
+      "observation": "After twelve later captures, a cold read preserved the 804-second Windows wall time and the 321-second recovery job time while keeping the disputed browser time and Windows runner total unknown.",
+      "reviewer": "Independent Astra Standard (t1kb)",
+      "original_sha256": "037032691dd557e07a38ef9c82ed6a3b11f7326763145f5b8559fca13b47fc7b",
+      "response_id": "1057e757227f9b244146d9a90313ae10ffbf7405d3af0111906352cf1156c3c1",
+      "response_sha256": "193ddf2cb4500667dcda9c806bd7e2d6289f5278566541599c7cc73fdb34e42e",
+      "legacy_response_sha256": "6636d7d1058b3f99837d2abe4f08d66fecfa3dd1da9efdfdc34b9b710240f230",
+      "observation_body_sha256": "c921b2ae09fc53de7d4d0de457e93c8d0b2b6d3646f0a72a02b7f05f869dc232",
+      "event": {
+        "id": "msg_0ed56de49c413b82016b0a3f9386bc87d09c6e65e88d1a33dc",
+        "timestamp": "2026-11-28T02:42:49.733Z"
+      },
+      "supersedes": "4669c7246467c06a03a32880c3001f7b4ab33e8909940c1afa597e5b142d75d1",
+      "evidence_sha256": "478a4511f87f47e1a4a780ece89fa858ed09a8243005fe5d724fb05bb017df09"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "Resolve the prior secondary findings on PR 84 recovery run 45546767887 and single-job run 45389970933. Derive dependency authority and publisher identity from the original jobs, workflow and accepted historical receipt. Replay both orders, the ordinary and weekly entries, and cold reopening. Check wall time, runner time, partial cache, trend membership and rejected receipts. Inspect the six paired measurements.",
+      "supersedes": "1057e757227f9b244146d9a90313ae10ffbf7405d3af0111906352cf1156c3c1",
+      "requested_at": "2026-11-28T03:57:30.335282+00:00",
+      "request_id": "73fd891836d17e72f3e917d8d5fc88b1a6d7c5bed55c0097926e0d8c36da0b47",
+      "evidence_sha256": "943703c661ed505c00d54c601a42ff61dd89ea4399f09100edd5d7c21337494c"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "verdict": "approved",
+      "decision": "APPROVE M0-155 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "APPROVE M0-155 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "observation": "After cold reopen, PR 84 retained 321 seconds of recovery wall time, 319 runner-seconds and partial cache attribution in both report orders, and run 45389970933 retained its single Windows receipt.",
+      "reviewer": "Independent Astra Standard (t1kv)",
+      "original_sha256": "7137b1bf1573a073f6b5290b71b5994acc08b1dccb909f5a4c1cd31fd2618b0a",
+      "response_id": "788a8f14e6eeba9147cf9ec51ff0cc3757f144636d060748c6b341cc0ef7ae87",
+      "response_sha256": "b5e1cd07752267f569749c9bdb3afba9e84287d306587a3ec4b80586f33476cf",
+      "legacy_response_sha256": "4d6f105bbd57f05a540aef3229969317a6df18b40a07d3307493dcbdd7e81971",
+      "observation_body_sha256": "de0724761a4a6907e69443c5df27894384f06ddf5c3e682705ce12418f0f2f97",
+      "event": {
+        "id": "msg_0eaa6ed0b20f908f016b0a52ea333087d0b236d8d043156af4",
+        "timestamp": "2026-11-28T04:05:14.385Z"
+      },
+      "supersedes": "73fd891836d17e72f3e917d8d5fc88b1a6d7c5bed55c0097926e0d8c36da0b47",
+      "evidence_sha256": "7bda206156f94fff948c55e723b8085358c4da12d224d50e00df8ec5353a6c97"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d226171f0d21bf65109416128a68bea9c8577b2d",
+      "scope": "Check the ordinary, weekly and cold timing-reader invariant on this repaired source, including the last M0-156 cross-archive witness and the original PR 84 rotation. Retain every independently supported measurement and examine the measured six-pair cost. Resolve the M0-131 rejection of e77724d0 on PR 123 run 45965137241. Compare all 96 raw/compact before-and-after ordinary, weekly and cold observations, independently grounded runner time and the six pairs of reader costs.",
+      "supersedes": "788a8f14e6eeba9147cf9ec51ff0cc3757f144636d060748c6b341cc0ef7ae87",
+      "requested_at": "2026-11-28T04:35:47.715114+00:00",
+      "request_id": "ea3063853fdcc5e4dff4c754dd3657527c5ab847946890e341863a1e07374570",
+      "evidence_sha256": "d912472f261f77ac586d5b7182353f323cc7aa8dcaaa4775db1f6067f5c8a5cd"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d226171f0d21bf65109416128a68bea9c8577b2d",
+      "verdict": "approved",
+      "decision": "APPROVE M0-155 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "scope": "APPROVE M0-155 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "observation": "In both input orders, a fresh process rejected the PR 123 report copy dated at initialization and preserved the genuine browser report’s 983 runner-seconds.",
+      "reviewer": "Independent Astra Standard (t1m7)",
+      "original_sha256": "b4c5afd75f38479fb5aa0affb001a662ac328ad1ea7dd9946ef30b6f25c5a26f",
+      "response_id": "dc4fc1aa3e1c5cdc442f05d254757990866f550bde3ba25d223030a298ee4d9f",
+      "response_sha256": "18f8bc2cf1c55d0d7edf1b8024bb3e5083e47062184f06ce65a1b10fb20e56db",
+      "legacy_response_sha256": "b0e69e8cfc43d2e01db0bc593267274c93769c414f9bfe018e01b70d214b6966",
+      "observation_body_sha256": "8bf34df58906b2eecaed3fe3b81345d678cb84a53d5fc8e7c8dfe2b20e3350fe",
+      "event": {
+        "id": "msg_00818d8981a25db9016b0a5c514a2087d0a05a2406539d22bc",
+        "timestamp": "2026-11-28T04:45:34.522Z"
+      },
+      "supersedes": "ea3063853fdcc5e4dff4c754dd3657527c5ab847946890e341863a1e07374570",
+      "evidence_sha256": "44a38cfb0a806dbfb2f4871f923080caf1aeae7acd30c6ce0d99653332af9326"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "Review the reconciled ordinary/public and weekly reader with both parent programs. Replay the real PR 84 rotation and independently ordered PR 123 reports in both arrival orders and cold recovery. Check the original six paired costs on their measured source and whether the two disjoint publisher identities and the new source are distinguished.",
+      "supersedes": "dc4fc1aa3e1c5cdc442f05d254757990866f550bde3ba25d223030a298ee4d9f",
+      "requested_at": "2026-11-28T05:37:26.690277+00:00",
+      "request_id": "9cc506aaf00627f531cabd737ec38cfe6612d6e625c6fb06f74d7f7ae581f7ef",
+      "evidence_sha256": "db9c4c7fc788dd61c82993f4eae9504ce53eb98462895d1758b9101e3dfd8a2e"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "verdict": "approved",
+      "decision": "APPROVE M0-155 d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "APPROVE M0-155 d55f6907237d9af018decabd2f94fba43c198620",
+      "observation": "After twelve newer captures displaced PR 84, cold reads in both arrival orders preserved the 804-second Windows wall time and 321-second recovery job duration while leaving the disputed browser duration and Windows runner total unknown.",
+      "reviewer": "Independent Astra Standard (t1mt)",
+      "original_sha256": "f6b14f4e22b9b8c74d864b81d6ef5942128955eb6587c6949a23a9a73a0726fc",
+      "response_id": "4fdbbd33a356118d9e79ef041b11a160e285197c8b3b0f9482632487f724a438",
+      "response_sha256": "4abf13e52bd049b1de7b671e5d3daadc39d298d30d5818c76ac852b4cdf8a557",
+      "legacy_response_sha256": "f791eb36f5496fa007edb77dd584115df11b80e2194208569c4c05af5e12ca09",
+      "observation_body_sha256": "6a7d410a2d968a699f09227337bf96f38e27a4fd7f8d76406d83bac0ef4843ca",
+      "event": {
+        "id": "msg_0646d9d1d64b221e016b0a6acf1e5c87d0905fc602c59ee38e",
+        "timestamp": "2026-11-28T05:47:14.647Z"
+      },
+      "supersedes": "9cc506aaf00627f531cabd737ec38cfe6612d6e625c6fb06f74d7f7ae581f7ef",
+      "evidence_sha256": "970594f96d1164980e9857783001848c3b3ac90d8f9241f8fea0a38be8e35642"
+    },
+    {
+      "kind": "request",
+      "source_commit": "42e48a2c08fbb85efa740ae12ad1fdcf09e471ad",
+      "scope": "Review the ordinary and weekly timing reader on the joined source using the genuine PR 84 rotation and PR 123 clocks, both arrival orders and actual cold reopening. Verify that the original reader and publisher blobs, corrected sixteen-control invocation and six measured pairs retain their exact attribution.",
+      "supersedes": "4fdbbd33a356118d9e79ef041b11a160e285197c8b3b0f9482632487f724a438",
+      "requested_at": "2026-11-28T06:21:53.714827+00:00",
+      "request_id": "f22792bb3018901c85fb2a5bdebe62c4f8c819984d264f310b3f183fa5dd4f8b",
+      "evidence_sha256": "6a894f2afc5bb3de2a05c9d09acb16da92a48773dd7241d44b9d932d3d0f238b"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "42e48a2c08fbb85efa740ae12ad1fdcf09e471ad",
+      "verdict": "approved",
+      "decision": "APPROVE M0-155 42e48a2c08fbb85efa740ae12ad1fdcf09e471ad",
+      "scope": "APPROVE M0-155 42e48a2c08fbb85efa740ae12ad1fdcf09e471ad",
+      "observation": "After twelve newer captures displaced PR 84, fresh processes reopened both arrival orders and preserved the 804-second Windows wall time and 321-second recovery wall time while leaving the disputed browser duration and Windows runner total unknown.",
+      "reviewer": "Independent Astra Standard (t1n9)",
+      "original_sha256": "a849a5c3716d864aaf3470340ac364dc6de58cb53e8dda469289ac285b451903",
+      "response_id": "06a8bebbbfadbe071dd32db7e41d67cddd66e69175cf9cc583e4ecd381d15326",
+      "response_sha256": "e25882144bf2d61d7dabe9259702e4ba75f94eba96001ba6e6a5063b564edeaf",
+      "legacy_response_sha256": "dca3d8ef366c66dc0ce599c8ceb9700a9360f4a46901fd48a7988d24eff656cd",
+      "observation_body_sha256": "9d928b5626988d839905e633539118096d17e3727fd626a46fe54ccf26c069a4",
+      "event": {
+        "id": "msg_0b03c68a0cff18b7016b0a7546c41487d09ba4336dd160eb79",
+        "timestamp": "2026-11-28T06:31:57.357Z"
+      },
+      "supersedes": "f22792bb3018901c85fb2a5bdebe62c4f8c819984d264f310b3f183fa5dd4f8b",
+      "evidence_sha256": "3c70a6db2bf7464d849852ed36c98857db3318e310fa801c7b516b602f5e40b9"
+    },
+    {
+      "kind": "request",
+      "source_commit": "1f6c7cda14379ab28241796e38c490d4de716771",
+      "scope": "Independently test the shared ordinary and weekly reader on the composed repair. Check the original PR 84 beyond-rotation conflict, preserved Windows and recovery clocks, the fixed PR 123 attribution and the PR 96 late-outcome cold reopen. Inspect both genuine input orders, saved archive compatibility and the six measured pairs against 42e48a2c. Distinguish the historical six pairs and their measured inputs.",
+      "supersedes": "06a8bebbbfadbe071dd32db7e41d67cddd66e69175cf9cc583e4ecd381d15326",
+      "requested_at": "2026-11-28T07:08:37.203677+00:00",
+      "request_id": "354e469ba85d2b11c9e444dd38d27d362c20772bb1037f11b1b050865a303f65",
+      "evidence_sha256": "668581ae1113f2a5625d8e1d10417c049b4b643c3cc6abd1c6d2fc85bb7762c6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "1f6c7cda14379ab28241796e38c490d4de716771",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 1f6c7cda14379ab28241796e38c490d4de716771",
+      "scope": "CHANGES_REQUESTED M0-155 1f6c7cda14379ab28241796e38c490d4de716771",
+      "observation": "On PR 123, an out-of-job step timestamp gave an impossible browser report 983 runner-seconds when read alone and left the genuine report unattributed in both input orders after a cold reopen.",
+      "reviewer": "Independent Astra Standard (t1nv)",
+      "original_sha256": "8d880aa3d59ca8dc4f20fc119070cad0e7f0a684bb8e61fb851adbb8158c62d1",
+      "response_id": "0b498b14295f0d9a3ff46d78c16260498362593f02471a697ee919f5ca4a8bc6",
+      "response_sha256": "8e54978646a49bca5dd6ca20dac000e7549140f780ba0566de2c2ce6dfdb319f",
+      "legacy_response_sha256": "9e5afd0b7bd3d9f4701338ca29d91e0d85e3f5e9b2ad818bf1bbc9b75ae7b444",
+      "observation_body_sha256": "941a5d409248219096f25a4a67b2bf0670447b41e47f8149848b7a3cd56a3922",
+      "event": {
+        "id": "msg_0d8e9cf27c1e5c8d016b0a7fae7e1887d09ece6a9bc99ad674",
+        "timestamp": "2026-11-28T07:16:25.534Z"
+      },
+      "supersedes": "354e469ba85d2b11c9e444dd38d27d362c20772bb1037f11b1b050865a303f65",
+      "evidence_sha256": "cf0779faf4145a16af139b569d3230bdb8a9024bce54bb6b89273fcc51f41b76"
+    },
+    {
+      "kind": "request",
+      "source_commit": "2e7fd0b6b156115ef087f4e209494caa6015cb7d",
+      "scope": "Independently check the public timing invariant against the three registered PR 123 failures, especially the two original competing listings with a before-job step 15 end or after-job step 25 start. Check that the 793.422-second genuine report retains 983 runner-seconds and impossible copies cannot displace it in either listing or report order through ordinary, weekly and actual cold reopening. Judge the 32 disputed single-listing reads from their surviving evidence. Exercise genuine PR 84 rotation, independently supported clocks, hosted and task-check scope and the six-pair cost.",
+      "supersedes": "0b498b14295f0d9a3ff46d78c16260498362593f02471a697ee919f5ca4a8bc6",
+      "requested_at": "2026-11-28T07:41:19.272775+00:00",
+      "request_id": "0bf3b5662e17488e38cf7dbc89d84bf703c1a93a7918d3980bdfb8b7f5078388",
+      "evidence_sha256": "8f4bbc85917b469f281c97d40f7bf73e5fcb17a98b6c1c5b3a7f5ab0d0cd9900"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "2e7fd0b6b156115ef087f4e209494caa6015cb7d",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 2e7fd0b6b156115ef087f4e209494caa6015cb7d",
+      "scope": "CHANGES_REQUESTED M0-155 2e7fd0b6b156115ef087f4e209494caa6015cb7d",
+      "observation": "After a fresh-process reopen, the 08:38:34Z copy received 983 runner-seconds alone, while pairing it with the genuine PR 123 report left both unattributed.",
+      "reviewer": "Independent Astra Standard (t1p0)",
+      "original_sha256": "e37be8f616c0812597abba8892946ccbe48e6bb0f73cb8454e1cd498d052db6b",
+      "response_id": "95241ce64c82d2de22f964948313a9540fac8aead7066014d12e6ee844ffa95e",
+      "response_sha256": "c5b0c6c0079d9fc7a04b9757e97bd1c8254ff1edefaec59aa3f88702520a1531",
+      "legacy_response_sha256": "81234b1bd7f50a82fb02dd1a14eeebf225b558cd511ebc4c892f4fd6ead44241",
+      "observation_body_sha256": "8ee46927207dd32bd7840aacd8d1752f886db7c6bc6d0741e20b6a6c4ef158c8",
+      "event": {
+        "id": "msg_023785778ef85f0b016b0a878d47a487d09095a95db4798f62",
+        "timestamp": "2026-11-28T07:50:03.486Z"
+      },
+      "supersedes": "0bf3b5662e17488e38cf7dbc89d84bf703c1a93a7918d3980bdfb8b7f5078388",
+      "evidence_sha256": "898582d29f246938012c400a6255e00b9f3551be4f21e8e3ebde81b807ad13c0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "12e20ac4b69dbd149aabc26bd3fedc45c853c576",
+      "scope": "Review ordinary, offline weekly and fresh-process timing attribution using the two prior independent examples. Verify the genuine, rejected and paired behavior, all 32 ambiguous single-listing pairs, original PR 84 rotation, controls that must be preserved, and current measured reader cost.",
+      "supersedes": "95241ce64c82d2de22f964948313a9540fac8aead7066014d12e6ee844ffa95e",
+      "requested_at": "2026-11-28T08:52:13.059557+00:00",
+      "request_id": "e9c859237ff51e6f07e87fe65f217a359c79a7d13953c1c4b9b640b7734c7c26",
+      "evidence_sha256": "f40ee373a8e3685ab3315e6fc73857588436fc75a69245949683ca8d0c2fecec"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "12e20ac4b69dbd149aabc26bd3fedc45c853c576",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 12e20ac4b69dbd149aabc26bd3fedc45c853c576",
+      "scope": "CHANGES_REQUESTED M0-155 12e20ac4b69dbd149aabc26bd3fedc45c853c576",
+      "observation": "With staging recorded at 08:38:31Z, a fresh-process reopen credited the 08:38:34Z PR 123 copy with 983 runner-seconds alone and left both reports unattributed when paired.",
+      "reviewer": "Independent Astra Standard (t1pj)",
+      "original_sha256": "ffff9a04735f6c6fdab71de1e12290b470a3fa121f1f95d1e16b0451d92635de",
+      "response_id": "21af3fec83a6c025dcbc08c80db2925eedc52f504f2d4239b8215c3c59b542f8",
+      "response_sha256": "5354f18c54ecad83ac2e9251a3832f7fb2d25e7963eda95c155847780cecf6a6",
+      "legacy_response_sha256": "23ed9fdb3c22372fde567288adf437d630fa1a5c2d98d06cd0add5d18775b2cb",
+      "observation_body_sha256": "61deb20482b4232315b7025283089ca43c2bea076314a2b654176ece266e14bc",
+      "event": {
+        "id": "msg_0ed69f60ea335473016b0a985730b887d2b139305dc45f53fd",
+        "timestamp": "2026-11-28T09:01:37.098Z"
+      },
+      "supersedes": "e9c859237ff51e6f07e87fe65f217a359c79a7d13953c1c4b9b640b7734c7c26",
+      "evidence_sha256": "4bce24b89249087eaf7fe029696336ff1ea2a088ba6159aaa810861d5e3b9f2d"
+    },
+    {
+      "kind": "request",
+      "source_commit": "2b87a34bb164b68cff2830996664a3797774b1ed",
+      "scope": "Compare ordinary, offline weekly and newly reopened timing as the same observations arrive in different orders. Recheck the prior PR 123 refusals and genuinely ambiguous pairs, historical single and five-producer lanes, and measured cost on the changed ordinary entry.",
+      "supersedes": "21af3fec83a6c025dcbc08c80db2925eedc52f504f2d4239b8215c3c59b542f8",
+      "requested_at": "2026-11-28T09:21:48.056747+00:00",
+      "request_id": "eb21bee9dfcd15d5c84c5fe856837f9f008791cd6cb0de706db6d8608c051e01",
+      "evidence_sha256": "bb1b03a5dc3702e19720b3ca3f443c1e9219b59871dd64aaac1f1649f760daf9"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "2b87a34bb164b68cff2830996664a3797774b1ed",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 2b87a34bb164b68cff2830996664a3797774b1ed",
+      "scope": "CHANGES_REQUESTED M0-155 2b87a34bb164b68cff2830996664a3797774b1ed",
+      "observation": "A fresh process credited the PR 123 browser report copy recorded at 08:38:34Z with 983 runner-seconds even though numbered step 25 started at 08:38:31Z.",
+      "reviewer": "Independent Astra Standard (t1pw)",
+      "original_sha256": "54a61d2403588245a20dd2e3f77407d2ea06ab850aeb29815246e94c62dac950",
+      "response_id": "f293f3dd092834c5d82535470f48e0dede76a6d3cb136cdfceaa879c49a3ad4e",
+      "response_sha256": "93a2f1d12cf66a05712e71bee77838aee69a4cc59bddde7ae5b634dfd5a5df99",
+      "legacy_response_sha256": "f2d2f368e75c1c3fde298b9c2acb10cf796453f6e4042dcda436b34eb0697c28",
+      "observation_body_sha256": "65f15ffbb6afc0d6601500a6ef84d12b5b5be6fc5b8deba5c3c7742d67c5e7e5",
+      "event": {
+        "id": "msg_0fbe9b72791558fd016b0a9f007e3087d183dde8dd8b2a3e97",
+        "timestamp": "2026-11-28T09:30:04.849Z"
+      },
+      "supersedes": "eb21bee9dfcd15d5c84c5fe856837f9f008791cd6cb0de706db6d8608c051e01",
+      "evidence_sha256": "7af5af96cbf3474b8cebaf78a1d9e4641a1e1a3bcd7e1bfe7dc88b648c4b27e5"
+    }
+  ]
+}

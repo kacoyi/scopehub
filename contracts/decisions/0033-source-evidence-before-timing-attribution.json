@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0",
+  "id": "0033",
+  "title": "Bind source evidence before timing attribution",
+  "status": "accepted",
+  "recorded_at": "2026-11-26",
+  "context": "The three independent decisions on da5d83da found five failures across ordinary and weekly timing readers. ADRs 0031 and 0032 shared reconciliation after the inputs were projected. The Actions adapter still dropped attachments with a number but no step name. The archive comparator used a microsecond clock to establish report equality, and the portable reader lost native-build eligibility and result-derived integration assertions while mirroring selected publisher checks. The missing-checkout fallback treated a stopped parent walk as enough evidence to proceed. Each boundary could erase a conflict before the shared decision received it.",
+  "decision": "Retain numbered Actions step facts until the run attempt and job ID bind them to a unique step name. Use the same joined rules for listed and reopened clocks, leaving the previous step projections as read compatibility. Compare report recording instants at their observed precision. Share result-derived integration claims and the required Windows native-build predicate with their actual producers before compacting raw reports or qualifying complete Windows aggregates. Keep the exact historical publisher inventory from ADR 0035. Qualify unavailable PR previews using bounded local Git parent evidence and preserve an explicit reason when ancestry cannot be established. Clocks with independent evidence remain available at their own scope.",
+  "authority": "ADR 0007 assigns development verification design and implementation to the development AI. Source-bound independent decisions and the protected verification gates remain required.",
+  "alternatives": [
+    {
+      "option": "Patch each reader decision at its current call site.",
+      "reason": "Attaching one unnamed completion, truncating only one timestamp field, adding one aggregate verdict condition or raising the parent visit count leaves other facts vulnerable to the same projection. The defects recurred across job listings, raw and compact publications, archives and independent Git source views."
+    },
+    {
+      "option": "Replace timing ingestion with a new persisted observation format or rerun each historical producer.",
+      "reason": "Ordinary and weekly readers consume existing Actions JSON, report artifacts and retained reviews. Historical issuers depend on native environments, original logs and publisher revisions. A full replacement adds migration and compatibility readers, or runtime dependencies and historical execution, without recovering unavailable observations."
+    },
+    {
+      "option": "Retire duplicated interpretation at the boundary while keeping older archives readable.",
+      "reason": "The current Actions adapter can retain step assertions in the existing archive. The report producer and portable consumer can share standard-library predicates over the same rows. Git can establish parent evidence from local commit objects within a bounded traversal. These changes leave the full producer as the owner of log and native verification."
+    }
+  ],
+  "consequences": [
+    "The existing capture and archive limits still apply. A compatible sparse step can complete a known local binding, a conflicting binding or endpoint withholds its dependent measurement, and a number without a binding supplies no phase. Older captures remain usable to the extent of the evidence they retained. Retain original inputs for reprocessing and recovery.",
+    "Readers can evaluate the retained source and result claims using system Python. Compact reports cannot recover discarded raw observations, and a new publishing closure requires an actual publication before registration. Matching hosted and native acceptance remains separate from offline observations.",
+    "Qualify the common source against independently retained originals, adjacent valid controls, ordinary and weekly entries, cold reopening and an independently reserved example. Measure the replay effort and retained size against the rejected source. The coordinator owns fresh independent decisions, the five held dependent requests and the actual November 28 observation."
+  ],
+  "supersedes": [],
+  "related_decisions": ["0007", "0035", "0031", "0032"],
+  "revisit_when": [
+    "A new publisher or Actions payload changes an observed claim or crosses a retained capture limit.",
+    "A genuine missing preview remains unresolved within bounded local ancestry evidence."
+  ]
+}

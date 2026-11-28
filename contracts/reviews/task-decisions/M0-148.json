@@ -1,0 +1,422 @@
+{
+  "version": 3,
+  "task_id": "M0-148",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "scope": "Independently review committed publisher catalog and execution-input hashing across CRLF/LF controls. Verify genuine full Windows selection, reject omission, surplus, unavailable catalog and mismatched substitute digest, and inspect the retained Linux and native Windows receipts and pinned protected setup. Keep M0-150 reassigned producer work outside this review.",
+      "supersedes": null,
+      "requested_at": "2026-11-25T21:44:06.190742+00:00",
+      "request_id": "5c9dbb5b351adff08ec437fcc939b96068c5d0d2e979b2720d5a2f663b815b5d",
+      "evidence_sha256": "8d5bfa6d573af8aa31b876c7f0199ea2856ab61fed6d581252ea7dd12c93970e"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-148 57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "scope": "CHANGES_REQUESTED M0-148 57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "observation": "Using the same system Python and the archived Windows sample from run 45546767887, I obtained a timing receipt on the timing parent and a missing Marko error on the merged commit.",
+      "reviewer": "Independent Astra Standard (t10k)",
+      "original_sha256": "ef9d057a1730ec8b1cf45796792f3fd315895c247abad00b6d1b29f9b73160f7",
+      "response_id": "80abbff37302adebad63f1a4b05447303286db1af91625c047c238484467e090",
+      "response_sha256": "6e6abcdb531d7e38cb473732cb07f11361447b3c56ca9a7802648c2337f2594a",
+      "legacy_response_sha256": "2fc4ee6402be4b2206d3584a174b5c678e86025263b90c07059720176718c00f",
+      "observation_body_sha256": "ce0934f6be9d40e2abe9a561b83979bc16c55d92701667826852abb6c6ccc328",
+      "event": {
+        "id": "msg_0726944a1ab7b47d016b076216603c87d0911f00036de6dfd6",
+        "timestamp": "2026-11-25T22:33:07.282Z"
+      },
+      "supersedes": "5c9dbb5b351adff08ec437fcc939b96068c5d0d2e979b2720d5a2f663b815b5d",
+      "evidence_sha256": "a354005da09c90ee653be215fed7be9e5ec7b7668244ce5554a7d0bac93c41e9"
+    },
+    {
+      "kind": "request",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "Revisit the previous clean-system weekly failure using the retained PR 84 sample with the expired preview and its historical substitute. Check actual weekly output and receipts in system Python without Marko, available-preview and mismatch controls, CRLF/LF and all 35 omission controls, and the independent Windows evidence from the original task.",
+      "supersedes": "80abbff37302adebad63f1a4b05447303286db1af91625c047c238484467e090",
+      "requested_at": "2026-11-25T22:53:02.066390+00:00",
+      "request_id": "692fff7d0da8ca8340242c21d80faff0d16f5653ac3343b428eb7d6a0f1b4049",
+      "evidence_sha256": "81b86d1521ea4a8c22eefe19144a7b5f1db67740533d3f80837be8e3ef565864"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "verdict": "approved",
+      "decision": "APPROVE M0-148 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "APPROVE M0-148 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "observation": "Using system Python without Marko, I saved and reopened the PR 84 weekly replay and recovered one Windows receipt, 804 seconds of wall time, and 2,467 runner-seconds.",
+      "reviewer": "Independent Astra Standard (t10k)",
+      "original_sha256": "64fcec3f7e45d5c0c1ef9ca06644a5f1d65eeb229b6a39f310f59c107f33eb54",
+      "response_id": "420dfab357cd16170a8f50a118f42c836a3e67581104861c573f539c814e4d9d",
+      "response_sha256": "4ae3b408cd4068b15129dcddb4f2c14af2be852f37f6549a98c055076d953d3b",
+      "legacy_response_sha256": "fe697ecf8aa9af89bd86c1c50ce5c2e10588cf1ab0b574550fb97c6a4e122651",
+      "observation_body_sha256": "d475fbdcc3c66d9cc0697a007e197b712250018bc14b58531d5dcd191d01748b",
+      "event": {
+        "id": "msg_0726944a1ab7b47d016b0769db6cd887d0a8ae377328925003",
+        "timestamp": "2026-11-25T23:06:18.739Z"
+      },
+      "supersedes": "692fff7d0da8ca8340242c21d80faff0d16f5653ac3343b428eb7d6a0f1b4049",
+      "evidence_sha256": "a8cf003b34749134e24a0ff7e3760545a4275182d0142634aebd0fae01c8fe0b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "scope": "Check a real Windows publishing catalog and digest at the recorded publishing checkout, adjacent unsupported historical combinations and the ordinary and weekly entry in a clean environment. Distinguish the candidate checks from native qualification.",
+      "supersedes": "420dfab357cd16170a8f50a118f42c836a3e67581104861c573f539c814e4d9d",
+      "requested_at": "2026-11-26T04:10:30.765410+00:00",
+      "request_id": "d0e335ff0dd8f7783dc249da07b74da3f29a87966b723241dec699103820b019",
+      "evidence_sha256": "c0663f9868197f92549c25247463998354ae82badca11a7c2e286e61695b9722"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-148 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "scope": "CHANGES_REQUESTED M0-148 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "observation": "After I replaced only the execution-input digest in Windows run 45577003837 with the digest from run 45570358218, the ordinary reader retained 718 wall seconds and 2,346 runner-seconds, and the weekly reader issued a receipt for the altered sample.",
+      "reviewer": "Independent Astra Standard (t12s)",
+      "original_sha256": "2caa979d2d9fc795616f2383f149007810731fff11b061c0e6c0c2b044bc5633",
+      "response_id": "775f1945cbc4718a59e54ee10105ca54caaf792d20ad98daef8bba14aaa19569",
+      "response_sha256": "8947b8f8da9e5f082fd13b43977435ef8053d1f7d530986c5614b9ba2c4c5b14",
+      "legacy_response_sha256": "6751afd3fda51950518f2c6eab31ac2406370b2e53fe5dd1bcbc2a8416e20c12",
+      "observation_body_sha256": "31a7e27d9968c6420adc1280591153a382f4215909e28b31f0903f1a327a3658",
+      "event": {
+        "id": "msg_027ebd92e24bc0b1016b07b6f4f81487d28d5dd7dcbd0a4791",
+        "timestamp": "2026-11-26T04:35:20.173Z"
+      },
+      "supersedes": "d0e335ff0dd8f7783dc249da07b74da3f29a87966b723241dec699103820b019",
+      "evidence_sha256": "480657beff3cca2e9aeff3c418e544bb37bc1e78d9a0ca56636fb414389dcdcc"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "scope": "Check a real Windows publishing catalog and digest at the recorded publishing checkout, adjacent unsupported historical combinations and the ordinary and weekly entry in a clean environment. Distinguish the candidate checks from native qualification. Recheck the original decision on caea2a0a.",
+      "supersedes": "775f1945cbc4718a59e54ee10105ca54caaf792d20ad98daef8bba14aaa19569",
+      "requested_at": "2026-11-26T05:01:40.421826+00:00",
+      "request_id": "ab36156d32b9d0c8bd034cce3c88e382fc3b2884364e6f1d85ae167ef97e4a18",
+      "evidence_sha256": "68cadf88096f9e882810b99f039c27ecbe165b179fa47fc7fa016db88ab06d31"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-148 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "scope": "CHANGES_REQUESTED M0-148 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "observation": "With only the Windows artifact available for push run 45577003837, replacing its recorded checkout and execution digest with the matching pair from run 45570358218 preserved 718 wall seconds and 2,346 runner-seconds in the ordinary reader and produced a weekly receipt for the altered sample.",
+      "reviewer": "Independent Astra Standard (t13m)",
+      "original_sha256": "b0f31091c5fdc9bb9dba9f40b6444e651209608da57e64c24c25874cb810b612",
+      "response_id": "89647a06a24103133d9aa6236b749d4744aad6eb553cfbb43a37d21fae455a54",
+      "response_sha256": "4d47ad3b0a9640b9e9c850bb8f6e659df3e3d3105ad0cdf8038b3a49ed5a442f",
+      "legacy_response_sha256": "9c70b92d5b4e02d1f9a45b57476bfb152f2b0ba25671cfe437626d3e4e9a0afc",
+      "observation_body_sha256": "bbb4f48835f89cf56c8041204d17b954edcb6e69fd93774384da9aec8a5fc2f6",
+      "event": {
+        "id": "msg_0818ebc99a6d2f2b016b07c2a2125087d1a39b3db40d598d27",
+        "timestamp": "2026-11-26T05:25:11.902Z"
+      },
+      "supersedes": "ab36156d32b9d0c8bd034cce3c88e382fc3b2884364e6f1d85ae167ef97e4a18",
+      "evidence_sha256": "2f85f71875fff7b6ac7dfc5cb74a36df99af253ddf4d278bb75f90e633675980"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "scope": "Check a real Windows publishing catalog and digest at the recorded publishing checkout, adjacent unsupported historical combinations and the ordinary and weekly entry in a clean environment. Distinguish the candidate checks from native qualification. Recheck the original decision on b12aefdc.",
+      "supersedes": "89647a06a24103133d9aa6236b749d4744aad6eb553cfbb43a37d21fae455a54",
+      "requested_at": "2026-11-26T06:32:11.929715+00:00",
+      "request_id": "43558cb21ef3117cbd75e1c5e06a75c4bcd1bbc87c726120881a7637c7072ded",
+      "evidence_sha256": "5956c1606a735db53fe4f58bef241138c47e2149b83e5d5b5b08d0ecc5ee8bc1"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-148 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "scope": "CHANGES_REQUESTED M0-148 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "observation": "After I swapped the results of `generated-contracts` and `ai-workflow` in Windows push run 45577003837, the ordinary reader retained 718 wall seconds and 2,346 runner-seconds, and the weekly reader issued a receipt for the altered sample.",
+      "reviewer": "Independent Astra Standard (t14n)",
+      "original_sha256": "6089333f404eda9df4f611dd48f64e0497aada359f53631a0060031ba80a671a",
+      "response_id": "cd4e2ae0912581d9633a7bbe76f7eef7dbfa75cb37215c2141c23a0d5a1de427",
+      "response_sha256": "27e7fbe625ea46c868b847b4224bf8422b30922f3c36306c08f81a78d5242c42",
+      "legacy_response_sha256": "0ffa90f357702c5f3c021bcf0968e759fcae2c1a3b81d8d9f8dbad33a0497b68",
+      "observation_body_sha256": "ef074107e2b897bb39a4a86dcef5546276eba43523abdb983b95f769bc29cced",
+      "event": {
+        "id": "msg_035afc9800812fba016b07db07b97c87d1b5ee731b8206c8ac",
+        "timestamp": "2026-11-26T07:09:18.715Z"
+      },
+      "supersedes": "43558cb21ef3117cbd75e1c5e06a75c4bcd1bbc87c726120881a7637c7072ded",
+      "evidence_sha256": "a0d4ab4d3e30e5d474c796ac7632ab8a27582fa2281f71458aaf17dcf5fdd9fa"
+    },
+    {
+      "kind": "request",
+      "source_commit": "39413fd304e8575605dc5b70a352d2e394ae1e35",
+      "scope": "Check a real Windows publishing catalog and digest at the recorded publishing checkout, adjacent unsupported historical combinations and the ordinary and weekly entry in a clean environment. Distinguish the candidate checks from native qualification. Recheck the original decision on e00b088b.",
+      "supersedes": "cd4e2ae0912581d9633a7bbe76f7eef7dbfa75cb37215c2141c23a0d5a1de427",
+      "requested_at": "2026-11-26T12:29:20.670267+00:00",
+      "request_id": "c0186ff6e14ef89c033a02b38bd1e555ec4cdb85a80c5a2369fdcf1893ac5421",
+      "evidence_sha256": "2208d8eb5e14e96d3ff2cdb1d02ec4f483df631d2f68dd8e06503eb8b6002cb1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "3eeb59bc39219905204e6aab95bd16af4d22a65e",
+      "scope": "Check a real Windows publishing catalog and digest at the recorded publishing checkout, adjacent unsupported historical combinations and the ordinary and weekly entry in a clean environment. Distinguish the candidate checks from native qualification. Recheck the original decision on e00b088b.",
+      "supersedes": "c0186ff6e14ef89c033a02b38bd1e555ec4cdb85a80c5a2369fdcf1893ac5421",
+      "requested_at": "2026-11-26T12:55:47.920276+00:00",
+      "request_id": "7f32e0313da51070a904a759dc2a0d3b6090873f26d49d73cc7016b9af1835ec",
+      "evidence_sha256": "dff8941dca6012c722d249c0c7b5af2b4004f06dced709553d92d874f86fabd0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "9ea5b5140042ac013e022c2edd7d0a79e93fee67",
+      "scope": "Check a real Windows publishing catalog and digest at the recorded publishing checkout, adjacent unsupported historical combinations and the ordinary and weekly entry in a clean environment. Distinguish the candidate checks from native qualification. Recheck the original decision on e00b088b.",
+      "supersedes": "7f32e0313da51070a904a759dc2a0d3b6090873f26d49d73cc7016b9af1835ec",
+      "requested_at": "2026-11-26T13:20:02.614127+00:00",
+      "request_id": "dd0e42506b191b638a28de639a05fe3294c9dc83f56cbf9e07300330a2d5398e",
+      "evidence_sha256": "59c1fc5a2cf1356314b6437137dad796e502f82ec8db086357dbd2da42395fdc"
+    },
+    {
+      "kind": "request",
+      "source_commit": "438302ef9ebb720039a5f0dd77e6b051c5010560",
+      "scope": "Check a real Windows publishing catalog and digest at the recorded publishing checkout, adjacent unsupported historical combinations and the ordinary and weekly entry in a clean environment. Distinguish the candidate checks from native qualification.",
+      "supersedes": "dd0e42506b191b638a28de639a05fe3294c9dc83f56cbf9e07300330a2d5398e",
+      "requested_at": "2026-11-26T13:58:55.489398+00:00",
+      "request_id": "462f69064c1fcde5541a7ccbc2958de56be461bdc8b53818d31d634c46754438",
+      "evidence_sha256": "117f67d209cfb6b9ce4e1ba47457690ed28c64d214232038ecc5d47c0e3abef4"
+    },
+    {
+      "kind": "request",
+      "source_commit": "318f54c82e50a38c4310724b55e3e9ee6539afb8",
+      "scope": "Check a real Windows publishing catalog and digest at the recorded publishing checkout, adjacent unsupported historical combinations and the ordinary and weekly entry in a clean environment. Distinguish the candidate checks from native qualification.",
+      "supersedes": "462f69064c1fcde5541a7ccbc2958de56be461bdc8b53818d31d634c46754438",
+      "requested_at": "2026-11-26T14:56:22.765972+00:00",
+      "request_id": "7aff8d473b9f1949ac793ee23d243f2178287fddde911a8dac93c08a811564ab",
+      "evidence_sha256": "a3d3c8b9bb96e1893c8cee575399011d017eda5c6e74abcbdcbf0250bfce8af2"
+    },
+    {
+      "kind": "request",
+      "source_commit": "de7e2376d216e0fe943c1301c336ef837b58c48a",
+      "scope": "Check a real Windows publishing catalog and digest at the recorded publishing checkout, adjacent unsupported historical combinations and the ordinary and weekly entry in a clean environment. Distinguish the candidate checks from native qualification.",
+      "supersedes": "7aff8d473b9f1949ac793ee23d243f2178287fddde911a8dac93c08a811564ab",
+      "requested_at": "2026-11-26T15:31:01.928089+00:00",
+      "request_id": "faacfcfc58ecdb10ac5130733f2c045cfe5969914caaebd884214dbcc2e3924f",
+      "evidence_sha256": "81112ffa81d464a2b7c4418ce26adad1fea376842934128b6b2e7263cb8d9f25"
+    },
+    {
+      "kind": "request",
+      "source_commit": "4c4865fa8db31cd57c84a8061d8abc00e03d1a01",
+      "scope": "Check a real Windows publishing catalog and digest at the recorded publishing checkout, adjacent unsupported historical combinations and the ordinary and weekly entry in a clean environment. Distinguish the candidate checks from native qualification.",
+      "supersedes": "faacfcfc58ecdb10ac5130733f2c045cfe5969914caaebd884214dbcc2e3924f",
+      "requested_at": "2026-11-27T02:45:56.314883+00:00",
+      "request_id": "2b26254e90da311ca4c7144da191685a81be31794e551d11b9aae9204eb39e50",
+      "evidence_sha256": "2578c133fefda234c8597d625e501c06640974bb1e28e6eaadb8c62163fa37ab"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b6cd4be5ccb66c7eaad60cfc2ac81c97e51f63fa",
+      "scope": "Check a real Windows publishing catalog and digest at the recorded publishing checkout, adjacent unsupported historical combinations and the ordinary and weekly entry in a clean environment. Distinguish the candidate checks from native qualification.",
+      "supersedes": "2b26254e90da311ca4c7144da191685a81be31794e551d11b9aae9204eb39e50",
+      "requested_at": "2026-11-27T03:12:11.658340+00:00",
+      "request_id": "6b8e2dc7faab4976ec2bc8990644d1affc225152e3211775ffa74c45bd318776",
+      "evidence_sha256": "e5c38d1b8836bc6c813c8c6cae80c72d7d164670a048811601efe0b5838aaf42"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "Check the historical Windows publishing catalog and stored digest at its recorded checkout under the revised report admission. Reuse the native historical receipt and existing accepted/rejected publication control for this scope.",
+      "supersedes": "6b8e2dc7faab4976ec2bc8990644d1affc225152e3211775ffa74c45bd318776",
+      "requested_at": "2026-11-27T03:36:32.910972+00:00",
+      "request_id": "e6790deeb88929977ae5b0639d264d4f3ba2fd1018ce55a66bdb79a87cd8ca6f",
+      "evidence_sha256": "8427ab522fa061ff343fd4ab26a405ccdabe0ef4c8508f780c69a762b6318a24"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-148 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "APPROVE M0-148 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "observation": "For run 45838575346, the reader retained the Windows receipt for the 35 checks selected at the recorded publishing checkout and rejected the control that changed only the execution-input digest.",
+      "reviewer": "Independent Astra Standard (t1c6)",
+      "original_sha256": "2e9eb38c58081f4d505a26cf52c12252f86c9972f05f390376cabcc85825cc7d",
+      "response_id": "05763de99cd5c314ced4c18817e17b172e07b7d5612b0e96cae5119da981488a",
+      "response_sha256": "5dd12b50e534ca05092d30d2bce884ec3e4afb2ad32525823d94f3035fd3cd59",
+      "legacy_response_sha256": "1e53f412c2313d18412789b2591e13a92360f4e1e900e3d0e589b3ab9b125b6d",
+      "observation_body_sha256": "4370f92f294fa3d8b02cf6048bb58959c4ce1e65cff04bc813b9ea46ccfe63c3",
+      "event": {
+        "id": "msg_019b162a29fb6f7a016b08fcbf86ec87d08bfce3f7ea4b68b6",
+        "timestamp": "2026-11-27T03:45:17.422Z"
+      },
+      "supersedes": "e6790deeb88929977ae5b0639d264d4f3ba2fd1018ce55a66bdb79a87cd8ca6f",
+      "evidence_sha256": "7d5b8af3e4904babb4c22b1b1aa9c16084c67ac0570221f372fdcddc5f9305ac"
+    },
+    {
+      "kind": "request",
+      "source_commit": "5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "scope": "Confirm that the previously approved M0-148 timing behavior and acceptance assertions survive the Windows test-fixture repair on this source.",
+      "supersedes": "05763de99cd5c314ced4c18817e17b172e07b7d5612b0e96cae5119da981488a",
+      "requested_at": "2026-11-27T04:25:42.849268+00:00",
+      "request_id": "e96898021635ca832c1e65a67aa1280798390b766db2e6e52cedebec7b0bb840",
+      "evidence_sha256": "975b0fc924295732efd99affb7fc4271727118f2a515af9129cff0b29387149a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-148 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "scope": "APPROVE M0-148 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "observation": "For run 45838575346, the retained archive contains a Windows receipt for all 35 selected checks, while the control with only the Windows execution-input digest changed retains only the Linux receipt.",
+      "reviewer": "Independent Astra Standard (t1cy)",
+      "original_sha256": "144c12de8fba1b21a70633aecdf0fdd25fb3697fbbd67f83b62824c88f262a77",
+      "response_id": "76bb38f798b00a583a4a74fea010bb0fd31509802fbcb7398f8dcad7784fa55c",
+      "response_sha256": "990e85a6b7290c71b18c9c8dbe69ba357ce4ecdb4a931c070fb59da29e078356",
+      "legacy_response_sha256": "98600a1bc9c1bff96a0c33357ac6e58f73b44d122923149003cabc602dc9b710",
+      "observation_body_sha256": "bfaf02882efbdbd80c3f0d824a76f707550bdc46a8e0e975efac13c3b3906327",
+      "event": {
+        "id": "msg_08652b0f6493698d016b09073e698c87d0a3c4e806013576f0",
+        "timestamp": "2026-11-27T04:30:02.752Z"
+      },
+      "supersedes": "e96898021635ca832c1e65a67aa1280798390b766db2e6e52cedebec7b0bb840",
+      "evidence_sha256": "d95d96f781fbd6834aa33fa5441b64fed8018a882136a4595d8a4fa84a6ea1ad"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e6f12373277d8aa05a734a1a1c9648f0cf489577",
+      "scope": "Immutable historical source closure, committed catalog and execution inputs, exact report selection, and coverage qualification.",
+      "supersedes": "76bb38f798b00a583a4a74fea010bb0fd31509802fbcb7398f8dcad7784fa55c",
+      "requested_at": "2026-11-27T09:24:39.247539+00:00",
+      "request_id": "02300c29ff86ba6569ab875d6e8ce5e5ac4e6b8b313ce2cd1a6a93644c54c013",
+      "evidence_sha256": "7fa355f8f4fd2899fa599ecaff78fe2d338d9d83d591d0ae4495daed1d8a5b43"
+    },
+    {
+      "kind": "request",
+      "source_commit": "1024b35f34c1065dc4f75389e78a4d699d32627b",
+      "scope": "Immutable historical source closure, committed catalog and execution inputs, exact report selection, and coverage qualification.",
+      "supersedes": "02300c29ff86ba6569ab875d6e8ce5e5ac4e6b8b313ce2cd1a6a93644c54c013",
+      "requested_at": "2026-11-27T09:51:07.065577+00:00",
+      "request_id": "8d2772373ffed36cb7d6fa268d829d20422a066138d3f10c8a067ea97afb9694",
+      "evidence_sha256": "108e8fc52d61778114b36208162583518dc5dc24e31235c5f176a6e87293ef23"
+    },
+    {
+      "kind": "request",
+      "source_commit": "17cd39cfc82e095f341f9b2f3a4c20022e36996d",
+      "scope": "Immutable historical source closure, committed catalog and execution inputs, exact report selection, and coverage qualification.",
+      "supersedes": "8d2772373ffed36cb7d6fa268d829d20422a066138d3f10c8a067ea97afb9694",
+      "requested_at": "2026-11-27T10:16:59.434869+00:00",
+      "request_id": "72d4dcab1b8fca906b1b1f002477c8b13ab7f1d2ddd877d97f6d9139384dd0c7",
+      "evidence_sha256": "efc1c6fc47de9446847808b661a02e99a62ff93a337f30eb7b9196f9a995bf89"
+    },
+    {
+      "kind": "request",
+      "source_commit": "6491b83725eb2b1ac60ebe2e6854f51941fe6e83",
+      "scope": "Immutable historical source closure, committed catalog and execution inputs, exact report selection, and coverage qualification.",
+      "supersedes": "72d4dcab1b8fca906b1b1f002477c8b13ab7f1d2ddd877d97f6d9139384dd0c7",
+      "requested_at": "2026-11-27T10:49:15.967643+00:00",
+      "request_id": "1791485b9ddf6732279ffc54dd3aeaf141e854fd02ece74afffe2dc243cd2a99",
+      "evidence_sha256": "550f930289586d53b5cddb383f0a145607d371a2cc67d9b5b7396628497a176a"
+    },
+    {
+      "kind": "request",
+      "source_commit": "343bb62e8ef179abf4fa9f98bd960e3066070a19",
+      "scope": "Immutable historical source closure, committed catalog and execution inputs, exact report selection, and coverage qualification.",
+      "supersedes": "1791485b9ddf6732279ffc54dd3aeaf141e854fd02ece74afffe2dc243cd2a99",
+      "requested_at": "2026-11-27T11:13:03.423311+00:00",
+      "request_id": "61c39c11034b092e084f25e26ab7bd09819468d84fc04cc46fea8d4e95ad0a98",
+      "evidence_sha256": "33e668ccc5dceccb23cac8caa7f76bc80c5e05a90b2290b4f92eb51564fec975"
+    },
+    {
+      "kind": "request",
+      "source_commit": "fea9a19095db891b76a2f30d8ee65763c2e880fe",
+      "scope": "Immutable historical source closure, committed catalog and execution inputs, exact report selection, and coverage qualification.",
+      "supersedes": "61c39c11034b092e084f25e26ab7bd09819468d84fc04cc46fea8d4e95ad0a98",
+      "requested_at": "2026-11-27T11:41:32.137344+00:00",
+      "request_id": "f954c33e3e699f2649bb3f7f7560bfb895bda39a54408020e6134f8c14e4c227",
+      "evidence_sha256": "a6012ef5dabf4e8fb00fc881196bfc5d572b3d1b76c4713f37f84fa5c3ec514b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "Immutable historical source closure, committed catalog and execution inputs, exact report selection, and coverage qualification.",
+      "supersedes": "f954c33e3e699f2649bb3f7f7560bfb895bda39a54408020e6134f8c14e4c227",
+      "requested_at": "2026-11-28T04:05:59.604277+00:00",
+      "request_id": "d87f6e71bd4485a930c2f9864bf9b649eab82ede49d6e2b54d838dca85d4cf1d",
+      "evidence_sha256": "c4aadd2931213fdf42850782b9a3d05615ea1baf8ce9842ccfb2c0bd0181eb51"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "verdict": "approved",
+      "decision": "APPROVE M0-148 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "APPROVE M0-148 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "observation": "For push run 45838575346, the Windows report matched all 35 checks selected at the publishing commit, and changing only its execution-input digest left exactly the original Linux receipt after a cold reopen.",
+      "reviewer": "Independent Astra Standard (t1m2)",
+      "original_sha256": "7e48e2d80662b4027672ab274ad4912a968bffe88e9d508af683fa7a98f5b432",
+      "response_id": "6ff1213167f4fc7677febe894546416c727190caf855e5a18a987a55dceefd35",
+      "response_sha256": "c8e80bea9a22e90d6f7e67809e14734bd98c83f39c2e49d86171a97f62b65007",
+      "legacy_response_sha256": "e12a5657e9cfa5d356c01fae5f5931a96ca3645346432913859ea9ab9f329811",
+      "observation_body_sha256": "4f989f532ebfcef7f8ffcbba75810962ece4274405d33b4491cf0e2e22186ebb",
+      "event": {
+        "id": "msg_027cb74f74d8b8a2016b0a551e783c87d0baa13e8eb3c0df9c",
+        "timestamp": "2026-11-28T04:14:46.369Z"
+      },
+      "supersedes": "d87f6e71bd4485a930c2f9864bf9b649eab82ede49d6e2b54d838dca85d4cf1d",
+      "evidence_sha256": "03389c7624ea493740716322b486ca632a7c9ae775c16b8f009ebf1955949a4c"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d226171f0d21bf65109416128a68bea9c8577b2d",
+      "scope": "Immutable historical source closure, committed catalog and execution inputs, exact report selection, and coverage qualification.",
+      "supersedes": "6ff1213167f4fc7677febe894546416c727190caf855e5a18a987a55dceefd35",
+      "requested_at": "2026-11-28T04:46:25.361773+00:00",
+      "request_id": "8d97c18c10f2a1fdc7b6e02ade4105bd15cc98101397160af7e8c2ba65b5a346",
+      "evidence_sha256": "d3f83864664f381b81de3866cc9c606f6ad735b9338be090832294c00eaf4fa5"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d226171f0d21bf65109416128a68bea9c8577b2d",
+      "verdict": "approved",
+      "decision": "APPROVE M0-148 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "scope": "APPROVE M0-148 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "observation": "Reversing the 35 selected checks in the Windows report for push run 45838575346 left only the original Linux receipt after a cold reopen.",
+      "reviewer": "Independent Astra Standard (t1mk)",
+      "original_sha256": "29952e00a5ac28953cb4e58305673ad44510e839d70065644678c04b0fb2cd40",
+      "response_id": "19fd5bbfc3a8c710e1fe44ac7053ba20a7e01e2d8bd806351ff47521a708c5b4",
+      "response_sha256": "b5beb0eed75d7b68a38f3a6567b0f41b0772ef4d1076f203a34e4c026c252870",
+      "legacy_response_sha256": "490f335d5dee6c600b4c09a24e82aae7cbdb901e7daf752f795c77e81afae7e1",
+      "observation_body_sha256": "903405918b982b68eaac1cbcc7515f6d3ec5d13b62f9e26d8caba259e76b33ea",
+      "event": {
+        "id": "msg_0c1ab86e4a2de2f4016b0a5efe3b6887d09bb2f0f5ca24a2a4",
+        "timestamp": "2026-11-28T04:56:56.782Z"
+      },
+      "supersedes": "8d97c18c10f2a1fdc7b6e02ade4105bd15cc98101397160af7e8c2ba65b5a346",
+      "evidence_sha256": "bdf64caaa3f52ed8a8192ad3949cf73aaa4226928a54e793ae2bab3b4c73f8a3"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "Immutable historical source closure, committed catalog and execution inputs, exact report selection, and coverage qualification. Compare the actual historical publisher and ordered selection on push 45838575346, including the reversed selection and the unregistered composed publisher.",
+      "supersedes": "19fd5bbfc3a8c710e1fe44ac7053ba20a7e01e2d8bd806351ff47521a708c5b4",
+      "requested_at": "2026-11-28T05:48:23.034850+00:00",
+      "request_id": "f901d74916b34649dd94115d45dddc26c402e5291650cdbd4e7da6d9c3e38296",
+      "evidence_sha256": "5e4eda3ec648efb78d97ca82c7b920651656028764be6461115ea4ec8b246cf1"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "verdict": "approved",
+      "decision": "APPROVE M0-148 d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "APPROVE M0-148 d55f6907237d9af018decabd2f94fba43c198620",
+      "observation": "After a cold reopen, push run 45838575346 retained both original platform receipts, and reversing only the 35 selected Windows checks left just the original Linux receipt.",
+      "reviewer": "Independent Astra Standard (t1n2)",
+      "original_sha256": "8a8f92f25426e1611a5a623c6b16006405f6612eeeba49c706938c56d3a83f0d",
+      "response_id": "5392e0336607583a8f59d83aa292df30df831c4e4e38ce823c37233c3f28a27f",
+      "response_sha256": "005b17e7885419eecd404ddf90c183b4509f552da40b74fa1cd6b285629f2052",
+      "legacy_response_sha256": "b952d5fd051813ac59b8274069ea376bc099bb3b296ecac5405f940bdfc03eb0",
+      "observation_body_sha256": "e1d54e3fb283c1081c5e226d1cfe034b64f48f2533fbb0b827973f9859552186",
+      "event": {
+        "id": "msg_06eb3ccb4786f378016b0a6c942bec87d09bd8376707cd83ef",
+        "timestamp": "2026-11-28T05:54:45.436Z"
+      },
+      "supersedes": "f901d74916b34649dd94115d45dddc26c402e5291650cdbd4e7da6d9c3e38296",
+      "evidence_sha256": "a18cc00261150e2a9c24e8fb7158d829f6a7a17f0a04e65ce6518f928da560d0"
+    }
+  ]
+}

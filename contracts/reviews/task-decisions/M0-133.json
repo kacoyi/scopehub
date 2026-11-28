@@ -1,0 +1,422 @@
+{
+  "version": 3,
+  "task_id": "M0-133",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "scope": "Independently review shared capture, linked indexing and the ordinary timing/archive path for the 23 attached findings. Cover conflict and enrichment precedence, scoped publisher membership and lane/harness/architecture binding, component cache and job clocks, plus preservation on failed or oversized capture. Confirm protected review classification and the timing imports coexist.",
+      "supersedes": null,
+      "requested_at": "2026-11-25T21:44:04.261667+00:00",
+      "request_id": "4df9099892473d3768c0d347809b710f8bbf1cb71cbb6829ff7017a2bebe2de9",
+      "evidence_sha256": "b91b1c5c56b5e3c44c17709cb330170da9d4ebeb431a06082a24c41bed37e506"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-133 57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "scope": "CHANGES_REQUESTED M0-133 57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "observation": "After 12 newer pull-request captures moved run 45546767887 outside the recent window, ordinary timing review restored its disputed 645-second browser attribution from an older saved review even though the shared capture still contained the conflict.",
+      "reviewer": "Independent Astra Standard (t10z)",
+      "original_sha256": "771564d2e43f336db5942be3df2f3736598d0791c0807c4cbc655668744ba33f",
+      "response_id": "f64f38437f2fd64db8cf26da7fcc6ffd5f4be5a039faf686400703421cb2e065",
+      "response_sha256": "ceb0a769b71c137008e75c6274a53c9a23807de919c86df903cad93c88c8b464",
+      "legacy_response_sha256": "77989b14609654dda39717cd612ecebb4251ce490ec276a80ee52e0b3d25b3e8",
+      "observation_body_sha256": "ec0473d8fcfc5a2edbaba4397c08e5f5af75381dc5be94050bcc265ab36d528d",
+      "event": {
+        "id": "msg_0dc31d302fb4c8f6016b075f888f3c87d0b76a9489c952574e",
+        "timestamp": "2026-11-25T22:22:15.425Z"
+      },
+      "supersedes": "4df9099892473d3768c0d347809b710f8bbf1cb71cbb6829ff7017a2bebe2de9",
+      "evidence_sha256": "b37d4327da83ee49544b624ec07f79c830e91ef0f9f7b5debda05ca5de29cc34"
+    },
+    {
+      "kind": "request",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "Revisit the previous changes_requested. Reproduce the real PR 84 browser-identity and checkout disputes after 12 later captures, in both save orders. Exercise ordinary timing review, explicit link, budget and archived reopen, bounded or malformed capture handling and independently verified partial clocks. Verify that clearing one invalid attribution preserves independent evidence.",
+      "supersedes": "f64f38437f2fd64db8cf26da7fcc6ffd5f4be5a039faf686400703421cb2e065",
+      "requested_at": "2026-11-25T22:53:00.023214+00:00",
+      "request_id": "f765e514cbbf00378a62255701d7791c63971593d35094219de2ece4bec2f702",
+      "evidence_sha256": "f1673ef3eaf5d00a8976c3c6a27c79925298135eed8f37180a3fe6a2ab69f07f"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-133 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "CHANGES_REQUESTED M0-133 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "observation": "After 12 newer captures, ordinary timing review restored 889 seconds of Windows wall time from a controlled stale success clock for run 45565130414, while the budget reader still honored the original failure record and withheld that timing.",
+      "reviewer": "Independent Astra Standard (t10z)",
+      "original_sha256": "ef5e94dd6001c13bfb22dfedf3dc780cdc974d47cf25aa9fe033d8a3cf8e458e",
+      "response_id": "6dbc94d5ec40023a4acfc5ebb24544d4a2247632a3912ab459e94aa9b26e276e",
+      "response_sha256": "dc731e2643d8eea87c281b8b1c8ee1bce5e9c20c9e7039a7a6faa8eedcc8fa05",
+      "legacy_response_sha256": "22e35229bdd200b1351f3f606fc8adae77787eafe575f12966db582213e88d19",
+      "observation_body_sha256": "ccacc7057b4b833d830b0670efc8aa65a0d46927222a6c2cae1671a8026a1016",
+      "event": {
+        "id": "msg_0dc31d302fb4c8f6016b076994081487d08b3ed30d0d6617b6",
+        "timestamp": "2026-11-25T23:05:06.305Z"
+      },
+      "supersedes": "f765e514cbbf00378a62255701d7791c63971593d35094219de2ece4bec2f702",
+      "evidence_sha256": "8c417cd83ced765fc61c88ed083b2ab4c00b713b110b685ecaaef4f16e4339c9"
+    },
+    {
+      "kind": "request",
+      "source_commit": "caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "scope": "Recheck the consistency of public timing reads, capture, on-disk saves, reindex and cold reopen. Verify ordering, duplicate or incomplete records, conflicting clocks and the retention of the original failed push after capture rotation.",
+      "supersedes": "6dbc94d5ec40023a4acfc5ebb24544d4a2247632a3912ab459e94aa9b26e276e",
+      "requested_at": "2026-11-26T04:10:28.858569+00:00",
+      "request_id": "f4aacce40a95591b0cd5494439044cf499f43b6f169d77b826008cc31eebe659",
+      "evidence_sha256": "064d13c70d5f6c418937e6f8345063055bac362900f67863ce3a7d367d06a456"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-133 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "scope": "CHANGES_REQUESTED M0-133 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "observation": "For run 45546767887, repeating the same browser job with only its conclusion omitted produced one Windows platform receipt across two job listings and zero when both observations appeared in one listing.",
+      "reviewer": "Independent Astra Standard (t12q)",
+      "original_sha256": "7b8a431972c61b13917c3b4e8b6c00ce552549409eb00b6485bdf917b5b63b06",
+      "response_id": "6df6c9f42ccb526c6e27c4d2aa73cacf3af0d0f7a470259d45ae2305b6589c21",
+      "response_sha256": "db842ae0dcf638c7e5401946539e9ea36488dd5e8f8dec21c100f44e43b384f6",
+      "legacy_response_sha256": "f69b5d872cb6039116221a561e2f0d266e6bd9688ff1655a3c41a94fd09b3d2e",
+      "observation_body_sha256": "600017064371834038af0f90989296757c4d2bff9ff562fda5b8bae099468f5b",
+      "event": {
+        "id": "msg_0e45f6cd13050be8016b07b59ae1e487d1a60c3126a32749b2",
+        "timestamp": "2026-11-26T04:29:32.227Z"
+      },
+      "supersedes": "f4aacce40a95591b0cd5494439044cf499f43b6f169d77b826008cc31eebe659",
+      "evidence_sha256": "143f7d199892e6732075d9dda2c266c2db3da120f8e1cd5269eded2e635489fe"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "scope": "Recheck the consistency of public timing reads, capture, on-disk saves, reindex and cold reopen. Verify ordering, duplicate or incomplete records, conflicting clocks and the retention of the original failed push after capture rotation. Recheck the original decision on caea2a0a.",
+      "supersedes": "6df6c9f42ccb526c6e27c4d2aa73cacf3af0d0f7a470259d45ae2305b6589c21",
+      "requested_at": "2026-11-26T05:01:38.556373+00:00",
+      "request_id": "d085cd2bbb3a0d1054515fa322a21425b8f49c917e4e160191abc53138cb6606",
+      "evidence_sha256": "4629d4e25e5e508ed62897b0b1149ef23cda400df5860e873f8c1c6523090a0a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-133 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "scope": "CHANGES_REQUESTED M0-133 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "observation": "For run 45546767887, three observations of browser job 138978153110 with an omitted, successful, and failed conclusion produced one Windows platform receipt in a single listing and zero across three listings.",
+      "reviewer": "Independent Astra Standard (t13d)",
+      "original_sha256": "45554c3d5f0151822c89dcbbdf250db543efd4680ee42b5ef64845606f72a5f1",
+      "response_id": "b030ab3b1c4b35708ce6f8fab38c061ca02aaa3dc5df599b81473aef3f7d0a10",
+      "response_sha256": "95c7c3b18412c86b6980e7a7f12801368a35ce00152ad924aed7ddbea4d09147",
+      "legacy_response_sha256": "d928ea6ed14b338e1c6d5cf619ae16ac797b5dff329394f07516e7c3a3369b97",
+      "observation_body_sha256": "bc1ba831390cc08a83faa724dd833dfa842ce998756795cc84afe1f3764b9076",
+      "event": {
+        "id": "msg_05be9a3445bac637016b07c0690b2c87d2b6f8d5e7e944b015",
+        "timestamp": "2026-11-26T05:15:36.838Z"
+      },
+      "supersedes": "d085cd2bbb3a0d1054515fa322a21425b8f49c917e4e160191abc53138cb6606",
+      "evidence_sha256": "706f7a8e3849096e459234f031abed29c98d9fd16edc0298a7d16eb6141b3251"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "scope": "Recheck the consistency of public timing reads, capture, on-disk saves, reindex and cold reopen. Verify ordering, duplicate or incomplete records, conflicting clocks and the retention of the original failed push after capture rotation. Recheck the original decision on b12aefdc.",
+      "supersedes": "b030ab3b1c4b35708ce6f8fab38c061ca02aaa3dc5df599b81473aef3f7d0a10",
+      "requested_at": "2026-11-26T06:32:09.936348+00:00",
+      "request_id": "a60faa596556e5a717fcc17aa72e9316b7d07c653a597dc6065cebadeebcb166",
+      "evidence_sha256": "aee3e91faeb64cc46ec9a6c321d0e50ac90a15b81eebd634d11617f4c8dbc912"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-133 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "scope": "CHANGES_REQUESTED M0-133 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "observation": "For run 45546767887, the weekly reader issued zero Windows platform receipts when conflicting publishing profiles for job 138982816287 appeared in one listing and one receipt when the complete listing was collected and the conflicting row was supplied separately.",
+      "reviewer": "Independent Astra Standard (t14k)",
+      "original_sha256": "83981f7e797368c5c622da9f3a558eed3f157d12bafd6b6e2cf1f8365a23c402",
+      "response_id": "4f17e2f7410e7cfa53ceb23e76a3414f68e7a92b55ffb320bc1326496af13764",
+      "response_sha256": "810bf2be92ae0b50a1b11209e96c34e9c1b6f791c02a435da1d25bb6adffac3b",
+      "legacy_response_sha256": "58b5fc8526c7ddb144c36b8256b8cad23408541eaaed797208e27beec0552a39",
+      "observation_body_sha256": "9819efc77bc95c4a6a1ed77d4909302b3ed4eb224947ae4602c0ec0b7f797586",
+      "event": {
+        "id": "msg_09dde38dc0eedef6016b07d92731a887d28c1d36dce9e74009",
+        "timestamp": "2026-11-26T07:01:14.789Z"
+      },
+      "supersedes": "a60faa596556e5a717fcc17aa72e9316b7d07c653a597dc6065cebadeebcb166",
+      "evidence_sha256": "d2556dc9a64a80e1b4407fc52f813472b08490eaf718304788fade2758109f3a"
+    },
+    {
+      "kind": "request",
+      "source_commit": "39413fd304e8575605dc5b70a352d2e394ae1e35",
+      "scope": "Recheck the consistency of public timing reads, capture, on-disk saves, reindex and cold reopen. Verify ordering, duplicate or incomplete records, conflicting clocks and the retention of the original failed push after capture rotation. Recheck the original decision on e00b088b.",
+      "supersedes": "4f17e2f7410e7cfa53ceb23e76a3414f68e7a92b55ffb320bc1326496af13764",
+      "requested_at": "2026-11-26T12:29:18.752490+00:00",
+      "request_id": "71af9b7471294c36e55509bbffd7cbbf3902a88d5756744a8cb3abd58995c7d9",
+      "evidence_sha256": "c6d619497d36d0191bd37aca823c6af46abaceb0693f12afc8685f2be0288d8f"
+    },
+    {
+      "kind": "request",
+      "source_commit": "3eeb59bc39219905204e6aab95bd16af4d22a65e",
+      "scope": "Recheck the consistency of public timing reads, capture, on-disk saves, reindex and cold reopen. Verify ordering, duplicate or incomplete records, conflicting clocks and the retention of the original failed push after capture rotation. Recheck the original decision on e00b088b.",
+      "supersedes": "71af9b7471294c36e55509bbffd7cbbf3902a88d5756744a8cb3abd58995c7d9",
+      "requested_at": "2026-11-26T12:55:46.324295+00:00",
+      "request_id": "4fa2334a39971da2e90180a5fd69c4bd834b8d0de54ca8778b3141a68b6ed02c",
+      "evidence_sha256": "f3cac3bc1790737c2d21e764dfdbcb64c9e028a3380b1465a5c46aa55cd68aab"
+    },
+    {
+      "kind": "request",
+      "source_commit": "9ea5b5140042ac013e022c2edd7d0a79e93fee67",
+      "scope": "Recheck the consistency of public timing reads, capture, on-disk saves, reindex and cold reopen. Verify ordering, duplicate or incomplete records, conflicting clocks and the retention of the original failed push after capture rotation. Recheck the original decision on e00b088b.",
+      "supersedes": "4fa2334a39971da2e90180a5fd69c4bd834b8d0de54ca8778b3141a68b6ed02c",
+      "requested_at": "2026-11-26T13:20:01.161868+00:00",
+      "request_id": "f4a60d9c5b77d0672e3a088e406b8f28024f785225269170603ddd1f43f0c17e",
+      "evidence_sha256": "e061c8a8480d441cd4533418a258a744d3771ad31e53b5614b1e98fde5362a5b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "438302ef9ebb720039a5f0dd77e6b051c5010560",
+      "scope": "Recheck the consistency of public timing reads, capture, on-disk saves, reindex and cold reopen. Verify ordering, duplicate or incomplete records, conflicting clocks and the retention of the original failed push after capture rotation.",
+      "supersedes": "f4a60d9c5b77d0672e3a088e406b8f28024f785225269170603ddd1f43f0c17e",
+      "requested_at": "2026-11-26T13:58:54.157644+00:00",
+      "request_id": "7a2de9c18364112805b65cebd8f770095f52d15e3198c0fbde258b9edc297062",
+      "evidence_sha256": "0f4635bc8d44ed57f53113d2dc5cf3adc49a28a2726913476bd7b2e7287634a0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "318f54c82e50a38c4310724b55e3e9ee6539afb8",
+      "scope": "Recheck the consistency of public timing reads, capture, on-disk saves, reindex and cold reopen. Verify ordering, duplicate or incomplete records, conflicting clocks and the retention of the original failed push after capture rotation.",
+      "supersedes": "7a2de9c18364112805b65cebd8f770095f52d15e3198c0fbde258b9edc297062",
+      "requested_at": "2026-11-26T14:56:21.383957+00:00",
+      "request_id": "c9e2ce1f44b16eef419cfff9dfa7177666e89807020f0bc6aeaa072a9d852153",
+      "evidence_sha256": "1a2267c035ca0cb4abc62b1904df1de9e26a8eae02fb6dac7a96581d976607e2"
+    },
+    {
+      "kind": "request",
+      "source_commit": "de7e2376d216e0fe943c1301c336ef837b58c48a",
+      "scope": "Recheck the consistency of public timing reads, capture, on-disk saves, reindex and cold reopen. Verify ordering, duplicate or incomplete records, conflicting clocks and the retention of the original failed push after capture rotation.",
+      "supersedes": "c9e2ce1f44b16eef419cfff9dfa7177666e89807020f0bc6aeaa072a9d852153",
+      "requested_at": "2026-11-26T15:31:00.408294+00:00",
+      "request_id": "b8665267a8a222bd23f1299a2ee48ccd7481f017c7fb3d9295afd2bfbddb1857",
+      "evidence_sha256": "eeef315f2920261fecfb5f4eeda7d126816bb44cd38ece790e7761c8ae917251"
+    },
+    {
+      "kind": "request",
+      "source_commit": "4c4865fa8db31cd57c84a8061d8abc00e03d1a01",
+      "scope": "Recheck the consistency of public timing reads, capture, on-disk saves, reindex and cold reopen. Verify ordering, duplicate or incomplete records, conflicting clocks and the retention of the original failed push after capture rotation.",
+      "supersedes": "b8665267a8a222bd23f1299a2ee48ccd7481f017c7fb3d9295afd2bfbddb1857",
+      "requested_at": "2026-11-27T02:45:53.763232+00:00",
+      "request_id": "028ef0d56b1183bed3ceb68b5157479ede8a6cfcd06a5fbe17aad8d5e8c21b85",
+      "evidence_sha256": "aa0221bea53398bffc0577cadda946ee531aadd0dcc13a348ceae900ec8f924f"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b6cd4be5ccb66c7eaad60cfc2ac81c97e51f63fa",
+      "scope": "Recheck the consistency of public timing reads, capture, on-disk saves, reindex and cold reopen. Verify ordering, duplicate or incomplete records, conflicting clocks and the retention of the original failed push after capture rotation.",
+      "supersedes": "028ef0d56b1183bed3ceb68b5157479ede8a6cfcd06a5fbe17aad8d5e8c21b85",
+      "requested_at": "2026-11-27T03:12:09.094068+00:00",
+      "request_id": "e405b1eabc771ea5603415c7b28e238ff2aa5749a2b78cf87a9dcfb95a329aa2",
+      "evidence_sha256": "6176e56f7f6276f4db1499b79259b4c3df1a0de4e370841453ee4a5a51695364"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "Check that the corrected admission and ordering decisions agree across ordinary and reopened captures. Reuse the existing archive rotation and adverse-input observations for this task; compare their publication decisions and any independent clocks.",
+      "supersedes": "e405b1eabc771ea5603415c7b28e238ff2aa5749a2b78cf87a9dcfb95a329aa2",
+      "requested_at": "2026-11-27T03:36:30.178732+00:00",
+      "request_id": "1fd8d4b6affe0721f39dd2d534e2eab397986a9de7bfeb09279fdd124d82cdba",
+      "evidence_sha256": "e1870c68e17e4a5463592b37a438df3b9a5bd7c54fc96a831cf111449fd063fe"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-133 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "APPROVE M0-133 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "observation": "For run 45838575346, ordinary review and cold reopening after twelve later captures both excluded the 1242-second Windows execution sample when the aggregate setup finished before its prerequisite, and both retained the 1291-second Windows wall time.",
+      "reviewer": "Independent Astra Standard (t1c4)",
+      "original_sha256": "e62182547e7218853e7cf08784ced19fcdf49d6ad5fee18078098e995b7d4a58",
+      "response_id": "eefc38667e0f834f2bbaf4d6d63ff085067457abc8c35e3a62196c5d36a9f2d8",
+      "response_sha256": "ebf7117c8d9d5ac587079665668c8037847585f274d43d84ab0322003e6d52a2",
+      "legacy_response_sha256": "a250877d053712e55fc2c34ebc29d457fcfee8de19ef5f0abe51f27f3412cb7e",
+      "observation_body_sha256": "30477eae5affe264fd19ff463c000b34f10b59c01b18744df529a166610f3601",
+      "event": {
+        "id": "msg_0aaa1ec058fbcf2f016b08fcd17a7487d0bd3ef728586adc2f",
+        "timestamp": "2026-11-27T03:45:40.790Z"
+      },
+      "supersedes": "1fd8d4b6affe0721f39dd2d534e2eab397986a9de7bfeb09279fdd124d82cdba",
+      "evidence_sha256": "50b0f45cb0e995bd7b13c5dd26e35930a0576f6b54d19215eb4a836b7aba3172"
+    },
+    {
+      "kind": "request",
+      "source_commit": "5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "scope": "Confirm that the previously approved M0-133 timing behavior and acceptance assertions survive the Windows test-fixture repair on this source.",
+      "supersedes": "eefc38667e0f834f2bbaf4d6d63ff085067457abc8c35e3a62196c5d36a9f2d8",
+      "requested_at": "2026-11-27T04:25:41.307694+00:00",
+      "request_id": "e1d5058699f00f2b7a3dbb766e6cd371e4ef0818be3f9c8028404745cacd2c2f",
+      "evidence_sha256": "7577b61c413fa3f0c6f61808533735e59cf92a7b58619d1730b41c4c6bfe855b"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-133 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "scope": "APPROVE M0-133 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "observation": "For run 45838575346, the retained replay showed that ordinary review and cold reopening both excluded the 1242-second Windows execution sample when setup finished before its prerequisite, and both preserved the 1291-second wall time.",
+      "reviewer": "Independent Astra Standard (t1cw)",
+      "original_sha256": "4104347eb46ece10f5aa74d04d41c732926a24b3f094cf4aadb4f4fc016ecb1b",
+      "response_id": "469c386f3c2d3cbba964bfcb41719460d88225554059544b65cc10d6665ad869",
+      "response_sha256": "4090c27aa4da19044ac03275a3521fe605a224a98168b8fccef50ecc70f4df38",
+      "legacy_response_sha256": "b163bbb59e2953a79a873e3bb00d739e4e260ec56237111fd19d0ca494708ba4",
+      "observation_body_sha256": "d78af8644d665bcc73f16e2e54aedc321c354982e696e7bce4f62f44a200c41a",
+      "event": {
+        "id": "msg_0eacde262985b517016b090744ed4087d0951018675089d576",
+        "timestamp": "2026-11-27T04:30:07.503Z"
+      },
+      "supersedes": "e1d5058699f00f2b7a3dbb766e6cd371e4ef0818be3f9c8028404745cacd2c2f",
+      "evidence_sha256": "fb345996d317c3181b959bf4dfaac2d65db4384d15ed97b16a38ed84a2dce17c"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e6f12373277d8aa05a734a1a1c9648f0cf489577",
+      "scope": "Attempt and checkout reconciliation, bounded retained and current capture lookup, and dispute persistence through rotation and cold reopen.",
+      "supersedes": "469c386f3c2d3cbba964bfcb41719460d88225554059544b65cc10d6665ad869",
+      "requested_at": "2026-11-27T09:24:37.533402+00:00",
+      "request_id": "404f080960e703ecadff492f2fc6330e34ec464b5e35fd9765a55f62c2b4f20a",
+      "evidence_sha256": "809bde502349775fbde148c112066f2ef89bfb6ba9007a243b360cb64b0ad6a5"
+    },
+    {
+      "kind": "request",
+      "source_commit": "1024b35f34c1065dc4f75389e78a4d699d32627b",
+      "scope": "Attempt and checkout reconciliation, bounded retained and current capture lookup, and dispute persistence through rotation and cold reopen.",
+      "supersedes": "404f080960e703ecadff492f2fc6330e34ec464b5e35fd9765a55f62c2b4f20a",
+      "requested_at": "2026-11-27T09:51:05.357973+00:00",
+      "request_id": "45220819fb1c39a0f1f1ee1bffbde42060b0b639f85537e2c4531effb1056521",
+      "evidence_sha256": "4755b32e58e1a9ae849bda0ea528512ef6999935a45684a867402319bb84abbb"
+    },
+    {
+      "kind": "request",
+      "source_commit": "17cd39cfc82e095f341f9b2f3a4c20022e36996d",
+      "scope": "Attempt and checkout reconciliation, bounded retained and current capture lookup, and dispute persistence through rotation and cold reopen.",
+      "supersedes": "45220819fb1c39a0f1f1ee1bffbde42060b0b639f85537e2c4531effb1056521",
+      "requested_at": "2026-11-27T10:16:57.718015+00:00",
+      "request_id": "4506bc363cc5100fadc21055a6f693435a1b066bb3839ec2b708a26adbc727f1",
+      "evidence_sha256": "6102194b51d2fbaab22b8250ad94b94dc96cef02dd9edae71fe11ad926095c4b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "6491b83725eb2b1ac60ebe2e6854f51941fe6e83",
+      "scope": "Attempt and checkout reconciliation, bounded retained and current capture lookup, and dispute persistence through rotation and cold reopen.",
+      "supersedes": "4506bc363cc5100fadc21055a6f693435a1b066bb3839ec2b708a26adbc727f1",
+      "requested_at": "2026-11-27T10:49:14.209942+00:00",
+      "request_id": "02450c444ace7d419281588f911a3d9de9e6ed968fd1156534ecf63e1129aa9c",
+      "evidence_sha256": "8ded9ee24ff7799c202229d6f550b9add6a361b5686c553f938cc42499b7c16b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "343bb62e8ef179abf4fa9f98bd960e3066070a19",
+      "scope": "Attempt and checkout reconciliation, bounded retained and current capture lookup, and dispute persistence through rotation and cold reopen.",
+      "supersedes": "02450c444ace7d419281588f911a3d9de9e6ed968fd1156534ecf63e1129aa9c",
+      "requested_at": "2026-11-27T11:13:01.662646+00:00",
+      "request_id": "10343a7542a265d554938a171db157b3f2b28add63b53f852f205dc6ef173de7",
+      "evidence_sha256": "f3c85a986b9d8c888cb84944ce16c8614b15b22e4e69a363f5e97d2315e40d24"
+    },
+    {
+      "kind": "request",
+      "source_commit": "fea9a19095db891b76a2f30d8ee65763c2e880fe",
+      "scope": "Attempt and checkout reconciliation, bounded retained and current capture lookup, and dispute persistence through rotation and cold reopen.",
+      "supersedes": "10343a7542a265d554938a171db157b3f2b28add63b53f852f205dc6ef173de7",
+      "requested_at": "2026-11-27T11:41:30.399371+00:00",
+      "request_id": "c35add9ee93d2521cc4ff56783a4c821e40fa37acddea1d38426f47ae185d366",
+      "evidence_sha256": "fb35034a4e20080e2eb8d17d01ac9a4160cf62ddc94dc7261513eb5d3ff700f4"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "Attempt and checkout reconciliation, bounded retained and current capture lookup, and dispute persistence through rotation and cold reopen.",
+      "supersedes": "c35add9ee93d2521cc4ff56783a4c821e40fa37acddea1d38426f47ae185d366",
+      "requested_at": "2026-11-28T04:05:57.699564+00:00",
+      "request_id": "4d0e2e4a55f328a0ab8357e01476ae097a4f1971c0d0d8607a66d837416e67fc",
+      "evidence_sha256": "fb8789c8ae1e83826f3236fbef030e79b6f5231640e9ba0ddbbef9150419bece"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "verdict": "approved",
+      "decision": "APPROVE M0-133 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "APPROVE M0-133 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "observation": "After twelve newer captures displaced PR 84, each lookup opened its original capture once, and a fresh process preserved the 804-second Windows wall time and 321-second recovery duration while leaving the disputed browser duration and Windows runner total unknown.",
+      "reviewer": "Independent Astra Standard (t1m0)",
+      "original_sha256": "685671fcc434d8a9a724b48c713d37547beaa31aa16ef2bfa3ac7bf8169a0275",
+      "response_id": "4dc17812e07629b4ace08ac00f1a6c6fead386e5ec90e21f8868d3d84aa8be5b",
+      "response_sha256": "33a20c37fdd57c0b5b38b3ce4e24e11139588c52dce1b5b71e6c644b0fe51b69",
+      "legacy_response_sha256": "3835b27190f82d90b47377abd0cff25a41589d6707b85c772e420a2405e90a4d",
+      "observation_body_sha256": "2d0b2ee2a23bef0f2309cfb5e45dc289a90968f40ac1b6526d44ac6bdf0f0e8b",
+      "event": {
+        "id": "msg_0afa06070661e6d3016b0a556280c887d0ac0ddde017ea7eaa",
+        "timestamp": "2026-11-28T04:15:55.019Z"
+      },
+      "supersedes": "4d0e2e4a55f328a0ab8357e01476ae097a4f1971c0d0d8607a66d837416e67fc",
+      "evidence_sha256": "f1f0cfb6f3d8628ecd6e501765281f33337179f9e26aede7aef3454ae730e719"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d226171f0d21bf65109416128a68bea9c8577b2d",
+      "scope": "Attempt and checkout reconciliation, bounded retained and current capture lookup, and dispute persistence through rotation and cold reopen.",
+      "supersedes": "4dc17812e07629b4ace08ac00f1a6c6fead386e5ec90e21f8868d3d84aa8be5b",
+      "requested_at": "2026-11-28T04:46:23.411942+00:00",
+      "request_id": "ce36cebc20ace59436e89d3919a84562e68b205a00403bd52bd35f5c049aa331",
+      "evidence_sha256": "471883f78f84b3e7831be41396a8cd8c243132832b1cda530b86075522e05906"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d226171f0d21bf65109416128a68bea9c8577b2d",
+      "verdict": "approved",
+      "decision": "APPROVE M0-133 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "scope": "APPROVE M0-133 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "observation": "After twelve newer captures displaced PR 84, a cold reopen in both input orders preserved the 804-second Windows wall time and the 321-second recovery job duration while leaving the disputed browser duration and Windows runner total unknown.",
+      "reviewer": "Independent Astra Standard (t1mh)",
+      "original_sha256": "2b33bfdc0f36a216301c620055de0dfaae129ce33c5c8b99b5b4d0f039c17417",
+      "response_id": "53fa5dca0b4f7fa7c075f31185b7968e6f4c23c877bc40efed4c7d6801619390",
+      "response_sha256": "e7e01322653c1ce2df03825a7e791d9df2fa0ec1240b1727240756e01ca98ab0",
+      "legacy_response_sha256": "c09475598b5f37d4acb56475d1fd27dcc2e1d26e2b6bbba07efc56bc32b49090",
+      "observation_body_sha256": "37677920a420e608251534dbdc8ececc972d191269b65fa3b598c26f19fbf175",
+      "event": {
+        "id": "msg_0af563d35b704b11016b0a5e01afe887d0b304607a337a9ca9",
+        "timestamp": "2026-11-28T04:52:40.545Z"
+      },
+      "supersedes": "ce36cebc20ace59436e89d3919a84562e68b205a00403bd52bd35f5c049aa331",
+      "evidence_sha256": "4f9f61138136eafb5d84abb388559fe8eca1e4213a113183fc2f3be40a13e7cb"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "Attempt and checkout reconciliation, bounded retained and current capture lookup, and dispute persistence through rotation and cold reopen. Check the PR 84 rotation beyond twelve captures, both input orders, the checkout dispute and actual cold reopening.",
+      "supersedes": "53fa5dca0b4f7fa7c075f31185b7968e6f4c23c877bc40efed4c7d6801619390",
+      "requested_at": "2026-11-28T05:48:21.366946+00:00",
+      "request_id": "1190fa954a8f854b4e81dc246be60fa1b6c29aa0018af5b57822cf0eaba8dec0",
+      "evidence_sha256": "8dafa22ff9248beef63e58865b354184424924cd8f82ad2bffa7692612a2dbe5"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "verdict": "approved",
+      "decision": "APPROVE M0-133 d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "APPROVE M0-133 d55f6907237d9af018decabd2f94fba43c198620",
+      "observation": "After thirteen newer captures displaced PR 84, a fresh process reopened both input orders and preserved the 804-second Windows wall time and the 321-second recovery job duration while leaving the disputed browser duration and Windows runner total unknown.",
+      "reviewer": "Independent Astra Standard (t1n0)",
+      "original_sha256": "b2150116e5b6e56755661ca51aeb2065c1ce51e4d3fff18a0a5c66f465ab1f5b",
+      "response_id": "6d74bcc3f192adb44de87b33733a3914287e076cfe95420fb091f0b3d046cb02",
+      "response_sha256": "09b830ed13eb6341a75573b1d147471ee556510e5e4059da74d79c5f9d0c03f3",
+      "legacy_response_sha256": "a66b2466177f21c02433999980bcbfa784a513d1c7f56a9d9260759dca12b135",
+      "observation_body_sha256": "a3e3f715e6c5f62ad153caf141e850ebd7816ad59b6096c311bb353a450aaf31",
+      "event": {
+        "id": "msg_0b170af828ee32a4016b0a6cb6a13c87d0bced8ac655ae6148",
+        "timestamp": "2026-11-28T05:55:21.321Z"
+      },
+      "supersedes": "1190fa954a8f854b4e81dc246be60fa1b6c29aa0018af5b57822cf0eaba8dec0",
+      "evidence_sha256": "b041555c5730fdaf8a0294d374e267ae4de283c92cbb70d94e228c89c621a49d"
+    }
+  ]
+}

@@ -1,0 +1,422 @@
+{
+  "version": 3,
+  "task_id": "M0-131",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "scope": "Independently review Windows producer role, exact checkout/run/attempt and job-clock binding, complementary partial observations in both orders, compact sibling discovery, and contradictory cache handling. Verify invalid lane and platform selections remain refused under the combined verification_scope imports and the historical receipt is unchanged.",
+      "supersedes": null,
+      "requested_at": "2026-11-25T21:44:03.166069+00:00",
+      "request_id": "b1e12ef38501d0f32f3e504f6d928ab5c3ad1400803e24316986709d4bff3582",
+      "evidence_sha256": "c18f5250627f03c2c6b4f5e394bb1bad197c1f4d1dafb34111ddb5d7d1572bab"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "verdict": "approved",
+      "decision": "APPROVE M0-131 57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "scope": "APPROVE M0-131 57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "observation": "Replaying the two partial job lists in either order preserved the 645-second browser clock and the 321-second recovery clock without qualifying either list as complete Windows coverage.",
+      "reviewer": "Independent Astra Standard (t110)",
+      "original_sha256": "8ffd463a6dd68dd2848bcb17a69201c3f46bec27d04a94370e67f5c3da710baf",
+      "response_id": "9af8462bd0267281b8c63c84f617f261ac941d2541f9224cd2a47add1d77bf27",
+      "response_sha256": "b13ed6b93137c8e98ca141c37781c07e2e06124da2b5c83d1d5ace6eece4c196",
+      "legacy_response_sha256": "6c493fd873e0b11524adb7002576eee17d2f58c5ed3c2bd76d2bed5100eee952",
+      "observation_body_sha256": "deaa2f7ba1d4ddb7dadeb0ffefe27b8e996a9f79a20a9e5e950bf704370fc14b",
+      "event": {
+        "id": "msg_0d2fdf8a53849dc2016b075dbaebf087d08cb353fcc8962569",
+        "timestamp": "2026-11-25T22:14:27.277Z"
+      },
+      "supersedes": "b1e12ef38501d0f32f3e504f6d928ab5c3ad1400803e24316986709d4bff3582",
+      "evidence_sha256": "7caa3d2770e9d068a19d3c6318cd14f976323479c325acd3f43cb83a41024176"
+    },
+    {
+      "kind": "request",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "Verify Windows role and attempt binding, wall and runner clocks and full versus per-job coverage against real retained jobs. Exercise independent wall evidence with a conflicting browser job, a conflicting checkout, valid clocks and previously accepted cache boundaries after rotation.",
+      "supersedes": "9af8462bd0267281b8c63c84f617f261ac941d2541f9224cd2a47add1d77bf27",
+      "requested_at": "2026-11-25T22:52:59.031953+00:00",
+      "request_id": "603a7530918e2c61b66727685b67098462f442f520b6a916298895a6c7d98a7d",
+      "evidence_sha256": "d4df0bcce7061df6d39c70f4b7caa61e96a43fc7b64a1d4257157418816ff8f3"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-131 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "CHANGES_REQUESTED M0-131 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "observation": "After twelve newer captures rotated PR 84 attempt 1 out of the recent window, I observed the default timing reader restore the disputed 645-second browser clock and 2467 runner-seconds when the same two conflicting role claims were supplied in one job list.",
+      "reviewer": "Independent Astra Standard (t11c)",
+      "original_sha256": "1d88ac66c5e07a010d0a143d42334c7749db4eed334ff6a15bd9ceb335d72f9e",
+      "response_id": "2a381a779efddf4dee774be4e3e7e4ea3ffec93a442f5140a243a640078c4e1b",
+      "response_sha256": "40158a45aa81ef5a0cb64d03c15e48ec2b4c93f6f217b9b1c336a3feefaee64f",
+      "legacy_response_sha256": "27d0859a35b231acd551d2a36468a26c500f1b528c060b6613a66c8c3f645332",
+      "observation_body_sha256": "ef02b782db3cc88ec130001c78790a68c3bb7e3215c9c21ec29f44d3e2df0694",
+      "event": {
+        "id": "msg_0ce6ee094b6d0cd0016b079def6fb087d1acaa1b1fa9cf1c20",
+        "timestamp": "2026-11-26T02:48:30.216Z"
+      },
+      "supersedes": "603a7530918e2c61b66727685b67098462f442f520b6a916298895a6c7d98a7d",
+      "evidence_sha256": "f1676683d3dc57d57e8bf38e7b2c42ec3163702efd0635e8c6c06700116197f5"
+    },
+    {
+      "kind": "request",
+      "source_commit": "caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "scope": "Exercise Windows job role, cache, partial clock and conflicting participant attribution across both readers. Derive separate recovery, browser, wall and runner results from the original PR84, PR116 and PR121 job evidence. Include save, reload and contradictory inputs.",
+      "supersedes": "2a381a779efddf4dee774be4e3e7e4ea3ffec93a442f5140a243a640078c4e1b",
+      "requested_at": "2026-11-26T04:10:27.894198+00:00",
+      "request_id": "ce1b24fd36ff29c76a7f0b2963a71e93c11a6fac50bc0394824292593167ba96",
+      "evidence_sha256": "4ea981e5fca88b0c83bd212f440eeff3b852176c99f38e6bec65c06e37189e07"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-131 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "scope": "CHANGES_REQUESTED M0-131 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "observation": "After twelve newer captures rotated PR 84 out of the recent window, both readers restored the 645-second browser clock and 2467 Windows runner-seconds without a diagnostic when I placed conflicting success and failure observations for the same browser job in one list.",
+      "reviewer": "Independent Astra Standard (t12p)",
+      "original_sha256": "3a4b9bcaa36867d2fe09952a592bab65b7cbcd148c7b76397b50521ed25807f1",
+      "response_id": "889067d243d4421fbc7f7c3997089d2a61d8be4f6c4bacac4c36fb6e171be6b7",
+      "response_sha256": "a9d05aeb2e5d966233863f6e2139b2f739467a2138fdab9c1d2847fcb3503f5e",
+      "legacy_response_sha256": "2897e02ef71db63cd2c1ecb91a227cb552089b89a54f2e09f09c394b8f9c7a0a",
+      "observation_body_sha256": "80e2af557b029f887df0d9a11fda233c1b454f4e3cc96b31b6824ebc372bfdba",
+      "event": {
+        "id": "msg_0237a9ea6668bf26016b07b5787f9887d1b4f8edb4ad9843d2",
+        "timestamp": "2026-11-26T04:29:05.746Z"
+      },
+      "supersedes": "ce1b24fd36ff29c76a7f0b2963a71e93c11a6fac50bc0394824292593167ba96",
+      "evidence_sha256": "2d54333f9227c67f36613d8833ad010527bcd5b264679be69e009e259f992f4d"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "scope": "Exercise Windows job role, cache, partial clock and conflicting participant attribution across both readers. Derive separate recovery, browser, wall and runner results from the original PR84, PR116 and PR121 job evidence. Include save, reload and contradictory inputs. Recheck the original decision on caea2a0a.",
+      "supersedes": "889067d243d4421fbc7f7c3997089d2a61d8be4f6c4bacac4c36fb6e171be6b7",
+      "requested_at": "2026-11-26T05:01:37.624833+00:00",
+      "request_id": "9084c918dab30ed9906db2a5e4a839d205ed4f4c5b7e30e4536c4ba39f3ff841",
+      "evidence_sha256": "ee7f0e55abe4ae26b7b470c7660be5e6ba22521c87c7fa64b86cb99148db86aa"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-131 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "scope": "CHANGES_REQUESTED M0-131 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "observation": "After twelve newer captures rotated PR 84 out of the recent window, both readers retained the 645-second browser clock and 2467 Windows runner-seconds without a diagnostic when a skipped dispatch job claimed the successful browser job’s ID.",
+      "reviewer": "Independent Astra Standard (t13c)",
+      "original_sha256": "d9afcd473ae3091d93e5fe7dbc05afbbcc1a820b03a4ae26b3a50bfd3e64a77c",
+      "response_id": "956b9d5982a61afbebf6a46cb4f02f358ed468516a09b994b0f6152844a0ae07",
+      "response_sha256": "516b02e3e23493855c7ac3e018256de89911fcb09cfb352664ad186a5c85ec73",
+      "legacy_response_sha256": "c1aafe2cd644f68e4bf271d09f85f32df85e99c61e66e0d5e90ec6253f18c72d",
+      "observation_body_sha256": "06fa3f96f2e513de2e72ecfea1ad7d28e7b2acb28183053580b99a56aed84505",
+      "event": {
+        "id": "msg_0876d352cad1ec84016b07c080678087d19717b3b801602489",
+        "timestamp": "2026-11-26T05:16:05.429Z"
+      },
+      "supersedes": "9084c918dab30ed9906db2a5e4a839d205ed4f4c5b7e30e4536c4ba39f3ff841",
+      "evidence_sha256": "511749166296f78228b8a2fd2da8e4395aac3d660c6036d2ffec0bd3f58d35b1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "scope": "Exercise Windows job role, cache, partial clock and conflicting participant attribution across both readers. Derive separate recovery, browser, wall and runner results from the original PR84, PR116 and PR121 job evidence. Include save, reload and contradictory inputs. Recheck the original decision on b12aefdc.",
+      "supersedes": "956b9d5982a61afbebf6a46cb4f02f358ed468516a09b994b0f6152844a0ae07",
+      "requested_at": "2026-11-26T06:32:08.990677+00:00",
+      "request_id": "0f5d67f548be04f391b25832d31e4181471d2752271f80f7c5f7aee4b01a6dab",
+      "evidence_sha256": "eae0d9d99825a8a7c273971ad19af5fce0b7df4582136f670f03454629d557a6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-131 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "scope": "CHANGES_REQUESTED M0-131 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "observation": "For PR 84, the weekly reader issued zero Windows receipts when conflicting full and records job observations appeared in one listing and one receipt when the same rows appeared in two listings.",
+      "reviewer": "Independent Astra Standard (t14j)",
+      "original_sha256": "3e3f70adbda8727b98ce794b5f8372936745443dad011b463d1073fff26cd30f",
+      "response_id": "01e2334a4390e5d464aa9d6885bc139af0831b8bf575dbf798352949285e64b8",
+      "response_sha256": "9027e261ec9fbdcb858bbba67acdff56a948ee523334d2f1152d94e2c1117e68",
+      "legacy_response_sha256": "701915ccbadd5a5e0afe462698a2fd43699727dbbd46ae1c67993eb05d89cac6",
+      "observation_body_sha256": "0a15b16e5bed27325ebb0d82c9ef8016f32680eb4cb492e300b86f7f2e0f7a0d",
+      "event": {
+        "id": "msg_0f1f17ec16083f0f016b07d8f4b33087d1ae1f3fba896ddfdd",
+        "timestamp": "2026-11-26T07:00:25.171Z"
+      },
+      "supersedes": "0f5d67f548be04f391b25832d31e4181471d2752271f80f7c5f7aee4b01a6dab",
+      "evidence_sha256": "13ea904a733f2728c1022f44632104c88dfa64ea676c54591499cd81a10fda39"
+    },
+    {
+      "kind": "request",
+      "source_commit": "39413fd304e8575605dc5b70a352d2e394ae1e35",
+      "scope": "Exercise Windows job role, cache, partial clock and conflicting participant attribution across both readers. Derive separate recovery, browser, wall and runner results from the original PR84, PR116 and PR121 job evidence. Include save, reload and contradictory inputs. Recheck the original decision on e00b088b.",
+      "supersedes": "01e2334a4390e5d464aa9d6885bc139af0831b8bf575dbf798352949285e64b8",
+      "requested_at": "2026-11-26T12:29:17.799409+00:00",
+      "request_id": "2a96feafe961d65f591b0f9111b1ca1b31b3a6e483e388b9645cb7bb30fb1f35",
+      "evidence_sha256": "93395bd68ec56918491d91d79fe448126e04f49c39de89dc252f4bdf3bf5025a"
+    },
+    {
+      "kind": "request",
+      "source_commit": "3eeb59bc39219905204e6aab95bd16af4d22a65e",
+      "scope": "Exercise Windows job role, cache, partial clock and conflicting participant attribution across both readers. Derive separate recovery, browser, wall and runner results from the original PR84, PR116 and PR121 job evidence. Include save, reload and contradictory inputs. Recheck the original decision on e00b088b.",
+      "supersedes": "2a96feafe961d65f591b0f9111b1ca1b31b3a6e483e388b9645cb7bb30fb1f35",
+      "requested_at": "2026-11-26T12:55:45.617673+00:00",
+      "request_id": "6787563a9dd638cd3eef8882e2b2868e1d54fc93770c0b1f5f1475409a0c41ea",
+      "evidence_sha256": "dd88d2254f0fd0a7fa323e2fb0926f7d00399ab37ee72bc868e2b245fe0440cf"
+    },
+    {
+      "kind": "request",
+      "source_commit": "9ea5b5140042ac013e022c2edd7d0a79e93fee67",
+      "scope": "Exercise Windows job role, cache, partial clock and conflicting participant attribution across both readers. Derive separate recovery, browser, wall and runner results from the original PR84, PR116 and PR121 job evidence. Include save, reload and contradictory inputs. Recheck the original decision on e00b088b.",
+      "supersedes": "6787563a9dd638cd3eef8882e2b2868e1d54fc93770c0b1f5f1475409a0c41ea",
+      "requested_at": "2026-11-26T13:20:00.481243+00:00",
+      "request_id": "eac85431db9d7b2a73e32c00416563395bf9ded56acd45e5e65af98f49bb7cb2",
+      "evidence_sha256": "1f71658410a01bcbcecf531150d8ebeb8bbe21d672e4d909d75b92f59634eae3"
+    },
+    {
+      "kind": "request",
+      "source_commit": "438302ef9ebb720039a5f0dd77e6b051c5010560",
+      "scope": "Exercise Windows job role, cache, partial clock and conflicting participant attribution across both readers. Derive separate recovery, browser, wall and runner results from the original PR84, PR116 and PR121 job evidence. Include save, reload and contradictory inputs.",
+      "supersedes": "eac85431db9d7b2a73e32c00416563395bf9ded56acd45e5e65af98f49bb7cb2",
+      "requested_at": "2026-11-26T13:58:53.483898+00:00",
+      "request_id": "98fe416e19fe339e22807d61f081afcde2906701f27bc741473ffac23d1432fc",
+      "evidence_sha256": "69c197851a730fe3699e17436af6c398f96bd1b2a2d1071d0bf3dae2cc82d6ba"
+    },
+    {
+      "kind": "request",
+      "source_commit": "318f54c82e50a38c4310724b55e3e9ee6539afb8",
+      "scope": "Exercise Windows job role, cache, partial clock and conflicting participant attribution across both readers. Derive separate recovery, browser, wall and runner results from the original PR84, PR116 and PR121 job evidence. Include save, reload and contradictory inputs.",
+      "supersedes": "98fe416e19fe339e22807d61f081afcde2906701f27bc741473ffac23d1432fc",
+      "requested_at": "2026-11-26T14:56:20.689859+00:00",
+      "request_id": "5ad770b8865470cfc97e1ed38aa9a5ff10807fd4f9289a33f8b9d6c2e0e415de",
+      "evidence_sha256": "fec8eb40a972b010bbf0441742fd4398f35405286c8ab7f7c43bc03364481b37"
+    },
+    {
+      "kind": "request",
+      "source_commit": "de7e2376d216e0fe943c1301c336ef837b58c48a",
+      "scope": "Exercise Windows job role, cache, partial clock and conflicting participant attribution across both readers. Derive separate recovery, browser, wall and runner results from the original PR84, PR116 and PR121 job evidence. Include save, reload and contradictory inputs.",
+      "supersedes": "5ad770b8865470cfc97e1ed38aa9a5ff10807fd4f9289a33f8b9d6c2e0e415de",
+      "requested_at": "2026-11-26T15:30:59.656949+00:00",
+      "request_id": "c77454b03568bfc43427ad8ef8260afb5010b3a9f1fddd7fb3b3ab8d8eb73438",
+      "evidence_sha256": "2b86edb2861f92055fc4502802ced80f715eb689e672f7ff00d966372c318827"
+    },
+    {
+      "kind": "request",
+      "source_commit": "4c4865fa8db31cd57c84a8061d8abc00e03d1a01",
+      "scope": "Exercise Windows job role, cache, partial clock and conflicting participant attribution across both readers. Derive separate recovery, browser, wall and runner results from the original PR84, PR116 and PR121 job evidence. Include save, reload and contradictory inputs.",
+      "supersedes": "c77454b03568bfc43427ad8ef8260afb5010b3a9f1fddd7fb3b3ab8d8eb73438",
+      "requested_at": "2026-11-27T02:45:52.764014+00:00",
+      "request_id": "cc539eec5d2cd324c17adbe6623868344b5896e236d191f895179ec99d9caf9c",
+      "evidence_sha256": "903b6f6231f7e3b98995240971537acbdca7f8b9f42166b2e38bf12394fc5529"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b6cd4be5ccb66c7eaad60cfc2ac81c97e51f63fa",
+      "scope": "Exercise Windows job role, cache, partial clock and conflicting participant attribution across both readers. Derive separate recovery, browser, wall and runner results from the original PR84, PR116 and PR121 job evidence. Include save, reload and contradictory inputs.",
+      "supersedes": "cc539eec5d2cd324c17adbe6623868344b5896e236d191f895179ec99d9caf9c",
+      "requested_at": "2026-11-27T03:12:07.776127+00:00",
+      "request_id": "e1dc5a972638f693cc1b97b4cfeb69bfed7612c3e653058201796210fb538fe0",
+      "evidence_sha256": "481fcf7d2477c462fdf4d8a4c50cbdfbf95825f5b668421dd6230348f5141125"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "Check that independent cache classifications and platform and runner clocks still follow the retained publishing jobs under the two corrected boundaries. Reuse the recorded PR116/121 job observations and the existing incomplete-boundary control.",
+      "supersedes": "e1dc5a972638f693cc1b97b4cfeb69bfed7612c3e653058201796210fb538fe0",
+      "requested_at": "2026-11-27T03:36:28.770483+00:00",
+      "request_id": "e817591b64010eff1c26c2501595c38ceb3cc9aa2ff74fd37ea5f84492fa2bd2",
+      "evidence_sha256": "ece3237b5eb078320ef2e2616f915b1b4f0c2b68bce3b196ee8fe99c7bd24f60"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-131 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "APPROVE M0-131 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "observation": "On PR 116, replacing only the browser report’s selected checks with the recovery job’s checks made the browser cache unknown and removed its clock, while recovery stayed warm at 421 seconds and Windows retained its 883-second wall clock and 2775 runner-seconds.",
+      "reviewer": "Independent Astra Standard (t1c3)",
+      "original_sha256": "b84723231a35df31284fd8f2962e47d2331a35f51d9fb4e206c5ca6465e190bf",
+      "response_id": "a190062fef4a587b5c62007959849372f8f8287a20077f0d34024efb8a56a3bf",
+      "response_sha256": "08a394363f7b02f85b9d3bfa3cdd94d0537c944a3beb50ec513768f101e6a572",
+      "legacy_response_sha256": "62fa1315696c60cd090a42e04d8c1524200969ace11d9b1d3374ef477b53927b",
+      "observation_body_sha256": "ad8b797b97be0968ac1af359af4755efc6bf2618b13579c88c4e80569d1bee11",
+      "event": {
+        "id": "msg_0ad894474d703181016b08fcd4d46487d0908a1bb56a184c69",
+        "timestamp": "2026-11-27T03:45:42.801Z"
+      },
+      "supersedes": "e817591b64010eff1c26c2501595c38ceb3cc9aa2ff74fd37ea5f84492fa2bd2",
+      "evidence_sha256": "9a9d552f5506b043e06a31fbc3019c7a4f912ae940da862e56305d02de9070db"
+    },
+    {
+      "kind": "request",
+      "source_commit": "5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "scope": "Confirm that the previously approved M0-131 timing behavior and acceptance assertions survive the Windows test-fixture repair on this source.",
+      "supersedes": "a190062fef4a587b5c62007959849372f8f8287a20077f0d34024efb8a56a3bf",
+      "requested_at": "2026-11-27T04:25:40.506094+00:00",
+      "request_id": "fa97b3bd9cadb7ba910bd709dc8de83538604d9c0d9cf137d16eec880603b69c",
+      "evidence_sha256": "6b35b776fb3384b558abd43f0f9049158df96397b13d9f9384789d25622621d2"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-131 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "scope": "APPROVE M0-131 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "observation": "In the retained observation for run 45838575346, the reader kept the 1242-second Windows harness sample when the aggregate job start was missing, excluded it when setup preceded a prerequisite’s completion, and retained the 1291-second Windows wall clock in both cases.",
+      "reviewer": "Independent Astra Standard (t1cv)",
+      "original_sha256": "4bd5b8eb1a08a83ed50aae3f8927e03043a8ef80fd3d58e836c4d10016e750f9",
+      "response_id": "70424acedb89667ba0488d17b1e13d101943d7a3c0dd4908904809d0a69d2e7e",
+      "response_sha256": "712263d19b5181219f4316a45ebc644cdf91bd975647a1c993a1fb1557d89874",
+      "legacy_response_sha256": "4cec21d3e77bcd53e9f1176d255a56c12ea219b0c1eeef430218f6a88a6a4d4d",
+      "observation_body_sha256": "2fca1e98227f6838ced12a902876cf65632f476ed9866bcbe7f5c433fdca7817",
+      "event": {
+        "id": "msg_01b5357887878cdb016b0907400c9c87d0b6b04a531472dadb",
+        "timestamp": "2026-11-27T04:30:03.203Z"
+      },
+      "supersedes": "fa97b3bd9cadb7ba910bd709dc8de83538604d9c0d9cf137d16eec880603b69c",
+      "evidence_sha256": "a8d2c1c9805348a04c27c0f44f445eb24008834113840576bf1b468296be549f"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e6f12373277d8aa05a734a1a1c9648f0cf489577",
+      "scope": "Producer and platform job identity, historical ownership, timed step and cache attribution, and independently usable clocks after a dispute.",
+      "supersedes": "70424acedb89667ba0488d17b1e13d101943d7a3c0dd4908904809d0a69d2e7e",
+      "requested_at": "2026-11-27T09:24:36.679315+00:00",
+      "request_id": "a953e3844d5b45842ea0d3c322edf005fdd9ebddd8a3f2dfbd43def8b746f802",
+      "evidence_sha256": "f931ee6fee37ca72e6762caa84c75f7d4646110496c7991e0ddecf4ab6cbb9d9"
+    },
+    {
+      "kind": "request",
+      "source_commit": "1024b35f34c1065dc4f75389e78a4d699d32627b",
+      "scope": "Producer and platform job identity, historical ownership, timed step and cache attribution, and independently usable clocks after a dispute.",
+      "supersedes": "a953e3844d5b45842ea0d3c322edf005fdd9ebddd8a3f2dfbd43def8b746f802",
+      "requested_at": "2026-11-27T09:51:04.512990+00:00",
+      "request_id": "e4f00ac20bf0ef5033125d5981630eb93b8b23a93e8de596f09d3f9c55634060",
+      "evidence_sha256": "360a7b573dd42c3c8ace94f1947c3ddb35e60426c48e84f28397470a413310e3"
+    },
+    {
+      "kind": "request",
+      "source_commit": "17cd39cfc82e095f341f9b2f3a4c20022e36996d",
+      "scope": "Producer and platform job identity, historical ownership, timed step and cache attribution, and independently usable clocks after a dispute.",
+      "supersedes": "e4f00ac20bf0ef5033125d5981630eb93b8b23a93e8de596f09d3f9c55634060",
+      "requested_at": "2026-11-27T10:16:56.859184+00:00",
+      "request_id": "bedc589063db4a08bc645f171b83fa75773a7635d311b853fc68bd4dabfb7d53",
+      "evidence_sha256": "e7aed4c395fc8522f38a2e445c0e3adc117fb949f3e14c5427c1570d4ccc2a54"
+    },
+    {
+      "kind": "request",
+      "source_commit": "6491b83725eb2b1ac60ebe2e6854f51941fe6e83",
+      "scope": "Producer and platform job identity, historical ownership, timed step and cache attribution, and independently usable clocks after a dispute.",
+      "supersedes": "bedc589063db4a08bc645f171b83fa75773a7635d311b853fc68bd4dabfb7d53",
+      "requested_at": "2026-11-27T10:49:13.349458+00:00",
+      "request_id": "287b0498dca4ddef99118b13e0a859d24adbe312b23bc251bae3e190ed35d040",
+      "evidence_sha256": "40b60ab3a8f77f3a879203fc3ed026433ef915455c977b0c51e1ba9f0f987f04"
+    },
+    {
+      "kind": "request",
+      "source_commit": "343bb62e8ef179abf4fa9f98bd960e3066070a19",
+      "scope": "Producer and platform job identity, historical ownership, timed step and cache attribution, and independently usable clocks after a dispute.",
+      "supersedes": "287b0498dca4ddef99118b13e0a859d24adbe312b23bc251bae3e190ed35d040",
+      "requested_at": "2026-11-27T11:13:00.770346+00:00",
+      "request_id": "5dc5e9a5c7fb80106eeaecf5c6922663adcb267b1de621bec9b7fe1e825a364b",
+      "evidence_sha256": "9c7a7ec916c3c7557150889ceffa99d775d4602c1500235c68c529d2727574e7"
+    },
+    {
+      "kind": "request",
+      "source_commit": "fea9a19095db891b76a2f30d8ee65763c2e880fe",
+      "scope": "Producer and platform job identity, historical ownership, timed step and cache attribution, and independently usable clocks after a dispute.",
+      "supersedes": "5dc5e9a5c7fb80106eeaecf5c6922663adcb267b1de621bec9b7fe1e825a364b",
+      "requested_at": "2026-11-27T11:41:29.517359+00:00",
+      "request_id": "34a44d0183747746429202f8b0f68009b406200448f2e1588df283df020c8ddb",
+      "evidence_sha256": "979bc0fc53fceff1419e495c20067699bd742f3341a6f42aa3810593c50b6af9"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "Producer and platform job identity, historical ownership, timed step and cache attribution, and independently usable clocks after a dispute. Re-evaluate the PR 84 recovery job, runner duration and cache while only browser and aggregate names conflict. Include the recorded report and elapsed clock precision.",
+      "supersedes": "34a44d0183747746429202f8b0f68009b406200448f2e1588df283df020c8ddb",
+      "requested_at": "2026-11-28T04:05:56.734614+00:00",
+      "request_id": "e2ed328252f83c80888258e78ca380a34c48dca07cb666ee722d6b0a9a36024f",
+      "evidence_sha256": "6b1a95e02d0202cbad72290ed40755df78b5ce65a4cccd6d69ba2718f988ffbc"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-131 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "CHANGES_REQUESTED M0-131 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "observation": "The PR 123 browser report copy claimed 793.422 seconds of elapsed work at the instant initialization finished, received 983 runner-seconds when read alone, and displaced the genuine report in both input orders after a cold reopen.",
+      "reviewer": "Independent Astra Standard (t1kz)",
+      "original_sha256": "f04d00af7c8f664ef7f132fab97c960c0f19b9ffafd92d9663267ed4ea48988c",
+      "response_id": "581630a765e1e25b9b17580785c89d1943b62a0685cef5c7db8306fb277b936a",
+      "response_sha256": "7dd3d4f8f91261950a677836442c8cae85331a98dc80f16f52e4f500f1aef0ba",
+      "legacy_response_sha256": "e1d17180256ab88a81525c5efe1c4a9635b8f589c62ef0b232f98f5d21bf7272",
+      "observation_body_sha256": "207ace76b46e87287f885a02d600d8f4c1e0fbddb455caafc9e7cffcbe3ec04e",
+      "event": {
+        "id": "msg_0fb260f331c698b3016b0a54f5cb6487d0bad78d33c05f92c9",
+        "timestamp": "2026-11-28T04:14:08.606Z"
+      },
+      "supersedes": "e2ed328252f83c80888258e78ca380a34c48dca07cb666ee722d6b0a9a36024f",
+      "evidence_sha256": "12af9b89283f466ccafe51342825aedc9cbf31102aa5e36c9e000e612b4d6246"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d226171f0d21bf65109416128a68bea9c8577b2d",
+      "scope": "Producer and platform job identity, historical ownership, timed step and cache attribution, and independently usable clocks after a dispute. Independently resolve your recorded PR 123 elapsed-time refusal on e77724d0 with the real browser job and raw and compact reports, alone, both orders and cold reopen. Verify receipt and cache authority, genuinely missing bounds and recorded precision.",
+      "supersedes": "581630a765e1e25b9b17580785c89d1943b62a0685cef5c7db8306fb277b936a",
+      "requested_at": "2026-11-28T04:46:22.452007+00:00",
+      "request_id": "af9d893ece94076aae7debd0fefeab0569c42c3e82e664459ec198a4e204e679",
+      "evidence_sha256": "36f549120334acd95d6f6fc04870439d5593dbab30f4af7caff2feb4649e7a5b"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d226171f0d21bf65109416128a68bea9c8577b2d",
+      "verdict": "approved",
+      "decision": "APPROVE M0-131 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "scope": "APPROVE M0-131 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "observation": "For PR 123, the reader rejected both report formats dated at initialization and preserved the genuine browser job’s 983 runner-seconds in both input orders after a cold reopen.",
+      "reviewer": "Independent Astra Standard (t1mg)",
+      "original_sha256": "d730b67711bed159231067b159e6086be863feb7cfbeaad05dc6a0480adc4780",
+      "response_id": "432d3224fc1e5dbaaeda4ceced1cafd78ef38b4652de90ed802f6de054d1d9a3",
+      "response_sha256": "9c86d57fdc7a457b9318f91e82dab6461542c7de8aae8a1b950ab57ebf1007a2",
+      "legacy_response_sha256": "e0ca587d824d526cd14e096dc3f28cd34bb9a51964d79274590a3d3cbd6ba90b",
+      "observation_body_sha256": "326222949647447639bf554a3e5cb3d5ba05dc599d3b0e0912937dbe4a069034",
+      "event": {
+        "id": "msg_0fad9070077e9b76016b0a5eb652c087d09f0115b9179d6e99",
+        "timestamp": "2026-11-28T04:55:48.438Z"
+      },
+      "supersedes": "af9d893ece94076aae7debd0fefeab0569c42c3e82e664459ec198a4e204e679",
+      "evidence_sha256": "3df9b55db9f7db876f467a03a1a8ad38eef7da29ea2eb22d897ce96619557251"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "Producer and platform job identity, historical ownership, timed step and cache attribution, and independently usable clocks after a dispute. Check the genuine PR 123 browser job against the recorded impossible raw and compact copies, with the original precision, both orders and cold reopening.",
+      "supersedes": "432d3224fc1e5dbaaeda4ceced1cafd78ef38b4652de90ed802f6de054d1d9a3",
+      "requested_at": "2026-11-28T05:48:20.527708+00:00",
+      "request_id": "bd3e3fdad02de00fdeddab51d4943e2d8444795bc85d7678170a8b2badafde91",
+      "evidence_sha256": "7cbea1766e8587545ec95af38f34a645c8a6d3c0686ef75858f9250d69bb74aa"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "verdict": "approved",
+      "decision": "APPROVE M0-131 d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "APPROVE M0-131 d55f6907237d9af018decabd2f94fba43c198620",
+      "observation": "In both input orders and after a cold reopen, the reader attributed 983 runner-seconds to the genuine PR 123 browser report for job 140391906947 and withheld job attribution from the raw and compact copies timestamped at initialization.",
+      "reviewer": "Independent Astra Standard (t1mz)",
+      "original_sha256": "5cafebedcbc8aad57a32869eb03a4700ab8dae417b9f611ead2dba529c19375e",
+      "response_id": "2069385a2c8f9f01b075758699c8ce19129f9279f0f0d4708e88bd22a4cbe9b4",
+      "response_sha256": "cee21e90a7b070b64aa4e762282023389a0190d9d2884d0c4099a968df75778e",
+      "legacy_response_sha256": "6ad67082280bb362e7f1e23c46c38b3bf98456a81a83ee8b05f41d76ae677bd8",
+      "observation_body_sha256": "c3fc1ae49a51fc27736d3914a787f944cb13a9cfda0b2d1205646f4d19b6aa52",
+      "event": {
+        "id": "msg_039584e836be7de3016b0a6d0436c087d09fcca3b2e1f47253",
+        "timestamp": "2026-11-28T05:56:42.326Z"
+      },
+      "supersedes": "bd3e3fdad02de00fdeddab51d4943e2d8444795bc85d7678170a8b2badafde91",
+      "evidence_sha256": "4226f5dc571c6d8d7c0129706400d1d01c665343700bae2858c3e4ee679d14bc"
+    }
+  ]
+}

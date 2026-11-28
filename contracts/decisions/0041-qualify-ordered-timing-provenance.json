@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "id": "0041",
+  "title": "Qualify ordered timing evidence at its owning source",
+  "status": "accepted",
+  "recorded_at": "2026-11-27",
+  "context": "Independent reviews of 6491b837 reproduced recurring defects in job chronology, producer lineage and collection acquisition. Named setup and cleanup steps did not cover the observed neighboring Actions steps. Report bindings could contradict available producer originals, required step outcomes or the final upload. Copied and invalid collections could receive or remove current receipt credit.",
+  "decision": "Replace special-case qualification at the existing evidence boundaries. Use the historical workflow's ordered visible steps and feasible job anchors before reducing observed intervals. Check report attribution against the mandatory publisher step, role, available report content and final upload. Qualify current receipts with the owning collection's run, platform and jobs acquisition before combining or saving collections. Preserve independently proved clocks and established historical report semantics at the shared attempt reducer.",
+  "authority": "ADR 0007 and the M0-150, M0-155 and M0-156 acceptance rules.",
+  "alternatives": [
+    {
+      "option": "Extend the existing named guards for each rejected example.",
+      "reason": "A shorter isolated patch leaves the same defect for other observed neighboring steps, role bindings and copies of one acquisition. Both legacy and current readers need the same qualification rule."
+    },
+    {
+      "option": "Replace the timing archive and require complete historical artifacts.",
+      "reason": "The current format preserves independent facts used by ordinary, weekly and cold reads. Some source artifacts and job clocks are no longer available. The change belongs at admission, while existing archives can still support individually proved measurements."
+    }
+  ],
+  "consequences": [
+    "Impossible candidates cannot erase supported intervals, while feasible conflicting endpoints can withhold the affected metric.",
+    "The final report outcome, producer role and check contents are checked where their direct evidence exists. Failed results require a safe diagnostic reference when staging or claiming a supported original.",
+    "Receipt credit is determined by the selected collection's own acquisition. Invalid or incomplete saved copies cannot borrow or displace admissible receipts.",
+    "Measure ordinary, offline weekly and cold cost and coverage on the same retained inputs before handing off local evidence."
+  ],
+  "supersedes": [],
+  "related_decisions": ["0034", "0037", "0039", "0040"],
+  "revisit_when": [
+    "A publisher changes the mandatory step sequence or role bindings.",
+    "A retained collection exposes a distinct way to establish its own acquisition."
+  ]
+}

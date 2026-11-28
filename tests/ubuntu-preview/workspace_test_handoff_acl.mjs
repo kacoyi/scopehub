@@ -8,6 +8,7 @@ import { promisify } from 'node:util';
 
 const exec = promisify(execFile);
 const witness = fileURLToPath(new URL('../../target/debug/examples/windows_handoff_probe.exe', import.meta.url));
+const deadlineExceeded = 'subprocess deadline exceeded';
 const stages = {
   51: 'file type',
   52: 'directory owner',
@@ -30,7 +31,7 @@ function probeFailure(error, child, exitStages) {
   }
   // Node can set error.killed when a deadline only closes inherited pipes.
   // child.killed means a signal was actually sent to the direct child.
-  if (child?.killed) return 'subprocess deadline exceeded';
+  if (child?.killed) return deadlineExceeded;
   if (error.signal && Object.hasOwn(constants.signals, error.signal)) {
     return `subprocess terminated by ${error.signal}`;
   }
@@ -38,30 +39,59 @@ function probeFailure(error, child, exitStages) {
   return 'subprocess startup failed';
 }
 
-export async function runHandoffProbe(executable, args, { timeout = 10_000, maxBuffer = 8192, env, exitStages = stages } = {}) {
+export async function runHandoffProbe(executable, args, {
+  timeout = 10_000, maxBuffer = 8192, env, exitStages = stages, readProgress,
+} = {}) {
   let child;
+  let stdout;
   try {
     // Let execFile close the pipes at its deadline and wait for the direct child.
     const execution = exec(executable, args, { timeout, killSignal: 'SIGKILL', maxBuffer, windowsHide: true, env });
     child = execution.child;
-    await execution;
+    ({ stdout } = await execution);
   } catch (error) {
     // execFile errors can carry the command, stdout and stderr. Retain only
     // the enumerated outcome, without chaining the original error.
-    throw new Error(probeFailure(error, child, exitStages));
+    const failure = probeFailure(error, child, exitStages);
+    if (failure === deadlineExceeded && readProgress) {
+      const progress = readProgress(error.stdout, true);
+      const detail = progress ? `last confirmed ${progress.last}` : 'no preparation stage confirmed';
+      throw new Error(`${failure}, ${detail}`);
+    }
+    throw new Error(failure);
   }
+  if (!readProgress) return;
+  const progress = readProgress(stdout);
+  if (!progress?.complete) throw new Error('synthetic leaf ACL preparation progress incomplete');
+  return progress;
 }
 
 function prepareAclFixture(check, handoff, fixture, exitStages = {
   1: 'fixture preparation', 2: 'raw ACE readback', 3: 'legacy managed descriptor',
-}) {
+}, readProgress) {
   const systemRoot = process.env.SystemRoot;
   if (!systemRoot) throw new Error('subprocess startup failed (missing system root)');
   const powershell = join(systemRoot, 'System32/WindowsPowerShell/v1.0/powershell.exe');
   return runHandoffProbe(powershell, ['-NoProfile', '-NonInteractive', '-NoLogo', '-Command', check], {
     env: { ...process.env, SCOPEHUB_TEST_HANDOFF: handoff, SCOPEHUB_TEST_ACL_FIXTURE: fixture },
     exitStages,
+    readProgress,
   });
+}
+
+export async function buildWindowsLeafAclHelper(run) {
+  const systemRoot = process.env.SystemRoot;
+  if (!systemRoot) throw new Error('Could not build the synthetic leaf ACL helper (missing system root).');
+  const compiler = join(systemRoot, 'Microsoft.NET/Framework64/v4.0.30319/csc.exe');
+  const source = fileURLToPath(new URL('./workspace_test_handoff_leaf_acl.cs', import.meta.url));
+  const output = join(run, 'handoff-fixture-acl.dll');
+  const started = performance.now();
+  try {
+    await runHandoffProbe(compiler, ['/nologo', '/target:library', '/out:' + output, source], { exitStages: {} });
+  } catch (error) {
+    throw new Error(`Could not build the synthetic leaf ACL helper (${error.message}).`);
+  }
+  console.info('Synthetic leaf ACL helper build', JSON.stringify({ elapsedMs: Math.round(performance.now() - started) }));
 }
 
 export async function assertWindowsPrivateHandoff(handoff, launch = runHandoffProbe) {
@@ -201,6 +231,35 @@ function leafFailure(controls, stderr) {
   return `case ${control.name}: legacy managed stage differs (expected ${control.expectedStage}, observed ${legacyStage[1]})`;
 }
 
+const setupStages = ['script-entered', 'helper-loaded', 'matrix-ready'];
+const rowStages = ['handle-read', 'baseline-matched', 'submission-checked', 'dacl-written', 'readback-checked', 'legacy-matched'];
+
+function leafProgress(controls, stdout, interrupted) {
+  // A deadline may cut the final write short. Accept only complete records
+  // in order, and derive display names from the parent-owned matrix.
+  const lines = stdout.split('\n');
+  const tail = lines.pop();
+  const count = setupStages.length + controls.length * rowStages.length;
+  if ((!interrupted && tail !== '') || lines.length === 0 || lines.length > count) return;
+
+  const times = [];
+  let last;
+  for (const [index, line] of lines.entries()) {
+    const record = /^SCOPEHUB_ACL_PROGRESS (?:([0-9]{1,2}) )?([a-z-]{1,24}) (0|[1-9][0-9]{0,4})\r?$/u.exec(line);
+    if (!record || record[0] !== line) return;
+    const [, row, stage, milliseconds] = record;
+    const offset = index - setupStages.length;
+    const control = offset >= 0 ? Math.floor(offset / rowStages.length) : undefined;
+    const expected = offset >= 0 ? rowStages[offset % rowStages.length] : setupStages[index];
+    const elapsed = Number(milliseconds);
+    if (row !== (control === undefined ? undefined : String(control)) || stage !== expected ||
+        elapsed < (times.at(-1) ?? 0)) return;
+    times.push(elapsed);
+    last = control === undefined ? stage : `case ${controls[control].name} ${stage}`;
+  }
+  return { complete: times.length === count, last: `${last} at ${times.at(-1)} ms`, times };
+}
+
 export async function assertWindowsLeafAclMatrix(profile, {
   prepareFixture = prepareAclFixture, launch = runHandoffProbe,
 } = {}) {
@@ -223,10 +282,16 @@ export async function assertWindowsLeafAclMatrix(profile, {
     expectedStage: mode === 'effective' ? effective : 0,
   })));
   await withAclFixtures(controls, async () => {
+    const started = performance.now();
     try {
-      await prepareFixture(prepare, profile, JSON.stringify({ controls }), {
+      const progress = await prepareFixture(prepare, profile, JSON.stringify({ controls }), {
         1: 'fixture preparation', 4: stderr => leafFailure(controls, stderr),
-      });
+      }, (stdout, interrupted) => leafProgress(controls, stdout, interrupted));
+      if (progress) {
+        console.info('Synthetic leaf ACL matrix preparation', JSON.stringify({
+          subprocessMs: Math.round(performance.now() - started), setupStages, rowStages, elapsedMs: progress.times,
+        }));
+      }
     } catch (error) {
       throw new Error(`Could not verify the synthetic leaf ACL matrix (${error.message}).`);
     }

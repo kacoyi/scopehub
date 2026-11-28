@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "id": "0035",
+  "title": "Bind archived timing to observed native publishers",
+  "status": "accepted",
+  "recorded_at": "2026-11-26",
+  "context": "The November 26 independent replays found repeated divergence between the archived Windows publisher and the timing reader. A change in the compact projection could preserve the previous program signature. Catalog and raw inputs that the publisher rejected could still earn timing receipts.",
+  "decision": "Version the supported publisher inventory. For each observed program, bind the relevant committed workflow, scripts and publication schema by tree-entry digest. Record its statically inspected lane assignment and the invariant catalog data. Use one shared check selection and result projection while verifying permitted cadence changes and their required check references. Validate native raw fields before the timing reader compacts them.",
+  "authority": "The development AI owns verification implementation and technical evolution under ADR 0007. Existing protected verification and independent review requirements apply.",
+  "alternatives": [
+    {
+      "option": "Extend the per-version reconstruction of historical loaders and projection functions.",
+      "reason": "Each extra rule creates another behavior that the publisher and reader can interpret differently. The three input shape defects appeared after earlier rules had passed their controls."
+    }
+  ],
+  "consequences": [
+    "Keep genuine report bytes and saved review shapes. Requalify derived measurements using the supported publisher and preserved job assertions.",
+    "A previously unseen program or catalog shape needs a separately reviewed inventory entry and a genuine replay. Until then, evidence from independently established job clocks remains available.",
+    "The inventory establishes the bounded publication data needed for timing. Other project validation and protected job outcomes retain their own evidence requirements."
+  ],
+  "supersedes": [],
+  "related_decisions": [
+    "0007",
+    "0026"
+  ],
+  "revisit_when": [
+    "A genuine archive demonstrates a supported workflow, program or catalog variation outside the inventoried projection.",
+    "Observed conversion cost shows that the publisher needs a separately versioned projection module."
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-133",
+  "task_definition_sha256": "b525ee436e1b197e2aecbe2efff90dd1adb9dfa7b468dc04191d8fc95753ae93",
+  "run_id": "20261125T162208.232700Z-8a7a3375",
+  "recorded_at": "2026-11-25T16:54:29.062958+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "6e1885d1d4545a43b28ac86fdb92e77b679763fefadc5f5f3a1b5500c26916ea",
+    "file_count": 606,
+    "git_head": "e05d089b5d63a7a852792d44ee82e456afa5af93",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "3666436f89823c882b0cf91b15bf3b71214590da34a71412b005797978012ea8",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/audit-timing-producer-inputs/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-timing-producer-inputs/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "39ffcb91c7653ee32545f4ad37f7f0674f764753b852765504f1c46272534110"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-timing-producer-inputs/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "8e664bbdbfa977ac625e73251ac410d014f20f4d31ebdffc45fb18b85d919d1e"
+    }
+  ],
+  "project_definition_sha256": "69a6c9657e99875a68eda3a36f8e2770e85ae975e1867c04cf6f1ad74825af4f",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "025938334cb27730c254a2d98627aa5c10491eab75fa5c838182d025ff87b0aa",
+    "0a8a06cbffc88113bc28fd377c6a4e5d5097d5d22a1c4ec3a26559f8e062f9a7",
+    "0c6388b06e2ddb613b51b1953198ddb099b939ce1c004d50c6028ba383abff11",
+    "10436c70c07fd21be7f7c3b135011cc857c28c5b44006666ae643a1997307cdb",
+    "13bd44204f19f00f9882dae20cba89ae992e374300fb6a5d8a25ca445091677c",
+    "214a78012514113f6c0a6d36718940f62e0177ac4db77e8f32c20a6dad64541e",
+    "2ffea7c0671286902f606d18ebd54de650c8a8942734af1db1eebdc50b85420e",
+    "37bbc8d15649a9b6769c174cf7513a69c1644e66acc52ab70805be9d5481ed0e",
+    "3992261eba79c6a9414b0bdd0124c600afb16da40e47e959c434126f346c6f8b",
+    "3a87b771ec662d84a17562a9b5952f89f15ed94e2d657718dbbdea732ddb543c",
+    "3f4a002dda2a24730d6e1f00815611f23c56c5379c5bdcb4258db73d3973b24d",
+    "4197818a1e28098643db7e37cb37fee53dd43e59973ae92cc81586095cc4d4a5",
+    "4589fb596f8e6c21a2b6164bb4d8ba8cad674ed869d60ccf34a0fbea24b5030e",
+    "4d5e75bb2c614747cb03325df5c9612d1690b9b49d9d28abf72bb80cb575f19a",
+    "4e74de72b90c57e43269c2f416a0f46ab4930d285eaedb4b829c88256614b9cc",
+    "7fabf382f2e9fc1a58abc1ebc66cd3763c38d314c2e80e1964918a59700429e3",
+    "886badbfc0c4872bd1a55d3e982ed6dc2c8c16263a722128ac5268a0f758abc8",
+    "941465a46c238289233df7357c0b0342e44cbe9a84ed199fd0931b2ddf680fa1",
+    "9f810da01d3e0a1cb6850f54ac1d3022e3c46c68043e398fae754cad34f0a37c",
+    "cbf735db922ac05c4cd7d84e34ec7a3f944bfef4c71f5c124dab9348fd3a479b",
+    "d1dcb0a1acd8a3fdb2f75923925acc8161780a765541d9e6a2b4a3163ea3e531",
+    "e84c5761788f522da26d045461fa28beebd2ce9ba2a5361d76c43176f9f5d316",
+    "f82c7a19dc1237d1c5a7809cd8d0f04187b7868ad4e95be84f671c1a01db7934"
+  ]
+}

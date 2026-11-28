@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "id": "0040",
+  "title": "Share feasible chronology and keep acquisition evidence local to each timing collection",
+  "status": "accepted",
+  "recorded_at": "2026-11-27",
+  "context": "Independent reviews of 17cd39cf found seven contradictions at three evidence boundaries. Successful Actions setup and cleanup ruled out candidate intervals that the clock reader still considered. A split aggregate contradicted a producer result or reused its digest, and an impossible producer finish admitted a report after its consumer started. A reopened collection could borrow receipts from an earlier download or withdraw equivalent collections when missing run IDs were permuted.",
+  "decision": "Use the existing attempt reconciliation as the shared boundary for feasible job and step order. Reduce each measured phase over its own feasible endpoints, propagate producer-before-aggregate order to production admission, and use the publisher's retained role and terminal-outcome rules before report attribution. Keep acquisition evidence with the collection that downloaded each compact input. Compare unordered missing memberships by run identity. Saved collections retain the existing version and summary fields.",
+  "authority": "ADR 0007 and the M0-150, M0-155 and M0-156 acceptance rules.",
+  "alternatives": [
+    {
+      "option": "Repair ordinary, weekly and cold readers separately.",
+      "reason": "Each path would need matching source, role, outcome and chronology rules. Reconciliation and later saves could still combine claims that no single reader saw together. The shorter local diffs would expand the compatibility and review cost with each entry."
+    },
+    {
+      "option": "Introduce a general evidence format and require historical artifacts to be republished.",
+      "reason": "The affected evidence already has bounded role and attempt identities. Earlier compact versions no longer contain all publisher originals, and historical Actions data cannot be regenerated."
+    }
+  ],
+  "consequences": [
+    "Ordinary, offline weekly and cold reads reuse the same attempt and report admission. A change in report eligibility does not erase independently identified Actions clocks.",
+    "A feasible alternative that changes a measured interval keeps that metric unknown. Missing boundaries remain missing and historical compacts can establish only facts present in their supported format.",
+    "New collections retain exact downloaded compact digests. Historical collections can preserve receipts supported by their retained local originals and recorded per-run acquisition facts. Existing archives remain intact."
+  ],
+  "supersedes": [],
+  "related_decisions": ["0031", "0034", "0037", "0038", "0039"],
+  "revisit_when": [
+    "A new workflow changes producer dependencies, required step order or publisher outcomes.",
+    "A supported historical format cannot distinguish a current receipt from a retained timing observation."
+  ]
+}

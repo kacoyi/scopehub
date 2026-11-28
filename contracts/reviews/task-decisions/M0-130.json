@@ -1,0 +1,422 @@
+{
+  "version": 3,
+  "task_id": "M0-130",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "scope": "Independently review preserved Windows producer and platform separation through project:timing. Recheck authenticated PR 84 aggregate and distinct producers, producer-only ineligibility, historical scoped intake, a real complete conflict, and malformed inputs. Verify its imported task/receipt and coexistence with protected review record classification.",
+      "supersedes": null,
+      "requested_at": "2026-11-25T21:44:02.167799+00:00",
+      "request_id": "e2a21721a95e3bfd35bab9269827f15176aa21b692e31fb563769576532bc962",
+      "evidence_sha256": "d6b04b0af5a943c81713586edc4e5e857197f460d34730fbbd3573389ce31bf5"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "verdict": "approved",
+      "decision": "APPROVE M0-130 57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "scope": "APPROVE M0-130 57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "observation": "I replayed PR 84 attempt 1 and observed separate browser, recovery, and aggregate timings of 645, 321, and 804 seconds, with only the aggregate qualifying for Windows platform review.",
+      "reviewer": "Independent Astra Standard (t10v)",
+      "original_sha256": "d2146e77b5db52380a8238dca7686230912e998d39050c68c908d4479d67f2ce",
+      "response_id": "6ad289339d245b7b21c97af05ea22d525a08df3ab01721827c3ec9aed4a702fe",
+      "response_sha256": "3b8c97102742f7042864a6d99235d7e5705494ba845df8e3cca0e1f670969f93",
+      "legacy_response_sha256": "bb0d94dffd756c13502bc614d099e11eecdc9a7f897aa7c8852028552af23277",
+      "observation_body_sha256": "1663414035ef6d0b82685d2a2e97443d7383976cb7ec654de107398b14a0281e",
+      "event": {
+        "id": "msg_09a82ffb2622b907016b075cb16fec87d09d5fcc2c4bd45e1e",
+        "timestamp": "2026-11-25T22:10:08.152Z"
+      },
+      "supersedes": "e2a21721a95e3bfd35bab9269827f15176aa21b692e31fb563769576532bc962",
+      "evidence_sha256": "252333058a6235ae4a58fe738fce7514a4cd0d46d81a1234c63d6464afd12ac1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "Recheck partial Windows producers, the historical publishing catalog and refused platform attribution after both corrections. Exercise an archived qualified full report, an omitted check and a real partial producer. Check the ordinary weekly path, evidence completeness and preservation of the earlier receipts.",
+      "supersedes": "6ad289339d245b7b21c97af05ea22d525a08df3ab01721827c3ec9aed4a702fe",
+      "requested_at": "2026-11-25T22:52:57.971566+00:00",
+      "request_id": "93bcfda4fc99c0d892c2402a4aef8fd66fab8ab88f49b3ed2463c19c273ecc31",
+      "evidence_sha256": "8da291560e5ec0c2bb3339d2c5687f1aa7633a97e84ebc9419ff3ca147c35f6e"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "verdict": "approved",
+      "decision": "APPROVE M0-130 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "APPROVE M0-130 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "observation": "I replayed the weekly reader with system Python and observed one Windows receipt for the 35-check PR 84 aggregate and zero for the genuine 11-check browser producer.",
+      "reviewer": "Independent Astra Standard (t10v)",
+      "original_sha256": "1190e0c34fc0cf4d04b0a70e9431526b38ed979da69b98845d0f412f74ffe5cc",
+      "response_id": "725dc3e184e1295f32d45c0c4fab4f5e4fd72582ef358c71bb06b3ffa2d520c6",
+      "response_sha256": "6484a07cdd455d31e3960424acce9bee278e4179e8cfd14e1da7e6933bf4d65c",
+      "legacy_response_sha256": "5f1e8d0fd181bde651b47d621e3a714eb60928cff67afe3e531e164dc616aff4",
+      "observation_body_sha256": "1465e6f3893a6698886e24175a4fd19be6d6a60fc947595fd70b25e68e19889b",
+      "event": {
+        "id": "msg_09a82ffb2622b907016b076d542b4087d0b43fa7ba926e5e90",
+        "timestamp": "2026-11-25T23:21:05.159Z"
+      },
+      "supersedes": "93bcfda4fc99c0d892c2402a4aef8fd66fab8ab88f49b3ed2463c19c273ecc31",
+      "evidence_sha256": "5b300526d9bc250f143b5df67c809ab14716cd3a6059e3a5c994cd62cdba621c"
+    },
+    {
+      "kind": "request",
+      "source_commit": "caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "scope": "Check the actual publishing job and the platform clock in the reviewed composition. Derive expected role and incomplete results from the retained original job, report and observed checkout. Exercise Linux-only or missing jobs beside a qualified Windows publisher and preserve any independently established fields.",
+      "supersedes": "725dc3e184e1295f32d45c0c4fab4f5e4fd72582ef358c71bb06b3ffa2d520c6",
+      "requested_at": "2026-11-26T04:10:26.914485+00:00",
+      "request_id": "31cd9a4f2f8bcb1b7d0489995b09525ef2d51bc13c4f89452a6c0932fb239e93",
+      "evidence_sha256": "d1163dd725e47d31c952260881590fac592f928d1c1769f3fd5b393490eeb1e0"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-130 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "scope": "CHANGES_REQUESTED M0-130 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "observation": "Swapping only the browser and aggregate job names in the retained PR 84 listing caused the weekly reader to qualify the browser job’s 645-second clock as Windows platform timing and return one receipt.",
+      "reviewer": "Independent Astra Standard (t12n)",
+      "original_sha256": "95d8516d056eb47114e90aa78f4ecc4ac9721e3b5a2b26e9404990fff96df277",
+      "response_id": "5d528ae2d8007b9e687c15a93c6432ee389e496b2841c45ffd1f253d7153c5fc",
+      "response_sha256": "ecd979ae1f30d3e00ed927877feb2be99618b8f2e8d4e2a52b0e51166d7b2115",
+      "legacy_response_sha256": "9615f118b7f750289ba404f26b9e8791ac102b7dce07600e653e8ed5aa3cd586",
+      "observation_body_sha256": "bc98c6dd417f108fd5976f1cf9a5048051d9bf3a4f25050b44a1819e95198804",
+      "event": {
+        "id": "msg_05bdaccdbe40e423016b07b4b597c887d28b4766260ba0f187",
+        "timestamp": "2026-11-26T04:25:38.418Z"
+      },
+      "supersedes": "31cd9a4f2f8bcb1b7d0489995b09525ef2d51bc13c4f89452a6c0932fb239e93",
+      "evidence_sha256": "0158a284ce5ae6950c29c5cf73348a1b29a2a3e7331274abf5cbfc40d8e16101"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "scope": "Check the actual publishing job and the platform clock in the reviewed composition. Derive expected role and incomplete results from the retained original job, report and observed checkout. Exercise Linux-only or missing jobs beside a qualified Windows publisher and preserve any independently established fields. Recheck the original decision on caea2a0a.",
+      "supersedes": "5d528ae2d8007b9e687c15a93c6432ee389e496b2841c45ffd1f253d7153c5fc",
+      "requested_at": "2026-11-26T05:01:36.707205+00:00",
+      "request_id": "afa97f99778e79f4ac3f2026f9dc63cd4b432ebd6a4f9aba4e472a87d2eec2cd",
+      "evidence_sha256": "d5ff2ce51042abc23453c719e12fabd6817f32a943650093860b30bef3f9dbeb"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-130 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "scope": "CHANGES_REQUESTED M0-130 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "observation": "With the PR 84 browser and aggregate job names swapped and one step omitted from each listing, the weekly reader accepted the browser job’s 645-second clock as Windows platform timing and issued one receipt.",
+      "reviewer": "Independent Astra Standard (t13b)",
+      "original_sha256": "8207483377afbb6edb9c0a79c0b41b27e711145081cbd2ae62e89fa03a073c2c",
+      "response_id": "67a2e5ed0a6cc3da533480815143006e37c03abeb07b8682b8c24b09d515e6a3",
+      "response_sha256": "470d4f8b3c5ff71345f2da0ab2afb112e0d1ae992abdce68b31a1e2d5754d341",
+      "legacy_response_sha256": "47839817a28fc742ad0b3602277752910046fe6f720c8c5c168abeafba8fd284",
+      "observation_body_sha256": "c1bd65b152b54830251f53bbc57a81625737fa0e6888551cc129a2a4b12b128c",
+      "event": {
+        "id": "msg_077279af0831476e016b07bf6a64dc87d2935e9195c55faca3",
+        "timestamp": "2026-11-26T05:11:22.880Z"
+      },
+      "supersedes": "afa97f99778e79f4ac3f2026f9dc63cd4b432ebd6a4f9aba4e472a87d2eec2cd",
+      "evidence_sha256": "61635b71079d4733dfac1210c0812fa3a075cff74428b310faa3f73babe5f2b7"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "scope": "Check the actual publishing job and the platform clock in the reviewed composition. Derive expected role and incomplete results from the retained original job, report and observed checkout. Exercise Linux-only or missing jobs beside a qualified Windows publisher and preserve any independently established fields. Recheck the original decision on b12aefdc.",
+      "supersedes": "67a2e5ed0a6cc3da533480815143006e37c03abeb07b8682b8c24b09d515e6a3",
+      "requested_at": "2026-11-26T06:32:08.008754+00:00",
+      "request_id": "8b37706fa83359728b1e425afc91cad8014f24cc8672a75facccd750b77eef0c",
+      "evidence_sha256": "289dbf1c3eaae938f01423078a10bd79b368a028e1ad9ab14a25ce303b38c257"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-130 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "scope": "CHANGES_REQUESTED M0-130 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "observation": "In an offline replay of PR 84 with the browser and aggregate job names swapped and two steps omitted from each listing, the weekly reader issued one Windows receipt using the browser job’s 645-second clock even though that job finished before the aggregate report was recorded.",
+      "reviewer": "Independent Astra Standard (t14h)",
+      "original_sha256": "924d728237f42216bc13c145a9088e64318548e76606daca211f5fafb25f227e",
+      "response_id": "fefc8d21651cf78bc199a5deff764e6b8a0ba7c89f710e5aac515d1ea7ccec11",
+      "response_sha256": "536f38effaf4682ad8096a7ffec4ad5166ebf1273ef3abcd19cfefac1667b26a",
+      "legacy_response_sha256": "9942a1833e38b20b313060a8b970424739916d9df7a30cc9b53e5ccd12839f58",
+      "observation_body_sha256": "3888c3f1fa8ef1a645e8c54e3ebc645deceacefe37d5c07215c9e3186ba58a20",
+      "event": {
+        "id": "msg_001b6908d60c30ed016b07d7495bb487d2bdbafdfaa65b46e4",
+        "timestamp": "2026-11-26T06:53:15.614Z"
+      },
+      "supersedes": "8b37706fa83359728b1e425afc91cad8014f24cc8672a75facccd750b77eef0c",
+      "evidence_sha256": "682cd03f982eb397f4cdcbcff99d34db3605295b03c8cd5bcced5277376ad5a1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "39413fd304e8575605dc5b70a352d2e394ae1e35",
+      "scope": "Check the actual publishing job and the platform clock in the reviewed composition. Derive expected role and incomplete results from the retained original job, report and observed checkout. Exercise Linux-only or missing jobs beside a qualified Windows publisher and preserve any independently established fields. Recheck the original decision on e00b088b.",
+      "supersedes": "fefc8d21651cf78bc199a5deff764e6b8a0ba7c89f710e5aac515d1ea7ccec11",
+      "requested_at": "2026-11-26T12:29:16.817062+00:00",
+      "request_id": "74a49fb5aa7c141848e95fe845de978555c2f429b4516cc044157b2a9b6a4f06",
+      "evidence_sha256": "6d0bd40707082174399858fa5b535cbf01fa80e48ed3e2c51535b3fe9deaf289"
+    },
+    {
+      "kind": "request",
+      "source_commit": "3eeb59bc39219905204e6aab95bd16af4d22a65e",
+      "scope": "Check the actual publishing job and the platform clock in the reviewed composition. Derive expected role and incomplete results from the retained original job, report and observed checkout. Exercise Linux-only or missing jobs beside a qualified Windows publisher and preserve any independently established fields. Recheck the original decision on e00b088b.",
+      "supersedes": "74a49fb5aa7c141848e95fe845de978555c2f429b4516cc044157b2a9b6a4f06",
+      "requested_at": "2026-11-26T12:55:44.744930+00:00",
+      "request_id": "7156937f536e8bb2665772bb5ac445f4fa5426f8a3d42fc79a9354dbce5252a6",
+      "evidence_sha256": "9298649afa9bb064eb6e18d294937380575966590ef0ed070fb223098b577f5e"
+    },
+    {
+      "kind": "request",
+      "source_commit": "9ea5b5140042ac013e022c2edd7d0a79e93fee67",
+      "scope": "Check the actual publishing job and the platform clock in the reviewed composition. Derive expected role and incomplete results from the retained original job, report and observed checkout. Exercise Linux-only or missing jobs beside a qualified Windows publisher and preserve any independently established fields. Recheck the original decision on e00b088b.",
+      "supersedes": "7156937f536e8bb2665772bb5ac445f4fa5426f8a3d42fc79a9354dbce5252a6",
+      "requested_at": "2026-11-26T13:19:59.815874+00:00",
+      "request_id": "1521bec5149abed3ee9bf1243e2008c1d428d0a5c43148be3ac3b890403283c5",
+      "evidence_sha256": "82447c0f04a69c6ef839237c26cfd13ac1c765a28547376c5c9f45c4c7037b14"
+    },
+    {
+      "kind": "request",
+      "source_commit": "438302ef9ebb720039a5f0dd77e6b051c5010560",
+      "scope": "Check the actual publishing job and the platform clock in the reviewed composition. Derive expected role and incomplete results from the retained original job, report and observed checkout. Exercise Linux-only or missing jobs beside a qualified Windows publisher and preserve any independently established fields.",
+      "supersedes": "1521bec5149abed3ee9bf1243e2008c1d428d0a5c43148be3ac3b890403283c5",
+      "requested_at": "2026-11-26T13:58:52.811901+00:00",
+      "request_id": "3730422e9a7381c818ef98169369fb40a1db632ff5f7d0c41b4ea4e44c17f555",
+      "evidence_sha256": "c62ecf58cf9d28d6025fbd8ef1499f2dffa137134a66c0edfff7c64f78fcb04f"
+    },
+    {
+      "kind": "request",
+      "source_commit": "318f54c82e50a38c4310724b55e3e9ee6539afb8",
+      "scope": "Check the actual publishing job and the platform clock in the reviewed composition. Derive expected role and incomplete results from the retained original job, report and observed checkout. Exercise Linux-only or missing jobs beside a qualified Windows publisher and preserve any independently established fields.",
+      "supersedes": "3730422e9a7381c818ef98169369fb40a1db632ff5f7d0c41b4ea4e44c17f555",
+      "requested_at": "2026-11-26T14:56:20.010128+00:00",
+      "request_id": "a064468f348b028cb14b7c0c0ecb0cd78df7760b2e29f520495543a41d03b988",
+      "evidence_sha256": "92cd79191e0c80abb2e7ed551aef28fb45523922bdb37d9e63e1e1285d6454d8"
+    },
+    {
+      "kind": "request",
+      "source_commit": "de7e2376d216e0fe943c1301c336ef837b58c48a",
+      "scope": "Check the actual publishing job and the platform clock in the reviewed composition. Derive expected role and incomplete results from the retained original job, report and observed checkout. Exercise Linux-only or missing jobs beside a qualified Windows publisher and preserve any independently established fields.",
+      "supersedes": "a064468f348b028cb14b7c0c0ecb0cd78df7760b2e29f520495543a41d03b988",
+      "requested_at": "2026-11-26T15:30:58.904510+00:00",
+      "request_id": "1343945ec3d2c972e83d300db14b27f3d5cdcad1e9fa4fa162fa96599266a7fd",
+      "evidence_sha256": "07b45760fd88a8e8999800df284580d6cad970a98cd73030aafc4275a5ad46ec"
+    },
+    {
+      "kind": "request",
+      "source_commit": "4c4865fa8db31cd57c84a8061d8abc00e03d1a01",
+      "scope": "Check the actual publishing job and the platform clock in the reviewed composition. Derive expected role and incomplete results from the retained original job, report and observed checkout. Exercise Linux-only or missing jobs beside a qualified Windows publisher and preserve any independently established fields.",
+      "supersedes": "1343945ec3d2c972e83d300db14b27f3d5cdcad1e9fa4fa162fa96599266a7fd",
+      "requested_at": "2026-11-27T02:45:51.575802+00:00",
+      "request_id": "1fc67410b4b886098699c10e7106a132cecdccee806e3dc70b3c159d4b533de3",
+      "evidence_sha256": "21df53de27a5e872b9060517a8d767151b0f9503da849a90f6033b3009edd092"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b6cd4be5ccb66c7eaad60cfc2ac81c97e51f63fa",
+      "scope": "Check the actual publishing job and the platform clock in the reviewed composition. Derive expected role and incomplete results from the retained original job, report and observed checkout. Exercise Linux-only or missing jobs beside a qualified Windows publisher and preserve any independently established fields.",
+      "supersedes": "1fc67410b4b886098699c10e7106a132cecdccee806e3dc70b3c159d4b533de3",
+      "requested_at": "2026-11-27T03:12:06.403264+00:00",
+      "request_id": "ec190abdaea69ac3d49861f07447efdbe324ebcfa7a296cda77606f89ed1e101",
+      "evidence_sha256": "65ca5a304116ec61904018d553db6b659995eae60272f409e2e4d9cc748bea7f"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "Check whether the fixed split-job chronology or the source-consistency check changes the retained actual publisher attribution or an independently established platform clock. Reuse the earlier source-bound scope and its actual job and report observations.",
+      "supersedes": "ec190abdaea69ac3d49861f07447efdbe324ebcfa7a296cda77606f89ed1e101",
+      "requested_at": "2026-11-27T03:36:27.462637+00:00",
+      "request_id": "aa27d158f753ca6d6740ccf194dfda06bd6d6e8ef66416295d29ff5970511e7f",
+      "evidence_sha256": "b6aea9966a15bcdf03e456291f2b09b151ae0d68e4054bed947b58ef7ab849a5"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-130 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "APPROVE M0-130 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "observation": "In my offline replay of PR 84 attempt 1, the genuine Windows publisher retained its 804-second platform clock and one receipt, while the historical job-name swap yielded zero receipts and preserved the recovery producer’s 321-second clock.",
+      "reviewer": "Independent Astra Standard (t1c2)",
+      "original_sha256": "11890c8464d962d1885f1256a1d455886d49a4e5b5c44dc3f87a9a1637986123",
+      "response_id": "d076170e38152e0bb3f0bd25b648b5e03f3d58e627362ba5ec0fc01766b1a30f",
+      "response_sha256": "f5ccddfaf405260fa29b94b9289bee365ab7959d23b2f1ca34c2fbe8928ff17b",
+      "legacy_response_sha256": "67946e7ce2fd972f99732a3858734078d90b011c740a60083c5408d937fe9caa",
+      "observation_body_sha256": "885bfd010f5c9ed98b598d6127ebc02261bbba0ffcd5a9d2ddd5fd326b03d8fa",
+      "event": {
+        "id": "msg_0ced3b6d39085d9a016b08fcc4299487d0adea3cb678430b7b",
+        "timestamp": "2026-11-27T03:45:26.487Z"
+      },
+      "supersedes": "aa27d158f753ca6d6740ccf194dfda06bd6d6e8ef66416295d29ff5970511e7f",
+      "evidence_sha256": "2a559868d0c795ba9ec72dd1acc884d706adc958b4fd1de94cfa6f90ce08c6b9"
+    },
+    {
+      "kind": "request",
+      "source_commit": "5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "scope": "Confirm that the previously approved M0-130 timing behavior and acceptance assertions survive the Windows test-fixture repair on this source.",
+      "supersedes": "d076170e38152e0bb3f0bd25b648b5e03f3d58e627362ba5ec0fc01766b1a30f",
+      "requested_at": "2026-11-27T04:25:39.726965+00:00",
+      "request_id": "9c4b9f9836bf394559193cce2a7bfc86627dfcbbce80c6c59f7e8e20533922fa",
+      "evidence_sha256": "66c9c59b9504771c5e0730c9452630e0667cefb172622f2633add771536ceab6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-130 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "scope": "APPROVE M0-130 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "observation": "The fixture repair still deletes the same four Git objects, and the mixed-platform test still requires exactly one Windows receipt, a 360-second Windows clock, and an unknown Linux sample clock in both input orders.",
+      "reviewer": "Independent Astra Standard (t1ct)",
+      "original_sha256": "77da0dc9981d506f6caf62253edb7c67d7b252a3804e73c50fb6d38b40342685",
+      "response_id": "87df001841c2b08095f56818df8ac472938767f9fb29a68947fd797c906165cb",
+      "response_sha256": "816a77cc4dec83cf83bf598cfd4367149c0219a573ff63ac1269480be7e24246",
+      "legacy_response_sha256": "2e04fdffbbd94708aab2bc017eafc65e8cf9821cc0e50d9111864b9f6bcea58c",
+      "observation_body_sha256": "1545841755bea005e0a75424b8a0dc5d765e84ec9ff86147cde50a47973e7ff6",
+      "event": {
+        "id": "msg_0c3b6f4189262e3d016b090745e5ec87d0a4a00fbe5660d263",
+        "timestamp": "2026-11-27T04:30:09.517Z"
+      },
+      "supersedes": "9c4b9f9836bf394559193cce2a7bfc86627dfcbbce80c6c59f7e8e20533922fa",
+      "evidence_sha256": "a089cae6b0bb8cd212158060f1ae89fac4ea7824679a993b8d3ff6203b1e1b72"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e6f12373277d8aa05a734a1a1c9648f0cf489577",
+      "scope": "Producer-only timing, including the source-bound empty ordinary Python selection. No Windows platform coverage from an isolated producer.",
+      "supersedes": "87df001841c2b08095f56818df8ac472938767f9fb29a68947fd797c906165cb",
+      "requested_at": "2026-11-27T09:24:35.853184+00:00",
+      "request_id": "c247f9805e2050da48a29ed6bddf4de8c69897c418f32297a71bc51789f29122",
+      "evidence_sha256": "d1666f7df1885d3f39daf2cc58c8cc85091deb444749447772f72b7e76a5a5ac"
+    },
+    {
+      "kind": "request",
+      "source_commit": "1024b35f34c1065dc4f75389e78a4d699d32627b",
+      "scope": "Producer-only timing, including the source-bound empty ordinary Python selection. No Windows platform coverage from an isolated producer.",
+      "supersedes": "c247f9805e2050da48a29ed6bddf4de8c69897c418f32297a71bc51789f29122",
+      "requested_at": "2026-11-27T09:51:03.647227+00:00",
+      "request_id": "549ee228dd8c1af22eba668d0d774217d5d9cf9faa64f17f9eb441c2316e4b25",
+      "evidence_sha256": "158e165df4c57e05785e175c84857130b4ff5be31fd4f946df0ff90c3524c0a6"
+    },
+    {
+      "kind": "request",
+      "source_commit": "17cd39cfc82e095f341f9b2f3a4c20022e36996d",
+      "scope": "Producer-only timing, including the source-bound empty ordinary Python selection. No Windows platform coverage from an isolated producer.",
+      "supersedes": "549ee228dd8c1af22eba668d0d774217d5d9cf9faa64f17f9eb441c2316e4b25",
+      "requested_at": "2026-11-27T10:16:55.979662+00:00",
+      "request_id": "4bf4bea2e69a3cd4770699b3fcbcd54d0bfa6740d75ccfc402376736fea19e3f",
+      "evidence_sha256": "bf38fe559cfc016ffe81362a6493a4b386efcad1b94c6b6bcebed68edae555df"
+    },
+    {
+      "kind": "request",
+      "source_commit": "6491b83725eb2b1ac60ebe2e6854f51941fe6e83",
+      "scope": "Producer-only timing, including the source-bound empty ordinary Python selection. No Windows platform coverage from an isolated producer.",
+      "supersedes": "4bf4bea2e69a3cd4770699b3fcbcd54d0bfa6740d75ccfc402376736fea19e3f",
+      "requested_at": "2026-11-27T10:49:12.470233+00:00",
+      "request_id": "d5677b8bb7a4c5675c072121c25fc400e19ee674c1be80534ecc41a0037ebefd",
+      "evidence_sha256": "9c84fb9d65954513aac0ca3595a4ae32aab2ff83d2a62200dd5a84f84cab2384"
+    },
+    {
+      "kind": "request",
+      "source_commit": "343bb62e8ef179abf4fa9f98bd960e3066070a19",
+      "scope": "Producer-only timing, including the source-bound empty ordinary Python selection. No Windows platform coverage from an isolated producer.",
+      "supersedes": "d5677b8bb7a4c5675c072121c25fc400e19ee674c1be80534ecc41a0037ebefd",
+      "requested_at": "2026-11-27T11:12:59.868756+00:00",
+      "request_id": "ad9c44986feb4541e253bf39c93b347c29bc673d18ff3bd3b7d85e0493f4b1f3",
+      "evidence_sha256": "78b2ca0d58dc2c32911e2753e0ebdcd4f82b14fb8b47a8d05f8145788b95b0db"
+    },
+    {
+      "kind": "request",
+      "source_commit": "fea9a19095db891b76a2f30d8ee65763c2e880fe",
+      "scope": "Producer-only timing, including the source-bound empty ordinary Python selection. No Windows platform coverage from an isolated producer.",
+      "supersedes": "ad9c44986feb4541e253bf39c93b347c29bc673d18ff3bd3b7d85e0493f4b1f3",
+      "requested_at": "2026-11-27T11:41:28.660321+00:00",
+      "request_id": "42efe56edf5810777f6d720ceded8d21d13852bd2a200df24d5e62fa80430f82",
+      "evidence_sha256": "310b94045bb2bd85f88574aec376c091c2140674771a7ae3c65efeb3a19da48c"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "Producer-only timing, including the source-bound empty ordinary Python selection. No Windows platform coverage from an isolated producer. Replay your prior PR 84 job-name swap at both input orders and cold reopen. Check independent recovery evidence and the absence of a platform receipt for the isolated producer.",
+      "supersedes": "42efe56edf5810777f6d720ceded8d21d13852bd2a200df24d5e62fa80430f82",
+      "requested_at": "2026-11-28T04:05:55.779693+00:00",
+      "request_id": "e6266b2c9a8f9d2738809855254ecfcfc7479edb614a9975dee159cb521cc8cd",
+      "evidence_sha256": "c1e1b9786af457937c6af10dc36564ed03caa41cea671fa3b1846163b35deb04"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "verdict": "approved",
+      "decision": "APPROVE M0-130 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "APPROVE M0-130 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "observation": "With the PR 84 browser and aggregate job names swapped, both report orders preserved the recovery job’s 321-second wall time and 319 runner-seconds after a cold reopen, and the isolated producer earned zero Windows platform receipts.",
+      "reviewer": "Independent Astra Standard (t1ky)",
+      "original_sha256": "ced956fec7f8f98970a84cc4c7be156deb1fee0d5ecde73cc4f8695685975249",
+      "response_id": "d35f114ce5d450a141891618a2841fb61527ad2ae916aa0bc38f6fa2f88f8c0f",
+      "response_sha256": "4c7eb44ec7b333a533fd31102cc2fcde29984e1109cd3b35d9336f3886d883a6",
+      "legacy_response_sha256": "13d56ee94223f6940568584af5d01eeaa10f3ad821324485d741fcf912653b49",
+      "observation_body_sha256": "40454ad5002c86deec918b852e4ece5270942ff3e875c4f5e96fb28d23ff7f57",
+      "event": {
+        "id": "msg_0b9cde237eab1d1e016b0a55122b5487d0afa18b0b6daa4ffb",
+        "timestamp": "2026-11-28T04:14:27.943Z"
+      },
+      "supersedes": "e6266b2c9a8f9d2738809855254ecfcfc7479edb614a9975dee159cb521cc8cd",
+      "evidence_sha256": "9f308a13f1f5d4e82acd3399ae90a8dc0e4390b0e88979e27bcff0fe72a88101"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d226171f0d21bf65109416128a68bea9c8577b2d",
+      "scope": "Producer-only timing, including the source-bound empty ordinary Python selection. No Windows platform coverage from an isolated producer. Retain the independently measured PR 84 recovery producer while withholding any platform receipt from the isolated producer.",
+      "supersedes": "d35f114ce5d450a141891618a2841fb61527ad2ae916aa0bc38f6fa2f88f8c0f",
+      "requested_at": "2026-11-28T04:46:21.489116+00:00",
+      "request_id": "69df205b24a0b7a0e8e0358b1c9f957b4e433dac17ec26d9457ff3769a499229",
+      "evidence_sha256": "d2086557d87090a7a512f0b41ed43fa2216de3c9448b708a2cb63f50960d62d4"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d226171f0d21bf65109416128a68bea9c8577b2d",
+      "verdict": "approved",
+      "decision": "APPROVE M0-130 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "scope": "APPROVE M0-130 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "observation": "After the PR 84 browser and aggregate job names were swapped, cold reads in both report orders preserved 321 seconds of wall time and 319 runner-seconds for recovery job 138978153088, and collecting its report alone yielded zero Windows platform receipts.",
+      "reviewer": "Independent Astra Standard (t1mf)",
+      "original_sha256": "699ee3a6dcfbc082f8abc4ee952d7fc0c76bcdc77a52ce2fdb4d97713101db51",
+      "response_id": "b61df77edbd0efc513d5447eba1a98219354f666e24c30fe70f22f60473274fd",
+      "response_sha256": "45a79e47f148756681cf45c1bd00ba2f15eaac868fc40d84e1690fbb5dfa5db3",
+      "legacy_response_sha256": "ac1cab4b2099bc266d113160f7b55298cd86f1aeba659ad8701072a8f287f574",
+      "observation_body_sha256": "f605f2f30d96eb2960abacde58cfa150070e81150119874f070d34a2d15364ba",
+      "event": {
+        "id": "msg_0269001ee4439a04016b0a5e2281e087d09adeef956fff0adf",
+        "timestamp": "2026-11-28T04:53:11.665Z"
+      },
+      "supersedes": "69df205b24a0b7a0e8e0358b1c9f957b4e433dac17ec26d9457ff3769a499229",
+      "evidence_sha256": "229e5c3188398ec6e714951cb69c40be88fb55a035d2e76b474c4646aadce8e6"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "Producer-only timing, including the source-bound empty ordinary Python selection. No Windows platform coverage from an isolated producer. Replay the original PR 84 job-name swap, isolated recovery producer, both input orders and cold recovery.",
+      "supersedes": "b61df77edbd0efc513d5447eba1a98219354f666e24c30fe70f22f60473274fd",
+      "requested_at": "2026-11-28T05:48:19.704694+00:00",
+      "request_id": "2c5d06233a91370416439ea068789d998667c5c85c91b07fe518b7ede86119d7",
+      "evidence_sha256": "f7851c82ea2bc99d5a6aa7fdf47c4171dffc1c42b9cabbb099b803da82ccfcf3"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "verdict": "approved",
+      "decision": "APPROVE M0-130 d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "APPROVE M0-130 d55f6907237d9af018decabd2f94fba43c198620",
+      "observation": "With the PR 84 browser and aggregate job names swapped, fresh processes recovered job 138978153088’s 321-second wall time and 319 runner-seconds in both input orders, and isolated recovery collection yielded zero Windows platform receipts.",
+      "reviewer": "Independent Astra Standard (t1my)",
+      "original_sha256": "340aea4d2ceea78644c259c1aa87867243fc4335b8821410d95c1693f74d99b2",
+      "response_id": "97a6a12ff761bac5d99411a0fd8126bdbca122eaf3bb691dc13961c3193b9450",
+      "response_sha256": "d38844cac5f0c94ba15d6df8af650bd46297641832ffb2dd5bb1c76f228dc104",
+      "legacy_response_sha256": "452657527ec0f711895398dee6c6b1cf40d44e6bcb90ded683485d6adbc0c097",
+      "observation_body_sha256": "2286503f19791b2883ca9c4c0da48c9ce330d13809ba047617e769324da834fa",
+      "event": {
+        "id": "msg_066893da9750ea7c016b0a6c47f77087d0beb0316d052fbfbd",
+        "timestamp": "2026-11-28T05:53:27.947Z"
+      },
+      "supersedes": "2c5d06233a91370416439ea068789d998667c5c85c91b07fe518b7ede86119d7",
+      "evidence_sha256": "c8bc7ebbe0ce2678dbfe06961b886ff10be06bfbcfbfdd55600b143d18d4451b"
+    }
+  ]
+}

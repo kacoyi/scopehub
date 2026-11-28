@@ -1,18 +1,231 @@
 """Select a verification profile from a verified Git comparison."""
 
 import argparse
+import ast
 from collections import Counter
 from dataclasses import dataclass
+from datetime import timedelta
 import json
+import math
 import os
 from pathlib import Path
 import re
 import stat
 import subprocess
 import sys
+from threading import Timer
+
+
+def windows_x64(environment):
+    machine = environment.get('machine')
+    return (environment.get('system') == 'Windows' and isinstance(machine, str)
+            and machine.lower() in {'amd64', 'x86_64'})
+
+
+def windows_native_satisfied(environment, results):
+    return windows_x64(environment) and any(
+        row['id'] == 'windows-native-build' and row['status'] == 'passed' for row in results
+    )
+
+
+def windows_lanes_run_id(ci):
+    return f"windows-change-{ci['run_id']}-{ci['run_attempt']}"
+
+
+def windows_lane_report_matches(ci, run_id, environment):
+    return run_id == windows_lanes_run_id(ci) and windows_x64(environment)
+
+
+WINDOWS_BROWSER_CHECKS = {'market-workflow', 'chart-history', 'ubuntu-preview',
+                          'local-import-ui', 'market-live-stream', 'market-quality-states',
+                          'market-worker-interruption', 'market-recovery-ui', 'workspace-timeframe',
+                          'desktop-workspace-transport', 'desktop-localization'}
+WINDOWS_LANE_CHECKS = {
+    'browser': WINDOWS_BROWSER_CHECKS,
+    'python': {'python-contracts-workers'},
+    'recovery': {'market-recovery'},
+}
+WINDOWS_LANES = ('core', *WINDOWS_LANE_CHECKS)
+LEGACY_WINDOWS_LANES = WINDOWS_LANES[:-1]
+
+
+def windows_lane_checks(selected, lane, lanes=WINDOWS_LANES, *, assignment=WINDOWS_LANE_CHECKS):
+    if lane not in lanes:
+        return set()
+    if lane == 'core':
+        return selected.difference(*(assignment[name] for name in lanes if name != 'core'))
+    return selected & assignment[lane]
 
 
 SCOPED_PROFILES = frozenset({'records', 'tooling', 'localization'})
+
+
+def finite_json_float(token):
+    value = float(token)
+    if not math.isfinite(value):
+        raise ValueError('Invalid JSON number')
+    return value
+
+
+def decode_publishing_catalog(data):
+    return json.loads(data.decode('utf-8'), object_pairs_hook=unique_object,
+                      parse_float=finite_json_float, parse_constant=invalid_number)
+
+
+def publishing_check_catalog(catalog):
+    """Validate the check inventory and references used by hosted selection."""
+    rows = catalog['checks']
+    if not isinstance(rows, list) or not rows:
+        raise ValueError('Invalid check catalog')
+    checks = {}
+    for check in rows:
+        key, status, command = check['id'], check['status'], check['command']
+        if (not isinstance(key, str) or not CHECK_ID.fullmatch(key)
+                or status not in {'implemented', 'planned', 'retired'}
+                or check.get('cadence', 'change') not in {'change', 'task', 'release'}):
+            raise ValueError('Invalid check catalog entry')
+        if key in checks:
+            raise ValueError('Duplicate check ID')
+        if (status == 'implemented') != (command is not None):
+            raise ValueError(f'Check command/status mismatch: {key}')
+        if command is not None and (not isinstance(command, list) or not command
+                                    or any(not isinstance(arg, str) or not arg for arg in command)):
+            raise ValueError(f'Invalid check command: {key}')
+        checks[key] = check
+
+    def catalog_refs(values, label):
+        if (not isinstance(values, list) or not values or any(not isinstance(key, str) for key in values)
+                or len(set(values)) != len(values)):
+            raise ValueError(f'{label}: invalid check list')
+        missing = set(values) - checks.keys()
+        if missing:
+            raise ValueError(f'{label}: unknown references {sorted(missing)}')
+        return set(values)
+
+    required = catalog_refs(catalog['required_change_checks'], 'Required change checks')
+    implemented = {key for key, check in checks.items()
+                   if check['status'] == 'implemented' and check.get('cadence', 'change') == 'change'}
+    if required != implemented:
+        raise ValueError('Required change checks must equal the implemented change checks')
+    profiles = catalog.get('profiles', {})
+    if not isinstance(profiles, dict) or ('profiles' in catalog and not profiles):
+        raise ValueError('Invalid check profiles')
+    for name, values in profiles.items():
+        catalog_refs(values, f'Profile {name}')
+    return checks
+
+
+def hosted_check_selection(catalog, profile):
+    if profile:
+        return set(catalog.get('profiles', {}).get(profile, ()))
+    return {check['id'] for check in catalog['checks']
+            if check.get('cadence', 'change') == 'change' and check['status'] != 'retired'}
+
+
+def windows_published_scope(selected, profile, lanes, catalog, *, assignment=WINDOWS_LANE_CHECKS):
+    if profile in SCOPED_PROFILES:
+        expected = hosted_check_selection(catalog, profile)
+    else:
+        expected = hosted_check_selection(catalog, None)
+        if profile != 'full':
+            lane = profile.removeprefix('ci-windows-')
+            expected = (windows_lane_checks(expected, lane, lanes, assignment=assignment)
+                        if profile.startswith('ci-windows-') else set())
+    return bool(expected) and len(selected) == len(expected) and set(selected) == expected
+
+
+def windows_result_issue(rows, selected, catalog, *, recovery_interruptions=()):
+    """Check the ordered results common to a native report and its timing projection."""
+    checks = catalog['checks']
+    if [row['id'] for row in rows] != [check['id'] for check in checks]:
+        return 'a different check result catalog or order'
+    for row, check in zip(rows, checks, strict=True):
+        key = check['id']
+        state, reason, code = row['status'], row.get('reason_code'), row.get('exit_code')
+        measured = row.get('duration_seconds')
+        omitted = all(row.get(field) is None for field in ('exit_code', 'duration_seconds', 'log', 'log_sha256'))
+        if key not in selected:
+            valid = state == 'blocked' and reason == 'not_selected' and omitted
+        elif check['status'] != 'implemented':
+            planned_reason = 'not_implemented' if check['status'] == 'planned' else 'retired'
+            valid = state == 'blocked' and reason in {planned_reason, 'earlier_failure'} and omitted
+        elif state == 'passed':
+            valid = (reason is None and type(code) is int and code == 0
+                     and type(measured) in (int, float) and 0 <= measured <= timedelta.max.total_seconds())
+        elif state == 'blocked':
+            valid = ((reason in {'earlier_failure', 'executable_unavailable'} and omitted)
+                     or (reason == 'observation_unavailable' and code == 77)
+                     or (reason == 'interrupted_before_start' and key in recovery_interruptions and omitted))
+        else:
+            valid = (state == 'failed' and (type(code) is int and code != 0 or reason in {
+                'timeout', 'interrupted', 'launch_error', 'cleanup_failed', 'missing_acceptance_evidence',
+            }))
+        if not valid:
+            return f'an unexpected result for {key}'
+    return None
+
+
+def windows_raw_timing_issue(report, *, catalog=None, source=None, version='2.0'):
+    """Validate native publisher inputs that the compact timing format omits."""
+    initial = report.get('source')
+    final = report.get('source_end')
+    ci = report['ci']
+    if (not isinstance(initial, dict) or not isinstance(final, dict)
+            or any(set(snapshot) != {'snapshot_kind', 'sha256', 'file_count', 'git_head',
+                                     'working_tree_dirty', 'exclusions'}
+                   or snapshot['snapshot_kind'] != 'execution-inputs-v1'
+                   or not isinstance(snapshot['sha256'], str) or not re.fullmatch(r'[0-9a-f]{64}', snapshot['sha256'])
+                   or type(snapshot['file_count']) is not int or snapshot['file_count'] < 1
+                   or snapshot['git_head'] != ci.get('checkout_sha') or snapshot['working_tree_dirty'] is not False
+                   or not isinstance(snapshot['exclusions'], list)
+                   or not all(isinstance(path, str) and path for path in snapshot['exclusions'])
+                   or len(set(snapshot['exclusions'])) != len(snapshot['exclusions'])
+                   for snapshot in (initial, final))
+            or initial != final or (source is not None and initial != source)
+            or report.get('source_unchanged') is not True or report.get('project_unchanged') is not True):
+        return 'an invalid native harness source fence'
+
+    selection = report['selection']
+    profile = selection['profile']
+    selected = selection.get('checks')
+    requirement = report.get('native_requirement')
+    python = report['environment'].get('python_executable')
+    if (set(selection) != {'profile', 'task_id', 'checks'} or selection['task_id'] is not None
+            or not isinstance(selected, list) or not all(isinstance(key, str) and key for key in selected)
+            or selected != sorted(set(selected))):
+        return 'an invalid native harness report selection'
+    if (not isinstance(requirement, dict) or set(requirement) != {'requested', 'satisfied'}
+            or requirement['requested'] is not (profile == 'full') or requirement['satisfied'] is not True
+            or not isinstance(python, str) or not python
+            or report.get('report_version') != version
+            or report.get('status') not in {'passed', 'failed', 'blocked'}
+            or not isinstance(report.get('project_definition_sha256'), str)
+            or not re.fullmatch(r'[0-9a-f]{64}', report['project_definition_sha256'])
+            or not isinstance(report.get('task_definitions'), dict)
+            or not all(isinstance(value, str) and re.fullmatch(r'[0-9a-f]{64}', value)
+                       for value in report['task_definitions'].values())
+            or ci.get('provider') != 'github-actions'
+            or ci.get('run_url') != f"https://github.com/{ci.get('repository')}/actions/runs/{ci.get('run_id')}"):
+        return 'invalid native harness metadata'
+    if requirement['requested'] and not windows_native_satisfied(report['environment'], report['checks']):
+        return 'a native requirement that contradicts its check results'
+
+    commands = {row['id']: row['command'] for row in catalog['checks']} if catalog is not None else None
+    for row in report['checks']:
+        key = row['id']
+        command = row.get('command')
+        if (not isinstance(command, list) or not all(isinstance(arg, str) and arg for arg in command)
+                or (commands is not None and (key not in commands
+                    or command != [python if arg == '{python}' else arg for arg in commands[key] or ()]))):
+            return f'an invalid native harness command for {key}'
+        if 'log' in row or row['status'] == 'passed':
+            if (row.get('log') != f".reports/runs/{report['run_id']}/{key}.log"
+                    or not isinstance(row.get('log_sha256'), str)
+                    or not re.fullmatch(r'[0-9a-f]{64}', row['log_sha256'])):
+                return f'an invalid native harness log reference for {key}'
+    return None
+
+
 SCOPE_REASONS = {
     'records': 'Only reviewed record paths or approved narrative fields changed.',
     'tooling': 'Only isolated Herdr tooling and eligible records changed.',
@@ -126,19 +339,169 @@ def checkout_git_environment():
             if key not in local and not key.startswith(('GIT_CONFIG_KEY_', 'GIT_CONFIG_VALUE_'))}
 
 
-def git(root, *args, input=None):
+def bounded_git_output(command, root, environment, limit):
+    with subprocess.Popen(command, cwd=root, env=environment, stdin=subprocess.DEVNULL,
+                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL) as process:
+        timeout = Timer(30, process.kill)
+        timeout.start()
+        try:
+            output = process.stdout.read(limit + 1)
+            if len(output) > limit:
+                raise ScopeError('Git output exceeded the comparison limit.')
+            if process.wait():
+                raise ScopeError('Git could not verify the comparison.')
+            return output
+        finally:
+            if process.poll() is None:
+                process.kill()
+            timeout.cancel()
+
+
+def git(root, *args, input=None, output_limit=None):
     options = ['-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false']
     if os.name != 'nt':
         options.extend(('-c', 'core.fileMode=true'))
+    command = ['git', '--no-replace-objects', '--no-optional-locks', *options, *args]
+    environment = {**checkout_git_environment(), 'GIT_GRAFT_FILE': os.devnull, 'GIT_NO_LAZY_FETCH': '1',
+                   'GIT_ALLOW_PROTOCOL': ''}
+    if output_limit is not None:
+        if input is not None:
+            raise ValueError('Bounded Git output requires no standard input.')
+        return bounded_git_output(command, root, environment, output_limit)
     result = subprocess.run(
-        ['git', '--no-replace-objects', '--no-optional-locks', *options, *args],
-        cwd=root, input=input, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, timeout=30,
-        env={**checkout_git_environment(), 'GIT_GRAFT_FILE': os.devnull, 'GIT_NO_LAZY_FETCH': '1',
-             'GIT_ALLOW_PROTOCOL': ''},
+        command, cwd=root, input=input, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, timeout=30,
+        env=environment,
     )
     if result.returncode:
         raise ScopeError('Git could not verify the comparison.')
     return result.stdout
+
+
+# These are the released selector forms. Recognize the small partition expression
+# before reading its literals. A new execution strategy must define how to verify
+# its assignment; merely finding a constant or a claimed lane is insufficient.
+_LOCAL_WINDOWS_SELECTOR = """def windows_lane_checks(selected, lane):
+    if lane == 'core':
+        return selected.difference(*WINDOWS_LANE_CHECKS.values())
+    return selected & WINDOWS_LANE_CHECKS[lane]"""
+_INITIAL_WINDOWS_SELECTOR = """def windows_lane_checks(selected, lane):
+    python = {'python-contracts-workers'}
+    if lane == 'python':
+        return selected & python
+    if lane == 'browser':
+        return selected & WINDOWS_BROWSER_CHECKS
+    return selected - python - WINDOWS_BROWSER_CHECKS"""
+_LEGACY_WINDOWS_SELECTOR = """def windows_lane_checks(selected, lane):
+    if lane == 'python':
+        return selected & WINDOWS_PYTHON_CHECKS
+    if lane == 'browser':
+        return selected & WINDOWS_BROWSER_CHECKS
+    return selected - WINDOWS_PYTHON_CHECKS - WINDOWS_BROWSER_CHECKS"""
+_SHARED_WINDOWS_SELECTOR = """def windows_lane_checks(selected, lane, lanes=WINDOWS_LANES):
+    if lane not in lanes:
+        return set()
+    if lane == 'core':
+        return selected.difference(*(WINDOWS_LANE_CHECKS[name] for name in lanes if name != 'core'))
+    return selected & WINDOWS_LANE_CHECKS[lane]"""
+_CURRENT_WINDOWS_SELECTOR = _SHARED_WINDOWS_SELECTOR.replace(
+    'lanes=WINDOWS_LANES', 'lanes=WINDOWS_LANES, *, assignment=WINDOWS_LANE_CHECKS',
+).replace('WINDOWS_LANE_CHECKS[name]', 'assignment[name]').replace('WINDOWS_LANE_CHECKS[lane]', 'assignment[lane]')
+
+def _publishing_module(root, revision, file):
+    path = f'{revision}:scripts/{file}'
+    if int(git(root, 'cat-file', '-s', path)) > 256 * 1024:
+        raise ValueError('Oversized Windows publishing source')
+    return ast.parse(git(root, 'cat-file', 'blob', path))
+
+
+def _publishing_selector(module, name):
+    functions = [node for node in module.body
+                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name]
+    if len(functions) > 1:
+        raise ValueError('Ambiguous Windows publishing selector')
+    return functions[0] if functions else None
+
+
+def _publishing_assignment_node(module, name):
+    matches = [
+        stmt for stmt in module.body
+        if isinstance(stmt, ast.Assign)
+        and any(isinstance(target, ast.Name) and target.id == name for target in stmt.targets)
+    ]
+    assignment, = matches
+    if len(assignment.targets) != 1:
+        raise ValueError('Ambiguous Windows publishing assignment')
+    return assignment
+
+
+def _publishing_ids(node):
+    if not isinstance(node, ast.Set):
+        raise ValueError('Expected literal Windows publishing check IDs')
+    ids = [ast.literal_eval(item) for item in node.elts]
+    if (not all(isinstance(key, str) and CHECK_ID.fullmatch(key) for key in ids)
+            or len(set(ids)) != len(ids)):
+        raise ValueError('Invalid Windows publishing check IDs')
+    return frozenset(ids)
+
+
+def read_windows_assignment(root, revision):
+    """Read the lane partition from an independently identified publisher program.
+
+    An empty mapping identifies a monolithic publisher. None means the known
+    source could not supply its checked literal assignment.
+    """
+    try:
+        if not isinstance(revision, str) or not OBJECT_ID.fullmatch(revision):
+            return None
+        harness = _publishing_module(root, revision, 'check.py')
+        module = harness
+        selector = _publishing_selector(harness, 'windows_lane_checks')
+        imports = {(node.module, name.name) for node in ast.walk(harness) if isinstance(node, ast.ImportFrom)
+                   for name in node.names if (name.asname or name.name) == 'windows_lane_checks'}
+        if selector is None and not imports:
+            return {}
+        if selector is None and imports == {('verification_scope', 'windows_lane_checks')}:
+            module = _publishing_module(root, revision, 'verification_scope.py')
+            selector = _publishing_selector(module, 'windows_lane_checks')
+        elif imports:
+            return None
+        if selector is None:
+            return None
+        def literal(name):
+            return _publishing_assignment_node(module, name).value
+
+        shape = ast.unparse(selector)
+        if module is harness and shape in {_INITIAL_WINDOWS_SELECTOR, _LEGACY_WINDOWS_SELECTOR}:
+            python = (selector.body[0].value if shape == _INITIAL_WINDOWS_SELECTOR
+                      else literal('WINDOWS_PYTHON_CHECKS'))
+            assignment = {
+                'browser': _publishing_ids(literal('WINDOWS_BROWSER_CHECKS')),
+                'python': _publishing_ids(python),
+            }
+        elif shape in ({_LOCAL_WINDOWS_SELECTOR} if module is harness
+                       else {_SHARED_WINDOWS_SELECTOR, _CURRENT_WINDOWS_SELECTOR}):
+            declared = literal('WINDOWS_LANE_CHECKS')
+            if not isinstance(declared, ast.Dict):
+                return None
+            names = [ast.literal_eval(key) for key in declared.keys]
+            if sorted(names) != ['browser', 'python', 'recovery']:
+                return None
+            assignment = {
+                name: _publishing_ids(literal(node.id)
+                                      if isinstance(node, ast.Name) and node.id == 'WINDOWS_BROWSER_CHECKS' else node)
+                for name, node in zip(names, declared.values, strict=True)
+            }
+        else:
+            return None
+        lanes = ast.unparse(literal('WINDOWS_LANES'))
+        if lanes != ("('core', 'browser', 'python')" if len(assignment) == 2
+                     else "('core', *WINDOWS_LANE_CHECKS)"):
+            return None
+        if sum(map(len, assignment.values())) != len(set().union(*assignment.values())):
+            return None
+        return assignment
+    except (ScopeError, OSError, subprocess.SubprocessError, SyntaxError, ValueError, KeyError, TypeError, RecursionError):
+        return None
 
 
 def oid(value):

@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "id": "0032",
+  "title": "Normalize timing facts before evidence eligibility",
+  "status": "accepted",
+  "recorded_at": "2026-11-26",
+  "context": "Three independent reviews of 438302ef identified differences between equivalent step fragments, receipt eligibility for a contradicted Windows aggregate, and a provably impossible shallow checkout. The publisher review also identified discarded project definition claims, equivalent timestamps treated as distinct, and catalog decoding divergence. ADR 0031 establishes the publisher and job reconciliation boundary.",
+  "decision": "Resolve the facts for each bound job ID and each recognized step before using them for timing, role, or layout. Evaluate those uses separately. A known skipped step contributes no clock. A disputed step can withhold its own clock while corroborated job and other step clocks remain independently available. Multiple eligible identities for the same interval withhold that interval. Validate Windows source and result eligibility before joining reports or issuing receipts. Compare the recording instant by time value and keep receipt digests bound to the original compact inputs. Check readable parent edges before using either missing PR checkout fallback.",
+  "authority": "ADR 0007 assigns verification design and implementation to the development AI. Independent exact-source decisions and the protected verification gates remain required.",
+  "alternatives": [
+    {
+      "option": "Filter the disputed skipped row at the phase selection call site.",
+      "reason": "The smaller patch leaves row projection and the joined role and phase decision with separate interpretations. It handles the reproduced skip case and still requires a new special case for equivalent fragment and dispute combinations."
+    },
+    {
+      "option": "Persist a new normalized job and step format.",
+      "reason": "A reader-side representation can use the explicit step facts in current captures and the evidence retained by older captures. Another persistent format adds versioning, migration, dual-reader and recovery work before providing a benefit to this correction."
+    }
+  ],
+  "consequences": [
+    "Keep compact and archive versions and the original observations. Older captures may still supply independently supported job intervals and retained legacy step evidence. Values that depend on a missing or contradicted step remain unknown.",
+    "Share the finite UTF-8 catalog decoder with the publisher. Validate raw definition claims from bounded Git records at the verified publisher revision before granting the raw projection eligibility. When an expired preview can only be tested against equivalent event-head inputs, uncorroborated project definitions stay diagnostic. An independently qualified compact report or Actions clock remains usable.",
+    "Qualify matching originals, contrary controls and separately reserved paired inputs through the ordinary, weekly and cold public reader. The next publisher closure requires its own observed publication. Actual scheduled weekly execution and hosted acceptance remain separate evidence."
+  ],
+  "supersedes": [],
+  "related_decisions": ["0007", "0035", "0031"],
+  "revisit_when": [
+    "A supported capture cannot retain independent evidence with the current format.",
+    "A verified publisher changes how it derives job, project definition, catalog or outcome claims.",
+    "The bounded historical read measurably prevents timely qualification of genuine archived inputs."
+  ]
+}

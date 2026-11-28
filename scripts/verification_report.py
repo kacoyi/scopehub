@@ -1,0 +1,269 @@
+"""Derive report claims from check results without loading the harness."""
+
+from datetime import datetime, timedelta
+import re
+
+
+WINDOWS_PYTHON_CHECK = 'python-contracts-workers'
+WINDOWS_PYTHON_PART_LANES = ('python', 'recovery')
+WINDOWS_LANE_FAILED = 'At least one Windows lane job did not succeed.'
+WINDOWS_RECOVERY_INTERRUPTED = 'The Windows recovery lane was interrupted.'
+STOP_REASONS = {'interrupted', 'cleanup_failed'}
+INTERRUPTED_BEFORE_START = 'interrupted_before_start'
+MANIFEST_INTERRUPTED = 'Interrupted while finalizing the Windows Python manifest.'
+PROCESS_FIELDS = {'log', 'log_sha256', 'exit_code', 'duration_seconds'}
+WINDOWS_PYTHON_PROCESS_REASONS = {
+    'timeout', 'interrupted', 'launch_error', 'cleanup_failed', 'missing_acceptance_evidence',
+}
+SESSION_CHECKS = {
+    'configured-model-session': ('configured_models', 'text'),
+    'configured-voice-session': ('configured_models', 'voice'),
+    'configured-market-source': ('real_market_data', 'market'),
+}
+EXTERNAL_CLIENT_CHECK = 'configured-external-ai-clients'
+RUN_OBSERVATION_CHECKS = SESSION_CHECKS.keys() | {EXTERNAL_CLIENT_CHECK}
+RUN_OBSERVATION_POLICIES = {
+    'session': frozenset(SESSION_CHECKS),
+    'session-and-external-clients': frozenset(RUN_OBSERVATION_CHECKS),
+}
+PHYSICAL_WINDOWS_CHECK = 'physical-windows-workspace'
+UBUNTU_WORKSPACE_CHECK = 'ubuntu-workspace-observation'
+FIELD_OBSERVATION_CHECKS = {PHYSICAL_WINDOWS_CHECK, UBUNTU_WORKSPACE_CHECK}
+OBSERVATION_CHECKS = RUN_OBSERVATION_CHECKS | FIELD_OBSERVATION_CHECKS
+
+
+def stops_after_check(result, *, fail_fast=False):
+    return (result.get('reason_code') in STOP_REASONS | {INTERRUPTED_BEFORE_START}
+            or result['status'] != 'passed' and (fail_fast or result['id'] == 'environment'))
+
+
+def publisher_sequence_issue(rows, selected, lane, *, part=None, recovery_overlap=False, compact=False):
+    """Check only the stop evidence retained by this publisher's report format."""
+    def stops(row):
+        if not stops_after_check(row):
+            return False
+        if row['status'] == 'blocked' and row.get('reason_code') == 'executable_unavailable' and 'log' not in row:
+            return True
+        if row['status'] != 'failed' or not compact and not PROCESS_FIELDS <= row.keys():
+            raise ValueError(f'a Windows {lane} producer stop without process evidence for {row["id"]}')
+        return True
+
+    parallel = recovery_overlap and lane == 'recovery'
+    try:
+        parallel_stop = (parallel and part and part.get('reason') != MANIFEST_INTERRUPTED and stops(part))
+        stopped = False
+        for row in rows:
+            key, reason = row['id'], row.get('reason_code')
+            if key not in selected:
+                continue
+            if reason == 'earlier_failure':
+                if not (stopped or parallel_stop or parallel and compact):
+                    return f'an earlier failure for {key} without a Windows {lane} producer stop'
+                stopped = True
+            elif stopped:
+                return f'a result for {key} after the Windows {lane} producer stopped'
+            elif reason == INTERRUPTED_BEFORE_START:
+                if not (parallel and (compact or part and not parallel_stop)):
+                    return f'an invalid interruption before {key} started'
+                stopped = True
+            else:
+                stopped = stops(row)
+        if part and part.get('reason_code') == 'earlier_failure' and (not stopped or 'log' in part):
+            return f'a Windows {lane} Python part with earlier failure without a producer stop'
+    except ValueError as error:
+        return str(error)
+    return None
+
+
+def integration_gates(results, required, *, requested):
+    rows = {row['id']: row for row in results}
+    unverified = [check for check in required if rows.get(check, {}).get('status') != 'passed'
+                  or rows.get(check, {}).get('exit_code') != 0]
+    return {'requested': requested, 'required': required, 'unverified': unverified,
+            'status': ('blocked' if unverified else 'passed') if requested else 'not_requested'}
+
+
+def integration_validation(results):
+    summary = {
+        kind: {'status': 'not_evaluated', 'observations': []}
+        for kind in ('configured_models', 'cloud_models', 'real_market_data')
+    }
+    summary['mock_ai_evaluated'] = False
+    for row in results:
+        if row['status'] != 'passed':
+            continue
+        check = row['id']
+        if check in {'ai-workflow', 'ai-replay-evaluations'}:
+            summary['mock_ai_evaluated'] = True
+        if check in SESSION_CHECKS and 'observation' in row:
+            kind, _ = SESSION_CHECKS[check]
+            observation = row['observation']
+            groups = [kind]
+            if kind == 'configured_models' and observation['deployment'] == 'cloud':
+                groups.append('cloud_models')
+            for key in groups:
+                summary[key]['status'] = 'observed'
+                summary[key]['observations'].append(observation)
+    return summary
+
+
+def integration_summary_matches(summary, checks):
+    expected = integration_validation(checks)
+    return (isinstance(summary, dict) and summary.get('mock_ai_evaluated') is expected['mock_ai_evaluated']
+            and summary == expected)
+
+
+def passed_observation_checks(checks):
+    return {row['id'] for row in checks if row['status'] == 'passed' and row['id'] in OBSERVATION_CHECKS}
+
+
+def publishing_observation_checks(catalog, run_observations):
+    owners = run_observations | FIELD_OBSERVATION_CHECKS
+    return {row['id'] for row in catalog['checks'] if row['id'] in owners and row['status'] == 'implemented'}
+
+
+def failed_check_log_issue(report):
+    """A finalized failed check must retain its bound process diagnostic."""
+    for row in report['checks']:
+        key = row['id']
+        if row['status'] == 'failed' and (
+            row.get('log') != f".reports/runs/{report['run_id']}/{key}.log"
+            or not isinstance(row.get('log_sha256'), str)
+            or not re.fullmatch(r'[0-9a-f]{64}', row['log_sha256'])
+        ):
+            return f'an invalid or missing failed-check log reference for {key}'
+    return None
+
+
+def report_observation_issue(report, *, run_observations=RUN_OBSERVATION_CHECKS):
+    """Validate observation claims available in both raw publication and timing inputs."""
+    checks = report['checks']
+    for row in checks:
+        check, passed = row['id'], row['status'] == 'passed'
+        for field, owners in (('observation', run_observations),
+                              ('field_observation', FIELD_OBSERVATION_CHECKS)):
+            expected = passed and check in owners
+            if field in row and (not expected or not isinstance(row[field], dict)):
+                return 'an unexpected observation'
+            if expected and field not in row:
+                return 'a passing check without its observation'
+        if passed and check in SESSION_CHECKS and SESSION_CHECKS[check][0] == 'configured_models':
+            if row['observation'].get('deployment') not in ('local', 'cloud'):
+                return 'a configured model observation without a valid deployment'
+    if ('integration_validation' in report
+            and not integration_summary_matches(report['integration_validation'], checks)):
+        return 'an integration summary that contradicts its check results'
+    return None
+
+
+def archived_windows_python_lanes(profile):
+    if profile == 'full':
+        return WINDOWS_PYTHON_PART_LANES
+    lane = profile.removeprefix('ci-windows-')
+    return (lane,) if lane in WINDOWS_PYTHON_PART_LANES else ()
+
+
+def windows_producer_bindings(report):
+    return {**report.get('windows_producers', {}), **{
+        lane: part['producer_report_sha256'] for lane, part in report.get('windows_python', {}).items()
+        if 'producer_report_sha256' in part
+    }}
+
+
+def windows_publisher_status_issue(status, checks, selected, catalog, *, scoped=False, auxiliary_failure=False):
+    """Compare a report verdict with the checks and any independently scheduled work."""
+    if status is None:
+        return None
+    selected = set(selected)
+    applicable = {row['id'] for row in catalog['checks'] if row['id'] in selected
+                  and (scoped or row['status'] == 'implemented')}
+    outcomes = {'failed' if row.get('reason_code') == 'interrupted_before_start' else row['status']
+                for row in checks if row['id'] in applicable}
+    expected = ('failed' if 'failed' in outcomes or auxiliary_failure is True else
+                'blocked' if 'blocked' in outcomes else 'passed')
+    if status != expected and not (status == 'failed' and auxiliary_failure is None):
+        return 'a publisher status that contradicts its check results and Python parts or lane outcomes'
+    return None
+
+
+def archived_windows_python_issue(report, lanes, retained_producers, catalog):
+    """Check source-qualified report metadata before the compact timing projection drops it."""
+    parts = report.get('windows_python', {})
+    producers = report.get('windows_producers', {})
+    full = report['selection']['profile'] == 'full'
+
+    def digest(value):
+        return isinstance(value, str) and re.fullmatch(r'[0-9a-f]{64}', value)
+
+    if (not isinstance(producers, dict) or producers.keys() != retained_producers
+            or ('windows_producers' in report and not retained_producers)
+            or not all(digest(value) for value in producers.values())):
+        return 'invalid Windows producer report bindings'
+    if (not isinstance(parts, dict) or parts.keys() != set(lanes)
+            or ('windows_python' in report and not lanes)):
+        return 'Windows Python parts that differ from the publishing lane'
+
+    intervals = []
+    for lane in lanes:
+        part = parts[lane]
+        label = f'windows-python-{lane}'
+        command = [report['environment']['python_executable'], 'scripts/windows_python.py', lane]
+        if (not isinstance(part, dict) or part.get('id') != label or part.get('command') != command
+                or part.get('status') not in ('passed', 'failed', 'blocked')
+                or part.keys() - {'id', 'command', 'status', 'reason_code', 'reason', 'exit_code', 'log',
+                                  'log_sha256', 'started_at', 'duration_seconds', 'manifest_sha256',
+                                  'producer_report_sha256'}
+                or any(not isinstance(part[key], str) or not part[key] for key in ('reason', 'reason_code')
+                       if key in part)
+                or ('producer_report_sha256' in part) != full
+                or any(not digest(part[key]) for key in ('producer_report_sha256', 'manifest_sha256', 'log_sha256')
+                       if key in part)):
+            return 'an invalid Windows Python part identity'
+        passed = part['status'] == 'passed'
+        reason, code = part.get('reason_code'), part.get('exit_code')
+        if 'log' in part:
+            if (part['log'] != f".reports/runs/{report['run_id']}/{label}.log" or 'log_sha256' not in part
+                    or 'exit_code' not in part or (code is not None and type(code) is not int)):
+                return 'an invalid Windows Python process reference'
+            try:
+                start = datetime.fromisoformat(part['started_at'])
+                finish = datetime.fromisoformat(report['generated_at'])
+                measured = part['duration_seconds']
+                if (start.utcoffset() is None or finish.utcoffset() is None
+                        or type(measured) not in (int, float) or not 0 <= measured <= timedelta.max.total_seconds()):
+                    return 'an invalid Windows Python process interval'
+                end = start + timedelta(seconds=measured)
+                # The archived harness rounds elapsed time independently to milliseconds.
+                if ((end - finish).total_seconds() > .002
+                        or (finish - start).total_seconds() > report['timing']['elapsed_seconds'] + .002):
+                    return 'a Windows Python process outside its harness interval'
+            except (TypeError, ValueError, KeyError, OverflowError):
+                return 'an invalid Windows Python process interval'
+            intervals.append((start, end))
+            if part['status'] == 'blocked' or (reason is not None and reason not in WINDOWS_PYTHON_PROCESS_REASONS):
+                return 'an invalid Windows Python process outcome'
+        elif ((part['status'], reason) not in {('failed', 'earlier_failure'), ('blocked', 'executable_unavailable')}
+              or {'started_at', 'duration_seconds', 'exit_code', 'log_sha256', 'manifest_sha256'} & part.keys()):
+            return 'unavailable Windows Python process evidence'
+        if passed and (code != 0 or reason is not None or 'manifest_sha256' not in part):
+            return 'an incomplete passing Windows Python part'
+        if not passed and ('log' in part and code in (None, 0) and reason is None):
+            return 'a Windows Python part failure without a corresponding report result'
+
+    if full and lanes:
+        elapsed = round((max(end for _, end in intervals) -
+                         min(start for start, _ in intervals)).total_seconds(), 3) if intervals else 0
+        failed_part = next((parts[lane] for lane in lanes if parts[lane]['status'] != 'passed'), None)
+        check = next(row for row in catalog['checks'] if row['id'] == WINDOWS_PYTHON_CHECK)
+        timeout = check.get('windows_timeout_seconds', check['timeout_seconds'])
+        if failed_part is not None:
+            verdict = ('failed', failed_part.get('exit_code', 1), failed_part.get('reason_code'))
+        elif elapsed > timeout:
+            verdict = ('failed', None, 'timeout')
+        else:
+            verdict = ('passed', 0, None)
+        combined = [row for row in report['checks'] if row['id'] == WINDOWS_PYTHON_CHECK]
+        if (len(combined) != 1 or combined[0].get('duration_seconds') != elapsed
+                or tuple(combined[0].get(key) for key in ('status', 'exit_code', 'reason_code')) != verdict):
+            return 'a Windows Python aggregate measurement that differs from its parts'
+    return None

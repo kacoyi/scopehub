@@ -20,6 +20,8 @@ from tests.project.fixtures import task_by_id
 
 UBUNTU = 'verify (ubuntu-latest)'
 WINDOWS = 'verify (windows-latest)'
+UBUNTU_ARTIFACT = 'verification-ubuntu-latest'
+WINDOWS_ARTIFACT = 'verification-windows-latest'
 UBUNTU_FULL = 'Run pnpm check'
 WINDOWS_FULL = 'Run uv run python scripts/check.py --require-windows'
 PR_BUDGET = 'verification-overrun-without-timely-remediation'
@@ -32,7 +34,45 @@ def step(name, *, status='completed', conclusion='success'):
     return {'name': name, 'status': status, 'conclusion': conclusion}
 
 
-CHECKOUT_STEP = step('Run actions/checkout@' + '1' * 40)
+CHECKOUT_ACTION = 'actions/checkout@' + '1' * 40
+UPLOAD_ACTION = 'actions/upload-artifact@' + '2' * 40
+DOWNLOAD_ACTION = 'actions/download-artifact@' + '3' * 40
+CHECKOUT = {'uses': CHECKOUT_ACTION}
+CHECKOUT_STEP = dict(step(f'Run {CHECKOUT_ACTION}'), number=2)
+PREPARE = {'id': 'reports', 'name': 'Initialize CI verification reports'}
+STAGE_NAME = 'Stage current verification evidence'
+UPLOAD_SECOND = '2026-11-21T16:42:55Z'
+DOWNLOADS = [
+    {'uses': DOWNLOAD_ACTION, 'with': {'pattern': 'verification-windows-${{ github.run_attempt }}-*'}},
+    {'uses': DOWNLOAD_ACTION, 'with': {'name': 'verification-windows-${{ github.run_attempt }}-core'}},
+]
+
+
+def publication(name):
+    return [
+        {'id': 'artifacts', 'name': STAGE_NAME},
+        {'uses': UPLOAD_ACTION, 'with': {'name': name, 'path': '${{ steps.artifacts.outputs.path }}'}},
+        {'uses': UPLOAD_ACTION, 'continue-on-error': True,
+         'with': {'path': '${{ steps.artifacts.outputs.timing_path }}'}},
+    ]
+
+
+def publication_steps(*, aggregated=False, profile='full', producer=False):
+    stages = [
+        step(STAGE_NAME),
+        step(f'Run {UPLOAD_ACTION}'),
+        step(f'Run {UPLOAD_ACTION}', conclusion='skipped' if producer else 'success'),
+    ]
+    if aggregated:
+        stages[:0] = [
+            step(f'Run {DOWNLOAD_ACTION}', conclusion='success' if profile == 'full' else 'skipped'),
+            step(f'Run {DOWNLOAD_ACTION}', conclusion='skipped' if profile == 'full' else 'success'),
+        ]
+    stages.insert(0, step(PREPARE['name']))
+    numbers = (3, 4, 5, 7, 8, 9) if aggregated else (3, 5, 6, 7)
+    if producer and profile != 'full':
+        stages = [dict(item, conclusion='skipped') for item in stages]
+    return [dict(item, number=number) for item, number in zip(stages, numbers)]
 
 
 def observations():
@@ -54,7 +94,7 @@ def observations():
             'base_current': True, 'workflow': {'status': 'passed', 'reason': 'Observed success.',
                                              'run': {'id': 1, 'run_attempt': 2}},
             'jobs': [{'name': name, 'status': 'completed', 'conclusion': 'success', 'head_sha': 'a' * 40,
-                      'steps': [CHECKOUT_STEP, step(harness)]}
+                      'steps': [CHECKOUT_STEP, step(harness), *publication_steps()]}
                      for name, harness in [(UBUNTU, UBUNTU_FULL), (WINDOWS, WINDOWS_FULL)]],
             'policy': policy, 'protection': protection,
             'scope': {'completed_task_ids': ['M0-001'], 'blockers': []}, 'observations_stable': True}
@@ -62,7 +102,7 @@ def observations():
 
 def checkout_log(pr, commit, git='/usr/bin/git'):
     return '\n'.join(f'2026-11-21T16:42:53.0000000Z {message}' for message in (
-        '##[group]Run actions/checkout@' + '1' * 40,
+        f'##[group]Run {CHECKOUT_ACTION}',
         '##[endgroup]',
         '##[group]Checking out the ref',
         f'[command]{git} checkout --progress --force refs/remotes/pull/{pr}/merge',
@@ -70,6 +110,53 @@ def checkout_log(pr, commit, git='/usr/bin/git'):
         f'[command]{git} log -1 --format=%H',
         commit,
     ))
+
+
+def upload_log(action, name, size, artifact_id, stamp, url, sha256, *, archived=False):
+    messages = [f'##[group]{action}', 'with:', f'  name: {name}', '##[endgroup]']
+    if sha256 is not None:
+        subject = 'artifact zip' if archived else 'artifact'
+        messages.append(f'SHA256 digest of uploaded {subject} is {sha256}')
+    messages.extend([
+        f'Artifact {name} has been successfully uploaded! Final size is {size} bytes. Artifact ID is {artifact_id}',
+        f'Artifact download URL: {url}',
+    ])
+    timestamp = stamp.removesuffix('Z') + '.9198332Z'
+    return ''.join(f'\n{timestamp} {message}' for message in messages)
+
+
+def attempt_job(job, run, job_id):
+    steps = [dict(item, started_at=UPLOAD_SECOND, completed_at=UPLOAD_SECOND)
+             if item['name'] == f'Run {UPLOAD_ACTION}' else item for item in job['steps']]
+    return dict({'head_branch': run.get('head_branch'), **job}, steps=steps,
+                id=job_id, run_id=run['id'], run_attempt=run['run_attempt'], head_sha=run['head_sha'],
+                run_url=f"https://api.github.com/repos/fixture/project/actions/runs/{run['id']}")
+
+
+def publication_evidence(run, jobs):
+    artifacts, uploads = [], {}
+    lanes = {name: lane for lane, name in timing.WINDOWS_PRODUCERS.items()}
+    for job in jobs:
+        job_id = job['id']
+        uploads[job_id] = ()
+        if job['name'] == UBUNTU:
+            name = UBUNTU_ARTIFACT
+        elif job['name'] == WINDOWS:
+            name = WINDOWS_ARTIFACT
+        elif job['name'] in lanes:
+            name = f"verification-windows-{run['run_attempt']}-{lanes[job['name']]}"
+        else:
+            continue
+        artifact_id = 10000 + job_id
+        host_url = f"https://github.com/fixture/project/actions/runs/{run['id']}/artifacts/{artifact_id}"
+        api_url = f'https://api.github.com/repos/fixture/project/actions/artifacts/{artifact_id}/zip'
+        size = 200
+        sha256 = f'{artifact_id:064x}'
+        artifacts.append({'name': name, 'id': artifact_id, 'expired': False, 'size_in_bytes': size,
+                          'workflow_run': {'id': run['id'], 'head_sha': run['head_sha']},
+                          'archive_download_url': api_url, 'digest': f'sha256:{sha256}'})
+        uploads[job_id] = ((f'Run {UPLOAD_ACTION}', name, size, artifact_id, UPLOAD_SECOND, host_url, sha256),)
+    return artifacts, uploads
 
 
 class IntegrationAssessmentTests(unittest.TestCase):
@@ -80,17 +167,25 @@ class IntegrationAssessmentTests(unittest.TestCase):
         with self.assertRaisesRegex(ProjectError, 'checkout log'):
             integration.checked_pull_request(StringIO(checkout_log(3, commit).replace(
                 '##[group]Checking out the ref', '##[group]Run pnpm check')))
+        with self.assertRaisesRegex(ProjectError, 'different pinned action'):
+            integration.checked_pull_request(StringIO(checkout_log(3, commit)), 'Run actions/checkout@' + '2' * 40)
 
     def test_log_download_handles_other_encodings_and_reports_missing_evidence(self):
         commit = '7' * 40
+        upload = (f'Run {UPLOAD_ACTION}', WINDOWS_ARTIFACT, 200, 12, UPLOAD_SECOND,
+                  'https://github.com/fixture/project/actions/runs/1/artifacts/12')
 
         def download(argv, **options):
             self.assertEqual('repos/fixture/project/actions/jobs/10/logs', argv[-1])
-            options['stdout'].buffer.write(b'\xff\r\n' + checkout_log(3, commit).encode())
+            options['stdout'].buffer.write(b'\xff\r\n' + (checkout_log(3, commit) + reports).encode())
             return subprocess.CompletedProcess(argv, 0, stderr=b'')
 
-        with patch.object(subprocess, 'run', side_effect=download):
-            self.assertEqual((3, commit), integration.job_checkout('.', 'fixture/project', 10))
+        for archived, sha256 in ((True, 'a' * 64), (False, 'b' * 64), (False, None)):
+            with self.subTest(archived=archived, sha256=sha256):
+                reports = upload_log(*upload, sha256, archived=archived)
+                with patch.object(subprocess, 'run', side_effect=download):
+                    self.assertEqual((3, commit, ((*upload, sha256),)),
+                                     integration.job_checkout('.', 'fixture/project', 10))
         with patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess([], 1, stderr=b'HTTP 404')):
             with self.assertRaisesRegex(ProjectError, 'job 10: HTTP 404'):
                 integration.job_checkout('.', 'fixture/project', 10)
@@ -186,6 +281,14 @@ class IntegrationAssessmentTests(unittest.TestCase):
 
 
 class IntegrationFixture(ProjectFixture):
+    def setUp(self):
+        super().setUp()
+        workflow = self.root / timing.WORKFLOW
+        workflow.parent.mkdir(parents=True)
+        workflow.write_bytes(json_bytes({'jobs': {'verify': {'steps': [
+            CHECKOUT, PREPARE, {'name': WINDOWS_FULL}, *publication(integration.MATRIX_ARTIFACT),
+        ]}}}))
+
     def git(self, *args):
         return subprocess.run(['git', '-c', 'user.name=Test Fixture', '-c', 'user.email=fixture@example.invalid',
                                '-c', 'commit.gpgsign=false', *args], cwd=self.root, capture_output=True,
@@ -313,10 +416,11 @@ class IntegrationHistoryTests(IntegrationFixture):
         tested = self.merge_observation(base, head)
         run = {'id': 100, 'run_attempt': attempt, 'status': 'completed', 'conclusion': 'success', 'head_sha': head,
                'head_branch': 'task', 'event': 'pull_request', 'path': integration.WORKFLOW}
-        jobs = [dict(job, id=index, head_sha=head) for index, job in enumerate(args['jobs'], 1000)]
+        jobs = [attempt_job(job, run, index) for index, job in enumerate(args['jobs'], 1000)]
+        artifacts, uploads = publication_evidence(run, jobs)
         if records:
             for job in jobs:
-                job['steps'] = [CHECKOUT_STEP, step('Verify records changes')]
+                job['steps'] = [CHECKOUT_STEP, step('Verify records changes'), *job['steps'][2:]]
         if omit_windows:
             jobs.pop()
         elif fail_windows:
@@ -344,6 +448,8 @@ class IntegrationHistoryTests(IntegrationFixture):
                 return json.dumps([{'workflow_runs': [run]}])
             if f'/runs/100/attempts/{attempt}/jobs?' in argv[-1]:
                 return json.dumps([{'jobs': jobs}])
+            if '/runs/100/artifacts?' in argv[-1]:
+                return json.dumps([{'artifacts': artifacts}])
             if argv[-1].endswith(f'/git/commits/{tested["sha"]}'):
                 return json.dumps(tested)
             self.assertEqual('repos/fixture/project/branches/main/protection', argv[-1])
@@ -351,7 +457,8 @@ class IntegrationHistoryTests(IntegrationFixture):
 
         with (patch.object(integration, 'github_identity', return_value='fixture/project'),
               patch.object(integration, 'command', side_effect=command),
-              patch.object(integration, 'job_checkout', return_value=(1, tested['sha'])),
+              patch.object(integration, 'job_checkout', side_effect=lambda root, repo, job_id, action:
+                           (1, tested['sha'], uploads[job_id])),
               patch.object(timing, 'offline_budget_status',
                            return_value={'budget_recovery': [recovery, main_recovery]},
                            side_effect=AssertionError('Unrelated scope queried timing') if expect_no_timing else None)):
@@ -454,6 +561,11 @@ class IntegrationHistoryTests(IntegrationFixture):
                 self.assertFalse(result['technical_ready'])
 
     def measured_main_push_fixture(self, *, evidence_event='push'):
+        # These timing controls archive a pre-aggregate 2.0 report.
+        schema_path = self.root / 'contracts/schemas/project.schema.json'
+        schema = read_json(schema_path)
+        schema['$defs']['HostedHarnessReport']['properties'].pop('windows_producers')
+        schema_path.write_bytes(json_bytes(schema))
         base, repair = self.budget_handoff_fixture()
         main = self.merge_observation(base, source_identity(self.root)['git_head'])['sha']
         self.git('checkout', '--quiet', '--detach', main)
@@ -598,24 +710,327 @@ class IntegrationHistoryTests(IntegrationFixture):
         self.assertEqual('records', result['workflow']['expected_profile'])
         self.assertIn(f'Unresolved major feedback: {PUSH_BUDGET}', result['blockers'])
 
-    def observe_harness(self, base, head, ubuntu_steps, windows_steps, *, tested=None):
+    def observe_harness(self, base, head, ubuntu_steps, windows_steps, *, tested=None, producer_jobs=(),
+                        checkout_refs=None, ubuntu_publication=None, windows_publication=None, artifact_control=None):
         fixture = observations()
         pr = dict(fixture['pr'], baseRefOid=base, headRefOid=head)
         run = {'id': 100, 'run_attempt': 2, 'head_sha': head, 'status': 'completed', 'conclusion': 'success',
-               'path': '.github/workflows/verify.yml', 'event': 'pull_request'}
-        jobs = [dict(job, id=job_id, head_sha=head, steps=[CHECKOUT_STEP, *steps])
-                for job_id, (job, steps) in enumerate(zip(fixture['jobs'], [ubuntu_steps, windows_steps]), 1000)]
+               'path': '.github/workflows/verify.yml', 'event': 'pull_request', 'head_branch': pr['headRefName']}
+        if windows_publication is None:
+            profile = integration.job_verification_profile({'name': WINDOWS, 'steps': windows_steps})
+            windows_publication = publication_steps(
+                aggregated=any(item['name'] in timing.WINDOWS_MARKERS for item in windows_steps), profile=profile)
+        if ubuntu_publication is None:
+            ubuntu_publication = publication_steps()
+        protected = [dict(job, steps=[CHECKOUT_STEP, *steps])
+                     for job, steps in zip(fixture['jobs'], ([*ubuntu_steps, *ubuntu_publication],
+                                                            [*windows_steps, *windows_publication]))]
+        jobs = [attempt_job(job, run, job_id) for job_id, job in enumerate([*protected, *producer_jobs], 1000)]
+        artifacts, uploads = publication_evidence(run, jobs)
+        if artifact_control:
+            artifact_control(artifacts, uploads)
         if tested is None:
             tested = self.merge_observation(base, head)
-        api_responses = iter([json.dumps([{'jobs': jobs}]), json.dumps(tested)])
+        api_responses = iter([json.dumps([{'jobs': jobs}]), json.dumps(tested), json.dumps([{'artifacts': artifacts}])])
         original = integration.command
 
         def command(argv, root):
             return original(argv, root) if argv[0] == 'git' else next(api_responses)
 
+        def checkout(root, repo, job_id, action):
+            return (*(checkout_refs or {}).get(job_id, (1, tested['sha'])), uploads[job_id])
+
         with (patch.object(integration, 'command', side_effect=command),
-              patch.object(integration, 'job_checkout', return_value=(1, tested['sha']))):
+              patch.object(integration, 'job_checkout', side_effect=checkout)):
             return integration.verified_pr_run(self.root, 'fixture/project', pr, [run], False, [UBUNTU, WINDOWS])
+
+    def declare_windows_producers(self, marker, lanes):
+        producers = {f'windows_{lane}': {'name': timing.WINDOWS_PRODUCERS[lane], 'runs-on': 'windows-latest',
+                                        'strategy': {'matrix': {'lane': [lane]}}, 'steps': [
+                                            CHECKOUT, PREPARE, {'name': f'Verify the Windows {lane} lane'},
+                                            *publication(integration.LANE_ARTIFACT),
+                                        ]} for lane in lanes}
+        verify = {'steps': [CHECKOUT, PREPARE, {'name': UBUNTU_FULL}, *publication(integration.LANE_ARTIFACT)]}
+        workflow = {'jobs': {'verify': verify, **producers, 'windows_change': {
+            'needs': list(producers),
+            'steps': [CHECKOUT, PREPARE, *DOWNLOADS, {'name': WINDOWS_FULL},
+                      *publication('verification-windows-latest'), {'name': marker}],
+        }}}
+        (self.root / timing.WORKFLOW).write_bytes(json_bytes(workflow))
+        return workflow
+
+    def producer_jobs(self, lanes, profile='full'):
+        return [dict(name=timing.WINDOWS_PRODUCERS[lane], status='completed', conclusion='success',
+                     steps=[CHECKOUT_STEP, step(f'Verify the Windows {lane} lane' if profile == 'full' else
+                                               f'Verify {profile} changes' if lane == 'core'
+                                               else 'Select the Windows lane work'),
+                            *publication_steps(profile='full' if lane == 'core' else profile, producer=True)])
+                for lane in lanes]
+
+    def test_current_pr_requires_the_committed_workspace_producer_layout(self):
+        records = self.root / 'README.md'
+        records.write_text('Fixture summary.\n', encoding='utf-8')
+        base = self.commit()
+        self.declare_windows_producers(timing.WINDOWS_WORKSPACE_MARKER, timing.WINDOWS_WORKSPACE_LANES)
+        head = self.commit()
+        guard = step(timing.WINDOWS_WORKSPACE_MARKER)
+
+        full_jobs = self.producer_jobs(timing.WINDOWS_WORKSPACE_LANES)
+        result, _ = self.observe_harness(base, head, [step(UBUNTU_FULL)], [step(WINDOWS_FULL), guard],
+                                         producer_jobs=full_jobs)
+        self.assertEqual('passed', result['status'], result['reason'])
+        for producers, windows_guard in (
+            (full_jobs[:-1], guard),
+            ([*full_jobs, full_jobs[-1]], guard),
+            ([*full_jobs[:-1], dict(full_jobs[-1], conclusion='cancelled')], guard),
+            (full_jobs, step(timing.WINDOWS_RECOVERY_MARKER)),
+            (full_jobs, step(timing.WINDOWS_WORKSPACE_MARKER, conclusion='skipped')),
+        ):
+            result, _ = self.observe_harness(base, head, [step(UBUNTU_FULL)], [step(WINDOWS_FULL), windows_guard],
+                                             producer_jobs=producers)
+            self.assertEqual('blocked', result['status'])
+            self.assertIn('committed Windows producer layout', result['reason'])
+
+        records.write_text('Updated fixture summary.\n', encoding='utf-8')
+        scoped_head = self.commit()
+        scoped_jobs = self.producer_jobs(timing.WINDOWS_WORKSPACE_LANES, 'records')
+        scoped = step('Verify records changes')
+        result, _ = self.observe_harness(head, scoped_head, [scoped], [scoped, guard], producer_jobs=scoped_jobs)
+        self.assertEqual('passed', result['status'], result['reason'])
+        wrongly_executed = dict(scoped_jobs[-1], steps=[*scoped_jobs[-1]['steps'],
+                                                        step('Verify the Windows workspace lane')])
+        result, _ = self.observe_harness(head, scoped_head, [scoped], [scoped, guard],
+                                         producer_jobs=[*scoped_jobs[:-1], wrongly_executed])
+        self.assertEqual('blocked', result['status'])
+        self.assertIn('committed Windows producer layout', result['reason'])
+
+    def test_windows_publication_and_branch_must_match_the_tested_run(self):
+        base = self.commit()
+        for marker, lanes in ((timing.WINDOWS_RECOVERY_MARKER, timing.WINDOWS_RECOVERY_LANES),
+                              (timing.WINDOWS_WORKSPACE_MARKER, timing.WINDOWS_WORKSPACE_LANES)):
+            declared = self.declare_windows_producers(marker, lanes)
+            head = self.commit()
+            producers = self.producer_jobs(lanes)
+            publisher = publication_steps(aggregated=True)
+
+            def observe(jobs=producers, publication=publisher, **controls):
+                result, _ = self.observe_harness(
+                    base, head, [step(UBUNTU_FULL)], [step(WINDOWS_FULL), step(marker)],
+                    producer_jobs=jobs, windows_publication=publication, **controls,
+                )
+                return result
+
+            with self.subTest(marker=marker):
+                passing = observe()
+                self.assertEqual('passed', passing['status'])
+                self.assertEqual(len(lanes) + 2, len(passing['required_artifacts']))
+                self.assertEqual(WINDOWS_ARTIFACT, passing['required_artifacts'][0]['name'])
+                ubuntu_report = passing['required_artifacts'][-1]
+                self.assertEqual((UBUNTU_ARTIFACT, 1000, f'{11000:064x}'),
+                                 (ubuntu_report['name'], ubuntu_report['job_id'], ubuntu_report['sha256']))
+                self.assertEqual('passed', observe(publication=publisher[:-1])['status'])
+                for optional_result in ('skipped', 'failure'):
+                    self.assertEqual('passed', observe(publication=[
+                        *publisher[:-1], dict(publisher[-1], conclusion=optional_result),
+                    ])['status'])
+                for required_index in (0, 1, 3, 4):
+                    skipped = [dict(item, conclusion='skipped') if index == required_index else item
+                               for index, item in enumerate(publisher)]
+                    result = observe(publication=skipped)
+                    self.assertEqual('blocked', result['status'])
+                    self.assertIn('evidence step', result['reason'])
+                result = observe(publication=[*publisher[:-2], publisher[-1]])
+                self.assertEqual('blocked', result['status'])
+                self.assertIn('evidence step', result['reason'])
+                for index, producer in enumerate(producers):
+                    with self.subTest(lane=producer['name']):
+                        mismatched = dict(producer, head_branch='other-task')
+                        result = observe(jobs=[*producers[:index], mismatched, *producers[index + 1:]])
+                        self.assertEqual('blocked', result['status'])
+                        steps = producer['steps']
+                        skipped = dict(producer, steps=[*steps[:-2], dict(steps[-2], conclusion='skipped'), steps[-1]])
+                        result = observe(jobs=[*producers[:index], skipped, *producers[index + 1:]])
+                        self.assertEqual('blocked', result['status'])
+                        self.assertIn(producer['name'], result['reason'])
+                        missing = dict(producer, steps=[*steps[:-2], dict(steps[-1], conclusion='success')])
+                        result = observe(jobs=[*producers[:index], missing, *producers[index + 1:]])
+                        self.assertEqual('blocked', result['status'])
+                        self.assertIn(producer['name'], result['reason'])
+
+                browser = 1002 + lanes.index('browser')
+                python = 1002 + lanes.index('python')
+                swap_logs = lambda assets, uploads: uploads.update({browser: uploads[python]})
+                result = observe(artifact_control=swap_logs)
+                self.assertEqual('blocked', result['status'])
+                self.assertIn('did not publish the downloadable evidence artifact verification-windows-2-browser',
+                              result['reason'])
+
+                for bad in ({'expired': True}, {'archive_download_url': 'https://example.invalid/zip'},
+                            {'workflow_run': {'id': 99, 'head_sha': head}}):
+                    with self.subTest(artifact=bad):
+                        result = observe(artifact_control=lambda assets, uploads: assets[1].update(bad))
+                        self.assertEqual('blocked', result['status'])
+                        self.assertIn('lacks the expected downloadable evidence artifact', result['reason'])
+                result = observe(artifact_control=lambda assets, uploads: assets[1].update(size_in_bytes=999))
+                self.assertIn('did not publish the downloadable evidence artifact', result['reason'])
+
+                def change_timestamp(assets, uploads):
+                    (claim,) = uploads[1001]
+                    uploads[1001] = ((*claim[:4], '2026-11-21T16:41:55Z', *claim[5:]),)
+
+                result = observe(artifact_control=change_timestamp)
+                self.assertEqual('blocked', result['status'])
+                self.assertIn('did not publish the downloadable evidence artifact', result['reason'])
+
+                final_upload = next(step for step in declared['jobs']['windows_change']['steps']
+                                    if step.get('uses') == UPLOAD_ACTION)
+                final_upload['with']['name'] = 'verification-timing-windows-latest'
+                (self.root / timing.WORKFLOW).write_bytes(json_bytes(declared))
+                wrong_name = self.commit()
+                result = observe(tested=self.merge_observation(base, head, tree_revision=wrong_name))
+                self.assertEqual('blocked', result['status'])
+                self.assertIn('does not declare the required evidence steps', result['reason'])
+            base = head
+
+    def test_scoped_windows_publication_requires_the_core_transfer(self):
+        marker = timing.WINDOWS_WORKSPACE_MARKER
+        lanes = timing.WINDOWS_WORKSPACE_LANES
+        self.declare_windows_producers(marker, lanes)
+        base = self.commit()
+        (self.root / 'README.md').write_text('Updated fixture summary.\n', encoding='utf-8')
+        head = self.commit()
+        producers = self.producer_jobs(lanes, 'records')
+        scoped = step('Verify records changes')
+        publisher = publication_steps(aggregated=True, profile='records')
+
+        def observe(jobs, publication):
+            result, _ = self.observe_harness(
+                base, head, [scoped], [scoped, step(marker)],
+                producer_jobs=jobs, windows_publication=publication,
+            )
+            self.assertEqual('records', result['expected_profile'])
+            return result
+
+        self.assertEqual('passed', observe(producers, publisher)['status'])
+        self.assertEqual('blocked', observe(producers, publication_steps(aggregated=True))['status'])
+        core, *siblings = producers
+        missing_core = dict(core, steps=[*core['steps'][:-2], core['steps'][-1]])
+        result = observe([missing_core, *siblings], publisher)
+        self.assertEqual('blocked', result['status'])
+        self.assertIn(core['name'], result['reason'])
+
+    def test_split_producers_require_their_checked_source(self):
+        base = self.commit()
+        marker = timing.WINDOWS_RECOVERY_MARKER
+        self.declare_windows_producers(marker, timing.WINDOWS_RECOVERY_LANES)
+        head = self.commit()
+        tested = self.merge_observation(base, head)
+        jobs = self.producer_jobs(timing.WINDOWS_RECOVERY_LANES)
+        browser_id = 1003
+        browser_step = jobs[1]['steps'][1]
+        mismatched = dict(jobs[1], steps=[step('Run actions/checkout@' + '2' * 40), browser_step])
+        skipped = dict(jobs[1], steps=[dict(CHECKOUT_STEP, conclusion='skipped'), browser_step])
+
+        def observe(browser, refs=None):
+            result, _ = self.observe_harness(base, head, [step(UBUNTU_FULL)], [step(WINDOWS_FULL), step(marker)],
+                                             tested=tested, producer_jobs=[jobs[0], browser, *jobs[2:]],
+                                             checkout_refs=refs)
+            return result
+
+        control = observe(jobs[1])
+        self.assertEqual('passed', control['status'], control['reason'])
+        self.assertEqual(6, len(control['required_checkouts']))
+        self.assertEqual({'name': timing.WINDOWS_PRODUCERS['browser'], 'job_id': browser_id,
+                          'pull_request': 1, 'commit': tested['sha'], 'step': CHECKOUT_STEP['name']},
+                         control['required_checkouts'][3])
+        for browser, refs, reason in (
+            (skipped, None, 'has no successful pinned checkout'),
+            (mismatched, None, 'used a different pinned checkout'),
+            (jobs[1], {browser_id: (2, tested['sha'])}, 'checked different pull requests or merge commits'),
+            (jobs[1], {browser_id: (1, head)}, 'checked different pull requests or merge commits'),
+        ):
+            result = observe(browser, refs)
+            self.assertEqual('blocked', result['status'])
+            self.assertIn(reason, result['reason'])
+
+    def test_unsplit_workflow_requires_its_declared_jobs_and_harness(self):
+        base = self.commit()
+        (self.root / 'implementation.py').write_text('value = 2\n', encoding='utf-8')
+        head = self.commit()
+        marker = step(timing.WINDOWS_RECOVERY_MARKER)
+        jobs = self.producer_jobs(timing.WINDOWS_RECOVERY_LANES)
+        for producers, guards, status in (
+            ([], [], 'passed'),
+            (jobs, [marker], 'blocked'),
+            ([jobs[0], dict(jobs[1], conclusion='failure'), *jobs[2:]], [marker], 'blocked'),
+            ([], [marker], 'blocked'),
+        ):
+            result, _ = self.observe_harness(base, head, [step(UBUNTU_FULL)], [step(WINDOWS_FULL), *guards],
+                                             producer_jobs=producers)
+            self.assertEqual(status, result['status'], result['reason'])
+            if status == 'blocked':
+                self.assertIn('committed Windows producer layout', result['reason'])
+
+        for path, expectation in (('.reports/', 'passed'), ('.reports/timing/', 'blocked')):
+            workflow = {'jobs': {'verify': {'steps': [
+                CHECKOUT, {'name': WINDOWS_FULL},
+                {'uses': UPLOAD_ACTION, 'with': {'path': path, 'name': 'verification-${{ matrix.os }}'}},
+            ]}}}
+            (self.root / timing.WORKFLOW).write_bytes(json_bytes(workflow))
+            historical = self.commit()
+            upload = dict(step(f'Run {UPLOAD_ACTION}'), number=4)
+            result, _ = self.observe_harness(base, historical, [step(UBUNTU_FULL)], [step(WINDOWS_FULL)],
+                                             ubuntu_publication=[upload], windows_publication=[upload])
+            self.assertEqual(expectation, result['status'], result['reason'])
+
+    def test_windows_layout_comes_from_the_tested_merge_tree(self):
+        workflow = self.root / timing.WORKFLOW
+        self.declare_windows_producers(timing.WINDOWS_RECOVERY_MARKER, timing.WINDOWS_RECOVERY_LANES)
+        base = self.commit()
+        (self.root / 'implementation.py').write_text('value = 2\n', encoding='utf-8')
+        head = self.commit()
+        declaration = self.declare_windows_producers(timing.WINDOWS_WORKSPACE_MARKER, timing.WINDOWS_WORKSPACE_LANES)
+        workspace = self.commit()
+        declaration['jobs']['windows_change']['needs'].remove('windows_workspace')
+        workflow.write_bytes(json_bytes(declaration))
+        incomplete = self.commit()
+        declaration['jobs']['windows_change']['needs'].append('windows_workspace')
+        declaration['jobs']['windows_workspace']['strategy']['matrix']['lane'] = ['browser']
+        workflow.write_bytes(json_bytes(declaration))
+        wrong_lane = self.commit()
+        older_merge = self.merge_observation(base, head)
+        tested_merge = self.merge_observation(base, head, tree_revision=workspace)
+        incomplete_merge = self.merge_observation(base, head, tree_revision=incomplete)
+        wrong_lane_merge = self.merge_observation(base, head, tree_revision=wrong_lane)
+        not_local = dict(older_merge, sha='7' * 40)
+        altered_parent = dict(tested_merge, parents=[{'sha': workspace}, {'sha': head}])
+        for controls, lanes, marker, status, reason in (
+            (older_merge, timing.WINDOWS_RECOVERY_LANES, timing.WINDOWS_RECOVERY_MARKER, 'passed', ''),
+            (not_local, timing.WINDOWS_RECOVERY_LANES, timing.WINDOWS_RECOVERY_MARKER, 'passed', ''),
+            (tested_merge, timing.WINDOWS_WORKSPACE_LANES, timing.WINDOWS_WORKSPACE_MARKER, 'passed', ''),
+            (tested_merge, timing.WINDOWS_RECOVERY_LANES, timing.WINDOWS_RECOVERY_MARKER, 'blocked',
+             'lacks the committed Windows producer layout'),
+            (dict(tested_merge, tree=older_merge['tree']), timing.WINDOWS_RECOVERY_LANES,
+             timing.WINDOWS_RECOVERY_MARKER, 'blocked', 'conflict with the local commit object'),
+            (altered_parent, timing.WINDOWS_WORKSPACE_LANES,
+             timing.WINDOWS_WORKSPACE_MARKER, 'blocked', 'conflict with the local commit object'),
+            (dict(not_local, tree={'sha': '8' * 40}), timing.WINDOWS_RECOVERY_LANES,
+             timing.WINDOWS_RECOVERY_MARKER, 'blocked', 'commit and tree could not be verified locally'),
+            (dict(not_local, tree={'sha': head}), timing.WINDOWS_RECOVERY_LANES,
+             timing.WINDOWS_RECOVERY_MARKER, 'blocked', 'commit and tree could not be verified locally'),
+            (incomplete_merge, timing.WINDOWS_WORKSPACE_LANES, timing.WINDOWS_WORKSPACE_MARKER, 'blocked',
+             'could not be verified from the tested merge tree'),
+            (wrong_lane_merge, timing.WINDOWS_WORKSPACE_LANES, timing.WINDOWS_WORKSPACE_MARKER, 'blocked',
+             'could not be verified from the tested merge tree'),
+        ):
+            with self.subTest(tree=controls['tree'], marker=marker, expected=status):
+                result, _ = self.observe_harness(base, head, [step(UBUNTU_FULL)], [step(WINDOWS_FULL), step(marker)],
+                                                 tested=controls, producer_jobs=self.producer_jobs(lanes))
+                self.assertEqual(status, result['status'], result['reason'])
+                self.assertIn(reason, result['reason'])
+                if status == 'passed':
+                    self.assertEqual('hosted_commit_with_local_tree' if controls is not_local else 'local_commit',
+                                     result['tested_tree']['authority'])
 
     def test_narrow_profiles_allow_matching_or_platform_full_harnesses(self):
         locale = self.root / 'apps/desktop/ui/src/i18n/locales/zh-Hans/core.json'
@@ -692,22 +1107,28 @@ class IntegrationHistoryTests(IntegrationFixture):
         self.assertEqual('records', integration.committed_scope(self.root, base, head)['profile'])
 
         records_step = [step('Verify records changes')]
-        for tested, reason in [
-            (different, 'differs from the local PR head tree'),
-            ({key: value for key, value in matching.items() if key != 'tree'}, 'merge tree was unavailable'),
-            (dict(matching, tree={'sha': 'invalid'}), 'merge tree was unavailable'),
-        ]:
-            with self.subTest(tree=tested.get('tree')):
-                result, jobs = self.observe_harness(base, head, records_step, records_step, tested=tested)
-                self.assertEqual('blocked', result['status'])
-                self.assertEqual('full', result['expected_profile'])
-                self.assertIn(reason, result['expected_profile_reason'])
-                self.assertEqual(['records', 'records'], [job['verification_profile'] for job in jobs])
-                full, _ = self.observe_harness(base, head, [step(UBUNTU_FULL)], [step(WINDOWS_FULL)], tested=tested)
-                self.assertEqual('passed', full['status'])
-                self.assertEqual('full', full['expected_profile'])
+        result, jobs = self.observe_harness(base, head, records_step, records_step, tested=different)
+        self.assertEqual('blocked', result['status'])
+        self.assertEqual('full', result['expected_profile'])
+        self.assertIn('differs from the local PR head tree', result['expected_profile_reason'])
+        self.assertEqual(['records', 'records'], [job['verification_profile'] for job in jobs])
+        full, _ = self.observe_harness(base, head, [step(UBUNTU_FULL)], [step(WINDOWS_FULL)], tested=different)
+        self.assertEqual('passed', full['status'], full['reason'])
 
-        profile, reason = integration.expected_verification_profile(self.root, base, '0' * len(head), matching)
+        no_reported_tree = {key: value for key, value in matching.items() if key != 'tree'}
+        local, _ = self.observe_harness(base, head, records_step, records_step, tested=no_reported_tree)
+        self.assertEqual('passed', local['status'], local['reason'])
+        self.assertEqual('records', local['expected_profile'])
+        self.assertEqual(dict(matching['tree'], authority='local_commit'), local['tested_tree'])
+        for tested, reason in [
+            (dict(no_reported_tree, sha='7' * 40), 'commit and tree could not be verified locally'),
+            (dict(matching, tree={'sha': 'invalid'}), 'reports an invalid Git tree'),
+        ]:
+            result, _ = self.observe_harness(base, head, [step(UBUNTU_FULL)], [step(WINDOWS_FULL)], tested=tested)
+            self.assertEqual('blocked', result['status'])
+            self.assertIn(reason, result['reason'])
+
+        profile, reason = integration.expected_verification_profile(self.root, base, '0' * len(head), matching['tree']['sha'])
         self.assertEqual('full', profile)
         self.assertIn('local PR head tree could not be verified', reason)
 
@@ -736,9 +1157,12 @@ class IntegrationHistoryTests(IntegrationFixture):
         checked = {990: (1, '6' * 40), 1000: (1, '7' * 40), 1010: (2, '8' * 40), 1020: (1, '9' * 40)}
         checked.update({job + 1: source for job, source in checked.items()})
         ubuntu_job, windows_job = args['jobs']
-        windows_steps = list(windows_job['steps'])
+        ubuntu_steps = attempt_job(ubuntu_job, run, 1000)['steps']
+        windows_steps = attempt_job(windows_job, run, 1001)['steps']
         head_parent = {99: head, 100: head, 101: head, 102: head}
         queries = []
+        artifacts, uploads = publication_evidence(run, [attempt_job(ubuntu_job, run, 1000),
+                                                         attempt_job(windows_job, run, 1001)])
 
         def command(argv, root):
             queries.append(argv)
@@ -748,11 +1172,16 @@ class IntegrationHistoryTests(IntegrationFixture):
                 return json.dumps(pr)
             if 'event=pull_request' in argv:
                 return json.dumps([{'workflow_runs': runs[:2]}, {'workflow_runs': runs[2:]}])
+            if '/runs/100/artifacts?' in argv[-1]:
+                return json.dumps([{'artifacts': artifacts}])
             for run_id, attempt, parent in [(99, 1, base), (100, 2, base), (101, 1, base), (102, 1, 'f' * 40)]:
                 _, merge_sha = checked[run_id * 10]
                 if f'/runs/{run_id}/attempts/{attempt}/jobs?' in argv[-1]:
-                    ubuntu = dict(ubuntu_job, head_sha=head, id=run_id * 10)
-                    windows = dict(windows_job, head_sha=head, id=run_id * 10 + 1)
+                    attempt_run = dict(run, id=run_id, run_attempt=attempt)
+                    ubuntu = attempt_job(ubuntu_job, attempt_run, run_id * 10)
+                    windows = attempt_job(windows_job, attempt_run, run_id * 10 + 1)
+                    if run_id == 100:
+                        ubuntu['steps'] = ubuntu_steps
                     if run_id != 99:
                         windows['steps'] = windows_steps if run_id == 100 else [CHECKOUT_STEP]
                     return json.dumps([{'jobs': [ubuntu, windows]}])
@@ -763,9 +1192,21 @@ class IntegrationHistoryTests(IntegrationFixture):
             return json.dumps(args['protection'])
 
         original = integration.command
-        checkout = patch.object(integration, 'job_checkout', side_effect=lambda root, repo, job_id: checked[job_id])
-        self.addCleanup(checkout.stop)
-        checkout.start()
+        launch = subprocess.run
+
+        def download(argv, **options):
+            if argv[0] != 'gh':
+                return launch(argv, **options)
+            job_id = int(argv[-1].split('/')[-2])
+            self.assertEqual(f'repos/fixture/project/actions/jobs/{job_id}/logs', argv[-1])
+            log = checkout_log(*checked[job_id])
+            log += ''.join(upload_log(*claim) for claim in uploads.get(job_id, ()))
+            options['stdout'].buffer.write(log.encode())
+            return subprocess.CompletedProcess(argv, 0, stderr=b'')
+
+        mock_download = patch.object(subprocess, 'run', side_effect=download)
+        self.addCleanup(mock_download.stop)
+        mock_download.start()
         with (patch.object(integration, 'github_identity', return_value='fixture/project'),
               patch.object(integration, 'command', side_effect=command),
               patch.object(integration, 'committed_scope', wraps=integration.committed_scope) as classify):
@@ -785,6 +1226,74 @@ class IntegrationHistoryTests(IntegrationFixture):
         self.assertEqual(2, sum(argv[:3] == ['gh', 'pr', 'view'] for argv in queries))
         self.assertEqual(head, result['source']['git_head'])
         self.assertFalse(source_identity(self.root)['working_tree_dirty'])
+
+        solid_assets = deepcopy(artifacts)
+        solid_uploads = dict(uploads)
+        solid_ubuntu_steps = list(ubuntu_steps)
+        required_upload = next(item for item in solid_ubuntu_steps if item['name'] == f'Run {UPLOAD_ACTION}')
+        run_only = list(runs)
+        runs[:] = [run]
+        original_inspect = integration.inspect
+        for control, platform, expected, detail in (
+            ('genuine report', UBUNTU_ARTIFACT, 0, None),
+            ('optional timing absent', UBUNTU_ARTIFACT, 0, None),
+            ('legacy digests absent', UBUNTU_ARTIFACT, 0, None),
+            ('log digest absent', WINDOWS_ARTIFACT, 0, None),
+            ('inventory digest absent', UBUNTU_ARTIFACT, 0, None),
+            ('report absent', UBUNTU_ARTIFACT, 1, 'lacks the expected downloadable evidence artifact'),
+            ('report upload skipped', UBUNTU_ARTIFACT, 1, 'evidence step'),
+            ('same-attempt Windows log', UBUNTU_ARTIFACT, 1, 'did not publish the downloadable evidence artifact'),
+            ('sibling digest', WINDOWS_ARTIFACT, 1, 'digest'),
+            ('sibling digest', UBUNTU_ARTIFACT, 1, 'digest'),
+        ):
+            with self.subTest(control=control, platform=platform):
+                artifacts[:] = deepcopy(solid_assets)
+                uploads.clear()
+                uploads.update(solid_uploads)
+                ubuntu_steps[:] = solid_ubuntu_steps
+                asset, = (item for item in artifacts if item['name'] == platform)
+                job_id = 1000 if platform == UBUNTU_ARTIFACT else 1001
+                expected_digest = asset['digest'].removeprefix('sha256:')
+                if control == 'optional timing absent':
+                    ubuntu_steps.pop()
+                elif control == 'report absent':
+                    artifacts.remove(asset)
+                elif control == 'report upload skipped':
+                    ubuntu_steps[ubuntu_steps.index(required_upload)] = dict(required_upload, conclusion='skipped')
+                elif control == 'same-attempt Windows log':
+                    uploads[1000] = uploads[1001]
+                elif control == 'sibling digest':
+                    sibling, = (item for item in artifacts if item['name'] != platform)
+                    asset['digest'] = sibling['digest']
+                if control in {'legacy digests absent', 'log digest absent'}:
+                    (claim,) = uploads[job_id]
+                    uploads[job_id] = ((*claim[:-1], None),)
+                if control in {'legacy digests absent', 'inventory digest absent'}:
+                    del asset['digest']
+                output = StringIO()
+                with (patch.object(integration, 'github_identity', return_value='fixture/project'),
+                      patch.object(integration, 'command', side_effect=command),
+                      patch.object(integration, 'inspect', side_effect=lambda *, pr_number:
+                                   original_inspect(self.root, pr_number)),
+                      patch.object(sys, 'argv', ['integration.py', '--pr', '1']),
+                      redirect_stdout(output), self.assertRaises(SystemExit) as stopped):
+                    integration.main()
+                observed = json.loads(output.getvalue())
+                self.assertEqual(expected, stopped.exception.code, observed['blockers'])
+                self.assertEqual(expected == 0, observed['technical_ready'])
+                if expected == 0:
+                    report, = (item for item in observed['workflow']['required_artifacts'] if item['name'] == platform)
+                    self.assertEqual(job_id, report['job_id'])
+                    self.assertEqual(None if control == 'legacy digests absent' else expected_digest,
+                                     report.get('sha256'))
+                else:
+                    self.assertIn(detail, observed['workflow']['reason'])
+        runs[:] = run_only
+        artifacts[:] = solid_assets
+        uploads.clear()
+        uploads.update(solid_uploads)
+        ubuntu_steps[:] = solid_ubuntu_steps
+
         with (patch.object(integration, 'github_identity', return_value='fixture/project'),
               patch.object(integration, 'command', side_effect=command)):
             runs[:] = [run]

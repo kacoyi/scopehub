@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0",
+  "id": "0031",
+  "title": "Reconcile publisher and job evidence before projecting timing",
+  "status": "accepted",
+  "recorded_at": "2026-11-26",
+  "context": "The three independent reviews of 9ea5b514 found six qualification defects after the bounded inventory in ADR 0035. Equivalent Actions observations followed different paths depending on row grouping or transport. A shallow checkout hid an object whose ancestry remained readable in Git headers. Raw report fields and internally inconsistent compact measurements survived separate reader rules. A paired local replay also found that the reader selected timed steps before it knew the reconciled job role.",
+  "decision": "Keep the exact reviewed publisher closure and catalog inventory from ADR 0035 as the authority for the supported Windows timing contract. Share the raw source fence and catalog command validation with the native lane producer, and use the same check scope, ordered result rule and check-work calculation before qualifying reader inputs. A raw input must agree with its end snapshot, hosted identity and the verified execution-input snapshot before its additional assertions can be discarded. A compact input must agree with its own result rows and the supported closure. Resolve qualification once against the reconciled Actions observations per read and use that decision for conflicts, cache joins, intake, indexes and receipt projection. Decode local and downloaded Actions evidence with the same strict JSON rules. Union job and step assertions per attempt and job ID before deciding role, membership or clocks. Check available Git parent headers before accepting a proof at a missing-object boundary.",
+  "authority": "The development AI owns verification implementation and technical evolution under ADR 0007. Existing independent decisions and protected verification remain acceptance gates.",
+  "alternatives": [
+    {
+      "option": "Keep independent qualifications and add cases for each failed replay.",
+      "reason": "Six independently confirmed defects remained after the prior fixes, and a paired control found an additional early role projection while reproducing the current failure. Another row heuristic or input-specific predicate leaves the same decision owned in several places."
+    },
+    {
+      "option": "Run or translate each historical publisher to reproduce every acceptance decision.",
+      "reason": "Historical programs can have arbitrary dependencies and side effects. Recreating their full behavior would add another unverified implementation and make weekly execution depend on old environments."
+    }
+  ],
+  "consequences": [
+    "Keep the existing compact and archive kinds and the published originals. New observations retain explicit step facts. A legacy capture contributes the facts it retained, with an explicit conclusion taking precedence over an unsupported timed-role fallback.",
+    "When the publisher, execution-input snapshot or ancestry cannot be established within its bound, use the remaining evidence at its own scope. A raw diagnostic with an unresolved source stays diagnostic across archive reopen. A previously saved compact cannot supply discarded raw command or source-end bytes.",
+    "The portable reader establishes timing-relevant report facts. Authenticated artifact acquisition and the native publication process own log bytes and broader hosted acceptance evidence. The workflow outcome and separately supported job clocks remain available through their own evidence.",
+    "Qualify a frozen candidate with public ordinary, weekly and cold reads, paired equivalent and contrary observations, the original failed push, and a genuine protected push reserved before candidate replay. The reserved run must qualify using the existing inventory. The candidate changes the publisher closure. Its future publications require the usual review and genuine publication replay before registration."
+  ],
+  "supersedes": [],
+  "related_decisions": [
+    "0007",
+    "0026",
+    "0035"
+  ],
+  "revisit_when": [
+    "A genuine publication changes a required timing field, source fence, role assignment or canonical result rule.",
+    "A supported observation cannot be expressed without retaining an additional independent fact."
+  ]
+}

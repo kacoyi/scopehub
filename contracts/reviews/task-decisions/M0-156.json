@@ -1,0 +1,934 @@
+{
+  "version": 3,
+  "task_id": "M0-156",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "Review the shared Git execution-input identity calculation and its two real callers. Run the ordinary weekly command from a clean system Python on an expired historical preview. Compare exact source digests for present and substituted revisions across the project command and the weekly reader, and exercise missing, mismatched and extra evidence. Check import and exception boundaries, historical exclusions and sensitivity to genuine execution-input changes.",
+      "supersedes": null,
+      "requested_at": "2026-11-25T22:53:03.981103+00:00",
+      "request_id": "87179cfc72716efb031cf89dbd8d3226c65943e108a40b3ac6792047a97f932d",
+      "evidence_sha256": "cceecefd294ef603cec0cdb7b5364223facfff2c72f4081dd2cf1cb4e8a9c3b4"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "CHANGES_REQUESTED M0-156 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "observation": "I replayed Windows run 45546767887 through the weekly reader and obtained a fresh full-platform receipt for a checkout SHA that Git identified as a tree.",
+      "reviewer": "Independent Astra Standard (t11b)",
+      "original_sha256": "392c90947fd098e42766b35363feec3793b22a8b7ddf1054b2e40dbea11a61db",
+      "response_id": "c697a4fdebf92de38fb692379ce8522844760dd62c686ac204820625c3039cf3",
+      "response_sha256": "ffd569a6145eaf10b9b441dc6a72ae1d2edbadbb2a7d3b5b94ccd617aaadc58b",
+      "legacy_response_sha256": "3c9241e969fe6dc81bf87a8565ad5fd4841646c2d07199068d93b57992e8a4f2",
+      "observation_body_sha256": "0569f88881179b0718ef8b5ef6744bfab0370683967fe0847bac61e2afe6e0f8",
+      "event": {
+        "id": "msg_0f284b4c7d245612016b079e56960887d2901ebdf10f895533",
+        "timestamp": "2026-11-26T02:50:17.947Z"
+      },
+      "supersedes": "87179cfc72716efb031cf89dbd8d3226c65943e108a40b3ac6792047a97f932d",
+      "evidence_sha256": "0750bf01a875be83578058ebf3d70ce6f0251f87f0588991274a815311860b60"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e6e5a46d9296e087b2b1c037eb6ba6c16dbe5330",
+      "scope": "Run the weekly system-Python reader on the registered historical PR 84. Independently distinguish genuine commit, known non-commit and legitimately missing preview with and without checkout proof, absent catalog, changed digest and omitted or extra selected checks. Check the normal production entry in clean and shallow Git and keep the first scheduled observation pending.",
+      "supersedes": "c697a4fdebf92de38fb692379ce8522844760dd62c686ac204820625c3039cf3",
+      "requested_at": "2026-11-26T03:19:41.350544+00:00",
+      "request_id": "54df914876e02a08872c55ac56fd6ff7211a1ab8a17b039ecf811faad51123ab",
+      "evidence_sha256": "6f153f25c2d194ae63f7222391db6695f5e6e043b83b543361b288d632b2d2af"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e6e5a46d9296e087b2b1c037eb6ba6c16dbe5330",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 e6e5a46d9296e087b2b1c037eb6ba6c16dbe5330",
+      "scope": "CHANGES_REQUESTED M0-156 e6e5a46d9296e087b2b1c037eb6ba6c16dbe5330",
+      "observation": "The weekly reader issued a full Windows receipt for an all-zero checkout SHA on run 45546767887, recording 804 wall seconds and 2467 runner-seconds.",
+      "reviewer": "Independent Astra Standard (t120)",
+      "original_sha256": "cb2ccafc53afc41eb62b02a923863d596a202b1e82513b7a9ccca41620531eca",
+      "response_id": "a893a1ed47805042455d88f0ed113441620eb5f0f8dacdfee314cd14208238ee",
+      "response_sha256": "4437f0b170dddfcfc9874a5ab7944e24841fa39c163a0d4b74da447e97136e57",
+      "legacy_response_sha256": "048dcbd761f0baf052a2c475ae955c6b78dec6711af3cf7c02dc465a9790e185",
+      "observation_body_sha256": "93e31db36edc9c5a992c4b2b8a17551ca12c5ba387ff66b025a6ac5fd9c85bf7",
+      "event": {
+        "id": "msg_0d089bebcf3ab205016b07a8d8844087d2af49fecbd2366665",
+        "timestamp": "2026-11-26T03:35:00.433Z"
+      },
+      "supersedes": "54df914876e02a08872c55ac56fd6ff7211a1ab8a17b039ecf811faad51123ab",
+      "evidence_sha256": "cbf4588b32d0148e3d73091e3d3a96142938e8d9a233ae76b54d7a6e1624fdbc"
+    },
+    {
+      "kind": "request",
+      "source_commit": "caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "scope": "Independently replay the weekly system-Python entry on full and shallow history. Check valid commits, known trees and blobs, null object IDs, genuine missing previews with and without matching proof, absent catalog, changed digest and differing selection. Ordinary and weekly consumers must make the same authority decision. Keep actual due-cycle qualification separate.",
+      "supersedes": "a893a1ed47805042455d88f0ed113441620eb5f0f8dacdfee314cd14208238ee",
+      "requested_at": "2026-11-26T04:10:33.563407+00:00",
+      "request_id": "1becfbe5747aeddb2f9742ce30923bb1de96d877c79540f100b4f10c32ea60a2",
+      "evidence_sha256": "bc23473c60e587f18ed1e214768c67f1f5f39ac8dc5931ce74609a56ad6edf2c"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "verdict": "approved",
+      "decision": "APPROVE M0-156 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "scope": "APPROVE M0-156 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "observation": "For Windows run 45546767887, the ordinary and weekly readers agreed in all 102 paired cases and rejected the all-zero checkout with and without proof.",
+      "reviewer": "Independent Astra Standard (t12w)",
+      "original_sha256": "a0a4a91e90292e27a4e78f5ce9c11efd900f37f13c05049940cdbdd7403ed5ca",
+      "response_id": "29ba083e5dee1028bf9d092e8ede8cf6bf7abea10beaa409b43e4711fdc4202d",
+      "response_sha256": "468160c57e76c07fe6771e113d3de0d643bc034ab674825314bf58c4debd07e4",
+      "legacy_response_sha256": "82a78d7846ecf2a19bdad982c0fe34c224d700c2f0862a1fbd3d4fd8b0c9f091",
+      "observation_body_sha256": "1ca7e13f1836dec926a246754733ad42c1c969b531ad9f2439393cc6529cfcc0",
+      "event": {
+        "id": "msg_09d12c7eeaa85891016b07b7f52a0487d2bfdbda9e58cab863",
+        "timestamp": "2026-11-26T04:39:27.502Z"
+      },
+      "supersedes": "1becfbe5747aeddb2f9742ce30923bb1de96d877c79540f100b4f10c32ea60a2",
+      "evidence_sha256": "7c53ce39c79fa4da3bda31749371992eeb5c50eed5670ab6a8360b12154417c1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "scope": "Independently replay the weekly system-Python entry on full and shallow history. Check valid commits, known trees and blobs, null object IDs, genuine missing previews with and without matching proof, absent catalog, changed digest and differing selection. Ordinary and weekly consumers must make the same authority decision. Keep actual due-cycle qualification separate. Recheck the original decision on caea2a0a.",
+      "supersedes": "29ba083e5dee1028bf9d092e8ede8cf6bf7abea10beaa409b43e4711fdc4202d",
+      "requested_at": "2026-11-26T05:01:43.248351+00:00",
+      "request_id": "dba47eae97852fa3d92b7a9a2a7e4e2109e923da84be6e023a7d36e688c8bffb",
+      "evidence_sha256": "8bd9fa3faf967971e0076f017ef7ed8f5eb7f46b93a4096260072ae2f5fff1dc"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "scope": "CHANGES_REQUESTED M0-156 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "observation": "In an offline replay of Windows run 45546767887, the weekly reader issued a full receipt for a merge proof whose first parent Git identified as a blob.",
+      "reviewer": "Independent Astra Standard (t13q)",
+      "original_sha256": "ed6c1d39080965eeab849b181c297de3a81e6c3a6da25f6475166202312151fa",
+      "response_id": "b39454cfbe6e664ad4ec98172c54a17ff026c1f8ddfb40885731c20494fc1923",
+      "response_sha256": "adec9f28fe7e09ddc0e5c8ae91cfbd886d49f4e9fdd54854e5bf91b7ddb2ea5a",
+      "legacy_response_sha256": "a3bd5c08d771b67381875d82c9cd498329298c22a5658d885ed0d5e590a8bc2e",
+      "observation_body_sha256": "40b14e17446cb6648c3005c853afad97a7438f2f45aab704f51731dd9e7fb4a6",
+      "event": {
+        "id": "msg_07a7f0596827323c016b07c4cfc40487d295c7ab568b346cbc",
+        "timestamp": "2026-11-26T05:34:23.083Z"
+      },
+      "supersedes": "dba47eae97852fa3d92b7a9a2a7e4e2109e923da84be6e023a7d36e688c8bffb",
+      "evidence_sha256": "323b0475438742613993d80defacc0dec5956d5776aaf90a60810e4f40a71d6e"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "scope": "Independently replay the weekly system-Python entry on full and shallow history. Check valid commits, known trees and blobs, null object IDs, genuine missing previews with and without matching proof, absent catalog, changed digest and differing selection. Ordinary and weekly consumers must make the same authority decision. Keep actual due-cycle qualification separate. Recheck the original decision on b12aefdc.",
+      "supersedes": "b39454cfbe6e664ad4ec98172c54a17ff026c1f8ddfb40885731c20494fc1923",
+      "requested_at": "2026-11-26T06:32:14.883320+00:00",
+      "request_id": "3d09b9d2a063068fd042c6ab747f39fac6ce1cb0027b3d9014eb5027e285f327",
+      "evidence_sha256": "e6f243ecd37c14ee0444ed5ea740e6a09f46f2e61344eed70888e813e0865bde"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "scope": "CHANGES_REQUESTED M0-156 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "observation": "On full and shallow history, the weekly reader issued a Windows receipt for run 45546767887 when the proof named the same commit as both merge parents and claimed a different tree.",
+      "reviewer": "Independent Astra Standard (t14r)",
+      "original_sha256": "0fd5c34a4277832d0a154a78485cb7bd74eb2aa7d503b6dd45b04d9e32c0641b",
+      "response_id": "6ab97c310d7ad197de746d5aa55bd50dee9057602fe5628d9d93381b47307f51",
+      "response_sha256": "429848a42249b7f6b735d34985df50ab69378e0ba92375a458ff640fcabc5bf6",
+      "legacy_response_sha256": "9b903afa499821c3ea738d3e423bcbb107dc578c129bdb64f37d7ce56249c429",
+      "observation_body_sha256": "d9229bf74f9b5fdb960bf0bd37239a3c61751fc9c64756e5b0e9db56493e1817",
+      "event": {
+        "id": "msg_0e73ad47729f9d22016b07dc79125087d29c82eff3a51d5f9b",
+        "timestamp": "2026-11-26T07:15:23.731Z"
+      },
+      "supersedes": "3d09b9d2a063068fd042c6ab747f39fac6ce1cb0027b3d9014eb5027e285f327",
+      "evidence_sha256": "eeee016f704b723c4c4ffb03194f2afa7588b41c8acfe7259e347e2ff34c7b89"
+    },
+    {
+      "kind": "request",
+      "source_commit": "39413fd304e8575605dc5b70a352d2e394ae1e35",
+      "scope": "Independently replay the weekly system-Python entry on full and shallow history. Check valid commits, known trees and blobs, null object IDs, genuine missing previews with and without matching proof, absent catalog, changed digest and differing selection. Ordinary and weekly consumers must make the same authority decision. Keep actual due-cycle qualification separate. Recheck the original decision on e00b088b.",
+      "supersedes": "6ab97c310d7ad197de746d5aa55bd50dee9057602fe5628d9d93381b47307f51",
+      "requested_at": "2026-11-26T12:29:23.501457+00:00",
+      "request_id": "1040e7a9020db67b20cd864adeab1a61d38482c06b8f9e726787bd1b0db59c77",
+      "evidence_sha256": "4abd6099868b933dcaa4ef869f3ffaf74109f3853220554d2d1e90128c88970c"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "39413fd304e8575605dc5b70a352d2e394ae1e35",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 39413fd304e8575605dc5b70a352d2e394ae1e35",
+      "scope": "CHANGES_REQUESTED M0-156 39413fd304e8575605dc5b70a352d2e394ae1e35",
+      "observation": "On full and shallow history, the weekly reader issued a Windows receipt for run 45546767887 even though the claimed merge tree contained a different verification workflow from both the event head and its direct parent.",
+      "reviewer": "Independent Astra Standard (t15q)",
+      "original_sha256": "817fde758fb208ad0900652c3738b911717b9f5abc7d577d464078e3276998e1",
+      "response_id": "5579f009e4395cc7d7f9d5e1578beddbc8016a6335f69b582200cf9d33530888",
+      "response_sha256": "5acfdd204bec82e89e8fbeba5a2d743314a62b464139fde567484cd689dd8426",
+      "legacy_response_sha256": "aae2a873fc5a7fe3bf5ff4452499e70c467c9ae3edfcb0dd71117613c79110f7",
+      "observation_body_sha256": "9393031a1fb58d817a920088b05ea829330a6df9aa85bdb51d0e0b23c2b952f0",
+      "event": {
+        "id": "msg_0bb5f1b36e973a55016b0829ac4dd887d19f09896244dc6b59",
+        "timestamp": "2026-11-26T12:44:40.794Z"
+      },
+      "supersedes": "1040e7a9020db67b20cd864adeab1a61d38482c06b8f9e726787bd1b0db59c77",
+      "evidence_sha256": "6a28104b7fcd0a119a6cb359a70968b410a86ef6d76d1ad0f3953a93e3d30830"
+    },
+    {
+      "kind": "request",
+      "source_commit": "3eeb59bc39219905204e6aab95bd16af4d22a65e",
+      "scope": "Independently replay the weekly system-Python entry on full and shallow history. Check valid commits, known trees and blobs, null object IDs, genuine missing previews with and without matching proof, absent catalog, changed digest and differing selection. Ordinary and weekly consumers must make the same authority decision. Keep actual due-cycle qualification separate. Recheck the original decision on e00b088b.",
+      "supersedes": "5579f009e4395cc7d7f9d5e1578beddbc8016a6335f69b582200cf9d33530888",
+      "requested_at": "2026-11-26T12:55:50.069957+00:00",
+      "request_id": "32b7845571a7c6cf28dc109f6a38ada8056cc62e77a28153faf38ab1a469d56b",
+      "evidence_sha256": "cbb97bbf4912980db451d2196949c6007c7d9e74ea6f8a6de2e2d22e56f845be"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "3eeb59bc39219905204e6aab95bd16af4d22a65e",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 3eeb59bc39219905204e6aab95bd16af4d22a65e",
+      "scope": "CHANGES_REQUESTED M0-156 3eeb59bc39219905204e6aab95bd16af4d22a65e",
+      "observation": "On full and shallow Git history, the weekly reader issued a Windows receipt for PR 84 when the proof retained both original parents but claimed the first parent’s tree instead of the event head’s tree.",
+      "reviewer": "Independent Astra Standard (t169)",
+      "original_sha256": "8e0f2ed83cdff79886509c51ea2fbe9b4a0c04ba8b708f417f29a360c652d346",
+      "response_id": "66fde46b442a611d46176179d16df40106dad3186b123f658d86813636fcee05",
+      "response_sha256": "589a72f7414780eeddd7f64d3d401e67ec90ce7b8fd954efd93cce0eebb1d167",
+      "legacy_response_sha256": "88edf6ae1dedbe2b35c58194b8d6453f887c7195d89b580380b0b7cdf6db8201",
+      "observation_body_sha256": "a6f65098e2bc92dfde9c70df78a60087e94c725f94e26ea873649800e8979219",
+      "event": {
+        "id": "msg_07f5228fef01ad4d016b082e054f1487d1b4159b6473de663e",
+        "timestamp": "2026-11-26T13:03:17.260Z"
+      },
+      "supersedes": "32b7845571a7c6cf28dc109f6a38ada8056cc62e77a28153faf38ab1a469d56b",
+      "evidence_sha256": "5098ece76c0e11be484345f67279ded953f88f75b56cd7757e3214acb0a13ce5"
+    },
+    {
+      "kind": "request",
+      "source_commit": "9ea5b5140042ac013e022c2edd7d0a79e93fee67",
+      "scope": "Independently replay the weekly system-Python entry on full and shallow history. Check valid commits, known trees and blobs, null object IDs, genuine missing previews with and without matching proof, absent catalog, changed digest and differing selection. Ordinary and weekly consumers must make the same authority decision. Keep actual due-cycle qualification separate. Recheck the original decision on e00b088b.",
+      "supersedes": "66fde46b442a611d46176179d16df40106dad3186b123f658d86813636fcee05",
+      "requested_at": "2026-11-26T13:20:04.718672+00:00",
+      "request_id": "b3b0a797a82bc90700d18ec054328046e742b2c2de337254585b60eede1c8d8c",
+      "evidence_sha256": "8ef6b74599ea0bea2e5e4e6298cdc052f7fb46af727f8a750de0724676a15cf7"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "9ea5b5140042ac013e022c2edd7d0a79e93fee67",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 9ea5b5140042ac013e022c2edd7d0a79e93fee67",
+      "scope": "CHANGES_REQUESTED M0-156 9ea5b5140042ac013e022c2edd7d0a79e93fee67",
+      "observation": "With the objects from a depth-two Git fetch, the weekly reader issued a Windows receipt for PR 84 when the proof claimed the intermediate commit’s tree and retained both original parents.",
+      "reviewer": "Independent Astra Standard (t176)",
+      "original_sha256": "571bb0c4d9eb02cb0ef913b18c24c126f62d5202dcb3035364c9ee62a2954cf1",
+      "response_id": "36c13ceef43ce8d2deed8184ef76e5606034544cc6400410534f6085f71d06a8",
+      "response_sha256": "c5c370772dfb6739d485ae92eb59d754e036bc957e7e10351db4fc4772ec7115",
+      "legacy_response_sha256": "8d1ea2a4ba5df5b125cc07df38d9b33354420094fde8f39f670c7948dab975bf",
+      "observation_body_sha256": "a43b0d88f11456996a6fba8e73db1f13c0370a184ed9c8d04dd1da9ccbc6578d",
+      "event": {
+        "id": "msg_0671016ddfd29af0016b083493fdcc87d190a19ce343133126",
+        "timestamp": "2026-11-26T13:31:23.655Z"
+      },
+      "supersedes": "b3b0a797a82bc90700d18ec054328046e742b2c2de337254585b60eede1c8d8c",
+      "evidence_sha256": "50ca7c5907f426d715880dd2d3c1d832c5a7a86d5481ffc55f0229b9bcf1694b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "438302ef9ebb720039a5f0dd77e6b051c5010560",
+      "scope": "Independently replay the weekly system-Python entry on full and shallow history. Check valid commits, known trees and blobs, null object IDs, genuine missing previews with and without matching proof, absent catalog, changed digest and differing selection. Ordinary and weekly consumers must make the same authority decision. Keep actual due-cycle qualification separate.",
+      "supersedes": "36c13ceef43ce8d2deed8184ef76e5606034544cc6400410534f6085f71d06a8",
+      "requested_at": "2026-11-26T13:58:57.506195+00:00",
+      "request_id": "ba3b3053b1108f97ae4ca13fd3baa245301ac7aaf0a27d60cbf8cab6db7d9d26",
+      "evidence_sha256": "c4a4659a9bda045a3a0fb9acae1c75e577b59ef47f24bfb75d367e0c0b7c6819"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "438302ef9ebb720039a5f0dd77e6b051c5010560",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 438302ef9ebb720039a5f0dd77e6b051c5010560",
+      "scope": "CHANGES_REQUESTED M0-156 438302ef9ebb720039a5f0dd77e6b051c5010560",
+      "observation": "At Git depth two, the weekly reader issued a Windows receipt for PR 84 when the claimed checkout was a provable ancestor of the event head, both with and without the merge proof.",
+      "reviewer": "Independent Astra Standard (t17x)",
+      "original_sha256": "797bfa07054036c85a1c623830121920d1104d2e0aa2123e8d7f9c1b12d3ca52",
+      "response_id": "b01f1cae1fb601987dad1c77e61609b45190b928cb66d5b7065025848e8006d2",
+      "response_sha256": "a7a6aba51396a952d5a2c8e097df3eccc0bedab700525e6afdd4258ea396dc38",
+      "legacy_response_sha256": "59e785fba4ee265a24a7acb7a826bb58bef3b847943636023307939fa3e465c1",
+      "observation_body_sha256": "5f2a8ad6dd288d7a6f55476e7e0b507eba52787ccee76117f9299f4cacfbafde",
+      "event": {
+        "id": "msg_04015f7f0cf3409e016b083c75a66487d1a7d21bb21eeb4edd",
+        "timestamp": "2026-11-26T14:04:59.078Z"
+      },
+      "supersedes": "ba3b3053b1108f97ae4ca13fd3baa245301ac7aaf0a27d60cbf8cab6db7d9d26",
+      "evidence_sha256": "ea2ff0885a84aab0984373268607152bb78fccad4c71a4901f44b5f128467d8b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "da5d83da108ab15a6e10965452457457390899a0",
+      "scope": "Independently review PR checkout qualification using real shallow Git and a fresh ancestry pair. Compare genuine expired previews with a provable event-head ancestor, both with and without the merge proof. Verify ordinary, offline weekly and fresh archive reads and preserve independent Action job clocks.",
+      "supersedes": "b01f1cae1fb601987dad1c77e61609b45190b928cb66d5b7065025848e8006d2",
+      "requested_at": "2026-11-26T14:21:27.552746+00:00",
+      "request_id": "1f8698026331035846c001702bd73f117e6e5174cac0a8ecf7aa4554e715f96a",
+      "evidence_sha256": "064f8e4bb4ce8be94addbae6d5115fdf86fa9301bba378f0a5e9ead846c72108"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "da5d83da108ab15a6e10965452457457390899a0",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 da5d83da108ab15a6e10965452457457390899a0",
+      "scope": "CHANGES_REQUESTED M0-156 da5d83da108ab15a6e10965452457457390899a0",
+      "observation": "In a depth-18 replay of PR 84, the weekly reader issued a Windows receipt for a provable ancestor of the event head, both with and without the merge proof.",
+      "reviewer": "Independent Astra Standard (t18j)",
+      "original_sha256": "9c2228ff1b3b568240ac6c084781b08d0dd305f1533fec6f32f17eb3201c2463",
+      "response_id": "25517bc3a3195e8fdd80b295702c917ff00db428e215907fac3291c339d07634",
+      "response_sha256": "4ddedfb52475bcfeb20b05d4b88bd8377ae92553718e2ba8d8f58d773d3be04a",
+      "legacy_response_sha256": "546d4825263be000b039ddd05c24410d6158f1f5d0d1dde0bc81c4e06312ff53",
+      "observation_body_sha256": "c84165b8357e2ebbdf8b5c31d8faaad402e8f014362571bbdf4c1af33ee26d6c",
+      "event": {
+        "id": "msg_08c7850f7ce8ff6d016b084280f1e487d2a864cb7caded2d5a",
+        "timestamp": "2026-11-26T14:30:42.265Z"
+      },
+      "supersedes": "1f8698026331035846c001702bd73f117e6e5174cac0a8ecf7aa4554e715f96a",
+      "evidence_sha256": "c385b251a69ae204313eb08ebf6c4cda86c70237bc677a3ecf8d48c93e1d9f96"
+    },
+    {
+      "kind": "request",
+      "source_commit": "318f54c82e50a38c4310724b55e3e9ee6539afb8",
+      "scope": "Independently qualify shallow checkout provenance, incomplete ancestry, retained proof and separately observed clocks.",
+      "supersedes": "25517bc3a3195e8fdd80b295702c917ff00db428e215907fac3291c339d07634",
+      "requested_at": "2026-11-26T14:56:24.854749+00:00",
+      "request_id": "3aa12f7bdfa6fd5e7348150b7221e770429e96b163f9fecb8de0f347ac3f9ab2",
+      "evidence_sha256": "c9c43695584c5091f1aa8e9b09fcde3cfc44bdde322b4e6edbd1a2dbe2a56b49"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "318f54c82e50a38c4310724b55e3e9ee6539afb8",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 318f54c82e50a38c4310724b55e3e9ee6539afb8",
+      "scope": "CHANGES_REQUESTED M0-156 318f54c82e50a38c4310724b55e3e9ee6539afb8",
+      "observation": "For PR 133, the offline weekly reader issued a Linux receipt for a checkout that Git identifies as a direct parent of the event head, both with and without the retained merge proof.",
+      "reviewer": "Independent Astra Standard (t18y)",
+      "original_sha256": "49ba04783ba50c023d1d2139b08c64d4e11c135f8c7411dd692fbf1977821250",
+      "response_id": "dafb45deb351103ef9774be22f118f2b78af9c94bb508afd548879555ff8f671",
+      "response_sha256": "b6273b082f361f2cb0b85e848d44f767898aefb99278959aaec4a1461dfee4c3",
+      "legacy_response_sha256": "7783e374fff73c411c50d728bffd6eb63553dd38ef4a281394fb3b0c00766e4c",
+      "observation_body_sha256": "16fe523a78035d91bf73406d3affdb741c851510bd009db0c141363c005c9d25",
+      "event": {
+        "id": "msg_09abeeb7a709e600016b0849e3776487d18fa55668f8d92feb",
+        "timestamp": "2026-11-26T15:02:16.900Z"
+      },
+      "supersedes": "3aa12f7bdfa6fd5e7348150b7221e770429e96b163f9fecb8de0f347ac3f9ab2",
+      "evidence_sha256": "f7ca0de2c6033b3ccf40cd4dadf5fad35cbf289c34e79a53bbbf34faa3dcb4f5"
+    },
+    {
+      "kind": "request",
+      "source_commit": "de7e2376d216e0fe943c1301c336ef837b58c48a",
+      "scope": "Independently qualify shallow checkout provenance, incomplete ancestry, retained proof and separately observed clocks. Check whether an excluded Linux producer can change Windows credit, compare proven parent and missing shallow histories, and verify independent observed clocks. Use the previous rejection and the archived originals for PR 96 and the later actual first-attempt run 45838575346, with all seven original jobs. Verify both protected-parent semantics survived the composition and use an independent rejected control.",
+      "supersedes": "dafb45deb351103ef9774be22f118f2b78af9c94bb508afd548879555ff8f671",
+      "requested_at": "2026-11-26T15:31:04.233453+00:00",
+      "request_id": "e7e152d9a6654aaeb7ed7cef11bb57eef07e91f1d5dc0eede72c659e792fb63d",
+      "evidence_sha256": "e53bb39e23b7556429923813a109a32be5ef66d4f902e737033d129c00844adf"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "de7e2376d216e0fe943c1301c336ef837b58c48a",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 de7e2376d216e0fe943c1301c336ef837b58c48a",
+      "scope": "CHANGES_REQUESTED M0-156 de7e2376d216e0fe943c1301c336ef837b58c48a",
+      "observation": "When ancestry enumeration was unavailable in the PR 133 replay, adding the Linux ancestor report removed the genuine Windows receipt.",
+      "reviewer": "Independent Astra Standard (t19t)",
+      "original_sha256": "c2fbdb2fe6cd197b39ba3a5780558dc3539cfaa2bd0a128cf001348d843c9cd1",
+      "response_id": "8c1c9c071bacf253782f1f9d64df98e78cddaee41cc58fb4115ce4b4c4dec613",
+      "response_sha256": "8232a77291752725e616232db83d8b130f65fcda555d617b5a401cf81ebfa451",
+      "legacy_response_sha256": "99350441a110dbb74f512da60f5dbec5ac440bae7c36b8e71d6ef3c4eec8286d",
+      "observation_body_sha256": "450018b46b955838d52b6e79968cb263b3519325ae4e20e793d3ad4c5210e0b2",
+      "event": {
+        "id": "msg_0188e1a6b849f68d016b08533865e487d2af6b8adee8ff1daa",
+        "timestamp": "2026-11-26T15:42:06.837Z"
+      },
+      "supersedes": "e7e152d9a6654aaeb7ed7cef11bb57eef07e91f1d5dc0eede72c659e792fb63d",
+      "evidence_sha256": "ea6e3c90becd35927e01771a0157dfa65330375ee8d6a09d23e78d84e62168d0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "4c4865fa8db31cd57c84a8061d8abc00e03d1a01",
+      "scope": "Independently qualify shallow checkout provenance, incomplete ancestry, retained proof and separately observed clocks. Check whether an excluded Linux producer can change Windows credit, compare proven parent and missing shallow histories, and verify independent observed clocks. Use the previous rejection and the archived originals for PR 96 and the later actual first-attempt run 45838575346, with all seven original jobs. Verify both protected-parent semantics survived the composition and use an independent rejected control.",
+      "supersedes": "8c1c9c071bacf253782f1f9d64df98e78cddaee41cc58fb4115ce4b4c4dec613",
+      "requested_at": "2026-11-27T02:45:59.584193+00:00",
+      "request_id": "bb1efc8f7d512ba4e5c8d143876dcd212336a2f02d8cf16bbec02b0c7a151d4d",
+      "evidence_sha256": "004f2ae5748fdc9e54d4d2954f0f2d850a046d8ca51a34a397768da99a3f0b9f"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "4c4865fa8db31cd57c84a8061d8abc00e03d1a01",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 4c4865fa8db31cd57c84a8061d8abc00e03d1a01",
+      "scope": "CHANGES_REQUESTED M0-156 4c4865fa8db31cd57c84a8061d8abc00e03d1a01",
+      "observation": "Removing the input digest from a late Linux report with a conflicting checkout caused PR 96 to lose its genuine Windows receipt.",
+      "reviewer": "Independent Astra Standard (t1b6)",
+      "original_sha256": "8769bcf3750fc1218acc17a84953ceea8a17e820290bd92b11913a5d6989c2d1",
+      "response_id": "7a1ae5d951f60ca924a96fbed4d6030d9b61017dd23c23c8f385adf546877356",
+      "response_sha256": "1910f0d6469af3bb65d3233cf0776bd025f18321af12dc07a6c6428f05a70bc5",
+      "legacy_response_sha256": "c5261ec0f5eaab043cefb927c8a65053c19babbcdce1ac05f3753c0c22cd6a52",
+      "observation_body_sha256": "6821d15a648c6057f89f01a0f5ba8d4be31799232e1065b948773bfee2bb0c98",
+      "event": {
+        "id": "msg_04ac0bfddd71aef0016b08f06e037c87d0ab14921344af816c",
+        "timestamp": "2026-11-27T02:52:56.905Z"
+      },
+      "supersedes": "bb1efc8f7d512ba4e5c8d143876dcd212336a2f02d8cf16bbec02b0c7a151d4d",
+      "evidence_sha256": "3dd6ca044f7326084577bad2a74308fe9eee0ba4809a0866b5227afbf4b72fc7"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b6cd4be5ccb66c7eaad60cfc2ac81c97e51f63fa",
+      "scope": "Independently qualify shallow checkout provenance, incomplete ancestry, retained proof and separately observed clocks. Check whether an excluded Linux producer can change Windows credit, compare proven parent and missing shallow histories, and verify independent observed clocks. Use the previous rejection and the archived originals for PR 96 and the later actual first-attempt run 45838575346, with all seven original jobs. Verify both protected-parent semantics survived the composition and use an independent rejected control.",
+      "supersedes": "7a1ae5d951f60ca924a96fbed4d6030d9b61017dd23c23c8f385adf546877356",
+      "requested_at": "2026-11-27T03:12:15.426427+00:00",
+      "request_id": "c0a01707d55bb07e03d74ba06375ed7cccb4ab359cb5b62972ef87178ae51c19",
+      "evidence_sha256": "4325112d0797da83332e1d4a01129c90f59d55d23a26a549d7081880ff683453"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b6cd4be5ccb66c7eaad60cfc2ac81c97e51f63fa",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 b6cd4be5ccb66c7eaad60cfc2ac81c97e51f63fa",
+      "scope": "CHANGES_REQUESTED M0-156 b6cd4be5ccb66c7eaad60cfc2ac81c97e51f63fa",
+      "observation": "Reopening the PR 96 archive with a Linux report whose start and end commits disagreed removed both genuine receipts when its source_unchanged flag was true.",
+      "reviewer": "Independent Astra Standard (t1br)",
+      "original_sha256": "b2f0bf1639a69013da840b6c56d75ec5e0f25e0b2f0c46d2cb4a2e2dbb1a7a08",
+      "response_id": "f681697c1402ff65cd34fc2242c2c9f88a621252d33f3037c06de1a37b575a20",
+      "response_sha256": "071c85101c13da0ddfde39a65327d4a471e813e4738f2462485d7b6acb92b594",
+      "legacy_response_sha256": "6b2b16b6ec1635461cd527ebeb8fc19a2e7250fcca9fe5c45d3e3d63ddb7268e",
+      "observation_body_sha256": "9e16ea28cefaef343cb6bc36b471aa1906bfd5d6fc980089710d0167115891a8",
+      "event": {
+        "id": "msg_08012978ecc80f68016b08f707a77887d093c5401260eae9b5",
+        "timestamp": "2026-11-27T03:21:14.999Z"
+      },
+      "supersedes": "c0a01707d55bb07e03d74ba06375ed7cccb4ab359cb5b62972ef87178ae51c19",
+      "evidence_sha256": "f6d7519ec16d81188c715374b70cbca56e6943625a9f5785de637ba18a4dfdee"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "Check whether a report with contradictory start and end commits can withdraw independently qualified evidence from the PR 96 weekly archive. Compare the two original receipt digests and the native Windows 876-second wall and 2584 runner-seconds. Keep genuinely absent historical optional fields and records that discarded an endpoint distinguishable.",
+      "supersedes": "f681697c1402ff65cd34fc2242c2c9f88a621252d33f3037c06de1a37b575a20",
+      "requested_at": "2026-11-27T03:36:24.929949+00:00",
+      "request_id": "38b3c704e1fd1ab117181e80c5c3946ea88992bb7391a6236b6cf72737dca33e",
+      "evidence_sha256": "f9ae15ac3194524c0003270d5e3715348df88f579d3059a61d3dd7934d061ace"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-156 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "APPROVE M0-156 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "observation": "Reopening the PR 96 weekly archive with a Linux report whose start and end commits disagreed preserved both original receipt digests and the Windows measurements of 876 wall seconds and 2584 runner-seconds.",
+      "reviewer": "Independent Astra Standard (t1by)",
+      "original_sha256": "f1a77e2b0e9fb16a0db4a6e26882dc7326631e497fa2ffde13a189bbc9c54311",
+      "response_id": "3d3b9b91047566681736eab7d01f3b40b456a310edce5c676e32c672ce889565",
+      "response_sha256": "d06951dc8e20ba6c6172c6e026debc70a352b7cadf50242b6e87fbdf2bd7771c",
+      "legacy_response_sha256": "d84359ac0d3cd49a31c8083adec1f9452eb47dc0f5d57359330744d5c16b2ddb",
+      "observation_body_sha256": "dfcb09042b951512927efa5e2314b25404c4c3cfc68b6ca2b2843260151af850",
+      "event": {
+        "id": "msg_07a2ef30795fbb28016b08fb380c2487d0a7eb30acf6b8c9f1",
+        "timestamp": "2026-11-27T03:38:50.069Z"
+      },
+      "supersedes": "38b3c704e1fd1ab117181e80c5c3946ea88992bb7391a6236b6cf72737dca33e",
+      "evidence_sha256": "dd7e7245956d9df99f57bf2deec9a148fd09c683b436d1de9c927597786cc51b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "scope": "Verify the two temporary Git fixture repairs against the retained Windows executions and confirm the timing-reader contract and failure diagnostics are preserved.",
+      "supersedes": "3d3b9b91047566681736eab7d01f3b40b456a310edce5c676e32c672ce889565",
+      "requested_at": "2026-11-27T04:25:45.207829+00:00",
+      "request_id": "aeb166d0203edd6c15d88b4f598162ba61cb09f6f7b9fac5d3461f30aa2872ac",
+      "evidence_sha256": "29c830fe95bd2eca1e9590b9354fc2214f94bbdfe31e1fbf0c790b0c3e071266"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-156 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "scope": "APPROVE M0-156 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "observation": "The isolated Windows guest reproduced both WinError 5 failures on the old fixture and passed the same two tests with fixture bytes identical to the reviewed commit.",
+      "reviewer": "Independent Astra Standard (t1cr)",
+      "original_sha256": "d93f54f9ab3d489f22a3824318c5a2912a466d7ee33719bcbd4e1f9435eb44a1",
+      "response_id": "3d2549896545b4b94a57f737c770d79612d500c6022ee299d62d63c6c68164d3",
+      "response_sha256": "f36d6b6005d8f81d0437d06950b275f7ae0a8a41d2034358405e2bf814c089bc",
+      "legacy_response_sha256": "61081c704c9aeedfd73ae7d541a817ae0a17af92c9663fb125f17c919e046940",
+      "observation_body_sha256": "729ffd321ba28deb90acee9fcd1f38a188eeee7b5709365872f9e1cec388bf53",
+      "event": {
+        "id": "msg_05e364bd45d8335b016b0906a8576487d0ac25b85ba2dcda90",
+        "timestamp": "2026-11-27T04:27:41.473Z"
+      },
+      "supersedes": "aeb166d0203edd6c15d88b4f598162ba61cb09f6f7b9fac5d3461f30aa2872ac",
+      "evidence_sha256": "2edd832c5ee3da1a47b4fd3f28b50892eca794db03c4b99b07aad376317d3fb0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e6f12373277d8aa05a734a1a1c9648f0cf489577",
+      "scope": "Weekly standard-library reader, portable historical checkout resolution, and observation freshness and receipts.",
+      "supersedes": "3d2549896545b4b94a57f737c770d79612d500c6022ee299d62d63c6c68164d3",
+      "requested_at": "2026-11-27T09:24:41.767140+00:00",
+      "request_id": "afa8fe743b9655e095c7ce479b2ef65b08ee61ec7ebce820ce31aa9a2453d853",
+      "evidence_sha256": "eaebaad740ce69135af2c603d5ab2586d4ea6731dc87324e410b49fb30e9aa0a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e6f12373277d8aa05a734a1a1c9648f0cf489577",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 e6f12373277d8aa05a734a1a1c9648f0cf489577",
+      "scope": "CHANGES_REQUESTED M0-156 e6f12373277d8aa05a734a1a1c9648f0cf489577",
+      "observation": "Reversing the order of the same two PR 96 archives on cold reopen changed the reported receipt count from zero to two.",
+      "reviewer": "Independent Astra Standard (t1gd)",
+      "original_sha256": "641a69075a2f88dcc5c9a04b3e235428f684bea8a112458fbd74f934a3f89eb7",
+      "response_id": "02a76a8bcd84033c337e3834a042795108856a239ed1c04c5f4c2e0e1d530601",
+      "response_sha256": "d5f6d8d56d538d28d825557b28bc983a0486afa9f22cb163fefac3f0ff46a7a4",
+      "legacy_response_sha256": "3ae41dde5f7469c6ae1990b262e2e420977fccb77ae348bb26487cc460963d35",
+      "observation_body_sha256": "39b9afd9de29df13c3e00d8b163d5eb2cd6b8f8d41beb028c4ffc121a0d0af2d",
+      "event": {
+        "id": "msg_07104caaa33d6f45016b094e53314487d098ff46f48d7b79e1",
+        "timestamp": "2026-11-27T09:33:24.622Z"
+      },
+      "supersedes": "afa8fe743b9655e095c7ce479b2ef65b08ee61ec7ebce820ce31aa9a2453d853",
+      "evidence_sha256": "8a1afd774108b3b0a5550b581c033ea63bb578f65fa7626638419295785ffd8a"
+    },
+    {
+      "kind": "request",
+      "source_commit": "1024b35f34c1065dc4f75389e78a4d699d32627b",
+      "scope": "Weekly standard-library reader, portable historical checkout resolution, and observation freshness and receipts.",
+      "supersedes": "02a76a8bcd84033c337e3834a042795108856a239ed1c04c5f4c2e0e1d530601",
+      "requested_at": "2026-11-27T09:51:09.605232+00:00",
+      "request_id": "7fcc3136d999d2fd89a4b6142cf46735e1020ee64b94cd3649ac6120721ba3fa",
+      "evidence_sha256": "5a256f857348ca00af3dd5b7341835431352f1cb487d30d3e9ff4bbed4af7bca"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "1024b35f34c1065dc4f75389e78a4d699d32627b",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 1024b35f34c1065dc4f75389e78a4d699d32627b",
+      "scope": "CHANGES_REQUESTED M0-156 1024b35f34c1065dc4f75389e78a4d699d32627b",
+      "observation": "The reader on protected main exited with code 1 when generating a summary from the candidate’s saved PR 96 archive with uncertain collection order.",
+      "reviewer": "Independent Astra Standard (t1h2)",
+      "original_sha256": "77298cc063b174a8dc074ac0efe1c886a758ff0cad5d9c45466b3e7cd6028135",
+      "response_id": "e2af10b8162851c42bd26aab054850891a4cd36149ecb01ff7d49153fec4577b",
+      "response_sha256": "74cc2ca42749f02f885a9a9ea904fac0ff2d425fee9436ffaca03845b1e482b3",
+      "legacy_response_sha256": "c0b4b0456efa2c05ce0fe5758ac204c030d541b9cb2281ef41d5066ba0559fe7",
+      "observation_body_sha256": "4d13abfaf2381f8cd60ac139797a1ad41dab4bd744d20a537f323c8c43c8f422",
+      "event": {
+        "id": "msg_0e930d9c5ac7b83f016b09540b837887d0b49e194e22e9f7b9",
+        "timestamp": "2026-11-27T09:57:52.214Z"
+      },
+      "supersedes": "7fcc3136d999d2fd89a4b6142cf46735e1020ee64b94cd3649ac6120721ba3fa",
+      "evidence_sha256": "fb280ae1debfed2e5d5e084f502087c096d3fa2349c5ee90582deb1e89b9fe2c"
+    },
+    {
+      "kind": "request",
+      "source_commit": "17cd39cfc82e095f341f9b2f3a4c20022e36996d",
+      "scope": "Weekly standard-library reader, portable historical checkout resolution, and observation freshness and receipts.",
+      "supersedes": "e2af10b8162851c42bd26aab054850891a4cd36149ecb01ff7d49153fec4577b",
+      "requested_at": "2026-11-27T10:17:02.042577+00:00",
+      "request_id": "d2d34766f6aa540a52e4061ec6ee72e1d5f3d4875d7f84412a5631ad5d26ff0c",
+      "evidence_sha256": "829a0106b0eb1abdedccae0b68a18ccd9fe80e02e492666a9fd8e25ebd88516a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "17cd39cfc82e095f341f9b2f3a4c20022e36996d",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 17cd39cfc82e095f341f9b2f3a4c20022e36996d",
+      "scope": "CHANGES_REQUESTED M0-156 17cd39cfc82e095f341f9b2f3a4c20022e36996d",
+      "observation": "On cold replay, the reader credited both copied PR 96 receipts to a collection that explicitly listed that run as missing its compact reports.",
+      "reviewer": "Independent Astra Standard (t1hm)",
+      "original_sha256": "98ace9685b498c19111767eaffbe8da5971f9c4f36199dbbdcfff5b29710efb4",
+      "response_id": "b31f0937dd8d9f6093ae44796940d9263d259ce4ef040e925a291b87961edef6",
+      "response_sha256": "b676aac1dc3ded7b2d1350fa225297cd20586d8a367077c08ece97564c4e3ba9",
+      "legacy_response_sha256": "f3657ef3b58e9787c530edca3b3ac7d573c4bdd502539e88cc48c620c4fbc4cf",
+      "observation_body_sha256": "51077a68d4f956b9d3c02035e72d7b3add98ff718dcaaf390c6ab0ddb2e99ad9",
+      "event": {
+        "id": "msg_0135b69668947560016b095b7f311c87d0ab078d2fb20bb0bd",
+        "timestamp": "2026-11-27T10:29:37.303Z"
+      },
+      "supersedes": "d2d34766f6aa540a52e4061ec6ee72e1d5f3d4875d7f84412a5631ad5d26ff0c",
+      "evidence_sha256": "dcd409f541f95ed6e81f4949ea81bbf09bc120b967e20bd0a1cae41001642259"
+    },
+    {
+      "kind": "request",
+      "source_commit": "6491b83725eb2b1ac60ebe2e6854f51941fe6e83",
+      "scope": "Weekly standard-library reader, portable historical checkout resolution, and observation freshness and receipts.",
+      "supersedes": "b31f0937dd8d9f6093ae44796940d9263d259ce4ef040e925a291b87961edef6",
+      "requested_at": "2026-11-27T10:49:18.545049+00:00",
+      "request_id": "cc844b42920af454e14f232b6a6bf08778e289e59171172ea67f68dd1c696ce9",
+      "evidence_sha256": "958dac12a4098010b4d9bfbe5b17c808861a7819158194298a9cfbf76fb019bc"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "6491b83725eb2b1ac60ebe2e6854f51941fe6e83",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 6491b83725eb2b1ac60ebe2e6854f51941fe6e83",
+      "scope": "CHANGES_REQUESTED M0-156 6491b83725eb2b1ac60ebe2e6854f51941fe6e83",
+      "observation": "Cold replay credited a copied PR 96 Windows receipt even though the legacy collection downloaded only the Linux report for that run.",
+      "reviewer": "Independent Astra Standard (t1hv)",
+      "original_sha256": "40ac0ae6989688d64f87e65949fb93e53471dd4836c365f4ee56506bdefaa6e9",
+      "response_id": "17a9fd950c455692d84f250eb5602605675fcc8cbd7dd39c12a5f5c2d2b97974",
+      "response_sha256": "01c1f5f6d941502a729375e09ecea8630134c89bf7d1ba0bbdb639f6bc6e276a",
+      "legacy_response_sha256": "414a397e0b3eb0c25115a13a57d1778ac750d0b8befcfdab79e8e001b40741db",
+      "observation_body_sha256": "6a0a34098e15bbd9a8e0aafd5be3182fdce8a0093ebc49e562843732738f742c",
+      "event": {
+        "id": "msg_088c71b56b4231b7016b096215947487d0ad7895593aba8b00",
+        "timestamp": "2026-11-27T10:57:46.198Z"
+      },
+      "supersedes": "cc844b42920af454e14f232b6a6bf08778e289e59171172ea67f68dd1c696ce9",
+      "evidence_sha256": "2f22307266584b9065c19d06e8c20f01f1da83f623d93cb9bcd21fb3a774d8cb"
+    },
+    {
+      "kind": "request",
+      "source_commit": "343bb62e8ef179abf4fa9f98bd960e3066070a19",
+      "scope": "Weekly standard-library reader, portable historical checkout resolution, and observation freshness and receipts.",
+      "supersedes": "17a9fd950c455692d84f250eb5602605675fcc8cbd7dd39c12a5f5c2d2b97974",
+      "requested_at": "2026-11-27T11:13:06.015293+00:00",
+      "request_id": "d8fe6c6348a619372fc207b3162e044d2b17f3d925de1e674f652df0d5609fce",
+      "evidence_sha256": "030974f143f95b37f48634b51d8feed366d7322e63e22127b9a8480eb14bab61"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "343bb62e8ef179abf4fa9f98bd960e3066070a19",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 343bb62e8ef179abf4fa9f98bd960e3066070a19",
+      "scope": "CHANGES_REQUESTED M0-156 343bb62e8ef179abf4fa9f98bd960e3066070a19",
+      "observation": "Reordering one genuine PR 96 capture and two copies with invalid boolean counts produced either two receipts or zero, and a cold reread preserved both outcomes.",
+      "reviewer": "Independent Astra Standard (t1j7)",
+      "original_sha256": "7bb6a52b6b9aab9fde6149fc3b7512df65244d50ae914a099e1d92d1381e2d1b",
+      "response_id": "004675c183db68922f5e715357c4338222055ab072e174d36c59a9cd105164b1",
+      "response_sha256": "bc2051cd553d4c98663c45f5b9a788fe9520799beeba4e831a047f3ccb2f7462",
+      "legacy_response_sha256": "23c66708a4fa3cb45c0758e86ce0be404cc54e6dd90a7d399629e64ea6e378d6",
+      "observation_body_sha256": "b6b688fb470aa0670ba976c7fba4d50c2c4f3a1bc16653552455d9e11b5c3760",
+      "event": {
+        "id": "msg_0bdd3f754c34d557016b096755599c87d0b761c1a540561a1d",
+        "timestamp": "2026-11-27T11:20:10.929Z"
+      },
+      "supersedes": "d8fe6c6348a619372fc207b3162e044d2b17f3d925de1e674f652df0d5609fce",
+      "evidence_sha256": "aa5b4369679b55731b979f23dd9140f20b6c4b54975b757bd0bab9fa468b0d3b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "fea9a19095db891b76a2f30d8ee65763c2e880fe",
+      "scope": "Weekly standard-library reader, portable historical checkout resolution, and observation freshness and receipts.",
+      "supersedes": "004675c183db68922f5e715357c4338222055ab072e174d36c59a9cd105164b1",
+      "requested_at": "2026-11-27T11:41:34.751932+00:00",
+      "request_id": "d2ea0e5de0e374dd0017e3d57b042aa2b35052d3f8876234f56f0a211b6aa176",
+      "evidence_sha256": "7c2a2dbc659a45ff6ff8cc5292065ee3465ce76e3810ca7d849fcaa172211e7d"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "fea9a19095db891b76a2f30d8ee65763c2e880fe",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 fea9a19095db891b76a2f30d8ee65763c2e880fe",
+      "scope": "CHANGES_REQUESTED M0-156 fea9a19095db891b76a2f30d8ee65763c2e880fe",
+      "observation": "Changing only the unsuccessful run count from zero to two in a copy of the PR 96 and push capture caused both input orders to lose all four receipts after a cold reopen.",
+      "reviewer": "Independent Astra Standard (t1jp)",
+      "original_sha256": "19cf6121416c1c112ca4b1654eab7b6ca2aa1fd8eb80e2d0a27099515b174d2a",
+      "response_id": "62174a56e2a216b46346893fcb5b8c3ae0e46049001806a8d64496a42850575f",
+      "response_sha256": "d589553e7d74e66a4eb234d0e7abb197d9aff2a9e7975f87cfb5f1cd984013e6",
+      "legacy_response_sha256": "92962835812eaec9b54d5850e417ee640d5a9bddbeae6d3bd8bfff1cbac54ccb",
+      "observation_body_sha256": "ce6519abc0efedf87cdda4dc19f8621389f7d55ead3019de7aed468b5b5d9ceb",
+      "event": {
+        "id": "msg_067250e2bfc29cbb016b096ea0deb487d0b595403655f24618",
+        "timestamp": "2026-11-27T11:51:27.355Z"
+      },
+      "supersedes": "d2ea0e5de0e374dd0017e3d57b042aa2b35052d3f8876234f56f0a211b6aa176",
+      "evidence_sha256": "1c697eff89b3f3845b77a3f332b4c75156dcae701d3cee180556be70d28416d0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "829afd0b33d48304011d8e4c093a43874d517c57",
+      "scope": "Audit member-run authority, corroboration-only contradictions, all valid receipts and independent clocks on genuine PR 96 and push, same-time disputes, later valid partial collection, cold reopen and the previously identified PR 84 coverage and checkout controls.",
+      "supersedes": "62174a56e2a216b46346893fcb5b8c3ae0e46049001806a8d64496a42850575f",
+      "requested_at": "2026-11-28T02:10:52.982406+00:00",
+      "request_id": "770bc595ff5708f8979e01ce0fda3f997cc91629b44e88b98eb4447a8e349da7",
+      "evidence_sha256": "d1a29570f54c74e4fda9495b0a161c727bd4642fc4a98955ebaaf45bb84f2294"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "829afd0b33d48304011d8e4c093a43874d517c57",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 829afd0b33d48304011d8e4c093a43874d517c57",
+      "scope": "CHANGES_REQUESTED M0-156 829afd0b33d48304011d8e4c093a43874d517c57",
+      "observation": "Changing the unsuccessful run count from zero to one erased both push receipts after cold reopen in either input order, although both member attempts had recorded successful outcomes.",
+      "reviewer": "Independent Astra Standard (t1k8)",
+      "original_sha256": "8964ad02361b4b9e35f46cb916df4567649b1390109931968c898bfd28d23635",
+      "response_id": "54ea1cfaa5139dbbaf488af03e021b7cc3bb72c08ae9ff6902d53caf44a6bcf0",
+      "response_sha256": "126f333daf9fbc9c033b4d8c3441c6c58a8fe60882256bb56ca22d937259f065",
+      "legacy_response_sha256": "5d151cbfe3a44cc2fee64a8e4edd3bf5b6857134d29e4d3499f4692e5d956a84",
+      "observation_body_sha256": "66876b558e74e6e8f88e2cb659f62bcc570ada1153853c8e7bcdf6000d9fc1f7",
+      "event": {
+        "id": "msg_0517cc93e6a365b8016b0a3a0fe6ac87d0ae2583b6db0ac37e",
+        "timestamp": "2026-11-28T02:19:23.609Z"
+      },
+      "supersedes": "770bc595ff5708f8979e01ce0fda3f997cc91629b44e88b98eb4447a8e349da7",
+      "evidence_sha256": "56f1731d6423245f844cc0b2fd51015ee8105cedd4a964e4dda56b59ead842d1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "534497026f29fdd9ea3973fc0564ccdfa1c0d528",
+      "scope": "Audit member-run authority, corroboration-only contradictions, all valid receipts and independent clocks on genuine PR 96 and push, same-time disputes, later valid partial collection, cold reopen and the previously identified PR 84 coverage and checkout controls.",
+      "supersedes": "54ea1cfaa5139dbbaf488af03e021b7cc3bb72c08ae9ff6902d53caf44a6bcf0",
+      "requested_at": "2026-11-28T02:33:52.486908+00:00",
+      "request_id": "5c9b30e5040897205d40188c0b3bdc61f5fb52e561f1dda211ea4ed225ba1d42",
+      "evidence_sha256": "8a51abbe32f800517f868aa4a3195f4f4253e02effdc741c68dcc98be46e9054"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "534497026f29fdd9ea3973fc0564ccdfa1c0d528",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 534497026f29fdd9ea3973fc0564ccdfa1c0d528",
+      "scope": "CHANGES_REQUESTED M0-156 534497026f29fdd9ea3973fc0564ccdfa1c0d528",
+      "observation": "Reading the two retained PR 96 controls together in either order suppressed both genuine push receipts, and reopening the saved archive discarded the valid collection.",
+      "reviewer": "Independent Astra Standard (t1kd)",
+      "original_sha256": "222d736ea4b010fbbca72f277cfb4ba55090a3f79925252d8e903acab85e79da",
+      "response_id": "71586e59fc09e6abc1c507f120e252f315c1d1841c7b0e6f5703164322ccf56a",
+      "response_sha256": "323be87e9e47eee49909629205512d774cfdb61d4bacd622d530638917b68cdd",
+      "legacy_response_sha256": "fc41305cc7b138338ceb53900003bd66a7f31bedb90108e5554384565a3199f6",
+      "observation_body_sha256": "497fd54a0fab780baff362d92520641f7fc671142b209640fdc1b702c4ad56bd",
+      "event": {
+        "id": "msg_09c8478b8dfadbe2016b0a3eb914dc87d0b9474a54ae9cc357",
+        "timestamp": "2026-11-28T02:39:11.458Z"
+      },
+      "supersedes": "5c9b30e5040897205d40188c0b3bdc61f5fb52e561f1dda211ea4ed225ba1d42",
+      "evidence_sha256": "f589562b90c52c2bd4680342b3a8d6f6252bbe060e08b2953fed15cb31d32f10"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "Check the changed historic publisher and collection admission against the genuine PR 96 and push acquisition controls. Verify receipts for a valid historical single-job acquisition and refusal under mismatched sourcing. Exercise input order, actual cold reopening, same-time conflicts and later partial collection while retaining independently supported clocks.",
+      "supersedes": "71586e59fc09e6abc1c507f120e252f315c1d1841c7b0e6f5703164322ccf56a",
+      "requested_at": "2026-11-28T03:57:32.300646+00:00",
+      "request_id": "06534544b42656563f7c479869182ee56fcccdf6721f680a7a4283206de00580",
+      "evidence_sha256": "f7525e825a5cfebb19ddbcb485f6081b07ccf65bb73693c1ee6960be0d3e9b55"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "verdict": "approved",
+      "decision": "APPROVE M0-156 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "APPROVE M0-156 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "observation": "Both collection modes issued one Windows receipt for run 45389970933 and zero for the same report under the Ubuntu artifact name, and a fresh process preserved both outcomes.",
+      "reviewer": "Independent Astra Standard (t1kx)",
+      "original_sha256": "c89419ad67e19e4d55ccbbcad421f87d7594ea214d21127ead8831fa0a8b9964",
+      "response_id": "a6813eed2c65d0cfecfad76e1cf33e5f0fbb9e93dbd3b66763b27d3f2bfdcf1a",
+      "response_sha256": "240c70caf4a8fca413c458bb2bee0c734cdacb6c93d6eb85cfb0b20af585f977",
+      "legacy_response_sha256": "8efadf2ef8e885a1e6e51607e651db51f7c41148ab162c1e8bea7e513e3913f1",
+      "observation_body_sha256": "158d03c0eaf1daa5067399c9e8b097f6b3bda91dfdade83eba2a3e80fe0d1861",
+      "event": {
+        "id": "msg_0730680c8ad72f5d016b0a52e8fd5c87d0a282e01e3d6a5b25",
+        "timestamp": "2026-11-28T04:05:15.830Z"
+      },
+      "supersedes": "06534544b42656563f7c479869182ee56fcccdf6721f680a7a4283206de00580",
+      "evidence_sha256": "7b5d9182d26f55f04913b57d11419000bfa8dfc8879da2465a55fcfa141eea48"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d226171f0d21bf65109416128a68bea9c8577b2d",
+      "scope": "Verify cross-archive same-attempt outcome authority with the unchanged PR 96 unavailable and missing-outcome controls and original full capture, both input orders and genuine cold reopen. Preserve local receipt authority, authentic same-time disagreement, later valid partial collection, and independent clocks. Check receipt and independent clock preservation when the revised producer attribution rejects a report. Use the actual PR 96/push collection and single-job controls and the recorded costs.",
+      "supersedes": "a6813eed2c65d0cfecfad76e1cf33e5f0fbb9e93dbd3b66763b27d3f2bfdcf1a",
+      "requested_at": "2026-11-28T04:35:49.525161+00:00",
+      "request_id": "c8d178da02218c2f90a5ad4374e7d7615fc3c63f1329508014a48a38d8997dec",
+      "evidence_sha256": "8b8f4d0080057c193a92bfd4a7c66f4732cd5fb4676a524f4772ed3f96bf30c2"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d226171f0d21bf65109416128a68bea9c8577b2d",
+      "verdict": "approved",
+      "decision": "APPROVE M0-156 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "scope": "APPROVE M0-156 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "observation": "After a cold reopen, both input orders retained exactly two push receipts when the PR 96 job listing was unavailable and all four receipts with the full capture.",
+      "reviewer": "Independent Astra Standard (t1m9)",
+      "original_sha256": "fc078cedc34f0d30875599cfca008870150d1f9d79459a15d2aba4f61e8a8699",
+      "response_id": "267a3d6354e54dfb60b45dc827bb4891ac81852c9be1ca16eef4a825590f14d5",
+      "response_sha256": "d188e447755b3298557b3b24924e36bc366ac9264e0633a68ca5cfc6a96c3a08",
+      "legacy_response_sha256": "6afc0d79f019c02d27668853eaaca16b33650200f7f4c627517e300fca3931e3",
+      "observation_body_sha256": "db24d939708315b14af53f8207bcfe9584762dab966b42db63d7abbad5700f31",
+      "event": {
+        "id": "msg_0462df0d552b31bf016b0a5be2aa7087d08d84fa4b48de848c",
+        "timestamp": "2026-11-28T04:43:36.799Z"
+      },
+      "supersedes": "c8d178da02218c2f90a5ad4374e7d7615fc3c63f1329508014a48a38d8997dec",
+      "evidence_sha256": "79461ea643dc33b88e69caf65351c9519725c7c266dbd06ec2fc5c227b212620"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "Review receipt authority and the distinct composed publisher identity. Replay the retained PR 96/push and partial-collection controls in both orders with actual cold reopening. Check individually supported receipts, independent clocks, same-time conflict and later valid coverage using the actual member runs.",
+      "supersedes": "267a3d6354e54dfb60b45dc827bb4891ac81852c9be1ca16eef4a825590f14d5",
+      "requested_at": "2026-11-28T05:37:28.321247+00:00",
+      "request_id": "17a21d063a4efd30412b4f436e559efc8557888f6fb4451fe6a03bd5098880ca",
+      "evidence_sha256": "3e31a4ed27a81d6ff7de3c293e7b2f91ca6b9d9bc1e6f110744ebb23abff99a8"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "verdict": "approved",
+      "decision": "APPROVE M0-156 d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "APPROVE M0-156 d55f6907237d9af018decabd2f94fba43c198620",
+      "observation": "In both input orders, a fresh process recovered the two push receipts when the PR 96 job listing was missing, all four receipts with both listings, and three receipts after the later partial capture.",
+      "reviewer": "Independent Astra Standard (t1mw)",
+      "original_sha256": "c696202b96916da90ab00c6d9068f3ed15e179c3cba822a1f01f0dacf9112930",
+      "response_id": "fc22742592d7c5dbcbc89fb0e2fd14ae94bab537aa407dce77a27bb00ddfb083",
+      "response_sha256": "30783dacf71c71bb55d12600d03c2fd512618f499e5c042563340749604223d8",
+      "legacy_response_sha256": "907633c3255097b9dda8611e777e8a87ee33b5522ecb8773f4e7d4e0fc74c31e",
+      "observation_body_sha256": "a91d0214df7f15104c071026f32621353a91ed8748349bfc8044617b514676df",
+      "event": {
+        "id": "msg_0f07e45d62468089016b0a6a2eeb1087d083631dd1f757a08e",
+        "timestamp": "2026-11-28T05:44:32.811Z"
+      },
+      "supersedes": "17a21d063a4efd30412b4f436e559efc8557888f6fb4451fe6a03bd5098880ca",
+      "evidence_sha256": "e91ab63f3f137d9245a4900f4043c8b0741cb769aaf4a58ba27ff778b14dfc23"
+    },
+    {
+      "kind": "request",
+      "source_commit": "42e48a2c08fbb85efa740ae12ad1fdcf09e471ad",
+      "scope": "Review the genuine PR 96 and push collections on the joined timing reader. Test distinct receipt authority, a contradictory corroboration/unsuccessful-run count against member runs, same-time conflicts and later valid partial collection in both orders and actual cold reopen. Confirm independently supported clocks.",
+      "supersedes": "fc22742592d7c5dbcbc89fb0e2fd14ae94bab537aa407dce77a27bb00ddfb083",
+      "requested_at": "2026-11-28T06:21:55.368880+00:00",
+      "request_id": "008e2a1ad674780164988149afd06b37c4001c490ea61734f33fce060ac09ca8",
+      "evidence_sha256": "20fd4f9b1a919126814ffc2490f97bc8e75c6de2d3d4f6978848a9ba49889933"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "42e48a2c08fbb85efa740ae12ad1fdcf09e471ad",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 42e48a2c08fbb85efa740ae12ad1fdcf09e471ad",
+      "scope": "CHANGES_REQUESTED M0-156 42e48a2c08fbb85efa740ae12ad1fdcf09e471ad",
+      "observation": "In both input orders, adding the PR 96 success record after a cold reopen credited one Linux push receipt, while reading the same three equal-time collections with that record from the outset yielded zero receipts.",
+      "reviewer": "Independent Astra Standard (t1nc)",
+      "original_sha256": "b21d15bb6296995f8cda6d7fc0b4991ad56b24b19e3a3775e4e8406e5c356819",
+      "response_id": "edfdde44d7cc6de7108742833a95c97b1be06cfeebc155dccaf282389562562c",
+      "response_sha256": "b2137d9bde6a87d33131042fcc50d9ee69c062f55e20260546a2fc1a3f009386",
+      "legacy_response_sha256": "5ee2df4f2ef0cd6895e406c408010da4787ca874b82d12f632872f9b1a8a5a37",
+      "observation_body_sha256": "4f9bf68de6600f52239189a114b603f3db1bfc804f3877258f7cf67f7cbc13d0",
+      "event": {
+        "id": "msg_093c060a0c43f07d016b0a74a27d8087d0952124a7222e7fdc",
+        "timestamp": "2026-11-28T06:29:08.292Z"
+      },
+      "supersedes": "008e2a1ad674780164988149afd06b37c4001c490ea61734f33fce060ac09ca8",
+      "evidence_sha256": "33805a16f4bac3e895d723354c582e8ea5d61f566a1c7faf7e5717c55993cfa5"
+    },
+    {
+      "kind": "request",
+      "source_commit": "1f6c7cda14379ab28241796e38c490d4de716771",
+      "scope": "Independently resolve the original three-way equal-time acquisition conflict using actual PR 96 attempt 45563183277 and push 45838575346. Reproduce A/B/C from the original reviewer command: A acquired both push platforms, B Linux only, C claimed one unsuccessful run. Compare upfront versus late corroboration in a fresh process in both orders, exact receipts and per-attempt clocks. Check genuine missing/full/contested/later-partial, publisher order, old archive recovery limits, and measured cost on its actual five inputs.",
+      "supersedes": "edfdde44d7cc6de7108742833a95c97b1be06cfeebc155dccaf282389562562c",
+      "requested_at": "2026-11-28T07:08:38.977679+00:00",
+      "request_id": "ce4f68408851602e79d5da58cf435b0620ec33384379163f58b882cbeaa966c0",
+      "evidence_sha256": "dce90dd85ed7e06852f18652ebb00b20aad7bbcae19de138f51870c091527079"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "1f6c7cda14379ab28241796e38c490d4de716771",
+      "verdict": "approved",
+      "decision": "APPROVE M0-156 1f6c7cda14379ab28241796e38c490d4de716771",
+      "scope": "APPROVE M0-156 1f6c7cda14379ab28241796e38c490d4de716771",
+      "observation": "In both input orders, adding the PR 96 success record up front or after reopening the archive in a fresh process yielded zero current receipts and identical Windows clocks for both attempts.",
+      "reviewer": "Independent Astra Standard (t1nx)",
+      "original_sha256": "ce0a98fa21449529de0d7cfde0bafcd535b48a17914386f3952dcc10bca841fc",
+      "response_id": "cbca93f732ad9dc1150d6ce63ee59eb7dc5b54e39e370c9ea5223bc511a85da1",
+      "response_sha256": "126535da8edfa141fb6a5a74bf485019763892a8c6afeb4d0afa8bc6515d40a1",
+      "legacy_response_sha256": "3b52f9882e55e0bb578bfd0a0d8d531e86cee3dec24616e2aeb023e025629e94",
+      "observation_body_sha256": "1fef78128bec2317ecd8fbdccbbccb53eecca2c42be5c14a464d896de41c4a92",
+      "event": {
+        "id": "msg_0f0622407b979653016b0a7f2c502c87d09755be1c72f414f7",
+        "timestamp": "2026-11-28T07:14:11.479Z"
+      },
+      "supersedes": "ce4f68408851602e79d5da58cf435b0620ec33384379163f58b882cbeaa966c0",
+      "evidence_sha256": "492ccd401f75328a9b153d469e029d83634842e83db1fefcd3797590684dc1ce"
+    },
+    {
+      "kind": "request",
+      "source_commit": "2e7fd0b6b156115ef087f4e209494caa6015cb7d",
+      "scope": "Assess collection authority on this changed timing source. Verify genuine PR 96 and push receipts for unavailable/full/contested/later partial acquisition and the three equal-time ABC/CBA observations up front and after a fresh-process cold reopen with late real PR 96 success. Independently check receipt identities, publisher order controls, competing or unavailable clocks, old archive information loss and paired costs on the actual five archives. Check interaction with the current PR 123 public reader without requiring unobserved native or calendar results.",
+      "supersedes": "cbca93f732ad9dc1150d6ce63ee59eb7dc5b54e39e370c9ea5223bc511a85da1",
+      "requested_at": "2026-11-28T07:42:34.019776+00:00",
+      "request_id": "890a905fbd2d11c043f23dacf764944a130788cc33e1f383da415e831821fe9d",
+      "evidence_sha256": "b1be809a1c67bb6e0da1027d406df2ab01947d40aa6d7377fc6a0c8bf832e2c3"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "2e7fd0b6b156115ef087f4e209494caa6015cb7d",
+      "verdict": "approved",
+      "decision": "APPROVE M0-156 2e7fd0b6b156115ef087f4e209494caa6015cb7d",
+      "scope": "APPROVE M0-156 2e7fd0b6b156115ef087f4e209494caa6015cb7d",
+      "observation": "In both ABC and CBA order, adding the genuine PR 96 success record up front or after a fresh-process reopen left two conflicting acquisitions, zero current receipts, and identical Windows clocks.",
+      "reviewer": "Independent Astra Standard (t1p2)",
+      "original_sha256": "71479ad2a4551ba167392704110aeb130febdc7a54bc0537bce182a4da45cff3",
+      "response_id": "d8157a25407b678688a9589589a8bb63806cc543377788a93a1ef02d47ad34f2",
+      "response_sha256": "074e3172e3b8f7513e111a96bac3bf5caeffe6cdaa73a6bc4c0e90be72f0eb18",
+      "legacy_response_sha256": "8748b33cf2258e7e90a068a60a044f1790ebd51492f1fba5f7932dddaf38f90c",
+      "observation_body_sha256": "5262751e284620b26c80b44ffb2d263e77817ead8c6f53fbbb52cfac4444dddd",
+      "event": {
+        "id": "msg_05fd1413afc15039016b0a8758a81c87d09053101f4969f3b4",
+        "timestamp": "2026-11-28T07:49:10.275Z"
+      },
+      "supersedes": "890a905fbd2d11c043f23dacf764944a130788cc33e1f383da415e831821fe9d",
+      "evidence_sha256": "2a5f2da281daf3ca9c25c941d806d9879d61ed765ca414353bcbe881f3fa5e63"
+    },
+    {
+      "kind": "request",
+      "source_commit": "12e20ac4b69dbd149aabc26bd3fedc45c853c576",
+      "scope": "Review the PR 96 and push receipt authority across collection order and later successful corroboration on this reader. Check the controlled original three-way conflict and independently grounded clocks. Qualify which earlier decisions and timing samples actually apply.",
+      "supersedes": "d8157a25407b678688a9589589a8bb63806cc543377788a93a1ef02d47ad34f2",
+      "requested_at": "2026-11-28T08:52:14.163557+00:00",
+      "request_id": "a13245e2fbac13734a91e98c96f16a68d55b2322c50ba7bb8d611e900f2a8d10",
+      "evidence_sha256": "1c73ce0aad84a2314f8aba13ef8519bd9c6db2c6fce142ea573ada430247bf9d"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "12e20ac4b69dbd149aabc26bd3fedc45c853c576",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 12e20ac4b69dbd149aabc26bd3fedc45c853c576",
+      "scope": "CHANGES_REQUESTED M0-156 12e20ac4b69dbd149aabc26bd3fedc45c853c576",
+      "observation": "With the one-failure acquisition dated one second later, a cold reopen with genuine PR 96 success and a repeated partial acquisition credited the push Linux receipt, while reading the same evidence together yielded zero receipts.",
+      "reviewer": "Independent Astra Standard (t1pk)",
+      "original_sha256": "c390005113c55a46cce3baf1f2a2410258d2342601bc8a281326984c71b58369",
+      "response_id": "ae73c4e429b183f08249da256d0b1627f65c520afe2f0dbdbc950c3fc61e9961",
+      "response_sha256": "fbd5896d89f30fdfad83b9bf86aaf4f74b1b48c4fd4616d2b3c0ac1fa8cd16b7",
+      "legacy_response_sha256": "7af1ecb66018b5b823ebb3d41c881b47b7d5e6b721034266cc6fb151591f744f",
+      "observation_body_sha256": "ce0c844cec5fbf1e970737c44bac5444caa28e8bd4d613786254573ca26792a7",
+      "event": {
+        "id": "msg_0f4fa36cb67c99c1016b0a9796845087d29c0ea9a01cd7178a",
+        "timestamp": "2026-11-28T08:58:26.192Z"
+      },
+      "supersedes": "a13245e2fbac13734a91e98c96f16a68d55b2322c50ba7bb8d611e900f2a8d10",
+      "evidence_sha256": "166473bd7280dfd6d13e9c206fe03a8ed6943b9570ac353384529a35e432f359"
+    },
+    {
+      "kind": "request",
+      "source_commit": "2b87a34bb164b68cff2830996664a3797774b1ed",
+      "scope": "On genuine PR 96 and push inputs, reprobe the prior declined cold acquisitions with later timestamps, repeated partial evidence and late corroboration. Check receipts against direct assembly, historical archive compatibility, retained 2/4/0/3 controls, and independent native clocks.",
+      "supersedes": "ae73c4e429b183f08249da256d0b1627f65c520afe2f0dbdbc950c3fc61e9961",
+      "requested_at": "2026-11-28T09:21:48.995078+00:00",
+      "request_id": "ae15c44f5998fd7638998513121b0b50c22ed79a2f5e785f2fab93b3fab25abb",
+      "evidence_sha256": "40a3bc5e0618394e1e32cd13ab01db6bbb41409a43293eec9fdd3e9233fc5561"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "2b87a34bb164b68cff2830996664a3797774b1ed",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 2b87a34bb164b68cff2830996664a3797774b1ed",
+      "scope": "CHANGES_REQUESTED M0-156 2b87a34bb164b68cff2830996664a3797774b1ed",
+      "observation": "When the weekly collection downloaded no reports and Git could not confirm the current checkout, the reader credited four historical PR 96 and push receipts, and a fresh process preserved all four.",
+      "reviewer": "Independent Astra Standard (t1px)",
+      "original_sha256": "19870daba978e675b42ce949d7cff6cdfedf7c207c7976034bcc62ca49382676",
+      "response_id": "8c62455c24c268ea18dbb4c720c983eea57030460c27a1c39ed9c2e139915813",
+      "response_sha256": "a9a9f4ffa85e1fbd6d3850c8531d37a87d677b989a16d4eb82570733f6cc2d97",
+      "legacy_response_sha256": "c072a2f0d5261fd89521998fe0c0e23606753d7cb0efc5fa731e98099a860f43",
+      "observation_body_sha256": "85fe518b09b4c10d996564295abd1d14175b1ad6128c4da270b53e880a50778c",
+      "event": {
+        "id": "msg_0b31dc0fa1df8b36016b0a9ee6804887d2adf7241b01852dfa",
+        "timestamp": "2026-11-28T09:29:29.929Z"
+      },
+      "supersedes": "ae15c44f5998fd7638998513121b0b50c22ed79a2f5e785f2fab93b3fab25abb",
+      "evidence_sha256": "589e88db45df1fb1e9050ca95a0f4d053d2a0ef4d9b179e261e24da587ca9317"
+    }
+  ]
+}

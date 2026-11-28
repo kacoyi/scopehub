@@ -1,0 +1,422 @@
+{
+  "version": 3,
+  "task_id": "M0-145",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "scope": "Independently review the normal weekly timing and verify-maintenance path. Check exact current acquisition and same-pipeline qualification before history, full/browser-only/other-attempt/missing controls, fail-closed missing catalog, and historical publishing objects through the scheduled checkout. Use the retained Windows 804-second wall and 2467-second runner observation and preserve conditional maintenance ownership.",
+      "supersedes": null,
+      "requested_at": "2026-11-25T21:44:05.278684+00:00",
+      "request_id": "b5cea64e694395b6d28d585140eaba6667392657dad6cc808a24282caca2d0c7",
+      "evidence_sha256": "5a680216e620dc8f5da046d9d9854106a28a5cf0c92c131c951182cd05a0be02"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "verdict": "approved",
+      "decision": "APPROVE M0-145 57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "scope": "APPROVE M0-145 57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "observation": "In my replay of run 45546767887, the full Windows report earned one fresh receipt at 804 seconds of wall time and 2467 runner-seconds, while the browser fragment earned none even with the full report in history.",
+      "reviewer": "Independent Astra Standard (t111)",
+      "original_sha256": "b712be880136f667db14ffaf884818252afbc61de90502ebd97aef5c5171de35",
+      "response_id": "1d7dceae3b15948870cb2d27b5eb9e855f0c1a69e5f0cd8f85e4a3a4425ecbe4",
+      "response_sha256": "17e45f01a2fcb10e5ad1b8de31165f075954cb5c32e29a8252a8f7c1c2c8b415",
+      "legacy_response_sha256": "5d411bf6d0962f081300a84de01693be98e5fc1be79d8776c7f8f0425515e52f",
+      "observation_body_sha256": "9594b1b2ff04d2a9a5b96ab1b30bf72f245cd684b30134dd2ca6f7e64640af1f",
+      "event": {
+        "id": "msg_01a7f09ec8c5b980016b075f86412087d09df3e965b3736f6b",
+        "timestamp": "2026-11-25T22:22:07.222Z"
+      },
+      "supersedes": "b5cea64e694395b6d28d585140eaba6667392657dad6cc808a24282caca2d0c7",
+      "evidence_sha256": "045ce84f749991a460f191b3aee7dad9cce16474ce28c7ceb0e1b5231feaea5d"
+    },
+    {
+      "kind": "request",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "Verify current-period collection freshness and missing, scoped, prior-attempt or historical controls on the real archived weekly workflow input. Exercise the system Python weekly result and both fresh and pending maintenance observations, including the effect of the historical conflict correction.",
+      "supersedes": "1d7dceae3b15948870cb2d27b5eb9e855f0c1a69e5f0cd8f85e4a3a4425ecbe4",
+      "requested_at": "2026-11-25T22:53:01.049769+00:00",
+      "request_id": "44018da24cb9db1aeda5f8875aeefda824af09c533bef179a6fe87e01d2864f1",
+      "evidence_sha256": "ba34464e0f6e26e7bfb5772a025ffe230fcc9623d1a75cea720a9291323d5e0f"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "verdict": "approved",
+      "decision": "APPROVE M0-145 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "APPROVE M0-145 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "observation": "In my system Python replay of run 45546767887, the full Windows report earned one current receipt, the browser-only download earned none, and a retained checkout conflict kept Windows pull-request maintenance pending even when the full report was downloaded again.",
+      "reviewer": "Independent Astra Standard (t11d)",
+      "original_sha256": "a0b32c8b43934ff8d002b1ea4548234db09d311bc00830e4ded42e64c9fc6b1f",
+      "response_id": "01fbe2857260dbf3f9759e502dacdb7a4e84529c85f5caac655020483a01cdd0",
+      "response_sha256": "4f59b1cb997e54e2540c9f23502ecdb4e839ac37952280bae39f5fcc984b3b4b",
+      "legacy_response_sha256": "8c264625e1ed432526beba79ce96d7d47eefae5070f0833a3111e3b5da2e3379",
+      "observation_body_sha256": "c2318c3ec634616ebca52ed765078e9a28113f798e2b01f4b03f0e6a028e56fb",
+      "event": {
+        "id": "msg_07e307d61a9e325b016b079f084af487d288bf6a435e83678f",
+        "timestamp": "2026-11-26T02:53:10.193Z"
+      },
+      "supersedes": "44018da24cb9db1aeda5f8875aeefda824af09c533bef179a6fe87e01d2864f1",
+      "evidence_sha256": "17dfa555391829061fe5926e7961dd9d4fc9ba4dea57301ead1994a8f400f272"
+    },
+    {
+      "kind": "request",
+      "source_commit": "caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "scope": "Check the weekly freshness and publication boundary. Exercise previous observations, current bounded collection, missing originals, conflicting current records and genuine qualified evidence. Keep the November 28 actual due-cycle observation outstanding.",
+      "supersedes": "01fbe2857260dbf3f9759e502dacdb7a4e84529c85f5caac655020483a01cdd0",
+      "requested_at": "2026-11-26T04:10:29.847143+00:00",
+      "request_id": "c482e1baf52a56b505d9a2a0984aa91f50393b3de0fefa487dfdc6c7335e51dd",
+      "evidence_sha256": "e1b8f94def4e442a32994908e42a6befe0fd0647c68626ed3676bd57323596fc"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-145 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "scope": "CHANGES_REQUESTED M0-145 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "observation": "In an offline replay of run 45546767887, both recent-collection modes issued a Windows freshness receipt when only the Ubuntu timing artifact was available and its payload contained the authentic Windows report.",
+      "reviewer": "Independent Astra Standard (t12r)",
+      "original_sha256": "3966175f44310155c87ae821cedd6a37c5299f40eeb5a5b8580fc2b0857f756a",
+      "response_id": "40efa8cb3b61f1703da8f9ac9a849bd36ac74fe04b3ded3cb672eaf39f013ba6",
+      "response_sha256": "384382e1df4b99a985c07a7f6cd802264e7d1df7a924f6ff8d07519810946806",
+      "legacy_response_sha256": "bab50791a3169b8ea21cb343450a94996aa6e426ff1e0781f6152d31356f4e65",
+      "observation_body_sha256": "accf151ce1aae5be6da45e2590920fc9fcfe0e66c40dfa05f1d3e3482c578b40",
+      "event": {
+        "id": "msg_00a9a6af7436284c016b07b6cae06887d289cfdac835898fc6",
+        "timestamp": "2026-11-26T04:34:30.779Z"
+      },
+      "supersedes": "c482e1baf52a56b505d9a2a0984aa91f50393b3de0fefa487dfdc6c7335e51dd",
+      "evidence_sha256": "87e653fbc86bbb34d655484a4b7b10532f3f24bbb9f984afb3301c88ff56295d"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "scope": "Check the weekly freshness and publication boundary. Exercise previous observations, current bounded collection, missing originals, conflicting current records and genuine qualified evidence. Keep the November 28 actual due-cycle observation outstanding. Recheck the original decision on caea2a0a.",
+      "supersedes": "40efa8cb3b61f1703da8f9ac9a849bd36ac74fe04b3ded3cb672eaf39f013ba6",
+      "requested_at": "2026-11-26T05:01:39.496961+00:00",
+      "request_id": "16136e75d606c9264032a1ec51528a1c3e3cc907f3bff5d0d8721ac11434ca4a",
+      "evidence_sha256": "70a4de52dd6fafd22aa965a108e5b8d12aa1dc4d8a6bd912d9a967c48ab64651"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "verdict": "approved",
+      "decision": "APPROVE M0-145 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "scope": "APPROVE M0-145 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "observation": "In my offline replay of run 45546767887, both recent-collection modes issued one freshness receipt for the authentic Windows report from the Windows artifact and zero for the same bytes from the Ubuntu artifact.",
+      "reviewer": "Independent Astra Standard (t13k)",
+      "original_sha256": "dad64c1728fb031f59465455af2e365f4b660586cee267bb6eb32f75eb601e43",
+      "response_id": "39d476649460daf2ba9833ed2006bddc2b9fca21392349e9bdf574894ba6ef2c",
+      "response_sha256": "5ff34caccdef6ab138ebc09ee6038322846d8b9f72b950792b746b445a4484fc",
+      "legacy_response_sha256": "7cfc905bd3803bcfcca27dcdca563d97e680c3e4463c9039c9d9bd86cdff69cf",
+      "observation_body_sha256": "e577bce9171a7af9ad322c5d18884e141a8b6cb9706e39c77eadbdb5272082af",
+      "event": {
+        "id": "msg_0dd8bacca6a40380016b07c2ec183087d1923ed41a64df6e72",
+        "timestamp": "2026-11-26T05:26:17.386Z"
+      },
+      "supersedes": "16136e75d606c9264032a1ec51528a1c3e3cc907f3bff5d0d8721ac11434ca4a",
+      "evidence_sha256": "b5c268a3e289a85833f11c5247155b6a39bae0dfb66e13c84c25bfe2a37656c6"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "scope": "Check the weekly freshness and publication boundary. Exercise previous observations, current bounded collection, missing originals, conflicting current records and genuine qualified evidence. Keep the November 28 actual due-cycle observation outstanding. Recheck the original decision on b12aefdc.",
+      "supersedes": "39d476649460daf2ba9833ed2006bddc2b9fca21392349e9bdf574894ba6ef2c",
+      "requested_at": "2026-11-26T06:32:10.942444+00:00",
+      "request_id": "2d0e8345e23b720e736ace76707cc255db3dd9dd3c506aa9e2ccdb3c9745b599",
+      "evidence_sha256": "49855f572b51b8127d904528c2588e7c7ae7623e819f4bf0a8f1980604dc573f"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-145 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "scope": "CHANGES_REQUESTED M0-145 e00b088bf70fea095a427b2fa465cd5544ef79a6",
+      "observation": "Both recent-collection modes issued a Windows freshness receipt for run 45546767887 when a nameless observation assigned the Ubuntu runner label to the same job ID as the Windows browser job.",
+      "reviewer": "Independent Astra Standard (t14m)",
+      "original_sha256": "529a23c2476bec7fa48c741f2fd888de76d9717929fb0731628f2ba58654c6b9",
+      "response_id": "fae626df3d8ab37181363c851bca21d806e52af85873522250d04864875e03d5",
+      "response_sha256": "30a93d465d573b9eb130b2b22f23105e3b075854a15b7d1d5c011592c51ec39f",
+      "legacy_response_sha256": "2c7de413c38b70b84ba08b3596ecb31a6e7f50d8e1a28436a0349eeac949f353",
+      "observation_body_sha256": "f434b50517b0ba5711e3aab5238df70fc2b0744c514529731e87e07918cb5db4",
+      "event": {
+        "id": "msg_020be8c06cd8519b016b07da0c780887d2833c423a342837ac",
+        "timestamp": "2026-11-26T07:05:03.591Z"
+      },
+      "supersedes": "2d0e8345e23b720e736ace76707cc255db3dd9dd3c506aa9e2ccdb3c9745b599",
+      "evidence_sha256": "b4d2bb95d1df72c817e21b77ef639bdc8301f8bca76657ed7f7305cb575e93c1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "39413fd304e8575605dc5b70a352d2e394ae1e35",
+      "scope": "Check the weekly freshness and publication boundary. Exercise previous observations, current bounded collection, missing originals, conflicting current records and genuine qualified evidence. Keep the November 28 actual due-cycle observation outstanding. Recheck the original decision on e00b088b.",
+      "supersedes": "fae626df3d8ab37181363c851bca21d806e52af85873522250d04864875e03d5",
+      "requested_at": "2026-11-26T12:29:19.709057+00:00",
+      "request_id": "207ddc7bb7ac1ef3b48e95902b514b822c8e1d3ce81e2dc1722d31153aab0ae2",
+      "evidence_sha256": "5697e7c5191fb2ceeb8696bc771f7a13fb99264f79c4bbbda625a17730f739d8"
+    },
+    {
+      "kind": "request",
+      "source_commit": "3eeb59bc39219905204e6aab95bd16af4d22a65e",
+      "scope": "Check the weekly freshness and publication boundary. Exercise previous observations, current bounded collection, missing originals, conflicting current records and genuine qualified evidence. Keep the November 28 actual due-cycle observation outstanding. Recheck the original decision on e00b088b.",
+      "supersedes": "207ddc7bb7ac1ef3b48e95902b514b822c8e1d3ce81e2dc1722d31153aab0ae2",
+      "requested_at": "2026-11-26T12:55:47.089150+00:00",
+      "request_id": "d089395c13fad52f5b89fb442fcaa422e222e9a3413535d14f5d7e40b0628091",
+      "evidence_sha256": "7a83619f7d2c6c5326b8994f08a828b7514148d9cb53621e7fab1bb2878c4273"
+    },
+    {
+      "kind": "request",
+      "source_commit": "9ea5b5140042ac013e022c2edd7d0a79e93fee67",
+      "scope": "Check the weekly freshness and publication boundary. Exercise previous observations, current bounded collection, missing originals, conflicting current records and genuine qualified evidence. Keep the November 28 actual due-cycle observation outstanding. Recheck the original decision on e00b088b.",
+      "supersedes": "d089395c13fad52f5b89fb442fcaa422e222e9a3413535d14f5d7e40b0628091",
+      "requested_at": "2026-11-26T13:20:01.876150+00:00",
+      "request_id": "169d5c7a85755b97194155c6576fb524f9336851560557b8f26a2af4eef34e78",
+      "evidence_sha256": "9357844f9262e6bebcf04a0451f5d34bdc37a732eaa3aacef6bdc9554235ddec"
+    },
+    {
+      "kind": "request",
+      "source_commit": "438302ef9ebb720039a5f0dd77e6b051c5010560",
+      "scope": "Check the weekly freshness and publication boundary. Exercise previous observations, current bounded collection, missing originals, conflicting current records and genuine qualified evidence. Keep the November 28 actual due-cycle observation outstanding.",
+      "supersedes": "169d5c7a85755b97194155c6576fb524f9336851560557b8f26a2af4eef34e78",
+      "requested_at": "2026-11-26T13:58:54.814744+00:00",
+      "request_id": "a9d971dc81e64505aa12be6376d86307c014e7639f798ed0657ad8af4166cf3c",
+      "evidence_sha256": "987474ffa66133d0e0d08b92286ca601b1c1aefea5e573d42c653454716545ba"
+    },
+    {
+      "kind": "request",
+      "source_commit": "318f54c82e50a38c4310724b55e3e9ee6539afb8",
+      "scope": "Check the weekly freshness and publication boundary. Exercise previous observations, current bounded collection, missing originals, conflicting current records and genuine qualified evidence. Keep the November 28 actual due-cycle observation outstanding.",
+      "supersedes": "a9d971dc81e64505aa12be6376d86307c014e7639f798ed0657ad8af4166cf3c",
+      "requested_at": "2026-11-26T14:56:22.075671+00:00",
+      "request_id": "a65e734132c7ea696c9d5a1ec7e04afc7da09c4d22aaf70503000eaa18a7f75c",
+      "evidence_sha256": "6ecaae15de8b48c7a009e2e9aee82ba96d15b3797ed5b3391a3b475ccbde316b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "de7e2376d216e0fe943c1301c336ef837b58c48a",
+      "scope": "Check the weekly freshness and publication boundary. Exercise previous observations, current bounded collection, missing originals, conflicting current records and genuine qualified evidence. Keep the November 28 actual due-cycle observation outstanding.",
+      "supersedes": "a65e734132c7ea696c9d5a1ec7e04afc7da09c4d22aaf70503000eaa18a7f75c",
+      "requested_at": "2026-11-26T15:31:01.171785+00:00",
+      "request_id": "e4695b9e65b25efc8a4e0238cb5e7160d63c8b158be60c176bdfb69b42fc2493",
+      "evidence_sha256": "467a782af0d423797954c018e95cd2ba72f6a48666aba6f2521a7d4a4ced3311"
+    },
+    {
+      "kind": "request",
+      "source_commit": "4c4865fa8db31cd57c84a8061d8abc00e03d1a01",
+      "scope": "Check the weekly freshness and publication boundary. Exercise previous observations, current bounded collection, missing originals, conflicting current records and genuine qualified evidence. Keep the November 28 actual due-cycle observation outstanding.",
+      "supersedes": "e4695b9e65b25efc8a4e0238cb5e7160d63c8b158be60c176bdfb69b42fc2493",
+      "requested_at": "2026-11-27T02:45:55.032339+00:00",
+      "request_id": "370da6b2cf2c03aa97b57bf5ad0042f105b129ad293a308290f3afb08a282127",
+      "evidence_sha256": "9ec4d6f2e2635d696206ec2e568fab3516cfd731572e007c99dd9e455148025e"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b6cd4be5ccb66c7eaad60cfc2ac81c97e51f63fa",
+      "scope": "Check the weekly freshness and publication boundary. Exercise previous observations, current bounded collection, missing originals, conflicting current records and genuine qualified evidence. Keep the November 28 actual due-cycle observation outstanding.",
+      "supersedes": "370da6b2cf2c03aa97b57bf5ad0042f105b129ad293a308290f3afb08a282127",
+      "requested_at": "2026-11-27T03:12:10.420752+00:00",
+      "request_id": "679f2228bdb515091bc6c109e8eb5e25144d626316bc326d8041d0882ade9667",
+      "evidence_sha256": "ff1fd25f3dd6d540c381fef705da8a8719ba1ee1a111e0a7b8b251a038ccd4c0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "Check the current weekly sample/receipt eligibility boundary after the two corrections, using the retained ordinary-versus-weekly observations and the previous freshness decision. The genuine future due cycle remains a separate observed event.",
+      "supersedes": "679f2228bdb515091bc6c109e8eb5e25144d626316bc326d8041d0882ade9667",
+      "requested_at": "2026-11-27T03:36:31.584930+00:00",
+      "request_id": "d667afddf4f7c68ea8a2c455310c2bf4323b15ef4688ce5253b4fdd869c6252e",
+      "evidence_sha256": "57c7cbc1af767e6a8fb4bd51ab139480063849924ed55c56f28eec0f7a95054a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-145 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "scope": "APPROVE M0-145 ef52b9cde1af951d5f6969fee03b96e92494c8a9",
+      "observation": "In my offline replay of run 45546767887, the weekly collector issued one Windows receipt for the Windows artifact and zero for the same report bytes from the Ubuntu artifact, while both cases retained the 804-second wall time and 2467 runner-seconds.",
+      "reviewer": "Independent Astra Standard (t1c5)",
+      "original_sha256": "4a3423cfe25dcda57610284173ac0981f13b52360df719cb7f32dc4050cf7fc1",
+      "response_id": "143cd2205f727b86209bacc4b4aef42abb972b3381edb3210fed008abab98d87",
+      "response_sha256": "ee0985b42d9a047f6fdca4539bb800f72d6f61a8f2c45e494251fb32bfc1b013",
+      "legacy_response_sha256": "5c1e452addf60095aaa10ac48f1ca87bd2e92354f9274218239ee197d06ff9c5",
+      "observation_body_sha256": "f0d9b1dc57e0670ac76ae7a617c28b8b8deb305a411d68e92b41a4a80ec29789",
+      "event": {
+        "id": "msg_06f12e2ac5391733016b08fd60094487d0a6a58094fcdf9965",
+        "timestamp": "2026-11-27T03:48:14.402Z"
+      },
+      "supersedes": "d667afddf4f7c68ea8a2c455310c2bf4323b15ef4688ce5253b4fdd869c6252e",
+      "evidence_sha256": "6dea72ef5954cf6f0e48b0f64920309dba196c57dcc07a3172302daa4ec77555"
+    },
+    {
+      "kind": "request",
+      "source_commit": "5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "scope": "Confirm that the previously approved M0-145 timing behavior and acceptance assertions survive the Windows test-fixture repair on this source.",
+      "supersedes": "143cd2205f727b86209bacc4b4aef42abb972b3381edb3210fed008abab98d87",
+      "requested_at": "2026-11-27T04:25:42.081529+00:00",
+      "request_id": "c594e8a4c30698c811044b3665d43947724d0ae23d408ce500599c3cfd6a324e",
+      "evidence_sha256": "a4bd6c8e640f3f0c0dd4b4b377ee0d695789f7972ee3777c5b392a529c488e54"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "verdict": "approved",
+      "decision": "APPROVE M0-145 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "scope": "APPROVE M0-145 5d72fcd056143f577cbaa05e898a40cdd3d896b9",
+      "observation": "In the retained replay of run 45546767887, the Windows artifact earned one Windows receipt and cleared the weekly pending flag, while the same report bytes from the Ubuntu artifact earned zero receipts and left the flag pending; both cases retained the 804-second Windows wall time and 2467 runner-seconds.",
+      "reviewer": "Independent Astra Standard (t1cx)",
+      "original_sha256": "e6cadbb30bf6bb05f619bf0c44e26db7f356e2d1f216f981ac2405e345eabdf7",
+      "response_id": "93f7b15afac03ac8d10d9765e30a84d02b1ac796288168fb1e9881bf48058469",
+      "response_sha256": "d310ac3fe7d8640d223932efe2bd44244ac0f3b0e917d4bb178ca39472e9d116",
+      "legacy_response_sha256": "0a57178668401563b296f4163ec54c8db6fb6d0d1602da41c6427691fc9786bf",
+      "observation_body_sha256": "ee36ba6c1c4db5cf22e323450ed6bed602b69c3bf05929994a967fe8c9ea3ffe",
+      "event": {
+        "id": "msg_053a36712ba077d4016b09073dbc4487d09da44917ade31d73",
+        "timestamp": "2026-11-27T04:30:00.576Z"
+      },
+      "supersedes": "c594e8a4c30698c811044b3665d43947724d0ae23d408ce500599c3cfd6a324e",
+      "evidence_sha256": "f009fdb9532325877b9eed6da2bd518f9375653534a696f90ae6afbc5a75b999"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e6f12373277d8aa05a734a1a1c9648f0cf489577",
+      "scope": "Exact current artifact receipt and weekly freshness, including missing downloads, partial job matrices and withheld promotion.",
+      "supersedes": "93f7b15afac03ac8d10d9765e30a84d02b1ac796288168fb1e9881bf48058469",
+      "requested_at": "2026-11-27T09:24:38.418678+00:00",
+      "request_id": "961e70f78c84d01b25e2bdb176a23020cfe7df539f77475f5af034711e94abf3",
+      "evidence_sha256": "f29d6d5f636b1fd4d945b98976c0430b644b123ed9fb3b03b3933f8068877698"
+    },
+    {
+      "kind": "request",
+      "source_commit": "1024b35f34c1065dc4f75389e78a4d699d32627b",
+      "scope": "Exact current artifact receipt and weekly freshness, including missing downloads, partial job matrices and withheld promotion.",
+      "supersedes": "961e70f78c84d01b25e2bdb176a23020cfe7df539f77475f5af034711e94abf3",
+      "requested_at": "2026-11-27T09:51:06.216398+00:00",
+      "request_id": "b5273873d760fbf19f4d2cd8c4f4147fce77281cca59d806fd0a8af8fb3fec19",
+      "evidence_sha256": "5e6b8228991e84c04d0c0d3ece2aaeee82fd0c26023a466c921b1d54ab504920"
+    },
+    {
+      "kind": "request",
+      "source_commit": "17cd39cfc82e095f341f9b2f3a4c20022e36996d",
+      "scope": "Exact current artifact receipt and weekly freshness, including missing downloads, partial job matrices and withheld promotion.",
+      "supersedes": "b5273873d760fbf19f4d2cd8c4f4147fce77281cca59d806fd0a8af8fb3fec19",
+      "requested_at": "2026-11-27T10:16:58.580401+00:00",
+      "request_id": "cd77cf0f64290b1b2a91f3e1a4ae6de2c764eb25c61eccab86560184cfd760bf",
+      "evidence_sha256": "db5993ac315712310f076c8ac13e20ef86cd10b6a311e76131a919db454b6662"
+    },
+    {
+      "kind": "request",
+      "source_commit": "6491b83725eb2b1ac60ebe2e6854f51941fe6e83",
+      "scope": "Exact current artifact receipt and weekly freshness, including missing downloads, partial job matrices and withheld promotion.",
+      "supersedes": "cd77cf0f64290b1b2a91f3e1a4ae6de2c764eb25c61eccab86560184cfd760bf",
+      "requested_at": "2026-11-27T10:49:15.094757+00:00",
+      "request_id": "734312395b92e689d206409b3071bb502cff5ba087968f5889228407e828f612",
+      "evidence_sha256": "bdaa596216d96764078b6efc12c4ff46b41050f400c98dcce5e00c1bb9286427"
+    },
+    {
+      "kind": "request",
+      "source_commit": "343bb62e8ef179abf4fa9f98bd960e3066070a19",
+      "scope": "Exact current artifact receipt and weekly freshness, including missing downloads, partial job matrices and withheld promotion.",
+      "supersedes": "734312395b92e689d206409b3071bb502cff5ba087968f5889228407e828f612",
+      "requested_at": "2026-11-27T11:13:02.565107+00:00",
+      "request_id": "2175594a121ab07e78c8900b37050cef9b4f4997ce24834ac8dcdc92b1ab5ceb",
+      "evidence_sha256": "1a95e2ee99c5d65bc17f2a419e7fe84691e02c2b84c9aa9c8bebc320655e4a6b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "fea9a19095db891b76a2f30d8ee65763c2e880fe",
+      "scope": "Exact current artifact receipt and weekly freshness, including missing downloads, partial job matrices and withheld promotion.",
+      "supersedes": "2175594a121ab07e78c8900b37050cef9b4f4997ce24834ac8dcdc92b1ab5ceb",
+      "requested_at": "2026-11-27T11:41:31.281224+00:00",
+      "request_id": "e0f26447fdf9c32aa36406e7769cf9d655395218eb048ac96e8aa287be0ae7b2",
+      "evidence_sha256": "c0eb2bdb7bdccb65fbf16ddffbb74a66d415593eae0b3451c46a77a841542023"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "Exact current artifact receipt and weekly freshness, including missing downloads, partial job matrices and withheld promotion. Reproduce your previously accepted genuine run 45389970933 against the authenticated historical publisher. Check both recent collection modes, cold reopening and refusal of the corresponding invalid acquisition.",
+      "supersedes": "e0f26447fdf9c32aa36406e7769cf9d655395218eb048ac96e8aa287be0ae7b2",
+      "requested_at": "2026-11-28T04:05:58.654646+00:00",
+      "request_id": "d40a0768865ed9b6da93b82a347e83790bb6350875fd4b629eb17581afc0fc96",
+      "evidence_sha256": "5d89b78e8b27576c9f04474b401069aecc2ff70b5cb188ebeccdd5b1df3b224e"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "verdict": "approved",
+      "decision": "APPROVE M0-145 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "APPROVE M0-145 e77724d0aacdb5139806fd9b50921aa72043b834",
+      "observation": "Both recent collection modes issued the original Windows receipt for run 45389970933, and a fresh process preserved that receipt while the split-layout and missing-download controls retained zero receipts.",
+      "reviewer": "Independent Astra Standard (t1m1)",
+      "original_sha256": "9cf9b363b3c2e907b497606fa4875c92affae1d16ae98ee5ba78b6da80b230a2",
+      "response_id": "420f44f69e1fe05e8950938224a519217f9e6e2fd22229454d4a77c780e27529",
+      "response_sha256": "1ae4a8eebe331c5a7381043f1313d6b2770b130a314ffbcebe9e708be2ef7e07",
+      "legacy_response_sha256": "375154f85f79776c9bd3ef78fd078b0fc3af573425c6b92b644d440e72a6b36f",
+      "observation_body_sha256": "743a552a6336119e3391e01bf304d779a67d5b4c5c336e200418213689b5cfac",
+      "event": {
+        "id": "msg_03f99f59701373e1016b0a557470f887d0935e881a3b347c70",
+        "timestamp": "2026-11-28T04:16:08.537Z"
+      },
+      "supersedes": "d40a0768865ed9b6da93b82a347e83790bb6350875fd4b629eb17581afc0fc96",
+      "evidence_sha256": "d8fcf764fe5b7430e2f3f923c80804d5191a382e007010a020fbe84287350d32"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d226171f0d21bf65109416128a68bea9c8577b2d",
+      "scope": "Exact current artifact receipt and weekly freshness, including missing downloads, partial job matrices and withheld promotion. Recheck the historical single-job 45389970933 receipt and the two rejected acquisition controls.",
+      "supersedes": "420f44f69e1fe05e8950938224a519217f9e6e2fd22229454d4a77c780e27529",
+      "requested_at": "2026-11-28T04:46:24.363669+00:00",
+      "request_id": "ef93e6f383708a95d6b68004f1903b294bee8cc37a14b2790e3ca444dac8060b",
+      "evidence_sha256": "a4712d3b6c36b4af1966a5dace371fadb4c821351466b66f71fd7197678ff210"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d226171f0d21bf65109416128a68bea9c8577b2d",
+      "verdict": "approved",
+      "decision": "APPROVE M0-145 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "scope": "APPROVE M0-145 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "observation": "After a cold reopen, both collection modes preserved the accepted Windows receipt for run 45389970933 and returned zero receipts for its split-layout copy even with qualifying history.",
+      "reviewer": "Independent Astra Standard (t1mj)",
+      "original_sha256": "0bd023db9bc8e2b48d9b01de8525026e02140517c62158bb7cec3018c0528065",
+      "response_id": "31ac8a210bb4e4268c0c8bb57aac184082809620e1518f0d7badf8ce05d87761",
+      "response_sha256": "da2f3026a0ca02e99a98da46bcd08eb82184750b0fee1eba3d3ea509f80ec21a",
+      "legacy_response_sha256": "58ffc57634199ef821cc29c200a56143c2e3e5a3550474d5c57b8b9c34d7a48e",
+      "observation_body_sha256": "da71f3a3483d5bcacb84b747e20747609a0dc809ec28147c1cd1f3be2ccb0dac",
+      "event": {
+        "id": "msg_094201101df2cf19016b0a5e05b15087d097aa4dafc93635ab",
+        "timestamp": "2026-11-28T04:52:42.022Z"
+      },
+      "supersedes": "ef93e6f383708a95d6b68004f1903b294bee8cc37a14b2790e3ca444dac8060b",
+      "evidence_sha256": "217702660a66aa5db206a1565ac3cc3037d33ae34e639b3b74cf56bf58663790"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "Exact current artifact receipt and weekly freshness, including missing downloads, partial job matrices and withheld promotion. Reopen the accepted historical single-job receipt for 45389970933 and its two rejected acquisition controls using both collection modes.",
+      "supersedes": "31ac8a210bb4e4268c0c8bb57aac184082809620e1518f0d7badf8ce05d87761",
+      "requested_at": "2026-11-28T05:48:22.202405+00:00",
+      "request_id": "60dc38b3ab8c5b59017e58af5fabd7d1fc86d31653cc7034ccbd3be250d77117",
+      "evidence_sha256": "c95e6715d66bc32559f93b106c10a9914032bf30ecad4ab2a776145cef6bf245"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d55f6907237d9af018decabd2f94fba43c198620",
+      "verdict": "approved",
+      "decision": "APPROVE M0-145 d55f6907237d9af018decabd2f94fba43c198620",
+      "scope": "APPROVE M0-145 d55f6907237d9af018decabd2f94fba43c198620",
+      "observation": "After a cold reopen, both collection modes preserved the exact Windows receipt for run 45389970933 and returned zero receipts for the split-layout and missing-download controls despite three eligible historical samples.",
+      "reviewer": "Independent Astra Standard (t1n1)",
+      "original_sha256": "fe80447d5c7c2b3778665a844ecb85368d25bcd9585b5abe50fc6f3482aa8d97",
+      "response_id": "48df6fc210bb7d06b9b8fc38bcdb6e6005cd0287d10d42e2da74e9ac4587904d",
+      "response_sha256": "49c028450c4ea553f098b00e884c6688b3bdc0db003af8fab5dc2d35f173b4c4",
+      "legacy_response_sha256": "7cf36afe32d27f3ef0c1e97058731aa598c5b0c37741933c67222429eb1c5328",
+      "observation_body_sha256": "990870028a6232092caa15e915387f52b9c345db8eab254e4369d7019984761c",
+      "event": {
+        "id": "msg_0cdd5c284d91d62c016b0a6c9e377c87d0a90ddbbee836cc74",
+        "timestamp": "2026-11-28T05:54:55.620Z"
+      },
+      "supersedes": "60dc38b3ab8c5b59017e58af5fabd7d1fc86d31653cc7034ccbd3be250d77117",
+      "evidence_sha256": "2f69383bff87a14640e40afd99e7002554066d954191f68a0c9cc38569b34ecf"
+    }
+  ]
+}

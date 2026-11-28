@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "id": "0038",
+  "title": "Reconcile publisher outcomes, runner clocks and collection chronology at their source boundaries",
+  "status": "accepted",
+  "recorded_at": "2026-11-27",
+  "context": "Independent M0-150, M0-155 and M0-156 reviews rejected e6f12373. A producer outcome could override its own check results, a split aggregate could contradict its Python parts, and an unsplit report could import a split binding. A rejected producer completion could erase the feasible runner total. Artifact availability gated weekly job collection, and saved input order could replace a newer collection and its receipts with an older one.",
+  "decision": "Qualify raw publisher and Python part outcomes against the observed publisher contract before projecting the report. Evaluate the available check outcomes on compact inputs before reducing samples. Project runner intervals from actual job endpoints that jointly satisfy the Windows aggregate prerequisite boundary. Keep Actions job collection independent of artifact download, and qualify current receipts against the artifacts and jobs acquired in that collection. On reopen, use observed collection chronology to carry freshness forward, and retain uncertainty when the saved observations cannot establish the order.",
+  "authority": "ADR 0007 assigns technical design and verification to the development AI. Independent exact-source review and matching verification remain acceptance gates.",
+  "alternatives": [
+    {
+      "option": "Add case-specific status exceptions and suppress stale summaries in the weekly command.",
+      "reason": "A local exception can leave the same claim in raw projection, attempt reduction or a saved archive. A repaired display would still let the contradictory publisher or superseded receipt affect a later read."
+    },
+    {
+      "option": "Require complete raw publisher and job records to use any historical measurement.",
+      "reason": "The retained inputs include older compact reports and partial job lists. Available facts can independently establish elapsed time without qualifying complete platform coverage or a current receipt."
+    }
+  ],
+  "consequences": [
+    "Keep the existing archive kind and original report input fingerprints. Preserve admissible legacy partial records. A collection with indeterminate order issues no current receipts.",
+    "A recent attempt can contribute Actions clocks even when no artifact is downloadable. The existing recent-run limit bounds those queries to one job listing per selected attempt.",
+    "Replay publisher admission, job intervals, artifact acquisition and cold reduction through their ordinary and standard-library weekly entries. Report local reader cost separately from hosted verification and the scheduled observation."
+  ],
+  "supersedes": [],
+  "related_decisions": ["0031", "0032", "0034", "0035", "0036", "0037"],
+  "revisit_when": [
+    "A supported publisher changes part or check execution rules, or a workflow changes which jobs the Windows aggregate waits for.",
+    "A retained format or new acquisition path cannot establish the source or chronology needed by this reconciliation."
+  ]
+}

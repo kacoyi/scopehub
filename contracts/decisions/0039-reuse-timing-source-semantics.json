@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "id": "0039",
+  "title": "Reuse source rules for timing admission, job intervals and saved collection state",
+  "status": "accepted",
+  "recorded_at": "2026-11-27",
+  "context": "The three independent reviews of 1024b35f found separate versions of stop and integration rules at the compacting boundary, prerequisite filters used by only some Windows metrics, and collection state interpreted differently by display and save. For push 45838575346 the genuine endpoints support 24 setup seconds, 2 queue seconds and 3260 runner-seconds. PR 96 has 876 Windows wall seconds, 2584 runner-seconds and 827 execution seconds even without a current download. PR 123 has both a genuine failing browser publisher and passing Python and aggregate controls. The genuine PR 96 saved archive contains two current receipts.",
+  "decision": "Refine the existing boundaries in place. Use the selected historical publisher's stop sequence and the harness integration gate calculation before raw projection. Evaluate only the available sequence and independent Actions outcomes on compact reports. Scope timing endpoints to the measured job and its independently feasible steps, then enforce the observed prerequisite ordering at aggregate projection. Use the same artifact-list error handling on explicit and weekly acquisition. Compare equal-time receipt sets by full receipt identity and save the current history verdict with the independent acquisition fact in the existing archive version.",
+  "authority": "ADR 0007 and the existing independent acceptance rules for M0-150, M0-155 and M0-156.",
+  "alternatives": [
+    {
+      "option": "Stage a new publisher and archive format with complete execution evidence.",
+      "reason": "The genuine historical publishers and Actions originals establish the required measurements and contradictions through the existing fields. Replacing the format would still need a compatibility reader and cannot recover raw fields already absent from old compacts."
+    },
+    {
+      "option": "Apply separate substitutions at the explicit, weekly and summary entries.",
+      "reason": "Entry-specific changes would leave ambiguous endpoints, unsupported publisher claims and conflicting receipts available to another reader or to a future save."
+    }
+  ],
+  "consequences": [
+    "Independent clocks still have their own evidence when a report or a phase is rejected. A true interval ambiguity remains unknown.",
+    "Saved uncertainty leaves zero current receipts and carries the count fields consumed by the protected version-one summary entry.",
+    "Verify the same genuine originals and adjacent contradictions at the ordinary, offline weekly and cold entries and at the protected consumer. Hosted, native and scheduled evidence retain their separate project gates."
+  ],
+  "supersedes": [],
+  "related_decisions": ["0031", "0035", "0036", "0037", "0038"],
+  "revisit_when": [
+    "A supported workflow changes its verification exit behavior, prerequisite layout or publisher stop order.",
+    "A retained format cannot preserve a newly required observation."
+  ]
+}
