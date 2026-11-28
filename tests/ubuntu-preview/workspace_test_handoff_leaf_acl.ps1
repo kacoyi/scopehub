@@ -11,7 +11,7 @@ function Write-FixtureProgress($stage) {
 
 try {
   Write-FixtureProgress 'script-entered'
-  $null = [Reflection.Assembly]::LoadFrom((Join-Path $env:SCOPEHUB_WORKSPACE_TEST_RUN 'handoff-fixture-acl.dll'))
+  $null = [Reflection.Assembly]::LoadFrom((Join-Path $env:SCOPEHUB_WORKSPACE_TEST_RUN 'handoff-fixture-acl.exe'))
   Write-FixtureProgress 'helper-loaded'
   $matrix = ConvertFrom-Json $env:SCOPEHUB_TEST_ACL_FIXTURE
   if ($matrix.controls.Count -ne 24) { exit 1 }
