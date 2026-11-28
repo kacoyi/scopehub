@@ -2216,6 +2216,29 @@ def missing_independent_job_clock(evidence, attempt):
                for role in roles)
 
 
+def publishing_upper_key(point):
+    # A whole-second Actions clock covers the entire recorded second.
+    second = int(point)
+    return second, point == second, point
+
+
+def publishing_endpoints(step, floor, ceiling):
+    if not step or not step.eligible:
+        return (), ()
+    start, end = (
+        tuple(point for point in step.endpoints[field] or ()
+              if not outside_report_bound(floor, point, latest=True)
+              and not outside_report_bound(point, ceiling, latest=True))
+        for field in ('start', 'end')
+    )
+    if start and end:
+        earliest = min(start)
+        latest = max(end, key=publishing_upper_key)
+        start = tuple(point for point in start if not outside_report_bound(point, latest, latest=True))
+        end = tuple(point for point in end if not outside_report_bound(earliest, point, latest=True))
+    return start, end
+
+
 def publishing_phase_bounds(fact, verification, floor, ceiling):
     steps = fact.steps or {}
     initialization = steps.get(WINDOWS_INITIALIZATION_STEP)
@@ -2224,53 +2247,45 @@ def publishing_phase_bounds(fact, verification, floor, ceiling):
     # The historical workflow initializes the report directory, writes in
     # verification, and stages the existing bytes. These relations do not
     # depend on Actions returning a number or a clock for each step.
-    before = [steps.get('Set up job'), initialization]
-    after = [staging, steps.get('Complete job')]
-    start = end = None
-    if writer and writer.eligible:
-        def within_job(points):
-            return (point for point in points or ()
-                    if (floor is None or not floor.is_finite() or not outside_report_bound(floor, point, latest=True))
-                    and not outside_report_bound(point, ceiling, latest=True))
-
-        start = min(within_job(writer.endpoints['start']), default=None)
-        end = max(within_job(writer.endpoints['end']), default=None)
-        if start is not None and end is not None and outside_report_bound(start, end, latest=True):
-            start = end = None
+    lowers = [min(points) for step in (steps.get('Set up job'), initialization)
+              for points in publishing_endpoints(step, floor, ceiling) if points]
+    uppers = [max(points, key=publishing_upper_key) for step in (staging, steps.get('Complete job'))
+              for points in publishing_endpoints(step, floor, ceiling) if points]
+    starts, ends = publishing_endpoints(writer, floor, ceiling)
     if writer and writer.eligible and writer.number is not None:
         first = last = writer.number
     else:
         first = initialization.number if initialization and initialization.eligible else None
         last = staging.number if staging and staging.eligible else None
-    lowers = [min(points) for step in before if step and step.eligible
-              for points in step.endpoints.values() if points]
-    uppers = [max(points) for step in after if step and step.eligible
-              for points in step.endpoints.values() if points]
-    lowers.append(start)
-    uppers.append(end)
-    # Numbered neighbors can bound the writer when their clocks agree with
-    # its observed order. The named workflow boundaries also apply without numbers.
+    # The writer's end cannot disqualify a successor that independently
+    # bounds that end. Its start still rules out a successor before the work.
+    predecessor_ceiling = max(starts or ends, key=publishing_upper_key, default=ceiling)
+    successor_floor = max(lowers, default=floor)
+    if starts:
+        successor_floor = max((*lowers, min(starts)))
     for number, (name, step) in (fact.visible_steps or {}).items():
-        if (not step.eligible or name == verification or name in ACTIONS_ORDER_STEPS
-                or name in PUBLISHING_BOUNDARY_STEPS):
+        # Another lane's writer is not part of this publisher's sequence.
+        if (name == verification or name in WINDOWS_LANE_STEPS
+                or name in ACTIONS_ORDER_STEPS or name in PUBLISHING_BOUNDARY_STEPS):
             continue
-        endpoints = [points for points in step.endpoints.values() if points]
         if first is not None and number < first:
-            for points in endpoints:
-                point = min(points)
-                if not outside_report_bound(point, start, latest=True):
-                    lowers.append(point)
-        if (last is not None and number > last
-                or (name is not None and name.startswith('Run actions/upload-artifact@'))):
-            for points in endpoints:
-                point = max(points)
-                if end is None or not outside_report_bound(end, point, latest=True):
-                    uppers.append(point)
+            lowers.extend(min(points) for points in publishing_endpoints(step, floor, predecessor_ceiling)
+                          if points)
+        elif (last is not None and number > last
+              or (name is not None and name.startswith('Run actions/upload-artifact@'))):
+            uppers.extend(max(points, key=publishing_upper_key)
+                          for points in publishing_endpoints(step, successor_floor, ceiling) if points)
+    starts, ends = publishing_endpoints(writer, max(lowers, default=floor),
+                                        min(uppers, key=publishing_upper_key, default=ceiling))
+    if starts:
+        lowers.append(min(starts))
+    if ends:
+        uppers.append(max(ends, key=publishing_upper_key))
     return lowers, uppers
 
 
 def outside_report_bound(recorded, bound, *, latest):
-    if bound is None or not bound.is_finite():
+    if recorded is None or not recorded.is_finite() or bound is None or not bound.is_finite():
         return False
     point = int(recorded) if latest and bound == int(bound) else recorded
     return point > bound if latest else point < bound

@@ -494,6 +494,64 @@ class HostedTimingTests(unittest.TestCase):
                     }
                     self.assertEqual(expected_diagnostics, {issue['error'] for issue in view['input_issues']})
 
+    def test_ordinary_reader_qualifies_step_endpoints_before_combining_publishing_bounds(self):
+        run = hosted_run()
+        report = split_harness_report(675)
+        report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
+                        'event': 'pull_request', 'head_sha': FIXTURE_PR_HEAD, 'checkout_sha': 'a' * 40}
+        genuine = dict(lane_sample(timing.report_sample(report), 'browser'),
+                       recorded_at='2026-11-20T00:11:25.847471Z')
+        cases = (
+            ('started_at', 1, 'completed_at', '12:01', None),
+            ('completed_at', 2, 'started_at', '00:39', None),
+            ('started_at', 1, 'completed_at', '00:20', '01:45'),
+            ('completed_at', 2, 'started_at', '12:05', '11:27'),
+            (None, 0, 'completed_at', '11:28', '11:27'),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            run_path, jobs_path, altered_path, good_path, copy_path = (
+                Path(directory) / name for name in ('run.json', 'jobs.json', 'altered.json', 'good.json', 'copy.json'))
+            run_path.write_bytes(timing.json_bytes(run))
+            good_path.write_bytes(timing.json_bytes(genuine))
+            for missing, index, field, altered_at, claimed_at in cases:
+                jobs = self.split_windows_jobs()
+                steps = jobs[2]['steps']
+                steps.append({'number': 13, 'status': 'completed', 'conclusion': 'success',
+                              'started_at': '2026-11-20T00:11:25Z', 'completed_at': '2026-11-20T00:11:30Z'})
+                if missing:
+                    del steps[0][missing]
+                changed = deepcopy(jobs)
+                changed[2]['steps'][index][field] = f'2026-11-20T00:{altered_at}Z'
+                jobs_path.write_bytes(timing.json_bytes(jobs))
+                altered_path.write_bytes(timing.json_bytes(changed))
+                if claimed_at:
+                    copy = dict(genuine, recorded_at=f'2026-11-20T00:{claimed_at}Z')
+                    copy_path.write_bytes(timing.json_bytes(copy))
+                    listings = [(jobs_path, altered_path), (altered_path, jobs_path)]
+                    reports = [(good_path,), (copy_path,), (good_path, copy_path), (copy_path, good_path)]
+                else:
+                    listings, reports = [(altered_path,)], [(good_path,)]
+                for ordered_jobs in listings:
+                    for ordered_reports in reports:
+                        with self.subTest(altered_at=altered_at, jobs=ordered_jobs, reports=ordered_reports):
+                            args = ['timing.py']
+                            for path in ordered_jobs:
+                                args.extend(('--actions', str(run_path), str(path)))
+                            for path in ordered_reports:
+                                args.extend(('--report', str(path)))
+                            with patch.object(sys, 'argv', args), redirect_stdout(StringIO()) as stdout:
+                                timing.main()
+                            view = json.loads(stdout.getvalue())
+                            expected = [(genuine['recorded_at'], 680)] if good_path in ordered_reports else []
+                            self.assertEqual(expected, [(row['recorded_at'], row['seconds']['runner'])
+                                                        for row in view['samples'] if row['job']])
+                            for hosted in view['hosted']:
+                                windows, = (row for row in hosted['jobs'] if row['platform'] == 'Windows')
+                                self.assertEqual(1687, windows['seconds']['runner'])
+                            rejected = any('outside the publishing job boundaries' in row['error']
+                                           for row in view['input_issues'] if row.get('job_id') == '33')
+                            self.assertEqual(copy_path in ordered_reports, rejected)
+
     def test_agreed_split_intervals_survive_a_missing_or_contested_step_endpoint(self):
         jobs = list(self.split_windows_jobs())
         run = hosted_run()

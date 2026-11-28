@@ -28664,7 +28664,7 @@
         "On PR 123, bound the recorded report instant by the ordered historical writer and its independently observed neighbors. Match the aggregate original's producer role when compact reports explicitly claim a digest. Preserve the authentic raw and compact reports, recorded precision and legacy compact forms without a digest.",
         "Use the original workflow order and intersect independently observed initialization, verification, staging and surrounding job boundaries at their recorded precision. Retain exact genuine PR 123 success and failure producer reports through both input orders and reject confirmed out-of-window and wrong-role claims."
       ],
-      "next_action": "Repair the three retained PR 123 public timing regressions on 1f6c7cda. Check out-of-job neighbors, conflicting job listings, and feasible writer and successor bounds before reducing endpoints. Reproduce both independent originals and preserve the genuine report, recorded precision, ordered roles and independent job clocks. See .reports/m0-156-dff1eef8-collection/coordinator-recovery/primary-1f6c7cda/regression-intake.json.",
+      "next_action": "Use .reports/m0-150-1f6c7cda-bounds/handoff.json for the exact local PR 123 publishing-boundary candidate and its retained before and after observations. Obtain new M0-150, M0-155 and M0-156 primary decisions on the same clean source before opening any of the five downstream requests. The coordinator owns publication, hosted and native qualification, and scheduled follow-through.",
       "blocker": null,
       "evidence": [],
       "closure_reason": null,
@@ -28712,7 +28712,8 @@
           "The recognized launcher must preserve the lane selector result through its ordered report projection. An unsupported consumer or write invalidates the static proof.",
           "Running admission against a proven historical publishing catalog and selector can expose mutations that leave the selector text unchanged. Exact per-check eligibility can distinguish implemented and planned rows with unchanged aggregate work.",
           "Apply shared invariants to original facts before projection. Verify stable metrics and report attribution independently on the real producer pairs and cold readers.",
-          "A bound publishing job can independently disprove a recording instant even when the report has incomplete coverage or missing execution identity."
+          "A bound publishing job can independently disprove a recording instant even when the report has incomplete coverage or missing execution identity.",
+          "Validate each publishing step endpoint against the independently established job interval and workflow order before reducing alternative observation clocks. A whole-second Actions clock allows the full recorded second and an exact bound retains its precision."
         ],
         "risks": [
           {
@@ -29076,6 +29077,27 @@
           },
           {
             "failure": "timing-publishing-bound-intersection-loses-precise-clock: On PR 123 run 45965137241, a whole-second staging start or verification end masks the other exact upper bound at 08:38:31.900Z. A report one nanosecond late gains 983 runner-seconds and can withdraw the exact original in either order. Independent browser and Windows runner clocks remain measurable.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "timing-outside-job-neighbor-discards-genuine-report: One out-of-job predecessor end or successor start withdraws genuine PR 123 attribution while the independent job clocks remain valid.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "timing-conflicting-writer-end-drops-ordered-successor: A competing writer end overrides the feasible numbered successor and gives an impossible PR 123 copy attribution. Preserve the same bound when the successor name is absent.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "timing-outside-job-conflicting-listing-displaces-genuine-report: An impossible alternative neighbor clock weakens the valid minimum or maximum after observations are joined. Verify each input order and fresh-process reopen with the independent job clocks.",
             "checks": [
               "project-state",
               "python-contracts-workers"
