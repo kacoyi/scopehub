@@ -688,6 +688,15 @@
       },
       "supersedes": "0ca1e381685c682f5be48dee5821b366db3baed5ba6f1d2a1bb7467f6212f690",
       "evidence_sha256": "a908840f7bf438c5c513c46ac10171700f6e73326012072092a21c2052a23b08"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "Check the changed timing rules against the accepted phase-clock and clock-precision decision, including the original PR 123 controls and PR 84 isolated recovery producer with missing or conflicting aggregate dependency evidence. Derive independently which stage, initialization and neighboring bounds survive and verify the used public entries on this source.",
+      "supersedes": "f098fe24dc4497ba47d71c2697341a3cf7e25c7a9ebe9f170587ee7924608a79",
+      "requested_at": "2026-11-28T03:57:31.315426+00:00",
+      "request_id": "01fe607dbc958a79f90a67c2a3fec8eee1f0da6fe9417fd0716a751f021bee3a",
+      "evidence_sha256": "928a8db6458a48dd0290dcc15b41c03322e9daafdbde9beb49cb81c6b7f200a4"
     }
   ]
 }

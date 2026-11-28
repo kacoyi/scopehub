@@ -697,6 +697,15 @@
       },
       "supersedes": "5c9b30e5040897205d40188c0b3bdc61f5fb52e561f1dda211ea4ed225ba1d42",
       "evidence_sha256": "f589562b90c52c2bd4680342b3a8d6f6252bbe060e08b2953fed15cb31d32f10"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e77724d0aacdb5139806fd9b50921aa72043b834",
+      "scope": "Check the changed historic publisher and collection admission against the genuine PR 96 and push acquisition controls. Verify receipts for a valid historical single-job acquisition and refusal under mismatched sourcing. Exercise input order, actual cold reopening, same-time conflicts and later partial collection while retaining independently supported clocks.",
+      "supersedes": "71586e59fc09e6abc1c507f120e252f315c1d1841c7b0e6f5703164322ccf56a",
+      "requested_at": "2026-11-28T03:57:32.300646+00:00",
+      "request_id": "06534544b42656563f7c479869182ee56fcccdf6721f680a7a4283206de00580",
+      "evidence_sha256": "f7525e825a5cfebb19ddbcb485f6081b07ccf65bb73693c1ee6960be0d3e9b55"
     }
   ]
 }
