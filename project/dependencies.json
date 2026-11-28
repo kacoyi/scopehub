@@ -213,8 +213,8 @@
     ]
   },
   "maintenance": {
-    "reviewed_on": "2026-10-29",
-    "next_review_by": "2026-11-28",
+    "reviewed_on": "2026-11-28",
+    "next_review_by": "2026-12-28",
     "owner": "Repository implementation agent, with owner review for product/permission/boundary decisions.",
     "automation": "Weekly bounded Dependabot proposals for GitHub Actions and Cargo activate when .github/dependabot.yml reaches the default branch. No auto-merge.",
     "manual_ecosystems": "Reviewed on 2026-11-21. GitHub.com supports pnpm 11 through the npm ecosystem. The hosted matrix lists uv 0.11, while released Dependabot Core 0.405.0 uses uv 0.13.7 internally. ScopeHub requires exact uv 0.13.9. Use the pinned native package managers for this repository's Python and npm maintenance. Enable npm proposals only in a reviewed updater configuration that verifies the frozen pnpm lock, local patch and license inventory. Revisit hosted uv automation when the updater resolves the exact project pin and a trial proves it can update the locked graph.",
@@ -438,6 +438,198 @@
       "review": "Both original archives matched their publisher SHA-256, Astral manifest and GitHub release metadata. GitHub Artifact Attestations verified both files against astral-sh/uv's release workflow. 0.13.9 retains the CA bundle correction from 0.13.4 and the intermediate key distrust and managed Python refresh from 0.13.5. It also improves equivalent platform marker checks and rejects wheels advertised under another package name. The local Python 3.12 trial passed uv lock --check and uv sync --locked with the existing byte-identical lock.",
       "advisory": "https://github.com/astral-sh/uv/security/advisories/GHSA-hq85-5cpj-mr62",
       "trust_follow_up": "https://github.com/astral-sh/uv/releases/tag/0.13.5"
+    },
+    "monthly_review": {
+      "task_id": "M0-187",
+      "protected_source": "7d29f9b5497ea6f428da80bb9e050cd19c941e49",
+      "queue": {
+        "observed_at": "2026-11-28T10:44:35.622096+00:00",
+        "open_dependabot_proposals": [],
+        "originals": "archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261127-t1k1/current-periodic-intake-7d29f9b5/monthly-dependency-intake-7d29f9b5",
+        "intake_sha256": "442e1e00696c10f2d34673d1826e4d512c8b4add4810d22253e9fbed0bc2d82e"
+      },
+      "proposals": [
+        {
+          "pr": "https://github.com/kacoyi/scopehub/pull/2",
+          "reviewed_head": "879bb8bd55ab3603bbad76f03e138f1e2a59264e",
+          "original_failed_run": "https://github.com/kacoyi/scopehub/actions/runs/38530272739",
+          "final_head": "879bb8bd55ab3603bbad76f03e138f1e2a59264e",
+          "final_head_matches_reviewed": true,
+          "state": "closed-unmerged",
+          "closed_at": "2026-11-22T05:03:35Z",
+          "replacement_task": "M0-040",
+          "replacement_pr": "https://github.com/kacoyi/scopehub/pull/31",
+          "disposition": "actions/cache restore and save are both pinned to the reviewed v6.1.0 commit 55cc8345863c7cc4c66a329aec7e433d2d1c52a9."
+        },
+        {
+          "pr": "https://github.com/kacoyi/scopehub/pull/3",
+          "reviewed_head": "1de06827df269fef5c5e5a74a867ac7ed875028c",
+          "original_failed_run": "https://github.com/kacoyi/scopehub/actions/runs/38530290280",
+          "final_head": "1de06827df269fef5c5e5a74a867ac7ed875028c",
+          "final_head_matches_reviewed": true,
+          "state": "closed-unmerged",
+          "closed_at": "2026-11-22T05:03:39Z",
+          "replacement_task": "M0-040",
+          "replacement_pr": "https://github.com/kacoyi/scopehub/pull/31",
+          "disposition": "The reviewed setup-uv v10.3.0 replacement entered through #31. M0-112 subsequently replaced that Action pin with v10.4.0 through #99."
+        },
+        {
+          "pr": "https://github.com/kacoyi/scopehub/pull/7",
+          "reviewed_head": "31d25001f61468215138de911743e72d40089e41",
+          "original_failed_run": "https://github.com/kacoyi/scopehub/actions/runs/44588461632",
+          "final_head": "31d25001f61468215138de911743e72d40089e41",
+          "final_head_matches_reviewed": true,
+          "state": "closed-unmerged",
+          "closed_at": "2026-11-22T05:03:42Z",
+          "replacement_task": "M0-040",
+          "replacement_pr": "https://github.com/kacoyi/scopehub/pull/31",
+          "disposition": "The native jsonschema 0.61.2 resolution entered through #31. M0-113 subsequently replaced it with 0.62.0 through #100."
+        },
+        {
+          "pr": "https://github.com/kacoyi/scopehub/pull/26",
+          "reviewed_head": "22ae5355fc535680920be0cd836eef7ea7b37d15",
+          "original_failed_run": "https://github.com/kacoyi/scopehub/actions/runs/44906250020",
+          "final_head": "22ae5355fc535680920be0cd836eef7ea7b37d15",
+          "final_head_matches_reviewed": true,
+          "state": "closed-unmerged",
+          "closed_at": "2026-11-22T04:29:14Z",
+          "replacement_task": "M0-040",
+          "replacement_pr": "https://github.com/kacoyi/scopehub/pull/31",
+          "disposition": "The lock retains uuid 1.29.3, tokio 1.54.1, libc 0.2.191, tauri 2.12.7 and tauri-build 2.7.6 with static_vcruntime 3.0.0. Tokio retains the Interval regression fix. The PR 155 Windows job passed the native no-bundle build."
+        },
+        {
+          "pr": "https://github.com/kacoyi/scopehub/pull/88",
+          "reviewed_head": "eaf831d06a936659c215df89b12adb7c9fd3ec3d",
+          "original_failed_run": "https://github.com/kacoyi/scopehub/actions/runs/45519231958",
+          "final_head": "628b29943a8beaa4ae733367bc66648d0700e462",
+          "final_head_matches_reviewed": false,
+          "state": "closed-unmerged",
+          "closed_at": "2026-11-25T09:39:24Z",
+          "replacement_task": "M0-112",
+          "replacement_pr": "https://github.com/kacoyi/scopehub/pull/99",
+          "disposition": "The final patch proposes the same v10.4.0 commit 1db35dd8eee11c5894872e0b383ae6c406cf738d. The accepted workflow retains the existing version-file and platform-specific checksum input."
+        },
+        {
+          "pr": "https://github.com/kacoyi/scopehub/pull/89",
+          "reviewed_head": "df61a4ec759e2cef635d50a0d09e72ec3e20d8c4",
+          "original_failed_run": "https://github.com/kacoyi/scopehub/actions/runs/45519296584",
+          "final_head": "de77ddc2422104b9e01682e3c7069323638ef6d5",
+          "final_head_matches_reviewed": false,
+          "state": "closed-unmerged",
+          "closed_at": "2026-11-25T09:55:40Z",
+          "replacement_task": "M0-113",
+          "replacement_pr": "https://github.com/kacoyi/scopehub/pull/100",
+          "disposition": "The final patch proposes the same locked jsonschema, jsonschema-regex, jsonschema-value and referencing 0.62.0 family, plus regex 1.13.2, regex-automata 0.4.19 and regex-syntax 0.8.12. The integrated replacement includes the reviewed inventory."
+        },
+        {
+          "pr": "https://github.com/kacoyi/scopehub/pull/90",
+          "reviewed_head": "0d56ecf3e354743cebda6c98848556cba6fa7885",
+          "original_failed_run": "https://github.com/kacoyi/scopehub/actions/runs/45519317188",
+          "final_head": "d39b03e17fab4f410a6d49770b246bc774c7565d",
+          "final_head_matches_reviewed": false,
+          "state": "closed-unmerged",
+          "closed_at": "2026-11-25T09:55:52Z",
+          "replacement_task": "M0-113",
+          "replacement_pr": "https://github.com/kacoyi/scopehub/pull/100",
+          "disposition": "The final patch selects the existing base64 0.23.1 lock entry for scopehub-worker-host. The integrated replacement includes the reviewed inventory. Older 0.21.7 and 0.22.1 lock entries serve other consumers."
+        }
+      ],
+      "protected_dependency_check": {
+        "observed_at": "2026-11-28T10:51:24.682672+00:00",
+        "status": "passed",
+        "packages": 588,
+        "actions": 9,
+        "lock_sha256": {
+          "Cargo.lock": "7ce260e0f34c5fbbf725831316d5219a188fc13a72d43d7bad3a058d2567c777",
+          "uv.lock": "c64faf3fc1912c0a52d3c088b35b491875063972a67fc7113d1224a57978240c",
+          "pnpm-lock.yaml": "273fc2842fdc1eff02288f414b15188f81a4603e2808254c1a01404919a5231c"
+        },
+        "inventory_sha256": "0d0f12b584708d423577290395132ae2467d4a97128412ed989dd2293903c26d",
+        "original_report_sha256": "6318fd357812de47de4ec132fb78823b68ee169484f63456ff4c2ff557eb8172",
+        "unresolved_findings": [],
+        "scope": "Fresh OSV lookup with the recorded supported-target guards. The lock findings cover chrono 0.4.45, glib 0.18.5 (two identifiers) and proc-macro-error 1.0.4 under existing dispositions through 2027-01-12. The scan covers locked packages and reviewed Action pins. Toolchain binaries and distribution obligations need separate evidence."
+      },
+      "toolchains": {
+        "local": {
+          "python": "3.12.15",
+          "node": "24.22.3",
+          "pnpm": "11.28.5",
+          "rust": "1.99.0",
+          "uv": "0.13.9"
+        },
+        "hosted_python": {
+          "ubuntu": "3.12.16",
+          "windows": "3.12.10"
+        },
+        "node": "The local and PR 155 Node 24.22.3 versions match the November 11 security release. The workflow selects Node 24 and the reviewed Actions use their declared runtimes. PR 155 Windows pnpm/action-setup logs contain DEP0190. The setup steps succeeded and the inspected logs showed no forced runtime substitution.",
+        "rust": "Retain the exact 1.99.0 toolchain for this review. Rust 1.99.1 fixes an x86-64 FFI bool return ABI regression and other target/linker regressions. ScopeHub has no direct exported Rust FFI bool function in the workspace sources examined. Transitive exposure remains unverified. Rust 1.100.1 corrects an inference regression introduced in 1.100.0.",
+        "sources": [
+          "https://nodejs.org/en/blog/release/v24.22.3",
+          "https://blog.rust-lang.org/2026/10/15/Rust-1.99.1/",
+          "https://blog.rust-lang.org/2026/11/27/Rust-1.100.1/",
+          "https://devguide.python.org/versions/",
+          "https://www.python.org/downloads/release/python-31216/"
+        ]
+      },
+      "follow_up": [
+        {
+          "owner": "Repository implementation agent",
+          "trigger": "Before the next Python toolchain refresh or any install of newly selected Python distributions, whichever comes first.",
+          "action": "Qualify a uv release carrying the archive validation fix and a maintained 3.12 patch on Linux and Windows. The advisory description and release identify 0.13.10 as the fix, while the advisory patched-version field says >0.13.10. Resolve that discrepancy against the publisher release and implementation before selection. Verify binary attestations, platform checksums, byte-preserving locked sync, and actual Python selection in both hosted jobs. Current hosted Windows uses the 3.12.10 tool cache, so the workflow minor pin alone does not establish later CPython security fixes.",
+          "sources": [
+            "https://github.com/astral-sh/uv/security/advisories/GHSA-vjvj-3m3f-fgmm",
+            "https://github.com/astral-sh/uv/releases/tag/0.13.10",
+            "https://www.python.org/downloads/release/python-31216/"
+          ]
+        },
+        {
+          "owner": "Repository implementation agent",
+          "trigger": "Before the next npm dependency resolution or registry configuration change.",
+          "action": "Qualify a supported pnpm 11 update with the later registry trust and install hardening. Verify the frozen lock, desktop patch, lifecycle approvals and hosted bootstrap on both platforms. Inspect the Windows DEP0190 trace in that follow-up. Current routine checks use the frozen project lock.",
+          "sources": [
+            "https://github.com/pnpm/pnpm/releases/tag/v11.28.13",
+            "https://github.com/pnpm/pnpm/releases/tag/v11.29.0"
+          ]
+        },
+        {
+          "owner": "Repository implementation agent",
+          "trigger": "At the next native Rust toolchain qualification, or earlier if a supported build shows the upstream ABI or linking regression.",
+          "action": "Check x64 Windows and Linux for affected transitive FFI boundaries and trial the corrected compiler with matching native checks before changing the exact pin.",
+          "sources": [
+            "https://blog.rust-lang.org/2026/10/15/Rust-1.99.1/"
+          ]
+        }
+      ],
+      "actions_cache": {
+        "intake_count": 43,
+        "intake_bytes": 10412180823,
+        "listed_count": 46,
+        "listed_bytes": 10521950927,
+        "main_count": 8,
+        "main_bytes": 8539108897,
+        "listing_sha256": "34d543d4211ce6fe59545aae8604187a9041d39b03483ad12a60848a149075d4",
+        "scope": "The authenticated entry listing and usage total agree. Current pressure is observable; the repository-specific storage limit was not measured in this review. Retain main, active and pending-rerun caches. Closed PR merge-ref caches cannot be restored by main. No retirement was performed.",
+        "source": "https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching"
+      },
+      "hosted_reference": {
+        "pr": "https://github.com/kacoyi/scopehub/pull/155",
+        "run": "https://github.com/kacoyi/scopehub/actions/runs/46134291691/attempts/1",
+        "head": "a9aa9bc66c4671412f19ec434c2b63293f0b3f7c",
+        "reports": {
+          "ubuntu-latest": {
+            "run_id": "20261128T101617.756400Z-63722769",
+            "source_commit": "a1b210591f4740519361e3571429e5dc49a100b6",
+            "report_sha256": "a9dc33530a77c83737c75465dab1fa3bf0b7f202d179ba9828430908677e0f97"
+          },
+          "windows-latest": {
+            "run_id": "windows-change-46134291691-1",
+            "source_commit": "a1b210591f4740519361e3571429e5dc49a100b6",
+            "report_sha256": "fe6c2e480476e87316af0e4b7039264e5b0b616bbb77ae7555bb1107833958f4"
+          }
+        },
+        "scope": "Both original reports passed dependency-review on the PR test merge. Windows passed windows-native-build (tauri build --no-bundle); Ubuntu reported that Windows-only check blocked. This is prior hosted evidence for the integrated dependency state. M5-001 remains planned, including installer notices, clean-machine acceptance and packaged runtime validation. The authenticated GitHub release list returned no releases."
+      },
+      "disposition": "Retain the protected lock and Action pins at the observed source. Carry the identified toolchain follow-ups through separate qualifications. Reopen the dependency review early on a relevant advisory, disappearance of a reviewed replacement or change to a scope guard."
     }
   }
 }

@@ -29842,7 +29842,7 @@
         "dependency-review"
       ],
       "evidence": [],
-      "next_action": "Review the current protected graph and the original and final proposal states through their ordinary maintenance entries. Record the actual disposition and verify the resulting metadata.",
+      "next_action": "Obtain independent review of the clean monthly records source and use matching scoped evidence for closure. Track the source-linked uv, Python, pnpm and Rust follow-ups in the November dependency maintenance record.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
