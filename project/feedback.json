@@ -13961,6 +13961,57 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "timing-unrelated-step-conflict-erases-explicit-initialization",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent exact-source changes requested on 12e20ac4b69dbd149aabc26bd3fedc45c853c576, recorded at dfca5477f4d0c0e2c9df58c06459b4acedba64e6. Original decisions, commands and outputs are indexed with SHA-256 in .reports/m0-150-156-dfca5477/intake-sources.json.",
+      "observation": "Both M0-150 and M0-155 independently reproduced PR 123 browser job 140391906947 crediting a report copy recorded at 08:38:17Z with 983 runner-seconds. The writer start was absent and a different earlier step pair disagreed. The unchanged initialization finished at 08:25:18Z, leaving 779 seconds for 793.422 measured seconds. The raw and compact copies also displaced the genuine report when paired. Actions clocks were independently 983 and 3337 seconds.",
+      "task_ids": [
+        "M0-150",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-unrelated-step-conflict-erases-explicit-staging",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent exact-source changes requested on 12e20ac4b69dbd149aabc26bd3fedc45c853c576, recorded at dfca5477f4d0c0e2c9df58c06459b4acedba64e6. Original decisions, commands and outputs are indexed with SHA-256 in .reports/m0-150-156-dfca5477/intake-sources.json.",
+      "observation": "Both M0-150 and M0-155 independently reproduced PR 123 browser job 140391906947 crediting a report copy recorded at 08:38:34Z with 983 runner-seconds. The writer end was absent and a different cleanup step pair disagreed. The unchanged named staging step started at 08:38:31Z. The raw and compact copies also displaced the genuine report when paired. Actions clocks were independently 983 and 3337 seconds.",
+      "task_ids": [
+        "M0-150",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-save-erases-acquisitions-before-late-disqualification",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent exact-source changes requested on 12e20ac4b69dbd149aabc26bd3fedc45c853c576, recorded at dfca5477f4d0c0e2c9df58c06459b4acedba64e6. Original decisions, commands and outputs are indexed with SHA-256 in .reports/m0-150-156-dfca5477/intake-sources.json.",
+      "observation": "M0-156 moved the one-failure PR 96 and push acquisition C one second later than the distinct zero-failure acquisitions A and B. Saving ABC or CBA retained C as the only collection. Adding genuine PR 96 success disqualified C on reopen, and repeating B then incorrectly issued the push Linux receipt. A direct read of the same evidence retained the A/B disagreement with zero receipts. An additional failure-then-success control lost still relevant claims from an originally disqualified acquisition. Independent job clocks and raw report rows remained present.",
+      "task_ids": [
+        "M0-155",
+        "M0-156"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
