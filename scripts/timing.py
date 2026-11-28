@@ -1416,7 +1416,7 @@ def named_step_clocks(job):
 
 class JobSteps(NamedTuple):
     named: dict[str, StepEvidence]
-    visible: dict[int, tuple[str, StepEvidence]]
+    visible: dict[int, tuple[str | None, StepEvidence]]
 
 
 def step_timestamps(row):
@@ -1477,7 +1477,9 @@ def reconcile_steps(jobs, *, skipped=False):
         number, name = row.get('number'), row.get('name')
         if name is None:
             name, _ = known_value(names_by_number.get(number, ()))
-        if number is not None and name is not None and names_by_number[number] == {name}:
+        # An unambiguous number can place a step around the writer even
+        # when none of the observations identifies the step by name.
+        if number is not None and names_by_number[number] <= {name}:
             visible[number].append(row)
         if name not in OBSERVED_STEPS:
             continue
@@ -1499,7 +1501,7 @@ def reconcile_steps(jobs, *, skipped=False):
         number = next(iter(numbers[name]), None) if not disputed else None
         steps[name] = StepEvidence(frozenset(conclusions[name]), frozenset(statuses[name]), disputed,
                                    joined_step_endpoints(clocks[name]), name in recorded, name in legacy_roles, number)
-    return JobSteps(steps, {number: visible_step_evidence((next(iter(names_by_number[number])), number, facts))
+    return JobSteps(steps, {number: visible_step_evidence((next(iter(names_by_number[number]), None), number, facts))
                             for number, facts in visible.items()})
 
 
@@ -1558,7 +1560,7 @@ def job_time_choices(boundaries, primary, harness_steps, steps):
     # Numbered observations preserve the order of the actual historical job.
     # Repeated action names (downloads, uploads) have separate positions.
     for number, (name, step) in steps.visible.items():
-        if number in positions or name in ACTIONS_ORDER_STEPS or not step.eligible:
+        if name is None or number in positions or name in ACTIONS_ORDER_STEPS or not step.eligible:
             continue
         if name in harness_steps:
             # The publishing step's position remains evidence when its
@@ -1653,7 +1655,7 @@ class JobClockEvidence(NamedTuple):
     successful_harness_steps: frozenset[str] = frozenset()
     failed_harness_steps: frozenset[str] = frozenset()
     steps: dict[str, StepEvidence] | None = None
-    visible_steps: dict[int, tuple[str, StepEvidence]] | None = None
+    visible_steps: dict[int, tuple[str | None, StepEvidence]] | None = None
     positioned_bounds: dict | None = None
 
 
@@ -2224,23 +2226,7 @@ def publishing_phase_bounds(fact, verification, floor, ceiling):
     # depend on Actions returning a number or a clock for each step.
     before = [steps.get('Set up job'), initialization]
     after = [staging, steps.get('Complete job')]
-    if writer and writer.eligible and writer.number is not None:
-        first = last = writer.number
-    else:
-        first = initialization.number if initialization and initialization.eligible else None
-        last = staging.number if staging and staging.eligible else None
-    for number, (name, step) in (fact.visible_steps or {}).items():
-        if name in ACTIONS_ORDER_STEPS or name in PUBLISHING_BOUNDARY_STEPS or name in TIMED_STEPS:
-            continue
-        if first is not None and number < first:
-            before.append(step)
-        if (last is not None and number > last
-                or name.startswith('Run actions/upload-artifact@')):
-            after.append(step)
-    lowers = [min(points) for step in before if step and step.eligible
-              for points in step.endpoints.values() if points]
-    uppers = [max(points) for step in after if step and step.eligible
-              for points in step.endpoints.values() if points]
+    start = end = None
     if writer and writer.eligible:
         def within_job(points):
             return (point for point in points or ()
@@ -2249,12 +2235,37 @@ def publishing_phase_bounds(fact, verification, floor, ceiling):
 
         start = min(within_job(writer.endpoints['start']), default=None)
         end = max(within_job(writer.endpoints['end']), default=None)
-        # An infeasible writer interval cannot establish either writer bound.
-        # An independently placed phase or job endpoint can still constrain
-        # publication and supply its own measurement.
-        if start is None or end is None or not outside_report_bound(start, end, latest=True):
-            lowers.append(start)
-            uppers.append(end)
+        if start is not None and end is not None and outside_report_bound(start, end, latest=True):
+            start = end = None
+    if writer and writer.eligible and writer.number is not None:
+        first = last = writer.number
+    else:
+        first = initialization.number if initialization and initialization.eligible else None
+        last = staging.number if staging and staging.eligible else None
+    lowers = [min(points) for step in before if step and step.eligible
+              for points in step.endpoints.values() if points]
+    uppers = [max(points) for step in after if step and step.eligible
+              for points in step.endpoints.values() if points]
+    lowers.append(start)
+    uppers.append(end)
+    # Numbered neighbors can bound the writer when their clocks agree with
+    # its observed order. The named workflow boundaries also apply without numbers.
+    for number, (name, step) in (fact.visible_steps or {}).items():
+        if (not step.eligible or name == verification or name in ACTIONS_ORDER_STEPS
+                or name in PUBLISHING_BOUNDARY_STEPS):
+            continue
+        endpoints = [points for points in step.endpoints.values() if points]
+        if first is not None and number < first:
+            for points in endpoints:
+                point = min(points)
+                if not outside_report_bound(point, start, latest=True):
+                    lowers.append(point)
+        if (last is not None and number > last
+                or (name is not None and name.startswith('Run actions/upload-artifact@'))):
+            for points in endpoints:
+                point = max(points)
+                if end is None or not outside_report_bound(end, point, latest=True):
+                    uppers.append(point)
     return lowers, uppers
 
 
@@ -2299,7 +2310,7 @@ def job_outside_report(fact, recorded, *, verification=None, elapsed_work=None, 
         uppers.extend(phase_uppers)
     else:
         uploads = [number for number, (name, step) in (fact.visible_steps or {}).items()
-                   if name.startswith('Run actions/upload-artifact@') and step.eligible]
+                   if name is not None and name.startswith('Run actions/upload-artifact@') and step.eligible]
         if uploads:
             uppers.append(ordered_limit(choices, order, (max(uploads), 'end'), latest=True))
     # Actions exposes whole-second bounds while the publisher records

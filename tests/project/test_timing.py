@@ -424,6 +424,43 @@ class HostedTimingTests(unittest.TestCase):
         self.assertIsNone(bound['samples'][0]['seconds']['total'])
         self.assertIn('outside the publishing job boundaries', bound['input_issues'][0]['error'])
 
+    def test_ordinary_reader_applies_numbered_neighbors_to_windows_report_lifetime(self):
+        run = hosted_run()
+        report = split_harness_report(675)
+        report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
+                        'event': 'pull_request', 'head_sha': FIXTURE_PR_HEAD, 'checkout_sha': 'a' * 40}
+        genuine = dict(lane_sample(timing.report_sample(report), 'browser'),
+                       recorded_at='2026-11-20T00:11:25.847471Z')
+        with tempfile.TemporaryDirectory() as directory:
+            run_path, jobs_path, good_path, copy_path = (Path(directory) / name for name in
+                                                        ('run.json', 'jobs.json', 'genuine.json', 'copy.json'))
+            run_path.write_bytes(timing.json_bytes(run))
+            good_path.write_bytes(timing.json_bytes(genuine))
+            for omit, claimed_at in (('started_at', '01:45'), ('completed_at', '11:27')):
+                with self.subTest(writer_clock_missing=omit):
+                    jobs = self.split_windows_jobs()
+                    browser = jobs[2]
+                    del browser['steps'][0][omit]
+                    browser['steps'].append({'number': 13, 'status': 'completed', 'conclusion': 'success',
+                                             'started_at': '2026-11-20T00:11:25Z',
+                                             'completed_at': '2026-11-20T00:11:30Z'})
+                    jobs_path.write_bytes(timing.json_bytes(jobs))
+                    copy = dict(genuine, recorded_at=f'2026-11-20T00:{claimed_at}Z')
+                    copy_path.write_bytes(timing.json_bytes(copy))
+                    args = ['timing.py', '--report', str(good_path), '--report', str(copy_path),
+                            '--actions', str(run_path), str(jobs_path)]
+                    with patch.object(sys, 'argv', args), redirect_stdout(StringIO()) as stdout:
+                        timing.main()
+                    view = json.loads(stdout.getvalue())
+                    self.assertEqual([(genuine['recorded_at'], 680)],
+                                     [(row['recorded_at'], row['seconds']['runner']) for row in view['samples']
+                                      if row['job'] and row['profile'] == 'ci-windows-browser'])
+                    hosted, = view['hosted']
+                    windows, = (job for job in hosted['jobs'] if job['platform'] == 'Windows')
+                    self.assertEqual(1687, windows['seconds']['runner'])
+                    self.assertTrue(any('outside the publishing job boundaries' in row['error']
+                                        for row in view['input_issues'] if row.get('job_id') == '33'))
+
     def test_numbered_step_facts_are_independent_of_order_and_listing_boundaries(self):
         jobs = list(self.split_windows_jobs())
         browser_index = 2
