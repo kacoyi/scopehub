@@ -871,6 +871,15 @@
       },
       "supersedes": "e9c859237ff51e6f07e87fe65f217a359c79a7d13953c1c4b9b640b7734c7c26",
       "evidence_sha256": "4bce24b89249087eaf7fe029696336ff1ea2a088ba6159aaa810861d5e3b9f2d"
+    },
+    {
+      "kind": "request",
+      "source_commit": "2b87a34bb164b68cff2830996664a3797774b1ed",
+      "scope": "Compare ordinary, offline weekly and newly reopened timing as the same observations arrive in different orders. Recheck the prior PR 123 refusals and genuinely ambiguous pairs, historical single and five-producer lanes, and measured cost on the changed ordinary entry.",
+      "supersedes": "21af3fec83a6c025dcbc08c80db2925eedc52f504f2d4239b8215c3c59b542f8",
+      "requested_at": "2026-11-28T09:21:48.056747+00:00",
+      "request_id": "eb21bee9dfcd15d5c84c5fe856837f9f008791cd6cb0de706db6d8608c051e01",
+      "evidence_sha256": "bb1b03a5dc3702e19720b3ca3f443c1e9219b59871dd64aaac1f1649f760daf9"
     }
   ]
 }

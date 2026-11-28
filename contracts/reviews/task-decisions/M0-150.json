@@ -891,6 +891,15 @@
       },
       "supersedes": "f4aa5f285d597998a4197307b4de503da5dccb85086306e935c4ea7a9ed83f69",
       "evidence_sha256": "e86498c7145458cfde29c1a2cdcac6e1b1c44788c92b819062cc719ba3955c87"
+    },
+    {
+      "kind": "request",
+      "source_commit": "2b87a34bb164b68cff2830996664a3797774b1ed",
+      "scope": "Use the preceding real PR 123 declined originals to verify an independently qualified staging or initialization bound survives a separate contradictory step. Check genuine, impossible and evidence-limited copies in raw, compact and cold reads. Verify 983 and 3337 against the original job clocks.",
+      "supersedes": "99713d315f1bab31233170b0eb8ec5130879cbcda6d60ef074df1bd241fc83e9",
+      "requested_at": "2026-11-28T09:21:47.080429+00:00",
+      "request_id": "f613a681f07e63762fa721ef421207bff32a93b81cab82db44c626b2f2a853b0",
+      "evidence_sha256": "a7a16eefcb5990ea5d2a28331afd0473bec720fccb23bff69c019e43d9bc51d4"
     }
   ]
 }

@@ -900,6 +900,15 @@
       },
       "supersedes": "a13245e2fbac13734a91e98c96f16a68d55b2322c50ba7bb8d611e900f2a8d10",
       "evidence_sha256": "166473bd7280dfd6d13e9c206fe03a8ed6943b9570ac353384529a35e432f359"
+    },
+    {
+      "kind": "request",
+      "source_commit": "2b87a34bb164b68cff2830996664a3797774b1ed",
+      "scope": "On genuine PR 96 and push inputs, reprobe the prior declined cold acquisitions with later timestamps, repeated partial evidence and late corroboration. Check receipts against direct assembly, historical archive compatibility, retained 2/4/0/3 controls, and independent native clocks.",
+      "supersedes": "ae73c4e429b183f08249da256d0b1627f65c520afe2f0dbdbc950c3fc61e9961",
+      "requested_at": "2026-11-28T09:21:48.995078+00:00",
+      "request_id": "ae15c44f5998fd7638998513121b0b50c22ed79a2f5e785f2fab93b3fab25abb",
+      "evidence_sha256": "40a3bc5e0618394e1e32cd13ab01db6bbb41409a43293eec9fdd3e9233fc5561"
     }
   ]
 }
