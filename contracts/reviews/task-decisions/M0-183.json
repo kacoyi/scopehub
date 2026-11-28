@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-183",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "e06c0cd769466f6e44421194aa63399eca56f8d7",
+      "scope": "Check path-based history and the shorter contributor entry on the decision-note, financial import, unrelated and housekeeping cases. Verify direct findings, clean review, source links and the real fresh indicator task.",
+      "supersedes": null,
+      "requested_at": "2026-11-28T09:57:24.769861+00:00",
+      "request_id": "031052b2429da9259ea9e3237feeb851b99c36211326f74793225dfa7c72de0a",
+      "evidence_sha256": "b4a66f24b0307e411fac66443dcc23071f8a94cb512aa756a802d99514242441"
+    }
+  ]
+}
