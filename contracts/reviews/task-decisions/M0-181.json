@@ -146,6 +146,15 @@
       },
       "supersedes": "94d835846c06e5d45d8290a1c1fc6af5500403f379b39dc9a8551feb784c156b",
       "evidence_sha256": "079b7c14b86d301c9f0b64339076983d7c78848ee1291f25f4893d7d05708180"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc",
+      "scope": "Determine applicability of the previous dependency review on this new material. Compare dependency policy, lockfiles, genuine current and expired disposition controls, routine check invocation and the previously observed Windows and Ubuntu dependency results. Examine whether the changed object and tree admission path alters dependency evidence.",
+      "supersedes": "622d0035bfa207a02ded825d37e402b43614c29047ace8aa61783ae99a707ae8",
+      "requested_at": "2026-11-28T09:30:48.121662+00:00",
+      "request_id": "31519559c870b7bfd98acf6f15d645f10c889b334f10bedd5d54952202c55c71",
+      "evidence_sha256": "31b54fdde6e22ba172c3818501f4959fab73257e815f5729af9aea7804056d73"
     }
   ]
 }

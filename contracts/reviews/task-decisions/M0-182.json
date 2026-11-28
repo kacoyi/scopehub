@@ -88,6 +88,15 @@
       },
       "supersedes": "baebf6d34ebc1029225c6f2f96dddbd1ebd50b8480223cbee0eb23b86809c978",
       "evidence_sha256": "7834279fe546a92d975c590d72f649283f59bc4d8a8786f0a39fd9c6a7e7e651"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc",
+      "scope": "Check the actual broad, explicit and 24-file workspace recovery outcomes, interruption, rejection and cleanup and the three archived task receipts on this material. Exercise authentic native evidence and a changed receipt or file, including exact checked-out and reviewed source, against the revised verification helper.",
+      "supersedes": "fb2679ccaf1992cd5839cbf3f546f9cd86affb79f9be89304c01fd18b2b7815d",
+      "requested_at": "2026-11-28T09:30:48.967904+00:00",
+      "request_id": "04bf2d5cf2bfee5b26e1eef16daed87bd03e26dc9a5a1f7b54ef7be9b082b220",
+      "evidence_sha256": "bf0e57f541cc6ee1b97152febb88a7e8855672eb9359c57b9b3639c1ec3617b3"
     }
   ]
 }

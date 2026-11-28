@@ -871,6 +871,15 @@
       },
       "supersedes": "5266c7ebe928655ccd3b752167b73c1ca2190959d58d6e630351e3a40f512922",
       "evidence_sha256": "85ff6dda227435d62d1b33e4a29330d824b9617654f1d7a23ec8403e5d67bbbd"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc",
+      "scope": "Check the real five-producer PR and four-producer main publisher contracts on the changed Git object lookup and tracked tree comparison. Exercise the authentic input and the changed allocation or corrupted native log at the admission and aggregation entry. Verify ordered checks, provenance and refusal without losing independent coverage.",
+      "supersedes": "ba7e4383cdf34ee04c980a4e69d8f5d1e5dd65306a142c188180755147d3cce7",
+      "requested_at": "2026-11-28T09:30:46.523079+00:00",
+      "request_id": "cc84267ca4856f0cf821a83e4f3c09cfee0eb67887e86fab0a4d5d094dc818b8",
+      "evidence_sha256": "6c7d78d2cacf6f143c7ac1eaeebbdd8e04ab1023f3354d5448c4912c09696bee"
     }
   ]
 }

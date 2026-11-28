@@ -929,6 +929,15 @@
       },
       "supersedes": "5379faa6684bd75f314c4bd524f7bb9649d5cb4424dae3db8f297aa3c76cee1c",
       "evidence_sha256": "ea3ca0340da7cbc9c81e9d1fc721ace3165d2285ea589fae2a5d6de20e50e4c8"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc",
+      "scope": "Review the measured 921-second Windows budget repair. Derive the 35 checks, both ordered partitions, the 900/901 elapsed rule and critical path from genuine ordinary originals. Inspect fixture isolation, cache invalidation, and the reported 62-case and complete 405-case improvements using independent positive and rejected controls. State what still needs the new ordinary Windows attempt.",
+      "supersedes": "f2c0eabfdf8b5e95eb14799e645c69d9cb3d67e77df93a4c692c2f8b16249ec9",
+      "requested_at": "2026-11-28T09:30:47.325924+00:00",
+      "request_id": "436ac1ad807d058582b976a8e21493e223635104b1b467c73068ff065dfe262d",
+      "evidence_sha256": "ef3f22e14f82ec1601b6102621947845dd40037557a977527d1140ca0eb65e1c"
     }
   ]
 }
