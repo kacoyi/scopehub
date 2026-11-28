@@ -10,6 +10,26 @@
       "requested_at": "2026-11-28T10:07:54.543491+00:00",
       "request_id": "862bb9f32e14a6e0f35da5279d2f483b66582b2bd0a02e588d046976cc5b97dc",
       "evidence_sha256": "42634e67982cde785b045f717c88ac4d061cdd950add9cfdf8e8d42a2e1a4057"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "77b2b33311188b9c52e42f6b26bcb104ffd8008d",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M3-009 77b2b33311188b9c52e42f6b26bcb104ffd8008d",
+      "scope": "CHANGES_REQUESTED M3-009 77b2b33311188b9c52e42f6b26bcb104ffd8008d",
+      "observation": "When I withheld the accepted-output reply during recovery, the panel reported success while showing neither the committed layer nor a retry control.",
+      "reviewer": "Independent Astra Standard (t1qc)",
+      "original_sha256": "9555b3d99a45aceed2d715ab87cf0c17a62b31924f564cf17d7ab31853d4c040",
+      "response_id": "e11303d9290e18abb991fb5ccfadd80a1e7c4589c634b4d20bb0aee80de298bc",
+      "response_sha256": "e9bd8d1cee691659eef0b3610be17b3301207019c35a037970ebc226db489210",
+      "legacy_response_sha256": "e14568b98545661689514240d90827fd623a99aa4c076e9f5cb5ffa4b27fb3b9",
+      "observation_body_sha256": "4a7f6be72df9f59b6e821519e8e37423d0e9b55d2d2133ed2c807c2207c23a26",
+      "event": {
+        "id": "msg_0018ab1aae37d611016b0aa97e423887d182e9a6a2320d9121",
+        "timestamp": "2026-11-28T10:14:40.467Z"
+      },
+      "supersedes": "862bb9f32e14a6e0f35da5279d2f483b66582b2bd0a02e588d046976cc5b97dc",
+      "evidence_sha256": "67803efb3f5095fbcc04d39ddc8bb6bcb0f3a54af72c31af816550cfa46074cf"
     }
   ]
 }
