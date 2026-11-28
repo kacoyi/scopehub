@@ -880,6 +880,26 @@
       "requested_at": "2026-11-28T09:30:46.523079+00:00",
       "request_id": "cc84267ca4856f0cf821a83e4f3c09cfee0eb67887e86fab0a4d5d094dc818b8",
       "evidence_sha256": "6c7d78d2cacf6f143c7ac1eaeebbdd8e04ab1023f3354d5448c4912c09696bee"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc",
+      "verdict": "approved",
+      "decision": "APPROVE M0-139 ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc",
+      "scope": "APPROVE M0-139 ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc",
+      "observation": "The candidate reproduced the ordered checks and original log bytes from the five-producer PR and four-producer main runs, and both producer admission and aggregation rejected corrupted logs, changed check assignments, and reordered checks.",
+      "reviewer": "Independent Astra Standard (t1py)",
+      "original_sha256": "26aaf01a4aca6950402fce28935e160fb4e98cf571d351d39afca4439d696612",
+      "response_id": "1e81b155ddc3c511ecb3b40aea6c436b763d140be687bd7a0bb60c9b98389a0d",
+      "response_sha256": "92b8ac9ebbeb0a5bc4a23ba7cb29acb59c6aa0a8d6b1baa3d990cb23e8ac8782",
+      "legacy_response_sha256": "c438b9e720325062d0b7abe130f1db4d7d5c86d5fc11eaf33940614eb2364b1f",
+      "observation_body_sha256": "424c50d5bbdecc005902867c8dc8f35f7e44f997dbd1a9f758d219af90050758",
+      "event": {
+        "id": "msg_04f28e4b826a02c9016b0aa1a1a40c87d1b9aaeecaf4a4c6ba",
+        "timestamp": "2026-11-28T09:41:04.393Z"
+      },
+      "supersedes": "cc84267ca4856f0cf821a83e4f3c09cfee0eb67887e86fab0a4d5d094dc818b8",
+      "evidence_sha256": "71c74f5123eb4e5a8650897c81034d0af0f2c4a313ac785b36524851e530d776"
     }
   ]
 }

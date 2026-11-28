@@ -938,6 +938,26 @@
       "requested_at": "2026-11-28T09:30:47.325924+00:00",
       "request_id": "436ac1ad807d058582b976a8e21493e223635104b1b467c73068ff065dfe262d",
       "evidence_sha256": "ef3f22e14f82ec1601b6102621947845dd40037557a977527d1140ca0eb65e1c"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc",
+      "scope": "APPROVE M0-146 ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc",
+      "observation": "I reconstructed the published Python log byte for byte from the 578-case and 405-case originals and verified that receipt admission rejected an altered recovery log.",
+      "reviewer": "Independent Astra Standard (t1pz)",
+      "original_sha256": "c98585996a88579140fd6cc4fe10dfd050322d08fd709599b7834670eb07a3c6",
+      "response_id": "5a71fd9a7dc35e0b7973404c519b021784e1acab3b9649cc4615e0ca45b32550",
+      "response_sha256": "5c7c2c1ff6c7e8e78ef94ec570c08456c6627e714241f73224b142d9529737b9",
+      "legacy_response_sha256": "04f734e8e315e092c7066a8b280dfa9b79d2dba38adf9674014230b3925cc1d0",
+      "observation_body_sha256": "5adca6a22af1619eb7e4993f9365f915566fad79e294f7421923c59a88b625e1",
+      "event": {
+        "id": "msg_032e303de08eb6e1016b0aa0ffefa487d2b170760f5f401091",
+        "timestamp": "2026-11-28T09:38:29.052Z"
+      },
+      "supersedes": "436ac1ad807d058582b976a8e21493e223635104b1b467c73068ff065dfe262d",
+      "evidence_sha256": "e59184ae5ca6c5316ce4b88e3049e783ce588ba61d1bb971a99adc60ad0889f9"
     }
   ]
 }

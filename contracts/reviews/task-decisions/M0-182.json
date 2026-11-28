@@ -97,6 +97,26 @@
       "requested_at": "2026-11-28T09:30:48.967904+00:00",
       "request_id": "04bf2d5cf2bfee5b26e1eef16daed87bd03e26dc9a5a1f7b54ef7be9b082b220",
       "evidence_sha256": "bf0e57f541cc6ee1b97152febb88a7e8855672eb9359c57b9b3639c1ec3617b3"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc",
+      "verdict": "approved",
+      "decision": "APPROVE M0-182 ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc",
+      "scope": "APPROVE M0-182 ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc",
+      "observation": "The reviewed verifier accepted the original Windows workspace journal, rejected it after I added one newline in memory, and accepted the original bytes again.",
+      "reviewer": "Independent Astra Standard (t1q1)",
+      "original_sha256": "4db64b1c3e879bc9f7d5a2b738b29310ef74b8d1dd0e0d9fc764b4e12f092b7a",
+      "response_id": "8f0e4f5ed84e5d61465bbddebe6b8a8b14be401fa06e318c9e9ce195d957788f",
+      "response_sha256": "f8fb12d74a1873ffb7e66343068af62893c95ac53059ae4f2f518af9929915f1",
+      "legacy_response_sha256": "b8be3883114ca960507ca29b1b33db45cc198cedb9788a7843a4d7db4c8da197",
+      "observation_body_sha256": "5192207d9fbb30260cff2035fcd7a979f55b7171080bdfc6526e55763f46ca6a",
+      "event": {
+        "id": "msg_0a2fca5168b431e9016b0aa0dd64b887d2accb9e36f91289cf",
+        "timestamp": "2026-11-28T09:37:56.952Z"
+      },
+      "supersedes": "04bf2d5cf2bfee5b26e1eef16daed87bd03e26dc9a5a1f7b54ef7be9b082b220",
+      "evidence_sha256": "5ecf7134c21fd4d98651122efaabcf23258b2eaf04422d68a0daca4f9500376a"
     }
   ]
 }

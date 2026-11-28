@@ -155,6 +155,26 @@
       "requested_at": "2026-11-28T09:30:48.121662+00:00",
       "request_id": "31519559c870b7bfd98acf6f15d645f10c889b334f10bedd5d54952202c55c71",
       "evidence_sha256": "31b54fdde6e22ba172c3818501f4959fab73257e815f5729af9aea7804056d73"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc",
+      "verdict": "approved",
+      "decision": "APPROVE M0-181 ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc",
+      "scope": "APPROVE M0-181 ed0d69309a0bffe24bf0cd1e897b967b29a5f1bc",
+      "observation": "The candidate’s evidence validator accepted the original Windows dependency log, rejected it when one newline was added in memory, and accepted the original bytes again.",
+      "reviewer": "Independent Astra Standard (t1q0)",
+      "original_sha256": "7412733256ef45dea521737f88059b2e3fa5866ed7fa9e9c000450414c0676ef",
+      "response_id": "02079a101333121ea73f28394628316724bda8d081cffbcdda7320d8b46b09d7",
+      "response_sha256": "8b3d405745e66f396fe8158d36b333c2a932d949ee59e85253824c1ac16df682",
+      "legacy_response_sha256": "6203b158bf6c9d5ee06812df93a229893ab00846d31958b3f18bb6fe0d977e8b",
+      "observation_body_sha256": "7d64e34a2f602add7278071f0b83be6b2fede6bbc7b83765344dbb5f693fc8f5",
+      "event": {
+        "id": "msg_0fe5af4df4d10e82016b0aa0a8ea3c87d182f13633ac90e80e",
+        "timestamp": "2026-11-28T09:37:05.375Z"
+      },
+      "supersedes": "31519559c870b7bfd98acf6f15d645f10c889b334f10bedd5d54952202c55c71",
+      "evidence_sha256": "a141ccfc7ef54a3fd3538bf50d0ac3d9b94c049909416c38553288cb94a09b5e"
     }
   ]
 }
