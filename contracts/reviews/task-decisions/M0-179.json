@@ -88,6 +88,15 @@
       },
       "supersedes": "9e2821632e262275c7c2da894f280ebb61a41fe9d5b5f08dde7bd1ee156986e6",
       "evidence_sha256": "e5f2c200aba77df407b267818aa43f361f7ceaaac93c905157d394691136d049"
+    },
+    {
+      "kind": "request",
+      "source_commit": "59ca08adba2f0e4bae6e9a0704937028c4817e83",
+      "scope": "Independently review the two shared browser preparation paths and the M0-177 deletion consumer on the composed PR 152 source. Compare both parent histories, emitted native and browser observations and scoped source applicability. Distinguish the Windows matrix preparation deadline on the separate PR 123 revision and preserve its M0-182 ownership along with the genuine passing and refused controls.",
+      "supersedes": "cf9cf42349bf891941bc5bab01b2bb3a9217087f475b9253f9ce787941f3d4c4",
+      "requested_at": "2026-11-28T05:37:47.454133+00:00",
+      "request_id": "b1509801ae4d65c3a48e58d64a43ad838beb2bb345bd58958304e7398f9168d0",
+      "evidence_sha256": "d68a2bffc52acb33e17436aa66c6d04d12a079fd77262dce1d39845344437da0"
     }
   ]
 }
