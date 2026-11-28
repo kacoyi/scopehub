@@ -39,6 +39,26 @@
       "requested_at": "2026-11-28T06:22:27.563141+00:00",
       "request_id": "28b63d35d42b8ed5f9ef4b3defaaa22c3310731a00dfbe6f0c046b0876f0977e",
       "evidence_sha256": "4bbccf0aeb745d5498de63dc6a741ca38d15448bb1d938414cfc1b27ec40f8af"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c3364500d142837b2be4817f5429a8dafa5c3013",
+      "verdict": "approved",
+      "decision": "APPROVE M0-182 c3364500d142837b2be4817f5429a8dafa5c3013",
+      "scope": "APPROVE M0-182 c3364500d142837b2be4817f5429a8dafa5c3013",
+      "observation": "When my Linux test child left its sixth progress record incomplete, the launcher reached its ten-second deadline and reported the fifth record as the last confirmed stage.",
+      "reviewer": "Independent Astra Standard (t1nf)",
+      "original_sha256": "ef3dd1657ceff9b4ab474e5a27c2d4c6cde1ba13f916e5194540dc74b8c7ea9f",
+      "response_id": "a1919cd2c820635149beba57abc8c247dc4965ebdb76ad4df505dedbad5f8cb0",
+      "response_sha256": "77b7f464bbca84b1db4165e7b13d2f00283415e2cf339eafd69dcff68860fda0",
+      "legacy_response_sha256": "a3ce1b7d1be6636bc5695f2aeac0e0243665e19953ed7e6f13d67c876b137639",
+      "observation_body_sha256": "8647359464643c22528c7ba609646fe97ea43748b23a5fbec4f3181180d9dbc6",
+      "event": {
+        "id": "msg_07ecd15fee96efb2016b0a7410b7b087d09b8a051a8c15cd3a",
+        "timestamp": "2026-11-28T06:26:46.936Z"
+      },
+      "supersedes": "28b63d35d42b8ed5f9ef4b3defaaa22c3310731a00dfbe6f0c046b0876f0977e",
+      "evidence_sha256": "d5d74e6e841a7b8b791a33ff1e37f12ff1770d3429779db6389137326062130c"
     }
   ]
 }

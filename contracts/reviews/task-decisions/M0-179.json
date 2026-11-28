@@ -126,6 +126,26 @@
       "requested_at": "2026-11-28T06:22:26.792243+00:00",
       "request_id": "cf9fedbb6610f1939715537264785cb9f1a97e6a041d9cd063de09f83a9c6f39",
       "evidence_sha256": "4101c3bd77c14d588a438dc17d322b00d7b9d6d02f3a7f545dc402fb266b893d"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c3364500d142837b2be4817f5429a8dafa5c3013",
+      "verdict": "approved",
+      "decision": "APPROVE M0-179 c3364500d142837b2be4817f5429a8dafa5c3013",
+      "scope": "APPROVE M0-179 c3364500d142837b2be4817f5429a8dafa5c3013",
+      "observation": "I verified that all three service visits confirmed publication by the current launcher and that the browser callback stayed unentered when publication failed with the previous same-port file still readable.",
+      "reviewer": "Independent Astra Standard (t1nd)",
+      "original_sha256": "f2bb03fabbcf4ef0e53749378d4c80924d414d0bdb0f04dc2842964bab5f8873",
+      "response_id": "2de9d2c020d8b88a940ba292a8344b5621d86d0fb82085bbd168f17c3c4a1c9c",
+      "response_sha256": "3c8e02a933799d62d2ba3a0b9025344e56555d131ad063c14df298a897295ea0",
+      "legacy_response_sha256": "20f8b3809c840d1be232c684beaabfb9610c9127d16b405c1e0219fff30fabcd",
+      "observation_body_sha256": "333eb8aa840649cd6c8590f5a07e2bf9dd338ed017580c9939c00fda8c8d1f4f",
+      "event": {
+        "id": "msg_0562ad466c6bdd43016b0a74063f8487d083f5e34f2eac2bfa",
+        "timestamp": "2026-11-28T06:26:39.011Z"
+      },
+      "supersedes": "cf9fedbb6610f1939715537264785cb9f1a97e6a041d9cd063de09f83a9c6f39",
+      "evidence_sha256": "91fef94a3abd6549c1362d3aab346fb10965270c2194a675930b3bc8b27c91cb"
     }
   ]
 }

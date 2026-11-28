@@ -97,6 +97,26 @@
       "requested_at": "2026-11-28T06:22:29.916790+00:00",
       "request_id": "10b9d19d20b7bc7a2107563ad7ee567356fb8bb568965957ca90ac8218e26597",
       "evidence_sha256": "ed93a5b02652a69fad0eef9ffef35b4027df53e9a7d36e26ad6dfd4afd30cb25"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c3364500d142837b2be4817f5429a8dafa5c3013",
+      "verdict": "approved",
+      "decision": "APPROVE M0-181 c3364500d142837b2be4817f5429a8dafa5c3013",
+      "scope": "APPROVE M0-181 c3364500d142837b2be4817f5429a8dafa5c3013",
+      "observation": "The candidate’s dependency checker accepted the four findings replayed from the archived platform logs and returned exit code 1 with exactly one unresolved finding when either retired advisory was restored individually.",
+      "reviewer": "Independent Astra Standard (t1nj)",
+      "original_sha256": "62b6c4482f85b2ebb0669e13ce67584759c58c8cbdff3872291a3e54b764456c",
+      "response_id": "40886ec98adc4e660f117373c49b9183299d784354ee0f0316695c6456befb68",
+      "response_sha256": "df4d21c2fe773906755deb6dc5ae36a1cf6d71f8cbe1cfba7a0bf1b45680daf5",
+      "legacy_response_sha256": "6d4e3daacef3fe24e1ae52966db65937317985b073d76f75dd5a51fd952569f8",
+      "observation_body_sha256": "60ef43bc261b0f1b8c293178ad4bdb83c7d6425c96ad2fc550422bd1d858156b",
+      "event": {
+        "id": "msg_039fb1aa5d6ac4c6016b0a74b1890487d082e3bf6cc4833832",
+        "timestamp": "2026-11-28T06:29:27.407Z"
+      },
+      "supersedes": "10b9d19d20b7bc7a2107563ad7ee567356fb8bb568965957ca90ac8218e26597",
+      "evidence_sha256": "bf6b3d7ba3785df562cf8ac8b6a216125e95012b7c9a40e8a6cc3ac5cf853d8d"
     }
   ]
 }

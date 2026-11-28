@@ -880,6 +880,26 @@
       "requested_at": "2026-11-28T06:22:29.133830+00:00",
       "request_id": "ccf818c69c1c46b2f18057dbe3ed4b15a3f03e8435a8371aa296f14cc14e204d",
       "evidence_sha256": "05a64b666bf0d75f22453c4fa83c7595339f2d850760868740d3af14b6e247a8"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c3364500d142837b2be4817f5429a8dafa5c3013",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 c3364500d142837b2be4817f5429a8dafa5c3013",
+      "scope": "APPROVE M0-146 c3364500d142837b2be4817f5429a8dafa5c3013",
+      "observation": "With the producer-to-publisher span fixed at 866 seconds, the candidate recorded zero budget breaches at 900 seconds and one breach at 901 seconds.",
+      "reviewer": "Independent Astra Standard (t1nh)",
+      "original_sha256": "1747a6ada5ab7bf7e6e641371666263301ea912de4d5bc1e96d5073c99368772",
+      "response_id": "f62353904c6e65999d9ffef4cbd4425f8f9894d807274f0ca4a692df3a067d36",
+      "response_sha256": "665ad9bb6f0d6c13454ed64c80008c87ea338b3b9adf2a37f5b8789366d2b2b7",
+      "legacy_response_sha256": "195552faa780d234d4406db84b9400a4823d9ee6b53a0f99d611ddb8ade26b5a",
+      "observation_body_sha256": "a437f2497a00ce39a3c6526b78753f237b1dcb577a8f7729344c13671dbeab6c",
+      "event": {
+        "id": "msg_0e4a4d3c27046e67016b0a74ade00087d0b8256690da10204c",
+        "timestamp": "2026-11-28T06:29:28.283Z"
+      },
+      "supersedes": "ccf818c69c1c46b2f18057dbe3ed4b15a3f03e8435a8371aa296f14cc14e204d",
+      "evidence_sha256": "5c099433d18a7a254fd142940a99534eea2fafd00894638930d4012fd37c62ae"
     }
   ]
 }

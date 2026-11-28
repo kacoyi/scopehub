@@ -822,6 +822,26 @@
       "requested_at": "2026-11-28T06:22:28.344513+00:00",
       "request_id": "0b47e85c9ada24a16dfe8419137f5eeba111bbdcdc325b1a6cee83675ce6b998",
       "evidence_sha256": "f99ace598acb466b9c33e685fab4dc0766977dbb0f2e36605cb41cebdef5b8de"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c3364500d142837b2be4817f5429a8dafa5c3013",
+      "verdict": "approved",
+      "decision": "APPROVE M0-139 c3364500d142837b2be4817f5429a8dafa5c3013",
+      "scope": "APPROVE M0-139 c3364500d142837b2be4817f5429a8dafa5c3013",
+      "observation": "The Windows publisher accepted the original report from protected run 45990676162 and rejected it when I changed both the run and attempt identifiers while retaining the original logs.",
+      "reviewer": "Independent Astra Standard (t1ng)",
+      "original_sha256": "5cbb85f6ca07121d9df91f175f2d24fbb9ccec287432fcc17c46505148ce668b",
+      "response_id": "bfb050138d00d5c76af07272b64b7349b12a187ffc26cc5067408717673baa44",
+      "response_sha256": "2fe221271a7c5913f88dff89982d92776c1e1400f791a8ec29ead6dec204dec0",
+      "legacy_response_sha256": "1caa695400b58b4934d35ade5a2607fd810a908cb100513d098403b8f78f10e0",
+      "observation_body_sha256": "4737a6fdba6393289bac6ec4beda86f26b20ef07fc34964bd7e13516ac2a1a42",
+      "event": {
+        "id": "msg_0c6b211340c4c839016b0a75cf902087d0908e2a17c20a56cd",
+        "timestamp": "2026-11-28T06:34:14.718Z"
+      },
+      "supersedes": "0b47e85c9ada24a16dfe8419137f5eeba111bbdcdc325b1a6cee83675ce6b998",
+      "evidence_sha256": "fcbc0900445a43a37dfc024323654a4b88b5626474868f3440b1cb1c4049b5f4"
     }
   ]
 }
