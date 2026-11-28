@@ -248,19 +248,6 @@ jobs:
         id: reports
         if: steps.lane.outputs.skip != 'true'
         run: uv run --no-sync python scripts/ci_artifacts.py prepare
-      - name: Fetch the reviewed public publisher advisory
-        if: matrix.lane == '' || matrix.lane == 'core'
-        # The dependency check fails on missing evidence. Keep other check reports available.
-        continue-on-error: true
-        timeout-minutes: 1
-        env:
-          SCOPEHUB_PUBLISHER_ADVISORY_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            exec .venv/Scripts/python.exe -I -S scripts/publisher_advisory.py
-          fi
-          exec .venv/bin/python -I -S scripts/publisher_advisory.py
       - name: Verify the selected task
         if: inputs.task_id
         env:

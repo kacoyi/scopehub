@@ -2,8 +2,7 @@
 
 from datetime import date
 from contextlib import redirect_stdout
-from http.client import HTTPSConnection
-from io import BytesIO, StringIO
+from io import StringIO
 import json
 import os
 from pathlib import Path
@@ -12,158 +11,16 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import Mock, patch
 
 from jsonschema import Draft202012Validator, FormatChecker
 from referencing.jsonschema import DRAFT202012
 import yaml
 
 from scripts import dependencies as review
-from scripts import publisher_advisory as publisher
 from scripts.project import maintenance_status
 
 ROOT = Path(__file__).resolve().parents[2]
-
-
-def publisher_wire(status, headers):
-    wire_headers = ''.join(f'{line}\r\n' for line in headers)
-    return f'HTTP/1.1 {status} Fixture\r\n{wire_headers}\r\n'.encode('latin-1')
-
-
-def publisher_connection(wire):
-    connection = HTTPSConnection(publisher.HOST, timeout=8)
-    connection.sock = Mock()
-    connection.sock.makefile.return_value = Mock(wraps=BytesIO(wire))
-    connection.request = Mock(wraps=connection.request)
-    return connection
-
-
-class PublisherAdvisoryTests(unittest.TestCase):
-    token = 'synthetic-job-credential'
-    response = {
-        'ghsa_id': publisher.ADVISORY, 'state': 'published', 'withdrawn_at': None,
-        'vulnerabilities': [{
-            'package': {'ecosystem': 'rust', 'name': 'block_buffer'},
-            'vulnerable_version_range': '>=0.11.0,<0.12.1',
-        }],
-    }
-
-    def test_credential_is_only_sent_to_the_exact_tls_get_and_redirects_stop(self):
-        with patch.object(publisher, 'HTTPSConnection') as connect:
-            for url in [publisher.URL.replace('https:', 'http:'), publisher.URL + '?query=1',
-                        publisher.URL.replace(publisher.HOST, 'api.github.com.example.invalid'),
-                        publisher.URL.replace(publisher.HOST, 'api.github.com:443'),
-                        publisher.URL.replace('RustCrypto', 'other-publisher'),
-                        'https://api.osv.dev/v1/querybatch', 'https://registry.npmjs.org/picomatch/latest']:
-                with self.subTest(url=url), self.assertRaisesRegex(ValueError, 'approved publisher endpoint'):
-                    publisher.fetch(url, self.token)
-            connect.assert_not_called()
-
-            reply = MagicMock(status=302)
-            reply.__enter__.return_value = reply
-            reply.headers = {'Location': 'https://example.invalid/credential-redirect'}
-            connection = connect.return_value
-            connection.getresponse.return_value = reply
-            with self.assertRaisesRegex(ValueError, 'HTTP 302'):
-                publisher.fetch(publisher.URL, self.token)
-            connect.assert_called_once_with('api.github.com', timeout=8)
-            connection.request.assert_called_once_with(
-                'GET', '/repos/RustCrypto/utils/security-advisories/GHSA-qwgh-2vcv-g2f7',
-                headers={'Accept': 'application/vnd.github+json', 'User-Agent': 'ScopeHub-dependency-review',
-                         'Authorization': f'Bearer {self.token}'},
-            )
-            reply.read.assert_not_called()
-            connection.close.assert_called_once_with()
-
-    def test_auth_refusal_only_falls_back_to_a_fresh_public_same_endpoint_get(self):
-        reply = (200, json.dumps(self.response).encode())
-        for status in (403, 404):
-            with self.subTest(status=status), patch.object(publisher, 'request_once', side_effect=[(status, b''), reply]) as get:
-                self.assertEqual(self.response, publisher.fetch(publisher.URL, self.token))
-                self.assertEqual([call(self.token), call(None)], get.call_args_list)
-        with patch.object(publisher, 'request_once', side_effect=[(403, b''), (403, b'')]) as get:
-            with self.assertRaisesRegex(ValueError, 'HTTP 403'):
-                publisher.fetch(publisher.URL, self.token)
-            self.assertEqual([call(self.token), call(None)], get.call_args_list)
-
-    def test_hosted_anonymous_fallback_keeps_the_generic_error(self):
-        quota = ['X-RateLimit-Remaining: 0', 'X-RateLimit-Reset: 1795601698']
-        wire = publisher_wire(403, quota)
-        authenticated, anonymous = publisher_connection(wire), publisher_connection(wire)
-        sockets = [authenticated.sock, anonymous.sock]
-        with patch.object(publisher, 'HTTPSConnection', side_effect=[authenticated, anonymous]) as connect:
-            with self.assertRaisesRegex(ValueError, r'^Publisher advisory unavailable \(HTTP 403\)$'):
-                publisher.fetch(publisher.URL, self.token)
-        self.assertEqual([call(publisher.HOST, timeout=8)] * 2, connect.call_args_list)
-        authenticated.request.assert_called_once()
-        anonymous.request.assert_called_once()
-        first, second = authenticated.request.call_args, anonymous.request.call_args
-        self.assertEqual(first.args, ('GET', publisher.ROUTE))
-        self.assertEqual(second.args, first.args)
-        self.assertEqual(first.kwargs['headers']['Authorization'], f'Bearer {self.token}')
-        self.assertNotIn('Authorization', second.kwargs['headers'])
-        for sock in sockets:
-            sock.close.assert_called_once_with()
-
-    def test_transient_errors_allow_one_retry_and_terminal_errors_disclose_no_credential(self):
-        reply = (200, json.dumps(self.response).encode())
-        for failure in ((429, b''), (503, b''), TimeoutError(self.token)):
-            with self.subTest(failure=failure), patch.object(publisher, 'request_once', side_effect=[failure, reply]) as get:
-                self.assertEqual(self.response, publisher.fetch(publisher.URL, self.token))
-                self.assertEqual([call(self.token), call(self.token)], get.call_args_list)
-        with patch.object(publisher, 'request_once', side_effect=TimeoutError(self.token)) as get:
-            with self.assertRaisesRegex(ValueError, '^Publisher advisory network request failed$') as error:
-                publisher.fetch(publisher.URL, self.token)
-            self.assertTrue(error.exception.__suppress_context__)
-            self.assertEqual(2, get.call_count)
-        for body in (b'broken JSON', b'x' * (publisher.MAX_BYTES + 1),
-                     json.dumps(dict(self.response, state='draft')).encode(),
-                     json.dumps(dict(self.response, withdrawn_at='2026-10-14T00:00:00Z')).encode()):
-            with self.subTest(size=len(body)), patch.object(publisher, 'request_once', return_value=(200, body)) as get:
-                with self.assertRaises(ValueError):
-                    publisher.fetch(publisher.URL, self.token)
-                get.assert_called_once_with(self.token)
-
-    def test_hosted_prefetch_retains_only_public_fields_for_the_exact_run(self):
-        with tempfile.TemporaryDirectory() as directory:
-            env = {key: f'fixture-{key}' for key in publisher.RUN_KEYS}
-            env.update(GITHUB_ACTIONS='true', RUNNER_TEMP=directory)
-            data = json.dumps(dict(self.response, private_fixture=self.token)).encode()
-            with patch.dict(os.environ, env, clear=True), patch.object(publisher, 'request_once') as get:
-                with self.assertRaisesRegex(ValueError, 'missing or invalid'):
-                    publisher.read_publisher(publisher.URL)
-                get.assert_not_called()
-                get.return_value = (200, data)
-                publisher.prefetch(os.environ, self.token)
-                get.assert_called_once_with(self.token)
-                evidence = next(Path(directory).iterdir())
-                self.assertNotIn(self.token, evidence.read_text(encoding='utf-8'))
-                self.assertEqual(self.response, publisher.read_publisher(publisher.URL))
-                for key in publisher.RUN_KEYS:
-                    with self.subTest(key=key), patch.dict(os.environ, {key: 'another-job'}):
-                        with self.assertRaisesRegex(ValueError, 'another job or endpoint'):
-                            publisher.read_publisher(publisher.URL)
-                evidence.write_text('{truncated JSON', encoding='utf-8')
-                with self.assertRaisesRegex(ValueError, 'missing or invalid'):
-                    publisher.read_publisher(publisher.URL)
-                get.assert_called_once_with(self.token)
-
-    def test_local_online_review_does_not_reuse_a_publisher_job_credential(self):
-        with (patch.dict(os.environ, {publisher.TOKEN_ENV: self.token}, clear=True),
-              patch.object(publisher, 'request_once', return_value=(200, json.dumps(self.response).encode())) as get):
-            self.assertEqual(self.response, publisher.read_publisher(publisher.URL))
-            get.assert_called_once_with(None)
-
-    def test_workflow_grants_the_existing_token_to_only_the_isolated_prefetch(self):
-        workflow = yaml.safe_load((ROOT / '.github/workflows/verify.yml').read_text(encoding='utf-8'))
-        job = workflow['jobs']['verify']
-        self.assertEqual({'contents': 'read'}, workflow['permissions'])
-        self.assertNotIn('permissions', job)
-        self.assertNotIn(publisher.TOKEN_ENV, job['env'])
-        credential_steps = [step for step in job['steps'] if publisher.TOKEN_ENV in step.get('env', {})]
-        self.assertEqual(1, len(credential_steps))
-        self.assertEqual({publisher.TOKEN_ENV: '${{ github.token }}'}, credential_steps[0]['env'])
-        self.assertIn('-I -S scripts/publisher_advisory.py', credential_steps[0]['run'])
 
 
 class HostedCargoCacheTests(unittest.TestCase):
@@ -293,76 +150,6 @@ class DependencyTests(unittest.TestCase):
         result = review.read(next((self.root / '.reports/dependencies').glob('*.json')))
         self.assertEqual(('blocked', 'not_queried'), (result['status'], result['advisories']))
 
-    def test_local_403_reports_only_confirmed_anonymous_quota_and_a_valid_utc_reset(self):
-        def check_publisher(_root, policy):
-            item = next(entry for entry in policy['advisory_dispositions']
-                        if entry['scope_guard'] == 'upstream-excludes-locked-version')
-            review.validate_upstream_range(item)
-
-        generic = 'Publisher advisory unavailable (HTTP 403)'
-        exhausted = f'{generic}. Anonymous API quota exhausted.'
-        reset = 'X-RateLimit-Reset: 1795601698'
-        remaining = 'x-ratelimit-remaining: 0'
-        with_reset = f'{exhausted} Reset at 2026-11-25T10:14:58Z.'
-        cases = [
-            ([remaining, reset], with_reset),
-            (['x-ratelimit-remaining:\t 0 \t', 'X-RateLimit-Reset:\t 1795601698 \t'], with_reset),
-            ([f'{remaining} \t', reset], with_reset),
-            ([remaining, f'{reset}\t '], with_reset),
-            ([remaining], exhausted),
-            ([remaining, reset, 'x-ratelimit-reset: 1795601698'], exhausted),
-            ([remaining, 'X-RateLimit-Reset: \t'], exhausted),
-            ([], generic),
-            ([reset], generic),
-            (['X-RateLimit-Remaining: 7', reset], generic),
-            (['X-RateLimit-Remaining: 0, 0', reset], generic),
-            (['X-RateLimit-Remaining: +0', reset], generic),
-            (['X-RateLimit-Remaining: 0\xa0', reset], generic),
-            ([remaining, 'X-RateLimit-Remaining: 0', reset], generic),
-            ([remaining, 'X-RateLimit-Remaining: 1', reset], generic),
-            ([remaining, 'Broken fixture line', 'X-RateLimit-Remaining: 7'], generic),
-            ([remaining, reset, 'Broken fixture line', 'X-RateLimit-Remaining: 7'], generic),
-        ]
-        for value in ('-1', '1795601698.5', 'Wed, 25 Nov 2026 10:14:58 GMT', '1795601698\xa0',
-                      '253402300800', '9' * 80, 'unexpected-server-text'):
-            cases.append(([remaining, f'X-RateLimit-Reset: {value}'], exhausted))
-        wire_cases = [
-            (publisher_wire(403, [*headers, 'X-Unrelated: private-server-fixture']), expected)
-            for headers, expected in cases
-        ]
-        truncated = b'HTTP/1.1 403 Fixture\r\nX-RateLimit-Remaining: 0\r\n'
-        wire_cases += [
-            (truncated, generic),
-            (truncated + b'X-RateLimit-Reset: 17', generic),
-            (b'HTTP/1.1 100 Continue\r\n\r\n' + truncated, generic),
-        ]
-        for wire, expected in wire_cases:
-            with self.subTest(wire=wire):
-                connection = publisher_connection(wire)
-                sock = connection.sock
-                with (patch.object(review, 'ROOT', self.root),
-                      patch.object(sys, 'argv', ['dependencies.py']),
-                      patch.dict(os.environ, {publisher.TOKEN_ENV: 'synthetic-local-token'}, clear=True),
-                      patch.object(review, 'validate_advisory_scope', side_effect=check_publisher),
-                      patch.object(review, 'query_advisories', side_effect=AssertionError('publisher gate failed')),
-                      patch.object(publisher, 'HTTPSConnection', return_value=connection) as connect,
-                      redirect_stdout(StringIO()) as stdout):
-                    with self.assertRaises(SystemExit) as stopped:
-                        review.main()
-                self.assertEqual(1, stopped.exception.code)
-                connect.assert_called_once_with(publisher.HOST, timeout=8)
-                connection.request.assert_called_once_with(
-                    'GET', publisher.ROUTE,
-                    headers={'Accept': 'application/vnd.github+json', 'User-Agent': 'ScopeHub-dependency-review'},
-                )
-                sock.close.assert_called_once_with()
-                sock.makefile.return_value.read.assert_not_called()
-                output = json.loads(stdout.getvalue())
-                report = review.read(self.root / output.pop('report'))
-                self.assertEqual(report, output)
-                self.assertEqual(('failed', 'passed', expected),
-                                 (report['status'], report['inventory'], report['error']))
-
     def test_all_batches_and_paginated_findings_are_observed(self):
         request = Mock(side_effect=[{'results': [{'next_page_token': 'next'}]},
                                     {'results': [{'vulns': [{'id': 'CVE-fixture'}]}]}])
@@ -397,6 +184,36 @@ class DependencyTests(unittest.TestCase):
             review.dispositions([item], policy, date(2026, 11, 1))
         self.assertEqual([item], review.dispositions([item], {'advisory_dispositions': []})[1])
 
+    def test_public_review_refuses_returned_findings_after_dispositions_are_retired(self):
+        findings = [
+            {'ecosystem': 'crates.io', 'name': 'block-buffer', 'version': '0.10.4',
+             'advisory': 'GHSA-qwgh-2vcv-g2f7'},
+            {'ecosystem': 'npm', 'name': 'picomatch', 'version': '4.0.7',
+             'advisory': 'GHSA-fc5q-39xc-vjpf'},
+        ]
+        graph = subprocess.CompletedProcess([], 0, stdout='', stderr='')
+        for finding in (None, *findings):
+            returned = [finding] if finding else []
+            with (
+                self.subTest(findings=returned),
+                patch.object(review, 'ROOT', self.root),
+                patch.object(sys, 'argv', ['dependencies.py']),
+                patch.object(review.subprocess, 'run', return_value=graph),
+                patch.object(review, 'query_advisories', return_value=returned) as query,
+                redirect_stdout(StringIO()) as stdout,
+                self.assertRaises(SystemExit) as stopped,
+            ):
+                review.main()
+            self.assertEqual(int(bool(returned)), stopped.exception.code)
+            result = json.loads(stdout.getvalue())
+            self.assertEqual('failed' if returned else 'passed', result['status'])
+            self.assertEqual('passed', result['inventory'])
+            self.assertEqual('queried', result['advisories'])
+            self.assertEqual(returned, result['unresolved_findings'])
+            self.assertEqual([], result['reviewed_findings'])
+            queried = {review.key(package) for package in query.call_args.args[0]}
+            self.assertTrue({review.key(finding) for finding in findings} <= queried)
+
     def test_target_scope_change_or_failed_graph_cannot_keep_an_exception(self):
         # Isolate target-absence guards from independently tested primary ranges.
         policy = {**self.policy, 'advisory_dispositions': [item for item in self.policy['advisory_dispositions']
@@ -411,60 +228,6 @@ class DependencyTests(unittest.TestCase):
         with patch.object(review.subprocess, 'run', side_effect=subprocess.CalledProcessError(1, ['cargo'])):
             with self.assertRaises(subprocess.CalledProcessError):
                 review.validate_advisory_scope(self.root, policy)
-
-    def test_primary_range_discrepancy_is_exact_live_and_fail_closed(self):
-        item = {'ecosystem': 'crates.io', 'name': 'fixture-buffer', 'version': '0.10.4',
-                'advisories': ['GHSA-fixture'],
-                'upstream_source': 'https://api.github.com/repos/fixture/upstream/security-advisories/GHSA-fixture',
-                'reviewed_upstream_range': '>=0.11.0,<0.12.1'}
-        primary = {'ghsa_id': 'GHSA-fixture', 'withdrawn_at': None, 'vulnerabilities': [
-            {'package': {'ecosystem': 'rust', 'name': 'fixture_buffer'},
-             'vulnerable_version_range': '>=0.11.0,<0.12.1'}]}
-        review.validate_upstream_range(item, Mock(return_value=primary))
-        with self.assertRaisesRegex(ValueError, 'Locked version is affected'):
-            review.validate_upstream_range({**item, 'version': '0.11.0'}, Mock(return_value=primary))
-        changed = {**primary, 'vulnerabilities': [
-            {**primary['vulnerabilities'][0], 'vulnerable_version_range': '>=0.10.0,<0.12.1'}]}
-        for response in [changed, {}, [], {**primary, 'ghsa_id': 'GHSA-other'},
-                         {**primary, 'vulnerabilities': None}]:
-            with self.subTest(response=response), self.assertRaises(ValueError):
-                review.validate_upstream_range(item, Mock(return_value=response))
-        with self.assertRaises(OSError):
-            review.validate_upstream_range(item, Mock(side_effect=OSError('unavailable')))
-
-    def test_picomatch_disposition_requires_the_reviewed_patch_for_every_resolution(self):
-        identifier = 'picomatch@4.0.7'
-        relative = f'patches/{identifier}.patch'
-        local_patch = self.root / relative
-        local_patch.parent.mkdir()
-        shutil.copyfile(ROOT / relative, local_patch)
-        shutil.copyfile(ROOT / 'pnpm-workspace.yaml', self.root / 'pnpm-workspace.yaml')
-        item = next(d for d in self.policy['advisory_dispositions'] if d['scope_guard'] == 'picomatch-build-patch')
-        release = Mock(return_value={'name': 'picomatch', 'version': '4.0.7'})
-        probe = subprocess.CompletedProcess([], 0, stdout='', stderr='')
-        with patch.object(review.subprocess, 'run', return_value=probe) as installed:
-            review.validate_picomatch_patch(self.root, item, release)
-            self.assertEqual(installed.call_args.args[0], ['node', '--test', 'tests/project/picomatch.test.mjs'])
-            release.assert_called_once_with('https://registry.npmjs.org/picomatch/latest')
-            with self.assertRaisesRegex(ValueError, 'Unexpected package'):
-                review.validate_picomatch_patch(self.root, {**item, 'version': '4.0.6'}, release)
-            with self.assertRaisesRegex(ValueError, 'latest npm release'):
-                review.validate_picomatch_patch(self.root, item, Mock(return_value={'name': 'picomatch', 'version': '5.0.0'}))
-            probe.returncode = 1
-            with self.assertRaisesRegex(ValueError, 'behavior check failed'):
-                review.validate_picomatch_patch(self.root, item, release)
-
-        lock = self.root / 'pnpm-lock.yaml'
-        original = lock.read_bytes()
-        data = yaml.safe_load(original)
-        data['snapshots'][identifier] = {}
-        lock.write_text(yaml.safe_dump(data), encoding='utf-8')
-        with self.assertRaisesRegex(ValueError, 'reviewed picomatch patch'):
-            review.validate_picomatch_patch(self.root, item, release)
-        lock.write_bytes(original)
-        local_patch.write_bytes(b'Altered patch\n')
-        with self.assertRaisesRegex(ValueError, 'reviewed picomatch patch'):
-            review.validate_picomatch_patch(self.root, item, release)
 
     def test_declared_schema_formats_remain_active_with_selected_dependencies(self):
         checker = FormatChecker()
