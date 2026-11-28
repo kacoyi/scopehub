@@ -862,6 +862,15 @@
       },
       "supersedes": "a5bf59af2d5b29d5fa64ba0e3b9c99a4f86dab0235c6b4b27ca156128dcfa331",
       "evidence_sha256": "30e5284a596800cd4222b1c1d6f2616f5420479fb44e770ebd16989cbe3b9d42"
+    },
+    {
+      "kind": "request",
+      "source_commit": "12e20ac4b69dbd149aabc26bd3fedc45c853c576",
+      "scope": "Independently verify the genuine PR 123 predecessor and successor refusals and their positive controls. Check the competing timestamps against the independently ordered step and job clocks before reduction, on both representations and both listing orders. Verify boundary precision and that a truly missing ordering witness stays uncertain.",
+      "supersedes": "07acb73c1ff57bd8c063330b7c8cbfb7ebd966e6ef700d96761388e09e0a1352",
+      "requested_at": "2026-11-28T08:52:12.097539+00:00",
+      "request_id": "f4aa5f285d597998a4197307b4de503da5dccb85086306e935c4ea7a9ed83f69",
+      "evidence_sha256": "3426fc4fece254c67502ffd0acaf54a763e06948ed4b52054e404b5ef5cca13a"
     }
   ]
 }

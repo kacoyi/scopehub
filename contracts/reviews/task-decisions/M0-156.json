@@ -871,6 +871,15 @@
       },
       "supersedes": "890a905fbd2d11c043f23dacf764944a130788cc33e1f383da415e831821fe9d",
       "evidence_sha256": "2a5f2da281daf3ca9c25c941d806d9879d61ed765ca414353bcbe881f3fa5e63"
+    },
+    {
+      "kind": "request",
+      "source_commit": "12e20ac4b69dbd149aabc26bd3fedc45c853c576",
+      "scope": "Review the PR 96 and push receipt authority across collection order and later successful corroboration on this reader. Check the controlled original three-way conflict and independently grounded clocks. Qualify which earlier decisions and timing samples actually apply.",
+      "supersedes": "d8157a25407b678688a9589589a8bb63806cc543377788a93a1ef02d47ad34f2",
+      "requested_at": "2026-11-28T08:52:14.163557+00:00",
+      "request_id": "a13245e2fbac13734a91e98c96f16a68d55b2322c50ba7bb8d611e900f2a8d10",
+      "evidence_sha256": "1c73ce0aad84a2314f8aba13ef8519bd9c6db2c6fce142ea573ada430247bf9d"
     }
   ]
 }

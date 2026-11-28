@@ -842,6 +842,15 @@
       },
       "supersedes": "0bf3b5662e17488e38cf7dbc89d84bf703c1a93a7918d3980bdfb8b7f5078388",
       "evidence_sha256": "898582d29f246938012c400a6255e00b9f3551be4f21e8e3ebde81b807ad13c0"
+    },
+    {
+      "kind": "request",
+      "source_commit": "12e20ac4b69dbd149aabc26bd3fedc45c853c576",
+      "scope": "Review ordinary, offline weekly and fresh-process timing attribution using the two prior independent examples. Verify the genuine, rejected and paired behavior, all 32 ambiguous single-listing pairs, original PR 84 rotation, controls that must be preserved, and current measured reader cost.",
+      "supersedes": "95241ce64c82d2de22f964948313a9540fac8aead7066014d12e6ee844ffa95e",
+      "requested_at": "2026-11-28T08:52:13.059557+00:00",
+      "request_id": "e9c859237ff51e6f07e87fe65f217a359c79a7d13953c1c4b9b640b7734c7c26",
+      "evidence_sha256": "f40ee373a8e3685ab3315e6fc73857588436fc75a69245949683ca8d0c2fecec"
     }
   ]
 }
