@@ -461,6 +461,58 @@ class HostedTimingTests(unittest.TestCase):
                     self.assertTrue(any('outside the publishing job boundaries' in row['error']
                                         for row in view['input_issues'] if row.get('job_id') == '33'))
 
+    def test_explicit_publishing_bound_survives_an_unrelated_numbered_clock_conflict(self):
+        run = hosted_run()
+        report = split_harness_report(675)
+        report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
+                        'event': 'pull_request', 'head_sha': FIXTURE_PR_HEAD, 'checkout_sha': 'a' * 40}
+        stamp = '2026-11-20T00:11:25.847471Z'
+        genuine = dict(lane_sample(timing.report_sample(report), 'browser'), recorded_at=stamp)
+
+        def step(number, start=None, end=None, name=None):
+            fields = {'name': name,
+                      'started_at': f'2026-11-20T00:{start}Z' if start else None,
+                      'completed_at': f'2026-11-20T00:{end}Z' if end else None}
+            return {'number': number, 'conclusion': 'success',
+                    **{key: value for key, value in fields.items() if value is not None}}
+
+        def invoke(*args):
+            with patch.object(sys, 'argv', ['timing.py', *map(str, args)]), redirect_stdout(StringIO()) as out:
+                timing.main()
+            view = json.loads(out.getvalue())
+            credits = [row['recorded_at'] for row in view['samples'] if row['job']]
+            for attempt in view['hosted']:
+                windows, = (row for row in attempt['jobs'] if row['platform'] == 'Windows')
+                self.assertEqual(1687, windows['seconds']['runner'])
+            return credits
+
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            def save(name, obj):
+                path = folder / name
+                path.write_bytes(timing.json_bytes(obj))
+                return path
+            run_file, report_file = save('run.json', run), save('genuine.json', genuine)
+            for endpoint, alleged, anchor, conflict in (
+                ('started_at', '01:45', step(11, '01:05', '01:35', timing.WINDOWS_INITIALIZATION_STEP),
+                 [step(9, end='00:58'), step(10, start='00:57')]),
+                ('completed_at', '11:27', step(13, '11:25', '11:30', timing.WINDOWS_STAGING_STEP),
+                 [step(14, end='11:49'), step(15, start='11:48')]),
+            ):
+                with self.subTest(endpoint=endpoint):
+                    jobs = self.split_windows_jobs()
+                    writer = jobs[2]['steps'][0]
+                    del writer[endpoint]
+                    jobs[2]['steps'] = [writer, anchor, *conflict]
+                    copy = save('copy.json', dict(genuine, recorded_at=f'2026-11-20T00:{alleged}Z'))
+                    listing = save('jobs.json', jobs)
+                    inputs = ('--actions', run_file, listing)
+                    self.assertEqual([], invoke('--report', copy, *inputs))
+                    archive = folder / f'{endpoint}.json'
+                    self.assertEqual([stamp], invoke(
+                        '--report', report_file, '--report', copy, *inputs, '--save', archive))
+                    self.assertEqual([stamp], invoke('--report', archive))
+
     def test_numbered_step_facts_are_independent_of_order_and_listing_boundaries(self):
         jobs = list(self.split_windows_jobs())
         browser_index = 2
@@ -823,9 +875,9 @@ class HostedTimingTests(unittest.TestCase):
                     receipts = archive['recent_collection']['collected_samples']
                     copied = timing.platform_report_receipt(windows, timing.report_input_sha256(windows))
                     injected = path.with_name('injected-receipt.json')
-                    timing.save_review_archive(injected, {**archive, 'recent_collection': {
-                        **archive['recent_collection'], 'collected_samples': [*receipts, copied],
-                    }})
+                    observation, = archive['collection_observations']
+                    observation['record']['collected_samples'].append(copied)
+                    timing.save_review_archive(injected, archive)
                     with (patch.object(sys, 'argv', ['timing.py', '--report', str(injected)]),
                           redirect_stdout(StringIO()) as stdout):
                         timing.main()
@@ -988,6 +1040,7 @@ class HostedTimingTests(unittest.TestCase):
             self.assertEqual(linux_only, reopen(partial_path)['collected_samples'])
 
             legacy = json.loads(partial_path.read_bytes())
+            del legacy['collection_observations']
             legacy['recent_collection'].pop('downloaded_compact_inputs_sha256')
             legacy['recent_collection'].pop('listed_attempt_jobs_sha256', None)
             legacy['recent_collection']['collected_samples'] = both
@@ -1000,7 +1053,7 @@ class HostedTimingTests(unittest.TestCase):
             self.assertEqual([], failed['recent_collection']['collected_samples'])
             self.assertTrue(any(row.get('source') == 'attempt_jobs' for row in failed['input_issues']))
             failed_archive = json.loads(failed_path.read_bytes())
-            failed_archive['recent_collection']['collected_samples'] = both
+            failed_archive['collection_observations'][0]['record']['collected_samples'] = both
             injected = folder / 'failed-with-copied-receipts.json'
             timing.save_review_archive(injected, failed_archive)
             for index, paths in enumerate(((genuine, injected), (injected, genuine))):
@@ -1023,7 +1076,7 @@ class HostedTimingTests(unittest.TestCase):
             saved = folder / 'resaved-incomplete.json'
             self.assertEqual(linux_only, reopen(incomplete_path, save_to=saved)['collected_samples'])
             invalid = json.loads(genuine.read_bytes())
-            invalid['recent_collection']['runs_with_compact'] = True
+            invalid['collection_observations'][0]['record']['runs_with_compact'] = True
             invalid_path = folder / 'invalid-count.json'
             timing.save_review_archive(invalid_path, invalid)
             self.assertIsNone(reopen(invalid_path))
@@ -1043,7 +1096,7 @@ class HostedTimingTests(unittest.TestCase):
 
             def altered(name, change):
                 archive = json.loads(genuine.read_bytes())
-                change(archive['recent_collection'])
+                change(archive['collection_observations'][0]['record'])
                 path = folder / name
                 path.write_bytes(timing.json_bytes(archive))
                 return path
@@ -1095,6 +1148,7 @@ class HostedTimingTests(unittest.TestCase):
             reports, collect, reopen = self.collection_replay(folder)
             path, _ = collect('one-listing.json', reports)
             genuine = json.loads(path.read_bytes())
+            del genuine['collection_observations']
             collection = genuine['recent_collection']
             peer_id = str(int(genuine['hosted'][0]['run_id']) + 1)
             peer = {**reports[0], 'ci': {**reports[0]['ci'], 'run_id': peer_id}}
@@ -1125,6 +1179,7 @@ class HostedTimingTests(unittest.TestCase):
             reports, collect, reopen = self.collection_replay(folder)
             path, original = collect('one-listing.json', reports)
             genuine = json.loads(path.read_bytes())
+            del genuine['collection_observations']
             clock, = genuine['hosted']
             peer_id = str(int(clock['run_id']) + 1)
             peer = {**reports[0], 'ci': {**reports[0]['ci'], 'run_id': peer_id}}
@@ -1183,6 +1238,31 @@ class HostedTimingTests(unittest.TestCase):
                     self.assertEqual(initial, reopen(saved))
                     self.assertEqual(upfront, reopen(saved, evidence))
                     self.assertEqual(3, len(initial.get('collection_order_acquisitions', [])))
+
+            later = save('later-failure.json', {
+                **genuine, 'recent_collection': {
+                    **collection, 'collected_at': '2999-01-01T00:00:00Z', 'unsuccessful_runs': 1,
+                },
+            })
+            failure = save('independent-failure.json', {
+                'kind': timing.ARCHIVE_KIND, 'samples': [], 'hosted': [dict(peer_outcome, conclusion='failure')],
+            })
+            for inputs, initial_evidence, witnesses in (
+                    ((unsupported, partial, later), (), 2),
+                    ((unsupported, partial, contradicted), (failure,), 3),
+            ):
+                for index, order in enumerate((inputs, inputs[::-1])):
+                    with self.subTest(witnesses=witnesses, order=index):
+                        prefix = folder / f'prefix-{witnesses}-{index}.json'
+                        staged = folder / f'staged-{witnesses}-{index}.json'
+                        direct = reopen(*order, *initial_evidence, evidence)
+                        retained = direct.get('collection_order_acquisitions', direct.get('collection_order_witnesses'))
+                        self.assertEqual(witnesses, len(retained))
+                        self.assertEqual([], direct['collected_samples'])
+                        reopen(*order[:1], *initial_evidence, save_to=prefix)
+                        reopen(prefix, *order[1:], save_to=staged)
+                        self.assertEqual(direct, reopen(staged, partial, evidence))
+                        self.assertEqual(direct, reopen(partial, staged, evidence))
 
     def test_recent_collection_requires_original_layout_and_publishing_qualification(self):
         run = hosted_run()

@@ -2271,19 +2271,17 @@ def publishing_phase_bounds(fact, verification, floor, ceiling):
     initialization = steps.get(WINDOWS_INITIALIZATION_STEP)
     writer = steps.get(verification)
     staging = steps.get(WINDOWS_STAGING_STEP)
-    # Setup and cleanup enclose the job's steps. Initialization and staging
-    # likewise enclose the writer even when their numbered positions are absent.
-    before, after = {}, {}
-    if initialization and initialization.eligible and initialization.number is not None:
-        before[initialization.number] = initialization
-        initialization = None
-    if staging and staging.eligible and staging.number is not None:
-        after[staging.number] = staging
-        staging = None
-    lowers = [min(points) for step in (steps.get('Set up job'), initialization)
-              for points in publishing_endpoints(step, floor, ceiling) if points]
-    uppers = [max(points, key=publishing_upper_key) for step in (staging, steps.get('Complete job'))
-              for points in publishing_endpoints(step, floor, ceiling) if points]
+    # These roles independently enclose the writer. Their numbers may also
+    # qualify a stronger bound from the observed sequence on either side.
+    setup = [min(points) for points in publishing_endpoints(steps.get('Set up job'), floor, ceiling) if points]
+    cleanup = [max(points, key=publishing_upper_key)
+               for points in publishing_endpoints(steps.get('Complete job'), floor, ceiling) if points]
+    lowers = [*setup, *(min(points) for points in publishing_endpoints(initialization, floor, ceiling) if points)]
+    uppers = [*cleanup, *(max(points, key=publishing_upper_key)
+                         for points in publishing_endpoints(staging, floor, ceiling) if points)]
+    before = ({initialization.number: initialization} if initialization and initialization.eligible
+              and initialization.number is not None else {})
+    after = ({staging.number: staging} if staging and staging.eligible and staging.number is not None else {})
     starts, ends = publishing_endpoints(writer, floor, ceiling)
     if writer and writer.eligible and writer.number is not None:
         first = last = writer.number
@@ -2303,14 +2301,14 @@ def publishing_phase_bounds(fact, verification, floor, ceiling):
         elif (last is not None and number > last
               or (name is not None and name.startswith('Run actions/upload-artifact@'))):
             after[number] = step
-    prior = publishing_neighbor_bound(before, max(lowers, default=floor), predecessor_ceiling, latest=False)
+    prior = publishing_neighbor_bound(before, max(setup, default=floor), predecessor_ceiling, latest=False)
     if prior is not None:
         lowers.append(prior)
     successor_floor = max(lowers, default=floor)
     if starts:
         successor_floor = max((*lowers, min(starts)))
     following = publishing_neighbor_bound(after, successor_floor,
-                                          min(uppers, key=publishing_upper_key, default=ceiling), latest=True)
+                                          min(cleanup, key=publishing_upper_key, default=ceiling), latest=True)
     if following is not None:
         uppers.append(following)
     starts, ends = publishing_endpoints(writer, max(lowers, default=floor),
@@ -4802,6 +4800,12 @@ COLLECTION_COUNTS = ('completed_runs_considered', 'runs_with_compact', 'runs_wit
 class CollectionObservation(NamedTuple):
     record: dict
     qualified: bool
+    attempts: frozenset = frozenset()
+    sample_inputs: tuple = ()
+    clock_inputs: tuple = ()
+
+    def archive_entry(self):
+        return {'record': self.record, 'sample_inputs': list(self.sample_inputs), 'clock_inputs': list(self.clock_inputs)}
 
 
 def collection_facts(record):
@@ -4847,13 +4851,16 @@ def collection_outcomes(clocks):
     return outcomes
 
 
-def collection_acquisitions(facts, samples, clocks, attempt_outcomes):
+def collection_input_index(samples, clocks):
+    return ({report_input_sha256(sample): sample for sample in samples if sample['ci']},
+            {timing_input_sha256(clock): clock for clock in clocks})
+
+
+def collection_acquisitions(facts, sample_inputs, clock_inputs):
     report_digests = set(facts.get('downloaded_compact_inputs_sha256', ()))
     listing_digests = set(facts.get('listed_attempt_jobs_sha256', ()))
-    reports = {digest: sample for sample in samples if sample['ci'] and report_digests
-               and (digest := report_input_sha256(sample)) in report_digests}
-    listings = {digest: clock for clock in clocks if listing_digests
-                and (digest := timing_input_sha256(clock)) in listing_digests}
+    reports = {digest: sample_inputs[digest] for digest in report_digests & sample_inputs.keys()}
+    listings = {digest: clock_inputs[digest] for digest in listing_digests & clock_inputs.keys()}
     downloaded = {sample['ci']['run_id'] for sample in reports.values()}
     listed = {clock['run_id'] for clock in listings.values()}
     missing = set(facts.get('missing_compact_run_ids', ()))
@@ -4865,53 +4872,57 @@ def collection_acquisitions(facts, samples, clocks, attempt_outcomes):
         raise TimingError('Timing collection counts disagree with its acquisition evidence.')
     attempts = {ci_key(sample['ci']) for sample in reports.values()} | {ci_key(clock) for clock in listings.values()}
     run_events = defaultdict(set)
-    outcomes = defaultdict(set)
-    for attempt in attempts:
-        _, run_id, _, event, _ = attempt
+    for _, run_id, _, event, _ in attempts:
         if event in NORMAL_EVENTS:
             run_events[run_id].add(event)
-        outcomes[run_id].update(attempt_outcomes.get(attempt, ()))
-    for clock in clocks:
-        if clock['run_id'] in missing and clock['event'] in NORMAL_EVENTS:
-            run_events[clock['run_id']].add(clock['event'])
+    missing_clocks = {digest: clock for digest, clock in clock_inputs.items()
+                      if clock['run_id'] in missing and clock['event'] in NORMAL_EVENTS}
+    for clock in missing_clocks.values():
+        run_events[clock['run_id']].add(clock['event'])
     if (limit := facts.get('limit_per_event')) is not None and any(
             sum(events == {event} for events in run_events.values()) > limit for event in NORMAL_EVENTS):
         raise TimingError('Timing collection exceeds its recorded distinct run limit per event.')
-    # A downloaded report can bind the same attempt as an independently
-    # observed Actions conclusion. Only the collection's own listing can
-    # qualify the report for a receipt.
+    return reports, listings, missing_clocks, frozenset(attempts)
+
+
+def check_collection_outcomes(observation, attempt_outcomes):
+    outcomes = defaultdict(set)
+    for attempt in observation.attempts:
+        outcomes[attempt[1]].update(attempt_outcomes.get(attempt, ()))
     successful = sum(values == {'success'} for values in outcomes.values())
     unsuccessful = sum(len(values) == 1 and 'success' not in values for values in outcomes.values())
     # Count each run once and leave unavailable or disputed outcomes open.
+    facts = observation.record
     if not unsuccessful <= facts['unsuccessful_runs'] <= facts['completed_runs_considered'] - successful:
         raise TimingError('Timing collection unsuccessful run count disagrees with its recorded outcomes.')
-    complete = not missing_reports and listing_digests == listings.keys()
-    return reports.values(), listings.values(), complete
 
 
-def observed_collection(record, samples, clocks, attempt_outcomes, issues):
-    """Assess the owning acquisition before using a collection or its receipts."""
+def observed_collection(record, inputs, issues):
+    """Retain the scope that can establish this acquisition's receipts."""
     facts = collection_facts(record)
     facts['collected_samples'] = []
     if record.get('collection_inputs_unavailable'):
         facts['collection_inputs_unavailable'] = True
-    reports, listings, complete = collection_acquisitions(facts, samples, clocks, attempt_outcomes)
-    if not commit_id(facts['capture_source']) or not COLLECTION_MEMBERS.keys() <= facts.keys():
-        return CollectionObservation(facts, False)
+    reports, listings, missing_clocks, attempts = collection_acquisitions(facts, *inputs)
+    complete = (len(reports) == len(facts.get('downloaded_compact_inputs_sha256', ()))
+                and len(listings) == len(facts.get('listed_attempt_jobs_sha256', ())))
     qualified = complete and not record.get('collection_inputs_unavailable')
-    if not qualified:
-        # A combined archive also contains other observations' inputs.
-        # Their arrival cannot upgrade this collection's earlier acquisition.
+    if not complete:
         facts['collection_inputs_unavailable'] = True
+    has_identity = commit_id(facts['capture_source']) and COLLECTION_MEMBERS.keys() <= facts.keys()
+    observation = CollectionObservation(facts, bool(has_identity and qualified), attempts,
+                                        tuple(sorted(reports)), tuple(sorted(listings.keys() | missing_clocks.keys())))
+    if not has_identity:
+        return observation
     claims = collected_receipts(record)
     if facts['collected_at'] is None or not claims:
-        return CollectionObservation(facts, qualified)
+        return observation
     report_ids = {claim.get('report_id') for claim in claims.values() if isinstance(claim.get('report_id'), str)}
     acquired, acquired_clocks = defaultdict(list), defaultdict(list)
-    for sample in reports:
+    for sample in reports.values():
         if sample['run_id'] in report_ids:
             acquired[ci_key(sample['ci'])].append(sample)
-    for clock in listings:
+    for clock in listings.values():
         if (attempt := ci_key(clock)) in acquired:
             acquired_clocks[attempt].append(clock)
     evaluated = []
@@ -4922,7 +4933,7 @@ def observed_collection(record, samples, clocks, attempt_outcomes, issues):
         except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
             issues.append({'run_id': attempt[1], 'source': 'timing_qualification', 'error': input_error(error)})
     facts['collected_samples'] = qualified_collected_reports(evaluated, record)
-    return CollectionObservation(facts, qualified)
+    return observation
 
 
 def unresolved_collection(point):
@@ -4947,7 +4958,7 @@ def empty_artifact_collection(collection):
     return collection.get('artifact_collection_empty', collection.get('cold_bootstrap', False))
 
 
-def archive_collections(record, samples, clocks, attempt_outcomes, issues, label):
+def legacy_collection_observations(record, inputs, issues, label):
     if not record:
         return []
     records = [record]
@@ -4966,7 +4977,7 @@ def archive_collections(record, samples, clocks, attempt_outcomes, issues, label
     observations = []
     for candidate in records:
         try:
-            observations.append(observed_collection(candidate, samples, clocks, attempt_outcomes, issues))
+            observations.append(observed_collection(candidate, inputs, issues))
         except TimingError as error:
             issues.append({'file': label, 'source': 'timing_collection', 'error': str(error)})
     if record.get('collection_order_uncertain'):
@@ -4983,8 +4994,29 @@ def archive_collections(record, samples, clocks, attempt_outcomes, issues, label
     return observations
 
 
+def archive_collections(data, samples, clocks, issues, label):
+    if 'collection_observations' not in data:
+        record = data.get('recent_collection')
+        return legacy_collection_observations(
+            record, collection_input_index(samples, clocks), issues, label) if record else []
+    observations = []
+    inputs = collection_input_index(samples, clocks)
+    for entry in data['collection_observations']:
+        record = entry['record']
+        scoped = tuple({digest: index[digest] for digest in entry[field] if digest in index}
+                       for index, field in zip(inputs, ('sample_inputs', 'clock_inputs'), strict=True))
+        if record.get('collection_order_uncertain'):
+            observations.extend(legacy_collection_observations(record, scoped, issues, label))
+            continue
+        try:
+            observations.append(observed_collection(record, scoped, issues))
+        except TimingError as error:
+            issues.append({'file': label, 'source': 'timing_collection', 'error': str(error)})
+    return observations
+
+
 def reconcile_collection_order(observations):
-    """Select the latest qualified acquisition and retain the grounds of a tie."""
+    """Project the latest qualified acquisition or its unresolved tie."""
     qualified = [item.record for item in observations if item.qualified]
     records = qualified or [item.record for item in observations]
     if not records:
@@ -5134,6 +5166,13 @@ def require_review_archive_shape(archive):
         raise TimingError('Expected a timing archive with sample and clock lists.')
     if archive.get('recent_collection') is not None and not isinstance(archive['recent_collection'], dict):
         raise TimingError('Expected a timing archive collection record.')
+    observations = archive.get('collection_observations', [])
+    if not isinstance(observations, list) or not all(
+            isinstance(entry, dict) and isinstance(entry.get('record'), dict)
+            and all(isinstance(entry.get(field), list) and all(map(compact_input_digest, entry[field]))
+                    for field in ('sample_inputs', 'clock_inputs'))
+            for entry in observations):
+        raise TimingError('Expected timing archive collection observations and their input digests.')
 
 
 def save_review_archive(path, archive):
@@ -5259,8 +5298,8 @@ def main():
                         explicit_input_failed |= args.report is not None
                     samples.extend(archive_samples)
                     workflows.extend(archive_hosted)
-                    if collection := data.get('recent_collection'):
-                        collection_inputs.append((collection, archive_samples, archive_hosted, path.name))
+                    if 'collection_observations' in data or data.get('recent_collection'):
+                        collection_inputs.append((data, archive_samples, archive_hosted, path.name))
                 elif data.get('kind') == SAMPLE_KIND:
                     if not valid_sample(data):
                         raise TimingError('Invalid timing sample.')
@@ -5314,14 +5353,25 @@ def main():
         if args.report is None:
             add_retained_review_inputs(timing_directories(ROOT, issues), samples, workflows,
                                        read_captures, issues, read_budget)
-        attempt_outcomes = collection_outcomes(workflows) if collection_inputs or acquisition else {}
-        collection_observations = [
-            observation for record, owned_samples, owned_clocks, label in collection_inputs
-            for observation in archive_collections(record, owned_samples, owned_clocks, attempt_outcomes, issues, label)
+        owned_observations = [
+            (observation, label) for data, owned_samples, owned_clocks, label in collection_inputs
+            for observation in archive_collections(data, owned_samples, owned_clocks, issues, label)
         ]
-        recent_observation = (observed_collection(*acquisition, attempt_outcomes, issues).record
-                              if acquisition else reconcile_collection_order(collection_observations))
-        view = timing_view(samples, hosted=workflows, issues=list(issues))
+        if acquisition:
+            record, acquired_samples, acquired_clocks = acquisition
+            owned_observations.append((observed_collection(
+                record, collection_input_index(acquired_samples, acquired_clocks), issues), 'recent acquisition'))
+        attempt_outcomes = collection_outcomes(workflows) if owned_observations else {}
+        current_observations, outcome_issues = [], []
+        for observation, label in owned_observations:
+            try:
+                check_collection_outcomes(observation, attempt_outcomes)
+            except TimingError as error:
+                timing_issue(outcome_issues, {'file': label, 'source': 'timing_collection', 'error': str(error)})
+            else:
+                current_observations.append(observation)
+        recent_observation = reconcile_collection_order(current_observations)
+        view = timing_view(samples, hosted=workflows, issues=[*issues, *outcome_issues])
         recent = None
         if recent_observation is not None:
             recent = {**recent_observation,
@@ -5340,9 +5390,12 @@ def main():
         summary = review_summary(view) if args.summary else None
         archive_identity = None
         if args.save:
-            archive_identity = save_review_archive(
-                args.save, {'kind': ARCHIVE_KIND, 'samples': samples, 'hosted': workflows,
-                            'recent_collection': recent, 'input_issues': issues})
+            archive = {'kind': ARCHIVE_KIND, 'samples': samples, 'hosted': workflows,
+                       'recent_collection': recent, 'input_issues': issues}
+            if owned_observations:
+                archive['collection_observations'] = distinct_observations(
+                    observation.archive_entry() for observation, _ in owned_observations)
+            archive_identity = save_review_archive(args.save, archive)
         if args.summary:
             append_review_summary(args.summary, summary, archive=args.save, archive_identity=archive_identity)
         print(json.dumps(view, indent=2))

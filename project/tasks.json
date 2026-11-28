@@ -27482,7 +27482,8 @@
         "contracts/decisions/0039-reuse-timing-source-semantics.json",
         "scripts/check.py",
         "contracts/decisions/0040-share-feasible-timing-admission.json",
-        "contracts/decisions/0041-qualify-ordered-timing-provenance.json"
+        "contracts/decisions/0041-qualify-ordered-timing-provenance.json",
+        "contracts/decisions/0042-preserve-timing-evidence-before-reduction.json"
       ],
       "decision_refs": [
         "0004",
@@ -27497,7 +27498,8 @@
         "0038",
         "0039",
         "0040",
-        "0041"
+        "0041",
+        "0042"
       ],
       "acceptance": [
         "Retain the original independent rejection. Through the ordinary timing and budget-review entries, observe the browser-job and checkout conflicts both before and after twelve later captures rotate the original attempt out of the recent window.",
@@ -27522,7 +27524,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Replay the independently returned PR 123 boundary and PR 96/push acquisition observations indexed in .reports/m0-150-156-dfca5477/intake-sources.json. Verify direct, repeated and reopened attribution on the same evidence before handing one clean source to the coordinator for new primary decisions.",
+      "next_action": "Use .reports/m0-150-156-dfca5477/handoff.json for the clean PR 145 material candidate, the three original independent returns, replay and local gates. The coordinator obtains fresh M0-150, M0-155 and M0-156 primary decisions on the same source before opening the five downstream requests.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -28187,6 +28189,7 @@
             "Preserve source-bound reviews, original logs and attachments, historical receipts, and the actual weekly schedule."
           ],
           "change": [
+            "Keep semantic publishing bounds independent of optional numbered-step qualification. Persist each distinct normalized acquisition and its owned input scope before applying global attempt outcomes or selecting a receipt summary.",
             "Reconcile old adverse timing evidence through the ordinary and budgeted readers when the recent window no longer supplies it.",
             "Make role, conclusion, checkout and clock attribution invariant to equivalent grouping and arrival order, and use attempt identities discovered through either index or live CI before final historical reconciliation.",
             "Resolve each job field once across the retained observations. Absent assertions may be completed by compatible evidence, and contradictory assertions withdraw only dependent measurements and eligibility.",
@@ -28230,7 +28233,8 @@
         "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json",
         "contracts/decisions/0039-reuse-timing-source-semantics.json",
         "contracts/decisions/0040-share-feasible-timing-admission.json",
-        "contracts/decisions/0041-qualify-ordered-timing-provenance.json"
+        "contracts/decisions/0041-qualify-ordered-timing-provenance.json",
+        "contracts/decisions/0042-preserve-timing-evidence-before-reduction.json"
       ],
       "decision_refs": [
         "0004",
@@ -28245,7 +28249,8 @@
         "0038",
         "0039",
         "0040",
-        "0041"
+        "0041",
+        "0042"
       ],
       "acceptance": [
         "Run the ordinary weekly timing CLI in the supported system Python environment with the archived full Windows selection, unavailable preview and a source-equivalent historical substitute. Confirm it writes the weekly summary and current comparison with the original clocks.",
@@ -28282,7 +28287,7 @@
         }
       ],
       "evidence": [],
-      "next_action": "Replay the independently returned PR 123 boundary and PR 96/push acquisition observations indexed in .reports/m0-150-156-dfca5477/intake-sources.json. Verify direct, repeated and reopened attribution on the same evidence before handing one clean source to the coordinator for new primary decisions.",
+      "next_action": "Use .reports/m0-150-156-dfca5477/handoff.json for the clean PR 145 material candidate, the three original independent returns, replay and local gates. The coordinator obtains fresh M0-150, M0-155 and M0-156 primary decisions on the same source before opening the five downstream requests.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -28622,6 +28627,7 @@
             "Stable execution input digests, public project and timing commands, existing capture files and the routine weekly interpreter."
           ],
           "change": [
+            "Keep semantic publishing bounds independent of optional numbered-step qualification. Persist each distinct normalized acquisition and its owned input scope before applying global attempt outcomes or selecting a receipt summary.",
             "Make the historical substitute verification available in the declared weekly environment.",
             "Reject the Git null sentinel as a timing identity before publisher fallback or timing attribution.",
             "Validate parent uniqueness and known object facts against the observed event in the shared proof path before admitting substitution. Preserve a separately verified execution-input fallback when the preview is genuinely unavailable.",
@@ -28669,7 +28675,8 @@
         "contracts/decisions/0037-separate-timing-admission-and-endpoint-proof.json",
         "contracts/decisions/0039-reuse-timing-source-semantics.json",
         "contracts/decisions/0040-share-feasible-timing-admission.json",
-        "contracts/decisions/0041-qualify-ordered-timing-provenance.json"
+        "contracts/decisions/0041-qualify-ordered-timing-provenance.json",
+        "contracts/decisions/0042-preserve-timing-evidence-before-reduction.json"
       ],
       "decision_refs": [
         "0004",
@@ -28684,7 +28691,8 @@
         "0038",
         "0039",
         "0040",
-        "0041"
+        "0041",
+        "0042"
       ],
       "checks": [
         "project-state",
@@ -28706,7 +28714,7 @@
         "On PR 123, bound the recorded report instant by the ordered historical writer and its independently observed neighbors. Match the aggregate original's producer role when compact reports explicitly claim a digest. Preserve the authentic raw and compact reports, recorded precision and legacy compact forms without a digest.",
         "Use the original workflow order and intersect independently observed initialization, verification, staging and surrounding job boundaries at their recorded precision. Retain exact genuine PR 123 success and failure producer reports through both input orders and reject confirmed out-of-window and wrong-role claims."
       ],
-      "next_action": "Replay the independently returned PR 123 boundary and PR 96/push acquisition observations indexed in .reports/m0-150-156-dfca5477/intake-sources.json. Verify direct, repeated and reopened attribution on the same evidence before handing one clean source to the coordinator for new primary decisions.",
+      "next_action": "Use .reports/m0-150-156-dfca5477/handoff.json for the clean PR 145 material candidate, the three original independent returns, replay and local gates. The coordinator obtains fresh M0-150, M0-155 and M0-156 primary decisions on the same source before opening the five downstream requests.",
       "blocker": null,
       "evidence": [],
       "closure_reason": null,
@@ -29229,6 +29237,7 @@
             "Exact native provenance, cache classes, aggregate coverage and previously accepted historical layouts."
           ],
           "change": [
+            "Keep semantic publishing bounds independent of optional numbered-step qualification. Persist each distinct normalized acquisition and its owned input scope before applying global attempt outcomes or selecting a receipt summary.",
             "Verify historical producer assignments using the applicable publishing inputs at the normal timing boundary.",
             "Keep independent producer qualification separate from incomplete aggregate topology and reject source assignments whose final ownership cannot be established.",
             "Require source-bound final selection and publisher-allowed outcomes for every native result row. Preserve compatible historical publisher forms and surface unknown qualification when the source cannot establish the final selection.",
