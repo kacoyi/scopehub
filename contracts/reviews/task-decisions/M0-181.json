@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-181",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "3526adefdf612b62bc6492dee2a89eb8b342a5dc",
+      "scope": "Verify the two November 28 advisory-disposition retirements against the original native reports, authoritative publisher and package evidence, locked dependencies and actual build consumers. Check preservation of ordinary advisory, expiry, dependency graph and offline refusal behavior, the changed prefetch in both protected workflow jobs, and the failed and corrected local task checks.",
+      "supersedes": null,
+      "requested_at": "2026-11-28T04:24:30.852450+00:00",
+      "request_id": "5f31395033cd267aa03a844a2f5d1ae0d8048fe734fba1730548fbc62c7b255c",
+      "evidence_sha256": "0b0bbf324b9ad4a6c1b2d4f089d9e15794ef7aa58ec5d00e68ae63ed4f3fef46"
+    }
+  ]
+}
