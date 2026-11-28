@@ -27522,7 +27522,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Reconcile the M0-150 and M0-156 public reader corrections with the M0-155 approval on 42e48a2c, the known positive and negative controls and the retained six-pair cost. Renew all three decisions on one clean material candidate before the five downstream reviews. Hosted, native, protected and scheduled observations remain separate.",
+      "next_action": "Reconcile the M0-150 timing repair with both independently returned PR 123 regressions and the M0-156 approval on 1f6c7cda. Preserve original PR 84, collection, publisher and paired cost controls. Obtain all three independent primary approvals on one corrected source before the five downstream reviews. Hosted, protected, native and scheduled observations retain their own gates.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -28664,7 +28664,7 @@
         "On PR 123, bound the recorded report instant by the ordered historical writer and its independently observed neighbors. Match the aggregate original's producer role when compact reports explicitly claim a digest. Preserve the authentic raw and compact reports, recorded precision and legacy compact forms without a digest.",
         "Use the original workflow order and intersect independently observed initialization, verification, staging and surrounding job boundaries at their recorded precision. Retain exact genuine PR 123 success and failure producer reports through both input orders and reject confirmed out-of-window and wrong-role claims."
       ],
-      "next_action": "Use .reports/m0-150-42e48a2c-bounds/handoff.json for the local PR 123 publishing-boundary correction and original, baseline and candidate evidence. Reconcile M0-156 on top of this candidate, renew the three independent decisions on the composed source, and keep the five downstream reviews gated. The coordinator owns publication and hosted, native and scheduled qualification.",
+      "next_action": "Repair the three retained PR 123 public timing regressions on 1f6c7cda. Check out-of-job neighbors, conflicting job listings, and feasible writer and successor bounds before reducing endpoints. Reproduce both independent originals and preserve the genuine report, recorded precision, ordered roles and independent job clocks. See .reports/m0-156-dff1eef8-collection/coordinator-recovery/primary-1f6c7cda/regression-intake.json.",
       "blocker": null,
       "evidence": [],
       "closure_reason": null,

@@ -13876,6 +13876,57 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "timing-outside-job-neighbor-discards-genuine-report",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 review of 1f6c7cda14379ab28241796e38c490d4de716771, registered at 2d03a1fad08bf42f445a04ea94f7242d92e91756. Original response in .reports/m0-156-dff1eef8-collection/coordinator-recovery/primary-1f6c7cda/M0-150/original-assistant-response.jsonl (SHA-256 e719e2a6e1fa786a3cf1878da18baa9f79d19201c9885fd658d9925b81777eb1). Its original public replay commands and results are retained alongside it.",
+      "observation": "In PR 123 run 45965137241, the browser job 140391906947 lasted from 08:22:19Z through 08:38:42Z. With the retained partial predecessor metadata, reporting step 15 completed at 08:39:00Z removes the genuine browser report attribution. With the retained unnamed successor, reporting step 25 started at 08:20:00Z has the same effect. The preceding reader at 42e48a2c retained the genuine 983 runner-seconds on these controls. Raw and compact ordinary, offline weekly and fresh-process reads on the reviewed source preserve the independent Actions browser and Windows totals of 983 and 3337 seconds.",
+      "task_ids": [
+        "M0-150",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-conflicting-writer-end-drops-ordered-successor",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 review of 1f6c7cda14379ab28241796e38c490d4de716771, registered at 2d03a1fad08bf42f445a04ea94f7242d92e91756. Original response in .reports/m0-156-dff1eef8-collection/coordinator-recovery/primary-1f6c7cda/M0-150/original-assistant-response.jsonl (SHA-256 e719e2a6e1fa786a3cf1878da18baa9f79d19201c9885fd658d9925b81777eb1). Its original public replay commands and results are retained alongside it.",
+      "observation": "Two listings of that same PR 123 browser job offer different ends of writer step 23, 08:38:31Z and 08:38:34Z. Unnamed but numbered step 25 starts at 08:38:31Z. The later end improperly takes priority over the successor. A copy dated 08:38:34Z obtains 983 runner-seconds alone and displaces the genuine report in both input orders. Restoring only the successor name withholds the copy and restores the genuine report. Recorded clock precision and the independently supported 983 and 3337 runner-seconds remain observable.",
+      "task_ids": [
+        "M0-150",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-outside-job-conflicting-listing-displaces-genuine-report",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-155 review of 1f6c7cda14379ab28241796e38c490d4de716771, registered at 2d03a1fad08bf42f445a04ea94f7242d92e91756. Original response in .reports/m0-156-dff1eef8-collection/coordinator-recovery/primary-1f6c7cda/M0-155/original-assistant-response.jsonl (SHA-256 8d880aa3d59ca8dc4f20fc119070cad0e7f0a684bb8e61fb851adbb8158c62d1). Its original public replay commands and results are retained alongside it.",
+      "observation": "Combining the genuine job listing with one changed endpoint in a second listing of PR 123 browser job 140391906947 lets impossible reports displace the genuine report. Step 15 actually ended at 08:25:14Z, leaving 783 seconds for a measured 793.422 seconds before a copy dated 08:38:17Z. A second end at 08:22:15Z, before job start, wrongly credits that copy. The real unnamed step 25 started at 08:38:31Z. A second start at 08:38:47Z, after job completion, wrongly credits the 08:38:34Z copy. Genuine alone and each copy alone receive 983 runner-seconds, while together the genuine attribution is lost. Original and compact reports, both listing and report orders, ordinary, offline weekly and new-process reads reproduce it. The independent browser and Windows Actions clocks stay 983 and 3337 seconds.",
+      "task_ids": [
+        "M0-150",
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
