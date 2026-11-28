@@ -152,25 +152,6 @@
     },
     {
       "ecosystem": "crates.io",
-      "name": "block-buffer",
-      "version": "0.10.4",
-      "advisories": [
-        "GHSA-qwgh-2vcv-g2f7"
-      ],
-      "expires": "2026-11-28",
-      "task_id": "M0-017",
-      "scope_guard": "upstream-excludes-locked-version",
-      "upstream_source": "https://api.github.com/repos/RustCrypto/utils/security-advisories/GHSA-qwgh-2vcv-g2f7",
-      "reviewed_upstream_range": ">=0.11.0,<0.12.1",
-      "reason": "OSV currently starts at zero, while the publisher primary advisory explicitly affects >=0.11.0,<0.12.1. Locked 0.10.4 is outside that primary range. Every online review fetches and verifies the exact primary identity and reviewed range; changed/unavailable metadata fails. This is an exact version discrepancy disposition, not a broad severity waiver.",
-      "evidence": [
-        "https://github.com/RustCrypto/utils/security/advisories/GHSA-qwgh-2vcv-g2f7",
-        "https://api.osv.dev/v1/vulns/GHSA-qwgh-2vcv-g2f7",
-        "cargo tree --locked --workspace --target all -i block-buffer"
-      ]
-    },
-    {
-      "ecosystem": "crates.io",
       "name": "chrono",
       "version": "0.4.45",
       "advisories": [
@@ -184,25 +165,6 @@
         "cargo tree --locked --workspace --target x86_64-pc-windows-msvc -i chrono",
         "cargo tree --locked --workspace --exclude scopehub-desktop --target all",
         "https://rustsec.org/advisories/RUSTSEC-2026-0543.html"
-      ]
-    },
-    {
-      "ecosystem": "npm",
-      "name": "picomatch",
-      "version": "4.0.7",
-      "advisories": [
-        "GHSA-fc5q-39xc-vjpf"
-      ],
-      "expires": "2026-11-28",
-      "task_id": "M0-019",
-      "scope_guard": "picomatch-build-patch",
-      "patch_sha256": "983a4b58c74d11d7f1c4c70f485bbeae9d9277f46f3dbf213a8addc0740916c5",
-      "reason": "The build-tool patch rejects both repeating extglob operators during parsing. Every online review checks the locked patch and the actual matchers loaded by Vite, tinyglobby and fdir. A new upstream release or expiry requires review and replacement when a suitable fix is available.",
-      "evidence": [
-        "patches/picomatch@4.0.7.patch",
-        "node --test tests/project/picomatch.test.mjs",
-        "https://github.com/advisories/GHSA-fc5q-39xc-vjpf",
-        "https://registry.npmjs.org/picomatch/latest"
       ]
     }
   ],
