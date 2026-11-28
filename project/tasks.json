@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-182",
+  "focus_task_id": "M0-146",
   "tasks": [
     {
       "id": "M0-001",
@@ -27077,7 +27077,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "The coordinator obtains fresh source-bound decisions where required and owns the next ordinary full warm PR observation. Bind the submitted head and actual tested checkout containing the corrective revision, require both protected job conclusions to pass, and retain workflow creation, all five Windows producer clocks, the Windows publisher clock, original attachments, ordered Python outcomes and all 35 selections with 28 passes and seven planned omissions. Require Windows seconds.total <= 900, measured from workflow creation through Windows publisher completion. Retain initial queue and the first-producer-to-publisher span for critical-path diagnosis. Keep M0-146 active until that qualifying run and the applicable first protected adoption evidence are retained. Retain the fourth Python timeout and the first ordinary dependency rejection. Use ordinary PR 123 run 46115517382 and its retained passing Python partitions to identify and reduce measured critical-path work. Compare the 973-second sample with the earlier 816- and 838-second ordinary samples on their own sources, preserving full selection, ordered work, omission and refusal semantics. Keep the distinct Windows fixture failure with M0-182.",
+      "next_action": "The coordinator obtains fresh source-bound decisions where required and owns the next ordinary full warm PR observation. Bind the submitted head and actual tested checkout containing the corrective revision, require both protected job conclusions to pass, and retain workflow creation, all five Windows producer clocks, the Windows publisher clock, original attachments, ordered Python outcomes and all 35 selections with 28 passes and seven planned omissions. Require Windows seconds.total <= 900, measured from workflow creation through Windows publisher completion. Retain initial queue and the first-producer-to-publisher span for critical-path diagnosis. Keep M0-146 active until that qualifying run and the applicable first protected adoption evidence are retained. Retain the fourth Python timeout and the first ordinary dependency rejection. Observe the revised test_processes cutoff on the ordinary full warm path. In offline replay on original per-case clocks, the latest 88 transferred cases account for 143.711 seconds, predicting 829.289 seconds on run 46115517382 and 816.000 and 839.020 seconds on the preceding ordinary runs. Treat these as fixed-clock projections. Keep the distinct Windows fixture failure with M0-182 and preserve the protected four-producer and serial Python verification evidence.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -27288,7 +27288,8 @@
           "The first ordinary warm run after the localization transfer and interruption repair, 45949560212, passed its 28 applicable checks and retained seven planned omissions. Its 1054-second span is 154 seconds over budget and 132 seconds above the previous run. Recovery finished last. Its Python process took 821.938 seconds and the separate Python process took 425.344 seconds. The verification-scheduling module spent 404.169, 269.854 and 381.690 observed case seconds across the three sources. Compare moving contiguous Python modules against these three producer profiles and measure the unrelated explicit feedback-history comparison repeated by the Windows lane fixture.",
           "A contiguous transfer of whole discovery modules to the shorter Python job may reduce the measured recovery critical path. Four native samples expose variable host costs; compare the alternatives, original ordering, older partition boundaries and all producer intervals before choosing. Treat modeled gains as estimates pending the next full native observation.",
           "Committed workflow declarations and authenticated artifact and owning-job evidence can qualify both direct and staged delivery. Use the genuine PR112 siblings and distinguish a same-name downloadable report from optional timing output. Compare observed recurring fixture cost or coverage-preserving placement without treating a final printed test as causal.",
-          "The reviewed M0-153 retirement fixture patch avoids redundant Git bootstrap by copying one unmodified standalone seed into independently owned fixtures. Eight local crossover arms ran all 47 cases in identical order and removed 276 Git starts per arm. The earlier six-case Windows probe reduced setup with effectively flat whole-process time. Verify whether larger Windows workloads show a meaningful end-to-end change."
+          "The reviewed M0-153 retirement fixture patch avoids redundant Git bootstrap by copying one unmodified standalone seed into independently owned fixtures. Eight local crossover arms ran all 47 cases in identical order and removed 276 Git starts per arm. The earlier six-case Windows probe reduced setup with effectively flat whole-process time. Verify whether larger Windows workloads show a meaningful end-to-end change.",
+          "The three authenticated five-producer ordinary PR 123 attempts expose enough idle recovery capacity to move a contiguous suffix beginning at test_processes. Compare whole-module alternatives using the original clocks and retain the limits of replay."
         ],
         "risks": [
           {
@@ -27641,6 +27642,12 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "An apparently successful producer could omit or retain cases belonging to the other lane after the cutoff changes. Compare the complete serial order with both published parts, reject genuine output from the former allocation against the new committed allocation, and retain incomplete and interrupted controls.",
+            "checks": [
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain the original reports, revert a change that loses coverage or increases measured cost, and keep the open budget finding assigned until a qualifying observation is available.",
@@ -27683,7 +27690,8 @@
             "Can a disposable Linux replay reproduce the first empty collection and identify its inventory, eligibility or revalidation reason?",
             "With a 31-second aggregate tail, can repeated publisher setup yield a material portion of the 174-second recovery producer reduction required on the observed job clocks?",
             "Does the desktop localization transfer keep the existing recovery cold check first and fit inside the native Python overlap without delaying recovery enough to lose the warm Windows gain?",
-            "How much of the removed synthetic feedback-history work translates to native recovery time, and which producer sets the next critical path?"
+            "How much of the removed synthetic feedback-history work translates to native recovery time, and which producer sets the next critical path?",
+            "Can the revised cutoff move 88 observed cases while retaining the full ordered inventory, committed source qualification, prior cutoff imports, and failure and interruption semantics?"
           ]
         },
         "evolution": {
@@ -27715,7 +27723,8 @@
             "Use the additional workspace producer on full Windows PRs and retain its source-bound original report. Reassign the existing checks across two independent browser runners and give the ordered storage and later Python modules to the light recovery runner. Keep the four-producer protected push, serial Python on push, cache seeding, and earlier source declarations importable.",
             "Verify the producer declarations from the tested merge tree. Keep both Python producer verdicts coherent when interrupted during finalization and use the existing reports for workspace result digests. Preserve the narrower attachment evidence supported by authentic historical sources.",
             "Qualify the complete declared producer set and pinned checkout for each source-producing job from the verified tested merge tree. Verify the local commit and tree against the hosted record, and retain historical tree-backed qualification when the commit object is unavailable.",
-            "Use one terminal report rule across hosted Windows producers that own workspace or Python outcomes, including scoped and protected paths. Preserve completed rows and bound attachments, freeze the verdict after both report copies, retry one sealed manifest digest read, and reject publication when generated case evidence cannot be verified."
+            "Use one terminal report rule across hosted Windows producers that own workspace or Python outcomes, including scoped and protected paths. Preserve completed rows and bound attachments, freeze the verdict after both report copies, retry one sealed manifest digest read, and reject publication when generated case evidence cannot be verified.",
+            "Start the ordinary Windows PR Python recovery suffix at test_processes. Keep the tested-source rule for the former storage boundary and all older boundaries. Preserve the existing producer topology, protected and serial paths, and all original attachments."
           ],
           "data_plan": "Use synthetic fixtures, read-only hosted originals and matching check logs. Preserve actual job durations, original identifiers and coverage for comparison. Archived 2.0 and legacy 2.1 evidence depends on authenticated retrieval for attempt lineage within canonical paths. Legacy merged output supports identifiable printed events under the historical runner format. The stream cannot prove unprinted discovery members or recover ambiguous callbacks. Diagnostic resolution checks the pinned report bytes, identities and attachment digests and returns the recorded check outcome. This path can reopen an ambiguous legacy original with all its bound attachments and grants no per-case receipt. The record command revalidates the supplied report and originals before returning either a new or existing receipt. The two genuine teardown executions with identical merged output and opposite outer callbacks establish that historical per-case recovery is mathematically impossible for those bytes. A newly submitted manifest or a chosen prefix cannot supply the missing ownership. Qualification relies on the supported historical runner's visible standard writes. Exact high-resolution durations, unprinted details and overridden or obscured runner writes require independently bound evidence.",
           "cleanup": "Remove temporary profiling from the delivery path, archive the focused comparison and retain any unresolved timing investigation with its next observable action."

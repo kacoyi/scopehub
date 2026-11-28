@@ -17,7 +17,8 @@ LANES = ('python', 'recovery')
 LEGACY_CUTOFF = 'tests.project.test_verification_scope'
 REVIEW_ACCEPTANCE_CUTOFF = 'tests.project.test_review_acceptance'
 SCHEDULING_CUTOFF = 'tests.project.test_verification_scheduling'
-CUTOFF = 'tests.project.test_storage'
+STORAGE_CUTOFF = 'tests.project.test_storage'
+CUTOFF = 'tests.project.test_processes'
 # The publisher reads the transfer from the tested commit.
 RECOVERY_PR_CHECKS = set()
 COMMAND = ['{python}', '-m', 'unittest', 'discover', '-s', 'tests', '-t', '.',
