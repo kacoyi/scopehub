@@ -29813,6 +29813,121 @@
           "cleanup": "Remove the retired scope guards and the hosted publisher prefetch used only by the block-buffer discrepancy. Remove the patch references from the pnpm lock and rebind the inventory to the new lock hash. Retain the exact package set, license records, original diagnostics and previous task receipts."
         }
       }
+    },
+    {
+      "id": "M0-184",
+      "title": "Recognize an idle project review lock in worktree retirement inventory",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-116",
+        "M0-134"
+      ],
+      "scope": [
+        "scripts/worktree_retirement.py",
+        "scripts/worktree.py",
+        "scripts/project.py",
+        "tests/project/test_worktree_retirement.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0022"
+      ],
+      "acceptance": [
+        "Compare the same registered, recoverable checkout before a project review lock is created, while its owner holds it, and after release. A normal released project review lock permits the remainder of the metadata inventory.",
+        "Retain an explicit hold when a review is active or its lock cannot be identified as an ordinary project-owned empty lock. Unknown Git metadata and local evidence continue to have their existing ownership and recovery checks.",
+        "Recheck the original affected worktree metadata on its actual read-only consumer and retain the independently verified scope. Every other reason to hold or retire a worktree is evaluated by its existing checks."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-184-133789568443c419.json",
+          "sha256": "9175c03fbf6fa01efb790a04372dc91ebb6e082bfd2f4315049081d88d3dd5ca"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The independently reviewed retirement reader retained the ordinary empty review lock after release, identified an active review, and held unknown metadata. The actual peer-deletion checkout still reported unretained local evidence. All three selected local checks passed on ec55d5ae2ee0cd4b2ac3c3f558491aedfb9fb533. The full repository retirement inventory and individual worktree removal retain their own evidence and authorization.",
+      "plan": {
+        "outcome": "A completed project review leaves a clean checkout eligible for the remaining retirement observations, while a live review still contributes a hold.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/worktree_retirement.py",
+          "scripts/project.py",
+          "scripts/worktree.py",
+          "tests/project/test_worktree_retirement.py"
+        ],
+        "hypotheses": [
+          "The review writer intentionally retains its empty lock inode after releasing the OS lock. The retirement inventory treats its name as unknown worktree-private Git metadata."
+        ],
+        "risks": [
+          {
+            "failure": "An unrecognized file, changed lock inode, or active review is mistaken for safe idle metadata.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Recognizing a legitimate lock suppresses private-reflog, evidence, dependency or host-visibility holds.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Restore the conservative metadata observation and preserve the exact controls if the status of an active review or unrelated metadata changes.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/worktree.py",
+            "scripts/worktree_retirement.py",
+            "scripts/project.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/periodic_reviews"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/implementation_policy/first_test"
+            },
+            {
+              "path": "contracts/decisions/0022-task-branch-retirement-and-verification.json",
+              "pointer": ""
+            }
+          ],
+          "non_goals": [
+            "Removing worktrees or lock files, changing task-review ownership, or exempting unknown Git metadata."
+          ],
+          "open_questions": [
+            "Which existing read-only lock probe can observe the exact producer on the supported host without creating or changing the lock?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Git recovery, active use, downstream path consumers, retained artifacts, other metadata holds and all existing separate removal conditions."
+          ],
+          "change": [
+            "Permit full private metadata inspection after an observed project-owned review lock is idle."
+          ],
+          "data_plan": "Only inspect checkout metadata and local locks. All original Git objects and reports remain in their existing recovery locations.",
+          "cleanup": "Release observation handles on all paths and retire disposable checkout fixtures."
+        }
+      }
     }
   ]
 }

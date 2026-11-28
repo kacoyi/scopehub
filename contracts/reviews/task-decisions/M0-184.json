@@ -1,0 +1,35 @@
+{
+  "version": 3,
+  "task_id": "M0-184",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "ec55d5ae2ee0cd4b2ac3c3f558491aedfb9fb533",
+      "scope": "Verify normal released, genuinely held, and unrecognized metadata through worktree retirement. Confirm the reader preserves the persistent file and unrelated holds and uses the writer lock semantics.",
+      "supersedes": null,
+      "requested_at": "2026-11-28T10:18:12.338849+00:00",
+      "request_id": "a93401d8aa07a179fb7aeb6c4779383498a618043fa56a5b3f295f8f07ecc21c",
+      "evidence_sha256": "3f2205878e5989bc0301ad7236ddd36bf559f9f06de6d9e74df7d7799a07c858"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ec55d5ae2ee0cd4b2ac3c3f558491aedfb9fb533",
+      "verdict": "approved",
+      "decision": "APPROVE M0-184 ec55d5ae2ee0cd4b2ac3c3f558491aedfb9fb533",
+      "scope": "APPROVE M0-184 ec55d5ae2ee0cd4b2ac3c3f558491aedfb9fb533",
+      "observation": "The retirement reader preserved the released lock and reported unretained local evidence on an originally affected checkout.",
+      "reviewer": "Independent Astra Standard (t1qj)",
+      "original_sha256": "85f7bfa7ac05d7a950ab69e96b4c00d22c63941b4d0caaf4876bbba94081f64c",
+      "response_id": "43d0b320feb943573ebff3fe4cdbcc33b17f0b98bf9f45e8fcbb08d2dcb99ffa",
+      "response_sha256": "6389264c889e14a8c4993f186a9fac8d9e5ff294fcee293bee348c18d549aa55",
+      "legacy_response_sha256": "5e935ca7c82c310e5c48150ebecaea4a5cdefd84a3192a2ba64b18a82a1e7e7f",
+      "observation_body_sha256": "f0d7453e182d6b7e98b4ec19f37c023466cb5e2b13896f8d2f5ec23cd951b293",
+      "event": {
+        "id": "msg_075bb693b0a8bf1a016b0aab11257887d2a545d91bf4a67570",
+        "timestamp": "2026-11-28T10:21:14.263Z"
+      },
+      "supersedes": "a93401d8aa07a179fb7aeb6c4779383498a618043fa56a5b3f295f8f07ecc21c",
+      "evidence_sha256": "55a2c833ebaa8e691c8f47a9c654f6baab064608716cf8aee34d9bfba1def99e"
+    }
+  ]
+}

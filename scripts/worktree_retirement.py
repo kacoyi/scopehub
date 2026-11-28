@@ -35,6 +35,7 @@ GIT_OPERATIONS = (
 )
 PRIVATE_REF_ROOTS = ('refs/bisect', 'refs/worktree', 'refs/rewritten')
 WORKTREE_ADMIN_FILES = {'HEAD', 'index', 'commondir', 'gitdir', 'COMMIT_EDITMSG', 'locked'}
+PROJECT_REVIEW_LOCK = re.compile(r'scopehub-review-M[0-9]+-[0-9]{3}\.lock')
 FILTER_COMMAND = re.compile(r'filter\.(.+)\.(?:clean|process)\Z')
 CARGO_LINK_OUTPUT = re.compile(
     storage.HASHED + r'\.(?:a|lib|dll|dll\.(?:a|exp|lib)|exe|pdb|so|dylib|dwp)'
@@ -110,7 +111,18 @@ def reflog_objects(directory):
             yield path, {oid.decode('ascii') for old, new, _ in entries for oid in (old, new)}
 
 
-def private_git_recovery(checkout, git_dir, common, durable_objects):
+def observe_project_review_lock(path, holds):
+    try:
+        with worktree.exclusive_git_lock(path, read_only=True) as fd:
+            if os.fstat(fd).st_size:
+                raise ValueError('Expected an empty project review lock')
+    except BlockingIOError:
+        holds.setdefault('project_review_in_progress', []).append(path.name)
+    except (OSError, worktree.WorktreeError, ValueError) as error:
+        holds.setdefault('project_review_lock_unverified', {})[path.name] = str(error)
+
+
+def private_git_recovery(checkout, git_dir, common, durable_objects, holds):
     if git_dir == common:
         return {}
     if durable_objects is None:
@@ -132,6 +144,8 @@ def private_git_recovery(checkout, git_dir, common, durable_objects):
             refs[name] = {line.partition(b'\t')[0].decode('ascii') for line in read_control(path).splitlines()}
         elif re.fullmatch(r'[A-Z][A-Z0-9_]*', name):
             refs[name] = {read_control(path).decode('ascii').strip()}
+        elif PROJECT_REVIEW_LOCK.fullmatch(name):
+            observe_project_review_lock(path, holds)
         else:
             # Includes alternate ref backends and worktree-specific configuration.
             raise ValueError(f'Unrecognized worktree Git metadata: {path}')
@@ -947,7 +961,7 @@ def retirement_report(cwd, common, registered, *, archive_root=None, disposition
             if operations:
                 holds['git_operation_in_progress'] = operations
             row['clean'] = not (dirty or hidden or filters or operations)
-            private_state = private_git_recovery(checkout, git_dir, common, durable_objects)
+            private_state = private_git_recovery(checkout, git_dir, common, durable_objects, holds)
             if private_state:
                 holds['unrecoverable_worktree_git_state'] = private_state
             if sys.platform == 'linux' and not checkout_limited_to_owner(checkout):
