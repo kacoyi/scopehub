@@ -57,10 +57,13 @@ class VerifyBrowserSetupTests(unittest.TestCase):
         self.assertEqual(checkout, aggregate['steps'][0])
         self.assertEqual('${{ inputs.expected_head || github.event.pull_request.head.sha || github.sha }}',
                          self.job['env']['SCOPEHUB_SOURCE_HEAD'])
-        for name in ('Preserve accepted history', 'Initialize CI verification reports',
-                     'Fetch the reviewed public publisher advisory'):
+        for name in ('Preserve accepted history', 'Initialize CI verification reports'):
             step = next(step for step in self.steps if step.get('name') == name)
             self.assertLess(self.steps.index(step), self.steps.index(self.narrow))
+        self.assertNotIn('Fetch the reviewed public publisher advisory', {step.get('name') for step in self.steps})
+        self.assertNotIn('SCOPEHUB_PUBLISHER_ADVISORY_TOKEN', self.job['env'])
+        for step in self.steps:
+            self.assertNotIn('SCOPEHUB_PUBLISHER_ADVISORY_TOKEN', step.get('env', {}))
         stage = next(step for step in self.steps if step.get('id') == 'artifacts')
         self.assertEqual("always() && steps.reports.outcome == 'success'", stage['if'])
         upload = next(step for step in self.steps if "format('verification-{0}', matrix.os)" in step.get('with', {}).get('name', ''))
