@@ -30786,7 +30786,7 @@
           "report_sha256": "73cc569bffada336ac008915e18db36312df531540e5342c6d24f3ccd98d0647"
         }
       ],
-      "next_action": "Follow the genuine first ordinary PR 123 Windows run 46115517382 on adffe2b0. Determine the bounded failure at the first broad synthetic ACL preparation before continuing to the explicit-only and real 24-file comparisons. Preserve the earlier separate leaf-matrix timeout, current helper build, finite calibration and public passing, rejected and cleanup controls. Investigate the shared fixture preparation cost at its actual input. Obtain applicable independent source review, ordinary native Windows and Linux evidence, then recheck the integrated source.",
+      "next_action": "Review the local candidate that moves both managed synthetic ACL preparations into the existing prebuilt helper and reports completed stages at the ordinary workspace entry. Obtain the first applicable native Windows and Linux evidence on the reviewed source, then recheck the integrated source. Compare the broad and explicit-only fixture child clocks with the real matrix and retain the 46115517382 broad failure and 46111075105 leaf failure as separate observations with unknown internal causes.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -30797,6 +30797,7 @@
         "context": [
           "tests/ubuntu-preview/workspace.setup.mjs",
           "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+          "tests/ubuntu-preview/workspace_test_handoff_prepare_acl.cs",
           "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.cs",
           "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.ps1",
           "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
@@ -30804,8 +30805,8 @@
           "project/checks.json"
         ],
         "hypotheses": [
-          "The failing and preceding ordinary Windows attempts used identical matrix source blobs. Only the case-level durations and outer deadline were observed. The last internal operation and historical cause remain unknown.",
-          "The matrix child compiled the same test-only C# helper before reading matrix inputs or descriptors. Build those exact helper bytes once during workspace setup, and measure the build and the ordered matrix stages separately on native Windows."
+          "The original leaf matrix compiled fixed interop code inside its deadline. Prebuilding that code remains useful. The later broad failure hit an unchanged separate PowerShell preparation before any of the ordinary matrix progress could be observed. The last internal operation and cause of either historical timeout remain unknown.",
+          "Both simple fixtures use a fixed sequence of managed file ACL operations. Running those same operations in the existing prebuilt helper removes two PowerShell starts from the ordinary journey. Measure each child envelope and its managed stages separately on native Windows."
         ],
         "risks": [
           {
@@ -30827,6 +30828,7 @@
           "entrypoints": [
             "tests/ubuntu-preview/workspace.setup.mjs",
             "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+            "tests/ubuntu-preview/workspace_test_handoff_prepare_acl.cs",
             "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.cs",
             "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.ps1",
             "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
@@ -30846,7 +30848,7 @@
             "Production permission semantics, private user data, broader browser startup and the Windows Python scheduling objective remain under their existing owners."
           ],
           "open_questions": [
-            "How much time does the first exact native run spend loading the prebuilt helper, preparing the matrix and checking each real file under the existing deadline?"
+            "How much time does the first exact native run spend starting the fixture executable, preparing both simple fixtures, loading the matrix interop and checking each real file under the existing deadlines?"
           ]
         },
         "evolution": {
@@ -30855,7 +30857,7 @@
             "The bounded test-only operation, existing real-file comparison coverage, independently known permission outcomes and cleanup on success or refusal."
           ],
           "change": [
-            "Prebuild the unchanged ACL interop helper under its own bounded test setup invocation. Report the last completed, ordered preparation milestone from bounded stdout when the matrix child runs out of time. Retain exact stderr refusal decoding."
+            "Prebuild the matrix interop together with the simple fixture executable in the existing bounded workspace setup call. Move the broad and explicit-only managed ACL operations out of PowerShell and record ordered preparation milestones from bounded stdout. Preserve the matrix progress and exact stderr refusal decoding."
           ],
           "data_plan": "Only temporary test-owned files and retained diagnostic observations are involved.",
           "cleanup": "Dispose of the helper with the existing run directory. Retain original witnesses, exclusive matrix fixture creation and cleanup, and all later native comparisons."
