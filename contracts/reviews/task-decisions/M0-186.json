@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-186",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "f8b2f85f4f32e57a72bebbc9701ebc9c7c391c9a",
+      "scope": "Verify the existing worker crate discovers the exact same 18 named import tests, source fixtures and assertions, that the non-test runtime stays unchanged, and that the moved tests retain worker cancellation and cleanup coverage. Compare a native control with the original result.",
+      "supersedes": null,
+      "requested_at": "2026-11-28T10:47:41.975261+00:00",
+      "request_id": "aed03d13b7b3dcba8dfee06f55a4c032702ef582d52a4bef16510dc66a87b544",
+      "evidence_sha256": "2a219ba373dbe1edd5dbb89c38b0d196ecee845d230e7fa83aee3a69fc688f39"
+    }
+  ]
+}
