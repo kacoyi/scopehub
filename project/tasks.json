@@ -27077,7 +27077,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "PR 123 run 46120026971 met the timing objective at 867 seconds, with 2 seconds of initial queue and 865 seconds from the first producer to publication. The Windows requirement failed on the former-allocation control in the recovery Python partition. The original test reproduced the missed cutoff replacement with CRLF, and the fixture repair locally runs the former allocation and reaches both publication refusals with LF and CRLF input. Retain the original failed verdict and separate passing M0-182 workspace evidence. Obtain source-bound independent review and a successful comparable ordinary full warm Windows PR at or below 900 seconds, with both required jobs passing, all 35 selections and the ordered 578/405 allocation. First protected four-producer adoption remains pending.",
+      "next_action": "PR 123 first attempt 46127361251 passed both required jobs and all 28 applicable Windows checks with seven planned omissions. Windows publication took 921 seconds including the two-second queue. Diagnose repeated work in the recovery Python arm against the retained native callbacks and ordinary consumer. Compare a matching valid input, a genuine admission refusal and interruption behavior before and after the repair, preserving all 983 ordered case identities and the 578/405 allocation where feasible. Retain the three separate M0-182 receipts. The corrective candidate requires exact-source independent review and a new comparable ordinary full warm Windows PR at or below 900 seconds. First protected four-producer adoption remains pending.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -27200,6 +27200,16 @@
           "run_id": "windows-change-46115517382-1",
           "source_commit": "fa0f311cd637f5d3466a1f0ed5b1ec985127cede",
           "report_sha256": "7c636646bee78f3720f2e2048c63ad2e06d78aee5744a2b6e8a7f152c6e74cbe"
+        },
+        {
+          "run_id": "20261128T084724.175303Z-2544c8fc",
+          "source_commit": "632e4c8f3cfcbf47f9b2e8d5cf07972ee638d652",
+          "report_sha256": "6c62059cd5ed3c7c038719bfe2e2e9e092e18dc41b1b5d4f0c4b3cc773a53676"
+        },
+        {
+          "run_id": "windows-change-46127361251-1",
+          "source_commit": "632e4c8f3cfcbf47f9b2e8d5cf07972ee638d652",
+          "report_sha256": "174bda2aba9ebe23501de8d9dea8878b975974df06408ddc42f94b6c914a4638"
         }
       ],
       "plan": {
@@ -27268,7 +27278,8 @@
           "PR130 original archives/runs/windows-change-45958460881-1/test-report.json recorded a separate unsplit Windows Python timeout at 1200.047 seconds. Both market interruption and all six workspace controls passed on both platforms. The original comparison is retained at .reports/audit-20261127/m0-146-windows-partition-balance/originals/pr130-ordinary-45958460881.json (SHA-256 600effb468cd45ad8718f1dc46b0376255f3ebaabdc628b1de9922a503937452).",
           "The independent decisions on 215952297bc76e1b5459a2a94bb24d3637a78cb8 cover separate scopes. M0-146 approved the observed work allocation and report delivery controls with the 900-second objective open. M0-139 requested changes to asset ownership and historical direct delivery admission. Retain both complete original responses, the delivery intake and the authenticated PR147 and PR138 timeout indexes.",
           "The first ordinary full warm PR 123 attempt after the five-producer reconciliation, run 46103840740 attempt 1, submitted e862b3eb6731f4821629d7508ea5dafb6fa0a98a and tested 91e419f12ee4fafc275bf6cf8dd4c521813acef3. The five Windows producers and final publisher retained all 35 selections. The workflow was created at 03:38:40 UTC on 2026-11-28, the earliest Windows producers started at 03:38:42 UTC, and the Windows publisher completed at 03:52:38 UTC. Windows seconds.total was 838 seconds, with 2 seconds of initial queue and an 836-second first-producer-to-publisher span. Workspace finished last at 03:51:56 UTC. Windows recorded 27 passes, one dependency-review failure and seven planned omissions. The Python check passed in 684.672 seconds. Both protected platform jobs failed dependency review. M0-181 owns both dependency failures and retains its local correction and closure receipt. PR 123 falls within the timing threshold and fails ordinary qualification because both protected jobs failed. The earlier PR 152 first-attempt Windows Python timeout at 1200.062 seconds remains a separate open M0-146 observation. Its log has no terminal suite summary or named failing test, and the cause remains open. Ordinary PR 123 attempt 1 of run 46103840740 retains the original uploads, job clocks and source binding in archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261127-t1k1/pr123-46103840740/first-attempt-intake.json (SHA-256 d49080bd8c4ba0a48e4a5faf88e92288285392c636a3cbfc9b4c77a50cf82b24). The two original platform reports are archives/runs/windows-change-46103840740-1/test-report.json and archives/runs/20261128T033946.183750Z-259784c9/test-report.json.",
-          "Independent M0-146 changes-requested decision on a8795844d601cbbe5569329d2ae1b3554413d51f, contracts/reviews/task-decisions/M0-146.json#/events/55. Original response SHA-256 7fee29d8adde87288804a6d1d2906e6387286f5fcb129044d726db04a6b45a12. The successful PR 120 threshold control uses the retained Windows report and Actions clocks for run 45666385494. Original artifact inventory archives/observations/repo-hygiene-20261125/pr120-native-original-45666385494/manifest.json (SHA-256 58c686208733990bd8540a65f718da23f5a0484ccfe5e19e36a5f6fbde3e7066). M0-146 owns the independently confirmed acceptance error in its task and timing feedback: the previous rule excluded the initial queue. On successful PR 120 the independent replay held the producer span at 866 seconds and varied only initial queue. The public timing command reported no breach at 900 total seconds and one at 901. The previous record would admit both."
+          "Independent M0-146 changes-requested decision on a8795844d601cbbe5569329d2ae1b3554413d51f, contracts/reviews/task-decisions/M0-146.json#/events/55. Original response SHA-256 7fee29d8adde87288804a6d1d2906e6387286f5fcb129044d726db04a6b45a12. The successful PR 120 threshold control uses the retained Windows report and Actions clocks for run 45666385494. Original artifact inventory archives/observations/repo-hygiene-20261125/pr120-native-original-45666385494/manifest.json (SHA-256 58c686208733990bd8540a65f718da23f5a0484ccfe5e19e36a5f6fbde3e7066). M0-146 owns the independently confirmed acceptance error in its task and timing feedback: the previous rule excluded the initial queue. On successful PR 120 the independent replay held the producer span at 866 seconds and varied only initial queue. The public timing command reported no breach at 900 total seconds and one at 901. The previous record would admit both.",
+          "Ordinary full warm PR 123 run 46127361251 attempt 1 submitted fae7480d2de1b6453a2546e2b14e295eb2f19052 and tested 632e4c8f3cfcbf47f9b2e8d5cf07972ee638d652. The first-attempt gate and authenticated native inputs are retained in archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261127-t1k1/pr123-46127361251/gate-observation.json (SHA-256 aec4398703e7c88095c034b98b4be3e9a04f69a84ff4cf6022408c726f234865) and archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261127-t1k1/pr123-46127361251/artifact-manifest.json (SHA-256 334c6c60481a6a040198e7ea35a5e6f9bc1752335127550e81bd421e10966519). The manifest indexes nine authenticated artifacts and the full job logs. Both original platform reports are retained as archives/runs/windows-change-46127361251-1/test-report.json and archives/runs/20261128T084724.175303Z-2544c8fc/test-report.json. Ordinary full warm PR 123 run 46127361251 attempt 1 passed both required platform jobs and exceeded the Windows budget by 21 seconds. Workflow creation at 08:46:21 UTC through Windows publication at 09:01:42 UTC on 2026-11-28 took 921 seconds, including 2 seconds of initial queue and 919 seconds from the earliest producer. Windows retained 28 passes and seven planned omissions across all 35 selections. The two ordered Python parts passed with 578 and 405 cases and reproduced the published log byte for byte. Recovery finished last, at 09:00:51 UTC, 63 seconds after workspace, and its Python check took 814.766 seconds versus 413.718 seconds for the sibling. The recovery callbacks include approximately 389 seconds in verification scheduling, 151 in worktree retirement and 111 in review acceptance. The prior former-allocation failure passed on this attempt. The three M0-182 receipts remain attached to M0-182; protected adoption and a qualifying ordinary Windows timing observation remain open."
         ],
         "hypotheses": [
           "A single source-declared publication decision can qualify both platform reports and Windows producer reports by run, job, required steps and available digests. Use comparable public controls for genuine uploads, absent optional evidence and missing or contradictory mandatory evidence across the earliest direct, staged and split formats.",
@@ -27289,7 +27300,8 @@
           "A contiguous transfer of whole discovery modules to the shorter Python job may reduce the measured recovery critical path. Four native samples expose variable host costs; compare the alternatives, original ordering, older partition boundaries and all producer intervals before choosing. Treat modeled gains as estimates pending the next full native observation.",
           "Committed workflow declarations and authenticated artifact and owning-job evidence can qualify both direct and staged delivery. Use the genuine PR112 siblings and distinguish a same-name downloadable report from optional timing output. Compare observed recurring fixture cost or coverage-preserving placement without treating a final printed test as causal.",
           "The reviewed M0-153 retirement fixture patch avoids redundant Git bootstrap by copying one unmodified standalone seed into independently owned fixtures. Eight local crossover arms ran all 47 cases in identical order and removed 276 Git starts per arm. The earlier six-case Windows probe reduced setup with effectively flat whole-process time. Verify whether larger Windows workloads show a meaningful end-to-end change.",
-          "The three authenticated five-producer ordinary PR 123 attempts expose enough idle recovery capacity to move a contiguous suffix beginning at test_processes. Compare whole-module alternatives using the original clocks and retain the limits of replay."
+          "The three authenticated five-producer ordinary PR 123 attempts expose enough idle recovery capacity to move a contiguous suffix beginning at test_processes. Compare whole-module alternatives using the original clocks and retain the limits of replay.",
+          "The 921-second native attempt puts recovery 63 seconds beyond workspace. Measure repeated setup, Git or report I/O in verification scheduling first and use the observed clocks to compare a cost reduction with another contiguous repartition."
         ],
         "risks": [
           {
@@ -27648,6 +27660,13 @@
             "checks": [
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "An apparent warm recovery speedup can result from a synthetic consumer that bypasses ordinary admission, weaker historical or interrupted evidence, or altered case ownership. Compare matched public consumer inputs and refusal outcomes, both complete ordered inventories and source-scoped task checks. Require a new ordinary Windows measurement for the inclusive budget.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain the original reports, revert a change that loses coverage or increases measured cost, and keep the open budget finding assigned until a qualifying observation is available.",
@@ -27691,7 +27710,8 @@
             "With a 31-second aggregate tail, can repeated publisher setup yield a material portion of the 174-second recovery producer reduction required on the observed job clocks?",
             "Does the desktop localization transfer keep the existing recovery cold check first and fit inside the native Python overlap without delaying recovery enough to lose the warm Windows gain?",
             "How much of the removed synthetic feedback-history work translates to native recovery time, and which producer sets the next critical path?",
-            "Can the revised cutoff move 88 observed cases while retaining the full ordered inventory, committed source qualification, prior cutoff imports, and failure and interruption semantics?"
+            "Can the revised cutoff move 88 observed cases while retaining the full ordered inventory, committed source qualification, prior cutoff imports, and failure and interruption semantics?",
+            "Which repeated cost on the ordinary recovery consumer can be removed with measurable margin while retaining the 578/405 allocation, historical report admission and independent interruption handling?"
           ]
         },
         "evolution": {
