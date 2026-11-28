@@ -146,6 +146,15 @@
       },
       "supersedes": "94d835846c06e5d45d8290a1c1fc6af5500403f379b39dc9a8551feb784c156b",
       "evidence_sha256": "079b7c14b86d301c9f0b64339076983d7c78848ee1291f25f4893d7d05708180"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ce2fdc6c58642f7665627b771085c1673eb49be5",
+      "scope": "Review the unchanged dependency dispositions and applicable expiry controls against the composed source.",
+      "supersedes": "622d0035bfa207a02ded825d37e402b43614c29047ace8aa61783ae99a707ae8",
+      "requested_at": "2026-11-28T08:56:29.958236+00:00",
+      "request_id": "1c11b3e23c0e8b32ab435f238306a594f970749a3ceb1afb1ded362482dec900",
+      "evidence_sha256": "639354c7cc3d9d7ddb7dc3d5cba0d127a427bb9bff73ebccfd53cc7db8f36e9d"
     }
   ]
 }

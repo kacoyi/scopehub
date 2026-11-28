@@ -871,6 +871,15 @@
       },
       "supersedes": "5266c7ebe928655ccd3b752167b73c1ca2190959d58d6e630351e3a40f512922",
       "evidence_sha256": "85ff6dda227435d62d1b33e4a29330d824b9617654f1d7a23ec8403e5d67bbbd"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ce2fdc6c58642f7665627b771085c1673eb49be5",
+      "scope": "Review the retained recovery producer assignment, ordered coverage and prior publication evidence in the composed source.",
+      "supersedes": "ba7e4383cdf34ee04c980a4e69d8f5d1e5dd65306a142c188180755147d3cce7",
+      "requested_at": "2026-11-28T08:56:27.546366+00:00",
+      "request_id": "5cf19986a7604e4087dc03315a5e9027eabe7488403d472af69472a7fee27536",
+      "evidence_sha256": "d445ee2017ab3bfcd2f52c5e9638181957a7d01803f9c03ff1fcc664e5bdb27c"
     }
   ]
 }

@@ -88,6 +88,15 @@
       },
       "supersedes": "baebf6d34ebc1029225c6f2f96dddbd1ebd50b8480223cbee0eb23b86809c978",
       "evidence_sha256": "7834279fe546a92d975c590d72f649283f59bc4d8a8786f0a39fd9c6a7e7e651"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ce2fdc6c58642f7665627b771085c1673eb49be5",
+      "scope": "Review the prebuilt Windows ACL fixture, refusal diagnostics, bounded preparation and cleanup in the composed source.",
+      "supersedes": "fb2679ccaf1992cd5839cbf3f546f9cd86affb79f9be89304c01fd18b2b7815d",
+      "requested_at": "2026-11-28T08:56:30.693812+00:00",
+      "request_id": "e365bf6100fec23c190c953638103ecdd080c08f4da4c6b67d357210ca568334",
+      "evidence_sha256": "31671b12349fe415a13164049c563344f6a04bf59cbe3c99d6932f18810d7bd1"
     }
   ]
 }

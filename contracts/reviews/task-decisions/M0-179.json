@@ -146,6 +146,15 @@
       },
       "supersedes": "cf9fedbb6610f1939715537264785cb9f1a97e6a041d9cd063de09f83a9c6f39",
       "evidence_sha256": "91fef94a3abd6549c1362d3aab346fb10965270c2194a675930b3bc8b27c91cb"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ce2fdc6c58642f7665627b771085c1673eb49be5",
+      "scope": "Review the real startup, current publication refusal with an older private document, frozen revision boundary and cleanup in the composed source.",
+      "supersedes": "2de9d2c020d8b88a940ba292a8344b5621d86d0fb82085bbd168f17c3c4a1c9c",
+      "requested_at": "2026-11-28T08:56:29.119494+00:00",
+      "request_id": "b4d0d43ebe8ac066b3b895a4699280cf2bc16c0c3135e1ae4648bc7d3917a679",
+      "evidence_sha256": "bc1e3c21da04a6b06b4eb9af0c0b8b55dc6577207a1bb387368bf58ed72a13eb"
     }
   ]
 }

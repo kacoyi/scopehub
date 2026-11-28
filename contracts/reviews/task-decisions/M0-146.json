@@ -929,6 +929,15 @@
       },
       "supersedes": "5379faa6684bd75f314c4bd524f7bb9649d5cb4424dae3db8f297aa3c76cee1c",
       "evidence_sha256": "ea3ca0340da7cbc9c81e9d1fc721ace3165d2285ea589fae2a5d6de20e50e4c8"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ce2fdc6c58642f7665627b771085c1673eb49be5",
+      "scope": "Review the 578/405 ordinary Windows PR allocation, genuine former allocation control with native line endings and source-bound publication in the composed source.",
+      "supersedes": "f2c0eabfdf8b5e95eb14799e645c69d9cb3d67e77df93a4c692c2f8b16249ec9",
+      "requested_at": "2026-11-28T08:56:28.321862+00:00",
+      "request_id": "efbfa18ca44b1d19cafca7ec457b202ee44265dd73a8df69ee6a1aa912d78d30",
+      "evidence_sha256": "9f087218aa00bae142e2dd3fe3da700da7197366390d3d9ec31c23ee6a7be49f"
     }
   ]
 }
