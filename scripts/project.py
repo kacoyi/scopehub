@@ -1701,7 +1701,7 @@ def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement', re
             project['maintenance_engagement'], project['tasks'], read_only=read_only, source_commit=source_commit,
         )
     if not detail:
-        context = focused_context(project, key, phase, source_commit=source_commit)
+        context = focused_context(root, project, key, phase, source_commit=source_commit)
         context.update(engagement)
         reviews = project['delivery']['scaffold_maintenance']['periodic_reviews']
         transfers = [(index, row) for index, row in enumerate(reviews) if row.get('follow_through_task') == key]

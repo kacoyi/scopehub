@@ -788,6 +788,55 @@ class DryRunTests(WorktreeFixture):
         feedback.unlink()
         self.assertNotIn('finding', excerpt('implement'))
 
+    def test_implementation_launch_routes_only_explicit_product_file_overlap(self):
+        project = self.worktree / 'project'
+        settings = project / 'development.json'
+        development = json.loads(settings.read_bytes())
+        development['modules'] = [{'id': 'product', 'paths': ['product']}]
+        settings.write_text(json.dumps(development), encoding='utf-8')
+        (self.worktree / 'product').mkdir()
+        for name in ('quotes.ts', 'transport.ts', 'unrelated.ts'):
+            (self.worktree / 'product' / name).touch()
+        scope = ['project/tasks.json', 'project/feedback.json', 'project/evidence']
+        check = 'market-workflow'
+        task = {'id': 'M0-025', 'status': 'active'}
+        neighbors = [
+            {'id': 'M0-020', 'scope': ['product', *scope]},
+            {'id': 'M0-021', 'scope': ['product/quotes.ts', *scope]},
+            {'id': 'M0-022', 'scope': ['product/quotes.ts', 'product/transport.ts', *scope]},
+        ]
+        items = [
+            {'id': f'observed-{row["id"]}', 'task_ids': [row['id']], 'status': 'addressed',
+             'severity': 'major', 'observation': 'The quote consumer displayed a stale price.',
+             'regression_checks': [check]}
+            for row in neighbors
+        ]
+        (project / 'feedback.json').write_text(json.dumps({'items': items}), encoding='utf-8')
+
+        def launch(paths, role='implement'):
+            rows = [dict(task, scope=paths), *(dict(row, status='done', checks=[check]) for row in neighbors)]
+            (project / 'tasks.json').write_text(json.dumps({'tasks': rows}), encoding='utf-8')
+            result = self.cli(task['id'], role, '--assignment', 'Inspect quote consumer', '--dry-run')
+            self.assertEqual(0, result.returncode, result.stderr)
+            prompt = json.loads(result.stdout)['argv'][-1]
+            return json.JSONDecoder().raw_decode(prompt.split('Task records\n', 1)[1])[0]
+
+        paths = ['product/quotes.ts', 'product/transport.ts', *scope]
+        history = launch(paths)['product_history']
+        first, = history['observations']
+        self.assertEqual('observed-M0-022', first['id'])
+        self.assertEqual(paths[:2], first['shared_paths'])
+        self.assertEqual([check], first['regression_checks'])
+        self.assertEqual('pnpm check --task M0-022', first['check_command'])
+        self.assertTrue(first['full_record'].endswith('/items/2'))
+        self.assertEqual(1, history['directory_only_tasks'])
+        unrelated = launch(['product/unrelated.ts', *scope])['product_history']
+        self.assertIn('directory_scope', unrelated)
+        self.assertNotIn('observations', unrelated)
+        self.assertNotIn('product_history', launch(scope))
+        self.assertNotIn('product_history', launch(paths, role='review'))
+        self.assertFalse(self.log.exists())
+
     def test_previews_cached_family_models_without_executables(self):
         self.use_family_profiles()
         cache = self.codex_home / 'models_cache.json'

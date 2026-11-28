@@ -29700,6 +29700,7 @@
       "scope": [
         "scripts/development.py",
         "scripts/herdr.py",
+        "scripts/project.py",
         "tests/project/test_development.py",
         "tests/project/test_herdr.py",
         "AGENTS.md",
@@ -29722,7 +29723,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Use the M2-040 ordinary context and launch against the known M2-038 decision-note defect. Exercise an unrelated file and a financial data consumer before selecting a bounded path match.",
+      "next_action": "Independently replay the decision-note and financial data history routes, the unrelated and housekeeping controls, and the clean-source review on the committed candidate. Archive the matching required checks before task closure.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -29765,6 +29766,7 @@
           "entrypoints": [
             "scripts/development.py",
             "scripts/herdr.py",
+            "scripts/project.py",
             "AGENTS.md"
           ],
           "rules": [
