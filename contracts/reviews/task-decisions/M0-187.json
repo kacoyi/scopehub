@@ -1,0 +1,35 @@
+{
+  "version": 3,
+  "task_id": "M0-187",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "903beb92fd0a9c9e03c6d01e19d2cf5b95c8b2f5",
+      "scope": "Check the ordinary due monthly dependency review on the actual protected graph, the historical and final proposal heads, the replacement pins, unresolved advisories, evidence, next review date and retained toolchain follow-ups.",
+      "supersedes": null,
+      "requested_at": "2026-11-28T10:59:24.936083+00:00",
+      "request_id": "0031e00188c5daeb3978d379c0c5a86a49cae2b3d9c4e2e5478866fbd4105797",
+      "evidence_sha256": "7d44c177a089013a99ecb71c4a2d456c9b09a41369b8121d765895189cc15388"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "903beb92fd0a9c9e03c6d01e19d2cf5b95c8b2f5",
+      "verdict": "approved",
+      "decision": "APPROVE M0-187 903beb92fd0a9c9e03c6d01e19d2cf5b95c8b2f5",
+      "scope": "APPROVE M0-187 903beb92fd0a9c9e03c6d01e19d2cf5b95c8b2f5",
+      "observation": "All seven proposals closed unmerged, and only PRs 88, 89, and 90 had final heads that differed from the heads of their recorded failed runs.",
+      "reviewer": "Independent Astra Standard (t1qs)",
+      "original_sha256": "cce2874a602ac389226fa8dee015b11f6fffd6b5b4c2c5feec7eaf193c46da45",
+      "response_id": "eec2e20b6b7c3950e3ad6c7cadaa6ad91e55d96f820ed8e5702fa5ac6c7d505e",
+      "response_sha256": "607adb20bc43973f7df7c682a0f91ad9844a22189a52e7684d4d7b88e62ec9d4",
+      "legacy_response_sha256": "7113dcda6ac7b485570d667a92a1f97fb2ad61905c28e7cd332cf19db9152239",
+      "observation_body_sha256": "5d067f4e181dbf4cd96428e2e7d68621d04a3ef821eeb64e53630a3c9d5a653c",
+      "event": {
+        "id": "msg_0b5d44bf8f95ecc2016b0ab484447c87d1b74bca66009c23f7",
+        "timestamp": "2026-11-28T11:01:38.885Z"
+      },
+      "supersedes": "0031e00188c5daeb3978d379c0c5a86a49cae2b3d9c4e2e5478866fbd4105797",
+      "evidence_sha256": "2088bf88870013b01bcbdced6c3047dd0aeca400c6eb0256ffccb771647c048a"
+    }
+  ]
+}

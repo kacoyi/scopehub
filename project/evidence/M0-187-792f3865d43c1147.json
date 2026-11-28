@@ -1,0 +1,72 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-187",
+  "task_definition_sha256": "10a1935bdb56d803f8de99aa4f4aa2812be208bd16c2136194d0b926fbb6c97d",
+  "run_id": "20261128T105714.778236Z-69d8e806",
+  "recorded_at": "2026-11-28T10:57:29.257540+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "07937ba1576bbda2f69aac857fddc62b020be161c34971a56046acf1f0d4c944",
+    "file_count": 638,
+    "git_head": "962ae22ba93c5cbe18c0225382920e5a53c16835",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "792f3865d43c114735d6afa407fd4a937d40f2b5e03117467b2ce45db2070504",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-44-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/advisory-dispositions-nov28/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/advisory-dispositions-nov28/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "8ddb4dbabb0c3025491ef4fbeaf66251e67e612a1d910f31938f780dccdb20c6"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/advisory-dispositions-nov28/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "21394e146442aeb8b6a2927b16e5377ec5098398d42b0b7ad4f232b27003b445"
+    },
+    {
+      "id": "dependency-review",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/advisory-dispositions-nov28/.venv/bin/python",
+        "scripts/dependencies.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "8ff247162a2c621ce87870f49145c1a514990d29bb6547938784dc0b6eb21051"
+    }
+  ],
+  "project_definition_sha256": "e08cbdd152b0cf32c45f0f6764a23ebbfb3151a9b6a6d2d120b47620311184ab",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}
