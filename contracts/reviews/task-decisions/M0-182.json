@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-182",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "scope": "Review the exact ordinary Windows test-owned matrix preparation and the genuine PR 123 failed and preceding passed cases. Check that the same helper and 24 file comparisons, the ten-second bound, safe ordered progress and cleanup are preserved. Exercise the finite positive, timeout and refusal controls against the public fixtures. Distinguish the historical M0-147 call, Linux evidence and the outstanding native surface.",
+      "supersedes": null,
+      "requested_at": "2026-11-28T05:52:01.159177+00:00",
+      "request_id": "58bf76e322d7848de6eee649b3e852615a6cc6e620b09d9ca9a4da38d04c8a3c",
+      "evidence_sha256": "8f47b735659f017330789fb7da8200fe59dff3e7bbf93062fb11dd72acc0a2d6"
+    }
+  ]
+}

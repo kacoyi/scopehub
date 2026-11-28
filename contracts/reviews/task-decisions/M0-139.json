@@ -784,6 +784,15 @@
       },
       "supersedes": "a3e7938d002585112c8e5174bcfcf3be00177f9006abf6d94a1b2eaf59a91655",
       "evidence_sha256": "d6c2a5f0b9a4d1f947c50b83decc25aca49acf2f33591b117a39144fe4886057"
+    },
+    {
+      "kind": "request",
+      "source_commit": "947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "scope": "Review whether this workspace fixture and build change preserves the protected four-producer main workflow, its owned cases, publisher aggregation and actual passing and refused outcomes. Compare the previous qualified Windows scheduling source to this submission using the real protected original and the ordinary integration acceptance/refusal controls. Establish the effect of the additional Windows setup on its actual consumers without assigning this source a protected timing.",
+      "supersedes": "6f1b9bc4b223001226afcc3c621fd6884dcad1e98591367b5930de8d6bc6102f",
+      "requested_at": "2026-11-28T05:52:01.921682+00:00",
+      "request_id": "414e0d3ddf2f70aa83aa1d881a38a68aaefbe18d37833cafb1ea94bd44a7a759",
+      "evidence_sha256": "41e82f03e55c74d3828f26d993cb94bf38d4af29f6c33c5475ecda96a60c4758"
     }
   ]
 }

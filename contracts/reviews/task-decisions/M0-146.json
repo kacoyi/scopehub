@@ -842,6 +842,15 @@
       },
       "supersedes": "0afe24aa3d59d65932b5ad18106f219526554069aba098c476d8e04394d8167e",
       "evidence_sha256": "9942b58a5fdbba5ed7d9a1069aa4f6b58784265f83400003d851e684d492ae16"
+    },
+    {
+      "kind": "request",
+      "source_commit": "947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "scope": "Review whether this new ordinary PR source preserves the full warm Windows five-producer selection, the ordered Python partitions and the 900-second creation-to-final-publisher calculation. Use the real PR 123 run 46111075105, its preceding observation and the PR 120 900/901 boundary controls. Locate the workspace fixture change and its setup cost relative to the actual workflow. Keep this candidate’s first ordinary run and protected adoption open.",
+      "supersedes": "8d2541db95178b5fcb3583588a0da71624fa7b58a641470c7213fc620613ae85",
+      "requested_at": "2026-11-28T05:52:02.685541+00:00",
+      "request_id": "e5ce81c95d150b36108a2a5fb88679dae1a05f80ab46d77ffa62cecc6ec217f4",
+      "evidence_sha256": "97b489c2bddd45efc274e86d00b1656b067fcbe643eabcf756de980fb747448b"
     }
   ]
 }

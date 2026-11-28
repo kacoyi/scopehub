@@ -59,6 +59,15 @@
       },
       "supersedes": "063f7e568cbc259d5fb741c134a9a95ab631169a5ac5cf32ea4b588a528eed50",
       "evidence_sha256": "220f2909d1da636b79842cc4c750777e6fed79507637910fc35e98eac49e0ebb"
+    },
+    {
+      "kind": "request",
+      "source_commit": "947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "scope": "Review applicability of the accepted dependency advisory disposition on this fixture source. Compare the exact policy, workflow, dependency inputs and the newly separated fixed helper code. Exercise the established ordinary checker with the authentic accepted and retired/expired controls; use the two actual platform results from PR 123 and preserve their source and cadence.",
+      "supersedes": "c2a67a7d002b2a490785e21510fc949ae3d07725f5c52cd6cb4e71c801d658c3",
+      "requested_at": "2026-11-28T05:52:03.474733+00:00",
+      "request_id": "8a4ce809dedb45ba1c3a0aa2bf5aaf79eb66257e05f8f36e5e970ad4a36e2f5d",
+      "evidence_sha256": "6e48f60fac05aab59dc17b8cb964ef3c6fdc1cc49f073ee2146e76880e4d45d9"
     }
   ]
 }
