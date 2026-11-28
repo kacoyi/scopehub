@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-184",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -29692,7 +29692,7 @@
       "id": "M0-184",
       "title": "Recognize an idle project review lock in worktree retirement inventory",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-116",
         "M0-134"
@@ -29720,10 +29720,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Independently review the clean implementation commit and its local retirement controls, then record the review decision and archive the matching task checks.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-184-133789568443c419.json",
+          "sha256": "9175c03fbf6fa01efb790a04372dc91ebb6e082bfd2f4315049081d88d3dd5ca"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The independently reviewed retirement reader retained the ordinary empty review lock after release, identified an active review, and held unknown metadata. The actual peer-deletion checkout still reported unretained local evidence. All three selected local checks passed on ec55d5ae2ee0cd4b2ac3c3f558491aedfb9fb533. The full repository retirement inventory and individual worktree removal retain their own evidence and authorization.",
       "plan": {
         "outcome": "A completed project review leaves a clean checkout eligible for the remaining retirement observations, while a live review still contributes a hold.",
         "change_types": [
