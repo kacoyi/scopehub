@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { prepareProfilePool } from './workspace_profile_pool.mjs';
+import { buildWindowsLeafAclHelper } from './workspace_test_handoff_acl.mjs';
 
 export default async function setup() {
   const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -28,6 +29,9 @@ export default async function setup() {
   try {
     await mkdir(join(run, 'ports'));
     if (windows) {
+      // Build once in the run-owned directory. Each matrix child can load
+      // the helper without launching a compiler within its probe deadline.
+      await buildWindowsLeafAclHelper(run);
       const pendingPool = join(tmpdir(), 'scopehub-ubuntu-profiles-' + randomUUID());
       const bridge = join(root, 'target', 'debug', 'workspace_bridge.exe');
       const python = join(root, '.venv', 'Scripts', 'python.exe');

@@ -33074,6 +33074,125 @@
           "cleanup": "Remove the retired scope guards and the hosted publisher prefetch used only by the block-buffer discrepancy. Remove the patch references from the pnpm lock and rebind the inventory to the new lock hash. Retain the exact package set, license records, original diagnostics and previous task receipts."
         }
       }
+    },
+    {
+      "id": "M0-182",
+      "title": "Recover bounded Windows handoff fixture matrix preparation under ordinary verification",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-147"
+      ],
+      "scope": [
+        "tests/ubuntu-preview",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Bind the original workspace-timeframe Windows failure to its actual fixture call, submitted head and tested tree. Compare the same unchanged witness on a passing native Windows run, applicable Linux observations and the M0-147 receipt. Keep unobserved internal causes explicit.",
+        "At the real test-owned preparation entry, verify success and a bounded failure with ordinary cleanup, safe reporting and the existing subprocess deadline. Preserve the 24 native file comparisons and the established independent Windows verifier and parser controls, including their accepted and rejected outcomes.",
+        "Obtain independent review on the exact changed source, the first applicable native Windows and Linux observations, and the integrated recheck. Preserve M0-146 timing evidence independently of the workspace outcome."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe",
+        "rust-contracts-workers"
+      ],
+      "evidence": [],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-46111075105-1",
+          "source_commit": "590e08d0b8b978e60d0ebb5197886bec95ecc8c0",
+          "report_sha256": "9322931dd5375fb58f8cd9d346990ec24ec8307cb15c64eb72909050a4d6c3c0"
+        },
+        {
+          "run_id": "20261128T051401.976712Z-c1245408",
+          "source_commit": "590e08d0b8b978e60d0ebb5197886bec95ecc8c0",
+          "report_sha256": "f7937aa8570a05a309ce907b53f86e20496103bb4305e34d81746fbb21b7e888"
+        }
+      ],
+      "next_action": "Have the coordinator review the exact local candidate and submit the ordinary and guarded native checks. Inspect the separate helper build and matrix phase measurements, the 24 real Windows comparisons and the Rust parser cases. Verify the integrated source after independent review.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The ordinary Windows workspace test can complete its full synthetic-file permission matrix under the bounded test harness and report the last independently established preparation stage when a real failure prevents completion.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.setup.mjs",
+          "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+          "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.cs",
+          "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.ps1",
+          "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "The failing and preceding ordinary Windows attempts used identical matrix source blobs. Only the case-level durations and outer deadline were observed. The last internal operation and historical cause remain unknown.",
+          "The matrix child compiled the same test-only C# helper before reading matrix inputs or descriptors. Build those exact helper bytes once during workspace setup, and measure the build and the ordered matrix stages separately on native Windows."
+        ],
+        "risks": [
+          {
+            "failure": "Changing fixture setup could stop testing the same on-disk behavior or obscure the real stage of a timeout. Witness both existing accepted and rejected outcomes, and verify teardown after a failure.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "workspace-timeframe",
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain both native originals, prior M0-147 evidence and the existing reviewed fixture source for comparison or recovery.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.setup.mjs",
+            "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+            "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.cs",
+            "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.ps1",
+            "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Production permission semantics, private user data, broader browser startup and the Windows Python scheduling objective remain under their existing owners."
+          ],
+          "open_questions": [
+            "How much time does the first exact native run spend loading the prebuilt helper, preparing the matrix and checking each real file under the existing deadline?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The bounded test-only operation, existing real-file comparison coverage, independently known permission outcomes and cleanup on success or refusal."
+          ],
+          "change": [
+            "Prebuild the unchanged ACL interop helper under its own bounded test setup invocation. Report the last completed, ordered preparation milestone from bounded stdout when the matrix child runs out of time. Retain exact stderr refusal decoding."
+          ],
+          "data_plan": "Only temporary test-owned files and retained diagnostic observations are involved.",
+          "cleanup": "Dispose of the helper with the existing run directory. Retain original witnesses, exclusive matrix fixture creation and cleanup, and all later native comparisons."
+        }
+      }
     }
   ]
 }

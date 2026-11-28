@@ -784,6 +784,35 @@
       },
       "supersedes": "a3e7938d002585112c8e5174bcfcf3be00177f9006abf6d94a1b2eaf59a91655",
       "evidence_sha256": "d6c2a5f0b9a4d1f947c50b83decc25aca49acf2f33591b117a39144fe4886057"
+    },
+    {
+      "kind": "request",
+      "source_commit": "947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "scope": "Review whether this workspace fixture and build change preserves the protected four-producer main workflow, its owned cases, publisher aggregation and actual passing and refused outcomes. Compare the previous qualified Windows scheduling source to this submission using the real protected original and the ordinary integration acceptance/refusal controls. Establish the effect of the additional Windows setup on its actual consumers without assigning this source a protected timing.",
+      "supersedes": "6f1b9bc4b223001226afcc3c621fd6884dcad1e98591367b5930de8d6bc6102f",
+      "requested_at": "2026-11-28T05:52:01.921682+00:00",
+      "request_id": "414e0d3ddf2f70aa83aa1d881a38a68aaefbe18d37833cafb1ea94bd44a7a759",
+      "evidence_sha256": "41e82f03e55c74d3828f26d993cb94bf38d4af29f6c33c5475ecda96a60c4758"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "verdict": "approved",
+      "decision": "APPROVE M0-139 947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "scope": "APPROVE M0-139 947c735d5eb70fbcebaa3d649e68d9084a855940",
+      "observation": "The candidate reproduced all 125 integration verdicts from the prior review and rejected the genuine protected Windows report when its run and attempt identifiers were changed together while its original logs were retained.",
+      "reviewer": "Independent Astra Standard (t1n4)",
+      "original_sha256": "29251b5de8357be400e3dfd72a9d8e68e4af4a5102d50d58ecbecdfc8ffa6762",
+      "response_id": "5e7667ec37e581b49b1719b02364639c4da82342b94790b8a2b73c11694131b0",
+      "response_sha256": "203a3dbb547c793a19e49f4aefd5686b5ba422050b6061fb8982fd11d0db8380",
+      "legacy_response_sha256": "d22ec95d609e86f8a5801fce9673e9d121687e71edabf59ea476dd626346c0fb",
+      "observation_body_sha256": "23022254769544655cc283b19571d7f928227bb4cdc24678b69373e698d17b57",
+      "event": {
+        "id": "msg_053de527fa011c48016b0a6dfc35c087d08ec0de9aebf92776",
+        "timestamp": "2026-11-28T06:00:55.423Z"
+      },
+      "supersedes": "414e0d3ddf2f70aa83aa1d881a38a68aaefbe18d37833cafb1ea94bd44a7a759",
+      "evidence_sha256": "9a220c756f6b5932ca5a8420c235ab3e1082e73412f584e6438f1eedc9489190"
     }
   ]
 }
