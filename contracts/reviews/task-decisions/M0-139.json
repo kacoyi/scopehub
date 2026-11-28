@@ -764,6 +764,26 @@
       "requested_at": "2026-11-28T04:45:20.602247+00:00",
       "request_id": "a3e7938d002585112c8e5174bcfcf3be00177f9006abf6d94a1b2eaf59a91655",
       "evidence_sha256": "db72597bb8c13a8b56deb902ba348752ca530e3b4c599c29f2aea83aa003ab13"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a8795844d601cbbe5569329d2ae1b3554413d51f",
+      "verdict": "approved",
+      "decision": "APPROVE M0-139 a8795844d601cbbe5569329d2ae1b3554413d51f",
+      "scope": "APPROVE M0-139 a8795844d601cbbe5569329d2ae1b3554413d51f",
+      "observation": "The public integration command reproduced all 125 retained verdicts and rejected both a missing Windows publisher and a duplicate workspace producer in two additional controls.",
+      "reviewer": "Independent Astra Standard (t1mb)",
+      "original_sha256": "5cca3a12baaadad28c2f551180017ff03f7c60cdcaa1e49fffc42513872f020f",
+      "response_id": "6f1b9bc4b223001226afcc3c621fd6884dcad1e98591367b5930de8d6bc6102f",
+      "response_sha256": "4788ed96a2ec3276b8572eda2ce50f52ba2aa7cd55781ef0a5213027db8e2d21",
+      "legacy_response_sha256": "11c9bc122b2461be137c6191370a381ada6ee1a0b0f3077e4bc188952d039a08",
+      "observation_body_sha256": "f14a3a0652bf36fbbfa304a8d77e44ae0ad2f43d54747676d58082fa380c27b6",
+      "event": {
+        "id": "msg_05f56db641eb61e1016b0a5e60fb1087d0a35ab0ffd76ab71b",
+        "timestamp": "2026-11-28T04:54:16.897Z"
+      },
+      "supersedes": "a3e7938d002585112c8e5174bcfcf3be00177f9006abf6d94a1b2eaf59a91655",
+      "evidence_sha256": "d6c2a5f0b9a4d1f947c50b83decc25aca49acf2f33591b117a39144fe4886057"
     }
   ]
 }

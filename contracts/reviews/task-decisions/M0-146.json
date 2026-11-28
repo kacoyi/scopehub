@@ -793,6 +793,26 @@
       "requested_at": "2026-11-28T04:45:21.366810+00:00",
       "request_id": "13be28dbbf0e4af0202c41b78e6cb98718f690591c82d86b40385a9d4fc9a2ec",
       "evidence_sha256": "9e5f89671f815a374d699b32a9ddc36a329a1978a94d938f6e3ca975e54eac66"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a8795844d601cbbe5569329d2ae1b3554413d51f",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 a8795844d601cbbe5569329d2ae1b3554413d51f",
+      "scope": "CHANGES_REQUESTED M0-146 a8795844d601cbbe5569329d2ae1b3554413d51f",
+      "observation": "In a controlled replay of successful PR 120, the public timing checker recorded a budget breach at 901 seconds while the first-producer-to-publisher span stayed at 866 seconds.",
+      "reviewer": "Independent Astra Standard (t1mc)",
+      "original_sha256": "7fee29d8adde87288804a6d1d2906e6387286f5fcb129044d726db04a6b45a12",
+      "response_id": "28432463478bf5ab7430bf9a74815cc276ece5caed2b636cdf240d8c7f5f259d",
+      "response_sha256": "2bed415a12c4b6877d11d11cdfb5e42d78c5896839ad023fa430e0ba03c2659d",
+      "legacy_response_sha256": "fc25fa3b99ea9b4dc8e0ef075229dae0e80bb0c74e1e4cd0900d59085a50587e",
+      "observation_body_sha256": "88ebbe81e26809f5b5666482a16aa258e8c6da085db92dac99fb1ea7aa65a297",
+      "event": {
+        "id": "msg_0f53e27b99b94333016b0a5e88707c87d089287ec1a2f8a0bd",
+        "timestamp": "2026-11-28T04:54:53.345Z"
+      },
+      "supersedes": "13be28dbbf0e4af0202c41b78e6cb98718f690591c82d86b40385a9d4fc9a2ec",
+      "evidence_sha256": "45907e915079db2eb98db8910d60329fc10b2dd74c9553d910510e5871182447"
     }
   ]
 }

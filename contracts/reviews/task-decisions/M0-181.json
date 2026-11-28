@@ -39,6 +39,26 @@
       "requested_at": "2026-11-28T04:45:22.131673+00:00",
       "request_id": "063f7e568cbc259d5fb741c134a9a95ab631169a5ac5cf32ea4b588a528eed50",
       "evidence_sha256": "e084ef6c666105d0138c97c40a3aca23c8596abc61010e396a82d1f8c19b2160"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a8795844d601cbbe5569329d2ae1b3554413d51f",
+      "verdict": "approved",
+      "decision": "APPROVE M0-181 a8795844d601cbbe5569329d2ae1b3554413d51f",
+      "scope": "APPROVE M0-181 a8795844d601cbbe5569329d2ae1b3554413d51f",
+      "observation": "On the reviewed commit, the public dependency checker accepted all four retained findings and returned exit code 1 when I restored either retired advisory individually.",
+      "reviewer": "Independent Astra Standard (t1md)",
+      "original_sha256": "0b35fcea0f376282a3d18e1e354f0e3239239ecca4a4c69cd7f032e2dffcaa52",
+      "response_id": "c2a67a7d002b2a490785e21510fc949ae3d07725f5c52cd6cb4e71c801d658c3",
+      "response_sha256": "7feeba80da27bd793e896c4120b51b0d145b8afb17b2a5ae07ab0626ba6341ac",
+      "legacy_response_sha256": "345b39fcc6863956c86a81a7808f48c62f1f876e43c12f1ce053c1696bcbeac6",
+      "observation_body_sha256": "d3343f994aa8f482a624a3c71038dc6dd9a68c7b536831297076d123bfad84a7",
+      "event": {
+        "id": "msg_0a3b159ffc017776016b0a5e4cc79487d09fc58f1d7abed49a",
+        "timestamp": "2026-11-28T04:53:54.445Z"
+      },
+      "supersedes": "063f7e568cbc259d5fb741c134a9a95ab631169a5ac5cf32ea4b588a528eed50",
+      "evidence_sha256": "220f2909d1da636b79842cc4c750777e6fed79507637910fc35e98eac49e0ebb"
     }
   ]
 }
