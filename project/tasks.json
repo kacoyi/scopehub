@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-183",
   "tasks": [
     {
       "id": "M0-001",
@@ -29685,6 +29685,119 @@
           ],
           "data_plan": "Use synthetic data and isolated owned test resources. Keep the original production-shaped reports and existing data format.",
           "cleanup": "Remove superseded fixture or cleanup paths after verifying both controls; retain unresolved observations and archived originals."
+        }
+      }
+    },
+    {
+      "id": "M0-183",
+      "title": "Surface relevant product failures when starting work on an affected path",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-161",
+        "M0-165"
+      ],
+      "scope": [
+        "scripts/development.py",
+        "scripts/herdr.py",
+        "tests/project/test_development.py",
+        "tests/project/test_herdr.py",
+        "AGENTS.md",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0030"
+      ],
+      "acceptance": [
+        "An agent entering an existing or new product task through the normal context and assignment can discover a relevant prior defect from another task on the affected product path, its original evidence and the check that exercises it.",
+        "Replay the shared decision-note files from M2-038 and M2-040 and an independent financial data or import example. An unrelated path and shared governance files produce no misleading history. Current-task findings, ordering, source-bound review and older records stay usable.",
+        "The repository entrance prioritizes ordinary product work and preserves a discoverable authoritative route for infrequent procedures. Compare the earlier and revised first-turn output and its cost on the same inputs."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Use the M2-040 ordinary context and launch against the known M2-038 decision-note defect. Exercise an unrelated file and a financial data consumer before selecting a bounded path match.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A fresh product engineer sees a short, traceable historical warning at the file they are about to change and can run its existing consumer check.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/development.py",
+          "scripts/herdr.py",
+          "project/feedback.json",
+          "project/development.json",
+          "AGENTS.md",
+          "apps/desktop/ui/src/decision-notes.tsx"
+        ],
+        "hypotheses": [
+          "The ordinary navigation joins feedback only by the current task ID, although historical task scopes already identify shared product paths."
+        ],
+        "risks": [
+          {
+            "failure": "Broad product directories or common bookkeeping files can swamp a precise match or misstate which code caused an older failure.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Additional launch text or removed procedural detail can obscure current findings, provenance or recovery.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Restore the prior navigation and contributor entry together. Historical defects and financial data retain their original source.",
+        "independent_review": true,
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/development.py",
+            "scripts/herdr.py",
+            "AGENTS.md"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/implementation_policy/first_test"
+            },
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": "/outcomes/1"
+            }
+          ],
+          "non_goals": [
+            "Changing product permissions, financial semantics, historical tasks or release acceptance."
+          ],
+          "open_questions": [
+            "How precisely do existing historical scopes select useful neighboring failures without adding another catalog?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Current-task feedback, original source pointers, read-only clean-source review, and existing product and governance obligations."
+          ],
+          "change": [
+            "Add brief cross-task navigation from relevant product paths and shorten the ordinary contributor entry."
+          ],
+          "data_plan": "Read the existing repository records. Product data and historical task definitions stay untouched.",
+          "cleanup": "Remove duplicate procedural wording only where its authoritative equivalent is discoverable."
         }
       }
     }

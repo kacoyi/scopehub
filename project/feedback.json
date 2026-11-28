@@ -9795,6 +9795,21 @@
         "prevention": "Independent review verified the two original extra-field cases. Ordinary PR 151 run 45983202750 passed nine rejected replies on both platforms, including extra properties in the outcome, receipt and target, invalid values and mismatched bindings. Each trial stayed unverified until the explicit same-approval retry recovered the original receipt. The note and outcome stayed removed with one durable marker. Canonical peer deletion passed separately."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "product-task-context-omits-shared-file-history",
+      "source": "Ordinary read-only project context for M2-040 on main 742430e69246c8869732f12bb33742895dfe2d54, compared with the scopes and feedback for M2-038 and M2-040.",
+      "observation": "M2-040 reports its three linked major findings. Both tasks touch apps/desktop/ui/src/decision-notes.tsx and the decision-note transport, yet the normal context provides no route from that overlap to the earlier confirmed-peer-decision-note-delete-misses-initiator-list finding or its workspace-timeframe regression.",
+      "severity": "minor",
+      "status": "open",
+      "task_ids": [
+        "M0-183"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
