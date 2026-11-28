@@ -27077,7 +27077,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Have the coordinator obtain a scoped independent M0-146 decision on the clean reconciled source with the fourth native timeout retained. Retain a new ordinary full warm Windows PR with all five producer clocks, the final publisher clock, all 35 selections, original attachments and ordered Python outcomes. Compare the observed full span against 900 seconds. Compare guarded and protected evidence separately.",
+      "next_action": "The coordinator obtains fresh source-bound decisions on the clean composition and owns the next ordinary full warm PR observation. Bind the submitted head and actual tested checkout, require both protected job conclusions to pass, and retain all five Windows producer clocks, the final publisher clock, original attachments, ordered Python outcomes and all 35 selections with 28 passes and seven planned omissions. Measure the earliest producer start through final Windows publication against 900 seconds. Keep M0-146 active until that qualifying run and the applicable first protected adoption evidence are retained. Retain the fourth Python timeout and the first ordinary dependency rejection.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -27185,6 +27185,16 @@
           "run_id": "windows-change-45989306963-1",
           "source_commit": "48890c66d6ce3f465d49a54bcf5b2fa689f9c999",
           "report_sha256": "c7dcb3b951b6567c8dad286f41d619aa7a8ba7d069386dcbacf5587cf804792b"
+        },
+        {
+          "run_id": "windows-change-46103840740-1",
+          "source_commit": "91e419f12ee4fafc275bf6cf8dd4c521813acef3",
+          "report_sha256": "1cd1994e02b816b3879a8c76e44addc8f9fbf81788f30d8aa6172ae96e4a183c"
+        },
+        {
+          "run_id": "20261128T033946.183750Z-259784c9",
+          "source_commit": "91e419f12ee4fafc275bf6cf8dd4c521813acef3",
+          "report_sha256": "9dfd3e179d35d27fee620e016f2c702ee0ff6677a3fc62111ee89d8c4ec0524b"
         }
       ],
       "plan": {
@@ -27251,7 +27261,8 @@
           "Authenticated PR123 warm attempt one, run 45939870623: original step clocks are retained in .reports/audit-20261127/m0-146-browser-scheduling/originals/pr123-windows-clocks-45939870623.json (SHA-256 1ded3dfb067327ac9c980f9308642bc1324e130d8c27fc0a4419abf9bae55c63).",
           "Run 45958135087 on tested commit 1c0ef4218d2719981d1d1e39743676ae7041e557 retained 28 passes and seven planned omissions among all 35 selections. Compare the first-attempt job clocks and original per-module callbacks for four ordinary warm Windows runs at archives/observations/repo-hygiene-20261125/pr123-warm-comparison-45958135087/comparison.json (SHA-256 dea84657a62006c1be54228b35709811ae3bd84db39f450c78c9398d29b4148d).",
           "PR130 original archives/runs/windows-change-45958460881-1/test-report.json recorded a separate unsplit Windows Python timeout at 1200.047 seconds. Both market interruption and all six workspace controls passed on both platforms. The original comparison is retained at .reports/audit-20261127/m0-146-windows-partition-balance/originals/pr130-ordinary-45958460881.json (SHA-256 600effb468cd45ad8718f1dc46b0376255f3ebaabdc628b1de9922a503937452).",
-          "The independent decisions on 215952297bc76e1b5459a2a94bb24d3637a78cb8 cover separate scopes. M0-146 approved the observed work allocation and report delivery controls with the 900-second objective open. M0-139 requested changes to asset ownership and historical direct delivery admission. Retain both complete original responses, the delivery intake and the authenticated PR147 and PR138 timeout indexes."
+          "The independent decisions on 215952297bc76e1b5459a2a94bb24d3637a78cb8 cover separate scopes. M0-146 approved the observed work allocation and report delivery controls with the 900-second objective open. M0-139 requested changes to asset ownership and historical direct delivery admission. Retain both complete original responses, the delivery intake and the authenticated PR147 and PR138 timeout indexes.",
+          "The first ordinary full warm PR 123 attempt after the five-producer reconciliation, run 46103840740 attempt 1, submitted e862b3eb6731f4821629d7508ea5dafb6fa0a98a and tested 91e419f12ee4fafc275bf6cf8dd4c521813acef3. The five Windows producers and final publisher retained all 35 selections. The earliest producer started at 03:38:42 UTC and the final publisher completed at 03:52:38 UTC, a span of 836 seconds. Workspace was the last producer. Windows recorded 27 passes, one dependency-review failure and seven planned omissions. The Python check passed in 684.672 seconds. Ubuntu also failed dependency review. M0-181 owns both dependency failures and retains its local correction and closure receipt. The ordinary timing gate stays open. The earlier PR 152 Python timeout remains a separate M0-146 observation. Ordinary PR 123 attempt 1 of run 46103840740 retains the original uploads, job clocks and source binding in archives/observations/repo-hygiene-20261125/coordinator-checkpoints/recovery-20261127-t1k1/pr123-46103840740/first-attempt-intake.json (SHA-256 d49080bd8c4ba0a48e4a5faf88e92288285392c636a3cbfc9b4c77a50cf82b24). The two original platform reports are archives/runs/windows-change-46103840740-1/test-report.json and archives/runs/20261128T033946.183750Z-259784c9/test-report.json."
         ],
         "hypotheses": [
           "A single source-declared publication decision can qualify both platform reports and Windows producer reports by run, job, required steps and available digests. Use comparable public controls for genuine uploads, absent optional evidence and missing or contradictory mandatory evidence across the earliest direct, staged and split formats.",
