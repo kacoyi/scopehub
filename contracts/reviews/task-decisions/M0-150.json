@@ -726,6 +726,26 @@
       "requested_at": "2026-11-28T04:35:48.629009+00:00",
       "request_id": "5e39a19fdd18020ad3147eb9c2e1cdf217e4cf4a07f330b4e82a9138b9a7c2ed",
       "evidence_sha256": "66d453b91b68c10b128fc26fa71c2f877d9b66b4e01052723fe54f3a27489a34"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d226171f0d21bf65109416128a68bea9c8577b2d",
+      "verdict": "approved",
+      "decision": "APPROVE M0-150 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "scope": "APPROVE M0-150 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "observation": "On PR 123 run 45965137241, the reader rejected the 08:25:18Z browser report copy and preserved the genuine report’s 983 runner-seconds in both input orders after a cold reopen.",
+      "reviewer": "Independent Astra Standard (t1m8)",
+      "original_sha256": "fe9d5d992f480383d411a45f0b233f5e2a14a7c7f55066c611a708c49b665ea5",
+      "response_id": "8ba87e94e6fe0a88c26892d7bb9ae45581ca5f4211936a55692edaf80cdacd61",
+      "response_sha256": "151433a6eeff53fa8251f2c7e5de6233ef6e0da18ed7e6c2f2daf2105501fa17",
+      "legacy_response_sha256": "76fab1c45133a6f27c86d27a759ebd60f6a46a1836967f22d9a9eaaa73cc2e70",
+      "observation_body_sha256": "3f047b7aa60f5f63221382165619945b9e326ad71daa0c15ce07ca16fa312f87",
+      "event": {
+        "id": "msg_071129ca641f170a016b0a5bd1090887d0bf5a0d28d0501453",
+        "timestamp": "2026-11-28T04:43:26.353Z"
+      },
+      "supersedes": "5e39a19fdd18020ad3147eb9c2e1cdf217e4cf4a07f330b4e82a9138b9a7c2ed",
+      "evidence_sha256": "578da206792181cb84ff96cdf88bf4ed8d2db42418309752329556ce0132ce2f"
     }
   ]
 }

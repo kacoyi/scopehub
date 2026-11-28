@@ -735,6 +735,26 @@
       "requested_at": "2026-11-28T04:35:49.525161+00:00",
       "request_id": "c8d178da02218c2f90a5ad4374e7d7615fc3c63f1329508014a48a38d8997dec",
       "evidence_sha256": "8b8f4d0080057c193a92bfd4a7c66f4732cd5fb4676a524f4772ed3f96bf30c2"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d226171f0d21bf65109416128a68bea9c8577b2d",
+      "verdict": "approved",
+      "decision": "APPROVE M0-156 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "scope": "APPROVE M0-156 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "observation": "After a cold reopen, both input orders retained exactly two push receipts when the PR 96 job listing was unavailable and all four receipts with the full capture.",
+      "reviewer": "Independent Astra Standard (t1m9)",
+      "original_sha256": "fc078cedc34f0d30875599cfca008870150d1f9d79459a15d2aba4f61e8a8699",
+      "response_id": "267a3d6354e54dfb60b45dc827bb4891ac81852c9be1ca16eef4a825590f14d5",
+      "response_sha256": "d188e447755b3298557b3b24924e36bc366ac9264e0633a68ca5cfc6a96c3a08",
+      "legacy_response_sha256": "6afc0d79f019c02d27668853eaaca16b33650200f7f4c627517e300fca3931e3",
+      "observation_body_sha256": "db24d939708315b14af53f8207bcfe9584762dab966b42db63d7abbad5700f31",
+      "event": {
+        "id": "msg_0462df0d552b31bf016b0a5be2aa7087d08d84fa4b48de848c",
+        "timestamp": "2026-11-28T04:43:36.799Z"
+      },
+      "supersedes": "c8d178da02218c2f90a5ad4374e7d7615fc3c63f1329508014a48a38d8997dec",
+      "evidence_sha256": "79461ea643dc33b88e69caf65351c9519725c7c266dbd06ec2fc5c227b212620"
     }
   ]
 }

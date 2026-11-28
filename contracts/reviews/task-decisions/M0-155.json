@@ -706,6 +706,26 @@
       "requested_at": "2026-11-28T04:35:47.715114+00:00",
       "request_id": "ea3063853fdcc5e4dff4c754dd3657527c5ab847946890e341863a1e07374570",
       "evidence_sha256": "d912472f261f77ac586d5b7182353f323cc7aa8dcaaa4775db1f6067f5c8a5cd"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d226171f0d21bf65109416128a68bea9c8577b2d",
+      "verdict": "approved",
+      "decision": "APPROVE M0-155 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "scope": "APPROVE M0-155 d226171f0d21bf65109416128a68bea9c8577b2d",
+      "observation": "In both input orders, a fresh process rejected the PR 123 report copy dated at initialization and preserved the genuine browser report’s 983 runner-seconds.",
+      "reviewer": "Independent Astra Standard (t1m7)",
+      "original_sha256": "b4c5afd75f38479fb5aa0affb001a662ac328ad1ea7dd9946ef30b6f25c5a26f",
+      "response_id": "dc4fc1aa3e1c5cdc442f05d254757990866f550bde3ba25d223030a298ee4d9f",
+      "response_sha256": "18f8bc2cf1c55d0d7edf1b8024bb3e5083e47062184f06ce65a1b10fb20e56db",
+      "legacy_response_sha256": "b0e69e8cfc43d2e01db0bc593267274c93769c414f9bfe018e01b70d214b6966",
+      "observation_body_sha256": "8bf34df58906b2eecaed3fe3b81345d678cb84a53d5fc8e7c8dfe2b20e3350fe",
+      "event": {
+        "id": "msg_00818d8981a25db9016b0a5c514a2087d0a05a2406539d22bc",
+        "timestamp": "2026-11-28T04:45:34.522Z"
+      },
+      "supersedes": "ea3063853fdcc5e4dff4c754dd3657527c5ab847946890e341863a1e07374570",
+      "evidence_sha256": "44a38cfb0a806dbfb2f4871f923080caf1aeae7acd30c6ce0d99653332af9326"
     }
   ]
 }
