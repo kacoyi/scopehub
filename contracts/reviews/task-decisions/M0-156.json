@@ -822,6 +822,26 @@
       "requested_at": "2026-11-28T07:08:38.977679+00:00",
       "request_id": "ce4f68408851602e79d5da58cf435b0620ec33384379163f58b882cbeaa966c0",
       "evidence_sha256": "dce90dd85ed7e06852f18652ebb00b20aad7bbcae19de138f51870c091527079"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "1f6c7cda14379ab28241796e38c490d4de716771",
+      "verdict": "approved",
+      "decision": "APPROVE M0-156 1f6c7cda14379ab28241796e38c490d4de716771",
+      "scope": "APPROVE M0-156 1f6c7cda14379ab28241796e38c490d4de716771",
+      "observation": "In both input orders, adding the PR 96 success record up front or after reopening the archive in a fresh process yielded zero current receipts and identical Windows clocks for both attempts.",
+      "reviewer": "Independent Astra Standard (t1nx)",
+      "original_sha256": "ce0a98fa21449529de0d7cfde0bafcd535b48a17914386f3952dcc10bca841fc",
+      "response_id": "cbca93f732ad9dc1150d6ce63ee59eb7dc5b54e39e370c9ea5223bc511a85da1",
+      "response_sha256": "126535da8edfa141fb6a5a74bf485019763892a8c6afeb4d0afa8bc6515d40a1",
+      "legacy_response_sha256": "3b52f9882e55e0bb578bfd0a0d8d531e86cee3dec24616e2aeb023e025629e94",
+      "observation_body_sha256": "1fef78128bec2317ecd8fbdccbbccb53eecca2c42be5c14a464d896de41c4a92",
+      "event": {
+        "id": "msg_0f0622407b979653016b0a7f2c502c87d09755be1c72f414f7",
+        "timestamp": "2026-11-28T07:14:11.479Z"
+      },
+      "supersedes": "ce4f68408851602e79d5da58cf435b0620ec33384379163f58b882cbeaa966c0",
+      "evidence_sha256": "492ccd401f75328a9b153d469e029d83634842e83db1fefcd3797590684dc1ce"
     }
   ]
 }

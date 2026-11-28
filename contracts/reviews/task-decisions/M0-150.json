@@ -813,6 +813,26 @@
       "requested_at": "2026-11-28T07:08:38.087084+00:00",
       "request_id": "f3395f64cb53a86485ac6b3a7fbf902d0c7829aa3483d027a5f1895761d8e271",
       "evidence_sha256": "b058befb2562fb4069d3a275a9e2df8ab046d848fc62e035d523a25b531cc5e1"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "1f6c7cda14379ab28241796e38c490d4de716771",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 1f6c7cda14379ab28241796e38c490d4de716771",
+      "scope": "CHANGES_REQUESTED M0-150 1f6c7cda14379ab28241796e38c490d4de716771",
+      "observation": "After a cold reopen, an out-of-job timestamp on either step 15 or step 25 stripped the genuine PR 123 browser report of its 983 runner-seconds of attribution.",
+      "reviewer": "Independent Astra Standard (t1nw)",
+      "original_sha256": "e719e2a6e1fa786a3cf1878da18baa9f79d19201c9885fd658d9925b81777eb1",
+      "response_id": "b30ac2929bf0f91eb6677e5808932ccf5abc5199c706363f8b5de9c372c792b9",
+      "response_sha256": "211a71060e97f2b1b8dea5f41f239749509d3cec5625ba9bb87c42e6a7b45e6a",
+      "legacy_response_sha256": "83335382b24182f3b0726e77ca89f8e8e9e309832f7db885a4b65f6b3ecb0c8a",
+      "observation_body_sha256": "6dc3da639ecdc419fcf237ff2aca830ec4191af480c6408de038ea1e63389f52",
+      "event": {
+        "id": "msg_0b28c2ffd9d31f47016b0a7f78be7087d0ad0975c185f17b47",
+        "timestamp": "2026-11-28T07:15:30.062Z"
+      },
+      "supersedes": "f3395f64cb53a86485ac6b3a7fbf902d0c7829aa3483d027a5f1895761d8e271",
+      "evidence_sha256": "8ab0831f7f3d30ba9d566ad9c744ef97270d8425e2bcd02483f4714d53bddb54"
     }
   ]
 }

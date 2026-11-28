@@ -793,6 +793,26 @@
       "requested_at": "2026-11-28T07:08:37.203677+00:00",
       "request_id": "354e469ba85d2b11c9e444dd38d27d362c20772bb1037f11b1b050865a303f65",
       "evidence_sha256": "668581ae1113f2a5625d8e1d10417c049b4b643c3cc6abd1c6d2fc85bb7762c6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "1f6c7cda14379ab28241796e38c490d4de716771",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 1f6c7cda14379ab28241796e38c490d4de716771",
+      "scope": "CHANGES_REQUESTED M0-155 1f6c7cda14379ab28241796e38c490d4de716771",
+      "observation": "On PR 123, an out-of-job step timestamp gave an impossible browser report 983 runner-seconds when read alone and left the genuine report unattributed in both input orders after a cold reopen.",
+      "reviewer": "Independent Astra Standard (t1nv)",
+      "original_sha256": "8d880aa3d59ca8dc4f20fc119070cad0e7f0a684bb8e61fb851adbb8158c62d1",
+      "response_id": "0b498b14295f0d9a3ff46d78c16260498362593f02471a697ee919f5ca4a8bc6",
+      "response_sha256": "8e54978646a49bca5dd6ca20dac000e7549140f780ba0566de2c2ce6dfdb319f",
+      "legacy_response_sha256": "9e5afd0b7bd3d9f4701338ca29d91e0d85e3f5e9b2ad818bf1bbc9b75ae7b444",
+      "observation_body_sha256": "941a5d409248219096f25a4a67b2bf0670447b41e47f8149848b7a3cd56a3922",
+      "event": {
+        "id": "msg_0d8e9cf27c1e5c8d016b0a7fae7e1887d09ece6a9bc99ad674",
+        "timestamp": "2026-11-28T07:16:25.534Z"
+      },
+      "supersedes": "354e469ba85d2b11c9e444dd38d27d362c20772bb1037f11b1b050865a303f65",
+      "evidence_sha256": "cf0779faf4145a16af139b569d3230bdb8a9024bce54bb6b89273fcc51f41b76"
     }
   ]
 }
