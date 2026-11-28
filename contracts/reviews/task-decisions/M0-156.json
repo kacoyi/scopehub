@@ -784,6 +784,15 @@
       },
       "supersedes": "17a21d063a4efd30412b4f436e559efc8557888f6fb4451fe6a03bd5098880ca",
       "evidence_sha256": "e91ab63f3f137d9245a4900f4043c8b0741cb769aaf4a58ba27ff778b14dfc23"
+    },
+    {
+      "kind": "request",
+      "source_commit": "42e48a2c08fbb85efa740ae12ad1fdcf09e471ad",
+      "scope": "Review the genuine PR 96 and push collections on the joined timing reader. Test distinct receipt authority, a contradictory corroboration/unsuccessful-run count against member runs, same-time conflicts and later valid partial collection in both orders and actual cold reopen. Confirm independently supported clocks.",
+      "supersedes": "fc22742592d7c5dbcbc89fb0e2fd14ae94bab537aa407dce77a27bb00ddfb083",
+      "requested_at": "2026-11-28T06:21:55.368880+00:00",
+      "request_id": "008e2a1ad674780164988149afd06b37c4001c490ea61734f33fce060ac09ca8",
+      "evidence_sha256": "20fd4f9b1a919126814ffc2490f97bc8e75c6de2d3d4f6978848a9ba49889933"
     }
   ]
 }

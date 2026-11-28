@@ -775,6 +775,15 @@
       },
       "supersedes": "5b68f8406d267f2f44fac241ff342f02030a1a60d038b8e09611495c07b9507b",
       "evidence_sha256": "561c187bdd866c3cea4977e1d7983adefbe476bd575f681661ed30d08c6f2edd"
+    },
+    {
+      "kind": "request",
+      "source_commit": "42e48a2c08fbb85efa740ae12ad1fdcf09e471ad",
+      "scope": "Review the precise genuine and impossible PR 123 timing reports, raw and compact, both input orders and cold reopen. Test the recorded precision, independent staging, verification, initialization, neighboring bounds and measured runner time when a step identity or clock is missing.",
+      "supersedes": "e2608cfe5c5daf49696b49b5c77e661c9d09f442d2dc93bb7b30debe509552a6",
+      "requested_at": "2026-11-28T06:21:54.556339+00:00",
+      "request_id": "66b036dcca14e11b820b50ecd4b04d8c3ffc334c57af5dddaf5c1635f11b8f9a",
+      "evidence_sha256": "3eefcb8c6dbef0b7f09e64e3a3b4411619bc601586bcb3cdb312d7f305604553"
     }
   ]
 }

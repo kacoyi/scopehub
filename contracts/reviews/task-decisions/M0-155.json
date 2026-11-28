@@ -755,6 +755,15 @@
       },
       "supersedes": "9cc506aaf00627f531cabd737ec38cfe6612d6e625c6fb06f74d7f7ae581f7ef",
       "evidence_sha256": "970594f96d1164980e9857783001848c3b3ac90d8f9241f8fea0a38be8e35642"
+    },
+    {
+      "kind": "request",
+      "source_commit": "42e48a2c08fbb85efa740ae12ad1fdcf09e471ad",
+      "scope": "Review the ordinary and weekly timing reader on the joined source using the genuine PR 84 rotation and PR 123 clocks, both arrival orders and actual cold reopening. Verify that the original reader and publisher blobs, corrected sixteen-control invocation and six measured pairs retain their exact attribution.",
+      "supersedes": "4fdbbd33a356118d9e79ef041b11a160e285197c8b3b0f9482632487f724a438",
+      "requested_at": "2026-11-28T06:21:53.714827+00:00",
+      "request_id": "f22792bb3018901c85fb2a5bdebe62c4f8c819984d264f310b3f183fa5dd4f8b",
+      "evidence_sha256": "6a894f2afc5bb3de2a05c9d09acb16da92a48773dd7241d44b9d932d3d0f238b"
     }
   ]
 }
