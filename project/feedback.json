@@ -9808,6 +9808,7 @@
       "regression_checks": [
         "project-state",
         "dependency-review",
+        "architecture",
         "python-contracts-workers"
       ],
       "diagnostic_reports": [

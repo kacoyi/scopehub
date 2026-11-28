@@ -29722,6 +29722,7 @@
       "checks": [
         "project-state",
         "dependency-review",
+        "architecture",
         "python-contracts-workers"
       ],
       "evidence": [],
@@ -29761,6 +29762,7 @@
             "checks": [
               "project-state",
               "dependency-review",
+              "architecture",
               "python-contracts-workers"
             ]
           }
