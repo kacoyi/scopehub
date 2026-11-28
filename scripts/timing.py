@@ -122,6 +122,7 @@ WINDOWS_LANE_STEPS = {f'Verify the Windows {lane} lane': role for lane, role in 
 WINDOWS_LAYOUT_STEPS = {WINDOWS_AGGREGATE_MARKER: False, WINDOWS_RECOVERY_MARKER: True}
 WINDOWS_PROFILE_STEPS = {WINDOWS_FULL_STEP: 'full', **{f'Verify {key} changes': key for key in SCOPED_PROFILES}}
 WINDOWS_ROLE_STEPS = {*WINDOWS_LAYOUT_STEPS, *WINDOWS_LANE_STEPS, WINDOWS_LANE_SELECTOR}
+WINDOWS_INITIALIZATION_STEP = 'Initialize CI verification reports'
 WINDOWS_STAGING_STEP = 'Stage current verification evidence'
 HARNESS_STEPS = {
     'Run pnpm check',
@@ -744,7 +745,7 @@ def observe_job(job, *, identity, requested, label=None, harness_steps=HARNESS_S
     evidence = reconcile_steps(({'step_observations': rows},))
     # The listed view still exposes its intervals. It applies the same phase
     # selector to its local rows that a reopened review applies to the union.
-    choices, chronology = job_time_choices(choices, (), harness_steps, evidence)
+    choices, chronology, _ = job_time_choices(choices, (), harness_steps, evidence)
     row = {
         'job_id': str(job['id']) if job.get('id') is not None else None,
         'platform': PLATFORMS.get(label), 'runner_label': label,
@@ -1529,7 +1530,14 @@ def job_time_choices(boundaries, primary, harness_steps, steps):
     # Numbered observations preserve the order of the actual historical job.
     # Repeated action names (downloads, uploads) have separate positions.
     for number, (name, step) in steps.visible.items():
-        if name in TIMED_STEPS or name in ACTIONS_ORDER_STEPS or not step.supports_clock:
+        if number in positions or name in ACTIONS_ORDER_STEPS or not step.eligible:
+            continue
+        if name in harness_steps:
+            # The publishing step's position remains evidence when its
+            # timestamps are missing or its phase measurement is ambiguous.
+            positions[number] = ((number, 'start'), (number, 'end'))
+            continue
+        if name in TIMED_STEPS or not step.supports_clock:
             continue
         positions[number] = fields = ((number, 'start'), (number, 'end'))
         anchors.update(zip(fields, step.endpoints.values(), strict=True))
@@ -1552,12 +1560,16 @@ def job_time_choices(boundaries, primary, harness_steps, steps):
             low, high = lower.get(field), upper.get(field)
         qualified[field] = ({point for point in values if (low is None or low <= point)
                              and (high is None or point <= high)} or None) if values else values
-    if unpositioned:
-        # Legacy phase clocks without a step number carry no position among
-        # visible steps. Their job endpoints already honor the visible anchors.
-        order = ('requested', 'start', *groups['setup'], *PHASE_FIELDS['browser'], *PHASE_FIELDS['harness'],
-                 *groups['cleanup'], 'end')
-    return choices, {field: qualified.get(field, anchors.get(field, ())) for field in order}
+    chronology = {field: qualified.get(field, anchors.get(field, ())) for field in order}
+    if not unpositioned:
+        return choices, chronology, None
+    # A phase clock without a number can still support an interval. Keep the
+    # independent numbered order for publication, which cannot place that phase
+    # relative to any other observed steps.
+    order = ('requested', 'start', *groups['setup'], *PHASE_FIELDS['browser'], *PHASE_FIELDS['harness'],
+             *groups['cleanup'], 'end')
+    return (choices, {field: chronology.get(field, ()) for field in order},
+            {field: values for field, values in chronology.items() if field not in unpositioned})
 
 
 def merge_job_clock(jobs, role, steps, *, projected=False):
@@ -1565,7 +1577,7 @@ def merge_job_clock(jobs, role, steps, *, projected=False):
     legacy = [job['seconds'] for job in jobs if 'endpoints' not in job]
     choices = {field: join_timestamp_choices(row.get(field, ()) for _, row in primary)
                for field in ('requested', 'start', 'end')}
-    choices, chronology = job_time_choices(choices, primary, job_harness_steps(role), steps)
+    choices, chronology, positioned = job_time_choices(choices, primary, job_harness_steps(role), steps)
     retained = retain_endpoint_choices(choices)
     endpoint_disputes = frozenset(retained.get('endpoint_disputes', ()))
     seconds, disputes, unplaced = job_clock_measurements(chronology, legacy, endpoint_disputes, projected)
@@ -1576,7 +1588,7 @@ def merge_job_clock(jobs, role, steps, *, projected=False):
     resolved.update(retained, seconds=seconds)
     if checkout:
         resolved['checkout_sha'] = checkout
-    return resolved, disputes, endpoint_disputes, unplaced, chronology
+    return resolved, disputes, endpoint_disputes, unplaced, chronology, positioned
 
 
 def job_clock_measurements(choices, legacy, endpoint_disputes, projected):
@@ -1614,6 +1626,7 @@ class JobClockEvidence(NamedTuple):
     failed_harness_steps: frozenset[str] = frozenset()
     steps: dict[str, StepEvidence] | None = None
     visible_steps: dict[int, tuple[str, StepEvidence]] | None = None
+    positioned_bounds: dict | None = None
 
 
 def clock_choices(fact):
@@ -1775,7 +1788,7 @@ def reconcile_job_clocks(by_id, attempt, layout, issues):
             continue
         ((jobs, status, conclusion, _, step_facts),) = participants
         projected = role == ('platform', 'Windows') and split_windows_clock(layout)
-        job, disputed, endpoint_disputes, unplaced, chronology = merge_job_clock(
+        job, disputed, endpoint_disputes, unplaced, chronology, positioned = merge_job_clock(
             jobs, role, step_facts, projected=projected)
         steps = step_facts.named
         job.pop('publishing_steps', None)
@@ -1799,6 +1812,7 @@ def reconcile_job_clocks(by_id, attempt, layout, issues):
             job.pop('endpoint_choices', None)
             job.pop('endpoint_disputes', None)
             chronology = dict.fromkeys(chronology, ())
+            positioned = None
         job.update(status=status, conclusion=conclusion, identity_issues={'missing': [], 'conflicts': []})
         if unplaced:
             timing_issue(issues, {**issue, 'endpoints': sorted(unplaced),
@@ -1817,7 +1831,7 @@ def reconcile_job_clocks(by_id, attempt, layout, issues):
         observed[key] = JobClockEvidence(job, disputed, endpoint_disputes, chronology,
                                          successful_harness_steps=successful_harnesses,
                                          failed_harness_steps=failed_harnesses,
-                                         steps=steps, visible_steps=step_facts.visible)
+                                         steps=steps, visible_steps=step_facts.visible, positioned_bounds=positioned)
         legacy_measurements[key] = [row['seconds'] for row in jobs if 'endpoints' not in row]
     for key, choices in scheduled_job_clocks(observed, attempt, layout):
         fact = observed[key]
@@ -2144,7 +2158,10 @@ def missing_independent_job_clock(evidence, attempt):
 
 
 def job_outside_report(fact, recorded, *, verification=None, dependent=None):
-    choices = clock_choices(fact)
+    measured = clock_choices(fact)
+    choices = measured if fact.positioned_bounds is None else {
+        field: measured.get(field, values) for field, values in fact.positioned_bounds.items()
+    }
     order = local_job_order(choices)
     deadline = None
     if dependent is not None:
@@ -2157,34 +2174,47 @@ def job_outside_report(fact, recorded, *, verification=None, dependent=None):
     if not can_order(choices, order):
         return True
 
-    lower_field = 'setup_end' if 'setup_end' in order else 'start'
+    lower_fields = ['setup_end' if 'setup_end' in order else 'start']
     upper_fields = ['cleanup_start' if 'cleanup_start' in order else 'end']
     visible = fact.visible_steps or {}
     uploads = [number for number, (name, step) in visible.items()
                if name.startswith('Run actions/upload-artifact@') and step.eligible]
     if uploads:
         upper_fields.append((max(uploads), 'end'))
+    unpositioned_lower, unpositioned_upper = None, None
     if verification:
-        # This report passed source and publisher validation. Use the same
-        # ordered clock witnesses for its required verification and staging.
+        # The publisher initializes the output directory, writes the report
+        # in the required verification step, and stages the existing bytes.
         step = (fact.steps or {}).get(verification)
-        if step and step.supports_clock and 'harness_start' in order:
-            lower_field = 'harness_start'
-        staging = [number for number, (name, step) in visible.items()
-                   if name == WINDOWS_STAGING_STEP and step.supports_clock]
-        if len(staging) == 1:
-            upper_fields.append((staging[0], 'end'))
-    lower = ordered_limit(choices, order, lower_field)
-    upper_field = next(field for field in order if field in upper_fields)
-    upper = ordered_limit(choices, order, upper_field, latest=True)
+        if step and step.eligible:
+            if (step.number, 'start') in order:
+                lower_fields.append((step.number, 'start'))
+                upper_fields.append((step.number, 'end'))
+            elif step.supports_clock:
+                if step.number is not None:
+                    lower_fields.append('harness_start')
+                    upper_fields.append('harness_end')
+                else:
+                    # An unnumbered verification clock provides its own bounds
+                    # without placing it relative to numbered neighbors.
+                    unpositioned_lower = min(measured.get('harness_start') or (), default=None)
+                    unpositioned_upper = max(measured.get('harness_end') or (), default=None)
+        for name, fields in ((WINDOWS_INITIALIZATION_STEP, lower_fields), (WINDOWS_STAGING_STEP, upper_fields)):
+            witnesses = [number for number, (label, step) in visible.items() if label == name and step.supports_clock]
+            if len(witnesses) == 1:
+                fields.append((witnesses[0], 'end'))
+    lowers = [ordered_limit(choices, order, field) for field in lower_fields if field in order]
+    uppers = [ordered_limit(choices, order, field, latest=True) for field in upper_fields if field in order]
+    lowers.append(unpositioned_lower)
+    uppers.extend((unpositioned_upper, deadline))
     # Actions exposes whole-second bounds while the publisher records
     # fractional seconds. Coarse bounds cover their whole second; precise
     # bounds can be compared directly.
-    if deadline is not None:
-        upper = min(upper, deadline)
     second = int(recorded)
-    return ((lower.is_finite() and lower > (second if lower == int(lower) else recorded))
-            or (upper.is_finite() and upper < (second if upper == int(upper) else recorded)))
+    return (any(bound is not None and bound.is_finite() and bound > (second if bound == int(bound) else recorded)
+                for bound in lowers)
+            or any(bound is not None and bound.is_finite() and bound < (second if bound == int(bound) else recorded)
+                   for bound in uppers))
 
 
 def report_clock_role(sample):
@@ -2303,14 +2333,21 @@ def windows_lineage_conflicts(reports):
             digest = row.get('windows_lineage', {}).get('original_sha256')
             if digest in raw_roles and raw_roles[digest] != {role}:
                 yield row, f'The timing report binds the original {role} producer report to a different role.'
-            elif role in originals:
+                continue
+            if role in originals:
                 if not any(windows_compact_matches_original(row, original) for original in originals[role]):
                     yield row, f'The timing report differs from the retained original {role} producer results.'
-            elif qualified_aggregates and not any(
-                    windows_producer_results_match(aggregate, row, role) for aggregate in qualified_aggregates):
-                yield row, f'The timing report differs from the retained original aggregate results for {role}.'
-            else:
-                qualified_producers[role].append(row)
+                continue
+            if qualified_aggregates:
+                compatible = [aggregate for aggregate in qualified_aggregates
+                              if windows_aggregate_matches_producer_digest(aggregate, role, digest)]
+                if not compatible:
+                    yield row, f'The timing report producer digest contradicts the retained original aggregate for {role}.'
+                    continue
+                if not any(windows_producer_results_match(aggregate, row, role) for aggregate in compatible):
+                    yield row, f'The timing report differs from the retained original aggregate results for {role}.'
+                    continue
+            qualified_producers[role].append(row)
 
     for row in compact_aggregates:
         sources = originals if qualified_aggregates else qualified_producers
@@ -2319,6 +2356,15 @@ def windows_lineage_conflicts(reports):
         elif qualified_aggregates and not any(
                 windows_compact_matches_original(row, original) for original in qualified_aggregates):
             yield row, 'The timing report differs from the retained original aggregate results.'
+
+
+def windows_aggregate_matches_producer_digest(aggregate, role, digest):
+    if digest is None:
+        return True
+    bindings = aggregate.get('windows_lineage', {}).get('producers', {})
+    if role in bindings:
+        return bindings[role] == digest
+    return digest not in bindings.values()
 
 
 def windows_compact_matches_original(compact, original):
@@ -4470,8 +4516,12 @@ def inspect_hosted(run_id, attempt, repository, samples, issues):
     return inspect_jobs(run, repository)
 
 
+def valid_recent_limit(limit):
+    return type(limit) is int and 1 <= limit <= MAX_RECENT
+
+
 def recent_runs(repository, limit):
-    if not 1 <= limit <= MAX_RECENT:
+    if not valid_recent_limit(limit):
         raise TimingError(f'Recent limit must be between 1 and {MAX_RECENT} per event.')
     endpoint = f'repos/{repository}/actions/workflows/verify.yml/runs'
     selected = []
@@ -4584,9 +4634,10 @@ class CollectionObservation(NamedTuple):
 
 
 def collection_facts(record):
-    counts = (*COLLECTION_COUNTS, 'limit_per_event') if 'limit_per_event' in record else COLLECTION_COUNTS
-    if any(type(record.get(field)) is not int or record[field] < 0 for field in counts):
+    if any(type(record.get(field)) is not int or record[field] < 0 for field in COLLECTION_COUNTS):
         raise TimingError('Timing collection requires nonnegative integer summary counts.')
+    if 'limit_per_event' in record and not valid_recent_limit(record['limit_per_event']):
+        raise TimingError(f'Timing collection limit must be between 1 and {MAX_RECENT} per event.')
     considered, downloaded, missing, unsuccessful = (record[field] for field in COLLECTION_COUNTS)
     if downloaded + missing != considered or unsuccessful > considered:
         raise TimingError('Timing collection summary counts disagree.')
@@ -4595,7 +4646,13 @@ def collection_facts(record):
     if (record.get('collected_at') is not None and point is None or source is not None and not commit_id(source)
             or type(empty) is not bool or empty and downloaded):
         raise TimingError('Invalid timing collection source, time or artifact state.')
-    facts = {field: record[field] for field in counts}
+    if source is not None:
+        source_types = git_object_types(ROOT, (source,))
+        if source_types is not None and not possible_commit_types(source_types):
+            raise TimingError('Timing collection source is a known noncommit Git object.')
+    facts = {field: record[field] for field in COLLECTION_COUNTS}
+    if 'limit_per_event' in record:
+        facts['limit_per_event'] = record['limit_per_event']
     facts.update(collected_at=encode_timestamp(point), capture_source=source, cold_bootstrap=empty)
     for field, validate in COLLECTION_MEMBERS.items():
         if field in record:
@@ -4624,6 +4681,15 @@ def collection_acquisitions(facts, samples, clocks):
             or 'downloaded_compact_inputs_sha256' in facts
             and not len(downloaded) <= downloaded_count <= len(downloaded) + missing_reports):
         raise TimingError('Timing collection counts disagree with its acquisition evidence.')
+    outcomes = defaultdict(set)
+    for clock in listings.values():
+        if clock.get('status') == 'completed' and clock['conclusion'] is not None:
+            outcomes[clock['run_id']].add(clock['conclusion'] == 'success')
+    successful = sum(values == {True} for values in outcomes.values())
+    unsuccessful = sum(values == {False} for values in outcomes.values())
+    # Count each run once and leave unavailable or disputed outcomes open.
+    if not unsuccessful <= facts['unsuccessful_runs'] <= facts['completed_runs_considered'] - successful:
+        raise TimingError('Timing collection unsuccessful run count disagrees with its recorded outcomes.')
     complete = not missing_reports and listing_digests == listings.keys()
     return reports.values(), listings.values(), complete
 
@@ -4949,7 +5015,7 @@ def main():
     if any(run < 1 for run in args.run or []):
         parser.error('--run requires a positive run ID')
 
-    if args.recent is not None and not 1 <= args.recent <= MAX_RECENT:
+    if args.recent is not None and not valid_recent_limit(args.recent):
         parser.error(f'--recent must be between 1 and {MAX_RECENT}')
     if args.github_actions and (args.recent is None or args.run):
         parser.error('--github-actions requires --recent and cannot accompany --run')

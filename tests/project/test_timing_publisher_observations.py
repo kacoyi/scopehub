@@ -179,12 +179,12 @@ class PublicPublisherObservationTests(unittest.TestCase):
             timing.main()
         return json.loads(output.getvalue())
 
-    def collect(self, archive, samples):
+    def collect(self, archive, samples, *, clock=None):
         with (patch.object(timing, 'hosted_repository', return_value='fixture/scopehub'),
               patch.object(timing, 'collection_source', return_value='c' * 40),
               patch.object(timing, 'recent_runs', return_value=[self.run]),
               patch.object(timing, 'download_timing', return_value=samples),
-              patch.object(timing, 'inspect_jobs', return_value=self.clock)):
+              patch.object(timing, 'inspect_jobs', return_value=self.clock if clock is None else clock)):
             return self.invoke('--recent', 1, '--github-actions', '--save', archive)
 
     def weekly(self, archive, sample):
@@ -298,6 +298,48 @@ class PublicPublisherObservationTests(unittest.TestCase):
                         self.assertEqual(1687, next(row['seconds']['runner'] for row in view['hosted'][0]['jobs']
                                                     if row['platform'] == 'Windows'))
 
+    def test_original_aggregate_qualifies_explicit_compact_producer_digest(self):
+        aggregate, browser, actions = self.split_report_pair()
+        catalog = fixtures.SPLIT_CATALOG
+        fixtures.use_catalog(self, catalog)
+        jobs = json.loads(actions[-1].read_text(encoding='utf-8'))
+        recovery = fixtures.hosted_job(36, 'windows', '00:40', '02:40', 'Verify the Windows recovery lane',
+                                       '01:00', '02:30')
+        recovery['name'] = timing.WINDOWS_PRODUCERS['recovery']
+        jobs.append(recovery)
+        aggregate_job = next(row for row in jobs if row['id'] == 35)
+        aggregate_job['steps'][-1]['name'] = timing.WINDOWS_RECOVERY_MARKER
+        actions = (*actions[:2], self.write_variant('jobs-with-recovery', jobs))
+        publisher = {'catalogs': {timing.publishing_catalog_digest(catalog)},
+                     'split_recovery_checks': [], 'run_observations': timing.RUN_OBSERVATION_CHECKS}
+        correct_digest, other_digest = '1' * 64, '2' * 64
+        aggregate['windows_producers'] = {'browser': correct_digest, 'recovery': other_digest}
+        legacy = timing.report_sample(browser)
+        original = timing.report_sample(browser, original_sha256=correct_digest)
+        contradicted = timing.report_sample(
+            dict(browser, generated_at='2026-11-20T00:11:24.5Z'), original_sha256=other_digest,
+        )
+        cases = ((legacy,), (original,), (contradicted,), (original, contradicted), (contradicted, original))
+        with patch.object(timing, 'committed_windows_publisher', return_value=publisher):
+            for index, inputs in enumerate(cases):
+                with self.subTest(case=index):
+                    archive = self.directory / f'digest-role-{index}.json'
+                    args = [arg for number, item in enumerate((aggregate, *inputs)) for arg in (
+                        '--report', self.write_variant(f'digest-report-{number}', item),
+                    )]
+                    observed = self.invoke(*args, *actions, '--save', archive)
+                    for view in (observed, self.invoke('--report', archive)):
+                        attributed = [row for row in view['samples']
+                                      if row['profile'] == 'ci-windows-browser' and row['job']]
+                        expected = [] if inputs == (contradicted,) else [(original['recorded_at'], 680)]
+                        self.assertEqual(expected, [(row['recorded_at'], row['seconds']['runner']) for row in attributed])
+                        self.assertEqual(1807, next(row['seconds']['runner'] for row in view['hosted'][0]['jobs']
+                                                    if row['platform'] == 'Windows'))
+                        self.assertEqual(contradicted in inputs, any(
+                            'digest contradicts the retained original aggregate' in issue['error']
+                            for issue in view['input_issues']
+                        ))
+
     def test_retained_capture_acquires_raw_source_without_changing_the_sample(self):
         _, browser, actions = self.split_report_pair()
         archive = self.directory / 'manual.json'
@@ -338,18 +380,37 @@ class PublicPublisherObservationTests(unittest.TestCase):
                         issue, = (note for note in view['input_issues'] if 'outside the publishing job' in note['error'])
                         self.assertEqual('33', issue['job_id'])
 
-    def test_report_generated_outside_verification_and_staging_cannot_withdraw_original(self):
+    def test_report_outside_remaining_publishing_bounds_cannot_withdraw_original(self):
         _, browser, actions = self.split_report_pair()
+        jobs = json.loads(actions[-1].read_bytes())
+        producer = next(job for job in jobs if job['id'] == 33)
+        verification, setup, *_ = producer['steps']
+        setup['number'] = 10
+        producer['steps'].append(dict(
+            name='Initialize CI verification reports', number=11, status='completed', conclusion='success',
+            started_at='2026-11-20T00:01:49Z', completed_at='2026-11-20T00:01:50Z',
+        ))
+        intact = self.write_variant('publishing-intact', jobs)
+        del setup['number']
+        missing_number = self.write_variant('publishing-missing-setup-number', jobs)
+        del verification['started_at'], verification['completed_at']
+        setup['number'] = 10
+        missing_clocks = self.write_variant('publishing-missing-verification-clocks', jobs)
         for label, transform in (('raw', lambda report: report), ('compact', timing.report_sample)):
             original = self.write_variant(f'publisher-{label}-original', transform(browser))
-            for case, at, admitted in (
-                ('before verification', '00:01:59', False),
-                ('at verification', '00:02:00', True),
-                ('at staging completion', '00:11:27.999', True),
-                ('after staging', '00:11:28', False),
+            for case, observed, at, admitted in (
+                ('before verification', intact, '00:01:59', False),
+                ('at verification', intact, '00:02:00', True),
+                ('within verification end second', intact, '00:11:25.999999', True),
+                ('after verification', intact, '00:11:26', False),
+                ('after staging without setup number', missing_number, '00:11:28', False),
+                ('before initialization without verification clocks', missing_clocks, '00:01:48', False),
+                ('at initialization without verification clocks', missing_clocks, '00:01:50', True),
+                ('within staging start second without verification clocks', missing_clocks, '00:11:25.999999', True),
             ):
                 changed = dict(browser, generated_at=f'2026-11-20T{at}Z')
                 variant = self.write_variant(f'publisher-{label}-{case}', transform(changed))
+                clock = timing.actions_clock(self.run, json.loads(observed.read_bytes()))
                 for index, (paths, inputs, expected) in enumerate((
                     ((variant,), [changed], int(admitted)),
                     ((original, variant), [browser, changed], int(not admitted)),
@@ -358,8 +419,8 @@ class PublicPublisherObservationTests(unittest.TestCase):
                     with self.subTest(format=label, case=case, inputs=paths):
                         args = [arg for path in paths for arg in ('--report', path)]
                         archive = self.directory / f'verification-staging-{label}-{case}-{index}.json'
-                        ordinary = self.invoke(*args, *actions)
-                        weekly = self.collect(archive, [timing.report_sample(row) for row in inputs])
+                        ordinary = self.invoke(*args, *actions[:-1], observed)
+                        weekly = self.collect(archive, [timing.report_sample(row) for row in inputs], clock=clock)
                         for view in (ordinary, weekly, self.invoke('--report', archive)):
                             attributed = [row for row in view['samples'] if row['profile'] == 'ci-windows-browser'
                                           and row['job']]
@@ -814,9 +875,12 @@ class PublicPublisherObservationTests(unittest.TestCase):
         head = self.linux['ci']['head_sha']
         impostor = dict(self.linux, source_commit=head, ci=dict(self.linux['ci'], checkout_sha=head))
         archive = self.directory / 'absent-head.json'
-        with patch.object(timing, 'git_object_types', return_value=(b'missing', b'missing')) as git_objects:
+        with patch.object(timing, 'git_object_types',
+                          side_effect=lambda root, revisions: (b'missing',) * len(revisions)) as git_objects:
             view = self.collect(archive, [impostor, self.windows])
-            self.assertTrue(all(len(set(call.args[1])) == 2 for call in git_objects.call_args_list))
+            checkout_checks = [call.args[1] for call in git_objects.call_args_list if call.args[1] != ('c' * 40,)]
+            self.assertTrue(checkout_checks)
+            self.assertTrue(all(len(set(revisions)) == 2 for revisions in checkout_checks))
         receipt, = view['recent_collection']['collected_samples']
         self.assertEqual(('Windows', timing.report_input_sha256(self.windows)),
                          (receipt['platform'], receipt['report_input_sha256']))

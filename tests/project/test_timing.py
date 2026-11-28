@@ -526,6 +526,7 @@ class HostedTimingTests(unittest.TestCase):
         identity = timing.ci_key(official)
         report = split_harness_report(675)
         report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, identity)), 'checkout_sha': 'a' * 40}
+        report['generated_at'] = '2026-11-20T00:12:28Z'
         windows = timing.report_sample(report)
         linux = split_linux_sample(windows)
         samples = [windows, linux]
@@ -964,6 +965,18 @@ class HostedTimingTests(unittest.TestCase):
                     self.assertEqual(both, current['collected_samples'])
                     self.assertFalse(current.get('collection_order_uncertain', False))
                     self.assertEqual(current, reopen(saved))
+
+            tree = timing.git(timing.ROOT, 'rev-parse', 'HEAD^{tree}').decode('ascii').strip()
+            for field, value in (('unsuccessful_runs', 1), ('limit_per_event', 0),
+                                 ('limit_per_event', timing.MAX_RECENT + 1), ('capture_source', tree)):
+                contradicted = altered(f'{field}-{value}.json', lambda record: record.update({field: value}))
+                with self.subTest(field=field, value=value):
+                    self.assertIsNone(reopen(contradicted))
+                    for index, paths in enumerate(((genuine, contradicted), (contradicted, genuine))):
+                        saved = folder / f'{contradicted.stem}-merged-{index}.json'
+                        current = reopen(*paths, save_to=saved)
+                        self.assertEqual(original['recent_collection'], current)
+                        self.assertEqual(current, reopen(saved))
 
             for index, paths in enumerate(((genuine, empty_listing), (empty_listing, genuine))):
                 with self.subTest(paths=[path.name for path in paths]):
@@ -1771,12 +1784,12 @@ class HostedTimingTests(unittest.TestCase):
         report = split_harness_report(675)
         report['selection']['profile'] = 'full'
         report['source']['sha256'] = 'c' * 64
-        report['generated_at'] = '2026-11-20T00:12:40Z'
+        report['generated_at'] = '2026-11-20T00:12:35.999999Z'
         report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(clock))), 'checkout_sha': 'a' * 40}
         caches = dict(core='partial', browser='unknown', python='not_requested', recovery='partial')
         full = dict(timing.report_sample(report), windows_caches=caches)
         browser = {key: value for key, value in full.items() if key != 'windows_caches'}
-        browser = dict(lane_sample(browser, 'browser'), cache='partial', recorded_at='2026-11-20T00:11:30Z')
+        browser = dict(lane_sample(browser, 'browser'), cache='partial', recorded_at='2026-11-20T00:11:25.999999Z')
         variants = (
             ([browser], 'partial', False),
             ([dict(browser, arch='x86_64')], 'partial', False),
@@ -1809,19 +1822,19 @@ class HostedTimingTests(unittest.TestCase):
         complete = timing.hosted_timing(run, all_jobs)
         report = split_harness_report(675)
         report['source']['sha256'] = 'c' * 64
-        report['generated_at'] = '2026-11-20T00:12:40Z'
+        report['generated_at'] = '2026-11-20T00:12:35.999999Z'
         report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(complete))), 'checkout_sha': 'a' * 40}
         original = timing.report_sample(report, cache='warm')
         caches = dict(core='warm', browser='warm', python='not_requested', recovery='warm')
         full = dict(original, windows_caches=caches)
-        browser = dict(lane_sample(original, 'browser'), recorded_at='2026-11-20T00:11:30Z')
+        browser = dict(lane_sample(original, 'browser'), recorded_at='2026-11-20T00:11:25.999999Z')
         for jobs, totals in (([], (None, None, None)), ([browser_job], (None, 720, None)),
                              ([recovery_job], (None, None, 305)), ([browser_job, recovery_job], (None, 720, 305)),
                              (all_jobs, (765, 720, 305))):
             hosted = [timing.hosted_timing(run, jobs)] if jobs else []
             for recovery_cache in ('warm', 'cold'):
                 recovery = dict(lane_sample(original, 'recovery'), cache=recovery_cache,
-                                recorded_at='2026-11-20T00:05:01Z')
+                                recorded_at='2026-11-20T00:05:00.999999Z')
                 for samples in ([full, browser, recovery], [recovery, browser, full]):
                     with self.subTest(totals=totals, cache=recovery_cache, first=samples[0]['profile']):
                         view = timing.timing_view(samples, hosted=hosted)
@@ -1843,11 +1856,11 @@ class HostedTimingTests(unittest.TestCase):
         report = split_harness_report(675)
         report['selection']['profile'] = 'full'
         report['source']['sha256'] = 'c' * 64
-        report['generated_at'] = '2026-11-20T00:12:40Z'
+        report['generated_at'] = '2026-11-20T00:12:35.999999Z'
         report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(clock))), 'checkout_sha': 'a' * 40}
         full = timing.report_sample(report)
         wrong_lane = dict(lane_sample(full, 'recovery'), profile='ci-windows-browser', cache='warm')
-        browser = dict(lane_sample(full, 'browser'), cache='warm', recorded_at='2026-11-20T00:11:30Z')
+        browser = dict(lane_sample(full, 'browser'), cache='warm', recorded_at='2026-11-20T00:11:25.999999Z')
         for rows, cache, total in (([wrong_lane, full], 'unknown', None),
                                    ([wrong_lane, full, browser], 'unknown', 720)):
             view = timing.timing_view(rows, hosted=[clock])
@@ -1891,10 +1904,10 @@ class HostedTimingTests(unittest.TestCase):
         report = split_harness_report(675)
         report['selection']['profile'] = 'full'
         report['source']['sha256'] = 'c' * 64
-        report['generated_at'] = '2026-11-20T00:12:40Z'
+        report['generated_at'] = '2026-11-20T00:12:35.999999Z'
         report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(clock))), 'checkout_sha': 'a' * 40}
         full = timing.report_sample(report, cache='warm')
-        browser = dict(lane_sample(full, 'browser'), cache='partial', recorded_at='2026-11-20T00:11:30Z')
+        browser = dict(lane_sample(full, 'browser'), cache='partial', recorded_at='2026-11-20T00:11:25.999999Z')
         for observations in ([full, browser], [browser, full]):
             view = timing.timing_view(observations, hosted=[clock])
             protected, = [row for row in view['samples'] if row['profile'] == 'full']
