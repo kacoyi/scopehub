@@ -1016,6 +1016,48 @@ class HostedTimingTests(unittest.TestCase):
                         self.assertEqual(receipts, selected['collected_samples'])
                         self.assertEqual(selected, reopen(saved))
 
+    def test_collection_uses_independent_outcomes_before_ordering_acquisitions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            reports, collect, reopen = self.collection_replay(folder)
+            path, original = collect('one-listing.json', reports)
+            genuine = json.loads(path.read_bytes())
+            clock, = genuine['hosted']
+            peer_id = str(int(clock['run_id']) + 1)
+            peer = {**reports[0], 'ci': {**reports[0]['ci'], 'run_id': peer_id}}
+            peer_outcome = {**clock, 'run_id': peer_id, 'jobs': [], 'sibling_jobs': []}
+            genuine['samples'].append(peer)
+            collection = genuine['recent_collection']
+            collection['downloaded_compact_inputs_sha256'].append(timing.report_input_sha256(peer))
+            collection.update(completed_runs_considered=2, runs_with_compact=2, limit_per_event=2)
+
+            def save(name, archive):
+                path = folder / name
+                timing.save_review_archive(path, archive)
+                return path
+
+            supported = save('supported.json', {**genuine, 'hosted': [clock, peer_outcome]})
+            unsupported = save('without-outcome.json', genuine)
+            contradicted = save('contradicted.json', {
+                **genuine, 'recent_collection': {**collection, 'unsuccessful_runs': 1},
+            })
+            expected = reopen(supported)
+            self.assertEqual(original['recent_collection']['collected_samples'], expected['collected_samples'])
+            for index, inputs in enumerate(((supported, contradicted), (contradicted, supported))):
+                with self.subTest(order=index):
+                    saved = folder / f'combined-{index}.json'
+                    self.assertEqual(expected, reopen(*inputs, save_to=saved))
+                    self.assertEqual(expected, reopen(saved))
+
+            tied = folder / 'tied.json'
+            disagreement = reopen(unsupported, contradicted, save_to=tied)
+            self.assertTrue(disagreement['collection_order_uncertain'])
+            self.assertEqual(disagreement, reopen(tied))
+            evidence = save('independent-outcome.json', {
+                'kind': timing.ARCHIVE_KIND, 'samples': [], 'hosted': [peer_outcome],
+            })
+            self.assertEqual(expected, reopen(tied, evidence))
+
     def test_recent_collection_requires_original_layout_and_publishing_qualification(self):
         run = hosted_run()
         split_clock = timing.hosted_timing(run, self.split_windows_jobs())
