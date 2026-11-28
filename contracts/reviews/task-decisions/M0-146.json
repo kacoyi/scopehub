@@ -813,6 +813,15 @@
       },
       "supersedes": "13be28dbbf0e4af0202c41b78e6cb98718f690591c82d86b40385a9d4fc9a2ec",
       "evidence_sha256": "45907e915079db2eb98db8910d60329fc10b2dd74c9553d910510e5871182447"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ede385d261fefd14148d5162ffc7e10cdd293b2e",
+      "scope": "Verify the M0-146 acceptance-record correction from the previous independent refusal. Using the actual ordinary public Windows timing reader, compare PR 120 run 45666385494 under queue-only controls through the inclusive Windows seconds.total boundary of 900 seconds and distinguish the producer span. Reconcile failed PR 123 run 46103840740, the original fourth Python timeout, local source and task history, and confirm the precise pending ordinary and protected gates.",
+      "supersedes": "28432463478bf5ab7430bf9a74815cc276ece5caed2b636cdf240d8c7f5f259d",
+      "requested_at": "2026-11-28T05:07:28.534518+00:00",
+      "request_id": "0afe24aa3d59d65932b5ad18106f219526554069aba098c476d8e04394d8167e",
+      "evidence_sha256": "c1109cf2ea409f58999de234a71a9c04a16a9ce3b54f1e12283766c6545d06fa"
     }
   ]
 }
